@@ -1,7 +1,16 @@
 # Weblisk Blueprints
 
+[![GitHub](https://img.shields.io/badge/github-avaropoint%2Fweblisk--blueprints-blue)](https://github.com/avaropoint/weblisk-blueprints)
+[![Part of Weblisk](https://img.shields.io/badge/part%20of-Weblisk-orange)](https://github.com/avaropoint/weblisk)
+
 The specification, architecture, and domain knowledge for the
-[Weblisk](https://github.com/avaropoint/weblisk) agent framework.
+[Weblisk](https://github.com/avaropoint/weblisk) server framework.
+
+This repository is part of the **Weblisk** project — an open-source
+server framework for building autonomous, collaborative AI agents.
+The [weblisk](https://github.com/avaropoint/weblisk) repository contains
+the server runtime and CLI; this repository provides the blueprints that
+drive code generation and define protocol compliance.
 
 Blueprints are implementation-agnostic specifications. They describe
 **what** agents and orchestrators must do — not **how** they do it in
@@ -100,11 +109,21 @@ Domain blueprints define an agent's specific expertise. They MUST include:
 
 See [domains/seo.md](domains/seo.md) for a complete example.
 
-## Server Implementations
+## Related Repositories
 
-These blueprints are used by the following server implementations:
+| Repository | Description |
+|---|---|
+| [weblisk](https://github.com/avaropoint/weblisk) | Server framework runtime and CLI |
+| [weblisk-blueprints](https://github.com/avaropoint/weblisk-blueprints) | Specifications and domain knowledge (this repo) |
 
-- [weblisk-server](https://github.com/avaropoint/weblisk-server) — Go reference implementation
+## Contributing
+
+1. Fork this repository
+2. Create a feature branch (`git checkout -b feature/my-blueprint`)
+3. Follow the [Blueprint Schema](SCHEMA.md) for new blueprints
+4. Commit your changes (`git commit -m 'Add new blueprint'`)
+5. Push to the branch (`git push origin feature/my-blueprint`)
+6. Open a Pull Request
 
 ## License
 
