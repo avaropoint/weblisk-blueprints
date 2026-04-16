@@ -1,7 +1,7 @@
 <!-- blueprint
 type: agent
 kind: infrastructure
-name: cron-agent
+name: cron
 version: 1.0.0
 requires: [protocol/spec, protocol/types, architecture/agent]
 platform: any
@@ -109,7 +109,7 @@ Register a new scheduled task.
 {
   "name": "daily-report",
   "schedule": "0 9 * * *",
-  "target_agent": "email-agent",
+  "target_agent": "email-send",
   "action": "send_report",
   "payload": {"report_type": "daily"},
   "max_retries": 3,

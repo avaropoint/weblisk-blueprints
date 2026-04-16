@@ -24,6 +24,7 @@ protocol/           Wire protocol specifications
   spec.md             Full protocol specification v1
   identity.md         Ed25519 crypto, tokens, signing
   types.md            Canonical type definitions (all JSON shapes)
+  federation.md       Multi-orchestrator federation and data boundaries
 
 architecture/       System architecture
   orchestrator.md     Central coordinator — routing, security, audit
@@ -32,6 +33,7 @@ architecture/       System architecture
   lifecycle.md        Continuous optimization loop
   storage.md          Abstract persistence interface
   testing.md          Conformance test suite specification
+  marketplace.md      Federated agent marketplace — discovery, tiers, billing
 
 platforms/          Implementation guidance per runtime
   go.md               Go (stdlib only, local processes)
@@ -43,13 +45,14 @@ domains/            Domain controller specifications
 agents/             Work agents and infrastructure services (Free tier)
   seo-analyzer.md     SEO analysis work agent (domain: seo)
   a11y-checker.md     Accessibility checking work agent (domain: seo)
-  sync-agent.md       Background data sync (infrastructure)
-  cron-agent.md       Scheduled task execution (infrastructure)
-  webhook-agent.md    Webhook processing (infrastructure)
-  email-agent.md      Transactional email (infrastructure)
+  sync.md            Background data sync (infrastructure)
+  cron.md            Scheduled task execution (infrastructure)
+  webhook.md         Webhook processing (infrastructure)
+  email-send.md      Transactional email sending (infrastructure)
 
 patterns/           Declarative API pattern specifications (Free tier)
   api-rest.md         REST API with CRUD, pagination, filtering, sorting
+  api-ai.md           AI gateway — chat, completions, extraction, embeddings
   realtime-chat.md    WebSocket messaging with channels, presence, history
   auth-session.md     Session-based auth with secure cookies, CSRF
   auth-token.md       JWT and API key auth with refresh tokens, scopes
@@ -185,7 +188,7 @@ agents (system-level services). They MUST include:
 6. **Verification Checklist** — Testable compliance checks
 
 See [agents/seo-analyzer.md](agents/seo-analyzer.md) for a work agent example.
-See [agents/sync-agent.md](agents/sync-agent.md) for an infrastructure agent example.
+See [agents/sync.md](agents/sync.md) for an infrastructure agent example.
 
 ## Related Repositories
 

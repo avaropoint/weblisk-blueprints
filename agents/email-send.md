@@ -1,14 +1,14 @@
 <!-- blueprint
 type: agent
 kind: infrastructure
-name: email-agent
+name: email-send
 version: 1.0.0
 requires: [protocol/spec, protocol/types, architecture/agent]
 platform: any
 tier: free
 -->
 
-# Email Agent
+# Email Send
 
 Transactional email sending with template rendering, queuing, and
 delivery status tracking. Supports SMTP and API-based providers.
@@ -37,7 +37,7 @@ deliveries are retried automatically.
   "outputs": [
     {"name": "delivery_status", "type": "json", "description": "Delivery result with message ID"}
   ],
-  "collaborators": ["cron-agent"]
+  "collaborators": ["cron"]
 }
 ```
 

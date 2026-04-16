@@ -1,7 +1,7 @@
 <!-- blueprint
 type: agent
 kind: infrastructure
-name: webhook-agent
+name: webhook
 version: 1.0.0
 requires: [protocol/spec, protocol/types, architecture/agent, patterns/webhook-inbound, patterns/webhook-outbound]
 platform: any
@@ -41,7 +41,7 @@ background process alongside the main server.
   "outputs": [
     {"name": "delivery_result", "type": "json", "description": "Delivery status and tracking info"}
   ],
-  "collaborators": ["cron-agent"]
+  "collaborators": ["cron"]
 }
 ```
 
@@ -208,8 +208,8 @@ See types defined in:
 - **Separation of concerns**: The webhook blueprints define the API
   contract. This agent implements the background processing. The HTTP
   endpoints may live in the main server; the agent handles async work.
-- **Collaboration with cron-agent**: The retry sweep can be delegated
-  to the cron-agent for scheduling instead of running its own timer.
+- **Collaboration with cron**: The retry sweep can be delegated
+  to the cron agent for scheduling instead of running its own timer.
 - **Signature verification**: Always verify on the raw bytes. JSON
   re-serialization may change field order and break signatures.
 - **Subscriber deactivation**: If a subscriber fails N consecutive
