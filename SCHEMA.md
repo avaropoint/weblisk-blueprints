@@ -23,7 +23,7 @@ Agent blueprints use an additional `kind` metadata field:
 |------|---------|---------|
 | `domain` | Business-function controller — dispatches work to agents | `domains/seo.md` |
 | `work` | Performs a specific task under a domain's direction | `agents/seo-analyzer.md` |
-| `infrastructure` | System utility — runs independently of any domain | `agents/sync-agent.md` |
+| `infrastructure` | System utility — runs independently of any domain | `agents/sync.md` |
 
 ## Required Sections
 

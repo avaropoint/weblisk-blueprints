@@ -1,7 +1,7 @@
 <!-- blueprint
 type: agent
 kind: infrastructure
-name: sync-agent
+name: sync
 version: 1.0.0
 requires: [protocol/spec, protocol/types, architecture/agent]
 platform: any
