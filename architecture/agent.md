@@ -96,6 +96,11 @@ The runtime context provided to Execute and HandleMessage:
 Simply return the agent's manifest as JSON. No auth needed.
 
 ### POST /v1/execute
+
+See [Protocol Specification — POST /v1/execute](../protocol/spec.md)
+for the endpoint contract.
+
+**Implementation:**
 ```
 1. Require POST method
 2. Parse TaskRequest from body
@@ -117,13 +122,18 @@ Return HealthStatus with:
 - metrics: {services_known: count}
 
 ### POST /v1/message
+
+See [Protocol Specification — POST /v1/message](../protocol/spec.md)
+for the endpoint contract and [Identity — Signing](../protocol/identity.md)
+for signature verification details.
+
+**Implementation:**
 ```
 1. Require POST method
 2. Parse AgentMessage from body
 3. If message has signature AND sender's public key is known:
-   a. Reconstruct signed payload: {from, to, action, payload}
-   b. Verify signature against sender's public key
-   c. If invalid → 401 "invalid message signature"
+   Verify per identity.md signing rules
+   If invalid → 401 "invalid message signature"
 4. Call agentLogic.HandleMessage(message, context)
 5. If error → 500 with error message
 6. Build response AgentMessage:
@@ -132,7 +142,7 @@ Return HealthStatus with:
    - type: "response"
    - action: same as request
    - payload: handler's response
-7. Sign response: {from, to, action, payload}
+7. Sign response per identity.md
 8. Return response as JSON
 ```
 
@@ -198,22 +208,117 @@ For authenticated direct communication:
 ```
 
 ### Standard Capabilities
-- `file:read` — read files (resources: glob patterns)
-- `file:write` — write/modify files
-- `llm:chat` — use LLM for analysis
-- `agent:message` — communicate with other agents
-- `http:get` — make external HTTP requests
+
+See [types.md — Capability](../protocol/types.md) for the canonical
+list of standard capabilities and their descriptions.
+
+## Agent Kinds
+
+The `type` field in the manifest distinguishes three kinds of agents:
+
+| Kind | Manifest Type | Purpose | Dispatched By |
+|------|--------------|---------|---------------|
+| Domain controller | `"domain"` | Directs a business function, owns workflows | Orchestrator |
+| Work agent | `"agent"` | Performs specific tasks | Domain controller |
+| Infrastructure agent | `"infrastructure"` | System-level utilities | Any authenticated agent |
+
+See [Domain Architecture](domain.md) for the full domain controller spec.
+
+**Domain controllers** register with the orchestrator and declare
+`required_agents` and `workflows`. They receive business-level tasks
+and decompose them into multi-agent workflows.
+
+**Work agents** perform the actual work. They are dispatched by domain
+controllers via `POST /v1/message`. They register with the orchestrator
+but business tasks should route through their owning domain.
+
+**Infrastructure agents** (sync, cron, webhook, email) provide
+reusable platform services. Any authenticated agent or domain can
+message them directly.
 
 ## Port Assignment Convention
 
-Built-in agents use deterministic ports:
-- seo: 9710
-- a11y: 9711
-- perf: 9712
-- security: 9713
-- workflow: 9714
-- task: 9715
-- scheduler: 9716
-- Custom agents: hash(name) % 80 + 9720
+| Range | Purpose | Examples |
+|-------|---------|----------|
+| 9700–9709 | Domain controllers | seo: 9700 |
+| 9710–9749 | Work agents | seo-analyzer: 9710, a11y-checker: 9711 |
+| 9750–9799 | Infrastructure agents | sync: 9750, cron: 9751, webhook: 9752, email: 9753 |
+| 9800 | Orchestrator | orchestrator: 9800 |
+| 9820+ | Custom agents | hash(name) % 80 + 9820 |
 
-Orchestrator default: 9800
+## Concurrency and Backpressure
+
+Agents MUST protect themselves from overload. The orchestrator and
+domain controllers MUST respect agent capacity limits.
+
+### Agent-Side Limits
+
+Every agent SHOULD enforce a maximum number of concurrent executions.
+Defaults:
+
+| Agent Kind | Default Max Concurrent | Configurable Via |
+|------------|----------------------|------------------|
+| Domain controller | 10 | `WL_MAX_CONCURRENT` env var |
+| Work agent | 5 | `WL_MAX_CONCURRENT` env var |
+| Infrastructure agent | 20 | `WL_MAX_CONCURRENT` env var |
+
+When at capacity, agents MUST return `429 Too Many Requests` with
+a structured error:
+
+```json
+{
+  "error": "agent at capacity — 5 concurrent tasks running",
+  "code": "RATE_LIMITED",
+  "category": "transient",
+  "retryable": true
+}
+```
+
+The response SHOULD include a `Retry-After` header (seconds):
+```
+HTTP/1.1 429 Too Many Requests
+Retry-After: 5
+Content-Type: application/json
+```
+
+### Manifest Capacity Declaration
+
+Agents MAY declare their concurrency limit in the manifest so callers
+can make informed scheduling decisions:
+
+```json
+{
+  "name": "seo-analyzer",
+  "max_concurrent": 5,
+  ...
+}
+```
+
+This is advisory — callers SHOULD respect it but MUST also handle 429.
+
+### Domain-Side Scheduling
+
+Domain controllers dispatch phases concurrently within a dependency
+level. When dispatching, domains MUST:
+
+1. Check the target agent's declared `max_concurrent` (from manifest)
+2. Track how many in-flight requests exist per agent
+3. If at limit, queue the phase and dispatch when a slot frees
+4. If 429 received, apply exponential backoff: 1s, 2s, 4s, 8s (max 30s)
+5. After 3 consecutive 429s for the same agent, degrade gracefully:
+   serialize remaining phases for that agent instead of parallel dispatch
+
+### Orchestrator-Side Protection
+
+The orchestrator SHOULD enforce:
+
+1. **Per-agent task rate**: Max 60 tasks/minute per target agent (configurable)
+2. **Global task rate**: Max 200 tasks/minute total (configurable)
+3. **Request body limits** (already specified in spec.md):
+   - Registration: 1 MB
+   - Task execution: 10 MB
+   - Messages: 1 MB
+   - Channel requests: 64 KB
+
+When the orchestrator rate-limits a request, it returns 429 with
+`Retry-After`.

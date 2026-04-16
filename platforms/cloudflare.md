@@ -2,7 +2,7 @@
 type: platform
 name: cloudflare
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/types, architecture/agent, architecture/orchestrator]
+requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage]
 platform: cloudflare
 -->
 
@@ -124,3 +124,100 @@ wrangler secret put WL_AI_KEY
 | Deployment | Local process | Edge (200+ locations) |
 | LLM | External API calls | Workers AI or external |
 | Concurrency | Goroutines + RWMutex | Single-threaded per request |
+
+## Project Structure: Domain Controller
+
+```
+domains/<name>/
+  wrangler.toml
+  src/
+    index.js           # Worker entry point
+    protocol.js        # Same protocol types
+    identity.js        # Same identity module
+    agent.js           # Agent base framework
+    domain.js          # Workflow engine + dispatch logic
+    workflows.js       # Workflow definitions
+    <name>.js          # Domain-specific aggregation and actions
+  package.json
+```
+
+## Storage Mapping (Cloudflare)
+
+See [architecture/storage.md](../architecture/storage.md) for the
+abstract storage interface.
+
+| Store | Backend | Notes |
+|-------|---------|-------|
+| Agent Registry | Durable Object | Strongly consistent, single-writer |
+| Strategies | Durable Object | Under same `OrchestratorState` DO |
+| Observations | D1 (SQL) or KV | KV for simple append; D1 for queries |
+| Recommendations | Durable Object | Needs status transitions |
+| Feedback | D1 or KV | Append-only |
+| Agent Metrics | Durable Object | Incremental updates |
+| Audit Log | D1 | Queryable, retained 90 days |
+| Entity Context | KV | Single record, fast reads |
+| Channels | Durable Object | With alarm for TTL cleanup |
+| Workflow Executions | D1 | Domain-scoped |
+
+### Durable Object: OrchestratorState
+Primary Durable Object that holds agent registry, recommendations,
+strategies, and channels. Single-writer guarantees consistency.
+
+```javascript
+export class OrchestratorState {
+  constructor(state, env) {
+    this.state = state;
+    this.storage = state.storage;
+  }
+  
+  async fetch(request) {
+    // Route to internal handlers based on path
+  }
+}
+```
+
+### D1 for Queryable Data
+Observations, audit logs, and workflow executions benefit from SQL
+queries (filter by agent, time range, strategy). Use D1 tables:
+
+```toml
+[[d1_databases]]
+binding = "DB"
+database_name = "weblisk"
+database_id = "<your-d1-id>"
+```
+
+### KV for Fast Reads
+Entity context and service directory cache use KV for fast edge reads:
+
+```toml
+[[kv_namespaces]]
+binding = "CACHE"
+id = "<your-kv-id>"
+```
+
+## Concurrency (Cloudflare-Specific)
+
+Cloudflare Workers are single-threaded per request but handle
+concurrent requests via the runtime. Concurrency limiting uses
+the Durable Object as a coordination point:
+
+```javascript
+// In OrchestratorState Durable Object
+async acquireSlot(agentName, maxConcurrent) {
+  const key = `slots:${agentName}`;
+  const current = (await this.storage.get(key)) || 0;
+  if (current >= maxConcurrent) return false;
+  await this.storage.put(key, current + 1);
+  return true;
+}
+
+async releaseSlot(agentName) {
+  const key = `slots:${agentName}`;
+  const current = (await this.storage.get(key)) || 1;
+  await this.storage.put(key, Math.max(0, current - 1));
+}
+```
+
+Domain controllers running as Workers dispatch phases using
+`Promise.all()` for parallel execution within a dependency level.
