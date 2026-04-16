@@ -9,9 +9,21 @@ any blueprint — regardless of the blueprint's domain or purpose.
 | Type | Purpose | Directory |
 |------|---------|-----------|
 | `protocol` | Wire protocol specifications, security, types | `protocol/` |
-| `architecture` | System architecture patterns (orchestrator, agent) | `architecture/` |
+| `architecture` | System architecture patterns (orchestrator, domain, agent, lifecycle) | `architecture/` |
 | `platform` | Implementation guidance for a specific runtime | `platforms/` |
-| `domain` | Domain expertise for a specific agent capability | `domains/` |
+| `domain` | Domain controller specifications — workflow, agent dispatch, aggregation | `domains/` |
+| `pattern` | Declarative API pattern specifications (REST, auth, webhooks, etc.) | `patterns/` |
+| `agent` | Work agents and infrastructure service definitions | `agents/` |
+
+### Agent Kinds
+
+Agent blueprints use an additional `kind` metadata field:
+
+| Kind | Purpose | Example |
+|------|---------|---------|
+| `domain` | Business-function controller — dispatches work to agents | `domains/seo.md` |
+| `work` | Performs a specific task under a domain's direction | `agents/seo-analyzer.md` |
+| `infrastructure` | System utility — runs independently of any domain | `agents/sync-agent.md` |
 
 ## Required Sections
 
@@ -24,20 +36,22 @@ inside an HTML comment, followed by a `#` title and overview paragraph.
 
 ```markdown
 <!-- blueprint
-type: domain | protocol | architecture | platform
+type: domain | protocol | architecture | platform | pattern | agent
+kind: domain | work | infrastructure (agent type only)
 name: seo
 version: 1.0.0
 requires: [protocol/spec, protocol/identity, architecture/agent]
 platform: any | go | cloudflare | node | rust
 -->
 
-# SEO Agent Domain Knowledge
+# SEO Domain Controller
 
 One-paragraph overview of what this blueprint defines and why it exists.
 ```
 
 **Fields:**
-- `type` (required): One of `protocol`, `architecture`, `platform`, `domain`
+- `type` (required): One of `protocol`, `architecture`, `platform`, `domain`, `pattern`, `agent`
+- `kind` (optional): Agent kind — `domain`, `work`, or `infrastructure` (only for `type: agent` or `type: domain`)
 - `name` (required): Unique identifier (lowercase, hyphen-separated)
 - `version` (required): Semver version of the blueprint
 - `requires` (required): List of other blueprints this one depends on
@@ -56,7 +70,9 @@ The normative content. For each blueprint type:
 - **Protocol**: Endpoints, request/response schemas, error codes, auth rules
 - **Architecture**: Component responsibilities, startup sequence, data flow
 - **Platform**: Runtime requirements, project structure, build commands
-- **Domain**: Capabilities, workflow phases, validation rules, LLM prompts
+- **Domain**: Workflows, required agents, dispatch rules, aggregation, feedback
+- **Pattern**: Blueprint format, endpoints, request/response shapes, types
+- **Agent**: Capabilities, triggers, execute workflow, message handlers, validation
 
 Use RFC 2119 language (MUST, SHOULD, MAY) for requirements.
 

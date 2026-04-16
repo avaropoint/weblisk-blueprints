@@ -26,7 +26,7 @@ optimization lifecycle: strategize → observe → recommend → execute → fee
 - All timestamps are Unix epoch seconds (`int64`)
 - All signatures are hex-encoded Ed25519 signatures (128 hex chars)
 - All public keys are hex-encoded Ed25519 public keys (64 hex chars)
-- Errors return `{"error": "human-readable message"}`
+- Errors return `ErrorResponse` JSON (see [types.md](types.md)); at minimum `{"error": "message"}`
 - IDs are 32-character hex strings (16 random bytes)
 - Unknown JSON fields MUST be ignored (forward compatibility)
 - Request bodies MUST be limited: 1 MB default, 10 MB for task execution
@@ -45,9 +45,10 @@ Returns the agent's identity and capabilities. No auth required.
 
 ```json
 {
-  "name": "seo",
+  "name": "seo-analyzer",
+  "type": "agent",
   "version": "1.0.0",
-  "description": "Scans HTML files and optimizes SEO metadata",
+  "description": "Scans HTML files and analyzes SEO metadata",
   "url": "http://localhost:9710",
   "public_key": "<64-char hex Ed25519 public key>",
   "capabilities": [
@@ -61,8 +62,10 @@ Returns the agent's identity and capabilities. No auth required.
   "outputs": [
     {"name": "seo_report", "type": "json", "description": "SEO analysis with proposed changes"}
   ],
-  "collaborators": ["a11y"],
-  "approval": "required"
+  "collaborators": ["a11y-checker"],
+  "approval": "required",
+  "max_concurrent": 5
+}
 }
 ```
 
@@ -84,7 +87,7 @@ The agent MUST:
 ```json
 {
   "task_id": "a1b2c3d4e5f6...",
-  "agent_name": "seo",
+  "agent_name": "seo-analyzer",
   "status": "pending_approval",
   "summary": "Scanned 5 files, proposing 3 improvements",
   "changes": [
@@ -114,7 +117,7 @@ Health check. No auth required.
 
 ```json
 {
-  "name": "seo",
+  "name": "seo-analyzer",
   "status": "healthy",
   "version": "1.0.0",
   "uptime": 3600,
@@ -239,6 +242,97 @@ Audit log. Requires valid auth token.
 
 **Response:** Array of `AuditEntry` (most recent first)
 
+### POST /v1/approve
+
+Approve or reject pending recommendations. Requires valid auth token.
+
+**Request:** `ApprovalRequest`
+**Response:** `ApprovalResponse`
+
+The orchestrator MUST:
+1. Authenticate the request
+2. Validate: `recommendation_ids` is non-empty, `decision` is `"accept"` or `"reject"`
+3. If `decision` is `"reject"` and `reason` is empty, return 400
+4. For each recommendation ID:
+   a. Look up in recommendation store
+   b. If not found or not `"pending"`, record error in result
+   c. Update status: `"pending"` → `"accepted"` or `"rejected"`
+   d. Store `reason` if provided
+5. Log audit entry for each updated recommendation
+6. If accepted recommendations belong to a paused workflow,
+   notify the owning domain to resume execution
+7. Respond with `ApprovalResponse`
+
+### GET /v1/approve
+
+List pending recommendations. Requires valid auth token.
+
+**Response:** Array of `Recommendation` with status `"pending"`
+
+**Query parameters:**
+- `agent` — filter by recommending agent name
+- `target` — filter by target path/URL
+- `strategy` — filter by strategy ID
+- `priority` — filter by priority level
+- `cursor` — pagination cursor (opaque)
+- `limit` — max results (default: 100)
+
+### POST /v1/strategy
+
+Create or update a strategy. Requires valid auth token.
+
+**Request:** `Strategy`
+**Response:** Stored `Strategy` with generated `id` if new
+
+The orchestrator MUST:
+1. Authenticate the request
+2. Validate: `name`, `objective`, `targets` are non-empty
+3. Store in strategy registry (create or update)
+4. Log audit entry
+5. Respond with stored strategy
+
+### GET /v1/strategy
+
+List strategies. Requires valid auth token.
+
+**Response:** Array of `Strategy`
+
+**Query parameters:**
+- `status` — filter by `active`, `paused`, `completed` (default: all)
+
+### POST /v1/context
+
+Set or update entity context. Requires valid auth token.
+
+**Request:** `EntityContext`
+**Response:** Stored `EntityContext`
+
+The orchestrator MUST:
+1. Authenticate the request
+2. Store as the system's entity context
+3. Log audit entry
+4. Respond with stored context
+
+### GET /v1/context
+
+Retrieve current entity context. Requires valid auth token.
+
+**Response:** `EntityContext`
+
+### GET /v1/observations
+
+List observations. Requires valid auth token.
+
+**Response:** Array of `Observation`
+
+**Query parameters:**
+- `agent` — filter by agent name
+- `target` — filter by target path/URL
+- `strategy` — filter by strategy ID
+- `since` — Unix epoch seconds, observations after this time
+- `cursor` — pagination cursor (opaque)
+- `limit` — max results (default: 100)
+
 ---
 
 ## Auth Middleware
@@ -257,19 +351,84 @@ Flow:
 
 ---
 
+## Observability
+
+### Trace ID Propagation
+
+Every task submission SHOULD include a `trace_id` in `TaskContext`.
+If the caller does not provide one, the orchestrator MUST generate a
+unique `trace_id` (32 hex chars) and inject it before forwarding.
+
+The `trace_id` MUST be propagated through ALL downstream calls:
+
+```
+Client → POST /v1/task (trace_id in context)
+  → Orchestrator forwards to domain → POST /v1/execute (same trace_id)
+    → Domain dispatches to agent → POST /v1/message (same trace_id)
+```
+
+Agents and domains MUST include `trace_id` in `AgentMessage` when
+dispatching to other agents.
+
+### Structured Log Format
+
+All components SHOULD emit structured logs as JSON lines to stderr.
+Each log entry MUST include:
+
+| Field | Description |
+|-------|-------------|
+| `ts` | Unix epoch seconds (same as protocol timestamps) |
+| `level` | `debug`, `info`, `warn`, `error` |
+| `msg` | Human-readable message |
+| `component` | Component name (e.g., `orchestrator`, `seo`, `seo-analyzer`) |
+| `trace_id` | Correlation ID (when available) |
+
+Optional fields (when applicable): `agent`, `target`, `action`,
+`task_id`, `phase`, `duration_ms`, `error`.
+
+```json
+{"ts":1712160001,"level":"info","msg":"task forwarded","component":"orchestrator","trace_id":"a1b2c3...","agent":"seo","action":"audit","task_id":"d4e5f6..."}
+{"ts":1712160002,"level":"info","msg":"phase started","component":"seo","trace_id":"a1b2c3...","phase":"scan","agent":"seo-analyzer"}
+{"ts":1712160005,"level":"info","msg":"phase completed","component":"seo","trace_id":"a1b2c3...","phase":"scan","duration_ms":3200}
+```
+
+**Audit log** entries (specified in [orchestrator.md](../architecture/orchestrator.md))
+are a separate persistent record. Structured logs are operational and
+ephemeral — they are for debugging and monitoring, not compliance.
+
+---
+
 ## Error Handling
 
-All errors MUST return JSON: `{"error": "human-readable message"}`
+All errors MUST return JSON using the `ErrorResponse` format
+(see [types.md](types.md)). At minimum, the `error` field is required.
+Implementations SHOULD include `code`, `category`, and `retryable`
+when the information is available.
 
-| Status | Meaning |
-|--------|---------|
-| 400 | Invalid request body or missing required fields |
-| 401 | Authentication failed (bad token, bad signature, expired) |
-| 403 | Forbidden (missing required capability) |
+```json
+{
+  "error": "forwarding to agent failed — connection refused",
+  "code": "AGENT_UNREACHABLE",
+  "category": "transient",
+  "retryable": true
+}
+```
+
+See [types.md — Standard error codes](types.md) for the full table
+of codes, HTTP statuses, and categories. The following maps HTTP
+status responses to protocol usage:
+
+| Status | When |
+|--------|------|
+| 400 | Invalid body, missing fields, unsupported protocol version |
+| 401 | Bad token, bad signature, expired token |
+| 403 | Missing required capability |
 | 404 | Target agent or resource not found |
 | 405 | Wrong HTTP method |
+| 429 | Over concurrency/rate limit (include `Retry-After` header) |
 | 500 | Internal server error |
-| 502 | Forwarding to agent failed (orchestrator only) |
+| 502 | Orchestrator could not reach agent |
+| 504 | Agent did not respond within timeout |
 
 ---
 
@@ -295,5 +454,20 @@ All errors MUST return JSON: `{"error": "human-readable message"}`
 - [ ] Orchestrator `DELETE /v1/register` removes agent and broadcasts
 - [ ] Orchestrator `POST /v1/task` routes to correct agent
 - [ ] Orchestrator `POST /v1/channel` verifies `agent:message` capability
-- [ ] All error responses are JSON with `error` field
+- [ ] Orchestrator `POST /v1/approve` transitions pending → accepted/rejected
+- [ ] Orchestrator `POST /v1/approve` rejects empty reason on reject decision
+- [ ] Orchestrator `GET /v1/approve` returns pending recommendations
+- [ ] Orchestrator rejects unsupported protocol_version with `UNSUPPORTED_VERSION`
+- [ ] RegisterResponse includes negotiated protocol_version
+- [ ] All error responses use `ErrorResponse` format with `error` field
+- [ ] Error responses include `code` and `category` when available
+- [ ] Agent returns 429 with `RATE_LIMITED` when at max_concurrent capacity
 - [ ] All protected endpoints reject requests without valid tokens
+- [ ] Orchestrator `POST /v1/strategy` stores and returns strategy
+- [ ] Orchestrator `GET /v1/strategy` lists strategies with optional status filter
+- [ ] Orchestrator `POST /v1/context` stores entity context
+- [ ] Orchestrator `GET /v1/context` returns stored entity context
+- [ ] Orchestrator `GET /v1/observations` returns observations with pagination
+- [ ] Orchestrator generates `trace_id` if not provided by caller
+- [ ] `trace_id` is propagated through task forwarding and agent dispatch
+- [ ] Structured logs include `ts`, `level`, `msg`, `component` fields

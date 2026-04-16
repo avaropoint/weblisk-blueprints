@@ -2,7 +2,7 @@
 type: platform
 name: go
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/types, architecture/agent, architecture/orchestrator]
+requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage]
 platform: go
 -->
 
@@ -115,3 +115,108 @@ go 1.22
 ```
 
 No `require` statements needed — stdlib only.
+
+## Project Structure: Domain Controller
+
+```
+domains/<name>/
+  go.mod              # module weblisk-domain-<name>; go 1.22
+  main.go             # Entry point — manifest, workflows, start
+  protocol.go         # Same protocol types
+  identity.go         # Same identity/crypto code
+  agent.go            # Agent base framework (shared with work agents)
+  domain.go           # Domain controller logic: workflow engine, dispatch, aggregation
+  workflows.go        # Workflow definitions (parsed from embedded YAML or code)
+  <name>.go           # Domain-specific aggregation rules and HandleMessage actions
+  helpers.go          # Shared utility functions
+```
+
+Build: `cd domains/<name> && go build -o <name> .`
+Run: `./domains/seo --port 9700 --orch http://localhost:9800`
+
+The domain controller uses the same agent base framework as work agents
+(5 protocol endpoints). The additional workflow engine lives in
+`domain.go` — see [architecture/domain.md](../architecture/domain.md)
+for the execution flow.
+
+## Storage Mapping (Go / SQLite)
+
+The Go platform uses SQLite for persistent storage. Each component
+gets its own database file under `.weblisk/data/`.
+
+See [architecture/storage.md](../architecture/storage.md) for the
+abstract storage interface.
+
+| Store | File | Table |
+|-------|------|-------|
+| Agent Registry | `.weblisk/data/orchestrator.db` | `agents` |
+| Strategies | `.weblisk/data/orchestrator.db` | `strategies` |
+| Observations | `.weblisk/data/orchestrator.db` | `observations` |
+| Recommendations | `.weblisk/data/orchestrator.db` | `recommendations` |
+| Feedback | `.weblisk/data/orchestrator.db` | `feedback` |
+| Agent Metrics | `.weblisk/data/orchestrator.db` | `agent_metrics` |
+| Audit Log | `.weblisk/data/orchestrator.db` | `audit_log` |
+| Entity Context | `.weblisk/data/orchestrator.db` | `entity_context` |
+| Channels | In-memory map (short-lived, 1h TTL) | — |
+| Workflow Executions | `.weblisk/data/<domain>.db` | `executions` |
+
+### SQLite Requirements
+- Use `database/sql` with `modernc.org/sqlite` (pure Go, no CGo) or
+  `mattn/go-sqlite3` (CGo, faster).
+- Exception to zero-dependency rule: one SQLite driver dependency is
+  acceptable for production persistence.
+- Use `WAL` journal mode for concurrent reads during writes.
+- Apply `user_version` pragma for schema migrations.
+- Schema creation on first open (CREATE TABLE IF NOT EXISTS).
+
+### Development Mode
+
+When `WL_DEV=1` is set, storage MAY fall back to in-memory maps
+(as in the current implementation) for fast iteration. A warning
+MUST be printed: `"[dev] using in-memory storage — data will not survive restart"`.
+
+## Concurrency (Go-Specific)
+
+### Agent Concurrency Limiter
+```go
+type ConcurrencyLimiter struct {
+    sem chan struct{}
+}
+
+func NewConcurrencyLimiter(max int) *ConcurrencyLimiter {
+    return &ConcurrencyLimiter{sem: make(chan struct{}, max)}
+}
+
+func (l *ConcurrencyLimiter) Acquire() bool {
+    select {
+    case l.sem <- struct{}{}:
+        return true
+    default:
+        return false // at capacity → return 429
+    }
+}
+
+func (l *ConcurrencyLimiter) Release() {
+    <-l.sem
+}
+```
+
+Apply in execute/message handlers:
+```go
+if !limiter.Acquire() {
+    writeError(w, 429, ErrorResponse{
+        Error:     "agent at capacity",
+        Code:      "RATE_LIMITED",
+        Category:  "transient",
+        Retryable: true,
+    })
+    w.Header().Set("Retry-After", "5")
+    return
+}
+defer limiter.Release()
+```
+
+### Domain Dispatch Parallelism
+Use `sync.WaitGroup` + goroutines for parallel phase execution within
+a dependency level. Use a semaphore per target agent to respect
+`max_concurrent` declarations.

@@ -30,7 +30,44 @@ JSON using the exact field names shown in the `json` column.
 
 ---
 
-## Agent Identity
+## Errors
+
+All error responses use a structured format. Simple error strings
+(`{"error": "message"}`) are still valid for backward compatibility,
+but implementations SHOULD use the full `ErrorResponse` when
+category and retry information are available.
+
+### ErrorResponse
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| Error | string | `error` | yes | Human-readable error message |
+| Code | string | `code` | no | Machine-readable error code (e.g., `AGENT_UNREACHABLE`, `INVALID_INPUT`) |
+| Category | string | `category` | no | `"transient"`, `"permanent"`, or `"partial"` |
+| Retryable | bool | `retryable` | no | Whether the caller SHOULD retry this request |
+| Detail | map | `detail` | no | Additional structured context (varies by error) |
+
+**Categories:**
+- `transient` — Temporary failure; retry is safe. Examples: network timeout, agent overloaded, upstream 503.
+- `permanent` — Will not succeed on retry. Examples: invalid input, capability not available, unknown action.
+- `partial` — Request partially succeeded. `detail` SHOULD include `completed` and `failed` sub-results.
+
+**Standard error codes:**
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `INVALID_REQUEST` | 400 | permanent | Missing or malformed fields |
+| `INVALID_SIGNATURE` | 401 | permanent | Ed25519 signature verification failed |
+| `TOKEN_EXPIRED` | 401 | transient | Token past expiry — re-register to get a new one |
+| `FORBIDDEN` | 403 | permanent | Missing required capability |
+| `NOT_FOUND` | 404 | permanent | Agent or resource not in registry |
+| `RATE_LIMITED` | 429 | transient | Too many requests — respect `Retry-After` header |
+| `INTERNAL_ERROR` | 500 | transient | Unexpected server error |
+| `AGENT_UNREACHABLE` | 502 | transient | Orchestrator could not reach target agent |
+| `AGENT_TIMEOUT` | 504 | transient | Target agent did not respond within timeout |
+| `UNSUPPORTED_VERSION` | 400 | permanent | Agent requested an unsupported protocol version |
+| `PHASE_FAILED` | 500 | varies | Workflow phase failed — check `detail.phase_name` |
+| `PARTIAL_FAILURE` | 207 | partial | Some phases succeeded, some failed |
 
 ### AgentManifest
 
@@ -40,7 +77,9 @@ Returned by `POST /v1/describe` and sent during registration.
 | Field | Type | JSON Key | Required | Description |
 |-------|------|----------|----------|-------------|
 | Name | string | `name` | yes | Agent identifier (lowercase, no spaces) |
-| Version | string | `version` | yes | Semver version |
+| Type | string | `type` | no | `"domain"`, `"agent"` (default), or `"infrastructure"` |
+| Version | string | `version` | yes | Semver version of the agent |
+| ProtocolVersion | string | `protocol_version` | no | Protocol version this agent implements (default: `"1"`) |
 | Description | string | `description` | yes | Human-readable purpose |
 | URL | string | `url` | yes | Agent's HTTP base URL |
 | PublicKey | string | `public_key` | yes | Hex-encoded Ed25519 public key |
@@ -49,6 +88,9 @@ Returned by `POST /v1/describe` and sent during registration.
 | Outputs | []IOSpec | `outputs` | no | What this agent produces |
 | Collaborators | []string | `collaborators` | no | Agent names this agent works with |
 | Approval | string | `approval` | no | `"required"` or `"auto"` (default: `"required"`) |
+| RequiredAgents | []string | `required_agents` | no | Agents this domain needs (domain type only) |
+| Workflows | []string | `workflows` | no | Workflow names supported (domain type only) |
+| MaxConcurrent | int | `max_concurrent` | no | Max concurrent executions (advisory; default: 5) |
 
 ### Capability
 
@@ -64,7 +106,13 @@ A single thing an agent can do, with optional resource scoping.
 - `file:write` — write/modify files
 - `llm:chat` — use LLM for analysis
 - `agent:message` — communicate with other agents
+- `workflow:execute` — execute multi-agent workflows (domain controllers)
 - `http:get` — make external HTTP requests
+- `http:send` — make outbound HTTP requests
+- `http:receive` — receive inbound HTTP requests
+- `database:read` — read from data store
+- `database:write` — write to data store
+- `realtime:publish` — publish to real-time channels
 
 ### IOSpec
 
@@ -75,6 +123,76 @@ Describes an input or output parameter.
 | Name | string | `name` | yes | Parameter name |
 | Type | string | `type` | yes | Data type: `file_list`, `json`, `text` |
 | Description | string | `description` | yes | Human-readable description |
+
+---
+
+## Workflows
+
+Types used by domain controllers to define and execute multi-phase,
+multi-agent workflows. See `architecture/domain.md` for the full
+domain controller specification.
+
+### WorkflowDefinition
+
+Declared in domain blueprint files. Describes a multi-phase process
+that a domain controller can execute.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| Name | string | `name` | yes | Workflow identifier (lowercase, hyphens) |
+| Description | string | `description` | yes | What this workflow does |
+| Trigger | string | `trigger` | yes | Task action that invokes this workflow |
+| Phases | []WorkflowPhase | `phases` | yes | Ordered execution steps |
+
+### WorkflowPhase
+
+A single step in a workflow. Each phase dispatches to one agent.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| Name | string | `name` | yes | Phase identifier (unique within workflow) |
+| Agent | string | `agent` | yes | Target agent name |
+| Action | string | `action` | yes | `HandleMessage` action to invoke |
+| Input | map | `input` | no | Input mapping — reference expressions resolve at runtime (see [Reference Expression Syntax](../architecture/domain.md#reference-expression-syntax)) |
+| Output | string | `output` | no | Key name under which this phase's result is stored |
+| DependsOn | []string | `depends_on` | no | Phase names that must complete first. Phases without dependencies MAY run in parallel |
+| Timeout | int | `timeout` | no | Phase timeout in seconds (default: 300) |
+| Approval | string | `approval` | no | `"required"` or `"auto"` (default: `"auto"`) |
+| OnError | string | `on_error` | no | `"fail"` (default), `"skip"`, or `"retry"` |
+| MaxRetries | int | `max_retries` | no | Retry count when `on_error` = `"retry"` (default: 0) |
+| Condition | string | `condition` | no | Expression evaluated at runtime; phase is skipped if false |
+
+**Input reference syntax:** See [Reference Expression Syntax](../architecture/domain.md#reference-expression-syntax) for the full grammar, including nested access, array indexing (`[0]`), array expansion (`[*]`), and resolution rules.
+
+### WorkflowExecution
+
+Runtime state of a workflow in progress or completed.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| ID | string | `id` | yes | Unique execution identifier |
+| WorkflowName | string | `workflow_name` | yes | Which workflow is executing |
+| DomainName | string | `domain_name` | yes | Executing domain controller |
+| TaskID | string | `task_id` | yes | Originating task ID |
+| Status | string | `status` | yes | `pending`, `running`, `completed`, `failed` |
+| Phases | []PhaseResult | `phases` | yes | Results per phase |
+| StartedAt | int64 | `started_at` | yes | Unix epoch seconds |
+| CompletedAt | int64 | `completed_at` | no | Unix epoch seconds |
+
+### PhaseResult
+
+Tracks the outcome of a single workflow phase.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| PhaseName | string | `phase_name` | yes | Phase identifier |
+| AgentName | string | `agent_name` | yes | Agent that executed this phase |
+| Status | string | `status` | yes | `pending`, `running`, `completed`, `failed`, `skipped` |
+| Output | map | `output` | no | Phase output data (referenced by subsequent phases) |
+| StartedAt | int64 | `started_at` | no | Unix epoch seconds |
+| CompletedAt | int64 | `completed_at` | no | Unix epoch seconds |
+| Error | string | `error` | no | Error message if failed |
+| Retries | int | `retries` | no | Number of retry attempts |
 
 ---
 
@@ -94,8 +212,8 @@ each into prioritized tasks assigned to domain agents.
 | Targets | []StrategyTarget | `targets` | yes | Measurable goals |
 | Priority | int | `priority` | yes | 1 = highest priority |
 | Status | string | `status` | yes | `active`, `paused`, `completed` |
-| CreatedAt | datetime | `created_at` | yes | ISO 8601 timestamp |
-| UpdatedAt | datetime | `updated_at` | yes | ISO 8601 timestamp |
+| CreatedAt | int64 | `created_at` | yes | Unix epoch seconds |
+| UpdatedAt | int64 | `updated_at` | yes | Unix epoch seconds |
 | Metadata | map | `metadata` | no | Arbitrary key-value data |
 
 ### StrategyTarget
@@ -189,6 +307,7 @@ Runtime context provided with every task execution.
 | Services | []ServiceEntry | `services` | yes | Current service directory |
 | Entity | EntityContext | `entity` | no | Entity being optimized |
 | Config | map | `config` | no | Additional configuration |
+| TraceID | string | `trace_id` | no | Correlation ID for distributed tracing (propagated through all downstream calls) |
 
 ### TaskResult
 
@@ -241,7 +360,7 @@ Structured measurements captured every time an agent runs.
 | ID | string | `id` | yes | Unique identifier |
 | AgentName | string | `agent_name` | yes | Which agent observed |
 | Target | string | `target` | yes | What was observed (file path, URL) |
-| Timestamp | datetime | `timestamp` | yes | When observed |
+| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
 | Measurements | map[string]float64 | `measurements` | yes | Numeric measurements |
 | Findings | []Finding | `findings` | no | Issues discovered |
 | ContentHash | string | `content_hash` | no | Hash of observed content |
@@ -281,8 +400,41 @@ Structured measurements captured every time an agent runs.
 | Priority | string | `priority` | yes | `critical`, `high`, `medium`, `low` |
 | Impact | float64 | `impact` | yes | Estimated impact score |
 | Status | string | `status` | yes | `pending`, `accepted`, `rejected`, `applied` |
-| CreatedAt | datetime | `created_at` | yes | When created |
-| ResolvedAt | datetime | `resolved_at` | no | When resolved |
+| CreatedAt | int64 | `created_at` | yes | Unix epoch seconds |
+| ResolvedAt | int64 | `resolved_at` | no | Unix epoch seconds |
+
+---
+
+## Approvals
+
+### ApprovalRequest
+
+Submitted by a user or external system to approve or reject one or
+more pending recommendations or workflow phases.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| RecommendationIDs | []string | `recommendation_ids` | yes | IDs of recommendations to resolve |
+| Decision | string | `decision` | yes | `"accept"` or `"reject"` |
+| Reason | string | `reason` | no | Human-provided justification (required for rejections) |
+| Token | string | `token` | yes | Auth token |
+| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+
+### ApprovalResponse
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| Updated | int | `updated` | yes | Count of recommendations updated |
+| Results | []ApprovalResult | `results` | yes | Per-recommendation outcome |
+
+### ApprovalResult
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| RecommendationID | string | `recommendation_id` | yes | Which recommendation |
+| PreviousStatus | string | `previous_status` | yes | Status before this action |
+| NewStatus | string | `new_status` | yes | Status after this action |
+| Error | string | `error` | no | Error if this one failed (e.g., already resolved) |
 
 ---
 
@@ -300,7 +452,7 @@ Structured measurements captured every time an agent runs.
 | MetricBefore | float64 | `metric_before` | no | Metric value before |
 | MetricAfter | float64 | `metric_after` | no | Metric value after |
 | MetricName | string | `metric_name` | no | Which metric |
-| Timestamp | datetime | `timestamp` | yes | When recorded |
+| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
 
 ---
 
@@ -338,6 +490,7 @@ Direct agent-to-agent or orchestrator-to-agent message.
 | Token | string | `token` | no | Auth or channel token |
 | Signature | string | `signature` | no | Ed25519 signature |
 | Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+| TraceID | string | `trace_id` | no | Correlation ID (propagated from TaskContext) |
 
 **Signature covers:** `JSON.stringify({from, to, action, payload})`
 
@@ -384,6 +537,7 @@ Direct agent-to-agent or orchestrator-to-agent message.
 | ExpiresAt | int64 | `expires_at` | yes | Token expiry (Unix epoch) |
 | Services | ServiceDirectory | `services` | yes | Current service directory |
 | Orchestrator | OrchestratorInfo | `orchestrator` | yes | Orchestrator info |
+| ProtocolVersion | string | `protocol_version` | yes | Negotiated protocol version (e.g., `"1"`) |
 
 ### OrchestratorInfo
 
@@ -391,7 +545,15 @@ Direct agent-to-agent or orchestrator-to-agent message.
 |-------|------|----------|----------|-------------|
 | URL | string | `url` | yes | Orchestrator base URL |
 | PublicKey | string | `public_key` | yes | Hex Ed25519 public key |
-| Version | string | `version` | yes | Protocol version |
+| Version | string | `version` | yes | Orchestrator software version |
+| SupportedVersions | []string | `supported_versions` | yes | Protocol versions this orchestrator supports (e.g., `["1"]`) |
+
+**Version negotiation:** On registration, the orchestrator reads the
+agent's `manifest.protocol_version` (default `"1"` if omitted). If the
+orchestrator supports that version, registration succeeds and
+`RegisterResponse.protocol_version` confirms the negotiated version.
+If the requested version is not in `supported_versions`, the
+orchestrator rejects with 400 and error code `UNSUPPORTED_VERSION`.
 
 ---
 
@@ -444,7 +606,7 @@ Direct agent-to-agent or orchestrator-to-agent message.
 | Field | Type | JSON Key | Required | Description |
 |-------|------|----------|----------|-------------|
 | ID | string | `id` | yes | Unique identifier |
-| Timestamp | datetime | `timestamp` | yes | ISO 8601 timestamp |
+| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
 | Actor | string | `actor` | yes | Who performed the action |
 | Action | string | `action` | yes | Action type (see below) |
 | Target | string | `target` | yes | Affected resource |
@@ -452,7 +614,7 @@ Direct agent-to-agent or orchestrator-to-agent message.
 | Status | string | `status` | yes | `ok`, `denied`, `failed` |
 
 **Action types:** `register`, `deregister`, `task`, `channel`, `message`,
-`observation`, `recommendation`, `feedback`, `strategy`
+`observation`, `recommendation`, `approval`, `feedback`, `strategy`
 
 ---
 
@@ -474,4 +636,5 @@ All paths are prefixed with `/v1`.
 | `/v1/audit` | GET | yes | orchestrator | Audit log |
 | `/v1/strategy` | GET/POST | yes | orchestrator | Strategy management |
 | `/v1/observations` | GET | yes | orchestrator | Observation history |
+| `/v1/approve` | GET/POST | yes | orchestrator | Approval management |
 | `/v1/context` | GET/POST | yes | orchestrator | Entity context |

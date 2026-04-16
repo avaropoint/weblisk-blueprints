@@ -25,17 +25,65 @@ protocol/           Wire protocol specifications
   identity.md         Ed25519 crypto, tokens, signing
   types.md            Canonical type definitions (all JSON shapes)
 
-architecture/       System architecture patterns
-  orchestrator.md     How the orchestrator works
-  agent.md            How agents work
+architecture/       System architecture
+  orchestrator.md     Central coordinator — routing, security, audit
+  domain.md           Domain controller — workflows, dispatch, aggregation
+  agent.md            Agent base — kinds, capabilities, ports
+  lifecycle.md        Continuous optimization loop
+  storage.md          Abstract persistence interface
+  testing.md          Conformance test suite specification
 
 platforms/          Implementation guidance per runtime
   go.md               Go (stdlib only, local processes)
   cloudflare.md       Cloudflare Workers (Durable Objects, KV)
 
-domains/            Domain expertise for specific agents
-  seo.md              SEO analysis and optimization
+domains/            Domain controller specifications
+  seo.md              SEO domain — workflows, required agents, scoring
+
+agents/             Work agents and infrastructure services (Free tier)
+  seo-analyzer.md     SEO analysis work agent (domain: seo)
+  a11y-checker.md     Accessibility checking work agent (domain: seo)
+  sync-agent.md       Background data sync (infrastructure)
+  cron-agent.md       Scheduled task execution (infrastructure)
+  webhook-agent.md    Webhook processing (infrastructure)
+  email-agent.md      Transactional email (infrastructure)
+
+patterns/           Declarative API pattern specifications (Free tier)
+  api-rest.md         REST API with CRUD, pagination, filtering, sorting
+  realtime-chat.md    WebSocket messaging with channels, presence, history
+  auth-session.md     Session-based auth with secure cookies, CSRF
+  auth-token.md       JWT and API key auth with refresh tokens, scopes
+  webhook-inbound.md  Receive and validate inbound webhooks
+  webhook-outbound.md Send webhooks with retries and delivery tracking
 ```
+
+### Architecture Hierarchy
+
+```
+Orchestrator (coordinator)
+  └── Domain Controllers (directors)
+       └── Work Agents (task executors)
+  └── Infrastructure Agents (system utilities)
+```
+
+- **Orchestrator** — Routes tasks, manages security, brokers channels, tracks the lifecycle
+- **Domains** — Own a business function, define workflows, dispatch to agents, aggregate results
+- **Work Agents** — Perform specific tasks under a domain's direction
+- **Infrastructure Agents** — Provide system services (sync, cron, email, webhooks) used by any domain
+
+### Free vs Pro
+
+This repository contains all **free tier** blueprints — the complete
+architecture, protocol, one reference domain (SEO), infrastructure agents,
+and API patterns. These match the
+[Blueprint Catalog](https://weblisk.dev/blueprints/catalog.html) and
+[Agent Catalog](https://weblisk.dev/agents/catalog.html). Everything here
+is open source and ships with every Weblisk server implementation.
+
+Pro patterns and agents (file-storage, crdt-sync, search-index,
+email-transactional, ai-agent, search-agent, media-agent, analytics-agent)
+are available through [Weblisk Pro](https://weblisk.dev/pro.html) or
+via [Avaropoint](https://avaropoint.com/) for enterprise engagements.
 
 ## Usage
 
@@ -60,7 +108,7 @@ weblisk blueprints update
 
 The CLI resolves blueprints in priority order:
 
-1. **Local project** — `./blueprints/` in the user's project
+1. **Local project** — `./patterns/` in the user's project
 2. **Custom sources** — additional repos via `WL_BLUEPRINT_SOURCES`
 3. **Core** — this repository (always present)
 
@@ -79,7 +127,7 @@ This supports multiple distribution models:
 | Core (open source) | `avaropoint/weblisk-blueprints` | Public, always available |
 | Vertical/partner | `avaropoint/weblisk-blueprints-ecommerce` | Granted per-customer |
 | Customer-owned | `acme-corp/acme-blueprints` | Customer's own repo |
-| Local project | `./blueprints/` | Project-scoped, checked in |
+| Local project | `./patterns/` | Project-scoped, checked in |
 
 Access control is handled entirely by Git — private repos require the
 user's existing credentials (SSH key or GitHub CLI auth).
@@ -97,17 +145,47 @@ Every blueprint follows a [standard schema](SCHEMA.md) with required sections:
 metadata header, overview, specification, types, implementation notes,
 and verification checklist. See the schema file for details.
 
-## Creating Domain Blueprints
+## Creating Domain Controllers
 
-Domain blueprints define an agent's specific expertise. They MUST include:
+Domain controllers own a business function. They define workflows, dispatch
+work to agents, aggregate results, and drive the feedback loop. They MUST include:
 
-1. **Capabilities** — What the agent can do (file:read, llm:chat, etc.)
-2. **Execute Workflow** — Step-by-step process for task execution
-3. **Message Handlers** — Actions the agent responds to
-4. **Validation Rules** — Domain-specific constraints
-5. **LLM Prompts** — System prompts for AI-assisted analysis (if applicable)
+1. **Required Agents** — Which work agents this domain dispatches to
+2. **Workflows** — Multi-phase processes with agent dispatch, data flow, and error handling
+3. **Strategy Alignment** — How business objectives map to domain workflows
+4. **Aggregation Rules** — How agent results are combined and scored
+5. **Feedback Collection** — What observations, recommendations, and metrics the domain tracks
 
 See [domains/seo.md](domains/seo.md) for a complete example.
+See [architecture/domain.md](architecture/domain.md) for the full specification.
+
+## Creating API Patterns
+
+API patterns define declarative specifications for common server-side
+functionality. They MUST include:
+
+1. **Pattern Format** — YAML structure the CLI consumes
+2. **Endpoints** — All generated HTTP endpoints
+3. **Request/Response Shapes** — JSON schemas for each endpoint
+4. **Types** — All data structures used
+5. **Verification Checklist** — Testable compliance checks
+
+See [patterns/api-rest.md](patterns/api-rest.md) for a complete example.
+
+## Creating Agent Definitions
+
+Agent definitions describe work agents (domain-dispatched) or infrastructure
+agents (system-level services). They MUST include:
+
+1. **Kind** — `work` (dispatched by a domain) or `infrastructure` (independent)
+2. **Capabilities** — Resources the agent can access
+3. **Execute Workflow** — Step-by-step processing logic
+4. **HandleMessage Actions** — Message types the agent responds to
+5. **Validation Rules** — Domain-specific constraints and checks
+6. **Verification Checklist** — Testable compliance checks
+
+See [agents/seo-analyzer.md](agents/seo-analyzer.md) for a work agent example.
+See [agents/sync-agent.md](agents/sync-agent.md) for an infrastructure agent example.
 
 ## Related Repositories
 
