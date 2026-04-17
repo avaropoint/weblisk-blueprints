@@ -4,13 +4,36 @@
 [![Part of Weblisk](https://img.shields.io/badge/part%20of-Weblisk-orange)](https://github.com/avaropoint/weblisk)
 
 The specification, architecture, and domain knowledge for the
-[Weblisk](https://github.com/avaropoint/weblisk) server framework.
+[Weblisk](https://github.com/avaropoint/weblisk) framework — the
+server-side reference architecture and blueprints that power the
+Weblisk platform.
 
-This repository is part of the **Weblisk** project — an open-source
-server framework for building autonomous, collaborative AI agents.
-The [weblisk](https://github.com/avaropoint/weblisk) repository contains
-the server runtime and CLI; this repository provides the blueprints that
-drive code generation and define protocol compliance.
+## What Is Weblisk
+
+**Weblisk** is an AI-ready collaborative platform for building
+autonomous agents that work together across organizations, industries,
+and economies. The framework has two parts:
+
+- **[weblisk](https://github.com/avaropoint/weblisk)** — A zero-dependency
+  client-side framework for building web interfaces
+- **[weblisk-blueprints](https://github.com/avaropoint/weblisk-blueprints)**
+  (this repository) — The server-side reference architecture, protocol
+  specifications, and domain blueprints that define how orchestrators,
+  domains, and agents operate
+
+Together with the **[weblisk-cli](https://github.com/avaropoint/weblisk-cli)**
+for code generation and the
+**[weblisk-public](https://github.com/avaropoint/weblisk-public)** website,
+these form the complete Weblisk platform — operated by
+[Avaropoint](https://avaropoint.com/) to deliver solutions for
+customers adopting the framework.
+
+Every Weblisk deployment is a **hub** — a self-sovereign node that owns
+its orchestrators, domains, agents, logic, and data. Hubs connect to
+form a global network of economic intelligence where businesses
+collaborate through cryptographically enforced data contracts, replacing
+EDI, supply chain middleware, and traditional B2B integrations with a
+native, AI-ready model.
 
 Blueprints are implementation-agnostic specifications. They describe
 **what** agents and orchestrators must do — not **how** they do it in
@@ -33,7 +56,7 @@ architecture/       System architecture
   lifecycle.md        Continuous optimization loop
   storage.md          Abstract persistence interface
   testing.md          Conformance test suite specification
-  marketplace.md      Federated agent marketplace — discovery, tiers, billing
+  hub.md              Collaborative hub — discovery, tiers, commerce
 
 platforms/          Implementation guidance per runtime
   go.md               Go (stdlib only, local processes)
@@ -63,25 +86,29 @@ patterns/           Declarative API pattern specifications (Free tier)
 ### Architecture Hierarchy
 
 ```
-Orchestrator (coordinator)
-  └── Domain Controllers (directors)
-       └── Work Agents (task executors)
-  └── Infrastructure Agents (system utilities)
+Hub (self-sovereign deployment)
+  └── Orchestrator (coordinator)
+       └── Domain Controllers (directors)
+            └── Work Agents (task executors)
+       └── Infrastructure Agents (system utilities)
+  └── Federation (hub-to-hub collaboration)
 ```
 
+- **Hub** — A complete Weblisk deployment: orchestrator, domains, agents, data, and policies under one owner's control
 - **Orchestrator** — Routes tasks, manages security, brokers channels, tracks the lifecycle
 - **Domains** — Own a business function, define workflows, dispatch to agents, aggregate results
 - **Work Agents** — Perform specific tasks under a domain's direction
 - **Infrastructure Agents** — Provide system services (sync, cron, email, webhooks) used by any domain
+- **Federation** — Hub-to-hub trust, data contracts, and cross-boundary task execution
 
 ### Free vs Pro
 
 This repository contains all **free tier** blueprints — the complete
-architecture, protocol, one reference domain (SEO), infrastructure agents,
-and API patterns. These match the
+architecture, protocol, federation, hub collaboration, one reference
+domain (SEO), infrastructure agents, and API patterns. These match the
 [Blueprint Catalog](https://weblisk.dev/blueprints/catalog.html) and
 [Agent Catalog](https://weblisk.dev/agents/catalog.html). Everything here
-is open source and ships with every Weblisk server implementation.
+is open source and ships with every Weblisk hub.
 
 Pro patterns and agents (file-storage, crdt-sync, search-index,
 email-transactional, ai-agent, search-agent, media-agent, analytics-agent)
@@ -92,8 +119,9 @@ via [Avaropoint](https://avaropoint.com/) for enterprise engagements.
 
 ### With the Weblisk CLI
 
-The CLI supports multiple blueprint sources. This repository serves as the
-**core** source — always available as a fallback. Custom, partner, and
+The [weblisk-cli](https://github.com/avaropoint/weblisk-cli) supports
+multiple blueprint sources. This repository serves as the **core**
+source — always available as a fallback. Custom, partner, and
 customer-owned blueprint repos can be added alongside it.
 
 ```bash
@@ -140,7 +168,8 @@ user's existing credentials (SSH key or GitHub CLI auth).
 1. Read the [Blueprint Schema](SCHEMA.md) for the standard structure
 2. Create a domain blueprint for your agent's expertise
 3. Reference the protocol and architecture blueprints
-4. Use the Weblisk CLI or your preferred AI model to generate the implementation
+4. Use the [weblisk-cli](https://github.com/avaropoint/weblisk-cli)
+   or your preferred AI model to generate the implementation
 
 ## Blueprint Schema
 
@@ -194,8 +223,10 @@ See [agents/sync.md](agents/sync.md) for an infrastructure agent example.
 
 | Repository | Description |
 |---|---|
-| [weblisk](https://github.com/avaropoint/weblisk) | Server framework runtime and CLI |
-| [weblisk-blueprints](https://github.com/avaropoint/weblisk-blueprints) | Specifications and domain knowledge (this repo) |
+| [weblisk](https://github.com/avaropoint/weblisk) | Zero-dependency client-side framework |
+| [weblisk-blueprints](https://github.com/avaropoint/weblisk-blueprints) | Server-side reference architecture and blueprints (this repo) |
+| [weblisk-cli](https://github.com/avaropoint/weblisk-cli) | CLI for code generation, blueprint management, and hub operations |
+| [weblisk-public](https://github.com/avaropoint/weblisk-public) | Public website — [weblisk.dev](https://weblisk.dev) |
 
 ## Contributing
 
