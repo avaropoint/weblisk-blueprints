@@ -17,7 +17,7 @@ to each other while enforcing strict data sovereignty boundaries.
 ## Overview
 
 Federation enables businesses to expose specific agent capabilities to
-partners, customers, and the open marketplace — without exposing
+partners, customers, and the wider hub network — without exposing
 internal systems, data, or infrastructure. Every cross-boundary
 interaction is governed by data contracts, trust tiers, and behavioral
 verification that go far beyond transport encryption.
@@ -91,7 +91,7 @@ following the same rules as agent identity (see [identity.md](identity.md)).
 | PublicKey | string | `public_key` | yes | Hex-encoded Ed25519 public key |
 | Jurisdiction | string | `jurisdiction` | yes | ISO 3166-1 alpha-2 country code (primary data jurisdiction) |
 | PublishedCapabilities | []PubCap | `published_capabilities` | no | Capabilities exposed to federation |
-| TrustPolicy | string | `trust_policy` | yes | `"explicit"` (manual approval) or `"registry"` (trust via marketplace) |
+| TrustPolicy | string | `trust_policy` | yes | `"explicit"` (manual approval) or `"registry"` (trust via hub registry) |
 | MaxConcurrentFederated | int | `max_concurrent_federated` | no | Max concurrent cross-boundary tasks (default: 20) |
 | Signature | string | `signature` | yes | Self-signed manifest |
 
@@ -105,7 +105,7 @@ following the same rules as agent identity (see [identity.md](identity.md)).
 |------|-------------|-----------|------------|---------------|
 | **Private** | Full | Pre-configured | Shared signing authority | Minimal filtering (same org) |
 | **Partner** | Scoped | Explicit peering | Mutual key exchange | Full data contract enforcement |
-| **Public** | Minimal | Marketplace registry | Per-invocation auth | Strict data contracts + metering |
+| **Public** | Minimal | Hub registry | Per-invocation auth | Strict data contracts + metering |
 
 ### Peering Flow (Partner Tier)
 
