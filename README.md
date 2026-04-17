@@ -64,10 +64,16 @@ platforms/          Implementation guidance per runtime
 
 domains/            Domain controller specifications
   seo.md              SEO domain — workflows, required agents, scoring
+  content.md          Content quality domain — readability, structure, metadata
+  health.md           Health monitoring domain — uptime, performance, TLS
 
 agents/             Work agents and infrastructure services (Free tier)
   seo-analyzer.md     SEO analysis work agent (domain: seo)
   a11y-checker.md     Accessibility checking work agent (domain: seo)
+  content-analyzer.md Content quality analysis work agent (domain: content)
+  meta-checker.md     HTML metadata validation work agent (domain: content)
+  uptime-checker.md   Endpoint availability work agent (domain: health)
+  perf-auditor.md     Page performance audit work agent (domain: health)
   sync.md            Background data sync (infrastructure)
   cron.md            Scheduled task execution (infrastructure)
   webhook.md         Webhook processing (infrastructure)
@@ -104,8 +110,8 @@ Hub (self-sovereign deployment)
 ### Free vs Pro
 
 This repository contains all **free tier** blueprints — the complete
-architecture, protocol, federation, hub collaboration, one reference
-domain (SEO), infrastructure agents, and API patterns. These match the
+architecture, protocol, federation, hub collaboration, three reference
+domains (SEO, Content, Health), infrastructure agents, and API patterns. These match the
 [Blueprint Catalog](https://weblisk.dev/blueprints/catalog.html) and
 [Agent Catalog](https://weblisk.dev/agents/catalog.html). Everything here
 is open source and ships with every Weblisk hub.
@@ -188,7 +194,8 @@ work to agents, aggregate results, and drive the feedback loop. They MUST includ
 4. **Aggregation Rules** — How agent results are combined and scored
 5. **Feedback Collection** — What observations, recommendations, and metrics the domain tracks
 
-See [domains/seo.md](domains/seo.md) for a complete example.
+See [domains/seo.md](domains/seo.md), [domains/content.md](domains/content.md),
+or [domains/health.md](domains/health.md) for complete examples.
 See [architecture/domain.md](architecture/domain.md) for the full specification.
 
 ## Creating API Patterns
