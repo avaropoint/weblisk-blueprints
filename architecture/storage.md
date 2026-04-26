@@ -2,7 +2,7 @@
 type: architecture
 name: storage
 version: 1.0.0
-requires: [protocol/types, architecture/orchestrator, architecture/domain]
+requires: [protocol/types, architecture/orchestrator, architecture/domain, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 -->
 
@@ -14,6 +14,13 @@ not HOW storage is implemented. Platform documents
 ([go.md](../platforms/go.md), [cloudflare.md](../platforms/cloudflare.md))
 map this interface to concrete backends.
 
+> **Scope boundary:** This file defines **system-level store interfaces**
+> across the orchestrator and infrastructure agents (agent registry,
+> strategies, observations, workflow executions, task records, etc.).
+> For the **agent-level schema declaration format** (types, constraints,
+> relationships, migrations), see
+> [`patterns/storage`](../patterns/storage.md).
+
 ## Design Principles
 
 1. **Interface, not implementation** — storage is a set of operations.
@@ -23,17 +30,75 @@ map this interface to concrete backends.
 3. **Minimal surface** — only the operations the system actually needs.
    No generic query language, no ORM.
 4. **Idempotent writes** — all store operations are safe to retry.
+5. **Zero external dependencies** — storage backends MUST be
+   embeddable or built into the platform. SQLite for Go and Node.js,
+   Durable Objects + KV for Cloudflare. External databases
+   (PostgreSQL, MySQL, etc.) MAY be used as optional backends but
+   are never required.
 
 ## Storage Backends by Platform
 
-| Platform | Orchestrator | Agent |
-|----------|-------------|-------|
-| Go (local) | SQLite file (`.weblisk/data.db`) | SQLite file per agent |
-| Cloudflare | Durable Objects + KV | Durable Objects + KV |
-| Node.js | SQLite or file-based JSON | SQLite or file-based JSON |
+| Platform | Orchestrator | Infrastructure Agents | Work Agents |
+|----------|-------------|----------------------|-------------|
+| Go (local) | Flat-file (JSONL) | Flat-file (JSONL) per agent | Flat-file (JSONL) per agent |
+| Cloudflare | Durable Objects + KV | Durable Objects + KV | Durable Objects + KV |
+| Node.js | Flat-file (JSONL) or SQLite | Flat-file (JSONL) or SQLite per agent | Flat-file (JSONL) or SQLite per agent |
+
+All backends are embedded — no external database server is required.
+External databases (PostgreSQL, MySQL, etc.) MAY be supported as
+optional backends for teams that prefer them, but Weblisk's default
+storage is always self-contained.
 
 Implementations MAY use in-memory storage for development/testing,
 but production deployments MUST use persistent backends.
+
+### Flat-File Storage Tiers
+
+The default storage format is flat-file JSONL (JSON Lines). As data
+volume grows, implementations MAY upgrade to more efficient formats
+without changing the store interface.
+
+| Tier | Format | Compression | Use Case |
+|------|--------|-------------|----------|
+| Default | JSONL | None | All agents, < 100k records |
+| Compressed | JSONL + ZSTD | Zstandard | Observations, audit logs, > 100k records |
+| Columnar | Parquet | Built-in | Analytics, historical queries, > 1M records |
+
+**Tier selection rules:**
+
+1. All agents start with JSONL (zero dependencies, human-readable).
+2. When a store exceeds 100k records or 100 MB on disk, the agent
+   SHOULD compress rotated files with ZSTD.
+3. For read-heavy analytical workloads (e.g., observation trends),
+   agents MAY convert historical data to Parquet.
+4. Active (hot) data always remains JSONL for append performance.
+5. Tier transitions are transparent to the store interface — callers
+   never see the underlying format.
+
+**File layout:**
+
+```
+.weblisk/data/
+  orchestrator/
+    agents.jsonl              # Agent registry (active)
+    audit.jsonl               # Audit log (active)
+    audit.2025-04.jsonl.zst   # Rotated + compressed
+  lifecycle/
+    strategies.jsonl
+    observations.jsonl
+    observations.2025-03.parquet  # Historical (columnar)
+    recommendations.jsonl
+    feedback.jsonl
+    agent_metrics.jsonl
+    entity_context.jsonl
+  workflow/
+    executions.jsonl
+  task/
+    tasks.jsonl
+    queue.jsonl
+  <agent-name>/
+    <agent-specific>.jsonl
+```
 
 ---
 
@@ -64,7 +129,7 @@ but production deployments MUST use persistent backends.
 
 ## Store: Strategies
 
-**Owner:** Orchestrator
+**Owner:** [Lifecycle Agent](../agents/lifecycle.md)
 **Durability:** MUST survive restarts
 
 | Operation | Signature | Description |
@@ -77,8 +142,8 @@ but production deployments MUST use persistent backends.
 
 ## Store: Observations
 
-**Owner:** Orchestrator (stores), domains (produce)
-**Durability:** MUST survive restarts. SHOULD retain at least 30 days.
+**Owner:** [Lifecycle Agent](../agents/lifecycle.md) (stores), domains (produce via events)
+**Durability:** MUST survive restarts. SHOULD retain at least 90 days.
 
 | Operation | Signature | Description |
 |-----------|-----------|-------------|
@@ -102,7 +167,7 @@ but production deployments MUST use persistent backends.
 
 ## Store: Recommendations
 
-**Owner:** Orchestrator
+**Owner:** [Lifecycle Agent](../agents/lifecycle.md)
 **Durability:** MUST survive restarts
 
 | Operation | Signature | Description |
@@ -127,8 +192,8 @@ but production deployments MUST use persistent backends.
 
 ## Store: Feedback
 
-**Owner:** Orchestrator
-**Durability:** MUST survive restarts
+**Owner:** [Lifecycle Agent](../agents/lifecycle.md)
+**Durability:** MUST survive restarts. SHOULD retain at least 180 days.
 
 | Operation | Signature | Description |
 |-----------|-----------|-------------|
@@ -139,7 +204,7 @@ but production deployments MUST use persistent backends.
 
 ## Store: Agent Metrics
 
-**Owner:** Orchestrator
+**Owner:** [Lifecycle Agent](../agents/lifecycle.md)
 **Durability:** MUST survive restarts
 
 | Operation | Signature | Description |
@@ -160,7 +225,7 @@ but production deployments MUST use persistent backends.
 
 ## Store: Entity Context
 
-**Owner:** Orchestrator
+**Owner:** [Lifecycle Agent](../agents/lifecycle.md)
 **Durability:** MUST survive restarts
 
 | Operation | Signature | Description |
@@ -172,8 +237,8 @@ but production deployments MUST use persistent backends.
 
 ## Store: Workflow Executions
 
-**Owner:** Domain controllers
-**Durability:** SHOULD survive restarts (allows workflow resumption)
+**Owner:** [Workflow Agent](../agents/workflow.md)
+**Durability:** MUST survive restarts (allows workflow resumption)
 
 | Operation | Signature | Description |
 |-----------|-----------|-------------|
@@ -181,6 +246,31 @@ but production deployments MUST use persistent backends.
 | GetExecution | `(id string) → (WorkflowExecution, error)` | Retrieve by ID |
 | ListExecutions | `(workflowName string, limit int) → ([]WorkflowExecution, error)` | Recent executions for a workflow |
 | UpdatePhase | `(execID string, phase PhaseResult) → error` | Update a single phase result |
+
+---
+
+## Store: Task Records
+
+**Owner:** [Task Agent](../agents/task.md)
+**Durability:** MUST survive restarts
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| PutTask | `(task TaskRecord) → error` | Create or update a task record |
+| GetTask | `(id string) → (TaskRecord, error)` | Retrieve by ID |
+| ListTasks | `(filter TaskFilter) → ([]TaskRecord, error)` | Query by status, agent, priority |
+| UpdateStatus | `(id string, status string) → error` | Transition task status |
+
+### TaskFilter
+
+| Field | Type | Description |
+|-------|------|-------------|
+| Status | string | `queued`, `dispatched`, `running`, `completed`, `failed`, `cancelled` (empty = all) |
+| AgentName | string | Filter by assigned agent |
+| Priority | string | `critical`, `high`, `normal`, `low` (empty = all) |
+| Since | int64 | Tasks created after this time |
+| Cursor | string | Pagination cursor |
+| Limit | int | Max results (default: 100) |
 
 ---
 
@@ -220,18 +310,43 @@ but production deployments MUST use persistent backends.
 
 ---
 
+## Store: Namespace Registry
+
+**Owner:** Orchestrator
+**Durability:** MUST survive restarts
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| ClaimNamespace | `(namespace string, agent string) → error` | Register exclusive ownership (409 if taken) |
+| ReleaseNamespace | `(namespace string) → error` | Release on agent deregistration |
+| GetOwner | `(namespace string) → (string, error)` | Look up which agent owns a namespace |
+| ListNamespaces | `() → (map[string]string, error)` | All namespace → agent mappings |
+
+---
+
 ## Implementation Notes
 
+- **Flat-file first**: The default storage backend is JSONL files —
+  one file per store, append-only for writes. This eliminates the
+  need for SQLite or any database engine. Implementations that prefer
+  SQLite MAY use it as an alternative backend.
 - **Transactions**: Operations that update multiple stores (e.g.,
   approval updating recommendation + audit) SHOULD be atomic where
   the backend supports it. Otherwise, apply in order: data first,
-  audit last.
+  audit last. For JSONL, atomic rename of temporary files provides
+  crash-safety for single-store updates.
 - **Pagination**: All list/query operations support cursor-based
   pagination. Cursors are opaque strings — implementations may use
   offsets, timestamps, or encoded keys.
 - **Migrations**: Schema changes are versioned. Each platform doc
   specifies how migrations are applied (e.g., SQLite `user_version`
   pragma for Go, Durable Object migration tags for Cloudflare).
+- **Retention**: Stores with retention policies (observations: 90d,
+  feedback: 180d, audit: 90d) SHOULD rotate files by month and
+  delete or archive expired segments.
+- **Encryption**: Agents MAY encrypt data files at rest using
+  AES-256-GCM with a key derived from the agent's Ed25519 secret.
+  See [data-security.md](data-security.md) for key management.
 - **Backup**: Production deployments SHOULD implement storage backup.
   This is platform-specific and outside the scope of this interface.
 - **Concurrency**: All operations MUST be safe for concurrent access.
@@ -243,8 +358,10 @@ but production deployments MUST use persistent backends.
 - [ ] All stores survive process restart
 - [ ] Observations are retained for at least 30 days
 - [ ] Audit entries are retained for at least 90 days
+- [ ] Audit log is append-only with hash chain integrity
 - [ ] Expired channels are cleaned up automatically
 - [ ] All list operations support cursor-based pagination
 - [ ] Concurrent reads/writes do not corrupt data
 - [ ] Agent metrics are incrementally updated (not recomputed)
 - [ ] Workflow executions support resumption after restart
+- [ ] No external database server required for default operation

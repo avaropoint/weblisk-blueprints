@@ -66,6 +66,10 @@ category and retry information are available.
 | `AGENT_UNREACHABLE` | 502 | transient | Orchestrator could not reach target agent |
 | `AGENT_TIMEOUT` | 504 | transient | Target agent did not respond within timeout |
 | `UNSUPPORTED_VERSION` | 400 | permanent | Agent requested an unsupported protocol version |
+| `NAMESPACE_CONFLICT` | 409 | permanent | Requested publish namespace already owned by another agent |
+| `NAMESPACE_RESERVED` | 403 | permanent | Requested namespace is reserved (e.g., `system.*`) |
+| `SCOPE_UNAUTHORIZED` | 403 | permanent | Subscription scope requires missing capability or collaborator relationship |
+| `EVENT_REJECTED` | 400 | permanent | Event envelope is malformed or topic is unowned |
 | `PHASE_FAILED` | 500 | varies | Workflow phase failed — check `detail.phase_name` |
 | `PARTIAL_FAILURE` | 207 | partial | Some phases succeeded, some failed |
 
@@ -91,6 +95,8 @@ Returned by `POST /v1/describe` and sent during registration.
 | RequiredAgents | []string | `required_agents` | no | Agents this domain needs (domain type only) |
 | Workflows | []string | `workflows` | no | Workflow names supported (domain type only) |
 | MaxConcurrent | int | `max_concurrent` | no | Max concurrent executions (advisory; default: 5) |
+| Publishes | []string | `publishes` | no | Namespace patterns this agent may publish to (e.g., `["workflow.*"]`). The orchestrator enforces exclusive ownership — no two agents may claim the same namespace. See [spec.md — Namespace Control](spec.md#namespace-control). |
+| Subscriptions | []Subscription | `subscriptions` | no | Event subscription declarations. Each entry specifies a topic pattern, optional consumer group, scope, and concurrency limit. See [spec.md — Event Scoping](spec.md#event-scoping). |
 
 ### Capability
 
@@ -129,8 +135,11 @@ Describes an input or output parameter.
 ## Workflows
 
 Types used by domain controllers to define and execute multi-phase,
-multi-agent workflows. See `architecture/domain.md` for the full
-domain controller specification.
+multi-agent workflows. [`patterns/workflow`](../patterns/workflow.md)
+is the authoritative source for workflow declaration format, reference
+expression grammar, execution engine, error strategies, and state
+machine. See `architecture/domain.md` for the domain controller
+specification that consumes these types.
 
 ### WorkflowDefinition
 
@@ -282,8 +291,8 @@ This grounds every agent's decisions in business reality.
 
 ### TaskRequest
 
-Sent by the orchestrator to an agent's `POST /v1/execute` endpoint,
-or submitted to the orchestrator's `POST /v1/task` endpoint.
+Sent to an agent's `POST /v1/execute` endpoint by the Task Agent,
+or dispatched as part of a workflow phase.
 
 | Field | Type | JSON Key | Required | Description |
 |-------|------|----------|----------|-------------|
@@ -513,6 +522,8 @@ Direct agent-to-agent or orchestrator-to-agent message.
 | Field | Type | JSON Key | Required | Description |
 |-------|------|----------|----------|-------------|
 | Services | []ServiceEntry | `services` | yes | All registered agents |
+| RoutingTable | map[string][]RouteEntry | `routing_table` | yes | Topic pattern → list of subscriber routes. Used by the framework to resolve event delivery targets locally. |
+| Namespaces | map[string]string | `namespaces` | yes | Namespace → owning agent name. Used to validate publish rights. |
 | UpdatedAt | int64 | `updated_at` | yes | Unix epoch seconds |
 | Signature | string | `signature` | no | Orchestrator signature |
 
@@ -613,8 +624,73 @@ orchestrator rejects with 400 and error code `UNSUPPORTED_VERSION`.
 | Detail | string | `detail` | yes | Human-readable description |
 | Status | string | `status` | yes | `ok`, `denied`, `failed` |
 
-**Action types:** `register`, `deregister`, `task`, `channel`, `message`,
-`observation`, `recommendation`, `approval`, `feedback`, `strategy`
+**Action types:** `register`, `deregister`, `channel`, `message`,
+`event`, `namespace_grant`, `namespace_release`
+
+---
+
+## Events
+
+Types used by the HTTP-based pub/sub event system. Events are the
+primary coordination mechanism between agents. See
+[spec.md — Event Publishing](spec.md#event-publishing-framework-behavior)
+for the delivery protocol and
+[spec.md — Event Scoping](spec.md#event-scoping) for scope semantics.
+
+### EventEnvelope
+
+The standard wrapper for all events delivered via `POST /v1/event`.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| EventID | string | `event_id` | yes | Globally unique event identifier (UUID v7 recommended — time-sortable) |
+| Topic | string | `topic` | yes | Dot-separated topic name (e.g., `workflow.completed`) |
+| Source | string | `source` | yes | Name of the publishing agent |
+| Scope | string | `scope` | yes | Target agent name, or `"*"` for global delivery |
+| CorrelationID | string | `correlation_id` | no | Links all events in a single execution chain (e.g., one workflow run) |
+| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+| TraceID | string | `trace_id` | yes | Distributed trace context (propagated through all downstream operations) |
+| Version | string | `version` | yes | Schema version of the payload |
+| Payload | map | `payload` | yes | Event-specific data, typed per topic |
+| Token | string | `token` | no | Auth token for delivery verification |
+
+### Subscription
+
+Declared in the agent manifest. Each entry registers interest in a
+topic pattern with scope and concurrency controls.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| Pattern | string | `pattern` | yes | Topic or wildcard pattern (supports `*` for single segment, `#` for multi-segment) |
+| Group | string | `group` | no | Consumer group name. Events are load-balanced within a group. Defaults to agent name. |
+| Scope | string | `scope` | no | `"self"` (default), `"*"` (requires `event:observe`), or a specific agent name |
+| MaxConcurrent | int | `max_concurrent` | no | Max parallel event processing for this subscription (default: 5) |
+
+### RouteEntry
+
+A single entry in the routing table. Represents one subscriber for a
+topic pattern.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| Agent | string | `agent` | yes | Subscriber agent name |
+| URL | string | `url` | yes | Subscriber's event endpoint (agent URL + `/v1/event`) |
+| Group | string | `group` | no | Consumer group name |
+| Scope | string | `scope` | yes | Scope filter for this subscriber |
+
+### DeadLetterEntry
+
+An event that could not be delivered after all retry attempts.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| OriginalEvent | EventEnvelope | `original_event` | yes | The event that failed delivery |
+| FailureReason | string | `failure_reason` | yes | Error category (`HANDLER_ERROR`, `UNREACHABLE`, `TIMEOUT`, `REJECTED`) |
+| LastError | string | `last_error` | yes | Last error message from delivery attempt |
+| Attempts | int | `attempts` | yes | Total delivery attempts |
+| FirstAttempt | int64 | `first_attempt` | yes | Unix epoch seconds of first attempt |
+| LastAttempt | int64 | `last_attempt` | yes | Unix epoch seconds of final attempt |
+| Subscriber | string | `subscriber` | yes | Name of the subscriber that could not receive |
 
 ---
 
@@ -626,15 +702,35 @@ All paths are prefixed with `/v1`.
 |------|--------|------|-----------|---------|
 | `/v1/describe` | POST | no | agent | Return manifest |
 | `/v1/execute` | POST | yes | agent | Execute task |
-| `/v1/health` | GET | no | both | Health check |
-| `/v1/message` | POST | yes | agent | Agent messaging |
-| `/v1/services` | GET/POST | yes | both | Service directory |
+| `/v1/health` | POST | no | agent | Health check |
+| `/v1/message` | POST | yes | agent | Synchronous request/response |
+| `/v1/services` | POST | yes | agent | Receive service directory updates |
+| `/v1/event` | POST | yes | agent | Receive event delivery (pub/sub) |
 | `/v1/register` | POST | no | orchestrator | Agent registration |
 | `/v1/register` | DELETE | yes | orchestrator | Agent deregistration |
-| `/v1/task` | POST | yes | orchestrator | Submit task |
+| `/v1/services` | GET | yes | orchestrator | Service directory + routing table |
 | `/v1/channel` | POST | yes | orchestrator | Broker channel |
+| `/v1/health` | GET | no | orchestrator | Orchestrator health |
 | `/v1/audit` | GET | yes | orchestrator | Audit log |
-| `/v1/strategy` | GET/POST | yes | orchestrator | Strategy management |
-| `/v1/observations` | GET | yes | orchestrator | Observation history |
-| `/v1/approve` | GET/POST | yes | orchestrator | Approval management |
-| `/v1/context` | GET/POST | yes | orchestrator | Entity context |
+
+## Verification Checklist
+
+- [ ] All IDs are 32-character hex strings (16 random bytes) and all timestamps are Unix epoch seconds (int64)
+- [ ] Ed25519 signatures serialize as 128 hex characters; public keys serialize as 64 hex characters
+- [ ] ErrorResponse includes `error` (required), `code`, `category`, `retryable`, and `detail` fields with exact JSON keys
+- [ ] Error categories are constrained to `transient`, `permanent`, or `partial` and each standard error code maps to the correct HTTP status
+- [ ] Unknown JSON fields are silently ignored on deserialization (forward compatibility); optional fields are omitted when empty/null
+- [ ] AgentManifest requires `name`, `version`, `description`, `url`, `public_key`, and `capabilities`; includes `publishes` and `subscriptions` for event system
+- [ ] EventEnvelope requires `event_id`, `topic`, `source`, `scope`, `timestamp`, `trace_id`, `version`, and `payload`
+- [ ] Subscription requires `pattern`; `scope` defaults to `"self"`; `group` defaults to agent name
+- [ ] RouteEntry requires `agent`, `url`, and `scope`
+- [ ] ServiceDirectory includes `services`, `routing_table`, and `namespaces`
+- [ ] WorkflowPhase `on_error` supports `fail`, `skip`, and `retry`; `max_retries` applies only when `on_error` = `"retry"`
+- [ ] WorkflowExecution `status` transitions follow `pending` → `running` → `completed` | `failed`; PhaseResult adds `skipped`
+- [ ] TaskRequest requires `id`, `from`, `action`, `payload`, `context`, `token`, and `timestamp`; TaskResult status is `success`, `failed`, or `pending_approval`
+- [ ] AgentMessage `signature` covers `JSON.stringify({from, to, action, payload})` and `trace_id` propagates through downstream calls
+- [ ] Finding includes all required fields: `rule_id`, `severity`, `element`, `current`, `expected`, `message`, and `fixable`
+- [ ] RegisterResponse includes `agent_id`, `token`, `expires_at`, `services`, `orchestrator`, and negotiated `protocol_version`
+- [ ] ChannelGrant includes `channel_id`, scoped `channel_token`, `target_url`, `target_pub_key`, and `expires_at`
+- [ ] Protocol paths are all prefixed with `/v1` and method/auth requirements match the Protocol Paths table
+- [ ] DeadLetterEntry includes `original_event`, `failure_reason`, `last_error`, `attempts`, and `subscriber`

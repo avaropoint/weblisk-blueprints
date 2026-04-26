@@ -2,7 +2,7 @@
 type: pattern
 name: auth-token
 version: 1.0.0
-requires: [protocol/spec, protocol/types]
+requires: [protocol/spec, protocol/types, protocol/identity, architecture/gateway]
 platform: any
 tier: free
 -->

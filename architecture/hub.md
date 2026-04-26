@@ -2,7 +2,7 @@
 type: architecture
 name: hub
 version: 1.0.0
-requires: [protocol/federation, protocol/identity, protocol/types, architecture/agent]
+requires: [protocol/federation, protocol/identity, protocol/types, architecture/agent, architecture/gateway]
 platform: any
 -->
 
@@ -432,15 +432,16 @@ POST /v1/federation/peer-revoke
 ## Registry Architecture
 
 A registry is itself a Weblisk hub — an orchestrator with specialized
-agents dedicated to indexing and discovery:
+infrastructure agents dedicated to indexing, discovery, verification,
+and marketplace operations:
 
-| Component | Role |
-|-----------|------|
-| **Index Agent** | Crawls and indexes hub manifests from known providers |
-| **Search Agent** | Handles discovery queries with ranking and filtering |
-| **Metrics Agent** | Collects and aggregates uptime, latency, and usage metrics |
-| **Verification Agent** | Validates hub identity and manifest signatures |
-| **Alert Agent** | Monitors behavioral changes and notifies affected collaborators |
+| Component | Agent Blueprint | Role |
+|-----------|----------------|------|
+| **Index Agent** | [hub-index](../agents/hub-index.md) | Crawls and indexes hub manifests from known providers |
+| **Search Agent** | [hub-search](../agents/hub-search.md) | Handles discovery queries with ranking and filtering |
+| **Metrics Agent** | [hub-metrics](../agents/hub-metrics.md) | Collects and aggregates uptime, latency, and usage metrics |
+| **Verification Agent** | [hub-verify](../agents/hub-verify.md) | Validates hub identity, signatures, and behavioral integrity |
+| **Alert Agent** | [hub-alert](../agents/hub-alert.md) | Monitors behavioral changes and notifies affected collaborators |
 
 The registry NEVER handles actual federated task data. It only indexes
 metadata (listings, metrics, contracts). All data exchange happens
@@ -576,6 +577,462 @@ Hub-specific endpoints (in addition to federation endpoints):
 | `/v1/hub/contracts/{name}` | GET | public | Download a data contract |
 | `/v1/hub/notify` | POST | hub-auth | Send change notification to collaborators |
 | `/v1/hub/usage` | GET | peer-auth | Usage metering for billing period |
+| `/v1/hub/marketplace/listings` | GET | public | Browse marketplace listings |
+| `/v1/hub/marketplace/listing/{id}` | GET | public | Marketplace listing detail page data |
+| `/v1/hub/marketplace/purchase` | POST | hub-auth | Initiate a marketplace purchase |
+| `/v1/hub/marketplace/reviews/{id}` | GET | public | Verified reviews for a listing |
+| `/v1/hub/marketplace/reviews` | POST | peer-auth | Submit a verified review |
+| `/v1/hub/marketplace/seller/dashboard` | GET | hub-auth | Seller analytics and revenue |
+
+---
+
+## Marketplace
+
+The hub is not only a collaboration engine — it is a **marketplace**
+where hubs buy, sell, and share capabilities. Every hub can be a
+seller, buyer, or both. The marketplace turns the hub network into an
+ecosystem where partners, independent developers, and enterprises
+monetize domain expertise, agents, blueprints, and templates.
+
+### What Can Be Listed
+
+| Listing Type | Description | Example |
+|-------------|-------------|---------|
+| **Capability** | A live, invocable agent capability hosted on a provider hub | SEO audit, compliance check, demand forecast |
+| **Blueprint** | A domain controller or agent blueprint that buyers can generate into their own hub | Custom e-commerce domain, logistics optimizer |
+| **Template** | A pre-configured hub template with domains, agents, and workflows ready to deploy | "SaaS Starter" with auth, billing, analytics domains |
+| **Agent** | A standalone work or infrastructure agent blueprint | PDF extractor, translation agent, sentiment analyzer |
+| **Data Contract** | A reusable, audited data contract for a specific business function | GDPR-compliant customer data exchange |
+
+### Listing Types
+
+Capabilities are **live services** — the buyer's hub invokes them over
+federation. All other listing types are **installable assets** — the
+buyer receives blueprint files that generate into their own hub via
+the CLI.
+
+```
+Live service (capability):
+  Buyer hub ──federation──► Provider hub (runs the agent)
+
+Installable asset (blueprint, template, agent):
+  Buyer hub ──download──► Blueprint files ──CLI generate──► Buyer's own code
+```
+
+This distinction is important: installable assets run **inside the
+buyer's hub**, under the buyer's full control. The seller has no
+ongoing access. Live capabilities run on the seller's infrastructure,
+governed by data contracts and federation rules.
+
+### Marketplace Listing
+
+A marketplace listing extends the capability listing with commerce
+and discoverability fields:
+
+```json
+{
+  "marketplace_id": "mkt-avaropoint-seo-blueprint",
+  "listing_type": "blueprint",
+  "seller": {
+    "hub_name": "avaropoint-prod",
+    "public_key": "<hex Ed25519 public key>",
+    "verified_seller": true,
+    "seller_since": 1704067200
+  },
+  "product": {
+    "name": "SEO Domain Controller",
+    "description": "Production-ready SEO domain with seo-analyzer and a11y-checker agents",
+    "category": "website-optimization",
+    "tags": ["seo", "accessibility", "content-analysis"],
+    "version": "1.2.0",
+    "platforms": ["go", "node", "cloudflare"],
+    "preview_url": "https://weblisk.dev/marketplace/avaropoint/seo-domain"
+  },
+  "pricing": {
+    "model": "one_time",
+    "currency": "USD",
+    "price": 49.00,
+    "free_tier": false,
+    "trial_days": 14
+  },
+  "stats": {
+    "downloads": 1240,
+    "active_installations": 890,
+    "avg_rating": 4.7,
+    "review_count": 156,
+    "last_updated": 1712160000
+  },
+  "support": {
+    "documentation_url": "https://docs.avaropoint.com/seo-domain",
+    "support_email": "support@avaropoint.com",
+    "sla": "business_hours"
+  },
+  "signature": "<seller's Ed25519 signature over listing>"
+}
+```
+
+### Pricing Models
+
+| Model | Description | Suited For |
+|-------|-------------|------------|
+| **free** | No charge — open source or community contribution | Core blueprints, community agents |
+| **one_time** | Single payment for permanent access | Blueprints, templates, standalone agents |
+| **per_invocation** | Charge per federated task execution | Live capabilities (high-volume, low-cost) |
+| **monthly_subscription** | Recurring fee for access | Live capabilities (predictable workloads) |
+| **tiered** | Price brackets based on volume | Variable workloads |
+| **custom** | Negotiated enterprise pricing | Large partnerships |
+| **revenue_share** | Percentage of buyer's revenue from the capability | Co-investment models |
+
+### Verified Reviews
+
+Reviews are tied to actual usage — only hubs that have purchased or
+invoked a listing can leave a review. Reviews are signed by the
+reviewer's hub key to prevent forgery:
+
+```json
+{
+  "review_id": "rev-acme-001",
+  "marketplace_id": "mkt-avaropoint-seo-blueprint",
+  "reviewer": {
+    "hub_name": "acme-corp",
+    "public_key": "<reviewer's Ed25519 key>"
+  },
+  "rating": 5,
+  "title": "Production-ready out of the box",
+  "body": "Generated into our Go hub in under 5 minutes. Scoring model is well-designed.",
+  "verified_purchase": true,
+  "usage_duration_days": 45,
+  "timestamp": 1712160000,
+  "signature": "<reviewer's Ed25519 signature>"
+}
+```
+
+### Seller Dashboard
+
+Sellers access analytics through the admin API:
+
+- Revenue by listing, time period, and buyer geography
+- Download and installation counts
+- Active usage metrics (for live capabilities)
+- Review summary and trends
+- Payout history and pending settlements
+
+### Purchase Flow
+
+```
+1. DISCOVER
+   Buyer finds listing via hub search, marketplace UI, or CLI.
+
+2. EVALUATE
+   Buyer reviews:
+     - Product description, version, platform support
+     - Verified metrics (uptime, latency, rating, reviews)
+     - Data contract (for live capabilities)
+     - Pricing and trial availability
+
+3. PURCHASE
+   Buyer's hub sends purchase request:
+     POST /v1/hub/marketplace/purchase
+     {
+       "marketplace_id": "mkt-avaropoint-seo-blueprint",
+       "buyer_hub": "acme-corp",
+       "accepted_terms": true,
+       "signature": "<buyer's Ed25519 signature>"
+     }
+
+4. FULFILL
+   For installable assets:
+     - Seller's hub provides download URL (time-limited, signed)
+     - Buyer downloads blueprint files
+     - Buyer generates into their hub: weblisk domain create seo --from marketplace
+   
+   For live capabilities:
+     - Federation peering flow initiates automatically
+     - Data contract review and acceptance
+     - Capability becomes available in buyer's workflow
+
+5. VERIFY
+   Purchase recorded on both hubs (dual-signed receipt).
+   Buyer can leave a verified review after 24 hours of use.
+```
+
+### Ecosystem Building
+
+The marketplace enables hub operators to build ecosystems:
+
+| Strategy | Description |
+|----------|-------------|
+| **Partner network** | Hub publishes curated capabilities and invites partners to list complementary services |
+| **Vertical marketplace** | Industry-specific registry (healthcare, logistics, finance) with domain-appropriate listings |
+| **Developer community** | Open listing submission with review/approval process for quality control |
+| **Enterprise catalog** | Private marketplace within an organization — internal teams publish and consume capabilities |
+| **White-label** | Hub operator runs marketplace under their own brand, powered by the hub protocol |
+
+A hub can operate a private marketplace (visible only to peered hubs),
+a public marketplace (listed on weblisk.dev), or both.
+
+### weblisk.dev Public Directory
+
+[weblisk.dev](https://weblisk.dev) serves as the **public directory**
+for the hub network. It aggregates listings from registries that opt
+into public visibility, providing:
+
+- **Marketplace UI** — Browse, search, and evaluate listings from all
+  public registries
+- **Hub directory** — Discover hubs by industry, capability, or
+  geography
+- **Provider profiles** — Verified seller pages with metrics, listings,
+  and reviews
+- **Blueprint catalog** — All open-source blueprints from this
+  repository, plus community-contributed blueprints
+- **Agent catalog** — Browsable catalog of available agents (free and
+  pro)
+
+weblisk.dev is itself a Weblisk hub running the registry role. It
+indexes listings from participating registries via standard federation,
+applying the same verification, behavioral fingerprinting, and trust
+rules as any other hub.
+
+**Public vs Private:**
+
+| Visibility | Discovery | Listed on weblisk.dev | Access |
+|-----------|-----------|----------------------|--------|
+| Public | Anyone can find via search | Yes | Open or gated (free/paid) |
+| Partner | Visible to peered hubs only | No | Requires peering relationship |
+| Private | Visible within organization only | No | Internal hub network only |
+
+Hubs choose their visibility per listing. A hub can publish some
+capabilities publicly (to attract new partners) while keeping others
+private (internal tools) or partner-only (premium services).
+
+### Marketplace Operations
+
+The marketplace is not a separate system — it is orchestrated by the
+hub's existing infrastructure agents. Every marketplace operation maps
+to a sequence of agent messages coordinated by the orchestrator.
+
+#### Agent Roles in Marketplace Operations
+
+| Operation | Agents Involved | Flow |
+|-----------|----------------|------|
+| **Publish listing** | hub-verify → hub-index → hub-alert | Seller's hub signs listing → registry verifies identity and signature → indexes listing → notifies subscribed searchers |
+| **Purchase (live capability)** | hub-search → hub-verify → federation → hub-metrics → hub-alert | Buyer discovers → registry verifies both parties → federation peering initiated → metrics collection begins → collaborators notified |
+| **Purchase (installable asset)** | hub-search → hub-verify → hub-alert | Buyer discovers → registry verifies seller and asset signature → download URL issued → buyer notified of fulfillment |
+| **Leave review** | hub-verify → hub-index → hub-alert | Registry verifies purchase proof → review indexed → seller notified |
+| **Behavioral change detected** | hub-metrics → hub-verify → hub-alert | Metrics probe detects anomaly → verify classifies change → alert notifies all affected collaborators |
+| **Delist** | hub-index → hub-alert → hub-metrics | Listing marked for deprecation → collaborators notified → metrics archived |
+
+#### Publish Flow (Seller Side)
+
+When a hub operator publishes a capability or asset to the marketplace:
+
+```
+Seller Hub                           Registry Hub
+─────────                           ────────────
+1. Operator runs:
+   weblisk marketplace publish
+   --type capability
+   --name "demand-forecast"
+   --pricing per_invocation
+   --price 0.02
+
+2. Seller's orchestrator:
+   a. Builds marketplace listing JSON
+   b. Signs listing with hub's Ed25519 key
+   c. POST /v1/hub/publish ──────────► 3. Registry orchestrator:
+                                          a. Dispatches to hub-verify
+                                             → verify-listing (signature check)
+                                             → verify-identity (hub identity check)
+                                          b. If verified, dispatches to hub-index
+                                             → index-listing (adds to catalog)
+                                          c. Dispatches to hub-alert
+                                             → notify-marketplace-event
+                                               (new listing notification)
+                                       ◄── 4. Returns listing ID and status
+
+5. Seller's hub stores listing
+   reference for management
+```
+
+#### Purchase Flow (Live Capability)
+
+When a hub wants to consume a live capability from another hub:
+
+```
+Buyer Hub                Registry Hub              Seller Hub
+─────────                ────────────              ──────────
+1. Search/browse:
+   GET /v1/hub/search ──► 2. hub-search returns
+                             ranked results
+                          ◄──
+
+3. Evaluate listing:
+   GET /v1/hub/listing/{id} ► 4. hub-index returns
+                                 listing + metrics
+                               ◄──
+
+5. Review data contract:
+   GET /v1/hub/contracts/{name} ► 6. Returns contract
+                                     definition
+                                   ◄──
+
+7. Operator approves:
+   weblisk marketplace buy mkt-xxx
+   --accept-contract
+   --accept-pricing
+
+8. Purchase request:
+   POST /v1/hub/marketplace ─► 9. Registry orchestrator:
+   /purchase                      a. hub-verify: verify buyer
+                                     identity and signature
+                                  b. hub-verify: verify seller
+                                     is still active
+                                  c. Generate dual-signed
+                                     purchase receipt
+                                  d. hub-alert: notify seller
+                               ◄── 10. Returns receipt + status
+
+11. Federation peering         ────────────────────► 12. Seller hub receives
+    auto-initiates:                                      peering request:
+    POST {seller}/v1/peer                                a. Verifies buyer identity
+    with purchase receipt                                b. Reviews data contract
+    as proof of purchase                                 c. Accepts/rejects peering
+                               ◄────────────────────
+13. Peering established.
+    Buyer can now invoke:
+    POST {seller}/v1/task
+    with federated auth
+
+14. hub-metrics begins     ─► 15. Registry records
+    recording invocations       usage metrics for both
+                                parties
+```
+
+#### Purchase Flow (Installable Asset)
+
+When a hub wants to install a blueprint, template, or agent from the marketplace:
+
+```
+Buyer Hub                Registry Hub              Seller Hub
+─────────                ────────────              ──────────
+1-7. Same discovery and
+     approval as above
+
+8. Purchase request:
+   POST /v1/hub/marketplace ─► 9. Registry orchestrator:
+   /purchase                      a. hub-verify: verify buyer
+                                  b. Generate purchase receipt
+                                  c. Request download URL
+                                     from seller
+                               ──────────────────────► 10. Seller generates:
+                                                           a. Time-limited
+                                                              signed download URL
+                                                           b. Asset signature
+                               ◄──────────────────────
+                               ◄── 11. Returns receipt
+                                       + download URL
+
+12. CLI downloads asset:
+    weblisk marketplace install mkt-xxx
+    a. Downloads blueprint files
+    b. Verifies seller signature
+       against registry's verified
+       public key
+    c. Verifies file integrity
+       (SHA-256 hash in receipt)
+
+13. CLI generates into hub:
+    weblisk domain create forecast
+    --from marketplace
+    a. Generates domain controller
+    b. Generates agent stubs
+    c. Registers with orchestrator
+
+14. Asset runs LOCALLY in
+    buyer's hub. Seller has
+    no ongoing access.
+```
+
+#### Collaboration Lifecycle
+
+Once two hubs are peered (via marketplace purchase or direct federation),
+the collaboration follows this lifecycle:
+
+```
+  ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
+  │ DISCOVER │────►│ EVALUATE │────►│ ONBOARD  │────►│  ACTIVE  │
+  └──────────┘     └──────────┘     └──────────┘     └──────────┘
+                                                           │
+                                                     ┌─────┴─────┐
+                                                     │           │
+                                                     ▼           ▼
+                                               ┌──────────┐ ┌──────────┐
+                                               │  RENEW   │ │TERMINATE │
+                                               └──────────┘ └──────────┘
+```
+
+| Phase | What Happens | Agents Involved |
+|-------|-------------|-----------------|
+| **Discover** | Buyer searches marketplace, browses listings, reads reviews | hub-search, hub-index |
+| **Evaluate** | Buyer reviews metrics, data contracts, pricing. May request a trial. | hub-metrics, hub-verify |
+| **Onboard** | Purchase, federation peering, data contract acceptance, initial capability test | hub-verify, hub-alert, federation protocol |
+| **Active** | Ongoing invocations, usage metering, behavioral monitoring, SLA tracking | hub-metrics, hub-verify, hub-alert |
+| **Renew** | Contract renewal, pricing renegotiation, version upgrades | hub-verify, hub-alert |
+| **Terminate** | Graceful shutdown: deprecation notice → drain active tasks → revoke peering → archive metrics | hub-alert, hub-index, hub-metrics |
+
+#### Termination Protocol
+
+Collaboration termination follows a structured wind-down:
+
+```
+1. INITIATE   Either party sends termination notice
+              via POST /v1/hub/notify {type: "terminate"}
+
+2. GRACE      30-day grace period (or contract minimum):
+              - New tasks are rejected after day 1
+              - In-flight tasks complete normally
+              - Usage metering continues
+              - Buyer should migrate to alternative provider
+
+3. DRAIN      After grace period:
+              - All pending tasks are force-completed or failed
+              - Final usage report generated (dual-signed)
+              - Final invoice/settlement
+
+4. REVOKE     Federation peering revoked:
+              - Keys removed from both hub registries
+              - Data contracts archived (not deleted — for audit)
+              - Buyer's hub removes provider from service directory
+
+5. ARCHIVE    Registry updates:
+              - Collaboration marked as terminated
+              - Metrics archived but queryable for 2 years
+              - Reviews remain visible (with "no longer active" badge)
+```
+
+#### CLI Commands for Marketplace
+
+```bash
+# Seller operations
+weblisk marketplace publish --type capability --config listing.yaml
+weblisk marketplace update mkt-xxx --price 0.03
+weblisk marketplace delist mkt-xxx --reason "end of life"
+weblisk marketplace dashboard                # revenue, downloads, ratings
+weblisk marketplace reviews mkt-xxx          # view reviews for your listing
+
+# Buyer operations
+weblisk marketplace search "demand forecasting"
+weblisk marketplace info mkt-xxx             # detailed listing + metrics
+weblisk marketplace buy mkt-xxx --accept-contract --accept-pricing
+weblisk marketplace install mkt-xxx          # download + generate installable asset
+weblisk marketplace review mkt-xxx --rating 5 --title "Excellent"
+weblisk marketplace list                     # list active purchases
+
+# Collaboration management
+weblisk marketplace collaborations           # list all active collaborations
+weblisk marketplace usage mkt-xxx            # usage metrics for a collaboration
+weblisk marketplace terminate mkt-xxx        # initiate termination protocol
+```
 
 ---
 
@@ -613,6 +1070,17 @@ protocol:
    requires dual-signature proof. Emergency revocation enables immediate
    disconnection.
 
+7. **Marketplace fraud** — Purchase receipts are dual-signed by buyer
+   and seller. Verified reviews require proof of purchase. Rating
+   manipulation is detectable because reviews are cryptographically
+   tied to hub identities. Seller verification (domain ownership,
+   organizational identity) is required for paid listings.
+
+8. **Asset tampering** — Installable assets (blueprints, templates,
+   agents) are signed by the seller's Ed25519 key. The CLI verifies
+   signatures before generation. A tampered asset is cryptographically
+   detectable before any code is generated.
+
 ## Verification Checklist
 
 - [ ] Listings are signed by provider hub's Ed25519 key
@@ -628,3 +1096,8 @@ protocol:
 - [ ] Registry never handles actual task data
 - [ ] Multiple registries can federate for redundancy
 - [ ] Delisting respects deprecation window for active collaborators
+- [ ] Marketplace purchases generate dual-signed receipts
+- [ ] Verified reviews require proof of purchase and hub identity
+- [ ] Installable assets are signature-verified before generation
+- [ ] Marketplace endpoints enforce proper authentication (hub-auth, peer-auth)
+- [ ] Seller dashboard data is scoped to the authenticated hub

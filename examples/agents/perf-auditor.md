@@ -1,8 +1,10 @@
 <!-- blueprint
 type: agent
 name: perf-auditor
-version: 1.0.0
+version: 1.1.0
 kind: work
+port: 9731
+extends: [patterns/observability, patterns/security]
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/domain]
 platform: any
 tier: free

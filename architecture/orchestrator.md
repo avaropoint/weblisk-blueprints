@@ -8,35 +8,64 @@ platform: any
 
 # Weblisk Orchestrator Blueprint
 
-The orchestrator is the central coordination service. It does NOT execute
-agent logic — it manages registration, routing, security, and discovery.
+The orchestrator is the trust anchor and registry service. It manages
+agent registration, identity verification, namespace ownership, service
+directory distribution, and channel brokering.
+
+The orchestrator does NOT execute agent logic, route tasks, manage
+strategies, store observations, or handle approvals. Those concerns
+belong to infrastructure agents (Workflow, Task, Lifecycle) that
+register like any other agent.
 
 ## Responsibilities
 
-1. **Agent Registration** — accept agents and domains, verify identity, issue tokens
-2. **Service Directory** — maintain and broadcast the registry of live agents and domains
-3. **Domain-Aware Task Routing** — route business tasks through domain controllers, infrastructure tasks directly
-4. **Domain Dependency Tracking** — track required agent availability per domain
-5. **Strategy Management** — store strategies, decompose into domain tasks
-6. **Channel Brokering** — establish secure direct connections between agents
-7. **Auth Enforcement** — verify tokens on all protected endpoints
-8. **Audit Logging** — record every operation in an append-only log
-9. **Health Aggregation** — report overall system health including domain status
-10. **Lifecycle Coordination** — store observations, recommendations, and feedback
+1. **Agent Registration** — accept agents, verify identity, issue tokens,
+   enforce namespace ownership
+2. **Service Directory** — maintain and broadcast the registry of live
+   agents, the routing table, and the namespace map
+3. **Namespace Control** — enforce exclusive namespace ownership at
+   registration, reserve `system.*` for itself
+4. **Channel Brokering** — establish secure direct connections between agents
+5. **Auth Enforcement** — verify tokens on all protected endpoints
+6. **Audit Logging** — record every operation in an append-only log
+7. **Health Aggregation** — report overall system health
+8. **System Events** — publish to `system.*` namespace (agent lifecycle events)
 
-See [Domain Architecture](domain.md) for the domain controller spec.
+See [Protocol Specification](../protocol/spec.md) for the authoritative
+endpoint contracts.
+See [Agent Architecture](agent.md) for the 6-endpoint agent protocol.
 See [Lifecycle](lifecycle.md) for the continuous optimization loop.
+
+## Endpoints
+
+The orchestrator exposes exactly 6 endpoints:
+
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| POST | /v1/register | no* | Agent registration (identity-verified) |
+| DELETE | /v1/register | yes | Agent deregistration |
+| GET | /v1/services | yes | Service directory (routing table + namespaces) |
+| POST | /v1/channel | yes | Request direct agent-to-agent channel |
+| GET | /v1/health | no | Orchestrator and hub health |
+| GET | /v1/audit | yes | Query audit log |
+
+\* Registration uses Ed25519 identity verification instead of tokens.
+
+---
 
 ## Startup Sequence
 
 ```
 1. Load or generate Ed25519 identity (name: "orchestrator")
-2. Initialize empty agent registry, channel registry, audit log
-3. Register HTTP routes for all protocol endpoints
-4. Start HTTP server on configured port
-5. Print startup info (URL, public key, how to register agents)
-6. Block and serve requests
+2. Initialize empty agent registry, namespace map, routing table, audit log
+3. Reserve "system" namespace for orchestrator
+4. Register HTTP routes for all 6 endpoints
+5. Start HTTP server on configured port
+6. Print startup info (URL, public key, how to register agents)
+7. Block and serve requests
 ```
+
+---
 
 ## Registration Flow (POST /v1/register)
 
@@ -46,51 +75,135 @@ for the authoritative registration contract.
 **Orchestrator implementation notes:**
 
 ```
-1. Parse and validate per spec.md contract
-2. Verify signature and replay protection (see protocol/identity.md)
-3. Generate agent ID and auth token
-4. Store agent in registry: {manifest, agentID, token, registeredAt, lastSeen, status:"online"}
-5. If manifest.type = "domain": evaluate required_agents availability
-   (see Domain Dependency below)
-6. Log audit entry: actor=orchestrator, action=register, target=agent_name
-7. Respond with RegisterResponse
-8. Asynchronously broadcast updated ServiceDirectory to ALL OTHER agents
+1.  Parse and validate per spec.md contract
+2.  Verify signature and replay protection (see protocol/identity.md)
+3.  Validate namespace claims:
+    a. For each namespace in manifest.publishes:
+       - Check: is namespace already owned by another agent?
+         → 409 NAMESPACE_CONFLICT {"conflict": "<owner-name>"}
+       - Check: is namespace in reserved list (system.*)?
+         → 403 NAMESPACE_RESERVED
+       - If clear → grant ownership: namespace_map[namespace] = agent_name
+    b. No publishes declared → agent is subscription-only (no conflict possible)
+4.  Validate subscription scopes:
+    a. For each subscription in manifest.subscriptions:
+       - scope "self" → always allowed
+       - scope "*" → check agent has "event:observe" capability → 403 if missing
+       - scope "<name>" → check collaborator relationship → 403 if unauthorized
+5.  Generate agent ID and auth token
+6.  Store agent in registry:
+    {manifest, agentID, token, registeredAt, lastSeen, status: "online"}
+7.  Build routing table entries for this agent's subscriptions:
+    For each subscription → add RouteEntry to routing_table[pattern]
+8.  Log audit entry: actor=orchestrator, action=register, target=agent_name
+9.  Respond with RegisterResponse (includes agent_id, token, service directory)
+10. Publish system.agent.registered event (scope: "*")
+11. Asynchronously broadcast updated ServiceDirectory to ALL OTHER agents
+    via POST /v1/services (includes routing_table and namespaces)
 ```
+
+### Namespace Enforcement Rules
+
+| Condition | Response |
+|-----------|----------|
+| Namespace unclaimed | Grant ownership, add to namespace_map |
+| Namespace already owned by same agent (re-registration) | Allow (idempotent) |
+| Namespace owned by different agent | 409 NAMESPACE_CONFLICT |
+| Namespace is `system` or `system.*` | 403 NAMESPACE_RESERVED |
+| Agent re-registers with FEWER namespaces | Release dropped namespaces |
+
+### Domain Dependency Tracking
+
+When `manifest.type = "domain"`, the orchestrator tracks whether the
+domain's `required_agents` are all registered:
+
+```
+1. Extract required_agents from manifest
+2. Check each against current registry
+3. Store domain dependency status:
+   - "ready": all required agents registered
+   - "degraded": some missing (log which)
+4. Include dependency status in ServiceDirectory
+5. On future registrations: re-evaluate all domains that list the
+   newly-registered agent in required_agents
+```
+
+---
 
 ## Deregistration Flow (DELETE /v1/register)
 
 ```
 1. Authenticate request (extract and verify token)
 2. Remove agent matching token.sub from registry
-3. Log audit entry
-4. Broadcast updated ServiceDirectory
-5. Respond: {"status": "deregistered"}
+3. Release all namespaces owned by the agent:
+   For each namespace where namespace_map[ns] == agent_name:
+     delete namespace_map[ns]
+4. Remove all routing table entries for this agent
+5. Log audit entry
+6. Publish system.agent.deregistered event (scope: "*")
+7. Broadcast updated ServiceDirectory to all remaining agents
+8. Respond: {"status": "deregistered"}
 ```
 
-## Task Routing (POST /v1/task)
+---
 
+## Service Directory (GET /v1/services)
+
+Returns the complete service directory including the routing table
+and namespace map:
+
+```json
+{
+  "agents": [
+    {
+      "name": "seo-analyzer",
+      "url": "http://localhost:9801",
+      "capabilities": ["task:execute", "agent:message"],
+      "type": "agent",
+      "domain": "seo",
+      "status": "online"
+    }
+  ],
+  "routing_table": {
+    "workflow.completed": [
+      {"agent": "seo", "url": "http://localhost:9805/v1/event", "group": "seo", "scope": "self"},
+      {"agent": "lifecycle", "url": "http://localhost:9810/v1/event", "group": "lifecycle", "scope": "*"}
+    ],
+    "task.complete": [
+      {"agent": "workflow", "url": "http://localhost:9808/v1/event", "group": "workflow", "scope": "self"}
+    ]
+  },
+  "namespaces": {
+    "system": "orchestrator",
+    "workflow": "workflow",
+    "task": "task",
+    "lifecycle": "lifecycle",
+    "seo": "seo",
+    "content": "content",
+    "health": "health"
+  }
+}
 ```
-1. Authenticate request
-2. Parse TaskRequest from body
-3. Extract target_agent from payload.target_agent
-4. Look up target in registry → 404 if not found
-5. Check target type from manifest:
-   a. If type = "domain": route to domain (standard path for business tasks)
-   b. If type = "infrastructure": route directly
-   c. If type = "agent" (work agent): check if a registered domain
-      declares it in required_agents. If yes, log advisory:
-      "task targets work agent directly — consider routing through domain"
-6. Inject context: workspace_root, current service entries, entity context
-7. Set task.from = requesting agent's name
-8. Generate task.id if not set
-9. If strategy_id is set, inject strategy context
-10. Log audit entry
-11. Forward TaskRequest to target's URL + /v1/execute (HTTP POST)
-12. Proxy the response back to the caller
-13. If response contains observations → store in observation history
-14. If response contains recommendations → store for approval tracking
-15. On connection error → 502 "forwarding to agent failed"
-```
+
+### Routing Table Structure
+
+The routing table maps topic patterns to subscriber entries. Each
+entry includes the subscriber's event endpoint URL, consumer group,
+and scope filter.
+
+When a topic is subscribed with a wildcard pattern (`*` or `#`),
+the orchestrator stores the pattern as-is. Publishing agents resolve
+matches locally using the pattern matching rules from
+[patterns/messaging](../patterns/messaging.md).
+
+### Service Broadcasting
+
+After any registration or deregistration, the orchestrator
+asynchronously pushes the current `ServiceDirectory` to every other
+registered agent via `POST /v1/services`. Failures are logged but
+never block.
+
+---
 
 ## Channel Brokering (POST /v1/channel)
 
@@ -114,150 +227,146 @@ for the authoritative registration contract.
 12. Respond with ChannelGrant
 ```
 
-## Service Directory (GET /v1/services)
-
-See [Protocol Specification — GET /v1/services](../protocol/spec.md)
-for the endpoint contract.
-
-## Service Broadcasting
-
-After any registration/deregistration, the orchestrator asynchronously
-pushes the current `ServiceDirectory` to every other registered agent
-via `POST /v1/services`. Failures are logged but never block.
+---
 
 ## Auth Middleware
 
-Applied to all endpoints except /health and POST /register:
+Applied to all endpoints except `/v1/health` and `POST /v1/register`:
+
 ```
 1. Check Authorization header for "Bearer <token>"
 2. If no header, check request body for "token" field
-3. Verify token against orchestrator's public key
+3. Verify token against orchestrator's signing key
 4. Check expiry
 5. On failure → 401 {"error": "valid token required — register first"}
 6. On success → pass TokenClaims to handler
 ```
 
+---
+
+## System Events
+
+The orchestrator owns the `system.*` namespace and publishes lifecycle
+events that all agents may subscribe to:
+
+| Topic | Scope | Published When |
+|-------|-------|----------------|
+| `system.agent.registered` | `*` | New agent successfully registered |
+| `system.agent.deregistered` | `*` | Agent deregistered |
+| `system.shutdown` | `*` | Orchestrator is shutting down gracefully |
+
+System events are published via the same HTTP-based pub/sub mechanism.
+The orchestrator resolves subscribers from its own routing table and
+delivers via `POST /v1/event`.
+
+---
+
 ## Audit Logging
 
 Every operation creates an AuditEntry:
-```
+
+```json
 {
-  id: generateID(),
-  timestamp: now(),
-  actor: who performed the action,
-  action: "register" | "deregister" | "task" | "channel" | "message",
-  target: affected agent or resource,
-  detail: human-readable description,
-  status: "ok" | "denied" | "failed"
+  "id": "<generated>",
+  "timestamp": 1712160000,
+  "actor": "orchestrator",
+  "action": "register",
+  "target": "seo-analyzer",
+  "detail": "Agent registered, namespace 'seo' granted",
+  "status": "ok"
 }
 ```
 
-Log to stderr in real-time AND store in memory (append-only).
+### Audit Actions
+
+| Action | Description |
+|--------|-------------|
+| `register` | Agent registered |
+| `deregister` | Agent deregistered |
+| `channel` | Channel brokered |
+| `namespace_grant` | Namespace ownership granted |
+| `namespace_release` | Namespace ownership released |
+| `event` | System event published |
+
+Log to stderr in real-time AND persist to append-only flat-file
+storage (JSONL).
+
 Format: `[audit] HH:MM:SS actor → target: detail [status]`
+
+---
 
 ## Health (GET /v1/health)
 
 No auth. Returns:
-- name: "orchestrator"
-- status: "healthy"
-- version: from build constants
-- uptime: seconds since start
-- metrics: {agents: count, domains: count, channels: count}
 
-## Strategy Management (POST/GET /v1/strategy)
-
-Strategies are business objectives with measurable targets.
-See [Lifecycle](lifecycle.md) for the full specification.
-
-```
-POST /v1/strategy — Create or update a strategy
-  1. Authenticate request
-  2. Parse Strategy from body
-  3. Validate: name, objective, targets must be non-empty
-  4. Store in strategy registry
-  5. Log audit entry
-  6. Return stored strategy with generated ID
-
-GET /v1/strategy — List all strategies
-  1. Authenticate request
-  2. Return all strategies (filterable by status: active, paused, completed)
+```json
+{
+  "name": "orchestrator",
+  "status": "healthy",
+  "version": "2.0.0",
+  "uptime": 3600,
+  "metrics": {
+    "agents": 8,
+    "domains": 3,
+    "channels": 2,
+    "namespaces": 7
+  }
+}
 ```
 
-## Entity Context (POST/GET /v1/context)
-
-Entity context grounds every agent's decisions in business reality.
-
-```
-POST /v1/context — Set or update entity context
-  1. Authenticate request
-  2. Parse EntityContext from body
-  3. Store as the system's entity context
-  4. Log audit entry
-  5. Return stored context
-
-GET /v1/context — Retrieve current entity context
-  1. Authenticate request
-  2. Return stored EntityContext
-```
-
-Entity context is automatically injected into TaskContext on every
-task execution.
-
-## Observation History (GET /v1/observations)
-
-```
-1. Authenticate request
-2. Return stored observations (filterable by agent, target, strategy)
-3. Support pagination via cursor parameter
-```
-
-## Approval Management (POST /v1/approve)
-
-See [Protocol Specification — POST /v1/approve](../protocol/spec.md)
-for the endpoint contract and [Lifecycle](lifecycle.md) for the
-approval workflow in business context.
-
-**Orchestrator implementation notes:**
-
-- Recommendations arrive via domain task results (step 14 in Task Routing above)
-- Accepted recommendations belonging to a paused workflow trigger
-  a `POST /v1/message` to the owning domain with action `resume_workflow`
-- Recommendation storage uses the Recommendation Store
-  (see [Storage](storage.md))
-
-### Recommendation Store
-
-See [Storage — Store: Recommendations](storage.md) for the canonical
-store interface. The orchestrator indexes by status (`pending`,
-`accepted`, `rejected`) for the `GET /v1/approve` query.
+---
 
 ## Data Structures
 
-See [Storage](storage.md) for the canonical abstract store interfaces,
-operations, and platform-specific mappings.
+See [Storage](storage.md) for the canonical abstract store interfaces
+and [protocol/types.md](../protocol/types.md) for type definitions.
 
 **Key implementation notes:**
 
-- **Agent Registry** — Thread-safe map of agent name → registered agent info.
-  Entries include `manifest.type` for routing decisions.
+- **Agent Registry** — Thread-safe map of agent name → registered agent
+  info. Entries include `manifest.type` for domain dependency tracking.
+- **Namespace Map** — Map of namespace → owner agent name. Thread-safe.
+  Mutations only at registration/deregistration.
+- **Routing Table** — Map of topic pattern → []RouteEntry. Rebuilt from
+  agent subscriptions at registration. Distributed as part of the
+  service directory.
 - **Domain Dependency Map** — Map of domain name → `{required_agents: [], status}`.
   Recalculated on every registration/deregistration.
 - **Channel Registry** — Map of channel ID → active channel info, with
-  1-hour TTL. Expired channels should be cleaned up periodically.
-- **Strategy, Observation, Entity Context, and Recommendation stores** —
-  See [Storage](storage.md) for the full interface contract.
+  1-hour TTL. Expired channels cleaned up periodically.
+- **Audit Log** — Append-only flat-file (JSONL). In-memory buffer for
+  recent entries, flushed periodically.
+
+---
 
 ## Configuration
 
-- Port: configurable via flag (--port) or env (WL_ORCH_PORT), default 9800
-- Identity keys stored in working directory under .weblisk/keys/
+| Setting | Flag | Env Var | Default |
+|---------|------|---------|---------|
+| Port | `--port` | `WL_ORCH_PORT` | `9800` |
+| Identity key path | `--keys` | `WL_KEYS_DIR` | `.weblisk/keys/` |
+| Audit log path | `--audit` | `WL_AUDIT_PATH` | `.weblisk/audit.jsonl` |
+| Channel TTL | — | `WL_CHANNEL_TTL` | `3600` (1 hour) |
 
-## Helper Functions Needed
+---
 
-- `writeJSON(w, statusCode, value)` — serialize and write JSON response
-- `writeError(w, statusCode, message)` — write error JSON
-- `jsonReader(data)` — create io.Reader from byte slice
-- `flattenCapabilities(caps)` — extract capability names to string slice
-- `hasCapability(caps, name)` — check if capability list includes name
-- `abs(n)` — absolute value of int64
-- `truncateKey(hex)` — show first/last 8 chars of key for display
+## Verification Checklist
+
+- [ ] POST /v1/register verifies Ed25519 signature and replay protection
+- [ ] POST /v1/register enforces exclusive namespace ownership (409 on conflict)
+- [ ] POST /v1/register rejects reserved namespace claims (403)
+- [ ] POST /v1/register validates subscription scopes (event:observe for "*")
+- [ ] POST /v1/register returns RegisterResponse with agent ID, token, and service directory
+- [ ] DELETE /v1/register releases owned namespaces and routing table entries
+- [ ] Service directory includes routing_table and namespaces map
+- [ ] Service directory broadcast to ALL agents after every registration/deregistration
+- [ ] POST /v1/channel verifies from_agent matches token.sub
+- [ ] POST /v1/channel requires agent:message capability (403 if missing)
+- [ ] Channel tokens expire after configured TTL
+- [ ] Auth middleware rejects unauthenticated requests on protected endpoints
+- [ ] GET /v1/health returns 200 without auth with agent/domain/channel/namespace counts
+- [ ] system.agent.registered event published after successful registration
+- [ ] system.agent.deregistered event published after deregistration
+- [ ] Every operation creates an AuditEntry logged to stderr and persisted to JSONL
+- [ ] Domain dependency status recalculated on registration/deregistration
+- [ ] Orchestrator does NOT handle tasks, strategies, context, observations, or approvals

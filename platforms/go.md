@@ -2,15 +2,22 @@
 type: platform
 name: go
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage]
+requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway]
 platform: go
 -->
 
 # Platform: Go Implementation
 
 Guidance for generating Weblisk orchestrator and agent implementations
-in Go, running as local processes. This is the default platform for
-local development.
+in Go, running as local processes. This is the default platform and
+the reference implementation for all Weblisk blueprints.
+
+Go is the ideal fit for Weblisk because it achieves **true zero
+external dependencies** — the entire framework compiles from the Go
+standard library alone. No package manager, no native bindings, no
+external database servers. The only exception is the optional SQLite
+driver for persistence, which compiles into the binary (embedded,
+not an external server).
 
 ## Project Structure
 
@@ -135,7 +142,7 @@ Build: `cd domains/<name> && go build -o <name> .`
 Run: `./domains/seo --port 9700 --orch http://localhost:9800`
 
 The domain controller uses the same agent base framework as work agents
-(5 protocol endpoints). The additional workflow engine lives in
+(6 protocol endpoints). The additional workflow engine lives in
 `domain.go` — see [architecture/domain.md](../architecture/domain.md)
 for the execution flow.
 
@@ -150,15 +157,16 @@ abstract storage interface.
 | Store | File | Table |
 |-------|------|-------|
 | Agent Registry | `.weblisk/data/orchestrator.db` | `agents` |
-| Strategies | `.weblisk/data/orchestrator.db` | `strategies` |
-| Observations | `.weblisk/data/orchestrator.db` | `observations` |
-| Recommendations | `.weblisk/data/orchestrator.db` | `recommendations` |
-| Feedback | `.weblisk/data/orchestrator.db` | `feedback` |
-| Agent Metrics | `.weblisk/data/orchestrator.db` | `agent_metrics` |
 | Audit Log | `.weblisk/data/orchestrator.db` | `audit_log` |
-| Entity Context | `.weblisk/data/orchestrator.db` | `entity_context` |
 | Channels | In-memory map (short-lived, 1h TTL) | — |
-| Workflow Executions | `.weblisk/data/<domain>.db` | `executions` |
+| Strategies | `.weblisk/data/lifecycle.db` | `strategies` |
+| Observations | `.weblisk/data/lifecycle.db` | `observations` |
+| Recommendations | `.weblisk/data/lifecycle.db` | `recommendations` |
+| Feedback | `.weblisk/data/lifecycle.db` | `feedback` |
+| Agent Metrics | `.weblisk/data/lifecycle.db` | `agent_metrics` |
+| Entity Context | `.weblisk/data/lifecycle.db` | `entity_context` |
+| Workflow Executions | `.weblisk/data/workflow.db` | `executions` |
+| Task Records | `.weblisk/data/task.db` | `tasks` |
 
 ### SQLite Requirements
 - Use `database/sql` with `modernc.org/sqlite` (pure Go, no CGo) or
@@ -220,3 +228,16 @@ defer limiter.Release()
 Use `sync.WaitGroup` + goroutines for parallel phase execution within
 a dependency level. Use a semaphore per target agent to respect
 `max_concurrent` declarations.
+
+## Verification Checklist
+
+- [ ] Zero external dependencies — only Go standard library is imported (exception: one SQLite driver for persistence)
+- [ ] All source files are in `package main`; shared code (protocol.go, identity.go, helpers.go) is copied between orchestrator and agents
+- [ ] `io.LimitReader` is applied on all request body reads: 1 MB for registration/messages, 10 MB for tasks, 64 KB for channels
+- [ ] All registries and shared maps are protected by `sync.RWMutex` with `RLock` for reads and `Lock` for writes
+- [ ] Concurrency limiter returns 429 with `Retry-After` header and structured ErrorResponse when agent is at capacity
+- [ ] SQLite uses WAL journal mode and `user_version` pragma for schema migrations; tables created with `CREATE TABLE IF NOT EXISTS`
+- [ ] When `WL_DEV=1`, storage falls back to in-memory maps and prints warning: `"[dev] using in-memory storage — data will not survive restart"`
+- [ ] Functions return errors — HTTP handlers write error JSON responses and do not panic; registration failures are fatal
+- [ ] Configuration loads from environment variables (`WL_*`), command-line flags (`--port`, `--orch`), and `.env` file from working directory
+- [ ] Domain controllers use `sync.WaitGroup` + goroutines for parallel phase execution and a per-agent semaphore respecting `max_concurrent`

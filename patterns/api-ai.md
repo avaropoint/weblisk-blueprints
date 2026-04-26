@@ -2,7 +2,7 @@
 type: pattern
 name: api-ai
 version: 1.0.0
-requires: [protocol/spec, protocol/types, architecture/agent]
+requires: [protocol/spec, protocol/types, architecture/agent, architecture/gateway]
 platform: any
 tier: free
 -->
@@ -25,9 +25,15 @@ through a single interface.
 
 This is the intelligence backbone of a Weblisk server — the way every
 agent accesses LLM capabilities. Rather than each agent implementing
-its own provider integration, the api-ai pattern provides a centralised
+its own provider integration, the api-ai pattern provides a centralized
 gateway that enforces rate limits, tracks usage, and routes to the
 configured provider.
+
+The default configuration uses **local models** (Ollama) — no external
+API keys, no external dependencies, no data leaving the deployment.
+Remote providers (OpenAI, Anthropic, etc.) are optional for teams
+that want them. The provider abstraction means switching between
+local and remote is a configuration change, not a code change.
 
 ## Specification
 
@@ -403,6 +409,92 @@ WL_AI_TIMEOUT=120             # seconds per request
 WL_AI_RETRY_COUNT=2           # retries on transient failure
 ```
 
+## Model Routing
+
+When an agent requests a model by name, the api-ai endpoint resolves
+which provider to use. This decouples agents from provider knowledge —
+agents request capabilities, the router finds the best match.
+
+### Resolution Order
+
+```
+1. Exact match — model name matches a configured provider's model list
+2. Cross-provider search — check all providers for the model name
+3. Capability fallback — if no exact match, select the best model
+   for the request type (chat, embed, extract) from the default provider
+4. 404 — no suitable model found
+```
+
+### Routing Table
+
+The routing table maps model names to providers. It is built at
+startup from provider configuration and updated when GET `/ai/health`
+detects provider changes.
+
+```yaml
+routing:
+  # Explicit model → provider mapping (overrides auto-discovery)
+  overrides:
+    "gpt-4o": openai
+    "claude-sonnet-4-20250514": anthropic
+    "llama3": ollama
+
+  # Capability-based fallback chains (used when model is omitted)
+  fallback:
+    chat: [ollama/llama3, openai/gpt-4o-mini, anthropic/claude-haiku-4-20250414]
+    embed: [ollama/nomic-embed-text, openai/text-embedding-3-small]
+    extract: [openai/gpt-4o-mini, ollama/llama3]
+
+  # Cost-aware routing — prefer cheaper models when quality is sufficient
+  cost_preference: lowest  # lowest | balanced | highest_quality
+```
+
+### Request-Level Override
+
+Callers MAY specify both `model` and `provider` to bypass routing:
+
+```json
+{
+  "model": "gpt-4o",
+  "provider": "openai",
+  "messages": [...]
+}
+```
+
+When `provider` is specified, the router skips resolution and sends
+directly to that provider. If the model is not available on the
+specified provider, return 404.
+
+### Provider Health-Aware Routing
+
+The router tracks provider health from GET `/ai/health` responses.
+When a provider is unhealthy:
+
+1. Remove its models from the active routing table.
+2. Route requests for those models to the next provider in the
+   fallback chain.
+3. Re-check the provider on the next health poll interval (default:
+   60s).
+4. Restore routing when the provider returns to healthy.
+
+### Token Budget Routing
+
+For cost-sensitive deployments, the router MAY enforce per-agent
+token budgets:
+
+```bash
+# Monthly token budget per agent (0 = unlimited)
+WL_AI_TOKEN_BUDGET=1000000
+
+# Action when budget exceeded: block | downgrade | alert
+WL_AI_BUDGET_ACTION=downgrade
+```
+
+When `downgrade` is configured and an agent exceeds its budget, the
+router automatically selects a cheaper model from the fallback chain
+(e.g., gpt-4o → gpt-4o-mini → llama3). When `block` is configured,
+return 429 with `TOKEN_BUDGET_EXCEEDED`.
+
 ## Implementation Notes
 
 - **Provider failover**: If the primary provider returns a 5xx or
@@ -422,6 +514,8 @@ WL_AI_RETRY_COUNT=2           # retries on transient failure
 - **Input limits**: Request body MUST be capped at 1 MB. Prompts
   exceeding the model's context window SHOULD return 400 with
   `INVALID_REQUEST` and the model's token limit in `detail`.
+- **Response caching**: Deterministic responses (temperature = 0) and
+  embeddings MAY be cached per [patterns/caching](caching.md).
 
 ## Verification Checklist
 
@@ -441,3 +535,7 @@ WL_AI_RETRY_COUNT=2           # retries on transient failure
 - [ ] All responses include `latency_ms` for observability
 - [ ] Tool calling works across providers that support it
 - [ ] Provider-specific formats are fully normalised
+- [ ] Model routing resolves across providers when model not on default
+- [ ] Fallback chain activates when provider is unhealthy
+- [ ] Request-level provider override bypasses routing
+- [ ] Token budget enforcement works in block and downgrade modes

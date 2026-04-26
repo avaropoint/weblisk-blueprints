@@ -2,62 +2,61 @@
 type: architecture
 name: domain
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/types, architecture/agent, architecture/orchestrator]
+requires: [protocol/spec, protocol/identity, protocol/types, architecture/agent, architecture/orchestrator, patterns/messaging, patterns/workflow]
 platform: any
 -->
 
 # Weblisk Domain Controller Architecture
 
 A domain controller is the business intelligence layer of the Weblisk
-architecture. It sits between the orchestrator and work agents —
-receiving business-level tasks, decomposing them into discrete work
-units, dispatching those units to specialised agents, aggregating
-results, and feeding outcomes back into the continuous optimization
-lifecycle.
+architecture. It owns the workflow definitions, entity context, and
+business rules for a specific function. When triggered, it publishes
+a `workflow.trigger` event — the Workflow Agent handles the actual
+DAG execution and phase dispatch.
 
-Nothing enters or leaves a business function without the domain
-controller's knowledge and approval. It is the director: it
-understands the process, the rules, the data contracts, and the
-quality gates that make each business function operate correctly.
+The domain controller knows WHAT needs to happen and WHY. The
+infrastructure agents (Workflow, Task, Lifecycle) know HOW to
+execute, dispatch, and optimise. This separation means domains are
+pure business logic — no embedded execution engine.
 
 ## Relationship to Other Components
 
 ```
 ┌──────────────────────────────────────────────────────┐
 │                    Orchestrator                       │
-│    Registration · Routing · Security · Discovery      │
-└────────────┬────────────────────┬────────────────────┘
-             │ task               │ task
-             ▼                    ▼
-  ┌─────────────────┐  ┌─────────────────┐
-  │  SEO Domain      │  │  Ops Domain      │
-  │  (controller)    │  │  (controller)    │
-  └──┬──────┬───────┘  └──┬──────┬───────┘
-     │      │              │      │
-     ▼      ▼              ▼      ▼
-  ┌─────┐┌─────┐       ┌─────┐┌─────┐
-  │ seo ││a11y │       │ cron││email│
-  │ anlz││chkr │       │ agnt││agnt │
-  └─────┘└─────┘       └─────┘└─────┘
-   work     work       infra   infra
-  agents   agents      agents  agents
+│    Registration · Namespaces · Security · Discovery    │
+└────────────────────────┬─────────────────────────────┘
+                         │ registers
+     ┌─────────────────┬─────────┼──────────────────────┐
+     ▼                 ▼         ▼                      ▼
+┌─────────┐  ┌─────────┐  ┌─────────┐  ┌───────────────┐
+│ SEO     │  │Workflow │  │ Task    │  │ Work Agents   │
+│ Domain  │  │ Agent   │  │ Agent   │  │ (seo-analyzer,│
+│(domain) │  │(infra)  │  │(infra)  │  │  a11y-checker)│
+└────┬────┘  └────┬────┘  └────┬────┘  └───────────────┘
+     │           │           │              ▲
+     │ workflow.  │ task.     │ POST         │
+     │ trigger    │ submit    │ /v1/execute  │
+     └───────────►└───────────►└─────────────┘
+              events           events     HTTP
 ```
 
-**Orchestrator** — Coordinates between domains. Manages registration,
-discovery, security, and audit for the entire system.
+**Orchestrator** — Trust anchor. Manages registration, namespace
+ownership, security, and service directory distribution.
 
-**Domain controller** — Directs a business function. Owns one or more
-workflows, dispatches to agents, aggregates results, enforces quality
-gates. A domain IS an agent (implements the same 5 protocol endpoints)
-but with additional responsibilities.
+**Domain controller** — Directs a business function. Owns workflow
+definitions and publishes `workflow.trigger` events. Receives results
+via scoped `workflow.completed` events. A domain IS an agent
+(implements the same 6 protocol endpoints) but with additional
+responsibilities.
 
-**Work agents** — Perform specific tasks dispatched by a domain. They
-have no independent initiative — they receive input, execute, return
-output.
+**Infrastructure agents** — Workflow Agent executes DAGs, Task Agent
+dispatches individual phases, Lifecycle Agent manages strategies and
+observations. They register like any other agent.
 
-**Infrastructure agents** — System-level utilities (sync, cron, webhook,
-email). Any domain or the orchestrator can use them. They are not owned
-by a specific domain.
+**Work agents** — Perform specific tasks dispatched by the Task Agent
+via `POST /v1/execute`. They have no independent initiative — they
+receive input, execute, return output.
 
 ## Domain Manifest
 
@@ -86,7 +85,13 @@ structure with domain-specific fields:
   "collaborators": [],
   "approval": "required",
   "required_agents": ["seo-analyzer", "a11y-checker"],
-  "workflows": ["seo-audit", "seo-optimize"]
+  "workflows": ["seo-audit", "seo-optimize"],
+  "publishes": ["seo"],
+  "subscriptions": [
+    {"pattern": "workflow.completed", "scope": "self"},
+    {"pattern": "workflow.failed", "scope": "self"},
+    {"pattern": "system.agent.registered", "scope": "self"}
+  ]
 }
 ```
 
@@ -97,6 +102,8 @@ structure with domain-specific fields:
 | Type | string | `type` | yes | MUST be `"domain"` |
 | RequiredAgents | []string | `required_agents` | yes | Agent names this domain dispatches to |
 | Workflows | []string | `workflows` | yes | Workflow names this domain supports |
+| Publishes | []string | `publishes` | yes | Event namespaces (e.g., `["seo"]`) |
+| Subscriptions | []Subscription | `subscriptions` | yes | Event patterns to receive |
 
 The `type` field distinguishes domains from work agents (`"agent"`) and
 infrastructure agents (`"infrastructure"`). The orchestrator uses this
@@ -134,6 +141,12 @@ When a missing agent registers later:
 This allows agents and domains to start in any order.
 
 ## Workflow Specification
+
+> **Authoritative source:** [`patterns/workflow`](../patterns/workflow.md)
+> defines the complete workflow declaration format, reference expression
+> grammar, execution engine (6 phases), error strategies, approval
+> gates, and workflow state machine. This section shows how domain
+> controllers USE workflows — the pattern defines how they WORK.
 
 Every domain defines one or more workflows — multi-step, multi-agent
 processes that accomplish a business function. Workflows are defined in
@@ -327,100 +340,67 @@ Phases execute in dependency order:
 
 ## Workflow Execution Flow
 
-When a domain controller receives a task via `POST /v1/execute`:
+When a domain controller receives a task via `POST /v1/execute`, it
+publishes a `workflow.trigger` event. The Workflow Agent handles all
+DAG execution. The domain receives the result via a scoped
+`workflow.completed` event.
 
 ```
 Phase 1 — Select workflow:
   Match task.action against workflow triggers.
   If no match → return failed result: "unknown action"
 
-Phase 2 — Initialize execution:
-  Create WorkflowExecution record:
-    id: generateID()
-    workflow_name: matched workflow name
-    domain_name: this domain's name
+Phase 2 — Publish workflow trigger:
+  publish("workflow.trigger", {
+    workflow: matched_workflow_name,
+    source_domain: this domain's name,
+    input: task.payload,
+    callback_topic: "<domain>.workflow.result",
+    entity: entity_context,
+    config: domain_config
+  }, scope: "workflow", correlation_id: task.id)
+
+Phase 3 — Return acknowledgment:
+  Return TaskResult:
     task_id: task.id
-    status: "running"
-    started_at: now()
-    phases: [] (populated as phases complete)
-
-Phase 3 — Resolve execution order:
-  Topological sort of phases by depends_on.
-  Group into execution levels: L0 (no deps), L1 (depend on L0), etc.
-  Verify no cycles (fail if circular dependency detected).
-
-Phase 4 — Execute levels:
-  For each level (L0, L1, L2, ...):
-    For each phase in this level (concurrently):
-
-      a. Check condition (if set) — skip if falsy
-      b. Resolve input references from task payload + previous outputs
-      c. If agent = "self":
-           Execute domain's own HandleMessage(action, resolved_input)
-         Else:
-           Look up agent in service directory
-           If not found → fail phase or retry
-           Build AgentMessage:
-             from: this domain's name
-             to: agent name
-             action: phase.action
-             payload: resolved_input
-           Sign message with domain's private key
-           POST to agent_url + /v1/message
-           Wait for response (with timeout)
-      d. Store phase result:
-           {phase_name, agent_name, status, result, started_at, completed_at}
-      e. If failed:
-           Apply on_error strategy (fail workflow / skip / retry)
-
-Phase 5 — Aggregate:
-  Collect all phase results.
-  Build final TaskResult:
-    task_id: original task ID
     agent_name: this domain's name
-    status: "success" | "failed" | "pending_approval"
-    summary: human-readable summary of all phases
-    changes: merged ProposedChange list from all phases
-    observations: merged Observation list from all phases
-    recommendations: merged Recommendation list from all phases
-    metrics: {phases_total, phases_completed, phases_failed, duration_ms}
-  Sign result with domain's private key.
+    status: "accepted"
+    summary: "Workflow '<name>' triggered, awaiting completion"
 
-Phase 6 — Record:
-  Store WorkflowExecution with all phase results.
-  Emit observations and recommendations (for lifecycle tracking).
-  Return TaskResult.
+Phase 4 — Receive result (async):
+  The domain subscribes to workflow.completed (scope: "self").
+  When the Workflow Agent finishes the DAG, it publishes:
+    workflow.completed (scope: domain_name)
+  The domain's event handler receives the aggregated result.
+
+Phase 5 — Post-processing:
+  Apply domain-specific validation rules to the result:
+  - Reject conflicting recommendations
+  - Enforce business constraints
+  - Apply quality gates
+  Publish domain-specific result event if needed:
+    seo.audit.completed (scope: as needed)
 ```
+
+See [patterns/workflow](../patterns/workflow.md) for the complete
+workflow execution engine specification.
 
 ## Agent Dispatch
 
-When a domain dispatches work to an agent, it uses direct messaging
-(`POST /v1/message`), not the orchestrator's task endpoint. This
-keeps the orchestrator as a coordinator and the domain as the executor.
+Domains do NOT dispatch work to agents directly.
+The domain publishes a `workflow.trigger` event, the Workflow Agent
+resolves the DAG, and the Task Agent dispatches individual phases to
+work agents via `POST /v1/execute`.
 
-```
-Domain dispatch to agent:
-  1. Look up agent in service directory (populated during registration
-     and updated via /v1/services broadcasts)
-  2. Build AgentMessage:
-     - from: domain name
-     - to: agent name
-     - type: "request"
-     - action: the workflow phase action
-     - payload: resolved input data
-  3. Sign: JSON.stringify({from, to, action, payload})
-  4. POST to agent_url + /v1/message
-  5. Parse response AgentMessage
-  6. Extract response.payload as phase output
-  7. If agent unreachable:
-     a. Check if channel exists → use channel
-     b. Request new channel from orchestrator → retry
-     c. If still unreachable → fail phase
-```
+Domains still use `POST /v1/message` for:
+- Responding to introspection queries (get_workflows, get_status)
+- `agent: "self"` phases (the Workflow Agent messages the domain
+  for domain-internal aggregation logic)
+- Ad-hoc collaboration with other agents or domains
 
-If a domain needs authenticated communication, it requests a channel
-through the orchestrator (`POST /v1/channel`) and uses the channel
-token for subsequent messages.
+If a domain needs authenticated communication with another agent, it
+requests a channel through the orchestrator (`POST /v1/channel`) and
+uses the channel token for subsequent messages.
 
 ## Result Aggregation
 
@@ -454,8 +434,10 @@ Every domain controller MUST implement these standard actions:
 
 ### execute_workflow
 
-Invoked by the orchestrator via `POST /v1/execute`. Runs a named
-workflow and returns aggregated results. This is the primary entry point.
+Invoked via `POST /v1/execute`. Publishes a `workflow.trigger` event
+for the matched workflow and returns an acknowledgment. The Workflow
+Agent handles execution and publishes `workflow.completed` back to
+the domain.
 
 ### get_status
 
@@ -470,9 +452,17 @@ Returns the domain's current state:
 }
 ```
 
+### get_workflow
+
+Returns a specific workflow definition by name. Used by the Workflow
+Agent to fetch the DAG definition when executing a triggered workflow.
+
+**Request payload:** `{"name": "seo-audit"}`
+**Response:** Single `WorkflowDefinition` object.
+
 ### get_workflows
 
-Returns full workflow definitions. This is the runtime introspection
+Returns all workflow definitions. This is the runtime introspection
 endpoint — it allows the orchestrator, CLI, and external tools to
 discover a domain's capabilities without parsing markdown blueprints.
 
@@ -572,51 +562,52 @@ Domains use ports in the 9700–9709 range:
 | Domain | Port |
 |--------|------|
 | seo | 9700 |
-| (future domains) | 9701–9709 |
+| content | 9701 |
+| health | 9702 |
+| security | 9703 |
+| (custom domains) | 9704–9709 |
 
 Work agents use ports 9710+. Infrastructure agents use 9750+.
 Orchestrator: 9800.
 
 ## Implementation Notes
 
-- **Domain as agent**: A domain controller implements the same 5
-  protocol endpoints as any agent. The additional workflow logic
-  lives in `Execute` and `HandleMessage`.
-- **Workflow engine**: The workflow execution loop (resolve order,
-  dispatch phases, collect results) is generic. A single implementation
-  can serve any domain — only the workflow definitions and aggregation
-  rules are domain-specific.
-- **Parallelism**: Phases at the same dependency level SHOULD execute
-  concurrently. This is critical for performance — a domain with 4
-  independent phases should not serialize them.
-- **State**: Workflow execution state SHOULD be persisted so that
-  workflows survive restarts. At minimum, log completed phase results
-  so a restarted workflow can skip already-completed phases.
-- **Timeout cascade**: A workflow-level timeout SHOULD be enforced in
-  addition to per-phase timeouts. If the entire workflow exceeds its
-  timeout, all remaining phases are cancelled.
-- **Idempotency**: Phases SHOULD be idempotent. If a phase is retried
-  (due to error or restart), the agent should produce the same output
-  for the same input.
-- **No bypass**: Business tasks MUST flow through domain controllers.
-  Work agents do not accept tasks from arbitrary sources — only from
-  their owning domain. Infrastructure agents accept tasks from any
-  authenticated source.
+- **Domain as agent**: A domain controller implements the same 6
+  protocol endpoints as any agent. The additional business logic
+  lives in `Execute` (workflow triggering) and `HandleMessage`
+  (introspection, self-phases) and `HandleEvent` (receiving
+  workflow results).
+- **No embedded workflow engine**: Domains declare workflows but do
+  not execute them. The Workflow Agent fetches definitions via
+  `get_workflow` message and handles DAG resolution, phase dispatch,
+  and result aggregation.
+- **Event-driven results**: Domains subscribe to `workflow.completed`
+  and `workflow.failed` (scope: self) to receive execution results
+  asynchronously.
+- **State**: Workflow execution state is owned by the Workflow Agent.
+  Domains store domain-specific state (entity context, configuration,
+  business rules) in flat-file storage.
+- **State**: Workflow execution state is owned by the Workflow Agent.
+  Domains store domain-specific state (entity context, configuration,
+  business rules) in flat-file storage.
+- **Idempotency**: Workflow triggers SHOULD be idempotent. The domain
+  generates a correlation_id per trigger that the Workflow Agent uses
+  to detect duplicate requests.
+- **No bypass**: Business tasks SHOULD flow through domain controllers.
+  Work agents accept tasks from the Task Agent (dispatched as part of
+  a workflow) or from direct messages for ad-hoc collaboration.
 
 ## Verification Checklist
 
-- [ ] Domain registers with `type: "domain"` in manifest
+- [ ] Domain registers with `type: "domain"` and `publishes` namespace in manifest
 - [ ] Orchestrator tracks domain status based on required_agents availability
-- [ ] Domain dispatches phases to agents via `POST /v1/message`
-- [ ] Phases with `depends_on` wait for dependencies before executing
-- [ ] Phases at the same level execute concurrently
-- [ ] Phase outputs are resolvable via `$phases.<name>.output` references
-- [ ] Failed phases respect `on_error` strategy (fail, skip, retry)
-- [ ] `agent: "self"` phases execute within the domain controller
-- [ ] Results from all phases are aggregated into a single TaskResult
-- [ ] Observations and recommendations are emitted per workflow
+- [ ] Domain publishes `workflow.trigger` event for matched task actions
+- [ ] Domain subscribes to `workflow.completed` and `workflow.failed` (scope: self)
+- [ ] Domain responds to `get_workflow` with a specific workflow definition
+- [ ] Domain responds to `get_workflows` with all available workflows
 - [ ] Domain responds to `get_status` with agent availability
-- [ ] Domain responds to `get_workflows` with available workflows
-- [ ] WorkflowExecution is recorded with all phase results
-- [ ] Workflow timeout cancels all remaining phases
-- [ ] Approval gates pause execution until approval is received
+- [ ] Domain applies post-processing validation to workflow results
+- [ ] Domain publishes domain-specific result events when appropriate
+- [ ] Entity context grounded in business reality via EntityContext
+- [ ] Domain configuration accessible via `$config.<key>` references
+- [ ] HandleEvent processes workflow.completed and workflow.failed events

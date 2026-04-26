@@ -2,7 +2,7 @@
 type: architecture
 name: agent
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/types]
+requires: [protocol/spec, protocol/identity, protocol/types, patterns/retry, patterns/messaging]
 platform: any
 -->
 
@@ -21,9 +21,10 @@ only the custom logic (Execute + HandleMessage).
 │                                         │
 │  ┌──────────────────────────────────┐   │
 │  │  Agent Framework (base)          │   │
-│  │  - HTTP server (5 endpoints)     │   │
+│  │  - HTTP server (6 endpoints)     │   │
 │  │  - Registration with orchestrator│   │
-│  │  - Service directory tracking    │   │
+│  │  - Service directory + routing   │   │
+│  │  - Event publishing + receiving  │   │
 │  │  - Message signing/verification  │   │
 │  │  - Health reporting              │   │
 │  └────────────┬─────────────────────┘   │
@@ -49,6 +50,12 @@ with status, summary, proposed changes, and metrics.
 Handles direct messages from other agents. Returns a JSON-serializable
 response payload. Used for collaboration and queries.
 
+### HandleEvent(event) → void
+Handles incoming pub/sub events (delivered via `POST /v1/event`). Events
+are fire-and-forget — there is no return value. The framework dispatches
+to registered event handlers by topic pattern. See
+[patterns/messaging](../patterns/messaging.md) for the full event model.
+
 ## Agent Context
 
 The runtime context provided to Execute and HandleMessage:
@@ -68,11 +75,14 @@ The runtime context provided to Execute and HandleMessage:
 4. Set manifest.url to the agent's listen address
 5. Configure LLM provider (if WL_AI_* env vars are set)
 6. Configure workspace (current directory)
-7. Register HTTP routes for all 5 protocol endpoints
-8. Start HTTP server in background
-9. Wait briefly for server to accept connections
-10. Register with orchestrator (if orchestrator URL provided)
-11. Block indefinitely (agent is a long-running process)
+7. Register HTTP routes for all 6 protocol endpoints
+8. Register event handlers (on_event bindings)
+9. Start HTTP server in background
+10. Wait briefly for server to accept connections
+11. Register with orchestrator (if orchestrator URL provided)
+12. On registration response: cache routing table and namespace map
+    from service directory
+13. Block indefinitely (agent is a long-running process)
 ```
 
 ## Registration Flow (from agent side)
@@ -113,13 +123,12 @@ for the endpoint contract.
 9. Return result as JSON
 ```
 
-### GET /v1/health
-Return HealthStatus with:
-- name: agent name
-- status: "healthy"
-- version: agent version
-- uptime: seconds since start
-- metrics: {services_known: count}
+### POST /v1/health
+
+See [`patterns/observability` — Health Endpoint](../patterns/observability.md#health-endpoint)
+for the full response contract. The response includes `name`, `version`,
+`state` (online/degraded/offline), `uptime_seconds`, optional sub-component
+`checks`, and `metrics_snapshot`.
 
 ### POST /v1/message
 
@@ -151,17 +160,50 @@ for signature verification details.
 1. Require POST method
 2. Parse ServiceDirectory from body
 3. Update internal service list (thread-safe)
-4. Return 200 OK
+4. Update local routing table cache (thread-safe)
+5. Update local namespace map cache (thread-safe)
+6. Return 200 OK
+```
+
+### POST /v1/event
+
+See [Protocol Specification — POST /v1/event](../protocol/spec.md)
+for the endpoint contract and [patterns/messaging](../patterns/messaging.md)
+for the full event model.
+
+**Implementation:**
+```
+1. Require POST method
+2. Parse EventEnvelope from body
+3. Idempotency check: has event_id been processed?
+   If yes → return 200 OK immediately (skip processing)
+4. Match event.topic against registered event handlers (exact, *, #)
+5. If no handlers match → return 200 OK (silently ignore)
+6. Dispatch to matching handler(s) asynchronously
+7. Return 200 OK immediately (processing continues in background)
+8. On handler completion:
+   a. Record event_id as processed (with TTL for cleanup)
+   b. If handler publishes follow-up events → framework handles delivery
+9. On handler error → log error (event is NOT re-requested)
 ```
 
 ## Service Discovery
 
-The agent maintains an in-memory list of available services, updated:
+The agent maintains an in-memory cache of available services, the
+routing table, and the namespace map. Updated:
 1. On registration (from RegisterResponse.services)
 2. On service directory pushes (from orchestrator POST /v1/services)
 3. On task execution (from TaskRequest.context.services)
 
 Helper: `HasService(name) → (ServiceEntry, bool)` — look up an agent by name.
+
+### Routing Table Cache
+
+The local routing table (received from the service directory) is used
+by the framework to resolve event subscribers when publishing. See
+[patterns/messaging — Publishing](../patterns/messaging.md) for the
+resolution algorithm. No call to the orchestrator is needed to publish
+an event.
 
 ## Sending Messages to Other Agents
 
@@ -203,9 +245,31 @@ For authenticated direct communication:
     {"name": "output_name", "type": "file_list|json|text", "description": "..."}
   ],
   "collaborators": ["other-agent-name"],
-  "approval": "required|auto"
+  "approval": "required|auto",
+  "publishes": ["namespace"],
+  "subscriptions": [
+    {
+      "pattern": "topic.pattern.*",
+      "group": "consumer-group-name",
+      "scope": "self",
+      "max_concurrent": 5
+    }
+  ]
 }
 ```
+
+### Manifest Fields: Publishing & Subscriptions
+
+**publishes** ([]string, optional): Namespaces this agent will publish
+events to. The orchestrator grants exclusive ownership at registration.
+Only agents that publish events need this field.
+
+**subscriptions** ([]Subscription, optional): Event topic patterns this
+agent wants to receive. See [patterns/messaging — Subscribing](../patterns/messaging.md)
+for the full subscription model.
+
+See [protocol/types.md — AgentManifest](../protocol/types.md) for the
+canonical type definition.
 
 ### Standard Capabilities
 
@@ -218,9 +282,9 @@ The `type` field in the manifest distinguishes three kinds of agents:
 
 | Kind | Manifest Type | Purpose | Dispatched By |
 |------|--------------|---------|---------------|
-| Domain controller | `"domain"` | Directs a business function, owns workflows | Orchestrator |
-| Work agent | `"agent"` | Performs specific tasks | Domain controller |
-| Infrastructure agent | `"infrastructure"` | System-level utilities | Any authenticated agent |
+| Domain controller | `"domain"` | Directs a business function, declares workflows | Task Agent (via events) |
+| Work agent | `"agent"` | Performs specific tasks | Task Agent (via POST /v1/execute) |
+| Infrastructure agent | `"infrastructure"` | System-level utilities (workflow, task, lifecycle, cron, sync, etc.) | Any authenticated agent |
 
 See [Domain Architecture](domain.md) for the full domain controller spec.
 
@@ -238,13 +302,79 @@ message them directly.
 
 ## Port Assignment Convention
 
+Port assignments are advisory — agents MAY run on any available port.
+The registered URL in the manifest is the authoritative address.
+
 | Range | Purpose | Examples |
 |-------|---------|----------|
 | 9700–9709 | Domain controllers | seo: 9700 |
-| 9710–9749 | Work agents | seo-analyzer: 9710, a11y-checker: 9711 |
-| 9750–9799 | Infrastructure agents | sync: 9750, cron: 9751, webhook: 9752, email: 9753 |
+| 9710–9749 | Work agents | seo-analyzer: 9710, a11y-checker: 9711, security-scanner: 9712, content-analyzer: 9720, meta-checker: 9721, uptime-checker: 9730, perf-auditor: 9731 |
+| 9750–9799 | Infrastructure agents | cron: 9750, sync: 9751, alerting: 9752, webhook: 9753, email-send: 9754, health-monitor: 9755, incident-response: 9760, hub-index: 9770, hub-search: 9771, hub-metrics: 9772, hub-verify: 9773, hub-alert: 9774, workflow: 9780, task: 9781, lifecycle: 9782 |
 | 9800 | Orchestrator | orchestrator: 9800 |
 | 9820+ | Custom agents | hash(name) % 80 + 9820 |
+
+## Addressing and Discovery
+
+The manifest `url` field is the **sole source of truth** for reaching
+an agent. Port conventions exist only for human convenience during
+local development. In all deployment modes, agents:
+
+1. Register with the orchestrator providing their `url`
+2. Receive the service directory containing every other agent's `url`
+3. Use the service directory to reach peers — never hardcoded ports
+
+This means the protocol works identically whether agents run as local
+processes, containers, or serverless functions.
+
+### Deployment Modes
+
+| Mode | Agent Address | Notes |
+|------|--------------|-------|
+| **Local processes** | `http://localhost:<port>` | Default dev experience. Advisory ports apply. |
+| **Containers** | `http://<container-name>:<port>` | Docker/K8s DNS. Agents use service names, not IPs. |
+| **Serverless / Functions** | `https://<function-url>` | Each agent is a separate function (e.g., AWS Lambda, Cloudflare Worker). URL assigned by platform. |
+| **Reverse proxy** | `https://hub.example.com/agents/<name>` | All agents behind one domain. Proxy routes by path prefix to the correct process. |
+| **Mixed** | Any combination | The orchestrator doesn't care — it stores whatever URL the agent provides. |
+
+### Dynamic Registration
+
+For serverless and auto-scaling environments where agent URLs are
+not known in advance:
+
+1. The platform assigns the agent a URL at startup.
+2. The agent reads its own URL from the platform environment
+   (e.g., `WL_AGENT_URL` or platform-specific variable).
+3. The agent registers with the orchestrator using that URL.
+4. The orchestrator distributes the updated service directory to all
+   agents via POST /v1/services.
+5. If the URL changes (redeploy, scale event), the agent re-registers.
+   The orchestrator updates the directory and pushes to all agents.
+
+```bash
+# Environment-driven addressing
+WL_AGENT_URL=https://my-agent.us-east-1.lambda.amazonaws.com
+WL_ORCHESTRATOR_URL=https://hub.example.com:9800
+```
+
+### Cold Start and Warm-Up
+
+Serverless agents face cold start latency. The protocol accommodates
+this:
+
+- **Health checks** — the orchestrator SHOULD configure longer health
+  check timeouts for serverless agents (30s vs 5s default).
+- **Keep-warm** — the [cron agent](../agents/cron.md) MAY be configured
+  to ping serverless agents on a schedule to prevent cold eviction.
+- **Timeout tolerance** — the Task Agent SHOULD use the agent's
+  declared `timeout` from its manifest rather than a global default.
+  Serverless agents MAY declare longer timeouts.
+
+### Service Mesh / Sidecar
+
+Agents behind a service mesh (Istio, Linkerd, etc.) register their
+mesh-accessible URL. The mesh handles mTLS, load balancing, and
+retries transparently. The Weblisk protocol doesn't need to know —
+it just sends HTTP to the registered URL.
 
 ## Concurrency and Backpressure
 
@@ -322,3 +452,45 @@ The orchestrator SHOULD enforce:
 
 When the orchestrator rate-limits a request, it returns 429 with
 `Retry-After`.
+
+## Default Timeouts and Resilience
+
+All agents inherit retry behavior from
+[`patterns/retry`](../patterns/retry.md), which is the authoritative
+source for backoff algorithms, circuit breaker logic, and error
+classification. The table below lists agent-level defaults that feed
+into the retry pattern:
+
+| Setting | Default | Env Var | Description |
+|---------|---------|---------|-------------|
+| Task timeout | 30s | `WL_TASK_TIMEOUT` | Max execution time per task |
+| HTTP outbound timeout | 10s | `WL_HTTP_TIMEOUT` | Per-request timeout for outbound calls |
+| Retry attempts | 3 | `WL_RETRY_MAX` | Max retries on transient failure |
+| Backoff base | 1s | `WL_BACKOFF_BASE` | Exponential backoff: base × 2^attempt |
+| Backoff max | 30s | `WL_BACKOFF_MAX` | Cap on backoff delay |
+| Outbound rate limit | 50 req/s | `WL_OUTBOUND_RATE` | Max outbound HTTP requests per second |
+
+Agents that make outbound HTTP calls (security-scanner, uptime-checker,
+perf-auditor, etc.) MUST respect the outbound rate limit to avoid
+overwhelming targets. Agents performing LLM calls inherit timeout and
+retry settings from the api-ai pattern configuration.
+
+## Verification Checklist
+
+- [ ] POST /v1/describe returns the agent manifest as JSON without requiring authentication
+- [ ] POST /v1/execute parses TaskRequest, calls Execute, and returns a signed TaskResult with task_id, agent_name, and timestamp
+- [ ] POST /v1/execute returns status=failed with the error summary when Execute returns an error
+- [ ] POST /v1/health returns the health response per patterns/observability
+- [ ] POST /v1/message verifies the sender's Ed25519 signature when present and returns 401 on invalid signature
+- [ ] POST /v1/message builds a signed response with from=self, to=original sender, type=response
+- [ ] POST /v1/services updates the internal service list, routing table, and namespace map (thread-safe)
+- [ ] POST /v1/event checks idempotency (event_id), dispatches to matching handlers, returns 200 immediately
+- [ ] POST /v1/event skips duplicate events (same event_id) with 200 OK
+- [ ] Event handlers registered via on_event(pattern, handler) with topic matching (exact, *, #)
+- [ ] Framework resolves subscribers from local routing table when publishing (no orchestrator call)
+- [ ] Manifest declares publishes and subscriptions for namespace ownership and event routing
+- [ ] Registration flow signs the manifest JSON with the agent's Ed25519 private key and includes a timestamp
+- [ ] Agent returns 429 Too Many Requests with Retry-After header and retryable error body when at max concurrent capacity
+- [ ] Default max concurrent limits are enforced: domain=10, work=5, infrastructure=20 (configurable via WL_MAX_CONCURRENT)
+- [ ] Outbound HTTP calls respect the WL_OUTBOUND_RATE limit (default 50 req/s)
+- [ ] Agent startup sequence generates Ed25519 keys, registers HTTP routes (6 endpoints), starts server, and registers with orchestrator

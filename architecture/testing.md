@@ -301,23 +301,24 @@ Tests the full feedback loop. Requires orchestrator + domain + agent.
 3. Domain status → "degraded" (test-agent not registered yet)
 4. Register test-agent
 5. Domain status → "online"
-6. Submit task to orchestrator targeting test-domain with action "test-workflow"
-7. Domain executes workflow:
-   a. Dispatches phase to test-agent via /v1/message
-   b. Receives response
-   c. Returns TaskResult with observations + recommendations
-8. Orchestrator stores observations (verify via GET /v1/observations)
-9. Orchestrator stores recommendations (verify via GET /v1/approve)
-10. Approve recommendation (POST /v1/approve, decision: "accept")
+6. Submit task to domain targeting action "test-workflow"
+7. Domain publishes workflow.trigger event:
+   a. Workflow Agent resolves DAG
+   b. Task Agent dispatches phase to test-agent via /v1/execute
+   c. Workflow Agent aggregates results
+   d. Publishes workflow.completed (scope: domain)
+8. Lifecycle Agent captures observations from workflow.completed event
+9. Lifecycle Agent stores recommendations
+10. Approve recommendation (POST /v1/message to Lifecycle Agent, action: approve_recommendation)
 11. Recommendation status transitions pending → accepted
-12. Verify audit log contains: register (x2), task, approval entries
+12. Verify audit log contains: register (x4), event, approval entries
 ```
 
 #### L3-02: Strategy Lifecycle
 ```
-1. Create strategy (POST /v1/strategy)
-2. Verify strategy stored (GET /v1/strategy)
-3. Submit task linked to strategy (strategy_id in payload)
+1. Create strategy (POST /v1/message to Lifecycle Agent, action: create_strategy)
+2. Verify strategy stored (POST /v1/message to Lifecycle Agent, action: get_strategy)
+3. Lifecycle Agent publishes workflow.trigger linked to strategy
 4. Verify observations reference the strategy_id
 5. After feedback, verify strategy target.progress is updated
 ```
@@ -347,8 +348,9 @@ Tests the full feedback loop. Requires orchestrator + domain + agent.
 ```
 1. Submit task that produces a recommendation with approval: "required"
 2. Verify workflow execution pauses (status: "pending_approval")
-3. Approve via POST /v1/approve
-4. Verify workflow resumes and completes
+3. Approve via POST /v1/message to Lifecycle Agent (action: approve_recommendation)
+4. Lifecycle Agent publishes workflow.approval.decision
+5. Verify workflow resumes and completes
 ```
 
 ---

@@ -2,10 +2,12 @@
 type: agent
 kind: infrastructure
 name: email-send
-version: 1.0.0
+version: 1.1.0
+extends: [patterns/observability, patterns/storage, patterns/retry, patterns/notification, patterns/security, patterns/governance]
 requires: [protocol/spec, protocol/types, architecture/agent]
 platform: any
 tier: free
+port: 9754
 -->
 
 # Email Send

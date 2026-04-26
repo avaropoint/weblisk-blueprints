@@ -2,10 +2,12 @@
 type: agent
 kind: infrastructure
 name: sync
-version: 1.0.0
+version: 1.1.0
+extends: [patterns/observability, patterns/storage, patterns/security, patterns/governance]
 requires: [protocol/spec, protocol/types, architecture/agent]
 platform: any
 tier: free
+port: 9751
 -->
 
 # Sync Agent
@@ -173,15 +175,44 @@ Returns current sync state and statistics.
 - **Compression**: For large batches, implementations SHOULD support
   gzip compression on the wire.
 
+## Observability
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| sync_push_total | counter | Push operations by result (success/conflict/error) |
+| sync_pull_total | counter | Pull operations by result |
+| sync_records_total | counter | Records processed by operation (applied/conflicted/skipped) |
+| sync_batch_size | histogram | Records per sync batch |
+| sync_duration_seconds | histogram | Time to complete a sync operation |
+| sync_conflicts_total | counter | Conflicts detected by resolution strategy |
+| sync_connected_clients | gauge | Currently connected sync clients |
+
+## Error Handling
+
+| Error | Handling |
+|-------|----------|
+| Batch exceeds max size | Reject with 400, include max_batch_size in error |
+| Storage write failure | Roll back entire batch. Return transient error. |
+| Invalid change record | Reject individual record, continue batch processing |
+| Version conflict | Apply configured resolution strategy |
+| Client disconnected | Queue server changes for next pull |
+| Real-time channel unavailable | Log warning, sync still succeeds (pull on next connect) |
+
 ## Verification Checklist
 
+- [ ] Agent registers with orchestrator and receives WLT token
 - [ ] Client can push a batch of changes
 - [ ] Server detects conflicts correctly
-- [ ] Conflict resolution strategy is applied
+- [ ] Conflict resolution strategy is applied per configuration
 - [ ] Client receives server-side changes in response
 - [ ] Version checkpoint advances after sync
-- [ ] Batch size limit is enforced
+- [ ] Batch size limit is enforced (rejects oversized batches)
 - [ ] Duplicate pushes are idempotent
-- [ ] Deletions are handled correctly
+- [ ] Deletions are handled correctly (soft delete with tombstone)
 - [ ] Real-time notification is sent after sync
-- [ ] Manual conflicts include both versions
+- [ ] Manual conflicts include both versions for resolution
+- [ ] Atomic transaction rolls back on partial failure
+- [ ] Metrics emit for all sync operations
+- [ ] Health endpoint returns agent status and connected client count
+
+Port: 9751

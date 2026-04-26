@@ -40,83 +40,210 @@ Blueprints are implementation-agnostic specifications. They describe
 any particular language. Server implementations (Go, Node, Cloudflare,
 Rust, etc.) build from these blueprints.
 
+### Zero-Dependency Philosophy
+
+Weblisk is built on a zero-external-dependency principle:
+
+- **Client** ([weblisk](https://github.com/avaropoint/weblisk)) — Zero
+  dependencies. Pure browser APIs.
+- **Server** (these blueprints) — Implementation-agnostic specs. No
+  external databases, no runtime package requirements, no vendor SDKs.
+- **Go platform** — Standard library only. SQLite compiles into the
+  binary (embedded, not an external server).
+- **Cloudflare platform** — Platform-native APIs only (Workers KV,
+  Durable Objects, Web Crypto). Zero runtime dependencies.
+- **Node.js platform** — Recommended libraries for each capability
+  (Fastify, better-sqlite3, etc.) are **choices, not requirements**.
+  Any library satisfying the same contract is valid.
+- **AI models** — The only layer with external dependencies (by
+  necessity). Local models (Ollama) are the default; remote providers
+  are optional.
+- **weblisk-cli** — The single tool for scaffolding, code generation,
+  and operations. Feature-parity with blueprints.
+
+## Getting Started
+
+New to Weblisk? Start with the **[Quickstart Guide](QUICKSTART.md)** —
+it walks through setting up a hub with one orchestrator, one domain,
+and work agents from scratch.
+
 ## Structure
 
 ```
 protocol/           Wire protocol specifications
-  spec.md             Full protocol specification v1
-  identity.md         Ed25519 crypto, tokens, signing
+  spec.md             Full protocol specification (6 agent + 6 orchestrator endpoints)
+  identity.md         Ed25519 crypto, tokens, signing, key rotation
   types.md            Canonical type definitions (all JSON shapes)
   federation.md       Multi-orchestrator federation and data boundaries
 
 architecture/       System architecture
-  orchestrator.md     Central coordinator — routing, security, audit
-  domain.md           Domain controller — workflows, dispatch, aggregation
-  agent.md            Agent base — kinds, capabilities, ports
-  lifecycle.md        Continuous optimization loop
+  orchestrator.md     Trust anchor — registration, namespaces, security, directory
+  domain.md           Domain controller — workflow declarations, event-driven triggering
+  agent.md            Agent base — 6 endpoints, capabilities, pub/sub, retry/circuit breaker
+  lifecycle.md        Continuous optimization loop (event-driven)
   storage.md          Abstract persistence interface
   testing.md          Conformance test suite specification
   hub.md              Collaborative hub — discovery, tiers, commerce
+  admin.md            Platform admin — operator identity, roles, separate admin gateway
+  cli-ops.md          CLI operations — interrogation, management commands
+  observability.md    Structured logging, distributed tracing, metrics
+  gateway.md          Application gateway — auth, ABAC, rate limiting, route protection
+  browser-session.md  Cryptographic browser sessions — binding, islands, continuity
+  data-security.md    Transport security, message integrity, federation data boundaries
+  threat-model.md     Attack surface analysis — 5 boundaries, OWASP mapping
 
 platforms/          Implementation guidance per runtime
   go.md               Go (stdlib only, local processes)
   cloudflare.md       Cloudflare Workers (Durable Objects, KV)
+  node.md             Node.js/TypeScript (Fastify, Ed25519, SQLite)
 
-domains/            Domain controller specifications
-  seo.md              SEO domain — workflows, required agents, scoring
-  content.md          Content quality domain — readability, structure, metadata
-  health.md           Health monitoring domain — uptime, performance, TLS
+agents/             Infrastructure agents (system-level services)
+  workflow.md         Workflow execution engine — DAG resolution, phase coordination
+  task.md             Task dispatch and tracking — priority queue, concurrency control
+  lifecycle.md        Continuous optimization — strategies, observations, approvals
+  alerting.md         Notification routing and delivery
+  incident-response.md  Automated incident detection, runbooks, remediation
+  health-monitor.md   Internal hub health — agent liveness, storage, gateway
+  sync.md             Background data sync (client ↔ server)
+  cron.md             Scheduled task execution
+  webhook.md          Webhook processing (inbound + outbound)
+  email-send.md       Transactional email sending
+  hub-index.md        Registry — crawl and index hub listings
+  hub-search.md       Registry — discovery queries, ranking, facets
+  hub-metrics.md      Registry — uptime, latency, usage metrics collection
+  hub-verify.md       Registry — signature, identity, behavioral verification
+  hub-alert.md        Registry — network event notifications
 
-agents/             Work agents and infrastructure services (Free tier)
-  seo-analyzer.md     SEO analysis work agent (domain: seo)
-  a11y-checker.md     Accessibility checking work agent (domain: seo)
-  content-analyzer.md Content quality analysis work agent (domain: content)
-  meta-checker.md     HTML metadata validation work agent (domain: content)
-  uptime-checker.md   Endpoint availability work agent (domain: health)
-  perf-auditor.md     Page performance audit work agent (domain: health)
-  sync.md            Background data sync (infrastructure)
-  cron.md            Scheduled task execution (infrastructure)
-  webhook.md         Webhook processing (infrastructure)
-  email-send.md      Transactional email sending (infrastructure)
-
-patterns/           Declarative API pattern specifications (Free tier)
+patterns/           Declarative API and cross-cutting pattern specifications
   api-rest.md         REST API with CRUD, pagination, filtering, sorting
   api-ai.md           AI gateway — chat, completions, extraction, embeddings
   realtime-chat.md    WebSocket messaging with channels, presence, history
   auth-session.md     Session-based auth with secure cookies, CSRF
   auth-token.md       JWT and API key auth with refresh tokens, scopes
-  webhook-inbound.md  Receive and validate inbound webhooks
-  webhook-outbound.md Send webhooks with retries and delivery tracking
+  user-management.md  User lifecycle — profiles, roles, password reset, OAuth
+  file-upload.md      File upload, processing, CDN delivery, signed URLs
+  deployment.md       CI/CD pipelines, containerization, environment management
+  webhook.md          Webhook processing — inbound validation, outbound delivery
+  rate-limiting.md    Token bucket, sliding window — gateway and agent rate limits
+  retry.md            Retry strategies, circuit breaker, timeout management
+  command.md          Agent command interface — dispatch, routing, execution
+  data-contract.md    Input/output schemas, constraints, versioning, contract testing
+  domain-controller.md  Domain controller base — dispatch, aggregation, lifecycle
+  governance.md       Policy enforcement, compliance profiles, evidence collection
+  logging.md          Structured JSON logging — levels, correlation, rotation
+  messaging.md        HTTP-based pub/sub — event envelopes, scoping, namespace ownership
+  notification.md     Multi-channel notification — email, webhook, Slack, SMS, push
+  observability.md    Health endpoints, metrics envelope, component state tracking
+  secrets.md          Secret lifecycle — storage, rotation, access control
+  security.md         Transport security, input validation, zero-trust, threat events
+  state-machine.md    Declarative state machines — transitions, guards, side effects
+  storage.md          Agent-level persistence — schema, migration, backup
+  caching.md          In-process caching — LRU, TTL, namespaces, AI response cache
+  interop.md          Framework adapters — LangChain, CrewAI, ADK, HTTP service wrappers
+  versioning.md       Semantic versioning, compatibility rules, deprecation
+  workflow.md         Workflow declaration, event-driven DAG execution, approval gates
+
+examples/           Reference domain controllers and work agents
+  domains/
+    seo.md            SEO domain — workflows, agents, scoring, strategy alignment
+    content.md        Content quality — readability, structure, metadata scoring
+    health.md         Health monitoring — uptime, performance, TLS, trend analysis
+    security.md       Security domain — OWASP, CSP, headers, dependency auditing
+  agents/
+    seo-analyzer.md   SEO analysis work agent (domain: seo)
+    a11y-checker.md   Accessibility checking work agent (domain: seo)
+    content-analyzer.md  Content quality analysis work agent (domain: content)
+    meta-checker.md   HTML metadata validation work agent (domain: content)
+    uptime-checker.md Endpoint availability work agent (domain: health)
+    perf-auditor.md   Page performance audit work agent (domain: health)
+    security-scanner.md  Passive security analysis work agent (domain: security)
 ```
 
 ### Architecture Hierarchy
 
 ```
 Hub (self-sovereign deployment)
-  └── Orchestrator (coordinator)
+  └── Application Gateway (end-user edge security)
+       ├── Browser Sessions (cryptographic session binding)
+       ├── ABAC Policy Engine (attribute-based access control)
+       ├── Rate Limiting (token bucket / sliding window)
+       ├── Route Protection (URL → agent mediation)
+       └── Response Middleware (application-configured response processing)
+  └── Admin Gateway (operator edge — separate domain/network)
+       ├── Operator Ed25519 Auth + MFA (always required)
+       ├── IP Allowlist / VPN / mTLS
+       └── 4-Eyes Destructive Action Approval
+  └── Orchestrator (trust anchor)
+       ├── Registration + Namespace Control
+       ├── Service Directory + Routing Table
+       ├── Admin API (operator management, dashboard)
+       ├── CLI Operations (terminal interrogation)
+       ├── Observability (logging, tracing, metrics)
        └── Domain Controllers (directors)
             └── Work Agents (task executors)
        └── Infrastructure Agents (system utilities)
+            ├── Workflow Agent (DAG execution engine)
+            ├── Task Agent (dispatch + priority queue)
+            ├── Lifecycle Agent (strategies, observations, approvals)
+            ├── Alerting Agent (notification routing)
+            ├── Incident Response Agent (runbooks, remediation)
+            └── Health Monitor Agent (internal hub health)
+       └── Registry Agents (hub network services)
+            ├── Hub Index Agent (listing crawl and index)
+            ├── Hub Search Agent (discovery and ranking)
+            ├── Hub Metrics Agent (usage and uptime metrics)
+            ├── Hub Verify Agent (signatures and behavioral integrity)
+            └── Hub Alert Agent (network event notifications)
+  └── Marketplace (buy, sell, share capabilities, blueprints, templates)
+  └── Data Security (transport encryption, message integrity, federation boundaries)
+  └── Threat Model (attack surface analysis, OWASP coverage)
   └── Federation (hub-to-hub collaboration)
+  └── Cross-Cutting Patterns (inherited via extends)
+       ├── Security (transport, input validation, zero-trust, threat events)
+       ├── Governance (policy enforcement, compliance profiles, evidence)
+       ├── Observability (health, metrics, state tracking, alerts)
+       ├── Workflow (declaration, execution engine, approval gates)
+       ├── Data Contract (schemas, constraints, versioning, testing)
+       ├── Notification (multi-channel delivery, templates, throttling)
+       └── 21 more patterns (see patterns/ directory)
 ```
 
+### Component Descriptions
+
 - **Hub** — A complete Weblisk deployment: orchestrator, domains, agents, data, and policies under one owner's control
-- **Orchestrator** — Routes tasks, manages security, brokers channels, tracks the lifecycle
-- **Domains** — Own a business function, define workflows, dispatch to agents, aggregate results
-- **Work Agents** — Perform specific tasks under a domain's direction
-- **Infrastructure Agents** — Provide system services (sync, cron, email, webhooks) used by any domain
+- **Orchestrator** — Trust anchor: manages registration, namespace ownership, service directory distribution, channel brokering. Does NOT execute tasks or manage strategies
+- **Admin** — Separate admin gateway (different domain, different network, different auth model), operator Ed25519 identity, mandatory MFA, IP allowlisting, 4-eyes approval for destructive actions
+- **CLI** — Terminal commands for system interrogation and management
+- **Observability** — Structured JSON logs, distributed trace propagation, Prometheus metrics
+- **Gateway** — Application edge security agent: end-user authentication, ABAC authorization, rate limiting, route protection, request mediation, response sanitization. Separate from admin gateway
+- **Browser Sessions** — Cryptographically-bound sessions with Ed25519 signing, device binding, island-aware concurrency, and failover continuity
+- **Data Security** — Transport encryption, Ed25519 message integrity, federation data contracts, response sanitization, framework audit trail. The framework secures transport; applications secure data
+- **Threat Model** — 5-boundary attack surface analysis (38+ vectors), OWASP Top 10 mapping, attack chain analysis, residual risk register
+- **Domains** — Own a business function, define workflows, publish workflow triggers, receive results via scoped events
+- **Work Agents** — Perform specific tasks dispatched by the Task Agent (see [examples/](examples/) for reference implementations)
+- **Infrastructure Agents** — Provide system services (workflow execution, task dispatch, lifecycle optimization, alerting, incident response, health monitoring, sync, cron, email, webhooks) used by any domain
+- **Registry Agents** — Power the hub's registry role: indexing listings, serving discovery queries, collecting metrics, verifying signatures and behavioral integrity, and routing network alerts
+- **Marketplace** — Built into the hub — buy, sell, and share capabilities, blueprints, agents, and templates. Supports live services (invoked over federation) and installable assets (generated into your own hub). [weblisk.dev](https://weblisk.dev) serves as the public directory
+- **Patterns** — 27 cross-cutting concerns (security, governance, observability, workflow, data contracts, notification, HTTP-based pub/sub messaging, retry, rate limiting, storage, caching, state machines, secrets, logging, versioning, command, interop adapters) and API patterns (REST, AI, auth, webhooks, real-time, file upload, user management, deployment) that apply across all agents via `extends` inheritance
 - **Federation** — Hub-to-hub trust, data contracts, and cross-boundary task execution
 
 ### Free vs Pro
 
 This repository contains all **free tier** blueprints — the complete
-architecture, protocol, federation, hub collaboration, three reference
-domains (SEO, Content, Health), infrastructure agents, and API patterns. These match the
+architecture, protocol, federation, hub collaboration, marketplace,
+four reference domains (SEO, Content, Health, Security), infrastructure
+agents (alerting, incident response, health monitoring, sync, cron,
+email, webhooks), registry agents (index, search, metrics, verify,
+alert), API patterns (including user management, file upload, rate
+limiting, retry, and deployment), enterprise security (gateway, browser
+sessions, data security), and operational tooling (admin dashboard,
+CLI operations, observability).
+These match the
 [Blueprint Catalog](https://weblisk.dev/blueprints/catalog.html) and
 [Agent Catalog](https://weblisk.dev/agents/catalog.html). Everything here
 is open source and ships with every Weblisk hub.
 
-Pro patterns and agents (file-storage, crdt-sync, search-index,
+Pro patterns and agents (crdt-sync, search-index,
 email-transactional, ai-agent, search-agent, media-agent, analytics-agent)
 are available through [Weblisk Pro](https://weblisk.dev/pro.html) or
 via [Avaropoint](https://avaropoint.com/) for enterprise engagements.
@@ -134,8 +261,11 @@ customer-owned blueprint repos can be added alongside it.
 # The CLI clones this repo automatically on first use
 weblisk server init --platform go
 
-# Generate an agent from a domain blueprint
-weblisk agent create seo --platform go
+# Generate a domain controller from an example blueprint
+weblisk domain create seo --platform go
+
+# Generate a work agent
+weblisk agent create seo-analyzer --platform go
 
 # Force re-fetch all blueprint sources
 weblisk blueprints update
@@ -171,10 +301,11 @@ user's existing credentials (SSH key or GitHub CLI auth).
 
 ### Building Your Own
 
-1. Read the [Blueprint Schema](SCHEMA.md) for the standard structure
-2. Create a domain blueprint for your agent's expertise
-3. Reference the protocol and architecture blueprints
-4. Use the [weblisk-cli](https://github.com/avaropoint/weblisk-cli)
+1. Read the [Quickstart Guide](QUICKSTART.md) to get a hub running
+2. Read the [Blueprint Schema](SCHEMA.md) for the standard structure
+3. Create a domain blueprint for your agent's expertise
+4. Reference the protocol and architecture blueprints
+5. Use the [weblisk-cli](https://github.com/avaropoint/weblisk-cli)
    or your preferred AI model to generate the implementation
 
 ## Blueprint Schema
@@ -188,15 +319,20 @@ and verification checklist. See the schema file for details.
 Domain controllers own a business function. They define workflows, dispatch
 work to agents, aggregate results, and drive the feedback loop. They MUST include:
 
-1. **Required Agents** — Which work agents this domain dispatches to
-2. **Workflows** — Multi-phase processes with agent dispatch, data flow, and error handling
-3. **Strategy Alignment** — How business objectives map to domain workflows
-4. **Aggregation Rules** — How agent results are combined and scored
-5. **Feedback Collection** — What observations, recommendations, and metrics the domain tracks
+1. **Domain Manifest** — Registration manifest with required agents and workflows
+2. **Required Agents** — Which work agents this domain dispatches to
+3. **Workflows** — Multi-phase processes with agent dispatch, reference expressions, and error handling
+4. **HandleMessage Actions** — All message types the controller responds to
+5. **Scoring** — Weighted formula for computing domain scores
+6. **Aggregation Rules** — How agent results are combined, with conflict resolution
+7. **Strategy Alignment** — How business objectives map to domain workflows
+8. **Observability** — Domain-specific metrics
+9. **Error Handling** — Failure modes and degradation behavior
+10. **Verification Checklist** — Testable compliance checks
 
-See [domains/seo.md](domains/seo.md), [domains/content.md](domains/content.md),
-or [domains/health.md](domains/health.md) for complete examples.
-See [architecture/domain.md](architecture/domain.md) for the full specification.
+See [examples/domains/seo.md](examples/domains/seo.md) for the reference
+domain controller. See [architecture/domain.md](architecture/domain.md)
+for the full specification.
 
 ## Creating API Patterns
 
@@ -220,11 +356,13 @@ agents (system-level services). They MUST include:
 2. **Capabilities** — Resources the agent can access
 3. **Execute Workflow** — Step-by-step processing logic
 4. **HandleMessage Actions** — Message types the agent responds to
-5. **Validation Rules** — Domain-specific constraints and checks
-6. **Verification Checklist** — Testable compliance checks
+5. **Observability** — Agent-specific metrics
+6. **Error Handling** — Failure modes and recovery
+7. **Verification Checklist** — Testable compliance checks
 
-See [agents/seo-analyzer.md](agents/seo-analyzer.md) for a work agent example.
-See [agents/sync.md](agents/sync.md) for an infrastructure agent example.
+See [examples/agents/seo-analyzer.md](examples/agents/seo-analyzer.md)
+for a work agent example. See
+[agents/alerting.md](agents/alerting.md) for an infrastructure agent example.
 
 ## Related Repositories
 

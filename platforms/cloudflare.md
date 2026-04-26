@@ -2,7 +2,7 @@
 type: platform
 name: cloudflare
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage]
+requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway]
 platform: cloudflare
 -->
 
@@ -11,6 +11,12 @@ platform: cloudflare
 Guidance for generating Weblisk orchestrator and agent implementations
 as Cloudflare Workers. This enables edge deployment with global
 distribution and zero cold starts.
+
+Cloudflare Workers achieves **zero external dependencies** — all
+APIs used (Workers KV, Durable Objects, Web Crypto, R2, etc.) are
+native platform capabilities, not third-party packages. The only
+`devDependencies` are Cloudflare's own tooling (wrangler) used for
+deployment. Runtime dependencies are zero.
 
 ## Project Structure
 
@@ -221,3 +227,16 @@ async releaseSlot(agentName) {
 
 Domain controllers running as Workers dispatch phases using
 `Promise.all()` for parallel execution within a dependency level.
+
+## Verification Checklist
+
+- [ ] Ed25519 operations use Web Crypto API (`crypto.subtle.generateKey`, `sign`, `verify`); keys exported as raw ArrayBuffer and hex-encoded for protocol
+- [ ] Agent registry is stored in a Durable Object for strong consistency; KV is used for the service directory cache (eventually consistent)
+- [ ] Durable Object alarm handles channel TTL cleanup
+- [ ] Queryable data (observations, audit logs, workflow executions) is stored in D1; entity context uses KV for fast edge reads
+- [ ] Zero runtime dependencies — only `devDependencies` (wrangler) exist in package.json
+- [ ] Private keys are stored via `wrangler secret put`, not in wrangler.toml or source code
+- [ ] Worker entry point routes requests by URL pathname with auth middleware applied to protected routes
+- [ ] Concurrency limiting is coordinated through the Durable Object (`acquireSlot`/`releaseSlot` pattern) respecting agent `max_concurrent`
+- [ ] Domain controllers dispatch parallel workflow phases using `Promise.all()` for independent phases within a dependency level
+- [ ] wrangler.toml declares Durable Object bindings, D1 database bindings, and KV namespace bindings as required by the storage mapping
