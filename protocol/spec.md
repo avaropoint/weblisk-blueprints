@@ -6,7 +6,7 @@ requires: [protocol/types]
 platform: any
 -->
 
-# Weblisk Agent Protocol Specification v1
+# Weblisk Agent Protocol Specification
 
 The universal wire protocol for all Weblisk agents and orchestrators.
 Every implementation — regardless of language or platform — MUST conform
@@ -15,9 +15,28 @@ to this specification exactly. All communication is HTTP + JSON.
 ## Overview
 
 The Weblisk Agent Protocol defines how autonomous agents register with
-an orchestrator, receive tasks, execute domain-specific logic, communicate
-with each other, and report results. The protocol supports the continuous
-optimization lifecycle: strategize → observe → recommend → execute → feedback.
+an orchestrator, discover each other, publish and receive events, execute
+tasks, and communicate directly. The protocol uses HTTP as the sole
+transport — pub/sub semantics are achieved through scoped event delivery
+over standard HTTP endpoints.
+
+**Key design principles:**
+
+1. **One protocol** — HTTP is the only communication layer. No separate
+   message broker, queue, or bus infrastructure.
+2. **Event-driven** — Agents coordinate through namespaced, scoped events
+   delivered via HTTP POST. Workflows, tasks, and lifecycle loops are
+   all event-driven.
+3. **Namespace ownership** — Every event namespace is exclusively owned
+   by one agent. The orchestrator enforces this at registration,
+   preventing collisions.
+4. **Scoped delivery** — Events carry a `scope` field that limits
+   delivery to the intended recipient. Agents only receive events
+   addressed to them unless they have explicit permission to observe
+   globally.
+5. **Separation of concerns** — The orchestrator manages agent
+   lifecycle, discovery, trust, and namespace control. It does NOT
+   execute tasks, manage workflows, or store business state.
 
 ## Conventions
 
@@ -35,11 +54,12 @@ optimization lifecycle: strategize → observe → recommend → execute → fee
 
 ## Agent Endpoints
 
-Every agent MUST serve these 5 endpoints on a single HTTP port:
+Every agent MUST serve these 6 endpoints on a single HTTP port:
 
 ### POST /v1/describe
 
-Returns the agent's identity and capabilities. No auth required.
+Returns the agent's identity, capabilities, event subscriptions, and
+namespace ownership. No auth required.
 
 **Response:** `AgentManifest` (see [types.md](types.md))
 
@@ -64,14 +84,15 @@ Returns the agent's identity and capabilities. No auth required.
   ],
   "collaborators": ["a11y-checker"],
   "approval": "required",
-  "max_concurrent": 5
-}
+  "max_concurrent": 5,
+  "publishes": [],
+  "subscriptions": []
 }
 ```
 
 ### POST /v1/execute
 
-Executes a task. Requires auth token in the request body.
+Executes a task synchronously. Requires auth token in the request body.
 
 **Request:** `TaskRequest`
 **Response:** `TaskResult`
@@ -79,59 +100,61 @@ Executes a task. Requires auth token in the request body.
 The agent MUST:
 1. Validate the request has a non-empty `id` and `token`
 2. Update internal service directory from `context.services` (if provided)
-3. Update workspace root from `context.workspace_root` (if provided)
-4. Execute domain-specific logic
-5. Return result with `task_id` matching request `id`
-6. Sign the result with the agent's private key
+3. Execute domain-specific logic
+4. Return result with `task_id` matching request `id`
+5. Sign the result with the agent's private key
+
+This endpoint is for direct, synchronous task execution. It is called
+by the Task Agent when dispatching queued work, or directly by other
+agents for immediate execution. The caller blocks until the result
+is returned.
 
 ```json
 {
   "task_id": "a1b2c3d4e5f6...",
   "agent_name": "seo-analyzer",
-  "status": "pending_approval",
+  "status": "success",
   "summary": "Scanned 5 files, proposing 3 improvements",
-  "changes": [
-    {
-      "path": "app/index.html",
-      "action": "modify",
-      "original": "<title>Home</title>",
-      "modified": "<title>Weblisk — Modern Web Framework</title>",
-      "diffs": [
-        {"element": "title", "before": "Home", "after": "Weblisk — Modern Web Framework", "reason": "Title too short for SEO"}
-      ]
-    }
-  ],
-  "observations": [],
-  "recommendations": [],
+  "changes": [...],
+  "observations": [...],
+  "recommendations": [...],
   "metrics": {"files_scanned": 5, "suggestions": 3},
   "signature": "<hex Ed25519 signature>",
   "timestamp": 1712160001
 }
 ```
 
-### GET /v1/health
+### POST /v1/health
 
-Health check. No auth required.
+Health check. No auth required. No body required.
 
-**Response:** `HealthStatus`
+The health endpoint contract — response fields, sub-component checks,
+state derivation rules, and metrics snapshot — is defined in
+[`patterns/observability`](../patterns/observability.md#health-endpoint).
+That pattern is the single source of truth for health response structure.
+
+**Response (summary):**
 
 ```json
 {
   "name": "seo-analyzer",
-  "status": "healthy",
   "version": "1.0.0",
-  "uptime": 3600,
-  "metrics": {"services_known": 3},
-  "timestamp": 1712160000
+  "state": "online",
+  "uptime_seconds": 3600,
+  "checks": { ... },
+  "metrics_snapshot": { ... }
 }
 ```
 
 ### POST /v1/message
 
-Direct agent-to-agent messaging for collaboration.
+Direct agent-to-agent messaging for synchronous request/response.
 
 **Request:** `AgentMessage` (type: `request`)
 **Response:** `AgentMessage` (type: `response`)
+
+Use `/v1/message` when the caller needs a response. For fire-and-forget
+event delivery, use `/v1/event` instead.
 
 The agent MUST:
 1. Accept only POST requests
@@ -144,17 +167,65 @@ Signature covers: `JSON.stringify({from, to, action, payload})`
 
 ### POST /v1/services
 
-Accepts service directory updates pushed by the orchestrator.
-The agent MUST update its internal service list (thread-safe).
-Response: 200 OK (no body required).
+Accepts service directory and routing table updates pushed by the
+orchestrator. The agent MUST update its internal service list and
+routing table (thread-safe). Response: 200 OK (no body required).
 
-**Request:** `ServiceDirectory`
+**Request:** `ServiceDirectory` (now includes `routing_table` and
+`namespaces` — see [types.md](types.md))
+
+### POST /v1/event
+
+Receives event deliveries from other agents via HTTP-based pub/sub.
+Requires auth token in the event envelope.
+
+**Request:** `EventEnvelope`
+**Response:** 200 OK (no body required — fire-and-forget acknowledgment)
+
+The agent MUST:
+1. Accept only POST requests
+2. Validate the `EventEnvelope` structure (event_id, topic, source,
+   scope, timestamp, payload are present)
+3. Verify the event's auth token (optional — framework-level)
+4. Check idempotency: if `event_id` has already been processed,
+   return 200 OK immediately (skip duplicate processing)
+5. Match the event's `topic` against registered event handlers
+6. Dispatch to the matching handler(s)
+7. Return 200 OK immediately — event processing is asynchronous
+   from the HTTP response. The publisher does not wait for processing
+   to complete.
+
+If the agent cannot accept events (at capacity), it MUST return
+`429 Too Many Requests` with a `Retry-After` header. The publishing
+agent's framework will retry delivery.
+
+```json
+{
+  "event_id": "evt-a1b2c3d4e5f6",
+  "topic": "workflow.completed",
+  "source": "workflow",
+  "scope": "seo",
+  "correlation_id": "wf-exec-001",
+  "timestamp": 1712160001,
+  "trace_id": "abc123def456789012345678",
+  "version": "1.0.0",
+  "payload": {
+    "workflow": "seo-audit",
+    "status": "completed",
+    "result": { ... }
+  },
+  "token": "<auth token>"
+}
+```
 
 ---
 
 ## Orchestrator Endpoints
 
-The orchestrator MUST serve these endpoints:
+The orchestrator manages agent lifecycle, service discovery, namespace
+control, event routing, channel brokering, and audit. It does NOT
+execute tasks, run workflows, manage strategies, or store observations.
+Those concerns belong to dedicated infrastructure agents.
 
 ### POST /v1/register
 
@@ -167,16 +238,31 @@ The orchestrator MUST:
 1. Validate: `manifest.name`, `manifest.url`, `manifest.public_key` are non-empty
 2. Verify `signature` against `manifest.public_key` over `JSON.stringify(manifest)`
 3. Reject if `|server_time - timestamp|` > 300 seconds (replay protection)
-4. Generate unique `agent_id` (32 hex chars)
-5. Issue auth token (WLT format) with capabilities from manifest, 24-hour TTL
-6. Store agent in registry
-7. Log audit entry
-8. Respond with `RegisterResponse`
-9. Asynchronously broadcast updated `ServiceDirectory` to all OTHER agents
+4. **Validate namespace ownership** (see Namespace Control below):
+   a. For each namespace in `manifest.publishes`:
+      - If the namespace is already owned by a DIFFERENT agent → 409 Conflict
+      - If the namespace is `system` → 403 Forbidden (reserved for orchestrator)
+   b. Record namespace → agent mapping in registry
+5. **Build routing table entries** from `manifest.subscriptions`:
+   a. For each subscription, validate scope:
+      - `"self"` → always allowed
+      - `"*"` → requires `event:observe` capability → 403 if missing
+      - `"<agent-name>"` → agent must be in `manifest.collaborators` or
+        the named agent must list this agent in its collaborators → 403 otherwise
+   b. Add subscription entries to the routing table
+6. Generate unique `agent_id` (32 hex chars)
+7. Issue auth token (WLT format) with capabilities from manifest, 24-hour TTL
+8. Store agent in registry
+9. Log audit entry: actor=orchestrator, action=register, target=agent_name
+10. Respond with `RegisterResponse` (includes routing table)
+11. Asynchronously broadcast updated `ServiceDirectory` (with routing table)
+    to ALL OTHER agents via `POST /v1/services`
 
 **Error responses:**
 - 400: Missing required fields
 - 401: Invalid signature or stale timestamp
+- 403: Reserved namespace or unauthorized scope
+- 409: Namespace already owned by another agent
 - 500: Internal error
 
 ### DELETE /v1/register
@@ -186,25 +272,25 @@ Agent deregistration. Requires valid auth token.
 The orchestrator MUST:
 1. Authenticate the request
 2. Remove agent matching `token.sub` from registry
-3. Log audit entry
-4. Broadcast updated service directory
-5. Respond: `{"status": "deregistered"}`
+3. Release all namespaces owned by the deregistering agent
+4. Remove all routing table entries for the deregistering agent
+5. Log audit entry
+6. Broadcast updated service directory (with routing table)
+7. Respond: `{"status": "deregistered"}`
 
-### POST /v1/task
+### GET /v1/services
 
-Submit a task for execution. Requires valid auth token.
+Service directory including routing table and namespace map.
+Requires valid auth token.
 
-**Request:** `TaskRequest` with `payload.target_agent` naming the target
-**Response:** Proxied `TaskResult` from the target agent
+**Response:** `ServiceDirectory` (signed by orchestrator)
 
-The orchestrator MUST:
-1. Authenticate the request
-2. Extract `target_agent` from `payload`
-3. Look up target in registry (404 if not found)
-4. Inject context: `workspace_root`, current service entries, entity context
-5. Forward request to target agent's `/v1/execute`
-6. Proxy the response back to the caller
-7. Log audit entry
+The response includes:
+- `services` — all registered agents with URL, public key, capabilities, status
+- `routing_table` — topic pattern → subscriber list (URL, group, scope)
+- `namespaces` — namespace → owning agent name
+- `updated_at` — timestamp of last change
+- `signature` — orchestrator's Ed25519 signature
 
 ### POST /v1/channel
 
@@ -224,17 +310,12 @@ The orchestrator MUST:
 7. Sign the grant with orchestrator's private key
 8. Respond with `ChannelGrant`
 
-### GET /v1/services
-
-Service directory. Requires valid auth token.
-
-**Response:** `ServiceDirectory` (signed by orchestrator)
-
 ### GET /v1/health
 
 Orchestrator health. No auth required.
 
-**Response:** `HealthStatus` with metrics including agent count and channel count
+**Response:** `HealthStatus` with metrics including agent count,
+namespace count, and active channel count.
 
 ### GET /v1/audit
 
@@ -242,96 +323,187 @@ Audit log. Requires valid auth token.
 
 **Response:** Array of `AuditEntry` (most recent first)
 
-### POST /v1/approve
-
-Approve or reject pending recommendations. Requires valid auth token.
-
-**Request:** `ApprovalRequest`
-**Response:** `ApprovalResponse`
-
-The orchestrator MUST:
-1. Authenticate the request
-2. Validate: `recommendation_ids` is non-empty, `decision` is `"accept"` or `"reject"`
-3. If `decision` is `"reject"` and `reason` is empty, return 400
-4. For each recommendation ID:
-   a. Look up in recommendation store
-   b. If not found or not `"pending"`, record error in result
-   c. Update status: `"pending"` → `"accepted"` or `"rejected"`
-   d. Store `reason` if provided
-5. Log audit entry for each updated recommendation
-6. If accepted recommendations belong to a paused workflow,
-   notify the owning domain to resume execution
-7. Respond with `ApprovalResponse`
-
-### GET /v1/approve
-
-List pending recommendations. Requires valid auth token.
-
-**Response:** Array of `Recommendation` with status `"pending"`
-
 **Query parameters:**
-- `agent` — filter by recommending agent name
-- `target` — filter by target path/URL
-- `strategy` — filter by strategy ID
-- `priority` — filter by priority level
+- `actor` — filter by actor name
+- `action` — filter by action type
+- `target` — filter by target
+- `since` — Unix epoch seconds, entries after this time
 - `cursor` — pagination cursor (opaque)
 - `limit` — max results (default: 100)
 
-### POST /v1/strategy
+---
 
-Create or update a strategy. Requires valid auth token.
+## Namespace Control
 
-**Request:** `Strategy`
-**Response:** Stored `Strategy` with generated `id` if new
+Event namespaces are the foundation of safe pub/sub communication.
+Every event topic follows a hierarchical naming convention:
 
-The orchestrator MUST:
-1. Authenticate the request
-2. Validate: `name`, `objective`, `targets` are non-empty
-3. Store in strategy registry (create or update)
-4. Log audit entry
-5. Respond with stored strategy
+```
+<namespace>.<entity>.<action>
+```
 
-### GET /v1/strategy
+The top-level segment is the **namespace**. Namespace ownership is
+exclusive — exactly one agent may publish to a given namespace.
 
-List strategies. Requires valid auth token.
+### Namespace Rules
 
-**Response:** Array of `Strategy`
+1. **Exclusive ownership** — A namespace is owned by exactly one agent.
+   No two agents may publish to the same namespace.
+2. **Reserved namespaces** — `system.*` is owned by the orchestrator.
+   No agent may claim it.
+3. **Implicit sub-namespaces** — Owning `workflow` grants publish
+   rights to `workflow.*` at all depths (e.g., `workflow.phase.ready`,
+   `workflow.approval.required`).
+4. **Registration enforcement** — The orchestrator validates
+   `manifest.publishes` at registration time. Namespace conflicts are
+   rejected before the agent joins the hub.
+5. **Publishing validation** — When an agent publishes an event, the
+   framework verifies the topic's namespace matches one of the agent's
+   declared `publishes` entries. Events to unowned namespaces are
+   rejected locally (never sent).
 
-**Query parameters:**
-- `status` — filter by `active`, `paused`, `completed` (default: all)
+### Standard Namespaces
 
-### POST /v1/context
+| Namespace | Owner | Purpose |
+|-----------|-------|---------|
+| `system` | orchestrator | Agent lifecycle events (registered, deregistered, shutdown) |
+| `workflow` | workflow agent | Workflow triggers, phase progression, completion |
+| `task` | task agent | Task submission, queuing, dispatch, completion |
+| `lifecycle` | lifecycle agent | Strategies, observations, recommendations, approvals |
 
-Set or update entity context. Requires valid auth token.
+Domain controllers and work agents own their own namespaces
+(e.g., `seo.*`, `content.*`, `health.*`).
 
-**Request:** `EntityContext`
-**Response:** Stored `EntityContext`
+### Federation Namespace Qualification
 
-The orchestrator MUST:
-1. Authenticate the request
-2. Store as the system's entity context
-3. Log audit entry
-4. Respond with stored context
+When events cross hub boundaries via federation, topics are prefixed
+with the originating hub's identity:
 
-### GET /v1/context
+```
+Local:       workflow.completed
+Federated:   acme-corp::workflow.completed
+```
 
-Retrieve current entity context. Requires valid auth token.
+The `::` separator distinguishes hub-qualified topics from local ones.
+Local subscriptions to `workflow.*` do NOT match `acme-corp::workflow.*`.
+To receive federated events, agents subscribe to the hub-qualified
+pattern explicitly.
 
-**Response:** `EntityContext`
+See [Federation Protocol](federation.md) for cross-hub event routing
+and data contract enforcement.
 
-### GET /v1/observations
+---
 
-List observations. Requires valid auth token.
+## Event Scoping
 
-**Response:** Array of `Observation`
+Every event carries a `scope` field that limits which subscribers
+receive it. Scoping prevents noise (agents receiving events they
+don't need) and enforces data isolation (agents can't observe events
+meant for other agents without explicit permission).
 
-**Query parameters:**
-- `agent` — filter by agent name
-- `target` — filter by target path/URL
-- `strategy` — filter by strategy ID
-- `since` — Unix epoch seconds, observations after this time
-- `cursor` — pagination cursor (opaque)
-- `limit` — max results (default: 100)
+### Scope Values
+
+| Value | Meaning | Permission Required |
+|-------|---------|---------------------|
+| `"self"` (on subscription) | Agent receives only events where `scope` matches its own name | None (default) |
+| `"*"` (on subscription) | Agent receives ALL events for the topic, regardless of scope | `event:observe` capability |
+| `"<agent-name>"` (on subscription) | Agent receives only events scoped to the named agent | Must be a declared collaborator |
+| `"<agent-name>"` (on event) | Event is addressed to the named agent | Set by publisher |
+| `"*"` (on event) | Event is globally visible (system events, broadcasts) | Set by publisher |
+
+### Scope Resolution at Delivery
+
+When an agent publishes an event, the framework resolves subscribers
+from the local routing table and applies scope filtering:
+
+```
+for each subscriber matching the topic pattern:
+  if subscriber.scope == "*":
+    deliver (agent has global visibility for this topic)
+  elif subscriber.scope == "self":
+    deliver ONLY IF event.scope == subscriber.agent_name
+  elif subscriber.scope == "<specific-agent>":
+    deliver ONLY IF event.scope == subscriber.scope
+  else:
+    skip — do not deliver
+```
+
+### Scope Propagation
+
+Infrastructure agents propagate scope through execution chains. When
+an agent triggers a workflow, the Workflow Agent records the invoker
+and scopes all result events back to the invoker:
+
+```
+1. SEO domain publishes: workflow.trigger, scope: "workflow"
+   (addressed to Workflow Agent)
+2. Workflow Agent records invoker = "seo"
+3. Workflow Agent publishes: task.submit, scope: "task"
+   (addressed to Task Agent)
+4. Task Agent publishes: task.complete, scope: "workflow"
+   (result goes back to Workflow Agent)
+5. Workflow Agent publishes: workflow.completed, scope: "seo"
+   (result goes back to original invoker)
+```
+
+The scope chain ensures that intermediate events stay between
+infrastructure agents, and final results are delivered only to the
+agent that initiated the request.
+
+---
+
+## Event Publishing (Framework Behavior)
+
+Publishing an event is a framework-level operation. The agent calls
+`publish(topic, payload, scope, correlation_id)` and the framework
+handles routing and delivery:
+
+```
+1. Validate namespace — topic must match one of agent's declared
+   publishes entries. Reject if unowned.
+2. Build EventEnvelope:
+   - event_id: UUID v7 (time-sortable, globally unique)
+   - topic: the topic
+   - source: this agent's name
+   - scope: provided scope value
+   - correlation_id: provided or inherited from current context
+   - trace_id: inherited from current trace context
+   - timestamp: now
+   - version: agent's event schema version
+   - payload: the event data
+   - token: this agent's auth token
+3. Resolve subscribers from local routing table:
+   a. Match topic against subscription patterns (exact, *, #)
+   b. Apply scope filtering (see Scope Resolution above)
+   c. For consumer groups: select one subscriber per group (round-robin)
+   d. For non-grouped subscribers: include all matching
+4. For each resolved subscriber:
+   HTTP POST to subscriber.url + "/v1/event"
+   Body: EventEnvelope as JSON
+   Headers:
+     Content-Type: application/json
+     X-Event-Id: <event_id>
+     X-Trace-Id: <trace_id>
+5. On 2xx response: delivery acknowledged, proceed
+6. On 429 response: respect Retry-After header, retry later
+7. On other failure: retry per patterns/retry (exponential backoff)
+8. On retry exhaustion: store in local dead-letter queue
+```
+
+### Dead-Letter Handling
+
+Events that fail delivery after all retries are stored locally by the
+publishing agent's framework in a dead-letter log. The framework exposes
+dead-letter entries for inspection and replay:
+
+- Dead-letter entries include: original event, failure reason, last error,
+  attempt count, subscriber name
+- Dead-letter retention: 7 days by default (`WL_DLQ_RETENTION`)
+- Replay: the framework can re-attempt delivery of dead-lettered events
+
+For centralized dead-letter management, a hub MAY deploy a dead-letter
+infrastructure agent that subscribes to `system.dead_letter` events
+(published when an event is dead-lettered).
 
 ---
 
@@ -355,20 +527,25 @@ Flow:
 
 ### Trace ID Propagation
 
-Every task submission SHOULD include a `trace_id` in `TaskContext`.
-If the caller does not provide one, the orchestrator MUST generate a
-unique `trace_id` (32 hex chars) and inject it before forwarding.
-
-The `trace_id` MUST be propagated through ALL downstream calls:
+All events, tasks, and messages MUST propagate `trace_id` through the
+entire execution chain. If the originator does not provide a `trace_id`,
+the framework MUST generate one (32 hex chars) at the point of origin.
 
 ```
-Client → POST /v1/task (trace_id in context)
-  → Orchestrator forwards to domain → POST /v1/execute (same trace_id)
-    → Domain dispatches to agent → POST /v1/message (same trace_id)
+Domain publishes workflow.trigger (trace_id: "abc123")
+  → Workflow Agent receives event (same trace_id)
+  → Workflow Agent publishes task.submit (same trace_id)
+  → Task Agent receives event (same trace_id)
+  → Task Agent calls POST /v1/execute (same trace_id in context)
+  → Work Agent executes (same trace_id)
 ```
 
-Agents and domains MUST include `trace_id` in `AgentMessage` when
-dispatching to other agents.
+### Correlation ID Propagation
+
+The `correlation_id` field in events links all events belonging to a
+single logical operation (e.g., one workflow execution). Unlike
+`trace_id` (which may span multiple operations), `correlation_id` is
+specific to one execution chain.
 
 ### Structured Log Format
 
@@ -384,12 +561,13 @@ Each log entry MUST include:
 | `trace_id` | Correlation ID (when available) |
 
 Optional fields (when applicable): `agent`, `target`, `action`,
-`task_id`, `phase`, `duration_ms`, `error`.
+`task_id`, `phase`, `duration_ms`, `error`, `event_id`,
+`correlation_id`, `scope`.
 
 ```json
-{"ts":1712160001,"level":"info","msg":"task forwarded","component":"orchestrator","trace_id":"a1b2c3...","agent":"seo","action":"audit","task_id":"d4e5f6..."}
-{"ts":1712160002,"level":"info","msg":"phase started","component":"seo","trace_id":"a1b2c3...","phase":"scan","agent":"seo-analyzer"}
-{"ts":1712160005,"level":"info","msg":"phase completed","component":"seo","trace_id":"a1b2c3...","phase":"scan","duration_ms":3200}
+{"ts":1712160001,"level":"info","msg":"event published","component":"seo","trace_id":"a1b2c3...","topic":"workflow.trigger","scope":"workflow","correlation_id":"corr-001"}
+{"ts":1712160002,"level":"info","msg":"event received","component":"workflow","trace_id":"a1b2c3...","topic":"workflow.trigger","event_id":"evt-001"}
+{"ts":1712160003,"level":"info","msg":"task dispatched","component":"task","trace_id":"a1b2c3...","agent":"seo-analyzer","task_id":"d4e5f6..."}
 ```
 
 **Audit log** entries (specified in [orchestrator.md](../architecture/orchestrator.md))
@@ -407,10 +585,10 @@ when the information is available.
 
 ```json
 {
-  "error": "forwarding to agent failed — connection refused",
-  "code": "AGENT_UNREACHABLE",
-  "category": "transient",
-  "retryable": true
+  "error": "namespace 'workflow' already owned by agent 'workflow'",
+  "code": "NAMESPACE_CONFLICT",
+  "category": "permanent",
+  "retryable": false
 }
 ```
 
@@ -422,12 +600,13 @@ status responses to protocol usage:
 |--------|------|
 | 400 | Invalid body, missing fields, unsupported protocol version |
 | 401 | Bad token, bad signature, expired token |
-| 403 | Missing required capability |
+| 403 | Missing required capability, reserved namespace, unauthorized scope |
 | 404 | Target agent or resource not found |
 | 405 | Wrong HTTP method |
+| 409 | Namespace conflict at registration |
 | 429 | Over concurrency/rate limit (include `Retry-After` header) |
 | 500 | Internal server error |
-| 502 | Orchestrator could not reach agent |
+| 502 | Could not reach target agent for event delivery |
 | 504 | Agent did not respond within timeout |
 
 ---
@@ -435,39 +614,61 @@ status responses to protocol usage:
 ## Implementation Notes
 
 - HTTP request bodies MUST be read with size limits (`io.LimitReader` or equivalent)
-- All registries (agents, channels) MUST be thread-safe
-- Service broadcasts are fire-and-forget (failures logged, not blocking)
+- All registries (agents, namespaces, channels) MUST be thread-safe
+- Service directory broadcasts are fire-and-forget (failures logged, not blocking)
 - Channel tokens have 1-hour TTL; expired channels should be cleaned up
 - The orchestrator is NOT an agent — it does not implement agent endpoints
+  (it implements orchestrator endpoints)
+- The orchestrator publishes to the `system.*` namespace. It delivers
+  system events to subscribers via the same `POST /v1/event` mechanism.
+- Event delivery is agent-to-agent via HTTP. The orchestrator is NOT
+  in the event delivery path. It only manages the routing table.
+- The routing table is distributed to all agents as part of the service
+  directory. Agents resolve subscribers locally — no call to the
+  orchestrator is needed to publish events.
+
+---
 
 ## Verification Checklist
 
-- [ ] Agent responds to `POST /v1/describe` with valid `AgentManifest`
-- [ ] Agent responds to `GET /v1/health` with valid `HealthStatus`
-- [ ] Agent accepts `POST /v1/services` and updates internal directory
+### Agent Protocol
+- [ ] Agent responds to `POST /v1/describe` with valid `AgentManifest` including `publishes` and `subscriptions`
+- [ ] Agent responds to `POST /v1/health` with valid health response
+- [ ] Agent accepts `POST /v1/services` and updates internal directory and routing table
 - [ ] Agent handles `POST /v1/message` with signature verification
 - [ ] Agent returns signed `TaskResult` from `POST /v1/execute`
-- [ ] Orchestrator `GET /v1/health` returns without auth
-- [ ] Orchestrator `GET /v1/services` requires valid token (401 without)
-- [ ] Orchestrator `POST /v1/register` validates signature
+- [ ] Agent accepts `POST /v1/event` and dispatches to matching handlers
+- [ ] Agent returns 200 OK immediately on event receipt (processing is async)
+- [ ] Agent returns 429 with `Retry-After` when at event processing capacity
+- [ ] Agent deduplicates events by `event_id`
+
+### Event Publishing
+- [ ] Framework validates topic namespace ownership before publishing
+- [ ] Framework resolves subscribers from local routing table
+- [ ] Framework applies scope filtering during subscriber resolution
+- [ ] Framework selects one subscriber per consumer group (round-robin)
+- [ ] Framework retries failed deliveries with exponential backoff
+- [ ] Framework dead-letters events after retry exhaustion
+- [ ] Events include event_id, topic, source, scope, correlation_id, trace_id
+
+### Orchestrator Protocol
+- [ ] Orchestrator `POST /v1/register` validates namespace ownership (409 on conflict)
+- [ ] Orchestrator `POST /v1/register` validates subscription scopes (403 on unauthorized)
 - [ ] Orchestrator `POST /v1/register` enforces replay protection (300s window)
-- [ ] Orchestrator `DELETE /v1/register` removes agent and broadcasts
-- [ ] Orchestrator `POST /v1/task` routes to correct agent
+- [ ] Orchestrator `POST /v1/register` rejects `system.*` namespace claims (403)
+- [ ] Orchestrator `DELETE /v1/register` releases namespaces and routing entries
+- [ ] Orchestrator `GET /v1/services` returns service directory with routing table and namespace map
 - [ ] Orchestrator `POST /v1/channel` verifies `agent:message` capability
-- [ ] Orchestrator `POST /v1/approve` transitions pending → accepted/rejected
-- [ ] Orchestrator `POST /v1/approve` rejects empty reason on reject decision
-- [ ] Orchestrator `GET /v1/approve` returns pending recommendations
+- [ ] Orchestrator `GET /v1/health` returns without auth
+- [ ] Orchestrator `GET /v1/audit` returns audit entries with pagination
+- [ ] Orchestrator broadcasts updated service directory on registration changes
 - [ ] Orchestrator rejects unsupported protocol_version with `UNSUPPORTED_VERSION`
-- [ ] RegisterResponse includes negotiated protocol_version
+- [ ] RegisterResponse includes negotiated protocol_version and routing table
+
+### Cross-Cutting
 - [ ] All error responses use `ErrorResponse` format with `error` field
 - [ ] Error responses include `code` and `category` when available
+- [ ] `trace_id` is propagated through all events, tasks, and messages
+- [ ] `correlation_id` links all events in a single execution chain
 - [ ] Agent returns 429 with `RATE_LIMITED` when at max_concurrent capacity
 - [ ] All protected endpoints reject requests without valid tokens
-- [ ] Orchestrator `POST /v1/strategy` stores and returns strategy
-- [ ] Orchestrator `GET /v1/strategy` lists strategies with optional status filter
-- [ ] Orchestrator `POST /v1/context` stores entity context
-- [ ] Orchestrator `GET /v1/context` returns stored entity context
-- [ ] Orchestrator `GET /v1/observations` returns observations with pagination
-- [ ] Orchestrator generates `trace_id` if not provided by caller
-- [ ] `trace_id` is propagated through task forwarding and agent dispatch
-- [ ] Structured logs include `ts`, `level`, `msg`, `component` fields

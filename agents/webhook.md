@@ -2,10 +2,12 @@
 type: agent
 kind: infrastructure
 name: webhook
-version: 1.0.0
-requires: [protocol/spec, protocol/types, architecture/agent, patterns/webhook-inbound, patterns/webhook-outbound]
+version: 1.1.0
+extends: [patterns/webhook, patterns/observability, patterns/storage, patterns/state-machine, patterns/security, patterns/governance]
+requires: [protocol/spec, protocol/types, architecture/agent]
 platform: any
 tier: free
+port: 9753
 -->
 
 # Webhook Agent
@@ -176,8 +178,7 @@ Check delivery status for a specific event or subscriber.
 ## Types
 
 See types defined in:
-- [webhook-inbound pattern](../patterns/webhook-inbound.md)
-- [webhook-outbound pattern](../patterns/webhook-outbound.md)
+- [webhook pattern](../patterns/webhook.md)
 
 ### WebhookAgentConfig
 

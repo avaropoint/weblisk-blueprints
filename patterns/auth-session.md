@@ -2,7 +2,7 @@
 type: pattern
 name: auth-session
 version: 1.0.0
-requires: [protocol/spec, protocol/types]
+requires: [protocol/spec, protocol/types, protocol/identity, architecture/gateway, architecture/browser-session]
 platform: any
 tier: free
 -->

@@ -176,6 +176,138 @@ Receiver:
   4. If invalid: reject with 401
 ```
 
+## Key Rotation
+
+Key rotation replaces an agent's Ed25519 key pair without
+interrupting service. This is required when a key is compromised,
+when operational policy mandates periodic rotation, or when an
+agent migrates between hosts.
+
+### Rotation Flow
+
+```
+Agent side:
+  1. Generate new Ed25519 key pair
+  2. Sign rotation request with CURRENT private key:
+     {agent_name, old_public_key, new_public_key, timestamp}
+  3. Send POST /v1/rotate-key to orchestrator
+
+Orchestrator side:
+  1. Verify rotation request signature with agent's current public key
+  2. Verify |now() - timestamp| < 300 seconds (replay protection)
+  3. Update agent's public key in service directory
+  4. Broadcast updated service directory to all agents
+  5. Respond with new WLT token signed with orchestrator's key
+
+Agent side (on success):
+  1. Replace key files (.weblisk/keys/<name>.key and .pub)
+  2. Begin using new key for all future signing
+  3. Old key is no longer valid
+```
+
+### Rotation Rules
+
+| Rule | Requirement |
+|------|-------------|
+| Authentication | Rotation request MUST be signed by current key |
+| Atomicity | Directory update and token reissue are atomic |
+| Propagation | All agents receive updated directory within 5 seconds |
+| Replay protection | Same 300-second window as registration |
+| Overlap | No overlap period — old key is invalid immediately |
+| Revocation | Old key's tokens are invalidated on rotation |
+
+### Federation Key Rotation
+
+When a hub rotates its federation key, the rotation must be
+communicated to all federation peers:
+
+```
+1. Hub generates new federation key pair
+2. Hub signs rotation announcement with current key
+3. Hub sends KeyRotation message to all connected peers
+4. Peers verify announcement with hub's current key
+5. Peers update their trust store with new public key
+6. Hub switches to new key
+```
+
+See the Federation protocol spec for the full peer key rotation
+handshake and trust store update procedure.
+
+### Recommended Rotation Schedule
+
+| Key Type | Recommended Interval | Mandatory |
+|----------|--------------------|-----------|
+| Agent keys | 90 days | On compromise |
+| Orchestrator key | 90 days | On compromise |
+| Federation keys | 180 days | On compromise |
+| Channel tokens | 1 hour (automatic) | Built-in expiry |
+| Auth tokens | 24 hours (automatic) | Built-in expiry |
+
+---
+
+## Multi-Key Scenarios
+
+### Orchestrator High Availability
+
+In a multi-instance orchestrator deployment, all instances MUST
+share the same Ed25519 key pair. The key is loaded from shared
+storage (not generated per instance).
+
+### Agent Migration
+
+When an agent moves to a new host:
+1. Copy the existing key files to the new host
+2. Start the new instance (it registers with the same key)
+3. Stop the old instance
+4. If key files cannot be copied, perform a key rotation instead
+
+### Key Compromise Recovery
+
+1. Generate new key pair on a clean system
+2. Operator uses admin gateway to force-revoke the compromised key:
+   `POST /v1/admin/agents/:name/revoke-key`
+3. Agent re-registers with the new key
+4. All tokens issued to the old key are invalidated
+5. Admin reviews audit trail for unauthorized activity
+
+---
+
+## Standards Alignment: WLT and JWT
+
+The Weblisk Token (WLT) format is structurally identical to JSON Web
+Tokens ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)) and JSON
+Web Signatures ([RFC 7515](https://www.rfc-editor.org/rfc/rfc7515)),
+with deliberate deviations:
+
+### What We Adopted from JWT/JWS
+
+| Feature | JWT/JWS Reference | WLT Implementation |
+|---------|-------------------|--------------------|
+| Three-part structure | RFC 7515 §3 | `header.payload.signature` |
+| Base64url encoding | RFC 4648 §5 | Same, no padding |
+| Standard claims | RFC 7519 §4.1 | `sub`, `iss`, `iat`, `exp` — same semantics |
+| Signature input | RFC 7515 §5.1 | `base64url(header) + "." + base64url(payload)` |
+
+### What We Customized (and Why)
+
+| Feature | JWT Standard | WLT Choice | Rationale |
+|---------|-------------|------------|-----------|
+| Token type | `"typ": "JWT"` | `"typ": "WLT"` | Distinguish from generic JWTs; prevent cross-system token confusion |
+| Algorithm | RS256, ES256, etc. | `"alg": "Ed25519"` | Ed25519 is faster, simpler, and has no algorithm confusion. Single algorithm eliminates `alg` header attacks |
+| Capabilities | Not in JWT | `"cap": [...]` claim | Core to Weblisk's capability-based auth model |
+| Channel scoping | Not in JWT | `"cid": "..."` claim | Agent-to-agent channel tokens |
+| Algorithm agility | Multiple algorithms | Single algorithm, header reserved for future swap | Prevents downgrade attacks while allowing post-quantum migration via `alg` field |
+
+### Interoperability
+
+WLT tokens are NOT valid JWTs and MUST NOT be sent to JWT-consuming
+services. The `typ: WLT` header prevents accidental cross-system use.
+For integration with external JWT-based systems (OAuth providers,
+API gateways), the `patterns/auth-token` pattern handles JWT
+issuance and validation separately.
+
+---
+
 ## Security Checklist
 
 Implementation MUST:

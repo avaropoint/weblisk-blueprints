@@ -2,7 +2,7 @@
 type: pattern
 name: realtime-chat
 version: 1.0.0
-requires: [protocol/spec, protocol/types]
+requires: [protocol/spec, protocol/types, architecture/gateway]
 platform: any
 tier: free
 -->

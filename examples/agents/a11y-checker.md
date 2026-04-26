@@ -1,8 +1,10 @@
 <!-- blueprint
 type: agent
 name: a11y-checker
-version: 1.0.0
+version: 1.1.0
 kind: work
+port: 9711
+extends: [patterns/observability, patterns/security]
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/domain]
 platform: any
 tier: free

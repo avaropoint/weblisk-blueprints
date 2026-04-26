@@ -2,19 +2,25 @@
 type: architecture
 name: lifecycle
 version: 1.0.0
-requires: [protocol/spec, protocol/types, architecture/orchestrator, architecture/domain, architecture/agent]
+requires: [protocol/spec, protocol/types, architecture/orchestrator, architecture/domain, architecture/agent, patterns/messaging, patterns/observability]
 platform: any
 -->
 
 # Continuous Optimization Lifecycle
 
 The Weblisk architecture implements a continuous, autonomous feedback
-loop. Every domain controller drives a cycle of observation,
-recommendation, execution, and measurement — compounding intelligence
-across every interaction.
+loop. The **Lifecycle Agent** (an infrastructure agent) drives a cycle
+of strategy, observation, recommendation, execution, and measurement —
+compounding intelligence across every interaction.
 
-This document specifies how the lifecycle works end-to-end: who
-produces what, where data flows, and how the system learns.
+In v2, the lifecycle is event-driven. The Lifecycle Agent subscribes
+to workflow completion events (scope: `"*"`, requires `event:observe`)
+and stores observations and recommendations from workflow results.
+Strategies, approvals, and feedback are managed entirely by the
+Lifecycle Agent — not the orchestrator.
+
+See [agents/lifecycle.md](../agents/lifecycle.md) for the Lifecycle
+Agent blueprint.
 
 ## The Cycle
 
@@ -61,9 +67,10 @@ strategy.
 
 A strategy is a business objective with measurable targets and a
 deadline. Strategies are created by users or systems and stored by the
-orchestrator.
+Lifecycle Agent.
 
-**Who:** User or external system → orchestrator (`POST /v1/strategy`)
+**Who:** User or external system → Lifecycle Agent (via `POST /v1/message`
+with action `create_strategy`)
 **Produces:** `Strategy` with `StrategyTarget` entries
 
 ```json
@@ -79,9 +86,10 @@ orchestrator.
 }
 ```
 
-**Decomposition:** The orchestrator maps strategies to domains. A
-strategy targeting SEO metrics routes to the SEO domain. The domain
-interprets the strategy's targets and selects appropriate workflows.
+**Decomposition:** The Lifecycle Agent maps strategies to domains. A
+strategy targeting SEO metrics routes to the SEO domain via a
+`workflow.trigger` event. The domain interprets the strategy's targets
+and selects appropriate workflows.
 
 ```
 Strategy               → Domain
@@ -123,10 +131,13 @@ Observations are the raw data that the system reasons about.
 
 **Data flow:**
 ```
-Domain dispatches task → Agent scans target → Agent records measurements
-  → Agent identifies findings (rule violations) → Agent returns Observation
-  → Domain collects Observation → Domain forwards to orchestrator
-  → Orchestrator stores in observation history
+Domain publishes workflow.trigger → Workflow Agent resolves DAG
+  → Task Agent dispatches to work agent → Agent scans target
+  → Agent returns result with measurements and findings
+  → Task Agent publishes task.complete → Workflow Agent aggregates
+  → Workflow Agent publishes workflow.completed (scope: domain + "*")
+  → Lifecycle Agent (subscribed with scope: "*") captures observations
+  → Lifecycle Agent stores in observation history
 ```
 
 Observations are immutable once recorded. They represent a point-in-time
@@ -171,12 +182,17 @@ knowledge; the system refines estimates over time using feedback data.
 **Approval workflow:**
 ```
 Recommendation created (status: "pending")
+  → Lifecycle Agent publishes: lifecycle.recommendation.created
   → If domain.approval = "auto" AND priority ≠ "critical":
       status → "accepted" (auto-approved)
+      Lifecycle Agent publishes: lifecycle.recommendation.accepted
   → If domain.approval = "required" OR priority = "critical":
       status stays "pending" until human review
-  → Human approves: status → "accepted"
+  → Human approves via POST /v1/message to Lifecycle Agent:
+      status → "accepted"
+      Lifecycle Agent publishes: lifecycle.recommendation.accepted
   → Human rejects: status → "rejected" (with reason)
+      Lifecycle Agent publishes: lifecycle.recommendation.rejected
 ```
 
 ## Phase 4 — Execute
@@ -248,7 +264,7 @@ closes the observation loop.
 The system updates its internal metrics and refines future behaviour
 based on accumulated feedback.
 
-**Who:** Orchestrator + domain controllers
+**Who:** Lifecycle Agent + domain controllers
 **Produces:** Updated `AgentMetrics`, adjusted strategy targets
 
 ### Agent Metrics Update
@@ -297,48 +313,55 @@ The learn phase flows directly back to Strategize:
 ```
 User/System
   │
-  ├─ POST /v1/strategy    → Strategy + StrategyTarget
-  ├─ POST /v1/context     → EntityContext
+  ├─ POST /v1/message to Lifecycle Agent
+  │   action: create_strategy → Strategy + StrategyTarget
+  ├─ POST /v1/message to Lifecycle Agent
+  │   action: set_context    → EntityContext
   │
   ▼
-Orchestrator
+Lifecycle Agent
   │
-  ├─ Decomposes strategy into domain tasks
-  ├─ POST /v1/task → Domain controller
-  │
-  ▼
-Domain Controller
-  │
-  ├─ Selects workflow based on task action
-  ├─ Executes phases:
-  │   ├─ POST /v1/message → Agent A → Observation + Recommendations
-  │   ├─ POST /v1/message → Agent B → Observation + Recommendations
-  │   └─ Self: aggregate results
-  │
-  ├─ Returns TaskResult (changes, observations, recommendations)
+  ├─ Maps strategy to domain
+  ├─ Publishes: workflow.trigger (scope: "workflow")
+  │   payload: {workflow, source: "lifecycle", strategy_id, ...}
   │
   ▼
-Orchestrator
+Workflow Agent (receives workflow.trigger)
   │
-  ├─ Stores observations    (GET /v1/observations)
-  ├─ Stores recommendations
-  ├─ Logs audit entry       (GET /v1/audit)
+  ├─ Fetches workflow definition from domain (POST /v1/message)
+  ├─ Resolves DAG, publishes task.submit for each phase
+  │
+  ▼
+Task Agent (receives task.submit)
+  │
+  ├─ Dispatches: POST /v1/execute to target work agent
+  ├─ Publishes: task.complete (scope: "workflow")
+  │
+  ▼
+Workflow Agent (receives task.complete)
+  │
+  ├─ Advances DAG, dispatches next phases
+  ├─ Publishes: workflow.completed (scope: invoker)
+  │
+  ▼
+Lifecycle Agent (subscribed to workflow.completed, scope: "*")
+  │
+  ├─ Extracts observations + recommendations from result
+  ├─ Stores observations in observation history
+  ├─ Publishes: lifecycle.recommendation.created
   │
   ▼
 Approval Gate
   │
-  ├─ Auto-approved or human-reviewed
+  ├─ Auto-approved or human-reviewed via Lifecycle Agent
+  ├─ Publishes: lifecycle.recommendation.accepted
   │
   ▼
-Domain Controller (re-invoked)
+Lifecycle Agent (triggers re-observation)
   │
-  ├─ Applies accepted changes
+  ├─ Publishes: workflow.trigger for measurement workflow
   ├─ Waits for measurement window
-  ├─ Re-observes → Feedback
-  │
-  ▼
-Orchestrator
-  │
+  ├─ Collects feedback from follow-up observations
   ├─ Updates AgentMetrics
   ├─ Updates Strategy progress
   └─ Cycle restarts
@@ -351,10 +374,10 @@ concurrently, triggered by:
 
 | Trigger | Effect |
 |---------|--------|
-| New strategy created | Orchestrator decomposes → domain task |
+| New strategy created | Lifecycle Agent decomposes → workflow.trigger |
 | Scheduled intervals | Cron agent triggers periodic observation |
 | External event | Webhook triggers domain workflow |
-| Human request | User submits task via API |
+| Human request | User messages Lifecycle Agent via API |
 | Previous cycle complete | Feedback triggers re-observation |
 
 ## Implementation Notes
@@ -367,18 +390,19 @@ concurrently, triggered by:
   twice on unchanged content should produce identical results.
 - **Metric aggregation**: AgentMetrics are running aggregates, not
   recomputed from scratch each cycle. Use incremental formulas.
-- **Strategy decomposition**: The orchestrator's mapping of strategies
+- **Strategy decomposition**: The Lifecycle Agent's mapping of strategies
   to domains can be rule-based (metric name → domain) or AI-assisted.
 - **Audit trail**: Every state transition (recommendation pending →
   accepted → applied → measured) MUST be logged for traceability.
 
 ## Verification Checklist
 
-- [ ] Strategies can be created and stored via POST /v1/strategy
-- [ ] Orchestrator decomposes strategies into domain tasks
-- [ ] Observations are recorded with measurements and findings
+- [ ] Strategies can be created via POST /v1/message to Lifecycle Agent
+- [ ] Lifecycle Agent maps strategies to domains and publishes workflow.trigger
+- [ ] Observations are captured from workflow.completed events (scope: "*")
 - [ ] Recommendations have priority, impact, and status
 - [ ] Approval workflow transitions: pending → accepted/rejected → applied
+- [ ] Lifecycle Agent publishes lifecycle.recommendation.* events
 - [ ] Feedback is collected after applying changes
 - [ ] Feedback signal correctly reflects metric change direction
 - [ ] AgentMetrics are updated after each feedback entry
@@ -386,3 +410,4 @@ concurrently, triggered by:
 - [ ] Completed strategies transition to "completed" status
 - [ ] Multiple lifecycle cycles can run concurrently
 - [ ] Full audit trail exists for every state transition
+- [ ] Lifecycle Agent does NOT require orchestrator endpoints for data storage

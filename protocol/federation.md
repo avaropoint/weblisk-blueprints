@@ -2,7 +2,7 @@
 type: protocol
 name: federation
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/types]
+requires: [protocol/spec, protocol/identity, protocol/types, architecture/hub]
 platform: any
 -->
 
