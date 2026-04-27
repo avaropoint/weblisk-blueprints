@@ -1240,7 +1240,7 @@ collaboration:
   publishes:
     - event: domain.content.report.completed
       payload: {report_id, domain, score, files_scanned, total_findings}
-      consumers: [orchestrator, lifecycle, hub-metrics]
+      consumers: [orchestrator, lifecycle, hub]
       description: Emitted when a content-audit workflow completes
 
     - event: domain.content.optimization.completed
@@ -1250,7 +1250,7 @@ collaboration:
 
     - event: domain.content.alert
       payload: {severity, category, message, target}
-      consumers: [alerting, hub-alert]
+      consumers: [alerting, hub]
       description: Emitted when critical findings detected
 
   subscribes:

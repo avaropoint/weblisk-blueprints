@@ -50,6 +50,8 @@ Weblisk is built on a zero-external-dependency principle:
   external databases, no runtime package requirements, no vendor SDKs.
 - **Go platform** — Standard library only. SQLite compiles into the
   binary (embedded, not an external server).
+- **Rust platform** — Minimal curated crates (tokio, hyper, serde,
+  rusqlite). Compiles to a single static binary per agent.
 - **Cloudflare platform** — Platform-native APIs only (Workers KV,
   Durable Objects, Web Crypto). Zero runtime dependencies.
 - **Node.js platform** — Recommended libraries for each capability
@@ -85,17 +87,19 @@ architecture/       System architecture
   testing.md          Conformance test suite specification
   hub.md              Collaborative hub — discovery, tiers, commerce
   admin.md            Platform admin — operator identity, roles, separate admin gateway
-  cli-ops.md          CLI operations — interrogation, management commands
+  cli.md              CLI operations — interrogation, management commands
   observability.md    Structured logging, distributed tracing, metrics
   gateway.md          Application gateway — auth, ABAC, rate limiting, route protection
   browser-session.md  Cryptographic browser sessions — binding, islands, continuity
   data-security.md    Transport security, message integrity, federation data boundaries
   threat-model.md     Attack surface analysis — 5 boundaries, OWASP mapping
+  change-management.md  Versioning, migration, deprecation lifecycle
 
 platforms/          Implementation guidance per runtime
   go.md               Go (stdlib only, local processes)
   cloudflare.md       Cloudflare Workers (Durable Objects, KV)
   node.md             Node.js/TypeScript (Fastify, Ed25519, SQLite)
+  rust.md             Rust (tokio, hyper, serde, rusqlite)
 
 agents/             Infrastructure agents (system-level services)
   workflow.md         Workflow execution engine — DAG resolution, phase coordination
@@ -104,15 +108,11 @@ agents/             Infrastructure agents (system-level services)
   alerting.md         Notification routing and delivery
   incident-response.md  Automated incident detection, runbooks, remediation
   health-monitor.md   Internal hub health — agent liveness, storage, gateway
+  hub.md              Registry hub — indexing, search, metrics, verification, alerting
   sync.md             Background data sync (client ↔ server)
   cron.md             Scheduled task execution
   webhook.md          Webhook processing (inbound + outbound)
   email-send.md       Transactional email sending
-  hub-index.md        Registry — crawl and index hub listings
-  hub-search.md       Registry — discovery queries, ranking, facets
-  hub-metrics.md      Registry — uptime, latency, usage metrics collection
-  hub-verify.md       Registry — signature, identity, behavioral verification
-  hub-alert.md        Registry — network event notifications
 
 patterns/           Declarative API and cross-cutting pattern specifications
   api-rest.md         REST API with CRUD, pagination, filtering, sorting
@@ -142,6 +142,17 @@ patterns/           Declarative API and cross-cutting pattern specifications
   interop.md          Framework adapters — LangChain, CrewAI, ADK, HTTP service wrappers
   versioning.md       Semantic versioning, compatibility rules, deprecation
   workflow.md         Workflow declaration, event-driven DAG execution, approval gates
+
+schemas/            Blueprint schema governance
+  README.md           Schema governance overview
+  common.md           Common rules across all blueprint types
+  compliance.md       Automated compliance validation rules
+  agent.md            Agent blueprint schema (22 required sections)
+  architecture.md     Architecture blueprint schema
+  domain.md           Domain controller blueprint schema
+  pattern.md          Pattern blueprint schema
+  platform.md         Platform blueprint schema
+  protocol.md         Protocol blueprint schema
 
 examples/           Reference domain controllers and work agents
   domains/
@@ -187,13 +198,8 @@ Hub (self-sovereign deployment)
             ├── Lifecycle Agent (strategies, observations, approvals)
             ├── Alerting Agent (notification routing)
             ├── Incident Response Agent (runbooks, remediation)
-            └── Health Monitor Agent (internal hub health)
-       └── Registry Agents (hub network services)
-            ├── Hub Index Agent (listing crawl and index)
-            ├── Hub Search Agent (discovery and ranking)
-            ├── Hub Metrics Agent (usage and uptime metrics)
-            ├── Hub Verify Agent (signatures and behavioral integrity)
-            └── Hub Alert Agent (network event notifications)
+            ├── Health Monitor Agent (internal hub health)
+            └── Hub Agent (registry — indexing, search, metrics, verification, alerting)
   └── Marketplace (buy, sell, share capabilities, blueprints, templates)
   └── Data Security (transport encryption, message integrity, federation boundaries)
   └── Threat Model (attack surface analysis, OWASP coverage)
@@ -221,8 +227,7 @@ Hub (self-sovereign deployment)
 - **Threat Model** — 5-boundary attack surface analysis (38+ vectors), OWASP Top 10 mapping, attack chain analysis, residual risk register
 - **Domains** — Own a business function, define workflows, publish workflow triggers, receive results via scoped events
 - **Work Agents** — Perform specific tasks dispatched by the Task Agent (see [examples/](examples/) for reference implementations)
-- **Infrastructure Agents** — Provide system services (workflow execution, task dispatch, lifecycle optimization, alerting, incident response, health monitoring, sync, cron, email, webhooks) used by any domain
-- **Registry Agents** — Power the hub's registry role: indexing listings, serving discovery queries, collecting metrics, verifying signatures and behavioral integrity, and routing network alerts
+- **Infrastructure Agents** — Provide system services (workflow execution, task dispatch, lifecycle optimization, alerting, incident response, health monitoring, hub registry, sync, cron, email, webhooks) used by any domain
 - **Marketplace** — Built into the hub — buy, sell, and share capabilities, blueprints, agents, and templates. Supports live services (invoked over federation) and installable assets (generated into your own hub). [weblisk.dev](https://weblisk.dev) serves as the public directory
 - **Patterns** — 27 cross-cutting concerns (security, governance, observability, workflow, data contracts, notification, HTTP-based pub/sub messaging, retry, rate limiting, storage, caching, state machines, secrets, logging, versioning, command, interop adapters) and API patterns (REST, AI, auth, webhooks, real-time, file upload, user management, deployment) that apply across all agents via `extends` inheritance
 - **Federation** — Hub-to-hub trust, data contracts, and cross-boundary task execution
@@ -232,12 +237,11 @@ Hub (self-sovereign deployment)
 This repository contains all **free tier** blueprints — the complete
 architecture, protocol, federation, hub collaboration, marketplace,
 four reference domains (SEO, Content, Health, Security), infrastructure
-agents (alerting, incident response, health monitoring, sync, cron,
-email, webhooks), registry agents (index, search, metrics, verify,
-alert), API patterns (including user management, file upload, rate
-limiting, retry, and deployment), enterprise security (gateway, browser
-sessions, data security), and operational tooling (admin dashboard,
-CLI operations, observability).
+agents (alerting, incident response, health monitoring, hub registry,
+sync, cron, email, webhooks), API patterns (including user management,
+file upload, rate limiting, retry, and deployment), enterprise security
+(gateway, browser sessions, data security), operational tooling (admin
+dashboard, CLI, observability), and schema governance.
 These match the
 [Blueprint Catalog](https://weblisk.dev/blueprints/catalog.html) and
 [Agent Catalog](https://weblisk.dev/agents/catalog.html). Everything here

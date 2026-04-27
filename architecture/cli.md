@@ -1,13 +1,13 @@
 <!-- blueprint
 type: architecture
-name: cli-ops
+name: cli
 version: 1.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/admin]
 platform: any
 tier: free
 -->
 
-# Weblisk CLI Operations
+# Weblisk CLI
 
 Specification for CLI commands that interrogate and manage a running
 Weblisk server. These commands extend the `weblisk-cli` beyond
