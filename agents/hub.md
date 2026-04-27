@@ -3,7 +3,7 @@ type: agent
 kind: infrastructure
 name: hub
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/types, protocol/federation, architecture/hub, architecture/agent, architecture/orchestrator, patterns/messaging, patterns/caching, patterns/observability, patterns/security, patterns/interop]
+requires: [protocol/spec, protocol/identity, protocol/types, protocol/federation, architecture/hub, architecture/agent, architecture/orchestrator, patterns/messaging, patterns/caching, patterns/observability, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/privacy, patterns/security, patterns/interop]
 platform: any
 tier: free
 port: 9770

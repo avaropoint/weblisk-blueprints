@@ -741,6 +741,112 @@ Implementations MUST:
 
 ---
 
+## Scope
+
+### ScopeLevel
+
+Enumeration of universal scope levels. Scope classifies any resource,
+operation, message, or data field.
+
+| Value | Description |
+|-------|-------------|
+| `public` | No restrictions — visible to anyone |
+| `internal` | Visible within the hub only |
+| `restricted` | Limited to authorized agents/roles |
+| `confidential` | Need-to-know basis with audit trail |
+| `critical` | Highest protection — requires approval for access |
+
+### ScopeDeclaration
+
+Attached to any resource, field, message, or operation to declare
+its scope level.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| Target | string | `target` | yes | What is being scoped (field path, resource ID, operation name) |
+| Level | string | `level` | yes | ScopeLevel value |
+| DeclaredBy | string | `declared_by` | yes | Agent or system that declared the scope |
+| Timestamp | int64 | `timestamp` | yes | When the scope was declared |
+| Justification | string | `justification` | no | Why this scope level was chosen |
+
+---
+
+## Policy
+
+### PolicyRule
+
+A single declarative rule within a policy definition.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| Rule | string | `rule` | yes | Rule type (e.g., `scope_required`, `rate_limit`, `capability_required`) |
+| Params | map | `params` | yes | Rule-specific parameters |
+
+### PolicyDecision
+
+Result of evaluating a policy against an operation context.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| PolicyName | string | `policy_name` | yes | Which policy was evaluated |
+| Decision | string | `decision` | yes | `allow`, `deny`, or `audit` |
+| RuleMatched | string | `rule_matched` | no | Which rule triggered the decision |
+| Reason | string | `reason` | no | Human-readable explanation |
+| Timestamp | int64 | `timestamp` | yes | When the decision was made |
+
+---
+
+## Safety
+
+### OperationIntent
+
+Pre-flight declaration of what an operation intends to do,
+evaluated before the operation executes.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| ID | string | `id` | yes | Unique intent identifier |
+| Agent | string | `agent` | yes | Agent requesting the operation |
+| Operation | string | `operation` | yes | Operation class: `read`, `create`, `modify`, `delete`, `destroy` |
+| Resource | string | `resource` | yes | Target resource identifier |
+| ResourceClass | string | `resource_class` | yes | `ephemeral`, `application`, `system`, `critical` |
+| Scope | string | `scope` | yes | ScopeLevel of the target resource |
+| Environment | string | `environment` | yes | `development`, `staging`, `production` |
+| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+
+### IntentDecision
+
+Response to an OperationIntent — whether the operation may proceed.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| IntentID | string | `intent_id` | yes | Which intent this decides |
+| Decision | string | `decision` | yes | `approve`, `deny`, `escalate` |
+| Authority | string | `authority` | yes | Who/what made the decision |
+| Conditions | []string | `conditions` | no | Conditions attached to approval |
+| Reason | string | `reason` | no | Explanation |
+| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+
+---
+
+## Enforcement
+
+### EnforcementDecision
+
+Result of boundary inspection by the enforcement layer.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| ID | string | `id` | yes | Unique decision identifier |
+| Boundary | string | `boundary` | yes | `message`, `storage`, `external` |
+| Agent | string | `agent` | yes | Agent whose operation was inspected |
+| Action | string | `action` | yes | `allow`, `block`, `quarantine` |
+| Violations | []string | `violations` | no | Policy/scope violations detected |
+| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+| TraceID | string | `trace_id` | yes | Correlation with distributed trace |
+
+---
+
 ## Security
 
 ```yaml
@@ -798,3 +904,9 @@ security:
 - [ ] ChannelGrant includes `channel_id`, scoped `channel_token`, `target_url`, `target_pub_key`, and `expires_at`
 - [ ] Protocol paths are all prefixed with `/v1` and method/auth requirements match the Protocol Paths table
 - [ ] DeadLetterEntry includes `original_event`, `failure_reason`, `last_error`, `attempts`, and `subscriber`
+- [ ] ScopeLevel enum is constrained to `public`, `internal`, `restricted`, `confidential`, `critical`
+- [ ] ScopeDeclaration requires `target`, `level`, `declared_by`, and `timestamp`
+- [ ] PolicyDecision requires `policy_name`, `decision`, and `timestamp`; decision is `allow`, `deny`, or `audit`
+- [ ] OperationIntent requires `id`, `agent`, `operation`, `resource`, `resource_class`, `scope`, `environment`, and `timestamp`
+- [ ] IntentDecision requires `intent_id`, `decision`, `authority`, and `timestamp`; decision is `approve`, `deny`, or `escalate`
+- [ ] EnforcementDecision requires `id`, `boundary`, `agent`, `action`, `timestamp`, and `trace_id`

@@ -3,6 +3,7 @@ type: agent
 kind: infrastructure
 name: lifecycle
 version: 1.0.0
+extends: [patterns/scope, patterns/policy]
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/lifecycle, patterns/messaging]
 platform: any
 tier: free

@@ -283,7 +283,7 @@ name: <domain-name>
 version: 1.0.0
 port: <9700-9999>
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/domain, architecture/lifecycle]
-extends: [patterns/domain-controller, patterns/observability, patterns/storage, patterns/workflow, patterns/data-contract, patterns/governance, patterns/security]
+extends: [patterns/domain-controller, patterns/observability, patterns/storage, patterns/workflow, patterns/contract, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/governance, patterns/security]
 depends_on: [<agent-name>, <agent-name>]
 platform: any
 tier: free

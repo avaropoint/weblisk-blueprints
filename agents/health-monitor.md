@@ -3,7 +3,7 @@ type: agent
 kind: infrastructure
 name: health-monitor
 version: 1.1.0
-extends: [patterns/observability, patterns/storage, patterns/state-machine, patterns/security, patterns/governance]
+extends: [patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/security, patterns/governance]
 requires: [protocol/spec, protocol/types, architecture/agent, agents/alerting]
 depends_on: [alerting]
 platform: any

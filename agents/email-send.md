@@ -3,7 +3,7 @@ type: agent
 kind: infrastructure
 name: email-send
 version: 1.1.0
-extends: [patterns/observability, patterns/storage, patterns/retry, patterns/notification, patterns/security, patterns/governance]
+extends: [patterns/observability, patterns/storage, patterns/retry, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/privacy, patterns/security, patterns/governance]
 requires: [protocol/spec, protocol/types, architecture/agent]
 depends_on: []
 platform: any

@@ -3,7 +3,7 @@ type: agent
 kind: infrastructure
 name: alerting
 version: 1.1.0
-extends: [patterns/alerting, patterns/observability, patterns/storage, patterns/messaging, patterns/notification, patterns/security, patterns/governance]
+extends: [patterns/alerting, patterns/observability, patterns/storage, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
 requires: [protocol/spec, protocol/types, architecture/agent, agents/email-send]
 depends_on: [email-send]
 platform: any

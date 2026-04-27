@@ -3,7 +3,7 @@ type: agent
 kind: infrastructure
 name: webhook
 version: 1.1.0
-extends: [patterns/webhook, patterns/observability, patterns/storage, patterns/state-machine, patterns/security, patterns/governance]
+extends: [patterns/webhook, patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/security, patterns/governance]
 requires: [protocol/spec, protocol/types, architecture/agent]
 depends_on: []
 platform: any

@@ -4,7 +4,7 @@ kind: domain
 name: health
 version: 1.1.0
 port: 9702
-extends: [patterns/domain-controller, patterns/observability, patterns/storage, patterns/workflow, patterns/data-contract, patterns/governance, patterns/security]
+extends: [patterns/domain-controller, patterns/observability, patterns/storage, patterns/workflow, patterns/contract, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/governance, patterns/security]
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/domain, architecture/lifecycle]
 platform: any
 tier: free
@@ -180,7 +180,7 @@ extends:
       breaking: version-bump
       removed: halt-immediately
 
-  - pattern: patterns/data-contract
+  - pattern: patterns/contract
     version: ">=1.0.0 <2.0.0"
     bindings:
       patterns:
