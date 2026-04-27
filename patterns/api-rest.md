@@ -21,6 +21,109 @@ the Weblisk protocol conventions: JSON bodies, consistent error shapes,
 and deterministic URL patterns. Pagination, filtering, and sorting are
 built-in — not bolted on.
 
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [error, code, category, retryable]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: FieldType
+          fields_used: [uuid, string, boolean, integer, float, timestamp]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **Convention over configuration** — Model names automatically map to lowercased, pluralised URL paths. Endpoints follow deterministic patterns so consumers can predict URLs from model names.
+2. **Built-in pagination, filtering, and sorting** — These are core features, not extensions. Every list endpoint supports cursor-based pagination, field-level filtering, and multi-field sorting out of the box.
+3. **Consistent error shapes** — All error responses follow the same JSON structure with human-readable messages, machine-readable codes, and optional field-level detail for validation errors.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: crud-generation
+      description: Generates 5 CRUD endpoints per model definition
+      parameters:
+        - name: model
+          type: BlueprintModel
+          required: true
+          description: Model definition with typed fields and modifiers
+      inherits: GET list, POST create, GET read, PUT update, DELETE endpoints
+      overridable: true
+      override_constraints: Must preserve pagination, filtering, and sorting on list endpoint
+
+    - name: cursor-pagination
+      description: Cursor-based pagination on all list endpoints
+      parameters:
+        - name: limit
+          type: int
+          required: false
+          description: Items per page (max 100, default 20)
+        - name: cursor
+          type: string
+          required: false
+          description: Opaque cursor from previous response
+      inherits: PaginatedResponse shape
+      overridable: false
+
+  types:
+    - name: BlueprintModel
+      description: Field definitions for a data model (name to type+modifiers)
+      inherited_by: Types section
+    - name: PaginatedResponse
+      description: Standard paginated list response with data and cursor
+      inherited_by: Types section
+    - name: PaginationMeta
+      description: Cursor metadata for pagination
+      inherited_by: Types section
+    - name: ErrorResponse
+      description: Standard error shape with field-level validation detail
+      inherited_by: Types section
+
+  endpoints:
+    - path: /v1/{model}
+      description: List resources with pagination, filtering, sorting
+      inherited_by: Specification section
+    - path: /v1/{model} (POST)
+      description: Create a new resource
+      inherited_by: Specification section
+    - path: /v1/{model}/:id
+      description: Read a single resource by ID
+      inherited_by: Specification section
+    - path: /v1/{model}/:id (PUT)
+      description: Update (full replace) a resource by ID
+      inherited_by: Specification section
+    - path: /v1/{model}/:id (DELETE)
+      description: Delete a resource by ID
+      inherited_by: Specification section
+```
+
+---
+
 ## Specification
 
 ### Blueprint Format

@@ -30,7 +30,113 @@ declaration so that tools can visualize, validate, and enforce state
 machines consistently.
 
 ---
+## Dependencies
 
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [code, message, detail]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: TypeDefinition
+          fields_used: [name, fields, description]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/observability
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: LogEvent
+          fields_used: [event_type, level, detail, timestamp]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **Declarative over imperative** — State machines are declared in YAML, not coded; tools can visualize, validate, and enforce them from the declaration alone.
+2. **Persist before effect** — State changes are persisted to storage before side effects execute, ensuring consistency even when effects fail.
+3. **Atomic transitions** — State transitions use optimistic locking to prevent race conditions; no entity can be in two states simultaneously.
+4. **Terminal states are final** — Once an entity enters a terminal state, no further transitions are valid, enforcing lifecycle completion.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: state-transition
+      description: Validate and execute state transitions with guards and effects
+      parameters:
+        - name: entity_type
+          type: string
+          required: true
+          description: The type this state machine governs
+        - name: state_field
+          type: string
+          required: true
+          description: Which field on the entity holds the current state
+        - name: initial_state
+          type: string
+          required: true
+          description: Starting state for new entities
+      inherits: State validation, guard evaluation, and effect execution pipeline
+      overridable: true
+      override_constraints: Must declare all states and transitions; initial_state must be valid
+    - name: timeout-auto-transition
+      description: Automatically transition entities when a timeout duration expires
+      parameters:
+        - name: duration
+          type: int
+          required: true
+          description: Seconds before auto-transition fires
+        - name: transition
+          type: string
+          required: true
+          description: Target state on timeout
+      inherits: Timer-based escalation and recovery
+      overridable: true
+      override_constraints: Duration must be > 0
+  types:
+    - name: StateMachineDefinition
+      description: Complete state machine declaration with states, transitions, guards, and effects
+      inherited_by: State Declaration section
+    - name: StateDefinition
+      description: Individual state with description, terminal flag, and optional timeout
+      inherited_by: States section
+    - name: TransitionDefinition
+      description: Transition with from/to states, trigger, guard, and effects
+      inherited_by: Transitions section
+    - name: EffectDefinition
+      description: Side effect executed on transition (emit_event, send_alert, update_field, etc.)
+      inherited_by: Effects section
+  events:
+    - topic: state.transition_completed
+      description: Emitted after a successful state transition
+      payload: {entity_type, entity_id, from, to, trigger, timestamp}
+    - topic: state.transition_rejected
+      description: Emitted when a guard prevents a transition
+      payload: {entity_type, entity_id, from, attempted_to, guard, reason, timestamp}
+```
+
+---
 ## State Declaration
 
 ```yaml

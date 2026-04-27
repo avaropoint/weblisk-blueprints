@@ -4,6 +4,7 @@ name: browser-session
 version: 1.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/gateway, architecture/agent, patterns/auth-session, patterns/auth-token]
 platform: any
+tier: free
 -->
 
 # Browser Session Architecture
@@ -30,6 +31,147 @@ This architecture ensures that:
 - Sessions survive agent downtime (state lives in the gateway)
 - Islands operate independently (each island has its own request
   lifecycle within the shared session)
+
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      endpoints:
+        - path: /v1/health
+          methods: [GET]
+      types:
+        - name: AgentManifest
+          fields_used: [name, url, public_key]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Ed25519KeyPair
+          fields_used: [public_key, private_key]
+        - name: Signature
+          fields_used: [algorithm, value]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: WLS
+          fields_used: [sub, iss, iat, exp, sid, roles, bind, csrf, sec, mfa, ren]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/gateway
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: GatewayConfig
+          fields_used: [tls, session_config, csrf_config]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/agent
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentContext
+          fields_used: [identity, services, token]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/auth-session
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      patterns:
+        - behavior: session-lifecycle
+          parameters: [creation, validation, renewal, termination]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/auth-token
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      patterns:
+        - behavior: token-signing
+          parameters: [algorithm, claims, verification]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Responsibilities
+
+### Owns
+
+- WLS (Weblisk Session) token structure, signing, and verification
+- Client binding computation and validation (UA, language, IP class, TLS)
+- CSRF protection via enhanced Double Submit Cookie pattern
+- Server-side session state lifecycle (creation, renewal, idle timeout, termination)
+- Session security level management (standard, elevated, critical)
+- Anti-hijacking measures and anomaly detection
+- Islands integration — concurrent request handling within a shared session
+
+### Does NOT Own
+
+- User authentication flow (owned by the gateway — session is created after auth succeeds)
+- Gateway routing or ABAC policy enforcement (owned by `architecture/gateway`)
+- Agent-side session state (agents are stateless — gateway injects context per-request)
+- Operator/admin sessions (owned by `architecture/admin` using WLT tokens)
+- MFA implementation (owned by auth patterns; session records MFA status)
+
+---
+
+## Interfaces
+
+The session component’s API surface is defined across the following
+sections: [Session Token](#session-token) (WLS token structure and
+claims), [Client Binding](#client-binding) (binding modes and validation),
+[CSRF Protection](#csrf-protection) (Double Submit pattern),
+[Server-Side Session State](#server-side-session-state) (session record
+fields and storage), and [Session Security Levels](#session-security-levels)
+(standard/elevated/critical escalation).
+
+---
+
+## Data Flow
+
+1. User authenticates via `/auth/login` through the application gateway
+2. Gateway generates session ID (32 random bytes), computes client binding hash, generates CSRF secret
+3. Gateway creates WLS token with all claims and signs with its Ed25519 private key
+4. Gateway stores server-side session state and sets HttpOnly cookie with token
+5. On every subsequent request: gateway extracts token from cookie, verifies Ed25519 signature
+6. Gateway checks expiry, renewal timestamp, and client binding match
+7. Gateway loads server-side session state by `sid` and injects session context headers
+8. Request forwarded to agents with `X-Gateway-Session`, `X-Gateway-User`, `X-Gateway-Roles` headers
+9. Agents process request statelessly and return response
+10. On renewal: gateway issues new token with updated timestamps, swaps cookie transparently
+11. On termination: server-side state deleted, cookie cleared
+
+---
 
 ## Design Principles
 

@@ -31,6 +31,134 @@ and override only the parts they need.
 
 ---
 
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [code, message, detail]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: TypeDefinition
+          fields_used: [name, fields, description]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/retry
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: RetryConfig
+          fields_used: [max_attempts, backoff, base_delay]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **Verify before process** — Inbound webhooks are signature-verified against the raw body bytes before any JSON parsing or routing occurs.
+2. **Never block the sender** — Inbound processing returns 200 immediately and handles the event asynchronously; outbound delivery never blocks the event producer.
+3. **Retry with backoff** — Failed outbound deliveries are retried with exponential backoff; persistent failures deactivate subscribers rather than retrying indefinitely.
+4. **Log metadata, not payloads** — Delivery logs record source, event type, status, and timing but never the full payload, preventing sensitive data retention.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: inbound-webhook-reception
+      description: Receive, verify, and route inbound webhooks from external services
+      parameters:
+        - name: source
+          type: string
+          required: true
+          description: Named source identifier (e.g., stripe, github)
+        - name: signature
+          type: SignatureConfig
+          required: false
+          description: HMAC signature verification configuration
+        - name: events
+          type: array
+          required: false
+          description: Allowed event types (empty allows all)
+      inherits: Signature verification, event filtering, and delivery logging
+      overridable: true
+      override_constraints: Must use constant-time HMAC comparison; must return 200 for filtered events
+    - name: outbound-webhook-delivery
+      description: Send signed webhook notifications to subscriber endpoints with retries
+      parameters:
+        - name: signing_algorithm
+          type: string
+          required: true
+          description: HMAC algorithm for signing outbound payloads
+        - name: max_retries
+          type: int
+          required: true
+          description: Maximum delivery retry attempts
+        - name: timeout
+          type: int
+          required: true
+          description: Per-attempt delivery timeout in seconds
+      inherits: Subscriber management, payload signing, and retry delivery
+      overridable: true
+      override_constraints: Must use HTTPS subscriber URLs in production
+  types:
+    - name: WebhookSource
+      description: Inbound webhook source configuration with path and signature settings
+      inherited_by: Types section
+    - name: SignatureConfig
+      description: HMAC signature verification parameters (header, algorithm, secret_env)
+      inherited_by: Types section
+    - name: Subscriber
+      description: Registered outbound webhook subscriber with URL and event subscriptions
+      inherited_by: Types section
+    - name: WebhookDelivery
+      description: Delivery log entry with direction, status, and response metadata
+      inherited_by: Types section
+    - name: WebhookPayload
+      description: Outbound delivery payload with event type, timestamp, and data
+      inherited_by: Types section
+  endpoints:
+    - path: /webhooks/:source
+      description: Receive inbound webhook from a named external source
+      inherited_by: Inbound Webhooks section
+    - path: /webhooks/log
+      description: View recent webhook delivery log
+      inherited_by: Inbound Webhooks section
+    - path: /webhooks/subscribers
+      description: Register, list, and manage outbound webhook subscribers
+      inherited_by: Outbound Webhooks section
+  events:
+    - topic: webhook.inbound.received
+      description: Inbound webhook successfully received and validated
+      payload: {source, event, status, timestamp}
+    - topic: webhook.outbound.delivered
+      description: Outbound webhook successfully delivered to subscriber
+      payload: {subscriber_id, event, attempt, duration_ms, timestamp}
+    - topic: webhook.outbound.failed
+      description: Outbound webhook delivery exhausted all retries
+      payload: {subscriber_id, event, attempts, last_error, timestamp}
+```
+
+---
+
 ## Shared: HMAC Signature Scheme
 
 All webhook signatures — inbound verification and outbound signing —

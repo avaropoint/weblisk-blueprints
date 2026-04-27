@@ -4,6 +4,7 @@ name: types
 version: 1.0.0
 requires: []
 platform: any
+tier: free
 -->
 
 # Weblisk Protocol Types
@@ -27,6 +28,16 @@ JSON using the exact field names shown in the `json` column.
 - All public keys are hex-encoded Ed25519 public keys (64 hex chars)
 - Optional fields MAY be omitted from JSON when empty/null
 - Unknown fields MUST be ignored (forward compatibility)
+
+---
+
+## Dependencies
+
+```yaml
+requires: []
+  # protocol/types is the root type registry — it has no dependencies.
+  # All other blueprints depend on this file.
+```
 
 ---
 
@@ -712,6 +723,59 @@ All paths are prefixed with `/v1`.
 | `/v1/channel` | POST | yes | orchestrator | Broker channel |
 | `/v1/health` | GET | no | orchestrator | Orchestrator health |
 | `/v1/audit` | GET | yes | orchestrator | Audit log |
+
+---
+
+## Error Handling
+
+All errors across the protocol use the `ErrorResponse` type defined in the
+Errors section above. Error categories (`transient`, `permanent`, `partial`)
+determine retry behavior. Standard error codes are enumerated in the
+ErrorResponse section with their HTTP status mappings.
+
+Implementations MUST:
+- Always return at minimum `{"error": "message"}`
+- Include `code` and `category` when the information is available
+- Use exact error codes from the standard table (no custom codes without extension)
+- Map error codes to the correct HTTP status codes
+
+---
+
+## Security
+
+```yaml
+security:
+  transport:
+    - Types are serialized as JSON over HTTP
+    - All string fields MUST be validated for maximum length before processing
+    - No executable content in any type field
+  signing:
+    algorithm: Ed25519
+    key_type: 32-byte public / 64-byte private
+    process: Signature fields contain hex-encoded Ed25519 signatures
+  verification:
+    process: All signature fields verified against sender public key
+  type_safety:
+    - Required fields MUST be validated before processing
+    - Enum fields MUST be validated against allowed values
+    - IDs MUST be validated as 32-char hex strings
+    - Timestamps MUST be validated as positive integers
+    - Unknown fields MUST be silently ignored (forward compatibility)
+```
+
+---
+
+## Implementation Notes
+
+- Types are language-agnostic — implementations map to native types
+- JSON is the sole wire format; field names in the `json` column are canonical
+- Optional fields omitted from JSON are treated as zero values (empty string, 0, null, false)
+- The `map` type serializes as a JSON object with string keys
+- `int64` timestamps MUST NOT use floating point — JSON `number` with no decimal
+- Protocol Paths table is the single source of truth for endpoint definitions
+- Types are versioned with the protocol — all types share the blueprint version
+
+---
 
 ## Verification Checklist
 

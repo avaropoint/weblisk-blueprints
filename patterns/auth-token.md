@@ -21,6 +21,137 @@ continuity. API keys are also supported for service-to-service
 communication. Permissions are scoped — each token declares exactly
 what it can access.
 
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [error, code, category, retryable]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: FieldType
+          fields_used: [uuid, string, int64, boolean, timestamp]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Identity
+          fields_used: [id, public_key, verification]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/gateway
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: GatewayRoute
+          fields_used: [path, method, auth_required, scope_required]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **Stateless access tokens** — JWTs are self-contained and verified without server-side lookups, enabling horizontal scaling. Refresh tokens provide session continuity with server-side revocation.
+2. **Scoped permissions** — Every token declares exactly what it can access. Endpoint scope enforcement returns 403 for insufficient permissions, never granting implicit access.
+3. **Token rotation** — Refresh tokens are rotated on every use and stored as hashes. This limits the window for stolen tokens and prevents replay attacks.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: token-authentication
+      description: JWT access + opaque refresh token pair with scoped permissions
+      parameters:
+        - name: access_token_duration
+          type: int
+          required: true
+          description: Access token lifetime in seconds
+        - name: refresh_token_duration
+          type: int
+          required: true
+          description: Refresh token lifetime in seconds
+        - name: scopes
+          type: "[]string"
+          required: true
+          description: Available permission scopes
+      inherits: Token issuance, refresh rotation, and revocation lifecycle
+      overridable: true
+      override_constraints: Must preserve JWT claim structure and refresh token rotation
+
+    - name: api-key-management
+      description: Long-lived scoped API keys for service-to-service communication
+      parameters:
+        - name: scopes
+          type: "[]string"
+          required: true
+          description: Scopes granted to the API key
+        - name: expires_in
+          type: int
+          required: true
+          description: Key lifetime in seconds
+      inherits: API key creation and validation via Bearer scheme
+      overridable: true
+      override_constraints: Keys returned in full only on creation, stored as hashes
+
+  types:
+    - name: TokenPair
+      description: Access JWT + opaque refresh token with scopes
+      inherited_by: Types section
+    - name: RefreshToken
+      description: Server-side refresh token record (stored as hash)
+      inherited_by: Types section
+    - name: APIKey
+      description: Server-side API key record (stored as hash)
+      inherited_by: Types section
+
+  endpoints:
+    - path: /auth/register
+      description: Create a new user account
+      inherited_by: Specification section
+    - path: /auth/token
+      description: Exchange credentials for token pair
+      inherited_by: Specification section
+    - path: /auth/refresh
+      description: Exchange refresh token for new access token
+      inherited_by: Specification section
+    - path: /auth/token (DELETE)
+      description: Revoke refresh token
+      inherited_by: Specification section
+    - path: /auth/apikey
+      description: Create an API key with scoped permissions
+      inherited_by: Specification section
+```
+
+---
+
 ## Specification
 
 ### Blueprint Format

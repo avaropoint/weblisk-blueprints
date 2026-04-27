@@ -4,6 +4,7 @@ name: orchestrator
 version: 1.0.0
 requires: [protocol/spec, protocol/identity, protocol/types]
 platform: any
+tier: free
 -->
 
 # Weblisk Orchestrator Blueprint
@@ -16,6 +17,60 @@ The orchestrator does NOT execute agent logic, route tasks, manage
 strategies, store observations, or handle approvals. Those concerns
 belong to infrastructure agents (Workflow, Task, Lifecycle) that
 register like any other agent.
+
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: RegisterRequest
+          fields_used: [manifest, signature, timestamp]
+        - name: RegisterResponse
+          fields_used: [agent_id, token, expires_at, services]
+        - name: ServiceDirectory
+          fields_used: [agents, routing_table, namespaces]
+        - name: ChannelRequest
+          fields_used: [from_agent, to_agent, purpose]
+        - name: ChannelGrant
+          fields_used: [channel_id, token, target_url, target_public_key]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Ed25519Identity
+          fields_used: [public_key, private_key, sign, verify]
+        - name: SignatureVerification
+          fields_used: [verify_signature, check_replay]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, type, version, url, public_key, capabilities, publishes, subscriptions]
+        - name: AuditEntry
+          fields_used: [id, timestamp, actor, action, target, detail, status]
+        - name: TokenClaims
+          fields_used: [sub, iss, iat, exp, capabilities]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
 
 ## Responsibilities
 
@@ -347,6 +402,17 @@ and [protocol/types.md](../protocol/types.md) for type definitions.
 | Identity key path | `--keys` | `WL_KEYS_DIR` | `.weblisk/keys/` |
 | Audit log path | `--audit` | `WL_AUDIT_PATH` | `.weblisk/audit.jsonl` |
 | Channel TTL | — | `WL_CHANNEL_TTL` | `3600` (1 hour) |
+
+---
+
+## Implementation Notes
+
+- The orchestrator is the single entry point for agent registration; it must be the first component started
+- Namespace ownership is exclusive — once claimed, a namespace is locked to the registering agent
+- Service directory broadcasts are pushed to all agents after every registration or deregistration change
+- Channel brokering creates short-lived tokens scoped to a specific agent pair
+- Auth middleware validates Ed25519 signatures and WLT tokens on every request (except /v1/health)
+- The orchestrator should be stateless where possible — registry data can be backed by the storage engine
 
 ---
 

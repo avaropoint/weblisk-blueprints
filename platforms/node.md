@@ -4,6 +4,7 @@ name: node
 version: 1.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway]
 platform: node
+tier: free
 -->
 
 # Node.js Platform Guide
@@ -89,6 +90,46 @@ weblisk-app/
 
 ## Dependencies
 
+### Blueprint Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, version, capabilities, actions]
+        - name: TaskRequest
+          fields_used: [task_id, action, payload]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Identity
+          fields_used: [public_key, key_id]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: HealthResponse
+          fields_used: [status, component, version, uptime_seconds]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
 ### Recommended Packages
 
 These are the libraries used in this guide's examples. They are
@@ -137,6 +178,80 @@ projects with these defaults, but teams can swap them.
   }
 }
 ```
+
+---
+
+## Runtime Requirements
+
+```yaml
+runtime:
+  language: TypeScript / JavaScript
+  version: "Node.js >=20.0.0"
+  dependencies:
+    required:
+      - name: fastify
+        version: "^4.28.0"
+        purpose: HTTP server with schema validation
+      - name: "@noble/ed25519"
+        version: "^2.1.0"
+        purpose: Ed25519 cryptography (pure JS, audited)
+      - name: better-sqlite3
+        version: "^11.0.0"
+        purpose: SQLite storage with synchronous API
+    optional:
+      - name: sharp
+        version: "^0.33.0"
+        purpose: High-performance image processing
+      - name: undici
+        version: "^6.18.0"
+        purpose: HTTP client with connection pooling
+  build_tools:
+    - name: typescript
+      version: "^5.5.0"
+      purpose: TypeScript compiler
+    - name: tsx
+      version: "^4.16.0"
+      purpose: TypeScript execution for development (watch mode)
+    - name: vitest
+      version: "^2.0.0"
+      purpose: Test framework
+```
+
+---
+
+## Build and Run
+
+### Build
+
+```bash
+# Install dependencies
+npm install
+
+# Compile TypeScript
+npm run build
+```
+
+### Run
+
+```bash
+# Development (with watch mode)
+npm run dev
+
+# Production
+npm start
+```
+
+### Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `WL_PORT` | no | `9800` | Listen port |
+| `WL_AGENT_PORT` | no | `9710` | Agent listen port |
+| `WL_AI_PROVIDER` | yes | — | LLM provider |
+| `WL_AI_MODEL` | yes | — | Model name |
+| `WL_LOG_LEVEL` | no | `info` | Log level (`debug`, `info`, `warn`, `error`) |
+| `WL_LOG_FORMAT` | no | `json` | Log format (`json`, `text`) |
+| `WL_COMPONENT` | no | `unknown` | Component name for logging |
 
 ---
 
@@ -462,6 +577,83 @@ export function createStorage(dbPath: string) {
   };
 }
 ```
+
+---
+
+## Platform-Specific Conventions
+
+### Concurrency
+
+- Node.js uses a single-threaded event loop with async/await for
+  concurrent I/O operations
+- CPU-intensive tasks should be offloaded to `node:worker_threads`
+- No mutex needed — single-threaded execution prevents data races
+  within a single event loop tick
+
+### IO Safety
+
+- Validate and limit request body sizes via Fastify schema validation
+- Use `undici` Agent with connection pooling for outbound HTTP
+- Set appropriate `--max-old-space-size` for memory-constrained environments
+
+### Error Handling
+
+- Use async/await with try/catch — never leave promises unhandled
+- Task handlers return structured `{ task_id, status, output | error }`
+- Use `process.on('unhandledRejection', ...)` as a safety net
+
+### Logging
+
+- Structured JSON logging via pino with `component` and `component_type` base fields
+- Use pino-pretty for development (`WL_LOG_FORMAT=text`)
+- Include `trace_id` in all log entries for request correlation
+
+See [Node.js-Specific Considerations](#nodejs-specific-considerations)
+for process management, performance, and security details.
+
+---
+
+## Type Mapping
+
+| Schema Type | TypeScript Type | Notes |
+|-------------|-----------------|-------|
+| `string` | `string` | |
+| `int` | `number` | Validate with `Number.isInteger()` |
+| `int64` | `number` or `bigint` | Use `number` if within safe integer range |
+| `float` | `number` | IEEE 754 double precision |
+| `bool` | `boolean` | |
+| `object` | `Record<string, unknown>` | Or typed interface |
+| `list` | `T[]` | Typed array |
+| `uuid` | `string` | Validated with zod or regex |
+| `timestamp` | `number` | Unix epoch milliseconds via `Date.now()` |
+
+---
+
+## Security
+
+### Input Validation
+
+- Validate all request payloads with zod schemas — never trust raw `request.body`
+- Use Fastify’s built-in schema validation for HTTP layer enforcement
+- Enforce maximum body sizes per endpoint type
+
+### Cryptography
+
+- `@noble/ed25519` for Ed25519 operations (pure JS, audited)
+- Alternative: `node:crypto` Ed25519 support (Node 20+)
+- Private keys stored with file mode `0o600`
+
+### Dependencies
+
+- Pin dependency versions in `package-lock.json` (committed to repo)
+- Production Docker uses `npm ci --omit=dev` for minimal installs
+- Run `npm audit` regularly for vulnerability scanning
+
+### Runtime Hardening
+
+- Start Node with `--disable-proto=delete` to prevent prototype pollution
+- Use `helmet` Fastify plugin for security headers
+- Never expose stack traces in production error responses
 
 ---
 

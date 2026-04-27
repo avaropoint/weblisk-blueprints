@@ -30,6 +30,112 @@ replaces loose descriptions with machine-checkable schemas:
 
 ---
 
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [error, code, category, retryable]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: IOSpec
+          fields_used: [name, type, description]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/storage
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: FieldType
+          fields_used: [string, text, int, float, boolean, timestamp, json, uuid, map]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **Machine-checkable schemas** — Contracts replace loose IOSpec descriptions with structured, typed schemas that can be validated at deploy time, not runtime.
+2. **Semantic versioning** — Contracts follow strict semver rules where additive changes are minor bumps and breaking changes (field removal, type changes) require major bumps with explicit compatibility checks.
+3. **Producer-consumer decoupling** — Contracts are validated at the receiver. Senders construct envelopes; receivers validate them. Legacy agents without contracts continue to function for backward compatibility.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: contract-declaration
+      description: Structured input/output schema declaration for agents
+      parameters:
+        - name: contract_name
+          type: string
+          required: true
+          description: Unique contract identifier within agent
+        - name: version
+          type: string
+          required: true
+          description: Semantic version of the contract schema
+        - name: schema
+          type: object
+          required: true
+          description: Typed field definitions with constraints
+      inherits: Schema validation, versioning rules, envelope format
+      overridable: true
+      override_constraints: Must preserve envelope format and semver compatibility rules
+
+    - name: contract-validation
+      description: Envelope validation at receiving agent before processing
+      parameters:
+        - name: contract
+          type: string
+          required: true
+          description: Contract name from envelope
+        - name: version
+          type: string
+          required: true
+          description: Schema version from envelope
+        - name: payload
+          type: object
+          required: true
+          description: Data conforming to contract schema
+      inherits: Version compatibility check, field type validation, constraint enforcement
+      overridable: false
+
+  types:
+    - name: ContractSchema
+      description: Typed field definitions with constraints for input/output validation
+      inherited_by: Contract Declaration section
+    - name: MessageEnvelope
+      description: Standard wrapper with contract name, version, and payload
+      inherited_by: Message Envelope section
+
+  endpoints:
+    - path: /v1/describe (contracts field)
+      description: Runtime discovery of agent contract declarations
+      inherited_by: Runtime Discovery section
+```
+
+---
+
 ## Contract Declaration
 
 Every agent declares its input and output contracts in its blueprint:

@@ -29,6 +29,57 @@ logging contract that agents extend.
 
 ---
 
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: EventEnvelope
+          fields_used: [trace_id, event_id, source]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: LogEntry
+          fields_used: [ts, level, log_type, msg, component, component_type]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/agent
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, type, version]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/observability
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: TraceContext
+          fields_used: [trace_id, span_id]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
 ## Design Principles
 
 1. **Structured always** — Every log line is valid JSON. No free-text
@@ -41,6 +92,52 @@ logging contract that agents extend.
    Debug-level logging is disabled by default.
 5. **No vendor lock-in** — Logs go to stdout. Collection, indexing,
    and search are deployment concerns, not agent concerns.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: structured-logging
+      description: Emit structured JSON log lines to stdout conforming to the standard envelope
+      parameters:
+        - name: level
+          type: string
+          required: true
+          description: Minimum log level — debug, info, warn, error
+        - name: log_type
+          type: string
+          required: true
+          description: Dot-separated event category for automated filtering
+      inherits: Log envelope structure, required fields, contextual fields, standard log types
+      overridable: true
+      override_constraints: Must preserve required fields (ts, level, log_type, msg, component, component_type)
+
+    - name: trace-correlation
+      description: Propagate trace_id through all log lines during request processing
+      parameters:
+        - name: trace_id
+          type: string
+          required: true
+          description: Distributed trace identifier from request context or generated
+      inherits: Trace ID propagation rules, correlation field strategy
+      overridable: false
+
+  types:
+    - name: LogEntry
+      description: Standard log envelope with required and contextual fields
+      inherited_by: Log Envelope section
+    - name: LogType
+      description: Categorized event types for lifecycle, action, task, collaboration, storage, security, and error events
+      inherited_by: Log Types section
+
+  events:
+    - topic: logging.level_changed
+      description: Emitted when the log level is changed at runtime
+      payload: {component, from_level, to_level}
+```
 
 ---
 

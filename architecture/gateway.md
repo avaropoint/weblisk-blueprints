@@ -4,6 +4,7 @@ name: gateway
 version: 1.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/admin, patterns/auth-session, patterns/auth-token, patterns/user-management, patterns/rate-limiting]
 platform: any
+tier: free
 -->
 
 # Weblisk Application Gateway
@@ -21,6 +22,120 @@ admin access is handled by the completely separate **admin gateway**
 state, NO authentication flow, NO network listener, and NO cookie
 domain. If this gateway is compromised, the admin gateway is
 unreachable.
+
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: RegisterRequest
+          fields_used: [manifest, signature, timestamp]
+        - name: AgentManifest
+          fields_used: [name, type, url, public_key, capabilities]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Ed25519Identity
+          fields_used: [public_key, private_key, sign, verify]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: TaskRequest
+          fields_used: [id, action, input]
+        - name: TaskResult
+          fields_used: [task_id, status, output]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/orchestrator
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ServiceDirectory
+          fields_used: [agents, routing_table, namespaces]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/agent
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentEndpoints
+          fields_used: [execute, message, health, describe]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/admin
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AdminGateway
+          fields_used: [separation_model, operator_auth]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/auth-session
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: SessionToken
+          fields_used: [token, expiry, binding, csrf_secret]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/auth-token
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: WLT
+          fields_used: [sub, iss, iat, exp, capabilities]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/user-management
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: UserRecord
+          fields_used: [user_id, roles, groups, email_verified]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/rate-limiting
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: RateLimitPolicy
+          fields_used: [per_ip, per_session, endpoint_limits]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
 
 ## Why Not a Web Server
 
@@ -625,6 +740,71 @@ gateway:
 - The gateway emits structured logs and traces following the
   observability blueprint, with additional fields for the external
   request context (client IP, user agent, geolocation if available).
+
+## Verification Checklist
+
+---
+
+## Responsibilities
+
+### Owns
+- TLS termination and HTTPS enforcement for all end-user traffic
+- Session lifecycle management (creation, validation, renewal, revocation)
+- CSRF validation on state-changing requests
+- ABAC policy evaluation for every request (see [ABAC section](#attribute-based-access-control-abac))
+- Rate limiting at per-IP, per-session, and per-endpoint levels
+- Request mediation: mapping browser routes to internal agent endpoints
+- Response sanitization: stripping internal headers/errors before reaching the browser
+- Security header injection on every response
+- MFA challenge orchestration
+
+### Does NOT Own
+- Business logic execution (delegated to domain agents)
+- Page rendering (delegated to the islands architecture)
+- Data storage for application data (delegated to agents and storage layer)
+- Agent registration or orchestration (owned by orchestrator)
+- Platform administration (owned by the separate admin gateway)
+
+---
+
+## Interfaces
+
+The gateway's public API surface is defined by its **Route Table**
+(see [Route Table section](#route-table)) and its internal authentication
+endpoints. Summary:
+
+| Interface | Type | Description |
+|-----------|------|-------------|
+| `GET/POST/PUT/DELETE /api/*` | HTTP (external) | Application routes — proxied to domain agents per route table |
+| `GET /islands/:page/:island` | HTTP (external) | Island data routes — resolved to domain:action targets |
+| `POST /auth/*` | HTTP (external) | Authentication endpoints (login, logout, MFA) — handled internally |
+| `GET /health` | HTTP (external) | Gateway health status |
+| `GET /assets/*` | HTTP (external) | Static asset serving (public, cacheable) |
+| `POST /v1/register` | HTTP (internal) | Gateway registers itself with the orchestrator as an infrastructure agent |
+| `POST /v1/services` | HTTP (internal) | Receives service directory updates from the orchestrator |
+
+See [Route Definition](#route-definition) for the full route configuration schema.
+
+---
+
+## Data Flow
+
+The gateway's request lifecycle is fully documented in the
+[Request Lifecycle section](#request-lifecycle). Summary sequence:
+
+1. Browser sends HTTPS request to the gateway's external URL
+2. Gateway terminates TLS and enforces HSTS
+3. Rate limiter checks per-IP and per-session thresholds
+4. Request validation: method, content-type, content-length, body parsing
+5. Session resolution: extract/validate Ed25519-signed session token from cookie
+6. CSRF validation on state-changing requests (POST/PUT/DELETE)
+7. ABAC policy engine evaluates subject, resource, and context attributes
+8. Request mediation: map route to target agent, inject internal headers
+9. Forward request to agent via orchestrator or direct channel
+10. Response processing: validate, sanitize, apply security headers
+11. Return response to browser
+
+---
 
 ## Verification Checklist
 

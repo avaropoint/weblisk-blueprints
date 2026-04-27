@@ -34,6 +34,142 @@ The alerting agent is a consumer of this pattern, not the owner.
 
 ---
 
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentMessage
+          fields_used: [from, to, action, payload, signature]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: NotificationRequest
+          fields_used: [notification_id, severity, title, body, channels, template]
+        - name: DeliveryReceipt
+          fields_used: [notification_id, channel, subscriber_id, status, delivered_at, attempts]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/retry
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: RetryConfig
+          fields_used: [max_attempts, backoff, jitter]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/storage
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: StorageConfig
+          fields_used: [provider, table]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/secrets
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: SecretRef
+          fields_used: [name, provider]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **Channel abstraction** — delivery mechanisms are decoupled from notification logic via pluggable adapters; adding a new channel requires only a new adapter, not changes to the core pipeline.
+2. **Subscriber control** — recipients manage their own preferences, active channels, quiet hours, and digest settings; the system respects these choices on every delivery.
+3. **Delivery guarantee** — every notification is tracked with receipts, retried on transient failure, and dead-lettered on retry exhaustion; no notification is silently lost.
+4. **Throttle by default** — deduplication keys and configurable time windows prevent notification storms from overwhelming subscribers.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: notification-dispatch
+      description: Accept a notification request, resolve subscribers, render templates, and deliver across channels
+      parameters:
+        - name: notification_id
+          type: string
+          required: true
+          description: Unique identifier for tracking and deduplication
+        - name: severity
+          type: string
+          required: true
+          description: Notification severity — critical, high, medium, low
+        - name: channels
+          type: "[]string"
+          required: false
+          description: Override channels (merged with subscriber preferences)
+      inherits: Delivery pipeline, subscriber resolution, template rendering, retry logic
+      overridable: true
+      override_constraints: Must preserve subscriber preference enforcement and delivery tracking
+
+    - name: channel-adapter
+      description: Pluggable delivery adapter for a specific notification channel
+      parameters:
+        - name: channel_type
+          type: string
+          required: true
+          description: Channel type — email, webhook, slack, sms, push, in_app
+      inherits: Standard adapter interface with send and validate_config operations
+      overridable: true
+      override_constraints: Must implement send and validate_config operations
+
+  types:
+    - name: NotificationRequest
+      description: Standard notification payload with severity, source, title, body, and channel routing
+      inherited_by: Notification Request section
+    - name: Subscriber
+      description: Notification recipient with identity, enabled channels, preferences, and role
+      inherited_by: Subscriber Model section
+    - name: DeliveryReceipt
+      description: Per-channel delivery status record with timestamps and retry count
+      inherited_by: Delivery Tracking section
+    - name: ChannelAdapter
+      description: Pluggable adapter interface for channel-specific delivery
+      inherited_by: Channel Abstraction section
+
+  events:
+    - topic: notification.sent
+      description: Emitted when a notification is successfully delivered to a channel
+      payload: {notification_id, channel, subscriber_id, delivered_at}
+    - topic: notification.failed
+      description: Emitted when a notification fails delivery after all retries
+      payload: {notification_id, channel, subscriber_id, error, attempts}
+    - topic: notification.throttled
+      description: Emitted when a notification is suppressed by deduplication
+      payload: {notification_id, dedup_key, suppressed_count}
+```
+
+---
+
 ## Channel Abstraction
 
 ### Channel Types

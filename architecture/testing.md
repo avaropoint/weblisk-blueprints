@@ -4,6 +4,7 @@ name: testing
 version: 1.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain]
 platform: any
+tier: free
 -->
 
 # Weblisk Conformance Testing
@@ -24,6 +25,136 @@ Conformance testing verifies three things:
 
 Tests are black-box: they exercise HTTP endpoints and verify responses.
 Implementations in any language can run the same test suite.
+
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: RegisterRequest
+          fields_used: [manifest, signature, timestamp]
+        - name: RegisterResponse
+          fields_used: [agent_id, token, expires_at, services]
+        - name: TaskRequest
+          fields_used: [id, action, input]
+        - name: TaskResult
+          fields_used: [task_id, status, agent_name, output]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Ed25519Identity
+          fields_used: [public_key, private_key, sign, verify]
+        - name: SignatureVerification
+          fields_used: [verify_signature, check_replay]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, type, version, url, public_key, capabilities]
+        - name: AgentMessage
+          fields_used: [from, to, type, action, payload, signature]
+        - name: ErrorResponse
+          fields_used: [error, code]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/orchestrator
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ServiceDirectory
+          fields_used: [agents, routing_table, namespaces]
+        - name: ChannelGrant
+          fields_used: [channel_id, token, target_url]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/agent
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentEndpoints
+          fields_used: [describe, execute, message, health, services]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/domain
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: DomainManifest
+          fields_used: [required_agents, workflows]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Responsibilities
+
+### Owns
+- Conformance test suite definition (Level 1: protocol, Level 2: security, Level 3: lifecycle)
+- Test fixture definitions (deterministic Ed25519 key pairs, manifest fixtures)
+- Mock orchestrator specification and behavior contract
+- Mock agent specification and configurable response contract
+- Test execution CLI interface (`weblisk test conformance`)
+- Pass/fail criteria and assertion format for each test case
+
+### Does NOT Own
+- Implementation of the components under test (owned by platform documents)
+- Production orchestrator or agent behavior (owned by their respective blueprints)
+- Performance/load testing (out of scope — this is conformance testing only)
+- Integration with external CI/CD systems (deployment-specific)
+
+---
+
+## Interfaces
+
+| Interface | Type | Description |
+|-----------|------|-------------|
+| `weblisk test conformance --orch <url>` | CLI | Run full conformance suite against a running system |
+| `weblisk test conformance --level <n>` | CLI | Run specific test level (1, 2, or 3) |
+| `weblisk test conformance --test <id>` | CLI | Run a single test by ID (e.g., L1-03) |
+| `weblisk test mock-orchestrator --port <n>` | CLI | Start mock orchestrator on specified port |
+| Mock Orchestrator: `POST /v1/register` | HTTP | Accept valid registrations, return token |
+| Mock Orchestrator: `GET /v1/health` | HTTP | Return healthy status |
+| Mock Agent: `POST /v1/execute` | HTTP | Return configurable `TaskResult` |
+| Mock Agent: `POST /v1/message` | HTTP | Return configurable response payload |
+
+---
+
+## Data Flow
+
+1. Test harness starts mock orchestrator on port 19800
+2. System under test (agent or orchestrator) is started on its configured port
+3. Test harness builds a `RegisterRequest` with deterministic test keys
+4. Test harness sends registration request and validates the `RegisterResponse`
+5. Test harness sends task/message requests with valid tokens and verifies responses
+6. For Level 2: test harness sends malformed signatures, expired tokens, and oversized payloads — verifies rejection
+7. For Level 3: test harness starts full system (orchestrator + domain + agent) and executes end-to-end workflow
+8. Workflow produces observations, recommendations, and feedback — test harness verifies state transitions
+9. Test harness collects results and reports pass/fail per test ID
+10. All assertions include test ID in failure messages for triage
 
 ---
 

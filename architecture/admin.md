@@ -4,6 +4,7 @@ name: admin
 version: 1.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/browser-session, architecture/threat-model]
 platform: any
+tier: free
 -->
 
 # Weblisk Platform Admin
@@ -36,6 +37,171 @@ orchestrator's existing endpoints (`/v1/services`, `/v1/audit`,
 endpoints defined in this blueprint. It provides real-time visibility
 into the entire system and is the primary tool for human operators
 interacting with a Weblisk deployment.
+
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      endpoints:
+        - path: /v1/register
+          methods: [POST]
+        - path: /v1/health
+          methods: [GET]
+      types:
+        - name: AgentManifest
+          fields_used: [name, version, capabilities, public_key]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Ed25519KeyPair
+          fields_used: [public_key, private_key]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: WLT
+          fields_used: [sub, iss, iat, exp, cap, role, type]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/orchestrator
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      endpoints:
+        - path: /v1/admin/*
+          methods: [GET, POST, PUT, DELETE]
+        - path: /v1/services
+          methods: [GET]
+        - path: /v1/audit
+          methods: [GET]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/domain
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: DomainManifest
+          fields_used: [name, type, workflows, required_agents]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/lifecycle
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Strategy
+          fields_used: [id, name, targets, status, priority]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/gateway
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: GatewayConfig
+          fields_used: [routes, tls, rate_limits]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/browser-session
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: WLS
+          fields_used: [sub, sid, roles, sec, mfa]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/threat-model
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ThreatBoundary
+          fields_used: [boundary, controls, mitigations]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Responsibilities
+
+### Owns
+
+- Admin gateway process (separate listener, TLS, and domain from application gateway)
+- Operator identity lifecycle (registration, role assignment, suspension)
+- Admin dashboard SPA (overview, agents, approvals, workflows, federation, audit)
+- Admin API endpoints under `/v1/admin/*`
+- Operator token model (WLT with 4-hour TTL, exact IP binding, mandatory MFA)
+- Admin rate limiting and IP allowlist enforcement
+- 4-eyes approval for destructive actions
+
+### Does NOT Own
+
+- Orchestrator internals (admin reads orchestrator state via API, does not manage it directly)
+- Agent logic or agent lifecycle (admin can deregister, but agents self-govern)
+- Application-level admin features (those use the application gateway)
+- Browser session management (owned by `architecture/browser-session`)
+- Federation trust establishment (owned by `protocol/federation`; admin only approves/revokes)
+
+---
+
+## Interfaces
+
+The admin component's public API surface is defined in detail in
+[Admin Endpoints](#admin-endpoints) (operator management, system overview,
+agent management, domain/workflow management, strategy management,
+approval queue, federation management, audit/observability) and
+[Admin API Response Shapes](#admin-api-response-shapes).
+
+---
+
+## Data Flow
+
+1. Operator browser sends request to admin gateway (`admin.example.com:9443`)
+2. Admin gateway runs IP allowlist check — reject if not allowed
+3. TLS termination with admin-specific certificate
+4. Rate limiting applied (per-operator read/write limits)
+5. Operator token (WLT) extracted and verified against orchestrator's public key
+6. MFA validation enforced (always required)
+7. Role authorization checked against endpoint minimum role
+8. Request forwarded to orchestrator's admin API with `X-Operator` and `X-Trace-Id` headers
+9. Orchestrator processes request and returns response
+10. Admin gateway returns response to operator browser (with `Cache-Control: no-store`)
+11. For destructive actions: additional HMAC confirmation and 4-eyes approval before step 8
+
+---
 
 ## Admin Gateway Separation
 

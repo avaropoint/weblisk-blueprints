@@ -4,6 +4,7 @@ name: cli-ops
 version: 1.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/admin]
 platform: any
+tier: free
 -->
 
 # Weblisk CLI Operations
@@ -23,6 +24,136 @@ operator identity stored in `~/.weblisk/keys/`.
 Commands follow a `weblisk <noun> <verb>` pattern and output
 structured, human-readable tables by default, with `--json` for
 machine-readable output.
+
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      endpoints:
+        - path: /v1/register
+          methods: [POST]
+        - path: /v1/health
+          methods: [GET]
+      types:
+        - name: AgentManifest
+          fields_used: [name, version, capabilities, public_key]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Ed25519KeyPair
+          fields_used: [public_key, private_key]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: WLT
+          fields_used: [sub, iss, iat, exp, cap, role]
+        - name: AgentManifest
+          fields_used: [name, version, type, url, capabilities]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/orchestrator
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      endpoints:
+        - path: /v1/admin/*
+          methods: [GET, POST, PUT, DELETE]
+        - path: /v1/services
+          methods: [GET]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/admin
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      endpoints:
+        - path: /v1/admin/operators/register
+          methods: [POST]
+        - path: /v1/admin/overview
+          methods: [GET]
+        - path: /v1/admin/agents
+          methods: [GET]
+        - path: /v1/admin/approvals
+          methods: [GET, POST]
+      types:
+        - name: OperatorRecord
+          fields_used: [name, public_key, role, status]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Responsibilities
+
+### Owns
+
+- CLI command structure (`weblisk <noun> <verb>` pattern)
+- Operator Ed25519 key pair generation and local key storage (`~/.weblisk/keys/`)
+- Operator registration and token management (`~/.weblisk/token`)
+- Human-readable table output and `--json` machine-readable output formatting
+- Interactive confirmation for destructive actions
+- Connection management to orchestrator's admin API
+
+### Does NOT Own
+
+- Admin API endpoints (owned by `architecture/admin`)
+- Orchestrator state or agent lifecycle (CLI reads/writes via API)
+- Admin dashboard SPA (owned by `architecture/admin`)
+- Operator authentication model (owned by `architecture/admin`; CLI consumes it)
+- Workflow or task execution (CLI triggers actions via API)
+
+---
+
+## Interfaces
+
+The CLI’s public interface is the set of terminal commands documented in
+the sections below: [Identity Commands](#identity-commands),
+[Status Commands](#status-commands), [Agent Commands](#agent-commands),
+[Domain Commands](#domain-commands), [Workflow Commands](#workflow-commands),
+[Approval Commands](#approval-commands), [Strategy Commands](#strategy-commands),
+[Federation Commands](#federation-commands), and
+[Audit Commands](#audit-commands).
+
+---
+
+## Data Flow
+
+1. Operator runs a CLI command (e.g., `weblisk agents list`)
+2. CLI loads operator identity from `~/.weblisk/keys/operator.key`
+3. CLI loads auth token from `~/.weblisk/token` (refreshes if near expiry)
+4. CLI constructs HTTP request to orchestrator admin API endpoint
+5. Request signed with operator's Ed25519 key, token included in `Authorization: Bearer` header
+6. Orchestrator validates token, checks operator role against endpoint minimum
+7. Orchestrator returns JSON response
+8. CLI formats response as human-readable table (or raw JSON with `--json`)
+9. For write operations: CLI prompts for interactive confirmation before sending
+10. Exit code set based on success/failure (0 = success, 1 = error, 2 = auth failure)
+
+---
 
 ## Design Principles
 

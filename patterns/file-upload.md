@@ -21,6 +21,119 @@ upload flow, validation, processing pipeline, storage abstraction,
 and delivery mechanisms including signed URLs for private assets
 and CDN integration for public assets.
 
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, version, url, capabilities]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: FileRecord
+          fields_used: [id, filename, mime_type, size, visibility, urls, owner_id]
+        - name: ErrorResponse
+          fields_used: [code, message, category, retryable]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/auth-token
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AuthToken
+          fields_used: [sub, cap, exp]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **Validate at ingestion** — verify MIME types from magic bytes, enforce size limits before reading the full body, and sanitize filenames to prevent directory traversal.
+2. **Privacy by default** — strip EXIF metadata from images, generate opaque storage keys via UUID, and use signed URLs for private asset access.
+3. **Storage abstraction** — decouple upload handling from the storage provider, allowing swap between local, S3, R2, and GCS without application code changes.
+4. **Progressive processing** — store the original first, then process variants asynchronously; partial success is acceptable for batch uploads.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: file-upload
+      description: Accept, validate, process, and store uploaded files
+      parameters:
+        - name: file
+          type: binary
+          required: true
+          description: File data as multipart form field
+        - name: visibility
+          type: string
+          required: false
+          description: Access level — public or private
+        - name: purpose
+          type: string
+          required: false
+          description: Categorization — avatar, content, document, attachment
+      inherits: Upload validation pipeline, MIME verification, EXIF stripping
+      overridable: true
+      override_constraints: Must preserve magic-byte validation and filename sanitization
+
+  types:
+    - name: FileRecord
+      description: Metadata record for an uploaded file including URLs for all variants
+      inherited_by: Types section
+    - name: StorageProvider
+      description: Interface for put, get, delete, exists, and signed-url operations
+      inherited_by: Storage Providers section
+
+  endpoints:
+    - path: /files/upload
+      description: Upload a single file with validation and processing
+      inherited_by: Endpoints section
+    - path: /files/upload/batch
+      description: Upload multiple files in a single request
+      inherited_by: Endpoints section
+    - path: /files/:id
+      description: Retrieve file metadata
+      inherited_by: Endpoints section
+    - path: /files/:id/download
+      description: Download file or redirect to CDN
+      inherited_by: Endpoints section
+    - path: /files/:id/signed-url
+      description: Generate a time-limited signed download URL for private files
+      inherited_by: Endpoints section
+
+  events:
+    - topic: file.uploaded
+      description: Emitted when a file is successfully uploaded and processed
+      payload: {file_id, filename, mime_type, size, visibility, owner_id}
+    - topic: file.deleted
+      description: Emitted when a file is deleted
+      payload: {file_id, owner_id}
+```
+
+---
+
 ## Specification
 
 ### Blueprint Format

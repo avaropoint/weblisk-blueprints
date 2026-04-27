@@ -4,6 +4,7 @@ name: domain
 version: 1.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/agent, architecture/orchestrator, patterns/messaging, patterns/workflow]
 platform: any
+tier: free
 -->
 
 # Weblisk Domain Controller Architecture
@@ -18,6 +19,163 @@ The domain controller knows WHAT needs to happen and WHY. The
 infrastructure agents (Workflow, Task, Lifecycle) know HOW to
 execute, dispatch, and optimise. This separation means domains are
 pure business logic — no embedded execution engine.
+
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      endpoints:
+        - path: /v1/register
+          methods: [POST]
+        - path: /v1/execute
+          methods: [POST]
+        - path: /v1/message
+          methods: [POST]
+        - path: /v1/event
+          methods: [POST]
+      types:
+        - name: TaskRequest
+          fields_used: [task_id, action, payload, context]
+        - name: TaskResult
+          fields_used: [task_id, agent_name, status, summary]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Ed25519KeyPair
+          fields_used: [public_key, private_key]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, version, type, url, public_key, capabilities, required_agents, workflows, publishes, subscriptions]
+        - name: EventEnvelope
+          fields_used: [event_id, topic, payload, source, scope, correlation_id]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/agent
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentContext
+          fields_used: [identity, services, provider, workspace, token]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/orchestrator
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      endpoints:
+        - path: /v1/register
+          methods: [POST]
+        - path: /v1/services
+          methods: [GET]
+      events:
+        - topic: system.agent.registered
+          fields_used: [agent_name, manifest]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/messaging
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      patterns:
+        - behavior: publish
+          parameters: [topic, payload, source, scope]
+        - behavior: subscribe
+          parameters: [topic, handler, scope]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/workflow
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      patterns:
+        - behavior: workflow-declaration
+          parameters: [phases, triggers, reference_expressions]
+        - behavior: workflow-execution
+          parameters: [dag_resolution, phase_dispatch, error_strategies]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Responsibilities
+
+### Owns
+
+- Workflow definitions (phase declarations, triggers, reference expressions)
+- Entity context and domain-specific business rules
+- Publishing `workflow.trigger` events to initiate multi-agent workflows
+- Post-processing of workflow results (validation, conflict resolution, quality gates)
+- Domain-specific HandleMessage actions (get_workflows, get_status, trigger_workflow)
+- Domain manifest fields (`type: "domain"`, `required_agents`, `workflows`, `publishes`)
+
+### Does NOT Own
+
+- Workflow DAG execution (owned by Workflow Agent via `agents/workflow.md`)
+- Task dispatch to work agents (owned by Task Agent via `agents/task.md`)
+- Strategy management and lifecycle optimization (owned by Lifecycle Agent via `agents/lifecycle.md`)
+- Agent registration or namespace enforcement (owned by orchestrator)
+- Work agent implementation (each work agent is independently developed)
+
+---
+
+## Interfaces
+
+The domain controller’s public API is the standard 6 protocol endpoints
+(inherited from `architecture/agent`) plus domain-specific
+`HandleMessage` actions defined in
+[Domain HandleMessage Actions](#domain-handlemessage-actions):
+`get_workflows`, `get_status`, `trigger_workflow`, `get_entity`,
+`get_config`.
+
+---
+
+## Data Flow
+
+See [Workflow Execution Flow](#workflow-execution-flow) for the full
+sequence. Summary:
+
+1. Domain receives task via `POST /v1/execute` with `action` field
+2. Domain matches `action` against workflow triggers
+3. Domain publishes `workflow.trigger` event (scope: workflow agent)
+4. Returns immediate acknowledgment (`status: "accepted"`)
+5. Workflow Agent resolves the DAG, Task Agent dispatches phases to work agents
+6. Work agents execute via `POST /v1/execute` and return results
+7. Domain receives `workflow.completed` event (scope: self) with aggregated output
+8. Domain applies post-processing (validation, conflict resolution, quality gates)
+9. Domain publishes domain-specific result event (e.g., `seo.audit.completed`)
+
+---
 
 ## Relationship to Other Components
 

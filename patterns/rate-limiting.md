@@ -29,6 +29,116 @@ domain-specific throttling (e.g., external API call budgets).
 
 ---
 
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [code, message, category, retryable]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: RateLimitConfig
+          fields_used: [algorithm, storage, defaults, routes]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/gateway
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: GatewayConfig
+          fields_used: [rate_limiting, routes, trusted_proxies]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/agent
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentConfig
+          fields_used: [agent_rate_limits]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **Gateway-first enforcement** — rate limits are checked before authentication, catching abuse early with minimal resource cost.
+2. **Multiple algorithms** — token bucket, sliding window, and fixed window are available per-route based on precision needs and overhead tolerance.
+3. **Layered limits** — the gateway protects the system from external abuse; agents optionally protect themselves with domain-specific throttling for external API budgets.
+4. **Observable by default** — every rate limit check emits metrics and response headers, giving both clients and operators full visibility into limit status.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: rate-limit-enforcement
+      description: Check request against configured limits and allow or reject with 429
+      parameters:
+        - name: algorithm
+          type: string
+          required: true
+          description: Rate limiting algorithm — token_bucket, sliding_window, fixed_window
+        - name: key_type
+          type: string
+          required: true
+          description: Identification key — ip, user, api_key, route, composite
+        - name: requests
+          type: int
+          required: true
+          description: Maximum requests per window
+        - name: window
+          type: int
+          required: true
+          description: Time window in seconds
+      inherits: Algorithm implementations, identification key extraction, response headers
+      overridable: true
+      override_constraints: Must return 429 with Retry-After header when limit exceeded
+
+  types:
+    - name: RateLimitConfig
+      description: Configuration for algorithm, storage, defaults, and per-route overrides
+      inherited_by: Configuration section
+    - name: RateLimitStatus
+      description: Current counter state with remaining tokens and reset timestamp
+      inherited_by: Response Behavior section
+
+  endpoints:
+    - path: /v1/admin/rate-limits
+      description: View and update rate limit configuration (hot-reload)
+      inherited_by: Admin Operations section
+    - path: /v1/admin/rate-limits/status
+      description: Current counters and usage statistics
+      inherited_by: Admin Operations section
+    - path: /v1/admin/rate-limits/reset
+      description: Reset counters for a specific key
+      inherited_by: Admin Operations section
+```
+
+---
+
 ## Algorithms
 
 ### Token Bucket (Default)

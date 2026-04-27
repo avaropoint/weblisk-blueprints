@@ -27,6 +27,57 @@ migration validation, and rollback capabilities.
 
 ---
 
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, version]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [error, code, category]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/agent
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentContext
+          fields_used: [agent_name, version]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/storage
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: StorageInterface
+          fields_used: [tables, indexes, migrations]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
 ## Design Principles
 
 1. **Semantic versioning** — MAJOR.MINOR.PATCH with strict meaning.
@@ -40,6 +91,77 @@ migration validation, and rollback capabilities.
 5. **Blueprint is source of truth** — The blueprint file IS the
    specification. Version history tracks the blueprint's evolution,
    not separate migration files.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: semantic-versioning
+      description: Enforce MAJOR.MINOR.PATCH versioning with strict compatibility rules
+      parameters:
+        - name: version
+          type: string
+          required: true
+          description: Semantic version string (MAJOR.MINOR.PATCH)
+        - name: change_type
+          type: enum(major, minor, patch)
+          required: true
+          description: Classification of the version change
+      inherits: Version increment rules and compatibility matrix
+      overridable: false
+      override_constraints: Cannot redefine semver semantics
+    - name: version-migration
+      description: Execute data transformations between blueprint versions with rollback
+      parameters:
+        - name: steps
+          type: array
+          required: true
+          description: Ordered migration steps with rollback counterparts
+        - name: validation
+          type: object
+          required: false
+          description: Post-migration validation checks
+      inherits: Transaction-safe migration execution with automatic rollback on failure
+      overridable: true
+      override_constraints: Must include rollback_steps for every migration step
+    - name: zero-downtime-transition
+      description: Transition running agents to new blueprint versions without downtime
+      parameters:
+        - name: target_version
+          type: string
+          required: true
+          description: Version to transition to
+      inherits: Live agent version transition protocol
+      overridable: false
+      override_constraints: Agent must remain active throughout transition
+  types:
+    - name: BlueprintRevision
+      description: Complete revision record with version, changelog, migration, and hash
+      inherited_by: Blueprint Revision Record section
+    - name: MigrationSpec
+      description: Migration steps with validation and rollback for version transitions
+      inherited_by: Migration Specification section
+  endpoints:
+    - path: /v1/blueprints/{name}/revisions
+      description: Query blueprint revision history
+      inherited_by: Revision History Storage section
+    - path: /v1/agent/{name}/rollback
+      description: Trigger manual rollback to a previous version
+      inherited_by: Rollback section
+  events:
+    - topic: system.blueprint.changed
+      description: New blueprint version detected
+      payload: {blueprint_name, from_version, to_version, change_type}
+    - topic: system.blueprint.updated
+      description: Agent successfully transitioned to new version
+      payload: {blueprint_name, version, duration_ms, timestamp}
+    - topic: lifecycle.version_rollback
+      description: Version rollback executed
+      payload: {blueprint_name, from_version, to_version, reason, timestamp}
+```
 
 ---
 

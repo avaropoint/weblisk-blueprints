@@ -4,6 +4,7 @@ name: storage
 version: 1.0.0
 requires: [protocol/types, architecture/orchestrator, architecture/domain, agents/workflow, agents/task, agents/lifecycle]
 platform: any
+tier: free
 -->
 
 # Weblisk Storage Interface
@@ -20,6 +21,145 @@ map this interface to concrete backends.
 > For the **agent-level schema declaration format** (types, constraints,
 > relationships, migrations), see
 > [`patterns/storage`](../patterns/storage.md).
+
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, type, version, capabilities]
+        - name: Strategy
+          fields_used: [id, name, targets, priority, status]
+        - name: Observation
+          fields_used: [id, agent_name, target, measurements, findings]
+        - name: Recommendation
+          fields_used: [id, observation_id, action, priority, status]
+        - name: Feedback
+          fields_used: [id, recommendation_id, signal, metric_before, metric_after]
+        - name: AuditEntry
+          fields_used: [id, timestamp, actor, action, target, status]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/orchestrator
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentEntry
+          fields_used: [Manifest, AgentID, Token, Status]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/domain
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: DomainWorkflow
+          fields_used: [name, phases]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: agents/workflow
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: WorkflowExecution
+          fields_used: [id, workflow, status, phases, started_at]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: agents/task
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: TaskRecord
+          fields_used: [id, agent, action, status, priority]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: agents/lifecycle
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentMetrics
+          fields_used: [total_observations, accuracy, adoption_rate, impact_score]
+        - name: EntityContext
+          fields_used: [entity_name, entity_type, metadata]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Responsibilities
+
+### Owns
+- Abstract store interface definitions for all persistent system data
+- Storage backend selection and tier progression rules (JSONL → compressed → columnar)
+- File layout conventions for `.weblisk/data/` directory structure
+- Pagination contract (cursor-based, opaque cursors)
+- Retention policy definitions (observations: 90d, feedback: 180d, audit: 90d)
+- Concurrency safety requirements for all store operations
+
+### Does NOT Own
+- Concrete storage implementations (owned by platform documents: go.md, cloudflare.md, node.md)
+- Agent-level schema declarations (owned by patterns/storage)
+- Encryption key management (owned by architecture/data-security)
+- Backup scheduling and execution (platform-specific, out of scope)
+- Business logic that reads/writes stores (owned by respective agents)
+
+---
+
+## Interfaces
+
+The storage interface is defined as a set of typed store operations
+per data domain. Each store section below declares its full API
+surface. Summary of stores:
+
+| Store | Owner | Operations |
+|-------|-------|------------|
+| Agent Registry | Orchestrator | PutAgent, GetAgent, DeleteAgent, ListAgents |
+| Strategies | Lifecycle Agent | PutStrategy, GetStrategy, ListStrategies |
+| Observations | Lifecycle Agent | AppendObservation, QueryObservations, CountObservations |
+| Recommendations | Lifecycle Agent | PutRecommendation, GetRecommendation, ListRecommendations, UpdateStatus |
+| Feedback | Lifecycle Agent | AppendFeedback, QueryFeedback |
+| Agent Metrics | Lifecycle Agent | GetMetrics, UpdateMetrics |
+| Entity Context | Lifecycle Agent | SetContext, GetContext |
+| Workflow Executions | Workflow Agent | PutExecution, GetExecution, ListExecutions, UpdatePhase |
+| Task Records | Task Agent | PutTask, GetTask, ListTasks, UpdateStatus |
+| Audit Log | Orchestrator | AppendAudit, QueryAudit |
+| Channels | Orchestrator | PutChannel, GetChannel, DeleteChannel, CleanExpired |
+| Namespace Registry | Orchestrator | ClaimNamespace, ReleaseNamespace, GetOwner, ListNamespaces |
+
+---
+
+## Data Flow
+
+1. Agent receives a task via `POST /v1/execute` and produces results
+2. Results (observations, recommendations) are returned to the calling infrastructure agent
+3. Lifecycle Agent appends observations to the observation store (JSONL)
+4. Lifecycle Agent creates recommendation entries in the recommendation store
+5. On approval, the recommendation status is updated; audit entry is appended
+6. Feedback entries are appended after measurement workflows complete
+7. Agent metrics are incrementally updated from feedback signals
+8. Workflow Agent records execution state to enable resumption after restart
+9. Task Agent records task lifecycle (queued → dispatched → running → completed/failed)
+10. Orchestrator appends audit entries for every registration, deregistration, and channel operation
+
+---
 
 ## Design Principles
 
