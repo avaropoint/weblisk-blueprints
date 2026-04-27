@@ -36,6 +36,161 @@ variant parts.
 
 ---
 
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [error, code, category, retryable]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: IOSpec
+          fields_used: [name, type, description]
+        - name: TaskPayload
+          fields_used: [action, payload, trace_id]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Identity
+          fields_used: [id, public_key, verification]
+        - name: WLT
+          fields_used: [token, claims]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/domain
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: DomainManifest
+          fields_used: [name, type, version, capabilities, required_agents, workflows]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/lifecycle
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Observation
+          fields_used: [target, element, value, timestamp]
+        - name: Feedback
+          fields_used: [before, after, metric]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/observability
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: MetricDefinition
+          fields_used: [name, type, description, labels]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **Structural inheritance** — Domain controllers inherit a standard contract (manifest, actions, scoring, aggregation, observability, error handling) and only declare their unique parts: agent roster, workflows, scoring weights, and conflict resolution.
+2. **Phased workflow execution** — All workflows follow a dependency-ordered phase model where independent phases run in parallel and dependent phases run sequentially, with timeout enforcement and approval gates.
+3. **Composable scoring** — Every domain computes a weighted composite score (0–100) from declared categories, enabling consistent cross-domain comparison and lifecycle-driven optimization.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: workflow-execution
+      description: Phased multi-agent workflow with dispatch, aggregation, and reporting
+      parameters:
+        - name: workflow
+          type: string
+          required: true
+          description: Workflow name to execute
+        - name: action
+          type: string
+          required: true
+          description: Action that triggers the workflow
+      inherits: Phase execution, parallel dispatch, timeout enforcement, approval gates
+      overridable: true
+      override_constraints: Must preserve phase dependency ordering and agent dispatch protocol
+
+    - name: scoring
+      description: Weighted composite score computation (0–100) from category scores
+      parameters:
+        - name: weights
+          type: object
+          required: true
+          description: Category weights (must sum to 1.0)
+        - name: ranges
+          type: object
+          required: true
+          description: Score range labels (excellent, good, fair, poor, critical)
+      inherits: Score formula, range labels, clamping
+      overridable: true
+      override_constraints: Weights must sum to 1.0, score must be clamped 0–100
+
+    - name: aggregation
+      description: Rules for combining multi-agent results with conflict resolution
+      parameters:
+        - name: conflict_resolution
+          type: string
+          required: true
+          description: Strategy for resolving agent result conflicts
+      inherits: Observation dedup, finding sort, recommendation priority, change grouping
+      overridable: true
+      override_constraints: Must declare domain-specific conflict resolution strategy
+
+  types:
+    - name: DomainManifest
+      description: Domain identity, capabilities, required agents, and workflows
+      inherited_by: Domain Manifest section
+    - name: WorkflowDefinition
+      description: Phased execution plan with agent dispatch and dependencies
+      inherited_by: Workflow Structure section
+    - name: ScoringTable
+      description: Weighted category scores with range labels
+      inherited_by: Scoring section
+
+  endpoints:
+    - path: /v1/execute
+      description: Primary workflow entry point
+      inherited_by: Standard HandleMessage Actions section
+    - path: /v1/health (get_status)
+      description: Domain health and agent availability
+      inherited_by: Standard HandleMessage Actions section
+```
+
+---
+
 ## Domain Manifest
 
 Every domain controller MUST register with a manifest following this
@@ -249,7 +404,18 @@ Domains MAY override or extend with domain-specific handling
 
 ---
 
-## Standard Verification Checklist
+## Implementation Notes
+
+- Domain controllers are agents with `type: domain` — they implement all 6 protocol endpoints
+- The domain manifest is returned as part of `POST /v1/describe` alongside the AgentManifest
+- Workflow phases should be dispatched in dependency order; independent phases may run in parallel
+- Scoring weights must sum to 1.0; implementations should validate at startup
+- Domain controllers should cache agent availability to avoid redundant health checks during workflow execution
+- Observation and recommendation storage should use the patterns/storage schema for consistency
+
+---
+
+## Verification Checklist
 
 Every domain MUST pass these checks. Domains inherit them and add
 domain-specific items.

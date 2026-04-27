@@ -36,6 +36,136 @@ credential management, and `patterns/rate-limiting` for throughput.
 
 ---
 
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [code, message, detail]
+        - name: RequestLimits
+          fields_used: [max_body_size, max_nesting_depth]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [code, message, retryable]
+        - name: Token
+          fields_used: [capabilities, expires_at, signature]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentIdentity
+          fields_used: [public_key, name, capabilities]
+        - name: MessageSignature
+          fields_used: [algorithm, signature, key_id]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/observability
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: LogEvent
+          fields_used: [event_type, level, detail, timestamp]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **Zero-trust by default** — Every request is verified regardless of network origin; agents on the same network receive no implicit trust.
+2. **Defense in depth** — Multiple overlapping security layers (TLS, input validation, output sanitization, signature verification) ensure no single failure compromises the system.
+3. **Fail closed** — When security checks encounter errors or ambiguity, requests are rejected rather than allowed through.
+4. **Least privilege** — Agents receive only the capabilities they declare; token capabilities are checked against every requested operation.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: input-validation
+      description: Validate all input crossing system boundaries against size, type, and format rules
+      parameters:
+        - name: max_body_size
+          type: int
+          required: true
+          description: Maximum request body size in bytes
+        - name: max_nesting_depth
+          type: int
+          required: true
+          description: Maximum JSON nesting depth allowed
+        - name: max_string_length
+          type: int
+          required: true
+          description: Maximum string field length in characters
+      inherits: Validation flow for all HTTP and message inputs
+      overridable: true
+      override_constraints: Cannot increase max_body_size beyond 10 MB
+    - name: output-sanitization
+      description: Strip sensitive data from all outgoing responses
+      parameters:
+        - name: environment
+          type: enum(production, staging, development)
+          required: true
+          description: Controls sanitization strictness
+      inherits: Response filtering pipeline for all agents
+      overridable: false
+      override_constraints: Cannot disable in production
+    - name: threat-classification
+      description: Classify and respond to security events by threat level
+      parameters:
+        - name: level
+          type: enum(critical, high, medium, low, info)
+          required: true
+          description: Threat severity level
+      inherits: Standardized threat levels and auto-response behavior
+      overridable: true
+      override_constraints: Critical and high levels cannot be downgraded
+  types:
+    - name: SecurityEvent
+      description: Structured security event with threat level and classification
+      inherited_by: Threat Classification section
+    - name: TLSConfig
+      description: TLS mode and certificate management configuration
+      inherited_by: Transport Security section
+    - name: CORSConfig
+      description: Cross-origin resource sharing configuration
+      inherited_by: Security Headers section
+  events:
+    - topic: security.invalid_signature
+      description: Message signature verification failed
+      payload: {source, target, detail, remote_addr, trace_id, timestamp}
+    - topic: security.capability_violation
+      description: Agent attempted an unauthorized operation
+      payload: {source, target, capability, trace_id, timestamp}
+    - topic: security.path_traversal_attempt
+      description: File path traversal attack detected
+      payload: {source, path, remote_addr, timestamp}
+```
+
+---
+
 ## Transport Security
 
 ### TLS Requirements
@@ -283,7 +413,18 @@ security events and routes notifications per severity.
 
 ---
 
-## Agent Security Checklist
+## Implementation Notes
+
+- Security is defense-in-depth — no single layer is sufficient alone
+- Input validation runs before any business logic; output sanitization runs after
+- TLS enforcement applies to production only — localhost communication is permitted in development
+- The zero-trust model means every request is authenticated, even between co-located agents
+- Security events should be emitted for all threat classification matches, not just blocks
+- The OWASP Top 10 alignment is a minimum — implementations should consider domain-specific threats
+
+---
+
+## Verification Checklist
 
 Every agent MUST meet these security requirements. This checklist
 is inherited and extends the agent-specific verification checklist.

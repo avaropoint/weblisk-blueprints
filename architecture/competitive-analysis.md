@@ -4,6 +4,7 @@ name: competitive-analysis
 version: 1.0.0
 requires: [protocol/spec, protocol/identity, protocol/federation]
 platform: any
+tier: free
 -->
 
 # Competitive Landscape Analysis
@@ -22,6 +23,85 @@ capabilities, communicate over HTTP+JSON, and collaborate across
 trust boundaries — without depending on any vendor, language, SDK,
 model, or runtime. The comparison is less "which framework is better"
 and more "which layer of the stack does each address."
+
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, capabilities, url]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Ed25519KeyPair
+          fields_used: [public_key]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/federation
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: FederationPeer
+          fields_used: [hub_name, trust_tier, capabilities]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Responsibilities
+
+### Owns
+
+- Competitive landscape analysis framework and methodology
+- Feature comparison matrix across agent frameworks (OpenAI, Google ADK, Claude/MCP, AutoGen/SK, CrewAI, LangGraph)
+- Protocol-layer comparison (MCP, A2A, Weblisk)
+- Interoperability roadmap (MCP adapter, A2A gateway, framework-internal agents)
+- Positioning narrative for Weblisk as protocol vs. runtime
+
+### Does NOT Own
+
+- Implementation of MCP or A2A adapters (defined in their respective blueprints)
+- Third-party framework documentation or roadmaps
+- Weblisk protocol specification (owned by `protocol/spec`)
+- Federation protocol details (owned by `protocol/federation`)
+
+---
+
+## Interfaces
+
+This is an analysis document, not a runtime component. It does not
+expose endpoints or programmatic interfaces. Its outputs are:
+- The [Comparison Matrix](#comparison-matrix) used for positioning decisions
+- The [Interoperability Roadmap](#interoperability-roadmap) defining
+  adapter specifications (MCP server, A2A gateway, framework-internal agents)
+
+---
+
+## Data Flow
+
+1. Analysis inputs: protocol specifications, third-party framework documentation, public benchmarks
+2. Each framework evaluated against a fixed set of dimensions (language, model lock-in, runtime, federation, etc.)
+3. Results aggregated into the comparison matrix
+4. Positioning narrative derived from capability gaps
+5. Interoperability roadmap specifies adapter contracts that feed into implementation blueprints
 
 ---
 
@@ -483,6 +563,25 @@ Any agent framework can implement a Weblisk agent. The contract is:
 What happens inside the agent — whether it uses OpenAI SDK, Google
 ADK, CrewAI, raw Python, or hand-written assembly — is entirely up
 to the implementer. The protocol doesn't know or care.
+
+---
+
+## Implementation Notes
+
+- This analysis should be refreshed as the agent ecosystem evolves rapidly
+- Protocol-level comparisons (MCP, A2A, ACP) are the primary point of differentiation
+- Interoperability adapters are the recommended path — competing with established frameworks is not the goal
+- The comparison matrix is intentionally factual; marketing claims are excluded
+
+---
+
+## Verification Checklist
+
+- [ ] Analysis covers all major protocol-level competitors (MCP, A2A, ACP)
+- [ ] Analysis covers all major framework-level competitors (AutoGen, CrewAI, LangGraph, Semantic Kernel)
+- [ ] Comparison matrix uses verifiable criteria only
+- [ ] Interoperability roadmap identifies concrete adapter patterns
+- [ ] Summary FAQ addresses the most common positioning questions
 
 ---
 

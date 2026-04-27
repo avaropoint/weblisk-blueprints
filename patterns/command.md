@@ -35,6 +35,68 @@ commands it's allowed to run.
 
 ---
 
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [error, code, category, retryable]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: FieldType
+          fields_used: [string, int, boolean, timestamp]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/agent
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, type, capabilities]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/logging
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: LogEntry
+          fields_used: [log_type, level, component, details]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/secrets
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: SecretRef
+          fields_used: [key, env_var]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
 ## Design Principles
 
 1. **Allowlist-only** — Agents can only execute commands they've
@@ -49,6 +111,61 @@ commands it's allowed to run.
    The framework kills commands that exceed their timeout.
 5. **No shell injection** — Commands are executed as argument arrays,
    never as shell-interpreted strings.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: command-execution
+      description: Sandboxed execution of declared commands with output capture
+      parameters:
+        - name: key
+          type: string
+          required: true
+          description: Command key from agent declaration
+        - name: args
+          type: "[]string"
+          required: true
+          description: Argument values validated against allowed pattern
+        - name: timeout
+          type: int
+          required: false
+          description: Override timeout (cannot exceed max_timeout)
+      inherits: Argument validation, sandbox setup, timeout enforcement, audit logging
+      overridable: true
+      override_constraints: Must preserve allowlist-only enforcement and shell injection prevention
+
+    - name: remote-execution
+      description: Command execution on remote systems via SSH
+      parameters:
+        - name: target
+          type: string
+          required: true
+          description: Named remote host from configuration
+        - name: key
+          type: string
+          required: true
+          description: Command key from declaration
+      inherits: SSH connection, argument validation, output capture
+      overridable: true
+      override_constraints: Must use SSH key authentication only, password auth forbidden
+
+  types:
+    - name: CommandDeclaration
+      description: Allowed command definition with binary, args pattern, and timeout
+      inherited_by: Types section
+    - name: CommandResult
+      description: Execution result with exit code, output, duration, and timeout status
+      inherited_by: Types section
+
+  endpoints:
+    - path: cmd.execute(key, args, options)
+      description: Execute a declared command in sandbox
+      inherited_by: Command Execution API section
+```
 
 ---
 

@@ -4,6 +4,7 @@ name: threat-model
 version: 1.0.0
 requires: [protocol/spec, protocol/identity, protocol/federation, architecture/gateway, architecture/browser-session, architecture/data-security, architecture/admin, architecture/observability]
 platform: any
+tier: free
 -->
 
 # Threat Model
@@ -40,6 +41,161 @@ the residual risk.
 │  BOUNDARY 5: Hub ↔ Hub (Federation)│ ← Cross-organization boundary
 └────────────────────────────────────┘
 ```
+
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: RegisterRequest
+          fields_used: [manifest, signature, timestamp]
+        - name: AgentMessage
+          fields_used: [from, to, signature]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Ed25519Identity
+          fields_used: [public_key, sign, verify]
+        - name: SignatureVerification
+          fields_used: [verify_signature, check_replay]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/federation
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: PeerRequest
+          fields_used: [manifest, capabilities]
+        - name: DataContract
+          fields_used: [inbound, outbound, forbidden, jurisdiction]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/gateway
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: SessionToken
+          fields_used: [token, expiry, binding, csrf_secret]
+        - name: RouteTable
+          fields_used: [routes, auth, rate_limit]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/browser-session
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: BrowserSession
+          fields_used: [session_id, client_binding, csrf_token]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/data-security
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: EncryptionPolicy
+          fields_used: [algorithm, key_derivation, classification]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/admin
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: OperatorAuth
+          fields_used: [operator_key, mfa_required, ip_allowlist]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/observability
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AuditEntry
+          fields_used: [timestamp, actor, action, target, status]
+        - name: StructuredLog
+          fields_used: [ts, level, component, trace_id]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Responsibilities
+
+### Owns
+- Comprehensive attack surface analysis across all 5 trust boundaries
+- Mitigation strategy definition for each identified attack vector
+- OWASP Top 10 coverage mapping to Weblisk controls
+- Attack chain analysis (multi-vector compound exploits)
+- Security testing requirements per boundary
+- Residual risk register and acceptance criteria
+- Continuous security check frequency definitions
+
+### Does NOT Own
+- Implementation of security controls (owned by gateway, agents, orchestrator)
+- Conformance test execution (owned by architecture/testing)
+- Penetration testing execution (external engagement)
+- Deployment-specific security configuration (platform-specific)
+- Incident response procedures (operational concern)
+
+---
+
+## Interfaces
+
+The threat model is a reference document, not a runtime component. It
+defines security contracts that other components implement:
+
+| Contract | Implementor | Vectors Covered |
+|----------|-------------|----------------|
+| TLS termination and HSTS | Gateway | 1.1–1.4 |
+| Rate limiting (per-IP, per-session, per-endpoint) | Gateway | 1.5–1.8, 1.27–1.32 |
+| Session binding and CSRF | Gateway + Browser Session | 1.9–1.13 |
+| Input validation and CSP | Gateway + Agents | 1.14–1.21 |
+| mTLS and agent identity verification | Orchestrator + Agents | 2.1–2.10 |
+| Encryption at rest and key management | Agents + Data Security | 3.1–3.8 |
+| Admin gateway separation and MFA | Admin Gateway | 4.1–4.8 |
+| Federation data contracts and trust tiers | Federation Protocol | 5.1–5.8 |
+
+---
+
+## Data Flow
+
+Security controls are applied as data crosses each boundary:
+
+1. Browser sends request over TLS → gateway terminates TLS, enforces HSTS (Boundary 1 entry)
+2. Gateway applies rate limiting, validates request structure, resolves session
+3. Gateway evaluates CSRF token and ABAC policy — denies or allows
+4. Gateway strips browser headers, injects authenticated context headers (Boundary 2 crossing)
+5. Agent validates gateway identity via WLT token, checks request ID for replay
+6. Agent processes task using parameterized queries against scoped storage (Boundary 3 crossing)
+7. Agent returns response; gateway sanitizes response before returning to browser (Boundary 1 exit)
+8. For admin operations: separate admin gateway enforces Ed25519 key + MFA + IP allowlist (Boundary 4)
+9. For federation: hub validates peer identity, enforces data contract field filtering (Boundary 5)
+10. All security events logged to append-only audit trail with hash chain integrity
+
+---
 
 ## Design Principles
 

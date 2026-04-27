@@ -2,8 +2,9 @@
 type: protocol
 name: spec
 version: 1.0.0
-requires: [protocol/types]
+requires: [protocol/types, protocol/identity]
 platform: any
+tier: free
 -->
 
 # Weblisk Agent Protocol Specification
@@ -37,6 +38,66 @@ over standard HTTP endpoints.
 5. **Separation of concerns** — The orchestrator manages agent
    lifecycle, discovery, trust, and namespace control. It does NOT
    execute tasks, manage workflows, or store business state.
+
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, type, version, description, url, public_key, capabilities, inputs, outputs, collaborators, approval, max_concurrent, publishes, subscriptions]
+        - name: TaskRequest
+          fields_used: [id, from, action, payload, context, token, signature, timestamp]
+        - name: TaskResult
+          fields_used: [task_id, agent_name, status, summary, changes, observations, recommendations, metrics, signature, timestamp]
+        - name: AgentMessage
+          fields_used: [id, from, to, type, action, payload, token, signature, timestamp, trace_id]
+        - name: EventEnvelope
+          fields_used: [event_id, topic, source, scope, correlation_id, timestamp, trace_id, version, payload, token]
+        - name: ErrorResponse
+          fields_used: [error, code, category, retryable, detail]
+        - name: ServiceDirectory
+          fields_used: [services, routing_table, namespaces, updated_at, signature]
+        - name: RegisterRequest
+          fields_used: [manifest, signature, timestamp]
+        - name: RegisterResponse
+          fields_used: [agent_id, token, expires_at, services, orchestrator, protocol_version]
+        - name: ChannelRequest
+          fields_used: [from_agent, to_agent, purpose, token, signature]
+        - name: ChannelGrant
+          fields_used: [channel_id, from_agent, to_agent, target_url, target_pub_key, channel_token, expires_at, signature]
+        - name: HealthStatus
+          fields_used: [name, status, version, uptime, metrics, timestamp]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Ed25519KeyPair
+          fields_used: [public_key, private_key]
+        - name: WLToken
+          fields_used: [header, payload, signature]
+      endpoints:
+        - path: /v1/register
+          methods: [POST]
+          request_type: RegisterRequest
+          response_fields: [agent_id, token, services, orchestrator, protocol_version]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
 
 ## Conventions
 
@@ -394,6 +455,27 @@ and data contract enforcement.
 
 ---
 
+## Types
+
+All types referenced in this specification are defined in
+[protocol/types.md](types.md). This includes:
+
+- `AgentManifest` — Agent identity and capability contract
+- `TaskRequest` / `TaskResult` — Task execution protocol
+- `AgentMessage` — Direct agent-to-agent messaging
+- `EventEnvelope` — Pub/sub event delivery
+- `ErrorResponse` — Structured error format
+- `ServiceDirectory` — Service discovery and routing
+- `RegisterRequest` / `RegisterResponse` — Agent registration
+- `ChannelRequest` / `ChannelGrant` — Channel brokering
+- `Subscription` / `RouteEntry` — Event routing declarations
+- `DeadLetterEntry` — Failed event delivery
+
+See [types.md](types.md) for the complete type registry with field
+specifications, constraints, and JSON serialization keys.
+
+---
+
 ## Event Scoping
 
 Every event carries a `scope` field that limits which subscribers
@@ -507,7 +589,7 @@ infrastructure agent that subscribes to `system.dead_letter` events
 
 ---
 
-## Auth Middleware
+## Authentication
 
 Applied to ALL orchestrator endpoints except:
 - `GET /v1/health`
@@ -608,6 +690,39 @@ status responses to protocol usage:
 | 500 | Internal server error |
 | 502 | Could not reach target agent for event delivery |
 | 504 | Agent did not respond within timeout |
+
+---
+
+## Security
+
+```yaml
+security:
+  transport:
+    - All endpoints MUST be served over HTTPS in production (TLS 1.2+)
+    - Localhost-only communication permitted during development
+    - No cleartext secrets in request/response bodies
+  signing:
+    algorithm: Ed25519
+    key_type: 32-byte public / 64-byte private
+    process: See protocol/identity for full signing specification
+  verification:
+    process: All signed messages verified against sender public key from service directory
+  trust_model:
+    description: >
+      Zero-trust agent model. Every agent authenticates via Ed25519 signature
+      at registration. All subsequent requests require WLT token issued by
+      the orchestrator. Capabilities are declared in manifest and enforced
+      at the orchestrator. Namespace ownership prevents event spoofing.
+      Channel tokens scope agent-to-agent communication.
+  input_validation:
+    - Request body size limits enforced (1 MB default, 10 MB for task execution)
+    - All IDs validated as 32-character hex strings
+    - All timestamps validated as positive integers within replay window
+    - Unknown JSON fields ignored (forward compatibility)
+  replay_protection:
+    window: 300 seconds
+    applies_to: registration, key rotation
+```
 
 ---
 

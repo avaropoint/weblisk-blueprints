@@ -4,6 +4,7 @@ name: go
 version: 1.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway]
 platform: go
+tier: free
 -->
 
 # Platform: Go Implementation
@@ -18,6 +19,59 @@ standard library alone. No package manager, no native bindings, no
 external database servers. The only exception is the optional SQLite
 driver for persistence, which compiles into the binary (embedded,
 not an external server).
+
+## Overview
+
+This blueprint provides the reference implementation for Weblisk in Go.
+Go is the default platform — all protocol types, identity management,
+and agent lifecycle patterns are designed to compile from the Go standard
+library alone. This guide covers project structure, build commands,
+concurrency patterns, and storage mapping for both development and
+production deployments.
+
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, version, capabilities, actions]
+        - name: TaskRequest
+          fields_used: [task_id, action, payload]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Identity
+          fields_used: [public_key, key_id]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: HealthResponse
+          fields_used: [status, component, version, uptime_seconds]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
 
 ## Project Structure
 
@@ -49,6 +103,38 @@ agents/<name>/
 
 Build: `cd agents/<name> && go build -o <name> .`
 Run: `./agents/seo --port 9710 --orch http://localhost:9800`
+
+---
+
+## Runtime Requirements
+
+```yaml
+runtime:
+  language: Go
+  version: ">=1.22"
+  dependencies:
+    required: []  # Zero external dependencies — Go standard library only
+    optional:
+      - name: modernc.org/sqlite
+        version: "latest"
+        purpose: Pure Go SQLite driver for production persistence
+      - name: mattn/go-sqlite3
+        version: "latest"
+        purpose: CGo SQLite driver (faster, requires CGo)
+  build_tools:
+    - name: go
+      version: ">=1.22"
+      purpose: Go compiler and toolchain
+```
+
+Go achieves true zero external dependencies — the entire framework
+compiles from the Go standard library alone. The only exception is
+an optional SQLite driver for production persistence.
+
+See [Go-Specific Requirements](#go-specific-requirements) for
+detailed stdlib package usage and conventions.
+
+---
 
 ## Go-Specific Requirements
 
@@ -97,6 +183,44 @@ Run: `./agents/seo --port 9710 --orch http://localhost:9800`
 - Support command-line flags (--port, --orch) via manual arg parsing
 - Load .env file from working directory if present
 
+---
+
+## Build and Run
+
+### Build
+
+```bash
+# Build orchestrator
+cd server && go build -o orchestrator .
+
+# Build agent
+cd agents/<name> && go build -o <name> .
+```
+
+### Run
+
+```bash
+# Run orchestrator
+./server/orchestrator --port 9800
+
+# Run agent (connects to orchestrator)
+WL_AI_PROVIDER=ollama WL_AI_MODEL=llama3 ./agents/seo --orch http://localhost:9800
+```
+
+### Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `WL_PORT` | no | `9800` | Listen port |
+| `WL_AI_PROVIDER` | yes | — | LLM provider (`ollama`, `openai`, `anthropic`) |
+| `WL_AI_MODEL` | yes | — | Model name for LLM provider |
+| `WL_ORCH_URL` | yes (agents) | — | Orchestrator URL for agent registration |
+| `WL_DEV` | no | `0` | Set to `1` for in-memory storage mode |
+
+See [Build Commands](#build-commands) for additional build examples.
+
+---
+
 ## Build Commands
 
 ```bash
@@ -122,6 +246,42 @@ go 1.22
 ```
 
 No `require` statements needed — stdlib only.
+
+---
+
+## Platform-Specific Conventions
+
+### Concurrency
+
+All registries and shared maps are protected by `sync.RWMutex` with
+`RLock` for reads and `Lock` for writes. HTTP handlers are inherently
+concurrent (`net/http` serves each request in a goroutine). See
+[Concurrency (Go-Specific)](#concurrency-go-specific) for the
+channel-based semaphore and `WaitGroup` dispatch patterns.
+
+### IO Safety
+
+- `io.LimitReader` on all request body reads
+  - Registration/messages: 1 MB (`1 << 20`)
+  - Task execution: 10 MB (`10 << 20`)
+  - Channel requests: 64 KB (`1 << 16`)
+
+### Error Handling
+
+- Return errors from functions — never panic
+- HTTP handlers write JSON error responses with structured `ErrorResponse`
+- Registration failures are fatal; service broadcast failures are logged and ignored
+
+### Logging
+
+- Structured JSON logging to stdout
+- Include `component`, `trace_id`, and `timestamp` in all log entries
+- Use `log/slog` (Go 1.21+) or `fmt.Fprintf(os.Stderr, ...)` for minimal logging
+
+See [Go-Specific Requirements](#go-specific-requirements) for full
+conventions including package organization and configuration.
+
+---
 
 ## Project Structure: Domain Controller
 
@@ -228,6 +388,111 @@ defer limiter.Release()
 Use `sync.WaitGroup` + goroutines for parallel phase execution within
 a dependency level. Use a semaphore per target agent to respect
 `max_concurrent` declarations.
+
+---
+
+## Type Mapping
+
+| Schema Type | Go Type | Notes |
+|-------------|---------|-------|
+| `string` | `string` | |
+| `int` | `int32` | |
+| `int64` | `int64` | Used for timestamps |
+| `float` | `float64` | |
+| `bool` | `bool` | |
+| `object` | `map[string]any` | Or typed struct |
+| `list` | `[]T` | Typed slice |
+| `uuid` | `string` | Validated format |
+| `timestamp` | `int64` | Unix epoch seconds via `time.Now().Unix()` |
+
+---
+
+## Security
+
+### Input Validation
+
+- `io.LimitReader` on all request body reads (see IO Safety above)
+- Validate JSON structure before processing — reject unknown fields
+- Enforce maximum sizes per endpoint type
+
+### Cryptography
+
+- `crypto/ed25519` for key generation, signing, and verification
+- `crypto/rand` for all secure random generation
+- `encoding/hex` for key encoding in protocol messages
+- No external cryptography libraries needed
+
+### Dependencies
+
+- Zero external dependencies eliminates supply chain attack surface
+- Exception: one SQLite driver for production persistence (auditable, well-known)
+- Use `go mod verify` to validate module checksums
+
+### Key Management
+
+- Private keys stored as files with `0600` permissions
+- Key directory created with `0700` permissions
+- Environment variables for non-secret configuration only
+
+---
+
+## Testing
+
+### Unit Tests
+
+```bash
+cd server && go test -v ./...
+cd agents/<name> && go test -v ./...
+```
+
+Use table-driven tests for protocol validation:
+
+```go
+func TestValidateManifest(t *testing.T) {
+    tests := []struct {
+        name    string
+        input   AgentManifest
+        wantErr bool
+    }{
+        {"valid", AgentManifest{Name: "seo", Version: "1.0.0"}, false},
+        {"missing name", AgentManifest{Version: "1.0.0"}, true},
+    }
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            err := validateManifest(tt.input)
+            if (err != nil) != tt.wantErr {
+                t.Errorf("validateManifest() error = %v, wantErr %v", err, tt.wantErr)
+            }
+        })
+    }
+}
+```
+
+### Integration Tests
+
+- Start orchestrator and agent in test, verify registration flow
+- Test task execution end-to-end
+- Use `httptest.NewServer` for isolated HTTP testing
+
+### CI
+
+```bash
+go vet ./...
+go test -race -count=1 ./...
+```
+
+---
+
+## Implementation Notes
+
+- All files in `package main` — shared code is copied between binaries, not imported
+- Use manual `os.Args` parsing or a simple flag loop for CLI flags (no `flag` package required)
+- SQLite uses WAL journal mode and `user_version` pragma for schema migrations
+- When `WL_DEV=1`, fall back to in-memory maps with a printed warning
+- Binaries are fully static — deploy as single file with no runtime dependencies
+- Go’s `net/http` default server is production-ready (timeouts should be configured)
+
+---
 
 ## Verification Checklist
 

@@ -4,6 +4,7 @@ name: change-management
 version: 1.0.0
 requires: [protocol/spec, protocol/types, architecture/orchestrator, architecture/agent, architecture/lifecycle, patterns/messaging, patterns/versioning]
 platform: any
+tier: free
 -->
 
 # Change Management
@@ -34,6 +35,155 @@ The protocol is built on three principles:
 3. **Blue-green safety** — when reconciliation requires a version bump,
    the new version is built and validated alongside the old one before
    traffic cuts over. Rollback is always possible.
+
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      endpoints:
+        - path: /v1/register
+          methods: [POST, DELETE]
+      types:
+        - name: AgentManifest
+          fields_used: [name, version, capabilities]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: EventEnvelope
+          fields_used: [event_id, topic, payload, source, scope]
+        - name: AgentManifest
+          fields_used: [name, version, requires]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/orchestrator
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      endpoints:
+        - path: /v1/register
+          methods: [POST, DELETE]
+        - path: /v1/services
+          methods: [GET]
+      events:
+        - topic: system.blueprint.changed
+          fields_used: [blueprint_name, version, diff]
+        - topic: system.blueprint.updated
+          fields_used: [blueprint, version_from, version_to, change_id]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/agent
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentContext
+          fields_used: [identity, services, token]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/lifecycle
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Strategy
+          fields_used: [id, name, status]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/messaging
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      patterns:
+        - behavior: publish
+          parameters: [topic, payload, source]
+        - behavior: subscribe
+          parameters: [topic, handler]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/versioning
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      patterns:
+        - behavior: semver-range
+          parameters: [major, minor, patch]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Responsibilities
+
+### Owns
+
+- Dependency contract schema (binding declarations for endpoints, types, events, config, patterns)
+- Structured diff computation between blueprint versions
+- Impact classification (none, compatible, breaking, removed, out-of-range)
+- Change cascade protocol (detection → assessment → reconciliation → verification)
+- Blue-green agent versioning lifecycle (build, validate, canary, cutover, cleanup)
+- Reconciliation wavefront tracking and deadline enforcement
+- Change history storage and audit trail
+
+### Does NOT Own
+
+- Blueprint content or authorship (each blueprint is independently maintained)
+- Agent self-governance decisions (agents decide how to reconcile based on their `on_change` rules)
+- Orchestrator internals (change-management defines the protocol; orchestrator executes it)
+- Workflow execution (owned by Workflow Agent; change-management may trigger workflow re-evaluation)
+- Storage engine (uses orchestrator storage; does not define persistence layer)
+
+---
+
+## Interfaces
+
+The change management component’s API surface is defined in:
+[Events](#events) (system.blueprint.changed, system.change.assessment,
+system.change.reconciled, system.change.verified),
+[Types](#types) (ChangeRecord, ImpactAssessment, ReconciliationReport,
+BlueGreenDeployment), and the
+[Change Cascade Protocol](#change-cascade-protocol) (4-phase event-driven
+reconciliation flow).
+
+---
+
+## Data Flow
+
+1. Blueprint X is updated (file change, API push, or `system.blueprint.changed` event)
+2. Orchestrator loads old and new versions, computes structured diff
+3. Each diff entry classified as breaking or non-breaking
+4. Change record stored; `system.blueprint.updated` event emitted
+5. Orchestrator walks dependency graph to find all agents referencing blueprint X
+6. For each dependent agent: load contract, check version range, map diff against bindings
+7. Impact classified per agent (none/compatible/breaking/removed/out-of-range)
+8. `system.change.assessment` event emitted per affected agent with deadline
+9. Each agent self-governs: applies `on_change` rule, reconciles, reports status
+10. If version-bump required: blue-green deployment (build → validate → canary → cutover)
+11. Agent emits `system.change.reconciled` with status
+12. Orchestrator verifies all agents reconciled; emits `system.change.verified`
 
 ---
 
@@ -1337,6 +1487,17 @@ constraints:
     - A DeploymentRecord in "retired" phase is immutable
     - The dependency graph MUST be acyclic
 ```
+
+---
+
+## Implementation Notes
+
+- Change detection runs automatically when a blueprint is updated — no manual trigger required
+- Impact classification is conservative: if uncertain, classify as BREAKING
+- The cascade protocol notifies all affected agents; agents decide whether to adopt or reject
+- Blue-green deployment ensures zero-downtime transitions between blueprint versions
+- Rollback is always available until the old version is explicitly retired
+- The dependency graph is validated for cycles at every change; cyclic dependencies are rejected immediately
 
 ---
 

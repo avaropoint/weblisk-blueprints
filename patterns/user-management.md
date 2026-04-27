@@ -22,6 +22,146 @@ management — creating accounts, assigning roles, recovering access,
 and linking external identity providers. Together, they form the
 complete user system for a Weblisk application.
 
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [code, message, detail]
+        - name: PaginatedResponse
+          fields_used: [data, pagination]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: TypeDefinition
+          fields_used: [name, fields]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/auth-session
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Session
+          fields_used: [user_id, expires_at, csrf_token]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/auth-token
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: RefreshToken
+          fields_used: [user_id, token, expires_at]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/gateway
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: RouteConfig
+          fields_used: [path, auth, rate_limit]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **Authentication is separate from identity** — Auth patterns handle proving who you are; this pattern handles creating accounts, assigning roles, and managing the user lifecycle.
+2. **Never reveal existence** — Endpoints like forgot-password return the same response whether the email exists or not, preventing enumeration attacks.
+3. **Least privilege by default** — New users receive the lowest-privilege role; role escalation requires explicit admin action.
+4. **Soft-delete for auditability** — User records are never physically deleted; soft-delete preserves the audit trail and prevents email re-registration.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: user-lifecycle
+      description: Full CRUD operations for user accounts with role-based access control
+      parameters:
+        - name: default_role
+          type: string
+          required: true
+          description: Role assigned to newly created users
+        - name: require_email_verification
+          type: boolean
+          required: true
+          description: Whether new accounts must verify email before full access
+      inherits: User CRUD, role management, and soft-delete behavior
+      overridable: true
+      override_constraints: Must preserve admin-only restrictions on DELETE and role changes
+    - name: password-reset
+      description: Secure password reset via time-limited single-use tokens
+      parameters:
+        - name: password_reset_ttl
+          type: int
+          required: true
+          description: Token validity period in seconds
+      inherits: Token generation, email delivery, and session invalidation on reset
+      overridable: true
+      override_constraints: Must invalidate all sessions on successful reset
+    - name: oauth-social-login
+      description: OAuth 2.0 authorization code flow for external identity providers
+      parameters:
+        - name: oauth_providers
+          type: array
+          required: false
+          description: List of enabled OAuth providers (github, google, etc.)
+      inherits: OAuth initiate/callback flow with CSRF protection
+      overridable: true
+      override_constraints: Must validate state parameter; must not auto-merge by email
+  types:
+    - name: User
+      description: User record with profile, role, status, and OAuth links
+      inherited_by: User Model section
+    - name: OAuthLink
+      description: Linked OAuth provider with provider ID and email
+      inherited_by: User Model section
+  endpoints:
+    - path: /users
+      description: List and manage user accounts
+      inherited_by: Specification section
+    - path: /auth/forgot-password
+      description: Initiate password reset flow
+      inherited_by: Password Reset section
+    - path: /auth/reset-password
+      description: Complete password reset with token
+      inherited_by: Password Reset section
+    - path: /auth/verify-email
+      description: Verify email address with token
+      inherited_by: Email Verification section
+    - path: /auth/oauth/:provider
+      description: Initiate OAuth authorization flow
+      inherited_by: OAuth Social Login section
+    - path: /auth/oauth/:provider/callback
+      description: Handle OAuth provider callback
+      inherited_by: OAuth Social Login section
+```
+
+---
+
 ## Specification
 
 ### Blueprint Format

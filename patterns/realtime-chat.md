@@ -21,6 +21,120 @@ built on WebSockets. It supports named channels, presence awareness
 handle channel management and history retrieval, while the WebSocket
 connection handles live messaging and presence.
 
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, version, url]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ChatMessage
+          fields_used: [id, channel, from, content, timestamp, metadata]
+        - name: WebSocketFrame
+          fields_used: [type]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/gateway
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: GatewayConfig
+          fields_used: [routes, websocket]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **WebSocket-primary** — real-time messaging uses persistent connections for low-latency delivery; HTTP endpoints serve as fallback and management layer.
+2. **Presence as first-class** — connection tracking and broadcast of join/leave events are core features, not optional add-ons.
+3. **Channel isolation** — each channel manages its own members, history limit, and auth mode independently.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: message-broadcast
+      description: Receive a message on a channel and broadcast to all connected members
+      parameters:
+        - name: channel
+          type: string
+          required: true
+          description: Target channel name
+        - name: content
+          type: string
+          required: true
+          description: Message body (max 64 KB)
+      inherits: WebSocket frame broadcasting, message persistence, rate limiting
+      overridable: true
+      override_constraints: Must persist messages up to history_limit and broadcast to all members
+
+    - name: presence-tracking
+      description: Track connected users per channel and broadcast join/leave events
+      parameters:
+        - name: channel
+          type: string
+          required: true
+          description: Channel to track presence for
+      inherits: Presence list in connected frame, presence broadcast on join/leave
+      overridable: true
+      override_constraints: Must broadcast presence events and include member list in connected frame
+
+  types:
+    - name: Channel
+      description: Named messaging channel with max_members, history_limit, and auth mode
+      inherited_by: Types section
+    - name: ChatMessage
+      description: Persisted message with id, channel, sender, content, and timestamp
+      inherited_by: Types section
+    - name: WebSocketFrame
+      description: Typed JSON frame for client-server and server-client communication
+      inherited_by: Specification section
+
+  endpoints:
+    - path: /ws
+      description: WebSocket endpoint for real-time messaging and presence
+      inherited_by: Specification section
+    - path: /channels
+      description: List available channels
+      inherited_by: Specification section
+    - path: /channels/:name
+      description: Get channel details and current presence
+      inherited_by: Specification section
+    - path: /channels/:name/history
+      description: Retrieve paginated message history
+      inherited_by: Specification section
+    - path: /channels/:name/send
+      description: Send a message via HTTP fallback
+      inherited_by: Specification section
+```
+
+---
+
 ## Specification
 
 ### Blueprint Format

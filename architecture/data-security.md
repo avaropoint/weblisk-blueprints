@@ -4,6 +4,7 @@ name: data-security
 version: 1.0.0
 requires: [protocol/spec, protocol/identity, protocol/federation, architecture/gateway, architecture/observability]
 platform: any
+tier: free
 -->
 
 # Data Security Architecture
@@ -24,6 +25,133 @@ Agents that handle sensitive data (PII, PCI-DSS, HIPAA, etc.) are
 responsible for their own data classification, field-level masking,
 compliance controls, and encryption-at-rest strategies. The framework
 provides the secure transport; applications provide the data handling.
+
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      endpoints:
+        - path: /v1/register
+          methods: [POST]
+        - path: /v1/message
+          methods: [POST]
+      types:
+        - name: AgentMessage
+          fields_used: [from, to, action, payload, signature]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Ed25519KeyPair
+          fields_used: [public_key, private_key]
+        - name: Signature
+          fields_used: [algorithm, value]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/federation
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: DataContract
+          fields_used: [fields, required, forbidden, permitted]
+        - name: FederationPeer
+          fields_used: [hub_name, public_key, trust_tier]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/gateway
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: GatewayConfig
+          fields_used: [tls, internal_headers, response_sanitization]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/observability
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AuditEntry
+          fields_used: [id, timestamp, actor, action, target]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Responsibilities
+
+The boundary between framework and application security is detailed in
+[What the Framework Secures](#what-the-framework-secures) and
+[What the Framework Does NOT Do](#what-the-framework-does-not-do).
+
+### Owns
+
+- TLS termination and encryption-in-transit across all component boundaries
+- Ed25519 message signing and verification for agent-to-agent communication
+- Internal header trust model (`X-Gateway-*` injection and validation)
+- Federation data contract enforcement (forbidden field stripping at boundaries)
+- Append-only audit trail for inter-component operations
+- Response sanitization (stripping internal headers, server identification)
+
+### Does NOT Own
+
+- Data classification (PII, financial, health) — application/agent responsibility
+- Field-level masking or redaction — application/agent responsibility
+- Encryption-at-rest key hierarchy — application/agent responsibility
+- Regulatory compliance (GDPR, CCPA, HIPAA, PCI-DSS) — application/agent responsibility
+- Data retention and deletion policies — application/agent responsibility
+
+---
+
+## Interfaces
+
+The data security component does not expose standalone endpoints. Its
+interfaces are enforcement points integrated into other components:
+- Gateway: TLS termination, header injection, response sanitization
+  (see [Transport Security](#transport-security) and [Response Sanitization](#response-sanitization))
+- Agent-to-agent: Ed25519 message signing covering `{from, to, action, payload}`
+  (see [Authentication Boundaries](#authentication-boundaries))
+- Federation: data contract enforcement at hub boundaries
+  (see [Federation Data Boundaries](#federation-data-boundaries))
+
+---
+
+## Data Flow
+
+1. Browser sends request to application gateway over TLS 1.2+ (1.3 preferred)
+2. Gateway terminates TLS and authenticates user (session or token)
+3. Gateway injects trusted headers (`X-Gateway-Session`, `X-Gateway-User`, `X-Gateway-Roles`)
+4. Request forwarded to target agent over TLS (or mTLS in zero-trust)
+5. Agent verifies request originates from registered gateway (header validation)
+6. Agent processes request; response returned to gateway
+7. Gateway sanitizes response (strips internal headers, server identification)
+8. For agent-to-agent: sender signs `{from, to, action, payload}` with Ed25519; recipient verifies
+9. For federation: sending gateway strips forbidden fields per data contract before transmission
+10. Receiving hub independently validates incoming data against its own contract
+11. All operations logged to append-only audit trail with tamper-detection hashing
+
+---
 
 ## What the Framework Secures
 

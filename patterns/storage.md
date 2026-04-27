@@ -38,6 +38,100 @@ the format so that:
 
 ---
 
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [code, message, detail]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: TypeDefinition
+          fields_used: [name, fields, description, constraints]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **Schema as declaration** — All persistent types are declared in YAML with explicit field types, constraints, and relationships; tools auto-generate DDL from declarations.
+2. **Agents own their storage** — Each agent manages its own tables; cross-agent data access goes through agent messages, not direct database queries.
+3. **Migrations are versioned and reversible** — Every schema change has both `up` and `down` steps, applied in version order and tracked in a migrations table.
+4. **Retention is explicit** — Time-series data declares retention rules upfront; automatic purging prevents unbounded storage growth.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: type-declaration
+      description: Declare persistent types with field-level constraints and validation
+      parameters:
+        - name: type_name
+          type: string
+          required: true
+          description: PascalCase type name for the persistent entity
+        - name: fields
+          type: map
+          required: true
+          description: Field definitions with type, required flag, and constraints
+      inherits: Standard type format with supported field types and constraint system
+      overridable: true
+      override_constraints: Must use supported field types; PascalCase naming required
+    - name: schema-migration
+      description: Version-to-version schema evolution with up and down steps
+      parameters:
+        - name: version
+          type: string
+          required: true
+          description: Target version for this migration
+        - name: up
+          type: array
+          required: true
+          description: Forward migration steps
+        - name: down
+          type: array
+          required: true
+          description: Rollback migration steps
+      inherits: Structured migration with add/drop/alter/rename actions
+      overridable: true
+      override_constraints: Must include both up and down sections
+  types:
+    - name: TypeDefinition
+      description: Persistent type declaration with fields, constraints, and descriptions
+      inherited_by: Type Declaration section
+    - name: ConstraintDefinition
+      description: Named constraint (unique, check, primary_key, foreign_key)
+      inherited_by: Constraints section
+    - name: RelationshipDefinition
+      description: Foreign key relationship with cascade rules
+      inherited_by: Relationships section
+    - name: IndexDefinition
+      description: Query optimization index declaration
+      inherited_by: Indexes section
+    - name: MigrationStep
+      description: Individual schema migration action (add_field, drop_field, etc.)
+      inherited_by: Migrations section
+```
+
+---
+
 ## Type Declaration
 
 All persistent types are declared as YAML with field-level constraints:

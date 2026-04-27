@@ -23,6 +23,146 @@ Ollama, Cloudflare Workers AI, etc.) behind a universal contract so
 that agents, domains, and application code interact with intelligence
 through a single interface.
 
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [error, code, category, retryable]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Message
+          fields_used: [role, content, tool_call_id]
+        - name: Usage
+          fields_used: [prompt_tokens, completion_tokens, total_tokens]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/agent
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, type, version, capabilities]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/gateway
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: GatewayRoute
+          fields_used: [path, method, rate_limit]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **Provider-agnostic** — All intelligence access flows through a universal contract that abstracts provider-specific details. Switching between local and remote is a configuration change, not a code change.
+2. **Local-first** — The default configuration uses local models (Ollama) with no external API keys, no external dependencies, and no data leaving the deployment.
+3. **Centralized gateway** — Rather than each agent implementing its own provider integration, the api-ai pattern provides a single gateway that enforces rate limits, tracks usage, and routes to the configured provider.
+4. **Structured extraction** — Beyond free-form chat, the pattern supports schema-validated data extraction, ensuring AI outputs conform to expected shapes.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: conversational-inference
+      description: Multi-turn chat with optional tool use
+      parameters:
+        - name: model
+          type: string
+          required: false
+          description: Model name (uses default if omitted)
+        - name: messages
+          type: "[]Message"
+          required: true
+          description: Conversation history
+        - name: temperature
+          type: float
+          required: false
+          description: Sampling temperature (0.0–2.0)
+      inherits: ChatRequest/ChatResponse shape
+      overridable: true
+      override_constraints: Must preserve Message schema and Usage reporting
+
+    - name: structured-extraction
+      description: Extract typed data from text using a JSON schema
+      parameters:
+        - name: input
+          type: string
+          required: true
+          description: Text to extract from
+        - name: schema
+          type: object
+          required: true
+          description: JSON Schema defining output shape
+      inherits: ExtractRequest/ExtractResponse shape
+      overridable: true
+      override_constraints: Must validate output against provided schema
+
+  types:
+    - name: ChatRequest
+      description: Input for conversational inference
+      inherited_by: Types section
+    - name: ChatResponse
+      description: Output from conversational inference
+      inherited_by: Types section
+    - name: ExtractRequest
+      description: Input for structured data extraction
+      inherited_by: Types section
+    - name: EmbedRequest
+      description: Input for embedding generation
+      inherited_by: Types section
+
+  endpoints:
+    - path: /ai/chat
+      description: Conversational inference (multi-turn)
+      inherited_by: Specification section
+    - path: /ai/complete
+      description: Single-shot text completion
+      inherited_by: Specification section
+    - path: /ai/extract
+      description: Structured data extraction from text
+      inherited_by: Specification section
+    - path: /ai/embed
+      description: Generate embeddings for text
+      inherited_by: Specification section
+    - path: /ai/models
+      description: List available models and providers
+      inherited_by: Specification section
+    - path: /ai/health
+      description: Provider health and latency
+      inherited_by: Specification section
+```
+
+---
+
 This is the intelligence backbone of a Weblisk server — the way every
 agent accesses LLM capabilities. Rather than each agent implementing
 its own provider integration, the api-ai pattern provides a centralized

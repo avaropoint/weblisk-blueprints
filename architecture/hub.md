@@ -4,6 +4,7 @@ name: hub
 version: 1.0.0
 requires: [protocol/federation, protocol/identity, protocol/types, architecture/agent, architecture/gateway]
 platform: any
+tier: free
 -->
 
 # Weblisk Hub
@@ -57,6 +58,72 @@ Hubs are federated by design — there is no single central authority.
 Any orchestrator is a hub. Discovery relies on a combination of
 registry servers (operated by Avaropoint and, in the future, by
 partners) and direct peer discovery between hubs.
+
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/federation
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: PeerRequest
+          fields_used: [manifest, capabilities, data_contracts]
+        - name: DataContract
+          fields_used: [inbound, outbound, forbidden, jurisdiction, retention]
+        - name: BehavioralFingerprint
+          fields_used: [hash, change_level, timestamp]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Ed25519Identity
+          fields_used: [public_key, sign, verify]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, type, capabilities, version]
+        - name: ErrorResponse
+          fields_used: [error, code]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/agent
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentEndpoints
+          fields_used: [execute, message, describe, health]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/gateway
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: RouteTable
+          fields_used: [routes, islands]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
 
 ## Design Principles
 
@@ -1080,6 +1147,68 @@ protocol:
    agents) are signed by the seller's Ed25519 key. The CLI verifies
    signatures before generation. A tampered asset is cryptographically
    detectable before any code is generated.
+
+## Responsibilities
+
+### Owns
+- Capability listing publication, indexing, and signature verification
+- Hub-to-hub discovery (registry search and direct peer queries)
+- Collaboration lifecycle (peering, trust establishment, monitoring, revocation)
+- Usage metering with dual-signed reconciliation
+- Behavioral change detection and collaborator notification
+- Free vs pro tier enforcement (concurrency, rate limits, SLA)
+- Marketplace operations (listings, purchases, reviews, installable assets)
+
+### Does NOT Own
+- Federation protocol mechanics (owned by protocol/federation)
+- Agent registration or orchestration (owned by architecture/orchestrator)
+- Data contract schema definition (owned by protocol/federation)
+- Individual agent execution logic (owned by work agents)
+- Internal routing of tasks within a deployment (owned by orchestrator + domains)
+
+---
+
+## Interfaces
+
+| Interface | Type | Description |
+|-----------|------|-------------|
+| `GET /v1/hub/search` | HTTP | Registry search — query by domain, action, tier, jurisdiction |
+| `POST /v1/federation/peer` | HTTP | Initiate peering with another hub |
+| `GET /v1/federation/contracts` | HTTP | List published data contracts and capabilities |
+| `POST /v1/hub/publish` | HTTP | Publish a capability listing to the network |
+| `GET /v1/hub/listings` | HTTP | List own published capabilities |
+| `POST /v1/marketplace/purchase` | HTTP | Purchase a marketplace listing |
+| `GET /v1/marketplace/search` | HTTP | Search marketplace listings |
+| `POST /v1/marketplace/review` | HTTP | Submit a verified review |
+| System events | Pub/Sub | `hub.peer.connected`, `hub.peer.revoked`, `hub.listing.published` |
+
+---
+
+## Data Flow
+
+1. Provider hub signs and publishes a `ListingEntry` to the registry
+2. Consumer hub searches the registry via `GET /v1/hub/search`
+3. Consumer reviews listing metadata, data contract, SLA, and pricing
+4. Consumer sends peering request via `POST /v1/federation/peer`
+5. Provider reviews and approves the peering request
+6. Both hubs exchange manifests and public keys — federation link is live
+7. Consumer's domain controller includes federated capability in a workflow
+8. First federated task executes with full data contract enforcement
+9. Both hubs independently meter usage with dual-signed records
+10. Ongoing monitoring tracks SLA compliance, behavioral stability, and error rates
+
+---
+
+## Implementation Notes
+
+- Hub federation is opt-in — deployments without federation operate as isolated instances
+- Marketplace listings are cryptographically signed; the CLI verifies signatures before code generation
+- Usage metering is dual-signed (consumer + provider) to prevent billing disputes
+- Behavioral change detection uses fingerprinting — not exact payload comparison
+- Free tier enforces lower concurrency and rate limits but uses identical security controls
+- Peering trust is directional — hub A trusting hub B does not imply hub B trusts hub A
+
+---
 
 ## Verification Checklist
 

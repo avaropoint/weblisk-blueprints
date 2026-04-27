@@ -22,6 +22,39 @@ and deployed together. This pattern defines how to containerize the
 stack, manage configuration across environments, handle secrets
 safely, and automate the build-test-deploy pipeline.
 
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [error, code, category]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/orchestrator
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: OrchestratorConfig
+          fields_used: [port, env, log_level, storage_dsn]
+        - name: HealthResponse
+          fields_used: [status]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
 ## Design Principles
 
 1. **Build once, deploy anywhere** — Container images are immutable.
@@ -32,6 +65,68 @@ safely, and automate the build-test-deploy pipeline.
    production with validation gates at each step.
 4. **Rollback-ready** — Every deployment can be rolled back to the
    previous version within seconds.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: containerization
+      description: Multi-stage Docker build with minimal runtime image
+      parameters:
+        - name: base_image
+          type: string
+          required: true
+          description: Runtime base image (alpine for minimal attack surface)
+        - name: user
+          type: string
+          required: true
+          description: Non-root user for container (weblisk, UID 1000)
+      inherits: Dockerfile template, image tagging convention, compose setup
+      overridable: true
+      override_constraints: Must use non-root user and multi-stage build
+
+    - name: deployment-strategy
+      description: Rolling update, blue-green, or canary deployment with health checks
+      parameters:
+        - name: strategy
+          type: string
+          required: true
+          description: Deployment strategy (rolling, blue-green, canary)
+        - name: error_rate_threshold
+          type: float
+          required: false
+          description: Error rate threshold for automatic rollback
+      inherits: Health check integration, rollback automation
+      overridable: true
+      override_constraints: Must include health check verification before routing traffic
+
+    - name: environment-management
+      description: Configuration resolution across environment tiers
+      parameters:
+        - name: tier
+          type: string
+          required: true
+          description: Environment tier (local, dev, staging, production)
+      inherits: Config hierarchy, secrets management, environment variable conventions
+      overridable: true
+      override_constraints: Secrets must never appear in source code, images, or build logs
+
+  types:
+    - name: EnvironmentConfig
+      description: Configuration resolution order and environment variable conventions
+      inherited_by: Environment Management section
+    - name: DeploymentStrategy
+      description: Rolling, blue-green, or canary deployment specification
+      inherited_by: Deployment Strategies section
+
+  endpoints:
+    - path: /health
+      description: Deployment health check for startup, readiness, and liveness
+      inherited_by: Health Checks section
+```
 
 ---
 

@@ -30,6 +30,54 @@ so that:
 
 ---
 
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [code, message, detail]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentIdentity
+          fields_used: [name, capabilities]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/agent
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentConfig
+          fields_used: [name, secrets]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/storage
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: StoreInterface
+          fields_used: [get, put, delete]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
 ## Design Principles
 
 1. **Declaration before access** — Agents declare what secrets they
@@ -46,6 +94,60 @@ so that:
 5. **Zero-dependency storage** — The default secret store is
    file-based (`.weblisk/secrets/`). Implementations MAY integrate
    external vaults but MUST NOT require them.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: secret-access
+      description: Secure retrieval of declared secrets scoped to the requesting agent
+      parameters:
+        - name: key
+          type: string
+          required: true
+          description: Secret key in UPPER_SNAKE_CASE format
+      inherits: Agent-scoped secret isolation and audit logging
+      overridable: false
+      override_constraints: Agents cannot bypass scoping or audit
+    - name: secret-rotation
+      description: Update secret values without agent restart
+      parameters:
+        - name: key
+          type: string
+          required: true
+          description: Secret key to rotate
+        - name: method
+          type: enum(manual, scheduled, automatic)
+          required: true
+          description: Rotation trigger method
+      inherits: Zero-downtime rotation with cache invalidation
+      overridable: true
+      override_constraints: Must emit security.secret_rotated event
+  types:
+    - name: SecretDeclaration
+      description: Agent secret requirement with key, description, and rotation policy
+      inherited_by: Types section
+    - name: SecretMetadata
+      description: Secret lifecycle metadata including creation, rotation, and expiry
+      inherited_by: Types section
+  endpoints:
+    - path: /v1/agent/{name}/rotate-secret
+      description: Trigger manual secret rotation for a specific key
+      inherited_by: Secret Rotation section
+  events:
+    - topic: security.secret.rotated
+      description: Emitted when a secret value is rotated
+      payload: {key, method, rotated_by, timestamp}
+    - topic: security.secret_accessed
+      description: Audit log event for every secret retrieval
+      payload: {key, agent, timestamp}
+    - topic: security.secret_denied
+      description: Emitted when an agent attempts unauthorized secret access
+      payload: {key, requesting_agent, owning_agent, timestamp}
+```
 
 ---
 

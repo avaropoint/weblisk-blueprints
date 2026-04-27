@@ -4,6 +4,7 @@ name: agent
 version: 1.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/retry, patterns/messaging]
 platform: any
+tier: free
 -->
 
 # Weblisk Agent Blueprint
@@ -12,6 +13,145 @@ The universal blueprint every agent is built on. Every agent — regardless
 of language or platform — follows this structure. The agent handles
 protocol endpoints, registration, and messaging. The developer implements
 only the custom logic (Execute + HandleMessage).
+
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      endpoints:
+        - path: /v1/register
+          methods: [POST]
+        - path: /v1/execute
+          methods: [POST]
+        - path: /v1/message
+          methods: [POST]
+        - path: /v1/health
+          methods: [POST]
+        - path: /v1/services
+          methods: [POST]
+        - path: /v1/event
+          methods: [POST]
+      types:
+        - name: TaskRequest
+          fields_used: [task_id, action, payload, context]
+        - name: TaskResult
+          fields_used: [task_id, agent_name, status, summary, timestamp]
+        - name: AgentMessage
+          fields_used: [from, to, type, action, payload, signature]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Ed25519KeyPair
+          fields_used: [public_key, private_key]
+        - name: Signature
+          fields_used: [algorithm, value]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, version, url, public_key, capabilities, inputs, outputs, publishes, subscriptions]
+        - name: RegisterRequest
+          fields_used: [manifest, signature, timestamp]
+        - name: RegisterResponse
+          fields_used: [agent_id, token, services]
+        - name: EventEnvelope
+          fields_used: [event_id, topic, payload, source, scope, correlation_id]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/retry
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      patterns:
+        - behavior: retry-with-backoff
+          parameters: [max_retries, backoff_strategy, timeout]
+        - behavior: circuit-breaker
+          parameters: [failure_threshold, recovery_timeout]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/messaging
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      patterns:
+        - behavior: publish
+          parameters: [topic, payload, source]
+        - behavior: subscribe
+          parameters: [topic, handler, consumer_group]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Responsibilities
+
+### Owns
+
+- HTTP server hosting the 6 protocol endpoints (describe, execute, health, message, services, event)
+- Ed25519 key pair generation and message signing/verification
+- Registration with the orchestrator and token management
+- Service directory cache, routing table cache, and namespace map cache
+- Event publishing and subscription dispatch (via the framework base)
+- Backpressure and concurrency controls for inbound requests
+
+### Does NOT Own
+
+- Orchestrator registration logic (the orchestrator decides acceptance)
+- Workflow execution or task dispatch (owned by Workflow Agent and Task Agent)
+- Domain-level business rules (owned by domain controllers)
+- Storage persistence (agents use platform-specific storage independently)
+- Session management (owned by `architecture/browser-session`)
+
+---
+
+## Interfaces
+
+The agent’s public API surface is the 6 protocol endpoints defined in
+[Protocol Endpoint Implementations](#protocol-endpoint-implementations)
+and the two developer-facing methods defined in
+[Agent Logic Interface](#agent-logic-interface):
+`Execute(task, context)`, `HandleMessage(message, context)`, and
+`HandleEvent(event)`.
+
+---
+
+## Data Flow
+
+1. Agent starts: generates Ed25519 key pair, builds manifest, starts HTTP server
+2. Agent registers with orchestrator via `POST /v1/register` (signed manifest)
+3. Orchestrator returns token + service directory; agent caches both
+4. Inbound task arrives via `POST /v1/execute` — framework parses, delegates to `Execute()`
+5. Inbound message arrives via `POST /v1/message` — framework verifies signature, delegates to `HandleMessage()`
+6. Inbound event arrives via `POST /v1/event` — framework checks idempotency, dispatches to matching handlers
+7. Outbound messages: agent looks up target in service directory, signs payload, sends `POST /v1/message`
+8. Outbound events: agent publishes via framework, which resolves subscribers from routing table
+9. Service directory updates arrive via `POST /v1/services` — cache refreshed
+
+---
 
 ## Architecture
 
@@ -474,6 +614,17 @@ Agents that make outbound HTTP calls (security-scanner, uptime-checker,
 perf-auditor, etc.) MUST respect the outbound rate limit to avoid
 overwhelming targets. Agents performing LLM calls inherit timeout and
 retry settings from the api-ai pattern configuration.
+
+## Implementation Notes
+
+- The agent framework is the foundation layer — every running process in Weblisk is an agent
+- Registration is mandatory before any work can be done; unregistered agents receive no tasks
+- The Ed25519 key pair is generated once at first startup and persisted for the agent's lifetime
+- Service directory caching avoids repeated calls to the orchestrator for agent-to-agent communication
+- Backpressure via concurrent task limiting prevents overload; rejected tasks return 429 to the orchestrator
+- Health checks should complete within the configured timeout; slow health responses degrade system-wide visibility
+
+---
 
 ## Verification Checklist
 

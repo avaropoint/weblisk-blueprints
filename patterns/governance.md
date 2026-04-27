@@ -31,6 +31,151 @@ enforceable rules:
 
 ---
 
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, capabilities, url, type]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: GovernancePolicy
+          fields_used: [scope, target, rules, enforcement, severity]
+        - name: GovernanceDirective
+          fields_used: [directive, data, timestamp]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: IdentityToken
+          fields_used: [sub, role, cap]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/observability
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: HealthResponse
+          fields_used: [state, checks, metrics_snapshot]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/messaging
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: EventEnvelope
+          fields_used: [topic, payload, scope, source]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **Declarative policy** — governance rules are defined as data, not code, enabling runtime updates without agent redeployment.
+2. **Least privilege** — agents operate with the minimum required capabilities, enforced at registration and validated at every operation.
+3. **Separation of duties** — agents cannot approve their own actions; critical changes require independent approvers at escalated authority levels.
+4. **Audit everything** — every policy evaluation, violation, approval, and override is logged to form a complete compliance evidence trail.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: policy-evaluation
+      description: Evaluate governance policies against agent operations at runtime
+      parameters:
+        - name: agent
+          type: string
+          required: true
+          description: Agent name being evaluated
+        - name: operation
+          type: string
+          required: true
+          description: Operation being attempted
+        - name: enforcement
+          type: string
+          required: true
+          description: Enforcement mode — enforce, audit, or disabled
+      inherits: Policy evaluation engine, rule type library, enforcement flow
+      overridable: true
+      override_constraints: Cannot weaken enforcement from enforce to audit or disabled
+
+    - name: capability-enforcement
+      description: Validate agent capabilities against required permissions at runtime
+      parameters:
+        - name: capability
+          type: string
+          required: true
+          description: Capability string being checked
+      inherits: Capability hierarchy, enforcement points
+      overridable: false
+
+    - name: approval-authority
+      description: Route approval requests to appropriate authority level
+      parameters:
+        - name: severity
+          type: string
+          required: true
+          description: Change severity determining authority level
+      inherits: Authority levels, approval matrix, escalation rules
+      overridable: true
+      override_constraints: Cannot bypass admin approval for critical changes
+
+  types:
+    - name: GovernancePolicy
+      description: Declarative rule constraining agent behavior with scope, target, and enforcement mode
+      inherited_by: Policy Definition section
+    - name: GovernanceDirective
+      description: Runtime instruction delivered to agents for policy updates or capability changes
+      inherited_by: Governance Directives section
+
+  endpoints:
+    - path: /v1/message (action: governance.directive)
+      description: Deliver governance directives to agents via standard messaging
+      inherited_by: Governance Directives section
+
+  events:
+    - topic: governance.violation
+      description: Emitted when an agent violates a governance policy
+      payload: {agent, policy, rule, operation, enforcement, severity}
+    - topic: governance.policy_updated
+      description: Emitted when a governance policy is installed or updated
+      payload: {policy_name, scope, target, enforcement}
+    - topic: governance.capability_revoked
+      description: Emitted when a capability is revoked from an agent
+      payload: {agent, capability, reason}
+```
+
+---
+
 ## Policy Definition
 
 Policies are declarative rules that constrain agent behavior. They

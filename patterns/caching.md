@@ -21,6 +21,116 @@ and zero-dependency. This pattern defines a standard interface so that
 agents cache consistently and tools can instrument cache behaviour
 uniformly.
 
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [error, code, category]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: FieldType
+          fields_used: [int64, string, boolean]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/agent
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, type, capabilities]
+        - name: HealthResponse
+          fields_used: [status, cache]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/storage
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: FieldType
+          fields_used: [string, int, float, boolean, timestamp, json]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **Local and zero-dependency** — Caching is in-process, embedded in each agent. There is no shared cache server, no distributed state, and no serialization overhead.
+2. **Namespaced isolation** — Cache keys are always namespaced to prevent collisions between different data types within the same agent.
+3. **Cache-aside correctness** — The cache is never the source of truth. Agents always fall back to the primary data source on miss, and explicit invalidation takes priority over TTL.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: cache-interface
+      description: Standard Get/Set/Delete/Clear/Stats operations for agent caches
+      parameters:
+        - name: max_size
+          type: int
+          required: true
+          description: Maximum number of cache entries
+        - name: default_ttl
+          type: int
+          required: true
+          description: Default time-to-live in seconds
+      inherits: Cache Get, Set, Delete, Clear, Stats operations
+      overridable: true
+      override_constraints: Must preserve LRU eviction semantics and TTL expiry
+
+    - name: event-invalidation
+      description: Cache invalidation on service directory and lifecycle events
+      parameters:
+        - name: event
+          type: string
+          required: true
+          description: Event type triggering invalidation
+      inherits: Namespace-scoped invalidation rules
+      overridable: true
+      override_constraints: Service directory push must always clear service and route namespaces
+
+  types:
+    - name: CacheStats
+      description: Hit/miss/eviction counters and memory usage
+      inherited_by: Cache Interface section
+    - name: CacheEntry
+      description: Namespaced key-value with TTL metadata
+      inherited_by: Cache Namespaces section
+
+  endpoints:
+    - path: /v1/health (cache field)
+      description: Cache metrics exposed in agent health response
+      inherited_by: Observability section
+```
+
+---
+
 **What this pattern is NOT:**
 
 - Not a distributed cache (agents don't share memory)

@@ -41,6 +41,122 @@ The adapter is a thin wrapper — it does NOT re-implement the external
 framework's logic. It translates between Weblisk protocol calls and
 the framework's native interface.
 
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, type, version, url, capabilities]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: TaskRequest
+          fields_used: [task, context]
+        - name: TaskResult
+          fields_used: [status, summary, data, error, metrics]
+        - name: EventEnvelope
+          fields_used: [event_id, topic, source, payload]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/agent
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentState
+          fields_used: [state, health, uptime]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **Thin wrapper** — the adapter translates protocol calls only; it never re-implements or modifies the external framework's logic.
+2. **Framework-agnostic** — any process that implements the 6-endpoint protocol can participate in a hub, regardless of internal implementation language or framework.
+3. **Security parity** — adapted agents sign all outbound messages with Ed25519 and authenticate identically to native agents; no convenience bypasses are permitted.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: protocol-translation
+      description: Translate between Weblisk protocol calls and external framework native interface
+      parameters:
+        - name: adapter_type
+          type: string
+          required: true
+          description: Adapter mode — in-process, sidecar, or subprocess
+        - name: framework
+          type: string
+          required: true
+          description: External framework name (langchain, crewai, adk, http, custom)
+      inherits: TaskRequest-to-framework and framework-to-TaskResult translation maps
+      overridable: true
+      override_constraints: Must preserve all 6 protocol endpoints and Ed25519 signing
+
+    - name: health-mapping
+      description: Combine adapter health with wrapped framework health into standard response
+      parameters:
+        - name: framework_healthy
+          type: boolean
+          required: true
+          description: Whether the external framework reports healthy
+      inherits: Standard health response format with adapter metadata
+      overridable: true
+      override_constraints: Must report degraded when framework is unhealthy
+
+  types:
+    - name: AdapterManifest
+      description: Agent manifest extended with adapter-specific metadata (framework, version, type)
+      inherited_by: Adapter Types section
+    - name: TranslationMap
+      description: Mapping between Weblisk fields and framework-native fields
+      inherited_by: Translation Map section
+
+  endpoints:
+    - path: /v1/describe
+      description: Return agent manifest with adapter metadata
+      inherited_by: Adapter Contract section
+    - path: /v1/execute
+      description: Translate TaskRequest and invoke framework
+      inherited_by: Adapter Contract section
+    - path: /v1/health
+      description: Combined adapter and framework health status
+      inherited_by: Adapter Contract section
+    - path: /v1/message
+      description: Forward messages to framework if supported
+      inherited_by: Adapter Contract section
+    - path: /v1/services
+      description: Accept service directory updates
+      inherited_by: Adapter Contract section
+    - path: /v1/event
+      description: Translate inbound events to framework event model
+      inherited_by: Adapter Contract section
+```
+
+---
+
 ## Adapter Contract
 
 Every adapter MUST:

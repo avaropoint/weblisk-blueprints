@@ -34,6 +34,57 @@ complete.
 
 ---
 
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, subscriptions, namespace]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: EventEnvelope
+          fields_used: [event_id, topic, source, scope, correlation_id, timestamp, trace_id, version, payload, token]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/agent
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentState
+          fields_used: [state, url, subscriptions]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/retry
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: RetryConfig
+          fields_used: [max_attempts, backoff, jitter]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
 ## Design Principles
 
 1. **One protocol** — HTTP is the only transport. No separate message
@@ -53,6 +104,80 @@ complete.
 7. **Zero infrastructure** — The routing table IS the service
    directory. No external broker needed. The framework resolves
    subscribers locally and delivers via HTTP POST.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: event-publishing
+      description: Publish typed events to namespaced topics with scope-based delivery
+      parameters:
+        - name: topic
+          type: string
+          required: true
+          description: Dot-separated topic in an owned namespace
+        - name: payload
+          type: object
+          required: true
+          description: Event data conforming to topic schema
+        - name: scope
+          type: string
+          required: true
+          description: Target agent name or "*" for global broadcast
+      inherits: Namespace ownership validation, subscriber resolution, delivery pipeline
+      overridable: true
+      override_constraints: Must validate namespace ownership and deliver via HTTP POST
+
+    - name: event-subscribing
+      description: Declare topic subscriptions and receive events via POST /v1/event
+      parameters:
+        - name: pattern
+          type: string
+          required: true
+          description: Topic or wildcard pattern to subscribe to
+        - name: scope
+          type: string
+          required: false
+          description: Scope filter — self, *, or specific agent name
+      inherits: Pattern matching (exact, *, #), consumer groups, idempotent handling
+      overridable: true
+      override_constraints: Must handle duplicate event_ids idempotently
+
+    - name: dead-letter-handling
+      description: Store events that fail delivery after retry exhaustion
+      parameters:
+        - name: ttl
+          type: int
+          required: false
+          description: Seconds before dead-lettering undelivered events
+      inherits: Local dead-letter storage, replay capability
+      overridable: true
+      override_constraints: Must never discard failed events silently
+
+  types:
+    - name: EventEnvelope
+      description: Standard event wrapper with id, topic, source, scope, trace context, and typed payload
+      inherited_by: Event Envelope section
+    - name: Subscription
+      description: Agent subscription declaration with pattern, group, scope, and concurrency limit
+      inherited_by: Subscribing section
+    - name: RoutingTable
+      description: Local mapping of topic patterns to subscriber endpoints
+      inherited_by: Publishing section
+
+  endpoints:
+    - path: /v1/event
+      description: Receive published events for processing by registered handlers
+      inherited_by: Event Envelope section
+
+  events:
+    - topic: messaging.dead_lettered
+      description: Emitted when an event is moved to the dead-letter store after retry exhaustion
+      payload: {event_id, topic, target, attempts, last_error}
+```
 
 ---
 
@@ -555,6 +680,18 @@ messaging:
 | `WL_DLQ_RETENTION` | `604800` | Dead-letter entry retention (seconds) |
 | `WL_EVENT_RETRY_MAX` | `3` | Max delivery retry attempts |
 | `WL_EVENT_IDEMPOTENCY_WINDOW` | `86400` | Processed event_id tracking window (seconds) |
+
+---
+
+## Implementation Notes
+
+- Event delivery is HTTP POST to subscriber's `/v1/event` endpoint — no external message broker required
+- Agents resolve subscribers from their local routing table copy — no call to the orchestrator needed
+- Consumer groups enable load balancing — the framework selects one subscriber per group using round-robin
+- Idempotency requires tracking processed `event_id` values for at least `WL_EVENT_IDEMPOTENCY_WINDOW` seconds
+- Dead-letter entries should be periodically reviewed and replayed or purged
+- Event ordering is best-effort — agents should not depend on strict ordering across topics
+- CloudEvents alignment enables future interop with external systems via simple field mapping
 
 ---
 

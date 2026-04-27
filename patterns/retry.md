@@ -33,6 +33,123 @@ periodically allows a probe request to check if the target recovered.
 
 ---
 
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [code, message, retryable, detail]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [code, retryable, retry_after]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/agent
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentConfig
+          fields_used: [name, retry, circuit_breaker]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/rate-limiting
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: RateLimitResponse
+          fields_used: [retry_after, status]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **Retry transient, fail permanent** — Transient errors trigger retries with backoff; permanent errors fail immediately without wasting resources.
+2. **Backoff prevents thundering herd** — Exponential backoff with jitter prevents coordinated retry storms when shared dependencies recover.
+3. **Circuit breakers isolate failures** — Per-target circuit breakers stop retrying consistently-failing targets, protecting the caller and allowing the target to recover.
+4. **Framework-level, not application-level** — Retry and circuit breaker behavior is provided by the framework for all inter-component communication, not reimplemented by each agent.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: retry-with-backoff
+      description: Automatically retry failed requests with configurable backoff strategy
+      parameters:
+        - name: max_attempts
+          type: int
+          required: true
+          description: Total number of attempts including the original request
+        - name: backoff
+          type: enum(exponential, linear, fixed)
+          required: true
+          description: Backoff algorithm for delay calculation
+        - name: base_delay
+          type: int
+          required: true
+          description: Base delay in milliseconds between retry attempts
+        - name: jitter
+          type: boolean
+          required: false
+          description: Apply randomized jitter to prevent thundering herd
+      inherits: Default retry configuration for all inter-agent communication
+      overridable: true
+      override_constraints: max_attempts >= 1; base_delay > 0; max_delay >= base_delay
+    - name: circuit-breaker
+      description: Stop retrying consistently-failing targets and allow recovery
+      parameters:
+        - name: failure_threshold
+          type: int
+          required: true
+          description: Consecutive failures before tripping the circuit
+        - name: recovery_timeout
+          type: int
+          required: true
+          description: Milliseconds before transitioning to HALF_OPEN
+        - name: success_threshold
+          type: int
+          required: true
+          description: Consecutive successes to close from HALF_OPEN
+      inherits: Per-target circuit breaker with CLOSED/OPEN/HALF_OPEN states
+      overridable: true
+      override_constraints: failure_threshold >= 1; recovery_timeout > 0
+  types:
+    - name: RetryConfig
+      description: Retry strategy configuration with backoff and jitter settings
+      inherited_by: Types section
+    - name: CircuitBreakerConfig
+      description: Circuit breaker thresholds and recovery parameters
+      inherited_by: Types section
+  events:
+    - topic: system.circuit_breaker_state_change
+      description: Emitted when a circuit breaker transitions between states
+      payload: {target, from_state, to_state, failure_count, last_error, timestamp}
+```
+
+---
+
 ## Retry Strategy
 
 ### Default Retry Configuration

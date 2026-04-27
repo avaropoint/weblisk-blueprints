@@ -41,6 +41,137 @@ works uniformly across agents, domains, and system components.
 
 ---
 
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, version, url]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: HealthResponse
+          fields_used: [name, version, state, uptime_seconds, checks, metrics_snapshot]
+        - name: MetricsSnapshot
+          fields_used: [requests_total, errors_total, last_activity]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/agent
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentState
+          fields_used: [state, health, uptime]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/logging
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: LogEntry
+          fields_used: [ts, level, log_type, msg, component]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **Uniform health contract** — every component responds to `POST /v1/health` with an identical structure, enabling automated monitoring without per-agent configuration.
+2. **State machine consistency** — all components use the same online/degraded/offline states with deterministic transitions based on latency and failure thresholds.
+3. **Inherited metrics** — base metrics are emitted by every agent automatically; agents declare only additional domain-specific metrics.
+4. **Alert-driven** — state changes automatically emit structured events for routing through the alerting and notification pipeline.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: health-reporting
+      description: Respond to health probes with structured status, sub-checks, and metrics snapshot
+      parameters:
+        - name: response_timeout_ms
+          type: int
+          required: true
+          description: Maximum time to respond to a health probe
+      inherits: Health endpoint response format, sub-component check structure
+      overridable: true
+      override_constraints: Must respond within response_timeout_ms and include required fields
+
+    - name: state-tracking
+      description: Maintain component state via online/degraded/offline state machine
+      parameters:
+        - name: degraded_threshold_ms
+          type: int
+          required: true
+          description: Latency above which component is degraded
+        - name: failure_threshold
+          type: int
+          required: true
+          description: Consecutive failures before component is offline
+      inherits: State machine transitions, threshold defaults
+      overridable: true
+      override_constraints: Must preserve the four defined states and valid transitions
+
+    - name: metric-emission
+      description: Emit base metrics in Prometheus exposition format
+      parameters:
+        - name: metrics
+          type: "[]MetricDefinition"
+          required: false
+          description: Additional domain-specific metrics beyond base set
+      inherits: Base agent metrics (requests_total, duration, errors, state, uptime)
+      overridable: true
+      override_constraints: Must not remove or rename base metrics
+
+  types:
+    - name: HealthResponse
+      description: Structured health status with state, sub-checks, and metrics snapshot
+      inherited_by: Health Endpoint section
+    - name: ComponentState
+      description: Enum of component states — unknown, online, degraded, offline
+      inherited_by: Component State Machine section
+    - name: MetricsSnapshot
+      description: Key metric values at response time included in health responses
+      inherited_by: Base Metrics section
+
+  endpoints:
+    - path: /v1/health
+      description: Health probe endpoint returning structured component status
+      inherited_by: Health Endpoint section
+    - path: /v1/metrics
+      description: Prometheus-format metrics endpoint for monitoring systems
+      inherited_by: Base Metrics section
+
+  events:
+    - topic: component.state_change
+      description: Emitted when a component transitions between health states
+      payload: {component, component_type, from_state, to_state, reason, timestamp}
+```
+
+---
+
 ## Health Endpoint
 
 Every agent and domain controller MUST respond to `POST /v1/health`:

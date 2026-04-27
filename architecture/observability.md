@@ -4,6 +4,7 @@ name: observability
 version: 1.0.0
 requires: [protocol/spec, protocol/types, architecture/orchestrator, architecture/agent]
 platform: any
+tier: free
 -->
 
 # Observability
@@ -26,6 +27,111 @@ Observability in Weblisk has three pillars:
 
 All three pillars share a common set of context fields that tie
 events to specific tasks, agents, domains, and workflows.
+
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, type, version]
+        - name: TaskRequest
+          fields_used: [id, action]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: TaskResult
+          fields_used: [task_id, status, duration_ms]
+        - name: ErrorResponse
+          fields_used: [error, code]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/orchestrator
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ServiceDirectory
+          fields_used: [agents]
+        - name: AuditEntry
+          fields_used: [timestamp, actor, action]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/agent
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: HealthResponse
+          fields_used: [status, component, version, uptime_seconds, checks]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Responsibilities
+
+### Owns
+- Structured log format definition (JSON shape, required fields, levels)
+- Distributed trace context propagation rules (X-Trace-Id, X-Span-Id headers)
+- Trace ID generation and span lifecycle conventions
+- Metrics endpoint contract (Prometheus exposition format, `wl_` prefix)
+- Standard metric definitions for orchestrator, domain controllers, and agents
+- Health endpoint response schema and status semantics
+- Correlation patterns for end-to-end debugging
+
+### Does NOT Own
+- Log aggregation infrastructure (deployment-specific: Loki, ELK, CloudWatch)
+- Metrics scraping configuration (deployment-specific: Prometheus, Datadog)
+- Alerting rules and thresholds (owned by agents/alerting and patterns/observability)
+- Per-agent health check logic (owned by each agent's implementation)
+- Agent-level health contract and state machine (owned by patterns/observability)
+
+---
+
+## Interfaces
+
+| Interface | Type | Description |
+|-----------|------|-------------|
+| `GET /metrics` | HTTP (per-component) | Prometheus exposition format metrics endpoint (no auth required) |
+| `GET /v1/health` | HTTP (per-component) | Structured health status with checks map |
+| `X-Trace-Id` header | HTTP header | 32 hex char trace identifier propagated on all inter-component requests |
+| `X-Span-Id` header | HTTP header | 16 hex char span identifier for trace tree construction |
+| `X-Parent-Span-Id` header | HTTP header | Parent span reference for child span linking |
+| stdout (JSON lines) | Stream | Structured log and span output consumed by runtime log capture |
+| OTLP export | HTTP/protobuf | Optional trace export to OpenTelemetry Collector |
+
+---
+
+## Data Flow
+
+1. Client request arrives at the orchestrator (or gateway); trace ID is generated or preserved from incoming `X-Trace-Id`
+2. Orchestrator creates root span, logs request with trace context fields
+3. Orchestrator forwards request to domain controller with `X-Trace-Id`, `X-Span-Id`, `X-Parent-Span-Id` headers
+4. Domain controller creates child span, logs operation, forwards to agent with updated span headers
+5. Agent creates child span, executes task, logs measurements and findings
+6. Agent completes span (records duration, status), returns response to domain
+7. Domain completes span, returns aggregated response to orchestrator
+8. Orchestrator completes root span, emits final log with total duration
+9. All spans are written to stdout as JSON (type: span) and optionally exported via OTLP
+10. Metrics counters and histograms are updated at each component throughout the flow
+
+---
 
 ## Design Principles
 

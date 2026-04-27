@@ -38,6 +38,162 @@ those outputs to downstream phases. The workflow engine handles:
 
 ---
 
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [code, message, detail]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: TypeDefinition
+          fields_used: [name, fields, description]
+        - name: TaskPayload
+          fields_used: [action, payload, context]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/state-machine
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: StateMachineDefinition
+          fields_used: [states, transitions, initial_state, entity_type]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/messaging
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Event
+          fields_used: [topic, scope, payload, correlation_id]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/observability
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Metric
+          fields_used: [name, type, labels, value]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **Domains declare, agents execute** — Domains own workflow definitions (business logic); the Workflow Agent executes the DAG; the Task Agent dispatches individual phases.
+2. **Event-driven coordination** — All coordination happens via HTTP-based pub/sub events; no synchronous proxy or embedded execution engine.
+3. **Fail-safe by default** — Each phase declares its own error strategy (fail/skip/retry); the default is fail, which stops the workflow to prevent silent corruption.
+4. **Durable execution** — Workflow executions persist to durable storage with phase-level detail, enabling recovery from agent crashes and full audit trails.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: workflow-execution
+      description: Event-driven DAG execution with phase dispatch and result aggregation
+      parameters:
+        - name: workflow_name
+          type: string
+          required: true
+          description: Identifier of the workflow to execute
+        - name: timeout
+          type: int
+          required: false
+          description: Workflow-level timeout in seconds (default 600)
+      inherits: DAG resolution, phase dispatch, result aggregation, and state tracking
+      overridable: true
+      override_constraints: Must use event-driven coordination; cannot bypass Task Agent
+    - name: phase-dispatch
+      description: Submit individual workflow phases to target agents via task events
+      parameters:
+        - name: agent
+          type: string
+          required: true
+          description: Target agent name or self
+        - name: action
+          type: string
+          required: true
+          description: Task action to invoke on the target agent
+        - name: on_error
+          type: enum(fail, skip, retry)
+          required: false
+          description: Error strategy for this phase (default fail)
+      inherits: Task submission, timeout enforcement, and error strategy application
+      overridable: true
+      override_constraints: Must respect phase-level timeout and on_error strategy
+    - name: approval-gate
+      description: Pause workflow execution until human approval is received
+      parameters:
+        - name: approval
+          type: enum(required, auto)
+          required: false
+          description: Whether phase output requires human review
+      inherits: Approval event publishing and decision handling
+      overridable: true
+      override_constraints: Approval timeout falls back to workflow-level timeout
+  types:
+    - name: WorkflowDefinition
+      description: Workflow declaration with phases, triggers, and metadata
+      inherited_by: Workflow Types section
+    - name: WorkflowPhase
+      description: Individual phase with agent, action, input bindings, and error strategy
+      inherited_by: Workflow Types section
+    - name: WorkflowExecution
+      description: Durable execution record with status, phases, and timing
+      inherited_by: Workflow Types section
+    - name: PhaseResult
+      description: Per-phase execution result with status, output, and error
+      inherited_by: Workflow Types section
+  endpoints:
+    - path: /v1/message
+      description: Direct message dispatch for self-targeted phases
+      inherited_by: Execution Engine section
+  events:
+    - topic: workflow.trigger
+      description: External agent requests workflow execution
+      payload: {workflow, source_domain, input, callback_topic, entity, config}
+    - topic: workflow.started
+      description: Workflow execution has begun
+      payload: {execution_id, workflow_name, invoker, timestamp}
+    - topic: workflow.completed
+      description: All workflow phases finished
+      payload: {execution_id, workflow_name, status, summary, phase_results}
+    - topic: workflow.failed
+      description: Workflow execution failed
+      payload: {execution_id, workflow_name, failed_phase, error, timestamp}
+    - topic: workflow.approval.required
+      description: Phase output pending human approval
+      payload: {workflow_id, phase, output_preview}
+    - topic: workflow.approval.decision
+      description: Human approved or rejected a phase
+      payload: {workflow_id, phase, decision, reason}
+```
+
+---
+
 ## Workflow Declaration
 
 Workflows are declared in domain blueprint files (in `domains/`).

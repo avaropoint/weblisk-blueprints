@@ -4,6 +4,7 @@ name: lifecycle
 version: 1.0.0
 requires: [protocol/spec, protocol/types, architecture/orchestrator, architecture/domain, architecture/agent, patterns/messaging, patterns/observability]
 platform: any
+tier: free
 -->
 
 # Continuous Optimization Lifecycle
@@ -21,6 +22,151 @@ Lifecycle Agent — not the orchestrator.
 
 See [agents/lifecycle.md](../agents/lifecycle.md) for the Lifecycle
 Agent blueprint.
+
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: RegisterRequest
+          fields_used: [manifest, signature, timestamp]
+        - name: AgentMessage
+          fields_used: [from, to, type, action, payload]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: TaskResult
+          fields_used: [task_id, status, output, observations, recommendations]
+        - name: Strategy
+          fields_used: [id, name, objective, targets, priority, status]
+        - name: Observation
+          fields_used: [id, agent_name, target, measurements, findings, strategy_id]
+        - name: Recommendation
+          fields_used: [id, observation_id, action, priority, impact, status]
+        - name: Feedback
+          fields_used: [id, recommendation_id, signal, metric_before, metric_after]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/orchestrator
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ServiceDirectory
+          fields_used: [agents, routing_table]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/domain
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: DomainWorkflow
+          fields_used: [name, phases, on_error]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/agent
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentEndpoints
+          fields_used: [execute, message, event, health]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/messaging
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Event
+          fields_used: [topic, scope, payload, publisher]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/observability
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: HealthStatus
+          fields_used: [status, component, checks]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Responsibilities
+
+### Owns
+- Strategy creation, storage, decomposition, and progress tracking
+- Observation capture from workflow completion events
+- Recommendation lifecycle (pending → accepted/rejected → applied)
+- Feedback collection and signal classification (positive/negative/neutral)
+- Agent metrics aggregation (accuracy, adoption rate, impact scores)
+- Approval workflow orchestration (auto-approve or human gate)
+- Cycle coordination: strategize → observe → recommend → execute → measure → learn
+
+### Does NOT Own
+- Workflow execution (owned by Workflow Agent)
+- Task dispatch and concurrency management (owned by Task Agent)
+- Domain-specific analysis logic (owned by work agents)
+- Agent registration or routing (owned by orchestrator)
+- Storage implementation details (owned by platform-specific backends)
+
+---
+
+## Interfaces
+
+| Interface | Type | Description |
+|-----------|------|-------------|
+| `POST /v1/message` action: `create_strategy` | HTTP | Create a new strategy with targets |
+| `POST /v1/message` action: `get_strategy` | HTTP | Retrieve strategy by ID |
+| `POST /v1/message` action: `set_context` | HTTP | Set entity context for the lifecycle |
+| `POST /v1/message` action: `approve_recommendation` | HTTP | Approve a pending recommendation |
+| `POST /v1/message` action: `reject_recommendation` | HTTP | Reject a pending recommendation |
+| `POST /v1/event` topic: `workflow.completed` | Event | Receive completed workflow results (scope: `*`) |
+| Published: `lifecycle.recommendation.created` | Event | Emitted when a new recommendation is stored |
+| Published: `lifecycle.recommendation.accepted` | Event | Emitted when a recommendation is approved |
+| Published: `lifecycle.recommendation.rejected` | Event | Emitted when a recommendation is rejected |
+| Published: `workflow.trigger` | Event | Emitted to initiate a domain workflow |
+
+---
+
+## Data Flow
+
+The complete data flow is documented in the
+[Data Flow Summary section](#data-flow-summary). Abbreviated sequence:
+
+1. User or system creates a strategy via `POST /v1/message` to the Lifecycle Agent
+2. Lifecycle Agent maps strategy to domain and publishes `workflow.trigger`
+3. Workflow Agent resolves DAG, Task Agent dispatches to work agents
+4. Work agents produce observations and recommendations
+5. Workflow Agent publishes `workflow.completed` (scope: `*`)
+6. Lifecycle Agent captures observations and stores recommendations
+7. Approval gate: auto-approve or wait for human review
+8. Lifecycle Agent triggers measurement workflow after waiting period
+9. Follow-up observations produce feedback entries (positive/negative/neutral)
+10. Agent metrics and strategy progress are updated; cycle restarts
+
+---
 
 ## The Cycle
 

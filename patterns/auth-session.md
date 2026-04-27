@@ -21,6 +21,130 @@ a secure HTTP-only cookie, and subsequent requests are authenticated
 via that cookie. CSRF protection is included by default for all
 state-changing operations.
 
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [error, code, category, retryable]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: FieldType
+          fields_used: [uuid, string, int64, timestamp]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Identity
+          fields_used: [id, public_key, verification]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/gateway
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: GatewayRoute
+          fields_used: [path, method, auth_required]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/browser-session
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: BrowserSession
+          fields_used: [session_id, cookie_config, csrf_token]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Design Principles
+
+1. **Server-side state** — Sessions are stored on the server and referenced by an opaque cookie. No sensitive data is stored client-side.
+2. **Defense in depth** — Multiple security layers are applied by default: HttpOnly cookies, CSRF tokens, SameSite policy, and login throttling.
+3. **Credential opacity** — Authentication failures never reveal whether an email exists. Passwords are hashed with bcrypt or argon2id and never logged or returned.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: session-authentication
+      description: Cookie-based session auth with CSRF protection
+      parameters:
+        - name: session_duration
+          type: int
+          required: true
+          description: Session lifetime in seconds
+        - name: cookie_name
+          type: string
+          required: true
+          description: Name of the session cookie
+        - name: csrf_header
+          type: string
+          required: true
+          description: Header name for CSRF token
+      inherits: Session creation, validation, and destruction lifecycle
+      overridable: true
+      override_constraints: Must preserve HttpOnly+Secure+SameSite cookie flags and CSRF enforcement
+
+  types:
+    - name: User
+      description: User account with hashed password
+      inherited_by: Types section
+    - name: Session
+      description: Server-side session record with CSRF token
+      inherited_by: Types section
+    - name: AuthConfig
+      description: Configuration for session behavior
+      inherited_by: Types section
+
+  endpoints:
+    - path: /auth/register
+      description: Create a new user account
+      inherited_by: Specification section
+    - path: /auth/login
+      description: Authenticate and create session
+      inherited_by: Specification section
+    - path: /auth/logout
+      description: Destroy current session
+      inherited_by: Specification section
+    - path: /auth/me
+      description: Get current authenticated user
+      inherited_by: Specification section
+```
+
+---
+
 ## Specification
 
 ### Blueprint Format

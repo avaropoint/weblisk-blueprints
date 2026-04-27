@@ -4,6 +4,7 @@ name: federation
 version: 1.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/hub]
 platform: any
+tier: free
 -->
 
 # Weblisk Federation Protocol
@@ -26,6 +27,85 @@ The federation protocol treats data protection as a **structural
 constraint**, not a policy afterthought. Data cannot leak because the
 architecture makes it physically impossible for unpermitted fields to
 cross a boundary.
+
+---
+
+## Dependencies
+
+```yaml
+requires:
+  - blueprint: protocol/spec
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      endpoints:
+        - path: /v1/register
+          methods: [POST]
+          request_type: RegisterRequest
+          response_fields: [agent_id, token, services]
+      types:
+        - name: AgentManifest
+          fields_used: [name, type, version, public_key, capabilities]
+        - name: ErrorResponse
+          fields_used: [error, code, category, retryable]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Ed25519KeyPair
+          fields_used: [public_key, private_key]
+        - name: WLToken
+          fields_used: [header, payload, signature]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: TaskRequest
+          fields_used: [id, action, payload, context, token]
+        - name: TaskResult
+          fields_used: [task_id, agent_name, status, summary]
+        - name: AuditEntry
+          fields_used: [id, timestamp, actor, action, target, detail, status]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/hub
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: HubManifest
+          fields_used: [name, public_key, federation_url]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```
+
+---
+
+## Conventions
+
+- All federation endpoints are prefixed with `/v1/federation`
+- All cross-boundary messages are signed by both sending and receiving orchestrator
+- Trust relationships are explicit, non-transitive, and time-limited
+- Data contracts are fail-closed — unknown fields are rejected, not ignored
+- All timestamps are Unix epoch seconds (`int64`)
+- All public keys are hex-encoded Ed25519 public keys (64 hex chars)
+- Federation topic qualification uses `::` separator (e.g., `acme-corp::workflow.completed`)
+- Hub-qualified topics do NOT match unqualified subscription patterns
+
+---
 
 ## Design Principles
 
@@ -463,6 +543,227 @@ Added to the orchestrator when federation is enabled:
 
 ---
 
+## Types
+
+```yaml
+types:
+  OrchestratorManifest:
+    description: Identity and capability declaration for a federated orchestrator
+    fields:
+      name:
+        type: string
+        description: Unique orchestrator identifier
+      type:
+        type: string
+        description: Must be "orchestrator"
+        constraints:
+          enum: [orchestrator]
+      version:
+        type: string
+        format: semver
+        description: Semver version
+      description:
+        type: string
+        description: Human-readable purpose
+      federation_url:
+        type: string
+        format: url
+        description: HTTPS endpoint for federation protocol
+      public_key:
+        type: string
+        format: hex
+        description: Hex-encoded Ed25519 public key
+      jurisdiction:
+        type: string
+        description: ISO 3166-1 alpha-2 country code
+      published_capabilities:
+        type: "list<PublishedCapability>"
+        description: Capabilities exposed to federation
+        required: false
+      trust_policy:
+        type: string
+        description: Trust establishment model
+        constraints:
+          enum: [explicit, registry]
+      max_concurrent_federated:
+        type: int
+        description: Max concurrent cross-boundary tasks
+        constraints:
+          default: 20
+      signature:
+        type: string
+        format: hex
+        description: Self-signed manifest
+
+  PublishedCapability:
+    description: A capability exposed to federation peers
+    fields:
+      domain:
+        type: string
+        description: Domain name providing the capability
+      actions:
+        type: "list<string>"
+        description: Available actions
+      data_contract:
+        type: string
+        description: Data contract governing this capability
+      tier:
+        type: string
+        description: Trust tier required
+        constraints:
+          enum: [private, partner, public]
+
+  DataContract:
+    description: Defines exactly what data may cross a trust boundary
+    fields:
+      name:
+        type: string
+        description: Contract identifier
+      version:
+        type: string
+        format: semver
+      direction:
+        type: string
+        constraints:
+          enum: [inbound, outbound, bidirectional]
+      inbound:
+        type: BoundarySpec
+        description: Rules for data entering the boundary
+      outbound:
+        type: BoundarySpec
+        description: Rules for data leaving the boundary
+      data_retention:
+        type: RetentionPolicy
+      jurisdiction_requirements:
+        type: JurisdictionSpec
+        required: false
+      signature:
+        type: string
+        format: hex
+
+  BoundarySpec:
+    description: Field rules for one direction of a data boundary
+    fields:
+      required:
+        type: "list<FieldSpec>"
+        description: Fields that MUST be present
+      permitted:
+        type: "list<FieldSpec>"
+        description: Fields that MAY be present
+      forbidden:
+        type: "list<PatternSpec>"
+        description: Patterns that MUST be stripped
+      transformations:
+        type: "list<Transform>"
+        description: Mutations applied before crossing
+        required: false
+
+  FederatedTaskRequest:
+    description: Cross-boundary task execution request
+    fields:
+      task_id:
+        type: string
+        format: hex-id
+      contract_name:
+        type: string
+        description: Governing data contract
+      requester_orch:
+        type: string
+        description: Requesting orchestrator name
+      payload:
+        type: map
+        description: Task data (pre-filtered by data contract)
+      trace_id:
+        type: string
+        required: false
+      signature:
+        type: string
+        format: hex
+      timestamp:
+        type: int64
+
+  FederatedTaskResult:
+    description: Cross-boundary task execution result
+    fields:
+      task_id:
+        type: string
+        format: hex-id
+      provider_orch:
+        type: string
+        description: Providing orchestrator name
+      status:
+        type: string
+        constraints:
+          enum: [success, failed, rejected]
+      result:
+        type: map
+        required: false
+      error:
+        type: ErrorResponse
+        required: false
+      signature:
+        type: string
+        format: hex
+      timestamp:
+        type: int64
+
+  BehavioralFingerprint:
+    description: Computed behavioral snapshot of an agent
+    fields:
+      agent_name:
+        type: string
+      fingerprint_version:
+        type: int
+      manifest_hash:
+        type: string
+        description: SHA-256 of canonical JSON manifest
+      capability_set:
+        type: "list<string>"
+      input_schema_hash:
+        type: string
+      output_schema_hash:
+        type: string
+      version:
+        type: string
+        format: semver
+      computed_at:
+        type: int64
+```
+
+---
+
+## Authentication
+
+```yaml
+authentication:
+  mechanism: signature
+  models:
+    peering:
+      description: Mutual Ed25519 signature verification during trust establishment
+      flow:
+        - step: Initiator signs manifest with own private key
+        - step: Responder verifies initiator signature with initiator public key
+        - step: Responder signs acceptance with own private key
+        - step: Initiator verifies responder signature
+    task_execution:
+      description: Per-request signature on federated task payloads
+      flow:
+        - step: Requester signs FederatedTaskRequest with own key
+        - step: Provider verifies requester signature against stored peer key
+        - step: Provider verifies requester is a trusted peer with granted capability
+        - step: Provider signs FederatedTaskResult with own key
+        - step: Requester verifies provider signature
+    key_rotation:
+      description: Dual-signature (old + new key) for zero-downtime rotation
+      flow:
+        - step: Sign rotation request with OLD key
+        - step: Counter-sign with NEW key
+        - step: Peers verify BOTH signatures
+        - step: 24-hour grace period accepting both keys
+```
+
+---
+
 ## Data Sovereignty
 
 ### Jurisdiction Enforcement
@@ -540,6 +841,63 @@ independent, all enforced concurrently:
 
 No single layer is sufficient alone. Together, they make data leakage
 structurally impossible rather than policy-dependent.
+
+---
+
+## Error Handling
+
+```yaml
+error_codes:
+  - code: PEER_UNTRUSTED
+    status: 403
+    description: Requesting orchestrator is not a trusted peer
+    retryable: false
+  - code: CONTRACT_VIOLATION
+    status: 400
+    description: Request payload violates data contract
+    retryable: false
+  - code: JURISDICTION_DENIED
+    status: 403
+    description: Target jurisdiction not in allowed list
+    retryable: false
+  - code: TRUST_EXPIRED
+    status: 403
+    description: Trust relationship has expired
+    retryable: false
+  - code: CAPABILITY_DENIED
+    status: 403
+    description: Requested capability not granted to this peer
+    retryable: false
+  - code: BEHAVIORAL_CHANGE
+    status: 409
+    description: Agent has pending behavioral change review
+    retryable: false
+  - code: DATA_BOUNDARY_VIOLATION
+    status: 400
+    description: Forbidden fields detected in cross-boundary payload
+    retryable: false
+  - code: RETENTION_EXPIRED
+    status: 410
+    description: Cross-boundary data has been purged per retention policy
+    retryable: false
+```
+
+---
+
+## Implementation Notes
+
+- Federation is optional — a single-orchestrator deployment does not need this protocol
+- All federation endpoints require HTTPS (TLS 1.3) in production
+- Trust relationships default to 90-day expiry to force periodic review
+- Data contracts are versioned independently of the protocol
+- Behavioral fingerprints should be recomputed on every agent re-registration
+- Key rotation uses a 24-hour grace period to handle clock skew and propagation
+- The `_meta` object in cross-boundary payloads is protocol-level — never forwarded to agents
+- Dead-lettered federated events follow the same DLQ pattern as local events
+- Federated namespace qualification (`::`) is applied at the boundary, not by agents
+- Contract enforcement is fail-closed by design: unknown fields are rejected, not ignored
+
+---
 
 ## Verification Checklist
 
