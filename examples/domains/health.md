@@ -1231,7 +1231,7 @@ collaboration:
   publishes:
     - event: domain.health.report.completed
       payload: {report_id, domain, score, endpoints_monitored, endpoints_healthy}
-      consumers: [orchestrator, lifecycle, hub-metrics]
+      consumers: [orchestrator, lifecycle, hub]
       description: Emitted when a health-report workflow completes
 
     - event: domain.health.check.completed
@@ -1241,12 +1241,12 @@ collaboration:
 
     - event: domain.health.alert
       payload: {severity, endpoint, metric, threshold, current_value}
-      consumers: [alerting, hub-alert]
+      consumers: [alerting, hub]
       description: Emitted when threshold violations or regressions detected
 
     - event: domain.health.federation
       payload: {status, score, uptime_30d, last_check}
-      consumers: [hub-index, federation]
+      consumers: [hub, federation]
       description: Updated hub health advertisement for federation
 
   subscribes:

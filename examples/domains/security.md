@@ -1274,7 +1274,7 @@ collaboration:
   publishes:
     - event: domain.security.report.completed
       payload: {report_id, domain, score, grade, urls_scanned, total_findings, critical_findings}
-      consumers: [orchestrator, lifecycle, hub-metrics]
+      consumers: [orchestrator, lifecycle, hub]
       description: Emitted when a security-audit workflow completes
 
     - event: domain.security.headers.completed
@@ -1284,12 +1284,12 @@ collaboration:
 
     - event: domain.security.alert
       payload: {severity, category, owasp_id, message, target}
-      consumers: [alerting, hub-alert]
+      consumers: [alerting, hub]
       description: Emitted when critical security findings detected
 
     - event: domain.security.cve.found
       payload: {cve_id, cvss_score, package, ecosystem, severity}
-      consumers: [alerting, hub-alert]
+      consumers: [alerting, hub]
       description: Emitted when known CVE found in dependencies
 
   subscribes:

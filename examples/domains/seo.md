@@ -1295,7 +1295,7 @@ collaboration:
   publishes:
     - event: domain.seo.report.completed
       payload: {report_id, domain, score, pages_audited, total_findings, total_recommendations}
-      consumers: [orchestrator, lifecycle, hub-metrics]
+      consumers: [orchestrator, lifecycle, hub]
       description: Emitted when a seo-audit workflow completes
 
     - event: domain.seo.optimize.completed
@@ -1305,7 +1305,7 @@ collaboration:
 
     - event: domain.seo.alert
       payload: {severity, category, message, target}
-      consumers: [alerting, hub-alert]
+      consumers: [alerting, hub]
       description: Emitted when significant SEO or a11y regressions detected
 
   subscribes:

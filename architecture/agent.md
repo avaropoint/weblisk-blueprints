@@ -449,7 +449,7 @@ The registered URL in the manifest is the authoritative address.
 |-------|---------|----------|
 | 9700–9709 | Domain controllers | seo: 9700 |
 | 9710–9749 | Work agents | seo-analyzer: 9710, a11y-checker: 9711, security-scanner: 9712, content-analyzer: 9720, meta-checker: 9721, uptime-checker: 9730, perf-auditor: 9731 |
-| 9750–9799 | Infrastructure agents | cron: 9750, sync: 9751, alerting: 9752, webhook: 9753, email-send: 9754, health-monitor: 9755, incident-response: 9760, hub-index: 9770, hub-search: 9771, hub-metrics: 9772, hub-verify: 9773, hub-alert: 9774, workflow: 9780, task: 9781, lifecycle: 9782 |
+| 9750–9799 | Infrastructure agents | cron: 9750, sync: 9751, alerting: 9752, webhook: 9753, email-send: 9754, health-monitor: 9755, incident-response: 9760, hub: 9770, workflow: 9780, task: 9781, lifecycle: 9782 |
 | 9800 | Orchestrator | orchestrator: 9800 |
 | 9820+ | Custom agents | hash(name) % 80 + 9820 |
 
