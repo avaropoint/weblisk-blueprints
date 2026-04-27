@@ -3,6 +3,7 @@ type: agent
 kind: infrastructure
 name: task
 version: 1.0.0
+extends: [patterns/task-dispatch]
 requires: [protocol/spec, protocol/types, architecture/agent, patterns/messaging, patterns/retry]
 platform: any
 tier: free

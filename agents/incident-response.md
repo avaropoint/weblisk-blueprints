@@ -3,7 +3,7 @@ type: agent
 kind: infrastructure
 name: incident-response
 version: 1.1.0
-extends: [patterns/observability, patterns/storage, patterns/state-machine, patterns/messaging, patterns/notification, patterns/security, patterns/governance]
+extends: [patterns/incident-response, patterns/observability, patterns/storage, patterns/state-machine, patterns/messaging, patterns/notification, patterns/security, patterns/governance]
 requires: [protocol/spec, protocol/types, architecture/agent, agents/alerting]
 platform: any
 tier: free

@@ -2,7 +2,7 @@
 type: architecture
 name: gateway
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/admin, patterns/auth-session, patterns/auth-token, patterns/user-management, patterns/rate-limiting]
+requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/admin, patterns/auth-session, patterns/auth-token, patterns/user-management, patterns/rate-limiting, patterns/api-ai]
 platform: any
 tier: free
 -->
