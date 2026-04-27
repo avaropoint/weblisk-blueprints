@@ -2,7 +2,7 @@
 type: architecture
 name: cli
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/admin]
+requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
 -->

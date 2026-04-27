@@ -5,7 +5,7 @@ name: cron
 version: 3.1.0
 port: 9750
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/orchestrator, architecture/change-management]
-extends: [patterns/messaging, patterns/logging, patterns/retry, patterns/versioning, patterns/observability, patterns/storage, patterns/state-machine, patterns/security, patterns/governance]
+extends: [patterns/scheduling, patterns/messaging, patterns/logging, patterns/retry, patterns/versioning, patterns/observability, patterns/storage, patterns/state-machine, patterns/security, patterns/governance]
 depends_on: []
 platform: any
 tier: free

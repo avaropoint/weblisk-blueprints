@@ -142,6 +142,11 @@ patterns/           Declarative API and cross-cutting pattern specifications
   interop.md          Framework adapters — LangChain, CrewAI, ADK, HTTP service wrappers
   versioning.md       Semantic versioning, compatibility rules, deprecation
   workflow.md         Workflow declaration, event-driven DAG execution, approval gates
+  task-dispatch.md    Task submission, priority queuing, dispatch protocol, dead-letter
+  alerting.md         Alert rule evaluation, severity routing, dedup, escalation, muting
+  scheduling.md       Cron expressions, overlap policy, missed-tick handling, distributed locking
+  data-sync.md        Client-server sync — delta batches, conflict resolution, offline queue
+  incident-response.md  Incident lifecycle, runbook execution, correlation, post-mortem
 
 schemas/            Blueprint schema governance
   README.md           Schema governance overview
@@ -229,7 +234,7 @@ Hub (self-sovereign deployment)
 - **Work Agents** — Perform specific tasks dispatched by the Task Agent (see [examples/](examples/) for reference implementations)
 - **Infrastructure Agents** — Provide system services (workflow execution, task dispatch, lifecycle optimization, alerting, incident response, health monitoring, hub registry, sync, cron, email, webhooks) used by any domain
 - **Marketplace** — Built into the hub — buy, sell, and share capabilities, blueprints, agents, and templates. Supports live services (invoked over federation) and installable assets (generated into your own hub). [weblisk.dev](https://weblisk.dev) serves as the public directory
-- **Patterns** — 27 cross-cutting concerns (security, governance, observability, workflow, data contracts, notification, HTTP-based pub/sub messaging, retry, rate limiting, storage, caching, state machines, secrets, logging, versioning, command, interop adapters) and API patterns (REST, AI, auth, webhooks, real-time, file upload, user management, deployment) that apply across all agents via `extends` inheritance
+- **Patterns** — 32 cross-cutting concerns (security, governance, observability, workflow, task dispatch, alerting, scheduling, data sync, incident response, data contracts, notification, HTTP-based pub/sub messaging, retry, rate limiting, storage, caching, state machines, secrets, logging, versioning, command, interop adapters) and API patterns (REST, AI, auth, webhooks, real-time, file upload, user management, deployment) that apply across all agents via `extends` inheritance. Every infrastructure agent has a matching pattern that formalizes its platform-wide contract — the pattern defines WHAT, the agent implements HOW
 - **Federation** — Hub-to-hub trust, data contracts, and cross-boundary task execution
 
 ### Free vs Pro
