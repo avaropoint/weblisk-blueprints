@@ -2,7 +2,7 @@
 type: architecture
 name: data-security
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/federation, architecture/gateway, architecture/observability]
+requires: [protocol/spec, protocol/identity, protocol/federation, architecture/gateway, architecture/observability, patterns/scope, patterns/policy, patterns/privacy, architecture/enforcement]
 platform: any
 tier: free
 -->
@@ -14,17 +14,23 @@ between components — agents, orchestrators, gateways, and federated
 peers. This defines the **transport and boundary security** that the
 framework provides by default.
 
-The Weblisk framework itself does not capture, store, or process
-personal data, payment information, health records, or any other
-application-specific sensitive data. The framework moves messages
-between agents. What those messages *contain* — and how that content
-is classified, masked, encrypted, or governed — is the responsibility
-of the agents and applications built on the platform.
+The Weblisk framework secures the **transport** — encrypted channels,
+signed messages, authenticated identities, and audited operations.
+For data-level concerns, the framework provides **opt-in primitives**:
 
-Agents that handle sensitive data (PII, PCI-DSS, HIPAA, etc.) are
-responsible for their own data classification, field-level masking,
-compliance controls, and encryption-at-rest strategies. The framework
-provides the secure transport; applications provide the data handling.
+- **Scope** (patterns/scope) — universal classification levels
+  that travel with data and drive protections automatically
+- **Policy** (patterns/policy) — declarative rules that constrain
+  operations based on scope, identity, and context
+- **Privacy** (patterns/privacy) — consent, masking, minimization,
+  and erasure primitives that activate based on scope
+- **Enforcement** (architecture/enforcement) — non-bypassable
+  boundary inspection that validates scope and policy compliance
+
+These primitives are opt-in. Agents that handle sensitive data
+adopt the scope, policy, and privacy patterns to get framework-level
+protection. Agents that don't need them operate with transport
+security only.
 
 ---
 
@@ -116,11 +122,16 @@ The boundary between framework and application security is detailed in
 
 ### Does NOT Own
 
-- Data classification (PII, financial, health) — application/agent responsibility
-- Field-level masking or redaction — application/agent responsibility
+- Application-specific data models — the framework classifies via scope levels, not data types
 - Encryption-at-rest key hierarchy — application/agent responsibility
-- Regulatory compliance (GDPR, CCPA, HIPAA, PCI-DSS) — application/agent responsibility
-- Data retention and deletion policies — application/agent responsibility
+- Regulatory interpretation — the framework provides compliance primitives (patterns/governance), not legal advice
+
+### Enables (via opt-in patterns)
+
+- Data classification — via patterns/scope (5-level universal scope)
+- Field-level masking — via patterns/privacy (scope-driven masking rules)
+- Data retention and deletion — via patterns/privacy (erasure cascade, retention policies)
+- Policy enforcement — via patterns/policy + architecture/enforcement (boundary inspection)
 
 ---
 
@@ -163,20 +174,21 @@ interfaces are enforcement points integrated into other components:
 | Agent ↔ Orchestrator | Mutual authentication, signed registration, token-based auth |
 | Hub ↔ Hub (federation) | TLS + Ed25519 message signing, data contracts |
 
-## What the Framework Does NOT Do
+## What the Framework Provides via Opt-in Patterns
 
-| Concern | Responsibility |
-|---------|---------------|
-| Data classification (PII, financial, health) | Application / agents |
-| Field-level masking or redaction | Application / agents |
-| Encryption-at-rest key hierarchy | Application / agents |
-| GDPR, CCPA, HIPAA, PCI-DSS compliance | Application / agents |
-| Data retention and deletion policies | Application / agents |
-| Data residency and jurisdiction rules | Application / agents |
+| Concern | Pattern | How It Works |
+|---------|---------|-------------|
+| Data classification | patterns/scope | 5-level scope (public → critical) travels with data |
+| Field-level masking | patterns/privacy | Scope-driven masking at enforcement boundaries |
+| Consent management | patterns/privacy | Purpose-bound consent records with revocation |
+| Data retention / erasure | patterns/privacy | Lineage-tracked cascading erasure |
+| Operation gating | patterns/safety | Protection gates based on scope × operation × environment |
+| Policy enforcement | patterns/policy + architecture/enforcement | Declarative rules enforced at boundaries |
+| Compliance reporting | patterns/governance | Evidence collection and profile-scoped reports |
 
-These are application-layer concerns. Agents that need them implement
-them. The framework doesn't impose a classification scheme because
-different applications have fundamentally different data models.
+These are opt-in. The framework provides the primitives; agents
+adopt the ones they need. The framework doesn't impose a specific
+data model — scope levels are universal and type-agnostic.
 
 ---
 
@@ -349,18 +361,21 @@ the application configures — not by the framework core.
 
 ## Implementation Notes
 
-- The framework secures the *transport* — encrypted channels, signed
-  messages, authenticated identities, audited operations. Applications
-  secure the *data* — classification, masking, compliance, retention.
+- The framework provides two tiers of data security: (1) **transport
+  security** (TLS, Ed25519 signing, header trust) which is always on,
+  and (2) **data-level security** (scope, policy, privacy, enforcement)
+  which is opt-in via the corresponding patterns.
+- Agents that handle sensitive data SHOULD adopt patterns/scope to
+  classify their data, patterns/privacy for masking and erasure, and
+  patterns/policy for access rules. The enforcement architecture
+  validates these at boundaries automatically.
 - Agents that handle sensitive data SHOULD implement their own
   encryption-at-rest using the Ed25519 key hierarchy (HKDF-derived
   keys) provided by the identity protocol. The framework provides the
   cryptographic primitives; agents decide what to encrypt.
-- The gateway's ABAC policy engine can be used by applications to
-  implement role-based data access rules, but the policies themselves
-  are application-defined, not framework-defined.
-- Federation data contracts are enforced by both the sending and
-  receiving gateways — defense in depth at trust boundaries.
+- Federation data contracts (patterns/contract) carry scope metadata.
+  When data crosses federation boundaries, the enforcement layer
+  validates scope compliance in addition to field-level contracts.
 - Error responses from agents are sanitized by the gateway to prevent
   internal details from leaking. Agents SHOULD still avoid including
   sensitive data in error messages as defense in depth.

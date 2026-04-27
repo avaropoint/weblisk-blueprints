@@ -91,7 +91,8 @@ architecture/       System architecture
   observability.md    Structured logging, distributed tracing, metrics
   gateway.md          Application gateway — auth, ABAC, rate limiting, route protection
   browser-session.md  Cryptographic browser sessions — binding, islands, continuity
-  data-security.md    Transport security, message integrity, federation data boundaries
+  data-security.md    Transport security, scope-aware boundaries, opt-in data primitives
+  enforcement.md      Non-bypassable boundary inspection, rogue agent detection
   threat-model.md     Attack surface analysis — 5 boundaries, OWASP mapping
   change-management.md  Versioning, migration, deprecation lifecycle
 
@@ -127,9 +128,14 @@ patterns/           Declarative API and cross-cutting pattern specifications
   rate-limiting.md    Token bucket, sliding window — gateway and agent rate limits
   retry.md            Retry strategies, circuit breaker, timeout management
   command.md          Agent command interface — dispatch, routing, execution
-  data-contract.md    Input/output schemas, constraints, versioning, contract testing
+  contract.md         Collaboration agreements — schemas, scope, permissions, versioning
+  scope.md            Universal classification — 5-level scope, propagation, environment profiles
+  policy.md           Declarative rules engine — evaluation, composition, precedence
+  safety.md           Operation classification — protection gates, kill-switch, quarantine
+  approval.md         Intent-based approval — authority routing, multi-party, emergency override
+  privacy.md          Consent, masking, anonymization, minimization, erasure cascade
+  governance.md       Compliance profiles, evidence collection, governance directives
   domain-controller.md  Domain controller base — dispatch, aggregation, lifecycle
-  governance.md       Policy enforcement, compliance profiles, evidence collection
   logging.md          Structured JSON logging — levels, correlation, rotation
   messaging.md        HTTP-based pub/sub — event envelopes, scoping, namespace ownership
   notification.md     Multi-channel notification — email, webhook, Slack, SMS, push
@@ -206,17 +212,23 @@ Hub (self-sovereign deployment)
             ├── Health Monitor Agent (internal hub health)
             └── Hub Agent (registry — indexing, search, metrics, verification, alerting)
   └── Marketplace (buy, sell, share capabilities, blueprints, templates)
-  └── Data Security (transport encryption, message integrity, federation boundaries)
+  └── Enforcement (non-bypassable boundary inspection, rogue agent detection)
+  └── Data Security (transport encryption, scope-aware boundaries, opt-in data primitives)
   └── Threat Model (attack surface analysis, OWASP coverage)
   └── Federation (hub-to-hub collaboration)
   └── Cross-Cutting Patterns (inherited via extends)
+       ├── Scope (universal classification — 5-level, propagation, environments)
+       ├── Policy (declarative rules engine — evaluation, precedence)
+       ├── Safety (operation classification — protection gates, kill-switch, quarantine)
+       ├── Approval (intent-based approval — multi-party, emergency override)
+       ├── Privacy (consent, masking, anonymization, erasure cascade)
+       ├── Contract (collaboration agreements — scope-aware, permissions)
+       ├── Governance (compliance profiles, evidence, directives)
        ├── Security (transport, input validation, zero-trust, threat events)
-       ├── Governance (policy enforcement, compliance profiles, evidence)
        ├── Observability (health, metrics, state tracking, alerts)
        ├── Workflow (declaration, execution engine, approval gates)
-       ├── Data Contract (schemas, constraints, versioning, testing)
        ├── Notification (multi-channel delivery, templates, throttling)
-       └── 21 more patterns (see patterns/ directory)
+       └── 26 more patterns (see patterns/ directory)
 ```
 
 ### Component Descriptions
@@ -228,13 +240,13 @@ Hub (self-sovereign deployment)
 - **Observability** — Structured JSON logs, distributed trace propagation, Prometheus metrics
 - **Gateway** — Application edge security agent: end-user authentication, ABAC authorization, rate limiting, route protection, request mediation, response sanitization. Separate from admin gateway
 - **Browser Sessions** — Cryptographically-bound sessions with Ed25519 signing, device binding, island-aware concurrency, and failover continuity
-- **Data Security** — Transport encryption, Ed25519 message integrity, federation data contracts, response sanitization, framework audit trail. The framework secures transport; applications secure data
+- **Data Security** — Transport encryption, Ed25519 message integrity, scope-aware federation boundaries, response sanitization, framework audit trail. Provides opt-in data-level primitives (scope, policy, privacy, enforcement) for agents handling sensitive data
 - **Threat Model** — 5-boundary attack surface analysis (38+ vectors), OWASP Top 10 mapping, attack chain analysis, residual risk register
 - **Domains** — Own a business function, define workflows, publish workflow triggers, receive results via scoped events
 - **Work Agents** — Perform specific tasks dispatched by the Task Agent (see [examples/](examples/) for reference implementations)
 - **Infrastructure Agents** — Provide system services (workflow execution, task dispatch, lifecycle optimization, alerting, incident response, health monitoring, hub registry, sync, cron, email, webhooks) used by any domain
 - **Marketplace** — Built into the hub — buy, sell, and share capabilities, blueprints, agents, and templates. Supports live services (invoked over federation) and installable assets (generated into your own hub). [weblisk.dev](https://weblisk.dev) serves as the public directory
-- **Patterns** — 32 cross-cutting concerns (security, governance, observability, workflow, task dispatch, alerting, scheduling, data sync, incident response, data contracts, notification, HTTP-based pub/sub messaging, retry, rate limiting, storage, caching, state machines, secrets, logging, versioning, command, interop adapters) and API patterns (REST, AI, auth, webhooks, real-time, file upload, user management, deployment) that apply across all agents via `extends` inheritance. Every infrastructure agent has a matching pattern that formalizes its platform-wide contract — the pattern defines WHAT, the agent implements HOW
+- **Patterns** — 37 cross-cutting concerns (scope, policy, safety, approval, privacy, contract, security, governance, observability, workflow, task dispatch, alerting, scheduling, data sync, incident response, notification, HTTP-based pub/sub messaging, retry, rate limiting, storage, caching, state machines, secrets, logging, versioning, command, interop adapters) and API patterns (REST, AI, auth, webhooks, real-time, file upload, user management, deployment) that apply across all agents via `extends` inheritance. Every infrastructure agent has a matching pattern that formalizes its platform-wide contract — the pattern defines WHAT, the agent implements HOW
 - **Federation** — Hub-to-hub trust, data contracts, and cross-boundary task execution
 
 ### Free vs Pro

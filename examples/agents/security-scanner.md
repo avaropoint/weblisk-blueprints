@@ -4,7 +4,7 @@ kind: work
 name: security-scanner
 version: 1.1.0
 port: 9712
-extends: [patterns/observability, patterns/security]
+extends: [patterns/observability, patterns/scope, patterns/policy, patterns/security]
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/domain, architecture/gateway]
 platform: any
 tier: free

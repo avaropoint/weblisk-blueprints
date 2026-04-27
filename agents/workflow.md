@@ -3,7 +3,7 @@ type: agent
 kind: infrastructure
 name: workflow
 version: 1.0.0
-extends: [patterns/workflow]
+extends: [patterns/workflow, patterns/scope, patterns/policy, patterns/safety]
 requires: [protocol/spec, protocol/types, architecture/agent, patterns/messaging]
 platform: any
 tier: free

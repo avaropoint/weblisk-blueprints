@@ -4,7 +4,7 @@ name: perf-auditor
 version: 1.1.0
 kind: work
 port: 9731
-extends: [patterns/observability, patterns/security]
+extends: [patterns/observability, patterns/scope, patterns/policy, patterns/security]
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/domain]
 platform: any
 tier: free
