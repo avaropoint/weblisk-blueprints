@@ -2,7 +2,7 @@
 type: pattern
 name: workflow
 version: 1.0.0
-requires: [protocol/spec, protocol/types, patterns/state-machine, patterns/messaging, patterns/observability]
+requires: [protocol/spec, protocol/types, patterns/state-machine, patterns/messaging, patterns/observability, patterns/expression]
 platform: any
 tier: free
 -->
@@ -78,7 +78,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Event
+        - name: EventEnvelope
           fields_used: [topic, scope, payload, correlation_id]
     on_change:
       compatible: validate-and-adopt
@@ -236,7 +236,7 @@ workflows:
 | agent | phase | yes | — | Target agent name, or `self` for caller |
 | action | phase | yes | — | Task action to invoke on target agent |
 | input | phase | yes | — | Map of input keys to values or references |
-| output | phase | yes | — | Key name for storing phase result |
+| output | phase | no | — | Key name for storing phase result (omit if result not referenced) |
 | depends_on | phase | no | [] | Phase names that must complete first |
 | timeout | phase | no | 300 | Max seconds for this phase |
 | approval | phase | no | workflow default | Phase-specific approval override |
@@ -643,7 +643,7 @@ Referenced from `protocol/types.md`.
 | approval | string | no | `required` or `auto` (default: `auto`) |
 | on_error | string | no | `fail`, `skip`, or `retry` (default: `fail`) |
 | max_retries | int | no | Retry count when on_error = retry (default: 0) |
-| condition | string | no | Expression; phase skipped if falsy |
+| condition | string | no | Expression evaluated per [patterns/expression](expression.md) (Workflow Phase Context); phase skipped if falsy |
 
 ### WorkflowExecution
 

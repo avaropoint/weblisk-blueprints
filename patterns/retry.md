@@ -114,6 +114,18 @@ contracts:
           type: boolean
           required: false
           description: Apply randomized jitter to prevent thundering herd
+        - name: max_delay
+          type: int
+          required: false
+          description: Maximum delay cap in milliseconds (prevents unbounded exponential growth)
+        - name: retryable_errors
+          type: '[]string'
+          required: false
+          description: Error codes that trigger retry (default includes all transient codes)
+        - name: non_retryable_errors
+          type: '[]string'
+          required: false
+          description: Error codes that immediately fail without retry
       inherits: Default retry configuration for all inter-agent communication
       overridable: true
       override_constraints: max_attempts >= 1; base_delay > 0; max_delay >= base_delay
@@ -131,7 +143,7 @@ contracts:
         - name: success_threshold
           type: int
           required: true
-          description: Consecutive successes to close from HALF_OPEN
+          description: Consecutive successful probe requests to close from HALF_OPEN; HALF_OPEN allows up to success_threshold sequential probes
       inherits: Per-target circuit breaker with CLOSED/OPEN/HALF_OPEN states
       overridable: true
       override_constraints: failure_threshold >= 1; recovery_timeout > 0

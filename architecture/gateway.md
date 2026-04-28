@@ -699,6 +699,87 @@ gateway:
 
 ---
 
+## Async Result Delivery
+
+When a browser request triggers a domain workflow, the domain returns
+an immediate `202 Accepted` response. The workflow executes
+asynchronously via the Workflow Agent and Task Agent. The gateway
+provides two mechanisms for delivering results to the browser:
+
+### Polling (Default)
+
+The `202 Accepted` response includes a `Location` header pointing to
+a status endpoint:
+
+```
+HTTP/1.1 202 Accepted
+Location: /api/<domain>/status/<execution-id>
+Content-Type: application/json
+
+{
+  "execution_id": "wf-exec-001",
+  "status": "pending",
+  "poll_url": "/api/<domain>/status/<execution-id>",
+  "poll_interval": 2
+}
+```
+
+The client polls `GET /api/<domain>/status/<execution-id>` until the
+workflow completes:
+
+```json
+{
+  "execution_id": "wf-exec-001",
+  "status": "completed",
+  "result": { ... },
+  "completed_at": 1712160300
+}
+```
+
+Status values: `pending`, `running`, `completed`, `failed`.
+
+The gateway routes `/api/<domain>/status/:id` to the owning domain's
+`HandleMessage` with action `get_status`. The domain queries the
+Workflow Agent's execution store via `POST /v1/message` (action:
+`get_status`) and returns the current state.
+
+### Server-Sent Events (SSE) — Optional
+
+For real-time delivery, the gateway MAY expose an SSE endpoint:
+
+```
+GET /api/<domain>/stream/<execution-id>
+Accept: text/event-stream
+```
+
+The gateway subscribes to `workflow.phase_completed` and
+`workflow.completed` events scoped to the execution's correlation ID
+and streams them to the client:
+
+```
+event: phase_completed
+data: {"phase": "scan", "status": "success"}
+
+event: completed
+data: {"execution_id": "wf-exec-001", "status": "completed", "result": {...}}
+```
+
+The SSE connection is authenticated via the session cookie. The
+gateway MUST verify the requesting user has access to the execution's
+domain before streaming events. Connection timeout: 5 minutes
+(client reconnects with `Last-Event-ID`).
+
+### Implementation Requirements
+
+1. The gateway MUST support polling (it is the default mechanism)
+2. SSE is OPTIONAL — hubs that need real-time updates enable it
+3. Both mechanisms use the same ABAC policy evaluation
+4. Execution status endpoints are rate-limited per-session
+5. Results are available for 24 hours after completion (configurable
+   via `WL_RESULT_RETENTION`)
+
+---
+
 ## Implementation Notes
 
 - The gateway MUST be the ONLY externally-reachable component for
@@ -740,8 +821,6 @@ gateway:
 - The gateway emits structured logs and traces following the
   observability blueprint, with additional fields for the external
   request context (client IP, user agent, geolocation if available).
-
-## Verification Checklist
 
 ---
 

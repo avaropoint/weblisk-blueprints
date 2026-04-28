@@ -2,7 +2,7 @@
 type: pattern
 name: state-machine
 version: 1.0.0
-requires: [protocol/spec, protocol/types, patterns/observability]
+requires: [protocol/spec, protocol/types, patterns/observability, patterns/expression]
 platform: any
 tier: free
 -->
@@ -60,6 +60,16 @@ requires:
       types:
         - name: LogEvent
           fields_used: [event_type, level, detail, timestamp]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/expression
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ExpressionGrammar
+          fields_used: [path, comparison, logical_operators]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -246,7 +256,10 @@ transitions:
     description: Deactivate subscriber after repeated failures
 ```
 
-Guards reference fields on the governed entity type.
+Guards reference fields on the governed entity type. Guard expressions
+use the [expression language](expression.md) with the **State Machine
+Context** — paths resolve against `entity.*` (current entity fields),
+`transition.*` (from, to, trigger), and `now` (current timestamp).
 
 ### Multi-Source Transitions
 

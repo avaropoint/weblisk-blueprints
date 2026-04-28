@@ -2,7 +2,7 @@
 type: architecture
 name: storage
 version: 1.0.0
-requires: [protocol/types, architecture/orchestrator, architecture/domain, agents/workflow, agents/task, agents/lifecycle]
+requires: [protocol/types, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 tier: free
 -->
@@ -143,6 +143,8 @@ surface. Summary of stores:
 | Audit Log | Orchestrator | AppendAudit, QueryAudit |
 | Channels | Orchestrator | PutChannel, GetChannel, DeleteChannel, CleanExpired |
 | Namespace Registry | Orchestrator | ClaimNamespace, ReleaseNamespace, GetOwner, ListNamespaces |
+| Users | Gateway | CreateUser, GetUser, GetUserByEmail, UpdateUser, DeleteUser, ListUsers, VerifyCredential, SetCredential |
+| Sessions | Gateway | CreateSession, GetSession, UpdateSession, DeleteSession, DeleteUserSessions, CleanExpired |
 
 ---
 
@@ -236,6 +238,10 @@ without changing the store interface.
   task/
     tasks.jsonl
     queue.jsonl
+  gateway/
+    users.jsonl
+    sessions.jsonl
+    credentials.jsonl          # Separate file, mode 0600
   <agent-name>/
     <agent-specific>.jsonl
 ```
@@ -464,6 +470,101 @@ without changing the store interface.
 
 ---
 
+## Store: Users
+
+**Owner:** [Gateway](gateway.md)
+**Durability:** MUST survive restarts
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| CreateUser | `(user UserRecord) → error` | Create a new user (409 if user_id exists) |
+| GetUser | `(userID string) → (UserRecord, error)` | Retrieve user by ID |
+| GetUserByEmail | `(email string) → (UserRecord, error)` | Retrieve user by email address |
+| UpdateUser | `(userID string, update UserUpdate) → error` | Update user fields |
+| DeleteUser | `(userID string) → error` | Soft-delete user (mark inactive) |
+| ListUsers | `(filter UserFilter) → ([]UserRecord, error)` | List users with optional filter |
+| VerifyCredential | `(userID string, credential string) → (bool, error)` | Verify password hash (timing-safe) |
+| SetCredential | `(userID string, credential string) → error` | Store bcrypt/argon2id hash |
+
+### UserRecord
+
+| Field | Type | Description |
+|-------|------|-------------|
+| UserID | string | Unique user identifier (32 hex chars) |
+| Email | string | User email address (unique) |
+| DisplayName | string | Human-readable name |
+| Roles | []string | Assigned role names |
+| Groups | []string | Group memberships |
+| EmailVerified | bool | Whether email has been verified |
+| MFAEnabled | bool | Whether MFA is configured |
+| Status | string | `active`, `inactive`, `locked` |
+| CreatedAt | int64 | Unix epoch seconds |
+| LastLoginAt | int64 | Unix epoch seconds (0 if never) |
+
+### UserUpdate
+
+| Field | Type | Description |
+|-------|------|-------------|
+| DisplayName | *string | New display name (nil = no change) |
+| Roles | *[]string | Replace roles (nil = no change) |
+| Groups | *[]string | Replace groups (nil = no change) |
+| EmailVerified | *bool | Set verification status (nil = no change) |
+| MFAEnabled | *bool | Set MFA status (nil = no change) |
+| Status | *string | Change status (nil = no change) |
+
+### UserFilter
+
+| Field | Type | Description |
+|-------|------|-------------|
+| Status | string | `active`, `inactive`, `locked` (empty = all) |
+| Role | string | Filter by role membership |
+| Group | string | Filter by group membership |
+| Cursor | string | Pagination cursor |
+| Limit | int | Max results (default: 100) |
+
+**Credential storage:** Passwords MUST be hashed with Argon2id
+(recommended) or bcrypt (minimum cost 12). Raw passwords are NEVER
+stored. The `VerifyCredential` operation performs a timing-safe
+comparison against the stored hash.
+
+---
+
+## Store: Sessions
+
+**Owner:** [Gateway](gateway.md)
+**Durability:** MUST survive restarts (production); MAY be in-memory (development)
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| CreateSession | `(session SessionRecord) → error` | Create a new session |
+| GetSession | `(sessionID string) → (SessionRecord, error)` | Retrieve session by ID |
+| UpdateSession | `(sessionID string, update SessionUpdate) → error` | Update session fields (e.g., last activity) |
+| DeleteSession | `(sessionID string) → error` | Invalidate session |
+| DeleteUserSessions | `(userID string) → (int, error)` | Invalidate all sessions for a user (logout everywhere) |
+| CleanExpired | `() → (int, error)` | Remove all expired sessions, return count |
+
+### SessionRecord
+
+| Field | Type | Description |
+|-------|------|-------------|
+| SessionID | string | Unique session identifier (32 hex chars) |
+| UserID | string | Owning user |
+| ClientFingerprint | string | Client binding hash (see client.md) |
+| Roles | []string | Cached roles at session creation |
+| CreatedAt | int64 | Unix epoch seconds |
+| ExpiresAt | int64 | Unix epoch seconds |
+| LastActivityAt | int64 | Unix epoch seconds — updated on each request |
+| IPAddress | string | Client IP at session creation |
+
+### SessionUpdate
+
+| Field | Type | Description |
+|-------|------|-------------|
+| LastActivityAt | *int64 | Update last activity timestamp |
+| ExpiresAt | *int64 | Extend or shorten session expiry |
+
+---
+
 ## Implementation Notes
 
 - **Flat-file first**: The default storage backend is JSONL files —
@@ -496,7 +597,7 @@ without changing the store interface.
 ## Verification Checklist
 
 - [ ] All stores survive process restart
-- [ ] Observations are retained for at least 30 days
+- [ ] Observations are retained for at least 90 days
 - [ ] Audit entries are retained for at least 90 days
 - [ ] Audit log is append-only with hash chain integrity
 - [ ] Expired channels are cleaned up automatically
@@ -505,3 +606,7 @@ without changing the store interface.
 - [ ] Agent metrics are incrementally updated (not recomputed)
 - [ ] Workflow executions support resumption after restart
 - [ ] No external database server required for default operation
+- [ ] User passwords are hashed with Argon2id or bcrypt (cost >= 12); raw passwords are never stored
+- [ ] Session expiry is enforced: CleanExpired removes stale sessions; GetSession rejects expired records
+- [ ] DeleteUserSessions invalidates all sessions for a user (logout everywhere)
+- [ ] Audit log entries include a `previous_hash` field forming a hash chain: `SHA-256(previous_entry_bytes)` — the first entry uses a zero hash

@@ -132,7 +132,7 @@ requires:
 
 The agent’s public API surface is the 6 protocol endpoints defined in
 [Protocol Endpoint Implementations](#protocol-endpoint-implementations)
-and the two developer-facing methods defined in
+and the three developer-facing methods defined in
 [Agent Logic Interface](#agent-logic-interface):
 `Execute(task, context)`, `HandleMessage(message, context)`, and
 `HandleEvent(event)`.
@@ -422,7 +422,7 @@ The `type` field in the manifest distinguishes three kinds of agents:
 
 | Kind | Manifest Type | Purpose | Dispatched By |
 |------|--------------|---------|---------------|
-| Domain controller | `"domain"` | Directs a business function, declares workflows | Task Agent (via events) |
+| Domain controller | `"domain"` | Directs a business function, declares workflows | Gateway or CLI (via POST /v1/execute) |
 | Work agent | `"agent"` | Performs specific tasks | Task Agent (via POST /v1/execute) |
 | Infrastructure agent | `"infrastructure"` | System-level utilities (workflow, task, lifecycle, cron, sync, etc.) | Any authenticated agent |
 
@@ -432,8 +432,8 @@ See [Domain Architecture](domain.md) for the full domain controller spec.
 `required_agents` and `workflows`. They receive business-level tasks
 and decompose them into multi-agent workflows.
 
-**Work agents** perform the actual work. They are dispatched by domain
-controllers via `POST /v1/message`. They register with the orchestrator
+**Work agents** perform the actual work. They are dispatched by the
+Task Agent via `POST /v1/execute`. They register with the orchestrator
 but business tasks should route through their owning domain.
 
 **Infrastructure agents** (sync, cron, webhook, email) provide

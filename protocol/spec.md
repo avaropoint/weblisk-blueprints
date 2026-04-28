@@ -107,7 +107,8 @@ requires:
 - All signatures are hex-encoded Ed25519 signatures (128 hex chars)
 - All public keys are hex-encoded Ed25519 public keys (64 hex chars)
 - Errors return `ErrorResponse` JSON (see [types.md](types.md)); at minimum `{"error": "message"}`
-- IDs are 32-character hex strings (16 random bytes)
+- IDs are 32-character hex strings (16 random bytes); event IDs use UUID v7
+  (time-sortable, 32 hex chars when formatted without hyphens)
 - Unknown JSON fields MUST be ignored (forward compatibility)
 - Request bodies MUST be limited: 1 MB default, 10 MB for task execution
 
@@ -115,7 +116,10 @@ requires:
 
 ## Agent Endpoints
 
-Every agent MUST serve these 6 endpoints on a single HTTP port:
+Every agent MUST serve these 6 endpoints on a single HTTP port.
+All endpoints use POST for uniformity — this simplifies agent
+implementation (a single HTTP handler dispatch) and avoids URL-encoded
+query strings for future payload extensions on `/v1/describe`.
 
 ### POST /v1/describe
 
@@ -199,11 +203,11 @@ That pattern is the single source of truth for health response structure.
 ```json
 {
   "name": "seo-analyzer",
+  "status": "healthy",
   "version": "1.0.0",
-  "state": "online",
-  "uptime_seconds": 3600,
-  "checks": { ... },
-  "metrics_snapshot": { ... }
+  "uptime": 3600,
+  "metrics": { ... },
+  "timestamp": 1712160001
 }
 ```
 
@@ -224,7 +228,9 @@ The agent MUST:
 3. Dispatch to the appropriate message handler based on `action`
 4. Sign the response
 
-Signature covers: `JSON.stringify({from, to, action, payload})`
+Signature covers: `canonicalize({from, to, action, payload})` per
+[RFC 8785 (JCS)](https://www.rfc-editor.org/rfc/rfc8785) — see
+[identity.md](identity.md#sign-json) for the canonical JSON requirement.
 
 ### POST /v1/services
 
@@ -297,7 +303,7 @@ Agent registration. No auth required (this is how agents GET auth).
 
 The orchestrator MUST:
 1. Validate: `manifest.name`, `manifest.url`, `manifest.public_key` are non-empty
-2. Verify `signature` against `manifest.public_key` over `JSON.stringify(manifest)`
+2. Verify `signature` against `manifest.public_key` over `canonicalize(manifest)` per RFC 8785
 3. Reject if `|server_time - timestamp|` > 300 seconds (replay protection)
 4. **Validate namespace ownership** (see Namespace Control below):
    a. For each namespace in `manifest.publishes`:
@@ -518,7 +524,8 @@ and scopes all result events back to the invoker:
 
 ```
 1. SEO domain publishes: workflow.trigger, scope: "workflow"
-   (addressed to Workflow Agent)
+   (addressed to Workflow Agent — uses "workflow" as scope because
+   the topic 'workflow.trigger' targets the workflow namespace owner)
 2. Workflow Agent records invoker = "seo"
 3. Workflow Agent publishes: task.submit, scope: "task"
    (addressed to Task Agent)
@@ -596,12 +603,44 @@ Applied to ALL orchestrator endpoints except:
 - `POST /v1/register`
 
 Flow:
-1. Check `Authorization: Bearer <token>` header
-2. If no header, check request body for `token` field
-3. Verify token signature against orchestrator's public key
-4. Check token expiry
-5. On failure: 401 `{"error": "valid token required — register first"}`
-6. On success: pass decoded claims to handler
+1. Check `Authorization: Bearer <token>` header (preferred)
+2. If no header, check request body for `token` field (fallback for
+   `EventEnvelope` and `TaskRequest` which include token in the body)
+3. If both present, the header takes precedence
+4. Verify token signature against orchestrator's public key
+5. Check token expiry
+6. On failure: 401 `{"error": "valid token required — register first"}`
+7. On success: pass decoded claims to handler
+
+---
+
+## Token Renewal
+
+Agent auth tokens expire after 24 hours (configurable via `WL_TOKEN_TTL`).
+Agents MUST re-register before their token expires to obtain a fresh token.
+Re-registration is idempotent — the orchestrator updates the existing
+registration entry rather than creating a duplicate.
+
+**Renewal flow:**
+
+```
+1. Agent tracks its token expiry (from RegisterResponse.expires_at)
+2. When remaining TTL < 10% of total TTL (e.g., < 2.4 hours for 24h tokens):
+   a. Agent re-sends POST /v1/register with its current manifest and signature
+   b. Orchestrator validates, issues new token, updates agent registry
+   c. Agent receives new token in RegisterResponse
+3. On 401 response to any request (token already expired):
+   a. Agent immediately re-registers
+   b. If re-registration fails: log error, enter degraded state, retry
+      with exponential backoff per patterns/retry
+```
+
+**Key constraints:**
+- Re-registration is the ONLY token renewal mechanism (no separate refresh endpoint)
+- The orchestrator MUST accept re-registration from an agent with an
+  expired token (the registration endpoint does not require auth)
+- Namespace ownership is preserved across re-registrations (idempotent)
+- In-flight requests that fail with 401 SHOULD be retried after renewal
 
 ---
 
@@ -730,7 +769,13 @@ security:
 
 - HTTP request bodies MUST be read with size limits (`io.LimitReader` or equivalent)
 - All registries (agents, namespaces, channels) MUST be thread-safe
-- Service directory broadcasts are fire-and-forget (failures logged, not blocking)
+- Service directory broadcasts are fire-and-forget (failures logged, not blocking).
+  If an agent fails to receive a broadcast, it operates with a stale routing table
+  until the next broadcast. Agents MUST periodically refresh their routing table
+  by calling `GET /v1/services` on the orchestrator (recommended interval: 60
+  seconds, configurable via `WL_ROUTING_REFRESH`). The orchestrator includes an
+  `updated_at` timestamp in the ServiceDirectory — agents compare this with their
+  cached version and skip processing if unchanged.
 - Channel tokens have 1-hour TTL; expired channels should be cleaned up
 - The orchestrator is NOT an agent — it does not implement agent endpoints
   (it implements orchestrator endpoints)

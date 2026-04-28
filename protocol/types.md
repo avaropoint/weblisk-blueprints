@@ -512,7 +512,8 @@ Direct agent-to-agent or orchestrator-to-agent message.
 | Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
 | TraceID | string | `trace_id` | no | Correlation ID (propagated from TaskContext) |
 
-**Signature covers:** `JSON.stringify({from, to, action, payload})`
+**Signature covers:** `canonicalize({from, to, action, payload})` per
+[RFC 8785 (JCS)](https://www.rfc-editor.org/rfc/rfc8785)
 
 ---
 
@@ -723,6 +724,7 @@ All paths are prefixed with `/v1`.
 | `/v1/channel` | POST | yes | orchestrator | Broker channel |
 | `/v1/health` | GET | no | orchestrator | Orchestrator health |
 | `/v1/audit` | GET | yes | orchestrator | Audit log |
+| `/v1/rotate-key` | POST | yes | orchestrator | Key rotation (see identity.md) |
 
 ---
 
@@ -847,6 +849,22 @@ Result of boundary inspection by the enforcement layer.
 
 ---
 
+## Identity
+
+### KeyRotationRequest
+
+Defined in [protocol/identity.md](identity.md#key-rotation). Included
+here for completeness — identity.md is the authoritative source.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| AgentName | string | `agent_name` | yes | Name of the entity rotating keys |
+| OldPublicKey | string | `old_public_key` | yes | Current public key (64 hex chars) |
+| NewPublicKey | string | `new_public_key` | yes | New public key (64 hex chars) |
+| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+
+---
+
 ## Security
 
 ```yaml
@@ -898,7 +916,7 @@ security:
 - [ ] WorkflowPhase `on_error` supports `fail`, `skip`, and `retry`; `max_retries` applies only when `on_error` = `"retry"`
 - [ ] WorkflowExecution `status` transitions follow `pending` → `running` → `completed` | `failed`; PhaseResult adds `skipped`
 - [ ] TaskRequest requires `id`, `from`, `action`, `payload`, `context`, `token`, and `timestamp`; TaskResult status is `success`, `failed`, or `pending_approval`
-- [ ] AgentMessage `signature` covers `JSON.stringify({from, to, action, payload})` and `trace_id` propagates through downstream calls
+- [ ] AgentMessage `signature` covers `canonicalize({from, to, action, payload})` per RFC 8785 and `trace_id` propagates through downstream calls
 - [ ] Finding includes all required fields: `rule_id`, `severity`, `element`, `current`, `expected`, `message`, and `fixable`
 - [ ] RegisterResponse includes `agent_id`, `token`, `expires_at`, `services`, `orchestrator`, and negotiated `protocol_version`
 - [ ] ChannelGrant includes `channel_id`, scoped `channel_token`, `target_url`, `target_pub_key`, and `expires_at`
