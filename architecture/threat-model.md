@@ -2,7 +2,7 @@
 type: architecture
 name: threat-model
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/federation, architecture/gateway, architecture/browser-session, architecture/data-security, architecture/admin, architecture/observability]
+requires: [protocol/spec, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/data-security, architecture/admin, architecture/observability]
 platform: any
 tier: free
 -->
@@ -96,12 +96,12 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-  - blueprint: architecture/browser-session
+  - blueprint: architecture/client
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: BrowserSession
-          fields_used: [session_id, client_binding, csrf_token]
+        - name: ClientRecord
+          fields_used: [client_type, trust_level, binding_hash, capabilities]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

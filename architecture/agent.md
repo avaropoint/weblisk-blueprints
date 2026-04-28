@@ -124,7 +124,7 @@ requires:
 - Workflow execution or task dispatch (owned by Workflow Agent and Task Agent)
 - Domain-level business rules (owned by domain controllers)
 - Storage persistence (agents use platform-specific storage independently)
-- Session management (owned by `architecture/browser-session`)
+- Session management (owned by `architecture/client`)
 
 ---
 
