@@ -183,6 +183,7 @@ contracts:
       payload: { contract: string, version: string, initiator: string, responder: string, scope: string }
     - topic: contract.deprecated
       payload: { contract: string, version: string, migration_target: string, deprecated_at: int }
+```
 
 ---
 
