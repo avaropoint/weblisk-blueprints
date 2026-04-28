@@ -2,7 +2,7 @@
 type: pattern
 name: auth-session
 version: 1.0.0
-requires: [protocol/spec, protocol/types, protocol/identity, architecture/gateway, architecture/browser-session]
+requires: [protocol/spec, protocol/types, protocol/identity, architecture/gateway, architecture/client]
 platform: any
 tier: free
 -->
@@ -71,12 +71,12 @@ requires:
       breaking: version-bump
       removed: halt-immediately
 
-  - blueprint: architecture/browser-session
+  - blueprint: architecture/client
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: BrowserSession
-          fields_used: [session_id, cookie_config, csrf_token]
+        - name: ClientRecord
+          fields_used: [client_type, session_id, trust_level]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

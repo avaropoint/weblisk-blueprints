@@ -2,7 +2,7 @@
 type: architecture
 name: admin
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/browser-session, architecture/threat-model]
+requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
 -->
@@ -130,7 +130,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
 
-  - blueprint: architecture/browser-session
+  - blueprint: architecture/client
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
@@ -172,7 +172,7 @@ requires:
 - Orchestrator internals (admin reads orchestrator state via API, does not manage it directly)
 - Agent logic or agent lifecycle (admin can deregister, but agents self-govern)
 - Application-level admin features (those use the application gateway)
-- Browser session management (owned by `architecture/browser-session`)
+- Client session management (owned by `architecture/client`)
 - Federation trust establishment (owned by `protocol/federation`; admin only approves/revokes)
 
 ---

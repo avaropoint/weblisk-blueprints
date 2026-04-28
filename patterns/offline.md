@@ -1,20 +1,27 @@
 <!-- blueprint
 type: pattern
-name: data-sync
+name: offline
 version: 1.0.0
-requires: [protocol/spec, protocol/types, patterns/storage, patterns/state-machine]
+requires: [protocol/spec, protocol/types, architecture/client, architecture/data-security, patterns/storage, patterns/state-machine, patterns/scope, patterns/privacy]
 platform: any
 tier: free
 -->
 
-# Data Sync Pattern
+# Offline Operation Pattern
 
-Client-server data synchronisation for offline-first applications.
-Defines the platform-wide contract for delta-based change transfer,
-conflict resolution, version tracking, and offline queue management.
-The sync agent (`agents/sync`) is the primary executor — this pattern
-provides the reusable envelope format, state machine, and conflict
-semantics that any agent or domain may adopt.
+Specification for operating outside the Weblisk framework boundary —
+when data leaves the server and lives on a client device. Defines
+the contracts for client-side persistence, encryption-at-rest,
+scope-driven data protection, delta-based sync, conflict resolution,
+offline queue management, data minimization, TTL enforcement, and
+consent revocation propagation.
+
+Any time data exits the framework it enters an environment the
+framework does not control. This pattern treats that boundary
+crossing as a data sovereignty event. The framework defines what
+data may leave, how it must be protected, how long it may persist,
+and how it is reclaimed — but it does not dictate the internal
+implementation of client-side storage.
 
 ## Overview
 
@@ -23,6 +30,13 @@ disconnected. When connectivity resumes, those changes must be
 reconciled with the server state and propagated to other clients.
 This pattern formalises:
 
+- **Data sovereignty at the boundary** — when data crosses from
+  server to client, scope classification, encryption requirements,
+  and TTL constraints travel with it. The client is bound by these
+  constraints.
+- **Client-side persistence contracts** — approved storage mechanisms
+  per client type, encryption requirements per scope level, and
+  mandatory auto-purge on TTL expiry.
 - **Sync envelope format** — a standardised delta batch container
   that carries changes, cursors, and metadata between client and
   server in both directions.
@@ -31,12 +45,12 @@ This pattern formalises:
   declared per sync operation.
 - **Version tracking** — sequence numbers and vector clocks for
   causality ordering and conflict detection.
-- **Batch operation semantics** — chunked push/pull with size limits,
-  pagination cursors, and atomic application.
-- **Sync state machine** — a well-defined lifecycle from idle through
-  syncing to resolution and completion.
 - **Offline queue** — a client-side queue format for changes awaiting
-  connectivity.
+  connectivity, with persistence and backpressure semantics.
+- **Revocation cascade** — when consent is revoked or data is
+  reclassified server-side, the change propagates to offline stores
+  on next sync. Clients MUST honour revocation within the defined
+  window.
 - **Bandwidth-aware transfer** — compression, pagination, and
   priority hints to minimise wire traffic.
 
@@ -60,6 +74,7 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
+
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -70,6 +85,35 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
+
+  - blueprint: architecture/client
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ClientType
+          fields_used: [browser, native-mobile, native-desktop, api-server, iot-device]
+        - name: TrustLevel
+          fields_used: [untrusted, semi-trusted, trusted, constrained]
+        - name: ClientCapability
+          fields_used: [offline, secure-enclave]
+        - name: DataBoundaryTag
+          fields_used: [scope, ttl, offline_permitted, encryption_required]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/data-security
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: TransportPolicy
+          fields_used: [tls_version, cipher_suites]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
   - blueprint: patterns/storage
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -80,6 +124,7 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
+
   - blueprint: patterns/state-machine
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -90,17 +135,63 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
+
+  - blueprint: patterns/scope
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ScopeClassification
+          fields_used: [level, label]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/privacy
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ConsentRecord
+          fields_used: [purpose, granted, expires_at]
+        - name: ErasureRequest
+          fields_used: [subject_id, scope, requested_at]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
 ```
 
 ---
 
 ## Design Principles
 
-1. **Offline-First** — Clients operate fully offline. Sync is eventual, not blocking. Local writes never fail due to connectivity. The sync layer is responsible for eventual reconciliation when the network is available.
-2. **Conflict-Explicit** — Every sync operation declares its conflict resolution strategy. No silent overwrites. When a conflict is detected the system MUST apply the declared strategy and log the outcome.
-3. **Delta-Only Transfer** — Only changes travel over the wire. Full-state dumps are never used in normal operation. Deltas are computed against the client's last-known cursor and transmitted as ordered change records.
-4. **Idempotent Application** — Applying the same delta batch twice produces the same result. Implementations MUST track applied batch IDs and de-duplicate on receipt.
-5. **Bi-Directional** — Push and pull are symmetric operations using the same envelope format. The SyncEnvelope structure is identical regardless of direction.
+1. **Data Sovereignty at the Boundary** — Data leaving the framework
+   is a controlled export. Every record carries its scope
+   classification, encryption requirement, and TTL. The client
+   is contractually bound to honour these constraints.
+2. **Offline-First** — Clients operate fully offline. Sync is
+   eventual, not blocking. Local writes never fail due to
+   connectivity. The sync layer is responsible for eventual
+   reconciliation when the network is available.
+3. **Scope-Driven Encryption** — The scope classification of the
+   data determines the encryption requirement on the client device.
+   Public data may be stored in cleartext. Internal data requires
+   AES-256-GCM. Confidential data requires hardware-backed key
+   storage where available.
+4. **Conflict-Explicit** — Every sync operation declares its conflict
+   resolution strategy. No silent overwrites. When a conflict is
+   detected the system MUST apply the declared strategy and log
+   the outcome.
+5. **Delta-Only Transfer** — Only changes travel over the wire.
+   Full-state dumps are never used in normal operation. Deltas are
+   computed against the client's last-known cursor.
+6. **Revocation Reaches Everywhere** — Consent withdrawal, scope
+   reclassification, and erasure requests propagate to offline
+   stores. On next sync, the client receives revocation directives
+   and MUST purge affected data within the defined window.
+7. **Idempotent Application** — Applying the same delta batch twice
+   produces the same result. Implementations MUST track applied
+   batch IDs and de-duplicate on receipt.
 
 ---
 
@@ -187,6 +278,38 @@ contracts:
       overridable: true
       override_constraints: Must persist queue across app restarts; must flush in declared order
 
+    - name: offline-persistence
+      description: Client-side data storage with scope-driven encryption and TTL enforcement
+      parameters:
+        - name: storage_engine
+          type: string
+          required: true
+          description: Client storage mechanism (indexeddb, sqlite-encrypted, secure-enclave, memory-only)
+        - name: encryption_level
+          type: string
+          required: true
+          description: Encryption requirement (none, aes-256-gcm, hardware-backed)
+        - name: ttl_enforcement
+          type: string
+          required: true
+          default: strict
+          description: TTL enforcement mode (strict = purge on expiry, lazy = purge on next access)
+      inherits: Scope-aware storage, encryption-at-rest, automatic TTL purge, revocation handling
+      overridable: true
+      override_constraints: Must not store data above the client's permitted scope level; must honour TTL and revocation
+
+    - name: revocation-cascade
+      description: Propagate consent withdrawal, scope changes, and erasure requests to offline stores
+      parameters:
+        - name: revocation_window
+          type: int
+          required: false
+          default: 86400
+          description: Maximum seconds before revoked data must be purged from offline stores
+      inherits: Revocation directive processing, offline purge execution, compliance confirmation
+      overridable: true
+      override_constraints: Must purge within the revocation window; must confirm purge to server on next sync
+
   types:
     - name: SyncEnvelope
       description: Batch container carrying delta changes, cursor, and sync metadata
@@ -212,6 +335,12 @@ contracts:
     - name: OfflineQueueEntry
       description: Queued change awaiting connectivity with priority and retry metadata
       inherited_by: Types section
+    - name: OfflineDataRecord
+      description: A record persisted on the client device with scope, encryption, and TTL metadata
+      inherited_by: Types section
+    - name: RevocationDirective
+      description: Server-issued instruction to purge or reclassify offline data
+      inherited_by: Types section
 
   events:
     - topic: sync.push.started
@@ -235,6 +364,15 @@ contracts:
     - topic: sync.failed
       description: A sync operation failed after retries
       payload: {client_id, batch_id, direction, error_code, error_message, timestamp}
+    - topic: offline.revocation.received
+      description: Client received a revocation directive during sync
+      payload: {client_id, directive_id, affected_records, reason, timestamp}
+    - topic: offline.revocation.completed
+      description: Client confirmed purge of revoked offline data
+      payload: {client_id, directive_id, purged_count, timestamp}
+    - topic: offline.ttl.purged
+      description: Client purged expired offline data based on TTL
+      payload: {client_id, purged_count, oldest_record_age, timestamp}
 ```
 
 ---
@@ -257,6 +395,7 @@ Both push and pull use this structure.
 | compression | string | no | Wire encoding (`none`, `gzip`, `zstd`) |
 | priority | string | no | Transfer hint (`low`, `normal`, `high`) |
 | timestamp | int64 | yes | Envelope creation time (Unix ms) |
+| revocations | []RevocationDirective | no | Revocation directives included in pull responses |
 | metadata | object | no | Arbitrary key-value pairs for tracing |
 
 ### DeltaBatch
@@ -288,6 +427,7 @@ A single field-level change. Represents one mutation to one entity.
 | version | string | yes | Version vector or sequence number |
 | timestamp | int64 | yes | When the change was made (Unix ms) |
 | source | string | yes | `client` or `server` |
+| scope | string | no | Scope classification of this record |
 | checksum | string | no | SHA-256 of the serialised record for integrity |
 
 ### ConflictStrategy
@@ -358,6 +498,123 @@ A queued change on the client awaiting connectivity.
 | last_error | string | no | Last error message if a push attempt failed |
 | status | string | yes | `pending`, `flushing`, `flushed`, `failed` |
 
+### OfflineDataRecord
+
+A record persisted on the client device. Wraps the application data
+with scope, encryption, and TTL metadata that the client MUST enforce.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| record_id | string | yes | Unique offline record ID |
+| entity | string | yes | Entity/table name |
+| entity_id | string | yes | Primary key of the source record |
+| data | object | yes | The persisted application data (encrypted if required) |
+| scope | string | yes | Scope classification at time of storage |
+| encryption | string | yes | Encryption applied: `none`, `aes-256-gcm`, `hardware-backed` |
+| stored_at | int64 | yes | When the record was stored on the device (Unix ms) |
+| ttl | int | yes | Maximum retention in seconds (from stored_at) |
+| expires_at | int64 | yes | Absolute expiry timestamp (stored_at + ttl, Unix ms) |
+| sync_version | string | yes | Version at which this record was synced |
+| revoked | bool | yes | Whether a revocation directive has been received for this record |
+
+### RevocationDirective
+
+A server-issued instruction to purge or reclassify data held in
+offline stores. Included in pull responses when consent, scope, or
+erasure state changes server-side.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| directive_id | string | yes | Unique directive ID |
+| type | string | yes | `purge` (delete), `reclassify` (change scope/encryption), `re-encrypt` (upgrade encryption) |
+| entity | string | no | Target entity (null = all entities for this subject) |
+| entity_id | string | no | Target record (null = all records for this entity) |
+| subject_id | string | no | Privacy subject (for consent-driven revocations) |
+| reason | string | yes | `consent-withdrawn`, `scope-upgraded`, `erasure-request`, `policy-change` |
+| new_scope | string | no | New scope level (for `reclassify` type) |
+| new_encryption | string | no | New encryption requirement (for `re-encrypt` type) |
+| deadline | int64 | yes | Unix timestamp by which client MUST complete the directive |
+| issued_at | int64 | yes | When the directive was issued |
+
+---
+
+## Client-Side Persistence
+
+### Storage Engines by Client Type
+
+| Client Type | Permitted Storage | Encryption Requirement |
+|-------------|-------------------|----------------------|
+| browser | IndexedDB only (no localStorage, no sessionStorage) | Scope-driven (see matrix below) |
+| native-mobile | Encrypted SQLite (app sandbox) or Secure Enclave | Scope-driven, minimum AES-256-GCM |
+| native-desktop | Encrypted SQLite (app data directory) | Scope-driven, minimum AES-256-GCM |
+| api-server | Implementation-defined (operator-controlled) | Per contract |
+| iot-device | Not permitted (memory-only during session) | — |
+
+### Encryption-at-Rest by Scope
+
+| Scope Level | Browser (IndexedDB) | Native App (SQLite) | Notes |
+|-------------|--------------------|--------------------|-------|
+| `public` | Cleartext permitted | Cleartext permitted | No sensitive data by definition |
+| `internal` | AES-256-GCM (software key) | AES-256-GCM (Keychain/Keystore-derived key) | Key derived from session + device binding |
+| `confidential` | AES-256-GCM (software key) | Hardware-backed key (Secure Enclave / StrongBox) | Browser cannot guarantee hardware-backed; software key is acceptable but TTL is shortened |
+| `restricted` | NOT PERMITTED | NOT PERMITTED (unless elevated session + secure enclave) | Restricted data should not leave the server in most cases |
+
+### Key Derivation for Client-Side Encryption
+
+```
+Browser:
+  key = HKDF-SHA256(
+    input_key_material: session_csrf_secret,
+    salt: client_binding_hash,
+    info: "offline-encryption-v1"
+  )
+
+Native client:
+  key = platform_keystore_generate(
+    alias: "wl-offline-" + client_id,
+    algorithm: AES-256-GCM,
+    requires_auth: true,          # Unlock requires device auth (biometric/PIN)
+    hardware_backed: scope >= confidential
+  )
+```
+
+### TTL Enforcement
+
+All offline data has a maximum lifespan. The client MUST purge
+expired data regardless of connectivity state.
+
+```
+On every app launch / foreground event:
+  1. Scan all OfflineDataRecords
+  2. For each record where now > expires_at:
+     a. Securely delete the record (overwrite, then remove)
+     b. Remove the decryption key if no other records use it
+     c. Emit offline.ttl.purged event on next sync
+  3. For each record where scope has changed (via RevocationDirective):
+     a. Apply the directive (purge, reclassify, or re-encrypt)
+     b. Emit offline.revocation.completed on next sync
+```
+
+### Data Minimization
+
+The server MUST apply data minimization before including records in
+pull responses destined for offline storage:
+
+```
+For each record in the pull response:
+  1. Check client's declared capabilities (from architecture/client)
+  2. Check client's trust level
+  3. Strip fields that:
+     a. Exceed the client's maximum permitted scope
+     b. Are not needed for the client's declared offline use case
+     c. Contain PII beyond what consent permits for offline storage
+  4. Attach DataBoundaryTag to each record:
+     - scope: record's classification level
+     - ttl: maximum offline retention
+     - offline_permitted: true (already filtered)
+     - encryption_required: per scope-encryption matrix
+```
+
 ---
 
 ## Sync State Machine
@@ -404,7 +661,7 @@ state_machine:
         to: complete
         trigger: pull_applied
         guard: all pulled changes applied cleanly
-        side_effect: emit sync.pull.completed
+        side_effect: emit sync.pull.completed; process revocation directives
 
       - from: resolving
         to: complete
@@ -512,6 +769,38 @@ config:
     overridable: true
     description: Maximum offline queue entries before backpressure
 
+  offline_data_ttl_public:
+    type: int
+    default: 604800
+    min: 3600
+    max: 2592000
+    overridable: true
+    description: Default TTL for public-scope offline data in seconds (7 days)
+
+  offline_data_ttl_internal:
+    type: int
+    default: 86400
+    min: 3600
+    max: 604800
+    overridable: true
+    description: Default TTL for internal-scope offline data in seconds (24 hours)
+
+  offline_data_ttl_confidential:
+    type: int
+    default: 3600
+    min: 300
+    max: 86400
+    overridable: true
+    description: Default TTL for confidential-scope offline data in seconds (1 hour)
+
+  revocation_window:
+    type: int
+    default: 86400
+    min: 3600
+    max: 604800
+    overridable: true
+    description: Maximum seconds before revoked data must be purged from offline stores
+
   sync_timeout:
     type: int
     default: 30
@@ -553,19 +842,23 @@ config:
 | `SYNC_QUEUE_FULL` | Offline queue full | Queue depth exceeds `offline_queue_depth` | Flush queue or increase limit |
 | `SYNC_CHECKSUM_FAILED` | Integrity check failed | Record checksum does not match payload | Re-transmit the batch |
 | `SYNC_TIMEOUT` | Operation timeout | Sync exceeded `sync_timeout` | Retry with backoff |
+| `OFFLINE_SCOPE_VIOLATION` | Scope violation | Client attempted to store data above permitted scope | Strip disallowed fields; re-request with correct scope |
+| `OFFLINE_ENCRYPTION_REQUIRED` | Encryption missing | Data requires encryption but client lacks capability | Reject offline storage for this data |
+| `OFFLINE_REVOCATION_OVERDUE` | Revocation overdue | Client has not confirmed revocation within the window | Force purge on next sync; restrict pull until confirmed |
 
 ### Error Response Format
 
-Sync errors follow the protocol/spec `ErrorResponse` structure:
+Errors follow the protocol/spec `ErrorResponse` structure:
 
 ```json
 {
-  "code": "SYNC_BATCH_TOO_LARGE",
-  "message": "Batch contains 250 records, maximum is 100",
+  "code": "OFFLINE_SCOPE_VIOLATION",
+  "message": "Client trust level 'untrusted' cannot persist 'restricted' scope data offline",
   "detail": {
-    "batch_id": "abc123",
-    "record_count": 250,
-    "max_allowed": 100
+    "client_type": "browser",
+    "trust_level": "untrusted",
+    "requested_scope": "restricted",
+    "max_permitted_scope": "confidential"
   }
 }
 ```
@@ -578,6 +871,8 @@ Sync errors follow the protocol/spec `ErrorResponse` structure:
   are NOT retried — the client must take corrective action.
 - Conflict errors (`SYNC_CONFLICT_UNRESOLVED`) are not retried; they
   require strategy change or manual resolution.
+- Offline errors (`OFFLINE_SCOPE_VIOLATION`, `OFFLINE_ENCRYPTION_REQUIRED`)
+  are permanent — the client must adjust its behavior.
 
 ---
 
@@ -611,15 +906,29 @@ Sync errors follow the protocol/spec `ErrorResponse` structure:
   `page` and `has_more` fields. Clients MUST continue pulling until
   `has_more` is `false`.
 - **Offline queue persistence**: The offline queue MUST survive app
-  restarts and device reboots. IndexedDB or SQLite are recommended
-  client-side stores.
+  restarts and device reboots. IndexedDB or encrypted SQLite are the
+  recommended client-side stores.
 - **Checksum verification**: When `checksum` is present on a
   ChangeRecord, the receiver MUST validate it before application.
   Invalid checksums cause the entire batch to be rejected.
 - **Backpressure**: When the offline queue reaches `offline_queue_depth`,
   implementations SHOULD signal backpressure to the application layer
-  (e.g., reject new writes with a queue-full error) rather than
-  silently dropping changes.
+  rather than silently dropping changes.
+- **Revocation directives are mandatory**: Clients MUST process all
+  RevocationDirectives received in a pull response before considering
+  the sync complete. Unprocessed directives block subsequent syncs.
+- **Secure deletion**: When purging offline data (TTL expiry or
+  revocation), implementations SHOULD overwrite the data before
+  removing the record. On platforms that support it, use secure
+  delete APIs.
+- **Browser IndexedDB limitations**: Browsers may clear IndexedDB
+  under storage pressure. Implementations MUST handle missing offline
+  data gracefully — a full re-sync from the server recovers state.
+- **Scope changes propagate**: If the server reclassifies a record's
+  scope (e.g., `internal` → `confidential`), the pull response
+  includes a `reclassify` RevocationDirective. The client MUST
+  re-encrypt the record with the higher encryption requirement or
+  purge it if the client lacks the required capability.
 
 ---
 
@@ -664,6 +973,24 @@ Sync errors follow the protocol/spec `ErrorResponse` structure:
 - [ ] Sync operations follow the declared state machine transitions
 - [ ] Events are emitted at each state transition (push/pull started, completed, failed)
 - [ ] `sync.conflict.detected` fires for each conflict before resolution
-- [ ] `sync.conflict.resolved` fires for each resolved conflict
-- [ ] `sync.failed` fires on unrecoverable errors with error detail
-- [ ] State resets to `idle` after `complete` or `failed`
+
+### Data Sovereignty & Persistence
+
+- [ ] Offline data carries scope classification, encryption level, and TTL from the server
+- [ ] Browser clients use IndexedDB only — no localStorage or sessionStorage for offline data
+- [ ] Native clients use encrypted SQLite with platform Keychain/Keystore-derived keys
+- [ ] IoT devices do NOT persist data offline (memory-only during session)
+- [ ] Public-scope data may be stored in cleartext; internal+ requires AES-256-GCM minimum
+- [ ] Confidential-scope data on native clients uses hardware-backed key storage where available
+- [ ] Restricted-scope data is NOT stored offline except with elevated session + secure enclave
+- [ ] TTL is enforced on every app launch/foreground: expired records are securely deleted
+- [ ] Data minimization is applied server-side before including records in pull responses
+
+### Revocation & Compliance
+
+- [ ] RevocationDirectives in pull responses are processed before sync is marked complete
+- [ ] `purge` directives securely delete the targeted offline records
+- [ ] `reclassify` directives re-encrypt or purge records that exceed the new scope's client capability
+- [ ] `re-encrypt` directives upgrade encryption on targeted records
+- [ ] Clients confirm revocation completion to the server on next sync (offline.revocation.completed event)
+- [ ] Unconfirmed revocations past the deadline trigger `OFFLINE_REVOCATION_OVERDUE` and block further pulls

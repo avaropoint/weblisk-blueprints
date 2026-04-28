@@ -90,7 +90,7 @@ architecture/       System architecture
   cli.md              CLI operations — interrogation, management commands
   observability.md    Structured logging, distributed tracing, metrics
   gateway.md          Application gateway — auth, ABAC, rate limiting, route protection
-  browser-session.md  Cryptographic browser sessions — binding, islands, continuity
+  client.md          Client architecture — taxonomy, trust levels, sessions, data boundary
   data-security.md    Transport security, scope-aware boundaries, opt-in data primitives
   enforcement.md      Non-bypassable boundary inspection, rogue agent detection
   threat-model.md     Attack surface analysis — 5 boundaries, OWASP mapping
@@ -151,7 +151,7 @@ patterns/           Declarative API and cross-cutting pattern specifications
   task-dispatch.md    Task submission, priority queuing, dispatch protocol, dead-letter
   alerting.md         Alert rule evaluation, severity routing, dedup, escalation, muting
   scheduling.md       Cron expressions, overlap policy, missed-tick handling, distributed locking
-  data-sync.md        Client-server sync — delta batches, conflict resolution, offline queue
+  offline.md          Offline operation — sync, client persistence, encryption, revocation
   incident-response.md  Incident lifecycle, runbook execution, correlation, post-mortem
 
 schemas/            Blueprint schema governance
