@@ -296,11 +296,13 @@ config:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/health` | Health check — returns agent status |
-| POST | `/describe` | Returns agent capabilities and manifest |
-| POST | `/task` | Receive and process an alert event |
-| POST | `/message` | Receive messages from other agents |
-| POST | `/governance` | Accept governance directives |
+| POST | `/v1/health` | Health check — returns agent status |
+| POST | `/v1/describe` | Returns agent capabilities and manifest |
+| POST | `/v1/execute` | Receive and process an alert event |
+| POST | `/v1/message` | Receive messages from other agents |
+| POST | `/v1/event` | Receive event deliveries (pub/sub) |
+| POST | `/v1/services` | Receive service directory updates |
+| POST | `/v1/governance` | Accept governance directives |
 
 ---
 
@@ -540,7 +542,7 @@ Step 7 — Exit
 
 ### Health
 
-Reported via `GET /v1/health`:
+Reported via `POST /v1/health`:
 
 ```yaml
 health:

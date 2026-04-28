@@ -908,7 +908,7 @@ Step 7 — Exit
 
 ### Health
 
-Reported via `GET /v1/health`:
+Reported via `POST /v1/health`:
 
 ```yaml
 health:

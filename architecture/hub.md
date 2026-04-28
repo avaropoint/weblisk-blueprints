@@ -967,7 +967,7 @@ Buyer Hub                Registry Hub              Seller Hub
                                ◄────────────────────
 13. Peering established.
     Buyer can now invoke:
-    POST {seller}/v1/task
+    POST {seller}/v1/execute
     with federated auth
 
 14. Hub agent metrics      ─► 15. Registry records

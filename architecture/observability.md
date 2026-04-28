@@ -101,7 +101,7 @@ requires:
 | Interface | Type | Description |
 |-----------|------|-------------|
 | `GET /metrics` | HTTP (per-component) | Prometheus exposition format metrics endpoint (no auth required) |
-| `GET /v1/health` | HTTP (per-component) | Structured health status with checks map |
+| `POST /v1/health` (agents) / `GET /v1/health` (orchestrator) | HTTP (per-component) | Structured health status with checks map |
 | `X-Trace-Id` header | HTTP header | 32 hex char trace identifier propagated on all inter-component requests |
 | `X-Span-Id` header | HTTP header | 16 hex char span identifier for trace tree construction |
 | `X-Parent-Span-Id` header | HTTP header | Parent span reference for child span linking |

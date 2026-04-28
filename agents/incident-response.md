@@ -1129,6 +1129,8 @@ constraints:
 ---
 
 ## Configuration
+
+```yaml
   correlation_window: 300      # seconds — group related alerts
   auto_resolve_timeout: 600    # seconds — auto-close if stable after resolution
   max_runbook_duration: 300    # seconds — max time for a runbook to complete
@@ -1139,6 +1141,8 @@ constraints:
 ---
 
 ## Observability
+
+| Metric | Type | Description |
 |--------|------|-------------|
 | incident_total | counter | Incidents by severity, state, and runbook |
 | incident_duration_seconds | histogram | Time from detection to resolution |
@@ -1151,6 +1155,8 @@ constraints:
 ---
 
 ## Error Handling
+
+| Condition | Action |
 |-------|---------|
 | Runbook step fails | Move to on_failure path (usually escalate) |
 | Runbook timeout | Cancel remaining steps, escalate to operator |
