@@ -148,6 +148,7 @@ patterns/           Declarative API and cross-cutting pattern specifications
   interop.md          Framework adapters — LangChain, CrewAI, ADK, HTTP service wrappers
   versioning.md       Semantic versioning, compatibility rules, deprecation
   workflow.md         Workflow declaration, event-driven DAG execution, approval gates
+  expression.md       Expression language — guards, conditions, constraints, policy rules
   task-dispatch.md    Task submission, priority queuing, dispatch protocol, dead-letter
   alerting.md         Alert rule evaluation, severity routing, dedup, escalation, muting
   scheduling.md       Cron expressions, overlap policy, missed-tick handling, distributed locking

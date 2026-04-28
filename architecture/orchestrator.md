@@ -145,7 +145,11 @@ for the authoritative registration contract.
        - scope "self" → always allowed
        - scope "*" → check agent has "event:observe" capability → 403 if missing
        - scope "<name>" → check collaborator relationship → 403 if unauthorized
-5.  Generate agent ID and auth token
+5.  Generate agent ID and auth token (WLT format — see
+    [protocol/identity.md Token System](../protocol/identity.md#token-system)):
+    - Token type: WLT (Weblisk Token) with Ed25519 signature
+    - Claims: sub=agent_name, iss="orchestrator", cap=manifest.capabilities
+    - Expiry: 24 hours (configurable via WL_TOKEN_TTL)
 6.  Store agent in registry:
     {manifest, agentID, token, registeredAt, lastSeen, status: "online"}
 7.  Build routing table entries for this agent's subscriptions:

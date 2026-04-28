@@ -53,6 +53,8 @@ requires:
 - Algorithm: Ed25519 (RFC 8032) — the sole signing algorithm
 - Key size: 32-byte public key, 64-byte private key
 - Encoding: hex for protocol exchange (64 chars for public, 128 for private)
+- JSON signing: RFC 8785 JSON Canonicalization Scheme (JCS) — mandatory
+  for all JSON values that are signed
 - Token format: `base64url(header).base64url(payload).base64url(signature)`
 - All three token parts use base64url encoding WITHOUT padding (RFC 4648 §5)
 - Algorithm agility: the token header `alg` field allows future swap to
@@ -92,8 +94,23 @@ process: sig = Ed25519.Sign(privateKey, data)
 ```
 input: any JSON-serializable value
 output: hex-encoded Ed25519 signature
-process: data = JSON.stringify(value) → Sign(data)
+process: data = canonicalize(value) → Sign(data)
 ```
+
+**Canonical JSON (RFC 8785):** All JSON signing MUST use
+[RFC 8785 JSON Canonicalization Scheme (JCS)](https://www.rfc-editor.org/rfc/rfc8785).
+This guarantees identical byte output across all languages and platforms:
+
+1. Object keys sorted lexicographically by Unicode code point
+2. No insignificant whitespace
+3. Numbers serialized per ES2015 `JSON.stringify` rules (no trailing zeros,
+   no positive sign on exponent)
+4. Strings use minimal \uXXXX escaping (only required characters)
+
+Native `JSON.stringify` is NOT sufficient — key ordering varies across
+languages (Go sorts by default, Python 3.7+ preserves insertion order,
+JavaScript preserves insertion order). Implementations MUST use a
+compliant JCS library or implement the RFC 8785 algorithm directly.
 
 ### Verify Signature
 ```
@@ -294,14 +311,14 @@ When an agent registers with the orchestrator:
 ```
 Agent side:
   1. manifest = AgentManifest{name, version, url, public_key, ...}
-  2. manifestJSON = JSON.stringify(manifest)
+  2. manifestJSON = canonicalize(manifest)   // RFC 8785 JCS
   3. signature = Ed25519.Sign(agent_private_key, manifestJSON)
   4. Send: {manifest, signature, timestamp: now()}
 
 Orchestrator side:
   1. Receive {manifest, signature, timestamp}
   2. Verify |now() - timestamp| < 300 seconds (replay protection)
-  3. manifestJSON = JSON.stringify(manifest)
+  3. manifestJSON = canonicalize(manifest)   // RFC 8785 JCS
   4. Verify: Ed25519.Verify(manifest.public_key, signature, manifestJSON)
   5. If valid: issue token, register agent
   6. If invalid: reject with 401
@@ -314,13 +331,13 @@ When agents communicate directly:
 ```
 Sender:
   1. payload = {from, to, action, payload}
-  2. payloadJSON = JSON.stringify(payload)
+  2. payloadJSON = canonicalize(payload)   // RFC 8785 JCS
   3. signature = Ed25519.Sign(sender_private_key, payloadJSON)
   4. Include signature in message
 
 Receiver:
   1. Look up sender's public key from service directory
-  2. payloadJSON = JSON.stringify({from, to, action, payload})
+  2. payloadJSON = canonicalize({from, to, action, payload})   // RFC 8785 JCS
   3. Verify: Ed25519.Verify(sender_public_key, signature, payloadJSON)
   4. If invalid: reject with 401
 ```

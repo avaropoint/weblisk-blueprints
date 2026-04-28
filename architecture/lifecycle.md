@@ -93,8 +93,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Event
-          fields_used: [topic, scope, payload, publisher]
+        - name: EventEnvelope
+          fields_used: [topic, scope, payload, source]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -526,18 +526,61 @@ concurrently, triggered by:
 | Human request | User messages Lifecycle Agent via API |
 | Previous cycle complete | Feedback triggers re-observation |
 
+## Types
+
+### ProposedChange
+
+Applied by domain controllers during the Execute phase.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| Path | string | `path` | yes | Target resource (file path, URL, config key) |
+| Action | string | `action` | yes | `modify`, `create`, `delete` |
+| Original | string | `original` | no | Content before change (for modify/delete) |
+| Modified | string | `modified` | no | Content after change (for modify/create) |
+| Diffs | []string | `diffs` | no | Unified diff hunks |
+| RecommendationID | string | `recommendation_id` | yes | Recommendation that triggered this change |
+| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+
+### AgentMetrics
+
+Running performance metrics per agent, updated incrementally from
+feedback signals.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| AgentName | string | `agent_name` | yes | Agent these metrics apply to |
+| TotalObservations | int | `total_observations` | yes | Cumulative observation count |
+| TotalFindings | int | `total_findings` | yes | Cumulative finding count |
+| TotalRecommendations | int | `total_recommendations` | yes | Cumulative recommendation count |
+| AdoptionRate | float64 | `adoption_rate` | yes | accepted / (accepted + rejected) |
+| Accuracy | float64 | `accuracy` | yes | positive_feedback / total_feedback |
+| ImpactScore | float64 | `impact_score` | yes | avg(actual_change / estimated_impact) |
+| FalsePositiveRate | float64 | `false_positive_rate` | yes | rejected_as_wrong / total_recommendations |
+| LastUpdated | int64 | `last_updated` | yes | Unix epoch seconds |
+
+---
+
 ## Implementation Notes
 
 - **Observation storage**: Observations SHOULD be stored with enough
-  history for trend analysis. At minimum, keep the last 30 days.
+  history for trend analysis. At minimum, keep the last 90 days.
 - **Feedback windows**: After applying changes, wait before measuring.
-  The window depends on the metric (SEO: 1-7 days, performance: minutes).
+  The measurement window is specified per strategy target via the
+  `measurement_window` field (seconds). Typical values: SEO metrics
+  86400–604800 (1–7 days), performance metrics 300–3600 (5 min–1 hr).
+  If unset, the Lifecycle Agent uses 86400 (24 hours) as the default.
 - **Idempotent observations**: Running the same observation workflow
   twice on unchanged content should produce identical results.
 - **Metric aggregation**: AgentMetrics are running aggregates, not
   recomputed from scratch each cycle. Use incremental formulas.
-- **Strategy decomposition**: The Lifecycle Agent's mapping of strategies
-  to domains can be rule-based (metric name → domain) or AI-assisted.
+- **Strategy decomposition**: The Lifecycle Agent maps strategies to
+  domains using metric-name-to-domain routing. The mapping is built
+  from domain manifests: each domain's `workflows` declare which
+  metrics they produce observations for. If a strategy target's
+  `metric_name` matches an observation produced by a domain's
+  workflow, the strategy is routed to that domain. When no match is
+  found, the Lifecycle Agent logs a warning and skips the target.
 - **Audit trail**: Every state transition (recommendation pending →
   accepted → applied → measured) MUST be logged for traceability.
 

@@ -745,9 +745,6 @@ Orchestrator: 9800.
 - **State**: Workflow execution state is owned by the Workflow Agent.
   Domains store domain-specific state (entity context, configuration,
   business rules) in flat-file storage.
-- **State**: Workflow execution state is owned by the Workflow Agent.
-  Domains store domain-specific state (entity context, configuration,
-  business rules) in flat-file storage.
 - **Idempotency**: Workflow triggers SHOULD be idempotent. The domain
   generates a correlation_id per trigger that the Workflow Agent uses
   to detect duplicate requests.
