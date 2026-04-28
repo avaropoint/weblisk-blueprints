@@ -174,6 +174,27 @@ by the Task Agent when dispatching queued work, or directly by other
 agents for immediate execution. The caller blocks until the result
 is returned.
 
+**Request example:**
+
+```json
+{
+  "id": "a1b2c3d4e5f6...",
+  "action": "analyze",
+  "target": "seo-analyzer",
+  "input": {"html_files": ["index.html", "about.html"]},
+  "context": {
+    "trace_id": "t-abc123",
+    "correlation_id": "corr-789",
+    "services": {}
+  },
+  "token": "<WLT auth token>",
+  "signature": "<hex Ed25519 signature>",
+  "timestamp": 1712160000
+}
+```
+
+**Response example:**
+
 ```json
 {
   "task_id": "a1b2c3d4e5f6...",
@@ -232,6 +253,20 @@ Signature covers: `canonicalize({from, to, action, payload})` per
 [RFC 8785 (JCS)](https://www.rfc-editor.org/rfc/rfc8785) — see
 [identity.md](identity.md#sign-json) for the canonical JSON requirement.
 
+**Request example:**
+
+```json
+{
+  "from": "content-analyzer",
+  "to": "seo-analyzer",
+  "action": "check-overlap",
+  "type": "request",
+  "payload": {"url": "/blog/post-1", "keywords": ["seo", "performance"]},
+  "signature": "<hex Ed25519 signature>",
+  "timestamp": 1712160000
+}
+```
+
 ### POST /v1/services
 
 Accepts service directory and routing table updates pushed by the
@@ -258,6 +293,20 @@ The agent MUST:
    return 200 OK immediately (skip duplicate processing)
 5. Match the event's `topic` against registered event handlers
 6. Dispatch to the matching handler(s)
+
+**Request example:**
+
+```json
+{
+  "event_id": "evt-a1b2c3d4",
+  "topic": "workflow.completed",
+  "source": "workflow",
+  "scope": "seo",
+  "payload": {"workflow_id": "wf-123", "status": "success", "duration_ms": 4500},
+  "token": "<WLT auth token>",
+  "timestamp": 1712160000
+}
+```
 7. Return 200 OK immediately — event processing is asynchronous
    from the HTTP response. The publisher does not wait for processing
    to complete.
@@ -801,6 +850,36 @@ status responses to protocol usage:
 | 500 | Internal server error |
 | 502 | Could not reach target agent for event delivery |
 | 504 | Agent did not respond within timeout |
+
+### Task Execution Timeouts
+
+The orchestrator enforces a per-task execution timeout. If an agent
+does not respond to `POST /v1/execute` within the timeout, the
+orchestrator returns 504 to the caller and marks the task as `failed`.
+
+| Config Key | Default | Description |
+|------------|---------|-------------|
+| `task_timeout_seconds` | 300 | Maximum time to wait for task completion |
+| `health_timeout_seconds` | 5 | Maximum time to wait for health response |
+| `message_timeout_seconds` | 30 | Maximum time to wait for message response |
+
+Agents MAY override `task_timeout_seconds` in their manifest
+(`timeout` field). The orchestrator uses `min(agent_timeout, global_max)`
+to prevent unbounded waits.
+
+### Concurrency Control
+
+Each agent declares `max_concurrent` in its manifest. The Task Agent
+MUST NOT dispatch more than `max_concurrent` simultaneous tasks to an
+agent. When the limit is reached:
+
+1. The Task Agent queues excess tasks and dispatches them as slots free
+2. If an agent receives a task above its limit (race condition), it
+   MUST return 429 with a `Retry-After` header (in seconds)
+3. The Task Agent retries after the indicated delay
+
+If `max_concurrent` is omitted from the manifest, it defaults to 1
+(serial execution). A value of 0 means unlimited.
 
 ---
 

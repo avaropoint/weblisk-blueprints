@@ -876,9 +876,10 @@ here for completeness — identity.md is the authoritative source.
 
 | Field | Type | JSON Key | Required | Description |
 |-------|------|----------|----------|-------------|
-| AgentName | string | `agent_name` | yes | Name of the entity rotating keys |
-| OldPublicKey | string | `old_public_key` | yes | Current public key (64 hex chars) |
-| NewPublicKey | string | `new_public_key` | yes | New public key (64 hex chars) |
+| AgentID | string | `agent_id` | yes | Agent ID (32 hex chars) |
+| NewPublicKey | string | `new_public_key` | yes | New Ed25519 public key (64 hex chars) |
+| CurrentSignature | string | `current_signature` | yes | Agent manifest signed with current private key (128 hex chars) |
+| NewSignature | string | `new_signature` | yes | Same manifest signed with new private key (128 hex chars) |
 | Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
 
 ---
@@ -892,7 +893,7 @@ for the full logging specification.
 
 | Field | Type | JSON Key | Required | Description |
 |-------|------|----------|----------|-------------|
-| Timestamp | string | `ts` | yes | ISO 8601 timestamp with timezone |
+| Timestamp | int64 | `ts` | yes | Unix epoch seconds (consistent with all protocol timestamps) |
 | Level | string | `level` | yes | `debug`, `info`, `warn`, `error`, `fatal` |
 | LogType | string | `log_type` | yes | `app`, `access`, `audit`, `security` |
 | Message | string | `msg` | yes | Human-readable log message |

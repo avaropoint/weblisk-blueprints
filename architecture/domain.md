@@ -81,7 +81,7 @@ requires:
         - path: /v1/register
           methods: [POST]
         - path: /v1/services
-          methods: [GET]
+          methods: [POST]
       events:
         - topic: system.agent.registered
           fields_used: [agent_name, manifest]

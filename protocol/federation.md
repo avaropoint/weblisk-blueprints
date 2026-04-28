@@ -264,11 +264,11 @@ exactly what data MAY cross a trust boundary and in what form.
   
   "inbound": {
     "required": [
-      {"field": "html_content", "type": "text", "max_size": "1MB", "description": "HTML to audit"}
+      {"name": "html_content", "type": "text", "constraints": "max_length:1048576"},
     ],
     "permitted": [
-      {"field": "url", "type": "string", "description": "Source URL for context"},
-      {"field": "language", "type": "string", "description": "Content language code"}
+      {"name": "url", "type": "string"},
+      {"name": "language", "type": "string"}
     ],
     "forbidden": [
       {"pattern": "*.customer_id"},
@@ -279,21 +279,21 @@ exactly what data MAY cross a trust boundary and in what form.
       {"pattern": "*.api_key*"}
     ],
     "transformations": [
-      {"field": "url", "action": "strip_query_params", "reason": "Query params may contain tracking data"}
+      {"type": "strip", "target": "url", "config": {"strip": "query_params", "reason": "Query params may contain tracking data"}}
     ]
   },
 
   "outbound": {
     "required": [
-      {"field": "seo_score", "type": "number"},
-      {"field": "findings", "type": "array"}
+      {"name": "seo_score", "type": "number"},
+      {"name": "findings", "type": "list"}
     ],
     "permitted": [
-      {"field": "findings[*].severity", "type": "string"},
-      {"field": "findings[*].element", "type": "string"},
-      {"field": "findings[*].message", "type": "string"},
-      {"field": "recommendations[*].priority", "type": "string"},
-      {"field": "recommendations[*].proposed", "type": "string"}
+      {"name": "findings[*].severity", "type": "string"},
+      {"name": "findings[*].element", "type": "string"},
+      {"name": "findings[*].message", "type": "string"},
+      {"name": "recommendations[*].priority", "type": "string"},
+      {"name": "recommendations[*].proposed", "type": "string"}
     ],
     "forbidden": [
       {"pattern": "*.raw_content"},
@@ -305,14 +305,14 @@ exactly what data MAY cross a trust boundary and in what form.
 
   "data_retention": {
     "max_hours": 24,
-    "action": "delete",
-    "audit_required": true
+    "delete_on_revoke": true,
+    "audit_trail": true
   },
 
   "jurisdiction_requirements": {
-    "allowed": ["US", "CA", "GB", "EU"],
-    "forbidden": [],
-    "data_residency": "origin"
+    "country_codes": ["US", "CA", "GB"],
+    "storage_constraint": "must_reside",
+    "gdpr_applicable": true
   },
 
   "signature": "<signed by contract author>"
@@ -351,7 +351,7 @@ Before sending data to a federated agent:
   1. Serialize the outbound payload
   2. Apply forbidden patterns — recursively walk the JSON and remove
      any field matching a forbidden pattern
-  3. Apply transformations (strip_query_params, hash, redact, etc.)
+  3. Apply transformations (strip, hash, redact, truncate, rename)
   4. Validate required fields are present
   5. Validate remaining fields are in the permitted set
   6. If any forbidden field was present, log a DATA_BOUNDARY_VIOLATION
@@ -525,17 +525,17 @@ Orchestrator A (requester)            Orchestrator B (provider)
 
 Added to the orchestrator when federation is enabled:
 
-| Path | Method | Auth | Purpose |
-|------|--------|------|---------|
-| `/v1/federation/manifest` | GET | no | Return orchestrator manifest |
-| `/v1/federation/peer` | POST | signature | Initiate peering request |
-| `/v1/federation/peer-accept` | POST | signature | Accept peering request |
-| `/v1/federation/peer-revoke` | POST | signature | Revoke trust relationship |
-| `/v1/federation/key-rotate` | POST | dual-signature | Notify peers of key rotation |
-| `/v1/federation/task` | POST | peer-auth | Execute a federated task |
-| `/v1/federation/status` | GET | peer-auth | Federation health and peer status |
-| `/v1/federation/contracts` | GET | peer-auth | List available data contracts |
-| `/v1/federation/audit` | GET | peer-auth | Cross-boundary audit trail |
+| Path | Method | Auth | Request | Response | Purpose |
+|------|--------|------|---------|----------|---------|
+| `/v1/federation/manifest` | GET | no | — | `OrchestratorManifest` | Return orchestrator manifest |
+| `/v1/federation/peer` | POST | signature | `PeerRequest` | `PeerResponse` | Initiate peering request |
+| `/v1/federation/peer-accept` | POST | signature | `PeerAcceptance` | `PeerResponse` | Accept peering request |
+| `/v1/federation/peer-revoke` | POST | signature | `{peer_name, reason, signature}` | 200 OK | Revoke trust relationship |
+| `/v1/federation/key-rotate` | POST | dual-signature | `KeyRotationRequest` | 200 OK | Notify peers of key rotation |
+| `/v1/federation/task` | POST | peer-auth | `FederatedTaskRequest` | `FederatedTaskResult` | Execute a federated task |
+| `/v1/federation/status` | GET | peer-auth | — | `FederationStatus` | Federation health and peer status |
+| `/v1/federation/contracts` | GET | peer-auth | — | `list<DataContract>` | List available data contracts |
+| `/v1/federation/audit` | GET | peer-auth | — | `list<AuditEntry>` | Cross-boundary audit trail |
 
 ---
 
@@ -848,14 +848,19 @@ declare jurisdiction requirements. The federation layer enforces both:
 
 ```
 Before routing a federated task:
-  1. Check data contract jurisdiction_requirements.allowed
-  2. Check target orchestrator's jurisdiction
-  3. If target jurisdiction is not in allowed list → REJECT
-  4. If data_residency = "origin":
+  1. Check data contract jurisdiction_requirements.country_codes
+  2. Check target orchestrator's declared jurisdiction
+  3. If target jurisdiction is not in country_codes → REJECT
+  4. If storage_constraint = "must_reside":
      Data MUST NOT be persisted by the receiving orchestrator
      beyond the processing window (max_hours from retention policy)
-  5. If data_residency = "any":
-     No residency restriction (but retention policy still applies)
+  5. If storage_constraint = "prefer":
+     Prefer in-jurisdiction routing but allow fallback
+  6. If storage_constraint = "must_not_reside":
+     Data MUST NOT be stored in the listed jurisdictions
+  7. If gdpr_applicable = true:
+     Enforce data subject rights (erasure, portability) on
+     cross-boundary data per the retention policy
 ```
 
 ### Retention Enforcement
@@ -867,10 +872,12 @@ Cross-boundary data has an explicit lifecycle:
 2. Clock starts: data_retention.max_hours
 3. Task executes, result returned
 4. On result delivery OR retention expiry (whichever is first):
-   a. If action = "delete": purge all cross-boundary data
-   b. If action = "anonymize": strip identifying fields, keep metrics
-   c. If audit_required = true: log deletion/anonymization event
-5. Receiving orchestrator MUST NOT retain cross-boundary data in:
+   a. Purge all cross-boundary data (delete is the only action)
+   b. If audit_trail = true: log deletion event with timestamp and contract name
+5. On peering revocation (if delete_on_revoke = true):
+   a. Immediately purge all data received under this contract
+   b. Log purge event regardless of audit_trail setting
+6. Receiving orchestrator MUST NOT retain cross-boundary data in:
    - Observation store
    - Recommendation store
    - Any persistent cache

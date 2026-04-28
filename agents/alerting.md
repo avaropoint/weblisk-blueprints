@@ -42,10 +42,10 @@ requires:
           response_fields: [agent_id, token, services]
         - path: /v1/message
           methods: [POST]
-          request_type: MessageEnvelope
+          request_type: AgentMessage
           response_fields: [status, response]
         - path: /v1/health
-          methods: [GET]
+          methods: [POST]
           response_fields: [status, details]
     on_change:
       compatible: validate-and-adopt
