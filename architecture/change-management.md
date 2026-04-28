@@ -48,14 +48,10 @@ requires:
       endpoints:
         - path: /v1/register
           methods: [POST, DELETE]
-      types:
-        - name: AgentManifest
-          fields_used: [name, version, capabilities]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -68,7 +64,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/orchestrator
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -86,7 +81,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/agent
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -97,7 +91,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/lifecycle
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -108,7 +101,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/messaging
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -121,7 +113,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/versioning
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -291,9 +282,9 @@ requires:
       types:
         - name: AgentManifest
           fields_used: [name, version, port, capabilities, public_key, url]
-        - name: MessageEnvelope
+        - name: EventEnvelope
           fields_used: [from, to, action, payload, trace_id]
-        - name: HealthResponse
+        - name: HealthStatus
           fields_used: [status, details]
     on_change:
       compatible: validate-and-adopt

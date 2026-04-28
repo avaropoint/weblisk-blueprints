@@ -2,7 +2,7 @@
 type: pattern
 name: incident-response
 version: 1.0.0
-requires: [protocol/spec, protocol/types, patterns/alerting, patterns/state-machine]
+requires: [protocol/types, patterns/alerting, patterns/state-machine]
 platform: any
 tier: free
 -->
@@ -60,19 +60,6 @@ pattern for specialized incident handling.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: AgentMessage
-          fields_used: [from, to, action, payload, signature]
-        - name: ErrorResponse
-          fields_used: [code, message, detail]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -81,11 +68,14 @@ requires:
           fields_used: [alert_id, source, type, severity, target, message, timestamp]
         - name: TaskResult
           fields_used: [task_id, agent_name, status, summary, timestamp]
+        - name: AgentMessage
+          fields_used: [from, to, action, payload, signature]
+        - name: ErrorResponse
+          fields_used: [code, message, detail]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/alerting
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -103,7 +93,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/state-machine
     version: ">=1.0.0 <2.0.0"
     bindings:

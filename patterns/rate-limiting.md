@@ -2,7 +2,7 @@
 type: pattern
 name: rate-limiting
 version: 1.0.0
-requires: [protocol/spec, protocol/types, architecture/gateway, architecture/agent]
+requires: [protocol/types, architecture/gateway, architecture/agent]
 platform: any
 tier: free
 -->
@@ -33,28 +33,18 @@ domain-specific throttling (e.g., external API call budgets).
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: ErrorResponse
-          fields_used: [code, message, category, retryable]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: RateLimitConfig
           fields_used: [algorithm, storage, defaults, routes]
+        - name: ErrorResponse
+          fields_used: [code, message, category, retryable]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/gateway
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -65,7 +55,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/agent
     version: ">=1.0.0 <2.0.0"
     bindings:

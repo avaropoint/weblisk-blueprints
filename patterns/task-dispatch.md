@@ -50,9 +50,6 @@ requires:
           methods: [POST]
           request_type: TaskRequest
           response_fields: [status, summary, output]
-      types:
-        - name: ErrorResponse
-          fields_used: [code, message, detail]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -65,8 +62,10 @@ requires:
           fields_used: [id, from, target_agent, action, payload, context]
         - name: TaskResult
           fields_used: [task_id, agent_name, status, summary, timestamp]
-        - name: MessageEnvelope
+        - name: AgentMessage
           fields_used: [from, to, action, payload, trace_id]
+        - name: ErrorResponse
+          fields_used: [code, message, detail]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

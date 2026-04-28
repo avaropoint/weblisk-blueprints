@@ -2,7 +2,7 @@
 type: architecture
 name: lifecycle
 version: 1.0.0
-requires: [protocol/spec, protocol/types, architecture/orchestrator, architecture/domain, architecture/agent, patterns/messaging, patterns/observability]
+requires: [protocol/types, architecture/domain, architecture/agent, patterns/messaging]
 platform: any
 tier: free
 -->
@@ -29,7 +29,7 @@ Agent blueprint.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
+  - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
@@ -37,14 +37,6 @@ requires:
           fields_used: [manifest, signature, timestamp]
         - name: AgentMessage
           fields_used: [from, to, type, action, payload]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
         - name: TaskResult
           fields_used: [task_id, status, output, observations, recommendations]
         - name: Strategy
@@ -55,16 +47,12 @@ requires:
           fields_used: [id, observation_id, action, priority, impact, status]
         - name: Feedback
           fields_used: [id, recommendation_id, signal, metric_before, metric_after]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/orchestrator
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
         - name: ServiceDirectory
           fields_used: [agents, routing_table]
+        - name: EventEnvelope
+          fields_used: [topic, scope, payload, source]
+        - name: HealthStatus
+          fields_used: [status, component, checks]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -92,19 +80,11 @@ requires:
   - blueprint: patterns/messaging
     version: ">=1.0.0 <2.0.0"
     bindings:
-      types:
-        - name: EventEnvelope
-          fields_used: [topic, scope, payload, source]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: patterns/observability
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: HealthStatus
-          fields_used: [status, component, checks]
+      patterns:
+        - behavior: publish
+          parameters: [topic, payload, source, scope]
+        - behavior: subscribe
+          parameters: [topic, handler, scope]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

@@ -2,7 +2,7 @@
 type: architecture
 name: testing
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain]
+requires: [protocol/identity, protocol/types, architecture/agent, architecture/domain]
 platform: any
 tier: free
 -->
@@ -32,27 +32,11 @@ Implementations in any language can run the same test suite.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: RegisterRequest
-          fields_used: [manifest, signature, timestamp]
-        - name: RegisterResponse
-          fields_used: [agent_id, token, expires_at, services]
-        - name: TaskRequest
-          fields_used: [id, action, input]
-        - name: TaskResult
-          fields_used: [task_id, status, agent_name, output]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
   - blueprint: protocol/identity
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Ed25519Identity
+        - name: Ed25519KeyPair
           fields_used: [public_key, private_key, sign, verify]
         - name: SignatureVerification
           fields_used: [verify_signature, check_replay]
@@ -64,20 +48,20 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
+        - name: RegisterRequest
+          fields_used: [manifest, signature, timestamp]
+        - name: RegisterResponse
+          fields_used: [agent_id, token, expires_at, services]
+        - name: TaskRequest
+          fields_used: [id, action, input]
+        - name: TaskResult
+          fields_used: [task_id, status, agent_name, output]
         - name: AgentManifest
           fields_used: [name, type, version, url, public_key, capabilities]
         - name: AgentMessage
           fields_used: [from, to, type, action, payload, signature]
         - name: ErrorResponse
           fields_used: [error, code]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/orchestrator
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
         - name: ServiceDirectory
           fields_used: [agents, routing_table, namespaces]
         - name: ChannelGrant
@@ -275,7 +259,7 @@ Responds to execute and message with configurable responses.
 | `POST /v1/describe` | Return the test agent manifest |
 | `POST /v1/execute` | Return a configurable `TaskResult` |
 | `POST /v1/message` | Return a configurable response payload |
-| `GET /v1/health` | Return healthy status |
+| `POST /v1/health` | Return healthy status |
 | `POST /v1/services` | Accept and store |
 
 ### Configurable Responses
@@ -308,9 +292,9 @@ MUST pass all Level 1 tests.
 
 #### L1-01: Health Check
 ```
-GET /v1/health → 200
-Response MUST contain: name, status, version, uptime, timestamp
-status MUST be "healthy"
+POST /v1/health → 200
+Response MUST contain: name, state, version, uptime_seconds
+state MUST be "online"
 ```
 
 #### L1-02: Describe
@@ -355,7 +339,7 @@ Response MUST contain: name, version, url, public_key, capabilities
 
 #### L1-07: Protected Endpoints Require Auth
 ```
-For each protected endpoint (/v1/services, /v1/task, /v1/audit, etc.):
+For each protected endpoint (/v1/services, /v1/execute, /v1/audit, etc.):
   1. Send request without token → 401
   2. Send request with expired token → 401
   3. Send request with valid token → not 401

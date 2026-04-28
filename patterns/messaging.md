@@ -2,7 +2,7 @@
 type: pattern
 name: messaging
 version: 1.0.0
-requires: [protocol/spec, protocol/types, architecture/agent, patterns/retry]
+requires: [protocol/types, architecture/agent, patterns/retry]
 platform: any
 tier: free
 -->
@@ -38,28 +38,18 @@ complete.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: AgentManifest
-          fields_used: [name, subscriptions, namespace]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: EventEnvelope
           fields_used: [event_id, topic, source, scope, correlation_id, timestamp, trace_id, version, payload, token]
+        - name: AgentManifest
+          fields_used: [name, subscriptions, namespace]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/agent
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -70,7 +60,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/retry
     version: ">=1.0.0 <2.0.0"
     bindings:

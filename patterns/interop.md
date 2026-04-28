@@ -2,7 +2,7 @@
 type: pattern
 name: interop
 version: 1.0.0
-requires: [protocol/spec, protocol/types, architecture/agent]
+requires: [protocol/types, architecture/agent]
 platform: any
 tier: free
 -->
@@ -47,17 +47,6 @@ the framework's native interface.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: AgentManifest
-          fields_used: [name, type, version, url, capabilities]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -68,11 +57,12 @@ requires:
           fields_used: [status, summary, data, error, metrics]
         - name: EventEnvelope
           fields_used: [event_id, topic, source, payload]
+        - name: AgentManifest
+          fields_used: [name, type, version, url, capabilities]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/agent
     version: ">=1.0.0 <2.0.0"
     bindings:

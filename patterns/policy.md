@@ -2,7 +2,7 @@
 type: pattern
 name: policy
 version: 1.0.0
-requires: [protocol/spec, protocol/types, patterns/scope]
+requires: [protocol/types, patterns/scope]
 platform: any
 tier: free
 -->
@@ -42,28 +42,18 @@ reporting belong to `patterns/governance`, which consumes this engine.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: AgentManifest
-          fields_used: [name, capabilities, type]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
           fields_used: [code, message, category]
+        - name: AgentManifest
+          fields_used: [name, capabilities, type]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/scope
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -314,9 +304,9 @@ IdentityContext:
   token_claims: map        # Additional WLT token claims
 
 OperationContext:
-  type: string             # Classification: read, write, delete, execute, publish
+  type: OperationClass     # Classification: read, create, modify, delete, destroy (from patterns/safety)
   action: string           # Specific action name (e.g., "apply_changes")
-  severity: string         # Operation severity: low, medium, high, critical
+  severity: string         # Operation impact: low, medium, high, critical (policy-only; distinct from alert severity)
 
 ResourceContext:
   type: string             # Resource type: file, url, api, database, message, stream

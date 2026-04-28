@@ -2,7 +2,7 @@
 type: architecture
 name: gateway
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/admin, patterns/auth-session, patterns/auth-token, patterns/user-management, patterns/rate-limiting, patterns/api-ai]
+requires: [protocol/identity, protocol/types, architecture/agent, architecture/admin, patterns/auth-session, patterns/auth-token, patterns/user-management, patterns/rate-limiting, patterns/api-ai]
 platform: any
 tier: free
 -->
@@ -29,23 +29,11 @@ unreachable.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: RegisterRequest
-          fields_used: [manifest, signature, timestamp]
-        - name: AgentManifest
-          fields_used: [name, type, url, public_key, capabilities]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
   - blueprint: protocol/identity
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Ed25519Identity
+        - name: Ed25519KeyPair
           fields_used: [public_key, private_key, sign, verify]
     on_change:
       compatible: validate-and-adopt
@@ -55,18 +43,14 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
+        - name: RegisterRequest
+          fields_used: [manifest, signature, timestamp]
+        - name: AgentManifest
+          fields_used: [name, type, url, public_key, capabilities]
         - name: TaskRequest
           fields_used: [id, action, input]
         - name: TaskResult
           fields_used: [task_id, status, output]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/orchestrator
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
         - name: ServiceDirectory
           fields_used: [agents, routing_table, namespaces]
     on_change:
@@ -86,9 +70,9 @@ requires:
   - blueprint: architecture/admin
     version: ">=1.0.0 <2.0.0"
     bindings:
-      types:
-        - name: AdminGateway
-          fields_used: [separation_model, operator_auth]
+      patterns:
+        - behavior: admin-separation
+          parameters: [separation_model, operator_auth]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -96,9 +80,9 @@ requires:
   - blueprint: patterns/auth-session
     version: ">=1.0.0 <2.0.0"
     bindings:
-      types:
-        - name: SessionToken
-          fields_used: [token, expiry, binding, csrf_secret]
+      patterns:
+        - behavior: session-lifecycle
+          parameters: [creation, validation, renewal, termination, csrf_binding]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -106,9 +90,9 @@ requires:
   - blueprint: patterns/auth-token
     version: ">=1.0.0 <2.0.0"
     bindings:
-      types:
-        - name: WLT
-          fields_used: [sub, iss, iat, exp, capabilities]
+      patterns:
+        - behavior: token-signing
+          parameters: [algorithm, claims, verification]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -116,9 +100,9 @@ requires:
   - blueprint: patterns/user-management
     version: ">=1.0.0 <2.0.0"
     bindings:
-      types:
-        - name: UserRecord
-          fields_used: [user_id, roles, groups, email_verified]
+      patterns:
+        - behavior: user-lookup
+          parameters: [user_id, roles, groups, email_verified]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -126,9 +110,9 @@ requires:
   - blueprint: patterns/rate-limiting
     version: ">=1.0.0 <2.0.0"
     bindings:
-      types:
-        - name: RateLimitPolicy
-          fields_used: [per_ip, per_session, endpoint_limits]
+      patterns:
+        - behavior: rate-enforcement
+          parameters: [per_ip, per_session, endpoint_limits]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -777,6 +761,44 @@ domain before streaming events. Connection timeout: 5 minutes
 4. Execution status endpoints are rate-limited per-session
 5. Results are available for 24 hours after completion (configurable
    via `WL_RESULT_RETENTION`)
+
+---
+
+## Types
+
+### RouteTable
+
+Local routing configuration mapping external paths to internal agents.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| Routes | []Route | `routes` | yes | Ordered list of route rules |
+| Islands | []string | `islands` | no | Isolated agent groups with separate routing |
+| UpdatedAt | int64 | `updated_at` | yes | Unix epoch of last route table refresh |
+
+### Route
+
+A single routing rule mapping an external path to an internal agent.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| Path | string | `path` | yes | External URL path pattern (e.g., `/api/seo/*`) |
+| Agent | string | `agent` | yes | Target agent name |
+| Domain | string | `domain` | no | Domain controller name (for domain-scoped routes) |
+| Methods | []string | `methods` | no | Allowed HTTP methods (default: all) |
+| RateLimit | string | `rate_limit` | no | Rate limit policy name to apply |
+
+### GatewayConfig
+
+Top-level gateway configuration.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| TLS | TLSConfig | `tls` | yes | TLS termination settings |
+| Session | SessionConfig | `session` | yes | Session cookie configuration |
+| CSRF | CSRFConfig | `csrf` | yes | CSRF protection settings |
+| RateLimits | map[string]RateLimitConfig | `rate_limits` | yes | Named rate limit policies |
+| Client | ClientConfig | `client` | no | Client-facing behavior settings |
 
 ---
 

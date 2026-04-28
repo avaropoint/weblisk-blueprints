@@ -2,7 +2,7 @@
 type: pattern
 name: file-upload
 version: 1.0.0
-requires: [protocol/spec, protocol/types, patterns/auth-token]
+requires: [protocol/types, patterns/auth-token]
 platform: any
 tier: free
 -->
@@ -27,17 +27,6 @@ and CDN integration for public assets.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: AgentManifest
-          fields_used: [name, version, url, capabilities]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -46,11 +35,12 @@ requires:
           fields_used: [id, filename, mime_type, size, visibility, urls, owner_id]
         - name: ErrorResponse
           fields_used: [code, message, category, retryable]
+        - name: AgentManifest
+          fields_used: [name, version, url, capabilities]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/auth-token
     version: ">=1.0.0 <2.0.0"
     bindings:

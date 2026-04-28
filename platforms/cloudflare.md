@@ -2,7 +2,7 @@
 type: platform
 name: cloudflare
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
+requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: cloudflare
 tier: free
 -->
@@ -33,19 +33,6 @@ runtime dependencies and global low-latency distribution.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: AgentManifest
-          fields_used: [name, version, capabilities, actions]
-        - name: TaskRequest
-          fields_used: [task_id, action, payload]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: protocol/identity
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -56,13 +43,16 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: HealthResponse
+        - name: HealthStatus
           fields_used: [status, component, version, uptime_seconds]
+        - name: AgentManifest
+          fields_used: [name, version, capabilities, actions]
+        - name: TaskRequest
+          fields_used: [task_id, action, payload]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

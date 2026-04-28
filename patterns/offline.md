@@ -2,7 +2,7 @@
 type: pattern
 name: offline
 version: 1.0.0
-requires: [protocol/spec, protocol/types, architecture/client, architecture/data-security, patterns/storage, patterns/state-machine, patterns/scope, patterns/privacy]
+requires: [protocol/types, architecture/client, patterns/storage, patterns/state-machine, patterns/scope, patterns/privacy]
 platform: any
 tier: free
 -->
@@ -67,20 +67,12 @@ requires:
   - blueprint: protocol/spec
     version: ">=1.0.0 <2.0.0"
     bindings:
-      types:
-        - name: ErrorResponse
-          fields_used: [code, message, detail]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: TypeDefinition
-          fields_used: [name, fields, description]
+        - name: ErrorResponse
+          fields_used: [code, message, detail]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -103,23 +95,15 @@ requires:
       breaking: version-bump
       removed: halt-immediately
 
-  - blueprint: architecture/data-security
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: TransportPolicy
-          fields_used: [tls_version, cipher_suites]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: patterns/storage
     version: ">=1.0.0 <2.0.0"
     bindings:
+      types:
+        - name: TypeDefinition
+          fields_used: [name, fields, description]
       patterns:
-        - behavior: sqlite-engine
-          parameters: [engine, tables, indexes]
+        - behavior: type-declaration
+          parameters: [type_name, fields]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -140,7 +124,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: ScopeClassification
+        - name: ScopeLevel
           fields_used: [level, label]
     on_change:
       compatible: validate-and-adopt

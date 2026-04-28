@@ -276,6 +276,35 @@ types:
       timestamp:
         type: int64
         description: Unix epoch seconds
+
+  Signature:
+    description: A detached Ed25519 signature over canonicalized content
+    fields:
+      algorithm:
+        type: string
+        description: Signing algorithm
+        constraints:
+          enum: [Ed25519]
+      value:
+        type: string
+        format: hex
+        description: 64-byte Ed25519 signature, hex-encoded (128 chars)
+      signer:
+        type: string
+        description: Public key of the signer (hex)
+        required: false
+
+  SignatureVerification:
+    description: Operations for verifying signed messages and preventing replay
+    operations:
+      verify_signature:
+        input: [message_bytes, signature_hex, public_key_hex]
+        output: bool
+        description: Verify an Ed25519 signature against the signer's public key
+      check_replay:
+        input: [message_id, timestamp]
+        output: bool
+        description: Return true if message_id has been seen within the replay window (5 minutes)
 ```
 
 ---

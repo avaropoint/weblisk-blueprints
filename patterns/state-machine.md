@@ -2,7 +2,7 @@
 type: pattern
 name: state-machine
 version: 1.0.0
-requires: [protocol/spec, protocol/types, patterns/observability, patterns/expression]
+requires: [protocol/types, patterns/storage, patterns/logging, patterns/expression]
 platform: any
 tier: free
 -->
@@ -34,7 +34,7 @@ machines consistently.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
+  - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
@@ -44,7 +44,7 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-  - blueprint: protocol/types
+  - blueprint: patterns/storage
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
@@ -54,12 +54,12 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-  - blueprint: patterns/observability
+  - blueprint: patterns/logging
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: LogEvent
-          fields_used: [event_type, level, detail, timestamp]
+        - name: LogEntry
+          fields_used: [ts, level, log_type, msg, component]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

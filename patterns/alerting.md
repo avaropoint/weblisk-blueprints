@@ -2,7 +2,7 @@
 type: pattern
 name: alerting
 version: 1.0.0
-requires: [protocol/spec, protocol/types, patterns/messaging, patterns/notification]
+requires: [protocol/types, patterns/messaging, patterns/notification]
 platform: any
 tier: free
 -->
@@ -40,19 +40,6 @@ extend this pattern.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: AgentMessage
-          fields_used: [from, to, action, payload, signature]
-        - name: ErrorResponse
-          fields_used: [code, message, detail]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -61,11 +48,14 @@ requires:
           fields_used: [id, from, target_agent, payload, context]
         - name: TaskResult
           fields_used: [task_id, agent_name, status, summary, timestamp]
+        - name: AgentMessage
+          fields_used: [from, to, action, payload, signature]
+        - name: ErrorResponse
+          fields_used: [code, message, detail]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/messaging
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -78,7 +68,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/notification
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -450,8 +439,8 @@ types:
       priority:
         type: int
         required: false
-        default: 0
-        description: Rule evaluation order (higher = evaluated first)
+        default: 100
+        description: Rule evaluation order (lower = evaluated first, matching PolicyDefinition convention)
       enabled:
         type: boolean
         required: true

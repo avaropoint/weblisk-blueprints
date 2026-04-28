@@ -2,7 +2,7 @@
 type: pattern
 name: governance
 version: 1.0.0
-requires: [protocol/spec, protocol/types, protocol/identity, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/observability, patterns/messaging]
+requires: [protocol/identity, protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/messaging]
 platform: any
 tier: free
 -->
@@ -39,72 +39,46 @@ framework. It does not define policies (see
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: AgentManifest
-          fields_used: [name, capabilities, url, type]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: GovernanceDirective
-          fields_used: [directive, data, timestamp]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: protocol/identity
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: IdentityToken
-          fields_used: [sub, role, cap]
+        - name: WLToken
+          fields_used: [sub, iss, cap]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/scope
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: ScopePolicy
-          fields_used: [scope, target]
+        - name: ScopeDeclaration
+          fields_used: [level, context, propagation_rule]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/policy
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: GovernancePolicy
-          fields_used: [scope, target, rules, enforcement, severity]
+        - name: PolicyDefinition
+          fields_used: [name, scope, target, rules, enforcement]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/safety
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: SafetyBoundary
-          fields_used: [agent_kind, constraints]
+        - name: OperationClass
+          fields_used: [name, ordinal, side_effect, reversibility]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/approval
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -115,18 +89,18 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
-  - blueprint: patterns/observability
+  - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: HealthResponse
-          fields_used: [state, checks, metrics_snapshot]
+        - name: HealthStatus
+          fields_used: [status, metrics, timestamp]
+        - name: AgentManifest
+          fields_used: [name, capabilities, url, type]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/messaging
     version: ">=1.0.0 <2.0.0"
     bindings:

@@ -69,8 +69,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: PeerRequest
-          fields_used: [manifest, capabilities, data_contracts]
+        - name: OrchestratorManifest
+          fields_used: [name, federation_url, public_key, published_capabilities]
         - name: DataContract
           fields_used: [inbound, outbound, forbidden, jurisdiction, retention]
         - name: BehavioralFingerprint
@@ -83,7 +83,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Ed25519Identity
+        - name: Ed25519KeyPair
           fields_used: [public_key, sign, verify]
     on_change:
       compatible: validate-and-adopt

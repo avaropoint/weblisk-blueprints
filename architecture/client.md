@@ -2,7 +2,7 @@
 type: architecture
 name: client
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/types, architecture/gateway, architecture/agent, architecture/data-security, patterns/auth-session, patterns/auth-token, patterns/scope]
+requires: [protocol/types, protocol/identity, architecture/gateway, architecture/agent, patterns/scope]
 platform: any
 tier: free
 -->
@@ -45,12 +45,9 @@ This architecture ensures that:
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
+  - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
-      endpoints:
-        - path: /v1/health
-          methods: [GET]
       types:
         - name: AgentManifest
           fields_used: [name, url, public_key]
@@ -67,19 +64,6 @@ requires:
           fields_used: [public_key, private_key]
         - name: Signature
           fields_used: [algorithm, value]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: WLS
-          fields_used: [sub, iss, iat, exp, sid, roles, bind, csrf, sec, mfa, ren]
-        - name: WLC
-          fields_used: [sub, iss, iat, exp, cid, roles, bind, cap, sec]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -107,44 +91,11 @@ requires:
       breaking: version-bump
       removed: halt-immediately
 
-  - blueprint: architecture/data-security
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: TransportPolicy
-          fields_used: [tls_version, cipher_suites]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: patterns/auth-session
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      patterns:
-        - behavior: session-lifecycle
-          parameters: [creation, validation, renewal, termination]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: patterns/auth-token
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      patterns:
-        - behavior: token-signing
-          parameters: [algorithm, claims, verification]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: patterns/scope
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: ScopeClassification
+        - name: ScopeLevel
           fields_used: [level, label]
     on_change:
       compatible: validate-and-adopt

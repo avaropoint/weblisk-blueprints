@@ -14,7 +14,7 @@ commands, dependency management, and platform-specific constraints.
 type: platform
 name: <platform-name>
 version: <semver>
-requires: [<type/name>, ...]
+requires: [protocol/types, <type/name>, ...]
 platform: <go|cloudflare|node|rust>
 tier: free|pro
 -->
@@ -250,14 +250,14 @@ maps to Weblisk's architecture.>
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
+  - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: AgentManifest
           fields_used: [*]
     on_change:
-      compatible: validate
+      compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 ```

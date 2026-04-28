@@ -2,7 +2,7 @@
 type: pattern
 name: scheduling
 version: 1.0.0
-requires: [protocol/spec, protocol/types, patterns/messaging, patterns/state-machine]
+requires: [protocol/types, patterns/messaging, patterns/state-machine, patterns/storage]
 platform: any
 tier: free
 -->
@@ -43,24 +43,14 @@ policies, and target actions.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: ErrorResponse
-          fields_used: [code, message, detail]
-        - name: MessageEnvelope
-          fields_used: [from, to, action, payload, trace_id]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: TypeDefinition
-          fields_used: [name, fields, description]
+        - name: EventEnvelope
+          fields_used: [event_id, topic, source, scope, timestamp, payload]
+        - name: ErrorResponse
+          fields_used: [code, message, detail]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -83,6 +73,16 @@ requires:
       patterns:
         - behavior: state-transitions
           parameters: [initial, transitions, side_effects]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/storage
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: TypeDefinition
+          fields_used: [name, fields, description]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

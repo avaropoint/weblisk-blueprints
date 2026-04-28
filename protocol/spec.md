@@ -377,6 +377,24 @@ The orchestrator MUST:
 7. Sign the grant with orchestrator's private key
 8. Respond with `ChannelGrant`
 
+### POST /v1/rotate-key
+
+Rotates an agent's Ed25519 key pair. The request must be dual-signed — once with the current key and once with the new key — to prove possession of both.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| agent_id | string | yes | Agent identifier |
+| new_public_key | string | yes | Hex-encoded new Ed25519 public key |
+| current_signature | string | yes | Manifest signed with current private key |
+| new_signature | string | yes | Same manifest signed with new private key |
+
+**Response:** 200 with updated `RegisterResponse`. The orchestrator updates the agent's public key in the service directory and issues a `system.agent.key_rotated` event.
+
+**Error cases:**
+- 401 if current_signature is invalid
+- 400 if new_signature verification fails
+- 409 if a rotation is already in progress
+
 ### GET /v1/health
 
 Orchestrator health. No auth required.
@@ -437,6 +455,7 @@ exclusive — exactly one agent may publish to a given namespace.
 | `workflow` | workflow agent | Workflow triggers, phase progression, completion |
 | `task` | task agent | Task submission, queuing, dispatch, completion |
 | `lifecycle` | lifecycle agent | Strategies, observations, recommendations, approvals |
+| `system.dead_letter` | orchestrator | Undeliverable events after retry exhaustion |
 
 Domain controllers and work agents own their own namespaces
 (e.g., `seo.*`, `content.*`, `health.*`).
@@ -521,7 +540,8 @@ for each subscriber matching the topic pattern:
 Infrastructure agents propagate scope through execution chains. When
 an agent triggers a workflow, the Workflow Agent records the invoker
 and scopes all result events back to the invoker:
-
+ — uses "workflow" as scope because
+   the topic 'workflow.trigger' targets the workflow namespace owner
 ```
 1. SEO domain publishes: workflow.trigger, scope: "workflow"
    (addressed to Workflow Agent — uses "workflow" as scope because
@@ -538,6 +558,34 @@ and scopes all result events back to the invoker:
 The scope chain ensures that intermediate events stay between
 infrastructure agents, and final results are delivered only to the
 agent that initiated the request.
+
+### Multi-Hop Scope Propagation
+
+When a workflow triggers a nested workflow (multi-hop), scope unwinds
+one level at a time — each Workflow Agent execution records its own
+invoker independently:
+
+```
+1. SEO domain publishes: workflow.trigger("seo-audit"), scope: "workflow"
+   Workflow Agent records invoker = "seo"
+2. During execution, phase N triggers a sub-workflow:
+   Workflow Agent publishes: workflow.trigger("link-check"), scope: "workflow"
+   A NEW Workflow Agent execution records invoker = "workflow"
+   (the agent name of the outer Workflow Agent instance)
+3. Sub-workflow completes:
+   Inner Workflow Agent publishes: workflow.completed, scope: "workflow"
+   (back to the outer Workflow Agent — its recorded invoker)
+4. Outer workflow completes all phases:
+   Outer Workflow Agent publishes: workflow.completed, scope: "seo"
+   (back to the original domain — its recorded invoker)
+```
+
+The rule is: **scope unwinds to the immediate invoker, not the
+original initiator.** Each execution level maintains its own invoker
+record. The `correlation_id` field (propagated through all hops)
+allows end-to-end tracing across the full chain, but scope delivery
+is always single-hop return. This prevents inner workflows from
+needing knowledge of the outer call stack.
 
 ---
 
@@ -566,6 +614,18 @@ handles routing and delivery:
    b. Apply scope filtering (see Scope Resolution above)
    c. For consumer groups: select one subscriber per group (round-robin)
    d. For non-grouped subscribers: include all matching
+
+### Subscription Pattern Grammar
+
+| Pattern | Matches | Example |
+|---------|---------|---------|
+| `exact.topic` | Exact match only | `seo.audit.complete` |
+| `domain.*` | Any single segment after prefix | `seo.*` matches `seo.audit` but not `seo.audit.complete` |
+| `domain.#` | Any number of segments after prefix | `seo.#` matches `seo.audit` and `seo.audit.complete` |
+| `*` | Any single segment (wildcard) | `*.audit` matches `seo.audit`, `health.audit` |
+| `#` | All topics (catch-all) | Receives every published event |
+
+Segments are delimited by `.` (period). Wildcards may only appear as complete segments — `seo.au*` is invalid.
 4. For each resolved subscriber:
    HTTP POST to subscriber.url + "/v1/event"
    Body: EventEnvelope as JSON
@@ -593,6 +653,18 @@ dead-letter entries for inspection and replay:
 For centralized dead-letter management, a hub MAY deploy a dead-letter
 infrastructure agent that subscribes to `system.dead_letter` events
 (published when an event is dead-lettered).
+
+#### system.dead_letter
+
+Published when an event exhausts all delivery retries. Payload:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| original_event | EventEnvelope | The undeliverable event |
+| target_agent | string | Intended recipient agent name |
+| failure_reason | string | Last delivery error |
+| attempts | int | Total delivery attempts |
+| dead_lettered_at | int64 | Unix timestamp of dead-lettering |
 
 ---
 

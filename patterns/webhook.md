@@ -2,7 +2,7 @@
 type: pattern
 name: webhook
 version: 1.0.0
-requires: [protocol/spec, protocol/types, patterns/retry]
+requires: [protocol/types, patterns/retry]
 platform: any
 tier: free
 -->
@@ -35,22 +35,14 @@ and override only the parts they need.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: ErrorResponse
-          fields_used: [code, message, detail]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: TypeDefinition
           fields_used: [name, fields, description]
+        - name: ErrorResponse
+          fields_used: [code, message, detail]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

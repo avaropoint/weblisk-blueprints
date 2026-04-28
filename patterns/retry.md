@@ -2,7 +2,7 @@
 type: pattern
 name: retry
 version: 1.0.0
-requires: [protocol/spec, protocol/types, architecture/agent, patterns/rate-limiting]
+requires: [protocol/types, architecture/agent, patterns/rate-limiting]
 platform: any
 tier: free
 -->
@@ -37,22 +37,12 @@ periodically allows a probe request to check if the target recovered.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: ErrorResponse
-          fields_used: [code, message, retryable, detail]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
-          fields_used: [code, retryable, retry_after]
+          fields_used: [code, message, retryable, retry_after, detail]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -71,7 +61,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: RateLimitResponse
+        - name: RateLimitStatus
           fields_used: [retry_after, status]
     on_change:
       compatible: validate-and-adopt

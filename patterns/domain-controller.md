@@ -2,7 +2,7 @@
 type: pattern
 name: domain-controller
 version: 1.0.0
-requires: [protocol/spec, protocol/types, protocol/identity, architecture/domain, architecture/lifecycle, patterns/observability]
+requires: [protocol/types, protocol/identity, architecture/domain, architecture/lifecycle, patterns/observability]
 platform: any
 tier: free
 -->
@@ -40,17 +40,6 @@ variant parts.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: ErrorResponse
-          fields_used: [error, code, category, retryable]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -59,11 +48,12 @@ requires:
           fields_used: [name, type, description]
         - name: TaskPayload
           fields_used: [action, payload, trace_id]
+        - name: ErrorResponse
+          fields_used: [error, code, category, retryable]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: protocol/identity
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -76,7 +66,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/domain
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -87,7 +76,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/lifecycle
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -100,7 +88,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/observability
     version: ">=1.0.0 <2.0.0"
     bindings:

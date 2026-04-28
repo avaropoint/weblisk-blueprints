@@ -2,7 +2,7 @@
 type: pattern
 name: security
 version: 1.0.0
-requires: [protocol/spec, protocol/types, protocol/identity, patterns/observability]
+requires: [protocol/types, protocol/identity, patterns/logging]
 platform: any
 tier: free
 -->
@@ -40,14 +40,16 @@ credential management, and `patterns/rate-limiting` for throughput.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
+  - blueprint: protocol/identity
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: ErrorResponse
-          fields_used: [code, message, detail]
-        - name: RequestLimits
-          fields_used: [max_body_size, max_nesting_depth]
+        - name: Ed25519KeyPair
+          fields_used: [public_key, private_key]
+        - name: WLToken
+          fields_used: [sub, cap, exp]
+        - name: Signature
+          fields_used: [algorithm, value, signer]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -57,31 +59,17 @@ requires:
     bindings:
       types:
         - name: ErrorResponse
-          fields_used: [code, message, retryable]
-        - name: Token
-          fields_used: [capabilities, expires_at, signature]
+          fields_used: [code, message, detail]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-  - blueprint: protocol/identity
+  - blueprint: patterns/logging
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: AgentIdentity
-          fields_used: [public_key, name, capabilities]
-        - name: MessageSignature
-          fields_used: [algorithm, signature, key_id]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: patterns/observability
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: LogEvent
-          fields_used: [event_type, level, detail, timestamp]
+        - name: LogEntry
+          fields_used: [ts, level, log_type, msg, component]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

@@ -57,11 +57,6 @@ requires:
         - path: /v1/describe
           methods: [POST]
           response_fields: [name, version, capabilities]
-      types:
-        - name: AgentManifest
-          fields_used: [name, version, port, capabilities, public_key, url]
-        - name: MessageEnvelope
-          fields_used: [from, to, action, payload, trace_id]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -71,12 +66,16 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
+        - name: AgentManifest
+          fields_used: [name, version, port, capabilities, public_key, url]
+        - name: EventEnvelope
+          fields_used: [from, to, action, payload, trace_id]
         - name: TaskRequest
           fields_used: [id, from, target_agent, payload, context]
         - name: TaskResult
           fields_used: [task_id, agent_name, status, summary, timestamp]
     on_change:
-      compatible: validate
+      compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 

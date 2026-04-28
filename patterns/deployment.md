@@ -2,7 +2,7 @@
 type: pattern
 name: deployment
 version: 1.0.0
-requires: [protocol/spec, architecture/orchestrator]
+requires: [protocol/types, architecture/orchestrator]
 platform: any
 tier: free
 -->
@@ -28,7 +28,7 @@ safely, and automate the build-test-deploy pipeline.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
+  - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
@@ -38,14 +38,13 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/orchestrator
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: OrchestratorConfig
           fields_used: [port, env, log_level, storage_dsn]
-        - name: HealthResponse
+        - name: HealthStatus
           fields_used: [status]
     on_change:
       compatible: validate-and-adopt

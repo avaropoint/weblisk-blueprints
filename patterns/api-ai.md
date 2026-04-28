@@ -2,7 +2,7 @@
 type: pattern
 name: api-ai
 version: 1.0.0
-requires: [protocol/spec, protocol/types, architecture/agent, architecture/gateway]
+requires: [protocol/types, architecture/agent, architecture/gateway]
 platform: any
 tier: free
 -->
@@ -29,17 +29,6 @@ through a single interface.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: ErrorResponse
-          fields_used: [error, code, category, retryable]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -48,11 +37,12 @@ requires:
           fields_used: [role, content, tool_call_id]
         - name: Usage
           fields_used: [prompt_tokens, completion_tokens, total_tokens]
+        - name: ErrorResponse
+          fields_used: [error, code, category, retryable]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/agent
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -63,7 +53,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/gateway
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -643,6 +632,12 @@ return 429 with `TOKEN_BUDGET_EXCEEDED`.
 - **Streaming**: When `stream: true`, the response MUST use
   Server-Sent Events (SSE). Each event contains a partial
   `ChatResponse` with incremental `message.content`.
+  If the requested model or provider does not support streaming, the
+  endpoint MUST return `406 Not Acceptable` with an `ErrorResponse`:
+  `{"error": "Streaming not supported", "code": "STREAMING_UNSUPPORTED", "category": "client", "retryable": false, "detail": "Model '<model>' on provider '<provider>' does not support streaming. Retry with stream: false."}`
+  Agents MUST NOT silently fall back to a non-streaming response when
+  `stream: true` is explicitly requested — the caller may depend on
+  SSE framing for incremental rendering.
 - **Token tracking**: Usage data MUST be tracked per-agent (using
   `trace_id` to attribute to the calling agent) for cost attribution.
 - **Schema validation**: The `/ai/extract` endpoint MUST validate
@@ -670,6 +665,7 @@ return 429 with `TOKEN_BUDGET_EXCEEDED`.
 - [ ] Provider failover is transparent to the caller
 - [ ] Token usage is tracked per request with trace_id attribution
 - [ ] Streaming responses use SSE format
+- [ ] Streaming request to a non-streaming model returns 406 Not Acceptable
 - [ ] Request body is capped at 1 MB
 - [ ] Rate limiting returns 429 with Retry-After header
 - [ ] All responses include `latency_ms` for observability

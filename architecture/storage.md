@@ -43,7 +43,7 @@ requires:
         - name: Feedback
           fields_used: [id, recommendation_id, signal, metric_before, metric_after]
         - name: AuditEntry
-          fields_used: [id, timestamp, actor, action, target, status]
+          fields_used: [id, timestamp, actor, action, target, status, previous_hash]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -427,8 +427,29 @@ without changing the store interface.
 
 | Operation | Signature | Description |
 |-----------|-----------|-------------|
-| AppendAudit | `(entry AuditEntry) → error` | Append audit entry |
+| AppendAudit | `(entry AuditEntry) → error` | Append audit entry (computes hash chain) |
 | QueryAudit | `(filter AuditFilter) → ([]AuditEntry, error)` | Query audit log |
+| VerifyChain | `(since int64, until int64) → (valid bool, brokenAt string, error)` | Verify hash chain integrity over a time range |
+
+### Hash Chain Integrity
+
+Every audit entry includes a `previous_hash` field that chains it to
+the preceding entry, forming a tamper-evident append-only log:
+
+1. **Hash algorithm:** SHA-256.
+2. **Input:** The complete JSON-serialized bytes of the previous entry
+   (canonical form per [RFC 8785 / JCS](https://www.rfc-editor.org/rfc/rfc8785)).
+3. **First entry:** Uses a zero hash (`0000...0000`, 64 hex chars).
+4. **Append flow:** `AppendAudit` MUST read the last entry's
+   serialized bytes, compute `SHA-256(previous_entry_bytes)`, and set
+   `previous_hash` on the new entry before writing.
+5. **Verification:** `VerifyChain` iterates entries in order and
+   confirms each entry's `previous_hash` matches `SHA-256` of the
+   preceding entry's serialized bytes. Returns the ID of the first
+   broken link, or `valid: true` if the chain is intact.
+6. **Concurrency:** `AppendAudit` MUST be serialized (single-writer)
+   to prevent hash chain forks. Implementations use a mutex, Durable
+   Object single-writer, or database transaction.
 
 ### AuditFilter
 

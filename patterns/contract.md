@@ -2,7 +2,7 @@
 type: pattern
 name: contract
 version: 1.0.0
-requires: [protocol/spec, protocol/types, protocol/federation, patterns/scope, patterns/storage]
+requires: [protocol/types, patterns/scope]
 platform: any
 tier: free
 -->
@@ -44,56 +44,24 @@ where obligations are declared and enforced.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: ErrorResponse
-          fields_used: [error, code, category, retryable]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: IOSpec
           fields_used: [name, type, description]
+        - name: ErrorResponse
+          fields_used: [error, code, category, retryable]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/scope
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: ScopeLevel
           fields_used: [public, internal, confidential, restricted, critical]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: patterns/storage
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: FieldType
-          fields_used: [string, text, int, float, boolean, timestamp, json, uuid, map]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: protocol/federation
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: TrustTier
-          fields_used: [none, verified, trusted, federated]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -197,7 +165,7 @@ contracts:
       description: TTL, retention, rate limits, forwarding rules, scope minimum
     - name: ContractParty
       description: "enum: agent, domain, hub, client, external"
-    - name: MessageEnvelope
+    - name: EventEnvelope
       description: Standard wrapper — contract, version, scope, payload
     - name: ContractViolation
       description: Violation record — contract, party, rule, severity, payload hash
