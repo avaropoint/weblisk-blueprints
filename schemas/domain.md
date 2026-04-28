@@ -304,6 +304,16 @@ it dispatches to, what it produces.>
 
 ```yaml
 requires:
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AgentManifest
+          fields_used: [name, version, port, capabilities, public_key, url]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
   - blueprint: protocol/spec
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -312,9 +322,6 @@ requires:
           methods: [POST, DELETE]
           request_type: AgentManifest
           response_fields: [agent_id, token, services]
-      types:
-        - name: AgentManifest
-          fields_used: [name, version, port, capabilities, public_key, url]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

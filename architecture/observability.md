@@ -2,7 +2,7 @@
 type: architecture
 name: observability
 version: 1.0.0
-requires: [protocol/spec, protocol/types, architecture/orchestrator, architecture/agent]
+requires: [protocol/types, architecture/orchestrator, architecture/agent]
 platform: any
 tier: free
 -->
@@ -34,18 +34,6 @@ events to specific tasks, agents, domains, and workflows.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: AgentManifest
-          fields_used: [name, type, version]
-        - name: TaskRequest
-          fields_used: [id, action]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -54,6 +42,10 @@ requires:
           fields_used: [task_id, status, duration_ms]
         - name: ErrorResponse
           fields_used: [error, code]
+        - name: AgentManifest
+          fields_used: [name, type, version]
+        - name: TaskRequest
+          fields_used: [id, action]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -74,7 +66,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: HealthResponse
+        - name: HealthStatus
           fields_used: [status, component, version, uptime_seconds, checks]
     on_change:
       compatible: validate-and-adopt

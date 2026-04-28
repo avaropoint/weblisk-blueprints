@@ -2,7 +2,7 @@
 type: pattern
 name: secrets
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, architecture/agent, architecture/storage]
+requires: [protocol/types, protocol/identity, architecture/agent, architecture/storage]
 platform: any
 tier: free
 -->
@@ -34,22 +34,22 @@ so that:
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: ErrorResponse
-          fields_used: [code, message, detail]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
   - blueprint: protocol/identity
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: AgentIdentity
           fields_used: [name, capabilities]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ErrorResponse
+          fields_used: [code, message, detail]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

@@ -2,7 +2,7 @@
 type: architecture
 name: threat-model
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/data-security, architecture/admin, architecture/observability]
+requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/data-security, architecture/admin, architecture/observability]
 platform: any
 tier: free
 -->
@@ -48,7 +48,19 @@ the residual risk.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Ed25519KeyPair
+          fields_used: [public_key, sign, verify]
+        - name: SignatureVerification
+          fields_used: [verify_signature, check_replay]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
@@ -56,18 +68,6 @@ requires:
           fields_used: [manifest, signature, timestamp]
         - name: AgentMessage
           fields_used: [from, to, signature]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: Ed25519Identity
-          fields_used: [public_key, sign, verify]
-        - name: SignatureVerification
-          fields_used: [verify_signature, check_replay]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

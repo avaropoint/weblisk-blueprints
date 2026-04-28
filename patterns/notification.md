@@ -2,7 +2,7 @@
 type: pattern
 name: notification
 version: 1.0.0
-requires: [protocol/spec, protocol/types, patterns/retry, patterns/storage, patterns/secrets]
+requires: [protocol/types, patterns/retry, patterns/secrets]
 platform: any
 tier: free
 -->
@@ -38,25 +38,12 @@ The alerting agent is a consumer of this pattern, not the owner.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
+  - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: AgentMessage
           fields_used: [from, to, action, payload, signature]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: NotificationRequest
-          fields_used: [notification_id, severity, title, body, channels, template]
-        - name: DeliveryReceipt
-          fields_used: [notification_id, channel, subscriber_id, status, delivered_at, attempts]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -73,23 +60,12 @@ requires:
       breaking: version-bump
       removed: halt-immediately
 
-  - blueprint: patterns/storage
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: StorageConfig
-          fields_used: [provider, table]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: patterns/secrets
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: SecretRef
-          fields_used: [name, provider]
+        - name: SecretDeclaration
+          fields_used: [key, description, required, rotation]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -122,7 +98,7 @@ contracts:
         - name: severity
           type: string
           required: true
-          description: Notification severity — critical, high, medium, low
+          description: Notification severity — critical, error, warning, info (matches AlertSeverity from patterns/alerting)
         - name: channels
           type: "[]string"
           required: false
@@ -282,13 +258,13 @@ Subscribers control what they receive:
 
 ```yaml
 preferences:
-  severities: [critical, high, medium]   # only these severities
+  severities: [critical, error, warning]  # only these severities
   sources: ["*"]                          # all sources, or specific names
   channels:
     critical: [email, sms, slack]        # per-severity channel selection
-    high: [email, slack]
-    medium: [slack]
-    low: []                              # opt out of low severity
+    error: [email, slack]
+    warning: [slack]
+    info: []                             # opt out of info severity
   quiet_hours:
     enabled: true
     start: "22:00"
@@ -337,7 +313,7 @@ Any agent sends a notification using this standard format:
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | notification_id | string | yes | Unique ID for tracking |
-| severity | string | yes | critical / high / medium / low |
+| severity | string | yes | critical / error / warning / info |
 | source.agent | string | yes | Sending agent name |
 | source.domain | string | no | Owning domain if applicable |
 | title | string | yes | Short summary (max 120 chars) |
@@ -389,7 +365,7 @@ templates:
 | Variable | Description |
 |----------|-------------|
 | `{{severity}}` | Notification severity |
-| `{{severity_emoji}}` | Emoji for severity (critical: red_circle, high: orange_circle, etc.) |
+| `{{severity_emoji}}` | Emoji for severity (critical: red_circle, error: orange_circle, etc.) |
 | `{{title}}` | Notification title |
 | `{{body}}` | Notification body |
 | `{{source.agent}}` | Source agent name |

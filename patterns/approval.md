@@ -2,7 +2,7 @@
 type: pattern
 name: approval
 version: 1.0.0
-requires: [protocol/spec, protocol/types, patterns/scope, patterns/policy, patterns/safety]
+requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety]
 platform: any
 tier: free
 -->
@@ -62,28 +62,18 @@ trigger maximum alerting and mandatory post-incident review.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: AgentManifest
-          fields_used: [name, capabilities, type]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
           fields_used: [code, message, category]
+        - name: AgentManifest
+          fields_used: [name, capabilities, type]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/scope
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -96,7 +86,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/policy
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -109,7 +98,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/safety
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -117,7 +105,7 @@ requires:
         - name: OperationClass
           fields_used: [read, create, modify, delete, destroy]
         - name: ResourceClass
-          fields_used: [ephemeral, standard, sensitive, critical]
+          fields_used: [ephemeral, application, system, critical]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

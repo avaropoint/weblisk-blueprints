@@ -2,7 +2,7 @@
 type: pattern
 name: caching
 version: 1.0.0
-requires: [protocol/spec, protocol/types, architecture/agent, patterns/storage]
+requires: [protocol/types]
 platform: any
 tier: free
 -->
@@ -27,51 +27,21 @@ uniformly.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
+  - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
           fields_used: [error, code, category]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: FieldType
-          fields_used: [int64, string, boolean]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
+        - name: HealthStatus
+          fields_used: [name, status, version, uptime]
         - name: AgentManifest
           fields_used: [name, type, capabilities]
-        - name: HealthResponse
-          fields_used: [status, cache]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 
-  - blueprint: patterns/storage
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: FieldType
-          fields_used: [string, int, float, boolean, timestamp, json]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
 ```
 
 ---
@@ -269,7 +239,7 @@ health response (POST /v1/health):
 
 ```json
 {
-  "status": "healthy",
+  "state": "online",
   "cache": {
     "hits": 15420,
     "misses": 892,

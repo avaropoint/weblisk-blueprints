@@ -56,6 +56,7 @@ category and retry information are available.
 | Code | string | `code` | no | Machine-readable error code (e.g., `AGENT_UNREACHABLE`, `INVALID_INPUT`) |
 | Category | string | `category` | no | `"transient"`, `"permanent"`, or `"partial"` |
 | Retryable | bool | `retryable` | no | Whether the caller SHOULD retry this request |
+| RetryAfter | int | `retry_after` | no | Seconds to wait before retrying (present when `retryable` is true) |
 | Detail | map | `detail` | no | Additional structured context (varies by error) |
 
 **Categories:**
@@ -92,7 +93,7 @@ Returned by `POST /v1/describe` and sent during registration.
 | Field | Type | JSON Key | Required | Description |
 |-------|------|----------|----------|-------------|
 | Name | string | `name` | yes | Agent identifier (lowercase, no spaces) |
-| Type | string | `type` | no | `"domain"`, `"agent"` (default), or `"infrastructure"` |
+| Type | string | `type` | no | `"domain"` (domain controller), `"agent"` (work agent, default), or `"infrastructure"` (system-level: task, workflow, lifecycle) |
 | Version | string | `version` | yes | Semver version of the agent |
 | ProtocolVersion | string | `protocol_version` | no | Protocol version this agent implements (default: `"1"`) |
 | Description | string | `description` | yes | Human-readable purpose |
@@ -129,6 +130,7 @@ A single thing an agent can do, with optional resource scoping.
 - `http:receive` — receive inbound HTTP requests
 - `database:read` — read from data store
 - `database:write` — write to data store
+- `event:observe` — observe all events for a topic regardless of scope
 - `realtime:publish` — publish to real-time channels
 
 ### IOSpec
@@ -243,9 +245,10 @@ each into prioritized tasks assigned to domain agents.
 | Metric | string | `metric` | yes | What is being measured |
 | Current | float64 | `current` | yes | Current value |
 | Goal | float64 | `goal` | yes | Target value |
-| Deadline | string | `deadline` | yes | ISO 8601 date |
+| Deadline | string | `deadline` | yes | ISO 8601 date (human-facing planning horizon, not a protocol timestamp) |
 | Unit | string | `unit` | yes | Unit of measurement |
 | Progress | float64 | `progress` | yes | 0.0 to 1.0 |
+| MeasurementWindow | int | `measurement_window` | no | Evaluation window in seconds (default: 86400) |
 
 ---
 
@@ -590,7 +593,7 @@ orchestrator rejects with 400 and error code `UNSUPPORTED_VERSION`.
 | ToAgent | string | `to_agent` | yes | Target agent name |
 | Purpose | string | `purpose` | yes | Why the channel is needed |
 | Token | string | `token` | yes | Requestor's auth token |
-| Signature | string | `signature` | yes | Ed25519 signature |
+| Signature | string | `signature` | yes | Ed25519 signature over `canonicalize({from_agent, to_agent, purpose})` |
 
 ### ChannelGrant
 
@@ -604,6 +607,20 @@ orchestrator rejects with 400 and error code `UNSUPPORTED_VERSION`.
 | ChannelToken | string | `channel_token` | yes | Scoped channel token |
 | ExpiresAt | int64 | `expires_at` | yes | Expiry (Unix epoch) |
 | Signature | string | `signature` | yes | Orchestrator signature |
+
+### ChannelEntry
+
+Stored record of an active channel in the orchestrator's channel registry.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| ChannelID | string | `channel_id` | yes | Unique channel identifier |
+| FromAgent | string | `from_agent` | yes | Requesting agent name |
+| ToAgent | string | `to_agent` | yes | Target agent name |
+| Purpose | string | `purpose` | yes | Why the channel was created |
+| Token | string | `token` | yes | Scoped channel token |
+| CreatedAt | int64 | `created_at` | yes | Unix epoch of creation |
+| ExpiresAt | int64 | `expires_at` | yes | Unix epoch of expiry |
 
 ---
 
@@ -635,6 +652,7 @@ orchestrator rejects with 400 and error code `UNSUPPORTED_VERSION`.
 | Target | string | `target` | yes | Affected resource |
 | Detail | string | `detail` | yes | Human-readable description |
 | Status | string | `status` | yes | `ok`, `denied`, `failed` |
+| PreviousHash | string | `previous_hash` | yes | SHA-256 hex digest of the previous entry's canonical JSON bytes; `"0000...0000"` (64 zeros) for the first entry — see [storage.md — Hash Chain Integrity](../architecture/storage.md#hash-chain-integrity) |
 
 **Action types:** `register`, `deregister`, `channel`, `message`,
 `event`, `namespace_grant`, `namespace_release`
@@ -865,6 +883,38 @@ here for completeness — identity.md is the authoritative source.
 
 ---
 
+## Logging
+
+### LogEntry
+
+Structured log entry emitted by agents. See [patterns/logging](../patterns/logging.md)
+for the full logging specification.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| Timestamp | string | `ts` | yes | ISO 8601 timestamp with timezone |
+| Level | string | `level` | yes | `debug`, `info`, `warn`, `error`, `fatal` |
+| LogType | string | `log_type` | yes | `app`, `access`, `audit`, `security` |
+| Message | string | `msg` | yes | Human-readable log message |
+| Component | string | `component` | yes | Agent or subsystem name |
+| ComponentType | string | `component_type` | yes | `agent`, `orchestrator`, `gateway` |
+| TraceID | string | `trace_id` | no | Distributed trace correlation |
+| SpanID | string | `span_id` | no | Span within trace |
+| Error | string | `error` | no | Error message (when level is error/fatal) |
+
+### TraceContext
+
+Distributed trace propagation context (W3C Trace Context compatible).
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| TraceID | string | `trace_id` | yes | 32-char hex trace identifier |
+| SpanID | string | `span_id` | yes | 16-char hex span identifier |
+| ParentSpanID | string | `parent_span_id` | no | Parent span for nesting |
+| Sampled | bool | `sampled` | no | Whether this trace is sampled (default: true) |
+
+---
+
 ## Security
 
 ```yaml
@@ -885,6 +935,12 @@ security:
     - IDs MUST be validated as 32-char hex strings
     - Timestamps MUST be validated as positive integers
     - Unknown fields MUST be silently ignored (forward compatibility)
+  string_limits:
+    - Identifiers (name, agent_name, topic, action): max 128 characters
+    - Descriptions and messages: max 1024 characters
+    - Payload fields (JSON objects): max 1 MiB serialized
+    - URL fields: max 2048 characters
+    - Hex-encoded keys/signatures: validated by exact length (64 or 128 chars)
 ```
 
 ---

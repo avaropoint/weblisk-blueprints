@@ -57,7 +57,7 @@ requires:
           fields_used: [task_id, agent_name, status, summary, timestamp]
         - name: WorkflowResult
           fields_used: [workflow_name, invoker, status, phase_results, observations, recommendations]
-        - name: MessageEnvelope
+        - name: EventEnvelope
           fields_used: [from, to, action, payload, trace_id]
     on_change:
       compatible: validate

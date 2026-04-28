@@ -2,7 +2,7 @@
 type: pattern
 name: user-management
 version: 1.0.0
-requires: [protocol/spec, protocol/types, patterns/auth-session, patterns/auth-token, architecture/gateway]
+requires: [protocol/types, patterns/auth-session, patterns/auth-token, architecture/gateway]
 platform: any
 tier: free
 -->
@@ -28,24 +28,16 @@ complete user system for a Weblisk application.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: ErrorResponse
-          fields_used: [code, message, detail]
-        - name: PaginatedResponse
-          fields_used: [data, pagination]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: TypeDefinition
           fields_used: [name, fields]
+        - name: ErrorResponse
+          fields_used: [code, message, detail]
+        - name: PaginatedResponse
+          fields_used: [data, pagination]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

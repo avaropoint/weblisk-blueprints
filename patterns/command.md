@@ -2,7 +2,7 @@
 type: pattern
 name: command
 version: 1.0.0
-requires: [protocol/spec, protocol/types, architecture/agent, patterns/logging, patterns/secrets]
+requires: [protocol/types, architecture/agent, patterns/logging, patterns/secrets]
 platform: any
 tier: free
 -->
@@ -39,28 +39,18 @@ commands it's allowed to run.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: ErrorResponse
-          fields_used: [error, code, category, retryable]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: FieldType
           fields_used: [string, int, boolean, timestamp]
+        - name: ErrorResponse
+          fields_used: [error, code, category, retryable]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/agent
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -71,7 +61,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/logging
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -82,7 +71,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/secrets
     version: ">=1.0.0 <2.0.0"
     bindings:

@@ -2,7 +2,7 @@
 type: pattern
 name: realtime-chat
 version: 1.0.0
-requires: [protocol/spec, protocol/types, architecture/gateway]
+requires: [protocol/types, architecture/gateway]
 platform: any
 tier: free
 -->
@@ -27,17 +27,6 @@ connection handles live messaging and presence.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: AgentManifest
-          fields_used: [name, version, url]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -46,11 +35,12 @@ requires:
           fields_used: [id, channel, from, content, timestamp, metadata]
         - name: WebSocketFrame
           fields_used: [type]
+        - name: AgentManifest
+          fields_used: [name, version, url]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/gateway
     version: ">=1.0.0 <2.0.0"
     bindings:

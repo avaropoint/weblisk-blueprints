@@ -39,14 +39,10 @@ requires:
           methods: [POST]
         - path: /v1/health
           methods: [GET]
-      types:
-        - name: AgentManifest
-          fields_used: [name, version, capabilities, public_key]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: protocol/identity
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -57,7 +53,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -70,7 +65,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/orchestrator
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -83,7 +77,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/admin
     version: ">=1.0.0 <2.0.0"
     bindings:

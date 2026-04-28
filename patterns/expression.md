@@ -2,7 +2,7 @@
 type: pattern
 name: expression
 version: 1.0.0
-requires: [protocol/spec, protocol/types]
+requires: [protocol/types]
 platform: any
 tier: free
 -->
@@ -35,22 +35,14 @@ scalar value, never mutates state, and never performs I/O.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: ErrorResponse
-          fields_used: [code, message]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: TypeDefinition
           fields_used: [name, fields]
+        - name: ErrorResponse
+          fields_used: [code, message]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -277,6 +269,24 @@ security:
     - Expressions cannot access system environment, file system, or network
     - Path resolution is scoped to the provided context only
 ```
+
+---
+
+## Types
+
+### ExpressionGrammar
+
+Contract type describing what the expression language provides.
+Consumers bind to this to declare their use of the expression system.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| Path | string | Dot-separated field access (e.g., `entity.name`) |
+| Comparison | []string | Supported comparison operators: `==`, `!=`, `>`, `>=`, `<`, `<=`, `IN`, `NOT IN`, `MATCHES`, `CONTAINS`, `STARTS_WITH`, `ENDS_WITH` |
+| LogicalOperators | []string | `AND`, `OR`, `NOT` |
+| Arithmetic | []string | `+`, `-`, `*`, `/`, `%` |
+| ValueTypes | []string | `string`, `number`, `boolean`, `null`, `array` |
+| ContextRoots | map[string][]string | Context roots per consumer (e.g., `state_machine: [entity, transition, now]`) |
 
 ---
 

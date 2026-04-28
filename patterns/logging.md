@@ -2,7 +2,7 @@
 type: pattern
 name: logging
 version: 1.0.0
-requires: [protocol/spec, protocol/types, architecture/agent, architecture/observability]
+requires: [protocol/types, architecture/agent]
 platform: any
 tier: free
 -->
@@ -33,23 +33,16 @@ logging contract that agents extend.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
+  - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: EventEnvelope
           fields_used: [trace_id, event_id, source]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
         - name: LogEntry
           fields_used: [ts, level, log_type, msg, component, component_type]
+        - name: TraceContext
+          fields_used: [trace_id, span_id]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -61,17 +54,6 @@ requires:
       types:
         - name: AgentManifest
           fields_used: [name, type, version]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: architecture/observability
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: TraceContext
-          fields_used: [trace_id, span_id]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

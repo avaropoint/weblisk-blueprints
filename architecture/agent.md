@@ -36,18 +36,10 @@ requires:
           methods: [POST]
         - path: /v1/event
           methods: [POST]
-      types:
-        - name: TaskRequest
-          fields_used: [task_id, action, payload, context]
-        - name: TaskResult
-          fields_used: [task_id, agent_name, status, summary, timestamp]
-        - name: AgentMessage
-          fields_used: [from, to, type, action, payload, signature]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: protocol/identity
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -60,7 +52,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -73,11 +64,16 @@ requires:
           fields_used: [agent_id, token, services]
         - name: EventEnvelope
           fields_used: [event_id, topic, payload, source, scope, correlation_id]
+        - name: TaskRequest
+          fields_used: [task_id, action, payload, context]
+        - name: TaskResult
+          fields_used: [task_id, agent_name, status, summary, timestamp]
+        - name: AgentMessage
+          fields_used: [from, to, type, action, payload, signature]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/retry
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -90,7 +86,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/messaging
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -614,6 +609,60 @@ Agents that make outbound HTTP calls (security-scanner, uptime-checker,
 perf-auditor, etc.) MUST respect the outbound rate limit to avoid
 overwhelming targets. Agents performing LLM calls inherit timeout and
 retry settings from the api-ai pattern configuration.
+
+## Types
+
+### AgentEndpoints
+
+The set of protocol endpoints every agent exposes.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| Describe | string | `describe` | yes | Path to describe endpoint (`/v1/describe`) |
+| Execute | string | `execute` | yes | Path to execute endpoint (`/v1/execute`) |
+| Message | string | `message` | yes | Path to message endpoint (`/v1/message`) |
+| Health | string | `health` | yes | Path to health endpoint (`/v1/health`) |
+| Services | string | `services` | yes | Path to services endpoint (`/v1/services`) |
+| Event | string | `event` | yes | Path to event endpoint (`/v1/event`) |
+
+### AgentContext
+
+Runtime context provided to agent business logic by the framework.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| Identity | Ed25519KeyPair | `identity` | yes | Agent's key pair for signing |
+| Token | string | `token` | yes | Current WLT token from registration |
+| Services | map[string]ServiceEntry | `services` | yes | Cached service directory |
+| Provider | string | `provider` | no | Provider identifier (e.g., `"cloudflare"`) |
+| Workspace | string | `workspace` | no | Filesystem root for agent storage |
+
+### AgentConfig
+
+Configuration struct for agent runtime behavior.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| Name | string | `name` | yes | Agent name (must match manifest) |
+| Port | int | `port` | yes | HTTP listen port |
+| OrchestratorURL | string | `orchestrator_url` | yes | Orchestrator base URL |
+| MaxConcurrent | int | `max_concurrent` | no | Max parallel task executions (default: 5) |
+| Retry | RetryConfig | `retry` | no | Retry strategy configuration |
+| CircuitBreaker | CircuitBreakerConfig | `circuit_breaker` | no | Circuit breaker configuration |
+
+### AgentState
+
+Runtime state tracked per registered agent.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| State | string | `state` | yes | `"registered"`, `"active"`, `"degraded"`, `"offline"` |
+| URL | string | `url` | yes | Agent's current base URL |
+| Subscriptions | []Subscription | `subscriptions` | yes | Active event subscriptions |
+| LastHealthCheck | int64 | `last_health_check` | no | Unix epoch of last health probe |
+| RegisteredAt | int64 | `registered_at` | yes | Unix epoch of registration |
+
+---
 
 ## Implementation Notes
 

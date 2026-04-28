@@ -60,7 +60,7 @@ requires:
           fields_used: [id, from, target_agent, action, payload, context]
         - name: TaskResult
           fields_used: [task_id, agent_name, status, summary, timestamp]
-        - name: MessageEnvelope
+        - name: EventEnvelope
           fields_used: [from, to, action, payload, trace_id]
     on_change:
       compatible: validate

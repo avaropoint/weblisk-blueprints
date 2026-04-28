@@ -2,7 +2,7 @@
 type: architecture
 name: domain
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/types, architecture/agent, architecture/orchestrator, patterns/messaging, patterns/workflow]
+requires: [protocol/identity, protocol/types, architecture/agent, architecture/orchestrator, patterns/messaging, patterns/workflow]
 platform: any
 tier: free
 -->
@@ -26,7 +26,18 @@ pure business logic — no embedded execution engine.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Ed25519KeyPair
+          fields_used: [public_key, private_key]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       endpoints:
@@ -43,26 +54,6 @@ requires:
           fields_used: [task_id, action, payload, context]
         - name: TaskResult
           fields_used: [task_id, agent_name, status, summary]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: Ed25519KeyPair
-          fields_used: [public_key, private_key]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
         - name: AgentManifest
           fields_used: [name, version, type, url, public_key, capabilities, required_agents, workflows, publishes, subscriptions]
         - name: EventEnvelope
@@ -727,6 +718,34 @@ Domains use ports in the 9700–9709 range:
 
 Work agents use ports 9710+. Infrastructure agents use 9750+.
 Orchestrator: 9800.
+
+## Types
+
+### DomainWorkflow
+
+A workflow definition owned by a domain controller. Specifies the
+business process as a set of phases that the Workflow Agent executes.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| Name | string | `name` | yes | Workflow identifier (unique within domain) |
+| Description | string | `description` | no | Human-readable purpose |
+| Trigger | string | `trigger` | yes | Action name that initiates this workflow |
+| Phases | []WorkflowPhase | `phases` | yes | Ordered list of execution phases |
+| OnError | string | `on_error` | no | Default phase error strategy: `fail`, `skip`, `retry` (default: `fail`) |
+
+### DomainManifest
+
+Extended manifest fields specific to domain controllers. These fields
+augment the base `AgentManifest` when `type` is `"domain"`.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| RequiredAgents | []string | `required_agents` | yes | Work agents this domain depends on |
+| Workflows | []string | `workflows` | yes | Workflow names this domain supports |
+| EntityTypes | []string | `entity_types` | no | Entity types this domain manages |
+
+---
 
 ## Implementation Notes
 

@@ -2,7 +2,7 @@
 type: architecture
 name: enforcement
 version: 1.0.0
-requires: [protocol/spec, protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, architecture/orchestrator, architecture/gateway]
+requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, architecture/orchestrator, architecture/gateway]
 platform: any
 tier: free
 -->
@@ -65,19 +65,6 @@ structurally. It is the difference between "here are the rules" and
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: AgentManifest
-          fields_used: [name, type, capabilities, publishes, subscriptions]
-        - name: AgentMessage
-          fields_used: [from, to, action, payload, signature, metadata]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -86,11 +73,14 @@ requires:
           fields_used: [id, timestamp, actor, action, target, detail, status]
         - name: ErrorResponse
           fields_used: [code, message, category]
+        - name: AgentManifest
+          fields_used: [name, type, capabilities, publishes, subscriptions]
+        - name: AgentMessage
+          fields_used: [from, to, action, payload, signature, metadata]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/scope
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -103,7 +93,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/policy
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -116,7 +105,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/safety
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -131,7 +119,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/orchestrator
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -142,7 +129,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/gateway
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -153,7 +139,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/approval
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -164,7 +149,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/contract
     version: ">=1.0.0 <2.0.0"
     bindings:

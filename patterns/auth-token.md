@@ -2,7 +2,7 @@
 type: pattern
 name: auth-token
 version: 1.0.0
-requires: [protocol/spec, protocol/types, protocol/identity, architecture/gateway]
+requires: [protocol/types, protocol/identity, architecture/gateway]
 platform: any
 tier: free
 -->
@@ -27,28 +27,18 @@ what it can access.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: ErrorResponse
-          fields_used: [error, code, category, retryable]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: FieldType
           fields_used: [uuid, string, int64, boolean, timestamp]
+        - name: ErrorResponse
+          fields_used: [error, code, category, retryable]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: protocol/identity
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -59,7 +49,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/gateway
     version: ">=1.0.0 <2.0.0"
     bindings:

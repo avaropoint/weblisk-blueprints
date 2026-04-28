@@ -46,6 +46,13 @@ requires:
           methods: [POST]
         - path: /v1/message
           methods: [POST]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/types
+    version: ">=1.0.0 <2.0.0"
+    bindings:
       types:
         - name: AgentMessage
           fields_used: [from, to, action, payload, signature]
@@ -53,7 +60,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: protocol/identity
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -66,7 +72,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: protocol/federation
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -79,7 +84,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/gateway
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -90,7 +94,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/observability
     version: ">=1.0.0 <2.0.0"
     bindings:

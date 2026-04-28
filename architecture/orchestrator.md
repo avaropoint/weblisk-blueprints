@@ -2,7 +2,7 @@
 type: architecture
 name: orchestrator
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/types]
+requires: [protocol/identity, protocol/types]
 platform: any
 tier: free
 -->
@@ -24,7 +24,21 @@ register like any other agent.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Ed25519KeyPair
+          fields_used: [public_key, private_key, sign, verify]
+        - name: SignatureVerification
+          fields_used: [verify_signature, check_replay]
+        - name: WLToken
+          fields_used: [sub, iss, iat, exp, cap]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
@@ -38,32 +52,10 @@ requires:
           fields_used: [from_agent, to_agent, purpose]
         - name: ChannelGrant
           fields_used: [channel_id, token, target_url, target_public_key]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: Ed25519Identity
-          fields_used: [public_key, private_key, sign, verify]
-        - name: SignatureVerification
-          fields_used: [verify_signature, check_replay]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
         - name: AgentManifest
           fields_used: [name, type, version, url, public_key, capabilities, publishes, subscriptions]
         - name: AuditEntry
           fields_used: [id, timestamp, actor, action, target, detail, status]
-        - name: TokenClaims
-          fields_used: [sub, iss, iat, exp, capabilities]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -406,6 +398,24 @@ and [protocol/types.md](../protocol/types.md) for type definitions.
 | Identity key path | `--keys` | `WL_KEYS_DIR` | `.weblisk/keys/` |
 | Audit log path | `--audit` | `WL_AUDIT_PATH` | `.weblisk/audit.jsonl` |
 | Channel TTL | — | `WL_CHANNEL_TTL` | `3600` (1 hour) |
+
+---
+
+## Types
+
+### AgentEntry
+
+An entry in the orchestrator's internal agent registry.
+
+| Field | Type | JSON Key | Required | Description |
+|-------|------|----------|----------|-------------|
+| AgentID | string | `agent_id` | yes | Assigned agent identifier |
+| Manifest | AgentManifest | `manifest` | yes | Agent's declared manifest |
+| Token | string | `token` | yes | Issued WLT token |
+| Status | string | `status` | yes | `"registered"`, `"active"`, `"offline"` |
+| RegisteredAt | int64 | `registered_at` | yes | Unix epoch of registration |
+| PublicKey | string | `public_key` | yes | Agent's Ed25519 public key (hex) |
+| Namespaces | []string | `namespaces` | yes | Owned publish namespaces |
 
 ---
 

@@ -2,7 +2,7 @@
 type: pattern
 name: workflow
 version: 1.0.0
-requires: [protocol/spec, protocol/types, patterns/state-machine, patterns/messaging, patterns/observability, patterns/expression]
+requires: [protocol/types, patterns/storage, patterns/state-machine, patterns/messaging, patterns/observability, patterns/expression]
 platform: any
 tier: free
 -->
@@ -42,24 +42,24 @@ those outputs to downstream phases. The workflow engine handles:
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
+  - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
           fields_used: [code, message, detail]
+        - name: TaskRequest
+          fields_used: [action, payload, context]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-  - blueprint: protocol/types
+  - blueprint: patterns/storage
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: TypeDefinition
           fields_used: [name, fields, description]
-        - name: TaskPayload
-          fields_used: [action, payload, context]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -88,8 +88,18 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Metric
-          fields_used: [name, type, labels, value]
+        - name: MetricsSnapshot
+          fields_used: [requests_total, errors_total, last_activity]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/expression
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ExpressionGrammar
+          fields_used: [path, comparison, logical_operators]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -236,7 +246,7 @@ workflows:
 | agent | phase | yes | — | Target agent name, or `self` for caller |
 | action | phase | yes | — | Task action to invoke on target agent |
 | input | phase | yes | — | Map of input keys to values or references |
-| output | phase | no | — | Key name for storing phase result (omit if result not referenced) |
+| output | phase | no | — | Key name for storing phase result (omit if result not referenced)(omit if result not referenced) |
 | depends_on | phase | no | [] | Phase names that must complete first |
 | timeout | phase | no | 300 | Max seconds for this phase |
 | approval | phase | no | workflow default | Phase-specific approval override |

@@ -47,18 +47,10 @@ requires:
         - path: /v1/health
           methods: [GET]
           response_fields: [status, details]
-      types:
-        - name: AgentManifest
-          fields_used: [name, version, port, capabilities, public_key, url]
-        - name: MessageEnvelope
-          fields_used: [from, to, action, payload, trace_id]
-        - name: HealthResponse
-          fields_used: [status, details]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -67,11 +59,16 @@ requires:
           fields_used: [id, from, target_agent, payload, context]
         - name: TaskResult
           fields_used: [task_id, agent_name, status, summary, timestamp]
+        - name: AgentManifest
+          fields_used: [name, version, port, capabilities, public_key, url]
+        - name: EventEnvelope
+          fields_used: [from, to, action, payload, trace_id]
+        - name: HealthStatus
+          fields_used: [status, details]
     on_change:
       compatible: validate
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/agent
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -86,7 +83,6 @@ requires:
       compatible: validate
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: agents/email-send
     version: ">=1.0.0 <2.0.0"
     bindings:

@@ -42,16 +42,10 @@ requires:
           methods: [POST]
           request_type: RegisterRequest
           response_fields: [agent_id, token, services]
-      types:
-        - name: AgentManifest
-          fields_used: [name, type, version, public_key, capabilities]
-        - name: ErrorResponse
-          fields_used: [error, code, category, retryable]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: protocol/identity
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -64,7 +58,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -75,11 +68,14 @@ requires:
           fields_used: [task_id, agent_name, status, summary]
         - name: AuditEntry
           fields_used: [id, timestamp, actor, action, target, detail, status]
+        - name: AgentManifest
+          fields_used: [name, type, version, public_key, capabilities]
+        - name: ErrorResponse
+          fields_used: [error, code, category, retryable]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/hub
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -728,6 +724,85 @@ types:
         format: semver
       computed_at:
         type: int64
+
+  RetentionPolicy:
+    description: How long cross-boundary data may persist
+    fields:
+      max_hours:
+        type: int
+        description: Maximum retention duration in hours
+        constraints:
+          min: 1
+      delete_on_revoke:
+        type: bool
+        description: Whether to purge data when peering is revoked
+        constraints:
+          default: true
+      audit_trail:
+        type: bool
+        description: Whether deletion must be logged for compliance
+        constraints:
+          default: true
+
+  JurisdictionSpec:
+    description: Data residency and jurisdictional constraints
+    fields:
+      country_codes:
+        type: "list<string>"
+        description: ISO 3166-1 alpha-2 codes where data may reside
+      storage_constraint:
+        type: string
+        description: Residency enforcement model
+        constraints:
+          enum: [must_reside, must_not_reside, prefer]
+      gdpr_applicable:
+        type: bool
+        description: Whether GDPR-style data subject rights apply
+        required: false
+
+  FieldSpec:
+    description: Specification of a required or permitted field in boundary data
+    fields:
+      name:
+        type: string
+        description: Field name or dot-path (e.g. "payload.url")
+      type:
+        type: string
+        description: Expected type (string, int, bool, object, list)
+        required: false
+      constraints:
+        type: string
+        description: Optional validation rule (max_length, pattern, etc.)
+        required: false
+
+  PatternSpec:
+    description: Pattern identifying data that must be stripped at boundaries
+    fields:
+      pattern:
+        type: string
+        description: Regex or glob pattern to match against field names or values
+      scope:
+        type: string
+        description: Where to apply the pattern
+        constraints:
+          enum: [field_name, field_value, both]
+          default: field_name
+
+  Transform:
+    description: Mutation applied to data before crossing a trust boundary
+    fields:
+      type:
+        type: string
+        description: Transform operation
+        constraints:
+          enum: [strip, hash, redact, truncate, rename]
+      target:
+        type: string
+        description: Field name or pattern to transform
+      config:
+        type: object
+        description: Operation-specific configuration (e.g. hash algorithm, max_length)
+        required: false
 ```
 
 ---

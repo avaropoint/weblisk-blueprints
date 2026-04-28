@@ -2,7 +2,7 @@
 type: pattern
 name: storage
 version: 1.0.0
-requires: [protocol/spec, protocol/types]
+requires: [protocol/types]
 platform: any
 tier: free
 -->
@@ -42,22 +42,14 @@ the format so that:
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: ErrorResponse
-          fields_used: [code, message, detail]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: TypeDefinition
           fields_used: [name, fields, description, constraints]
+        - name: ErrorResponse
+          fields_used: [code, message, detail]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

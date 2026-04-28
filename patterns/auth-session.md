@@ -2,7 +2,7 @@
 type: pattern
 name: auth-session
 version: 1.0.0
-requires: [protocol/spec, protocol/types, protocol/identity, architecture/gateway, architecture/client]
+requires: [protocol/types, protocol/identity, architecture/gateway, architecture/client]
 platform: any
 tier: free
 -->
@@ -27,28 +27,18 @@ state-changing operations.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: ErrorResponse
-          fields_used: [error, code, category, retryable]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: FieldType
           fields_used: [uuid, string, int64, timestamp]
+        - name: ErrorResponse
+          fields_used: [error, code, category, retryable]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: protocol/identity
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -59,7 +49,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/gateway
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -70,7 +59,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/client
     version: ">=1.0.0 <2.0.0"
     bindings:

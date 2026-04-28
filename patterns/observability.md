@@ -2,7 +2,7 @@
 type: pattern
 name: observability
 version: 1.0.0
-requires: [protocol/spec, protocol/types, architecture/agent, patterns/logging]
+requires: [protocol/types, architecture/agent, patterns/logging]
 platform: any
 tier: free
 -->
@@ -45,25 +45,14 @@ works uniformly across agents, domains, and system components.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
+  - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: AgentManifest
           fields_used: [name, version, url]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: HealthResponse
-          fields_used: [name, version, state, uptime_seconds, checks, metrics_snapshot]
-        - name: MetricsSnapshot
-          fields_used: [requests_total, errors_total, last_activity]
+        - name: HealthStatus
+          fields_used: [name, status, version, uptime]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -146,7 +135,7 @@ contracts:
       override_constraints: Must not remove or rename base metrics
 
   types:
-    - name: HealthResponse
+    - name: HealthStatus
       description: Structured health status with state, sub-checks, and metrics snapshot
       inherited_by: Health Endpoint section
     - name: ComponentState

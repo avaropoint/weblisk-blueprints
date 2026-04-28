@@ -106,23 +106,15 @@ requires:
         - path: /v1/health
           methods: [GET]
           response_fields: [status, details]
-      types:
-        - name: AgentManifest
-          fields_used: [name, version, port, capabilities, public_key, url]
-        - name: MessageEnvelope
-          fields_used: [from, to, action, payload, trace_id]
-        - name: HealthResponse
-          fields_used: [status, details]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: protocol/identity
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Ed25519Identity
+        - name: Ed25519KeyPair
           fields_used: [public_key, sign, verify]
         - name: KeyRotationAnnouncement
           fields_used: [hub_name, old_key, new_key, old_signature, new_signature, timestamp]
@@ -135,7 +127,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -146,11 +137,14 @@ requires:
           fields_used: [name, type, capabilities, version]
         - name: ErrorResponse
           fields_used: [error, code]
+        - name: EventEnvelope
+          fields_used: [from, to, action, payload, trace_id]
+        - name: HealthStatus
+          fields_used: [status, details]
     on_change:
       compatible: validate
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: protocol/federation
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -180,7 +174,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/hub
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -231,7 +224,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/agent
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -246,7 +238,6 @@ requires:
       compatible: validate
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: architecture/orchestrator
     version: ">=1.0.0 <2.0.0"
     bindings:

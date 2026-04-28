@@ -2,7 +2,7 @@
 type: pattern
 name: versioning
 version: 1.0.0
-requires: [protocol/spec, protocol/types, architecture/agent, architecture/storage]
+requires: [protocol/types, architecture/agent]
 platform: any
 tier: free
 -->
@@ -31,21 +31,12 @@ migration validation, and rollback capabilities.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
+  - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: AgentManifest
           fields_used: [name, version]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
         - name: ErrorResponse
           fields_used: [error, code, category]
     on_change:
@@ -59,17 +50,6 @@ requires:
       types:
         - name: AgentContext
           fields_used: [agent_name, version]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: architecture/storage
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: StorageInterface
-          fields_used: [tables, indexes, migrations]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

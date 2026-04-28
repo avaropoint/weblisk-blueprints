@@ -2,7 +2,7 @@
 type: pattern
 name: privacy
 version: 1.0.0
-requires: [protocol/spec, protocol/types, patterns/scope, patterns/policy, patterns/contract]
+requires: [protocol/types, patterns/scope, patterns/policy, patterns/contract]
 platform: any
 tier: free
 -->
@@ -57,28 +57,18 @@ system scales privacy proportionally — not uniformly.
 
 ```yaml
 requires:
-  - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: AgentManifest
-          fields_used: [name, capabilities, type]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
           fields_used: [code, message, category]
+        - name: AgentManifest
+          fields_used: [name, capabilities, type]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/scope
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -91,7 +81,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/policy
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -104,7 +93,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-
   - blueprint: patterns/contract
     version: ">=1.0.0 <2.0.0"
     bindings:
