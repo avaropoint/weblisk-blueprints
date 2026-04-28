@@ -1,0 +1,29 @@
+Production release audit: fix governance primitives, normalize structure, update schemas
+
+Governance pattern fixes:
+- policy.md: Add Implementation Notes, Error Handling, Verification Checklist;
+  fix EnvironmentProfile binding (environment_name -> name); rename Policy Types -> Types
+- privacy.md: Add Verification Checklist; rename Privacy Types -> Types;
+  add ErasureException to contract type declarations
+- safety.md: Add PolicyDefinition to dependency bindings; restructure types
+  under ## Types with proper heading hierarchy
+- contract.md: Add ## Types wrapper section; fix broken JSON code fence;
+  fix event keys (name -> topic); add protocol/federation dependency
+- approval.md: Add patterns/safety dependency with OperationClass/ResourceClass
+  bindings; restructure types under ## Types
+- scope.md: Fix pseudocode bug (environment.profile -> environment)
+- enforcement.md: Add ## Types with ViolationRecord and ApprovalContext
+  definitions; fix operation vocabulary (write -> create/modify/delete/destroy);
+  add patterns/approval and patterns/contract dependencies; convert verification
+  checklist to checkbox format
+
+Frontmatter normalization (21 files):
+- All 11 agents: canonical field order, patterns moved requires -> extends,
+  depends_on added where missing
+- All 7 example agents: field order normalized, depends_on: [] added
+- All 4 example domains: field order normalized, depends_on: [] added
+
+Schema updates:
+- schemas/common.md: Add domain field; add validation rule for work agents
+- schemas/agent.md: Add domain field to template and Required Fields table
+- README.md: Fix agent schema section count wording

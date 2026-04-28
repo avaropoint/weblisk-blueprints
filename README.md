@@ -158,7 +158,7 @@ schemas/            Blueprint schema governance
   README.md           Schema governance overview
   common.md           Common rules across all blueprint types
   compliance.md       Automated compliance validation rules
-  agent.md            Agent blueprint schema (22 required sections)
+  agent.md            Agent blueprint schema (22 sections)
   architecture.md     Architecture blueprint schema
   domain.md           Domain controller blueprint schema
   pattern.md          Pattern blueprint schema

@@ -4,8 +4,9 @@ kind: domain
 name: seo
 version: 1.1.0
 port: 9700
-extends: [patterns/domain-controller, patterns/observability, patterns/storage, patterns/workflow, patterns/contract, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/governance, patterns/security]
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/domain, architecture/lifecycle]
+extends: [patterns/domain-controller, patterns/observability, patterns/storage, patterns/workflow, patterns/contract, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/governance, patterns/security]
+depends_on: []
 platform: any
 tier: free
 -->

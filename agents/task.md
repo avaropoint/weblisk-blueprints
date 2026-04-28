@@ -3,11 +3,12 @@ type: agent
 kind: infrastructure
 name: task
 version: 1.0.0
-extends: [patterns/task-dispatch, patterns/scope, patterns/policy]
-requires: [protocol/spec, protocol/types, architecture/agent, patterns/messaging, patterns/retry]
+port: 9781
+requires: [protocol/spec, protocol/types, architecture/agent]
+extends: [patterns/task-dispatch, patterns/messaging, patterns/retry, patterns/scope, patterns/policy]
+depends_on: []
 platform: any
 tier: free
-port: 9781
 -->
 
 # Task Agent

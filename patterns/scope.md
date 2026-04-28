@@ -636,7 +636,7 @@ combining its declared scope with the active environment profile.
 ```
 function evaluate_scope(entity, environment):
     declared = entity.scope.level
-    profile = environment.profile
+    profile = environment
 
     # Check for per-level override
     if declared in profile.scope_overrides:

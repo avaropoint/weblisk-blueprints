@@ -1,11 +1,12 @@
 <!-- blueprint
 type: agent
+kind: work
 name: content-analyzer
 version: 1.1.0
-kind: work
 port: 9720
-extends: [patterns/observability, patterns/scope, patterns/policy, patterns/security]
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/domain]
+extends: [patterns/observability, patterns/scope, patterns/policy, patterns/security]
+depends_on: []
 platform: any
 tier: free
 domain: content

@@ -2,7 +2,7 @@
 type: architecture
 name: enforcement
 version: 1.0.0
-requires: [protocol/spec, protocol/types, patterns/scope, patterns/policy, patterns/safety, architecture/orchestrator, architecture/gateway]
+requires: [protocol/spec, protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, architecture/orchestrator, architecture/gateway]
 platform: any
 tier: free
 -->
@@ -149,6 +149,28 @@ requires:
       types:
         - name: GatewayConfig
           fields_used: [tls, internal_headers]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/approval
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ApprovalRequest
+          fields_used: [operation, agent, authority_required, context]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/contract
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ContractDefinition
+          fields_used: [name, version, parties, permissions, terms]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -377,7 +399,7 @@ storage_proxy:
     input:
       agent: AgentManifest         # Agent issuing the operation
       operation:
-        type: enum(read, write, delete, list, query)
+        type: enum(read, create, modify, delete, destroy, list, query)
         resource_path: string      # Storage path or key
         resource_scope: ScopeLevel # Scope classification of the target resource
         payload_size: integer      # Bytes (for volume tracking)
@@ -392,7 +414,7 @@ storage_proxy:
       - Evaluate policies via patterns/policy
       - Verify agent capabilities include the operation type
       - Verify resource scope does not exceed agent operational scope
-      - For write/delete: check safety intent requirement
+      - For create/modify/delete/destroy: check safety intent requirement
       - Feed behavioral signals to behavior analyzer
       - Log decision to audit writer
       - Return decision
@@ -730,6 +752,116 @@ Accumulate signals per agent in rolling windows
   └─ On quarantine trigger:
        Issue QuarantineOrder via patterns/safety
        Execute via quarantine_api.enter_quarantine
+```
+
+---
+
+## Types
+
+Types defined by the enforcement architecture. These are produced
+by the three boundary interfaces and consumed by audit, approval,
+and quarantine subsystems.
+
+```yaml
+ViolationRecord:
+  description: |
+    Record of a policy or safety violation detected at a boundary.
+    One record is produced for each violation detected during
+    inspection — a single operation can produce multiple violations.
+  fields:
+    id:
+      type: string
+      required: true
+      description: Unique identifier for this violation record
+    boundary:
+      type: enum(message, storage, external)
+      required: true
+      description: Which enforcement boundary detected the violation
+    agent:
+      type: string
+      required: true
+      description: Name of the agent whose operation triggered the violation
+    operation:
+      type: string
+      required: true
+      description: The operation that was attempted (action name or operation type)
+    violation_type:
+      type: enum(policy_denied, scope_exceeded, capability_mismatch, safety_blocked, contract_invalid, quarantine_active)
+      required: true
+      description: Classification of why the operation was blocked
+    policy_name:
+      type: string
+      required: false
+      description: Name of the policy that produced the denial (if policy_denied)
+    scope_required:
+      type: ScopeLevel
+      required: false
+      description: Required scope level (if scope_exceeded)
+    scope_actual:
+      type: ScopeLevel
+      required: false
+      description: Actual scope level of the agent or resource
+    detail:
+      type: string
+      required: true
+      description: Human-readable explanation of the violation
+    severity:
+      type: enum(low, medium, high, critical)
+      required: true
+      description: Severity of the violation for alerting and audit
+    correlation_id:
+      type: string
+      required: true
+      description: Links this violation to the inspection trace
+    timestamp:
+      type: integer
+      required: true
+      description: Unix epoch seconds when violation was recorded
+```
+
+```yaml
+ApprovalContext:
+  description: |
+    Context object produced when an enforcement decision is
+    require_approval. Contains all information needed by the
+    approval pattern to route, evaluate, and resolve the request.
+  fields:
+    operation:
+      type: string
+      required: true
+      description: The operation awaiting approval
+    agent:
+      type: string
+      required: true
+      description: Agent that requested the operation
+    boundary:
+      type: enum(message, storage, external)
+      required: true
+      description: Which enforcement boundary produced this context
+    policy_decision:
+      type: PolicyDecision
+      required: true
+      description: The policy evaluation result that triggered escalation
+    safety_gate:
+      type: ProtectionGate
+      required: false
+      description: Safety gate result if safety evaluation was involved
+    scope_level:
+      type: ScopeLevel
+      required: true
+      description: Scope level of the target resource or message
+    required_authority:
+      type: string
+      required: true
+      description: Minimum authority level needed to approve
+    correlation_id:
+      type: string
+      required: true
+      description: Links approval back to the original operation
+    timestamp:
+      type: integer
+      required: true
+      description: Unix epoch seconds when approval was requested
 ```
 
 ---
@@ -1154,52 +1286,16 @@ If the enforcement layer experiences partial failure:
 
 ## Verification Checklist
 
-1. **Message boundary intercepts all messages** — Send a message
-   between two agents. Verify that the enforcement layer intercepts
-   the message, evaluates policies, and logs the decision before the
-   message reaches the recipient.
-
-2. **Storage boundary blocks scope violations** — Configure an agent
-   with `internal` operational scope. Attempt to write to a
-   `restricted` resource. Verify that enforcement blocks the operation
-   with `ENFORCEMENT_SCOPE_VIOLATION`.
-
-3. **External boundary prevents scope leakage** — Configure an agent
-   to send `restricted`-scope data to an unclassified external
-   endpoint. Verify that enforcement blocks the request with
-   `ENFORCEMENT_SCOPE_LEAKAGE`.
-
-4. **Quarantine blocks all three boundaries** — Quarantine an agent.
-   Verify that messages to/from the agent are blocked, storage
-   write/delete operations are rejected, and external calls are
-   cancelled.
-
-5. **Capability mismatch detected immediately** — Register an agent
-   with `[storage:read]` capability. Attempt a `storage:write`
-   operation. Verify that enforcement blocks the operation and emits
-   a `capability_mismatch` violation.
-
-6. **Volume anomaly triggers graduated response** — Generate
-   operation volume exceeding 10x the rolling average. Verify that
-   an audit alert is emitted. Sustain the volume for 5 minutes.
-   Verify that the agent is quarantined.
-
-7. **Fail-closed on policy evaluation error** — Simulate a policy
-   evaluation failure. Verify that enforcement denies the operation
-   rather than allowing it.
-
-8. **Audit trail is complete** — Execute a sequence of operations
-   across all three boundaries (some allowed, some denied). Query
-   the enforcement report API. Verify that every decision is logged
-   with correlation ID, agent, boundary, operation, scope, policies
-   evaluated, and decision result.
-
-9. **Decision cache invalidation** — Allow an operation that hits
-   the decision cache. Change the applicable policy to deny. Verify
-   that the next identical operation is denied (cache invalidated).
-
-10. **Quarantine release requires appropriate authority** — Quarantine
-    an agent with `high` severity. Attempt release with operator
-    authority. Verify rejection. Release with admin authority. Verify
-    success. Verify the agent resumes normal operation across all
-    boundaries.
+- [ ] Message boundary intercepts all messages — enforcement evaluates policies and logs decisions before delivery
+- [ ] Storage boundary blocks scope violations — agent with `internal` scope cannot write to `restricted` resource (ENFORCEMENT_SCOPE_VIOLATION)
+- [ ] External boundary prevents scope leakage — `restricted`-scope data cannot be sent to unclassified external endpoints (ENFORCEMENT_SCOPE_LEAKAGE)
+- [ ] Quarantine blocks all three boundaries — quarantined agent's messages, storage writes, and external calls are all rejected
+- [ ] Capability mismatch detected — agent with `[storage:read]` cannot perform `storage:create` (capability_mismatch violation)
+- [ ] Volume anomaly triggers graduated response — 10x spike emits audit alert; sustained 5 minutes triggers quarantine
+- [ ] Fail-closed on policy evaluation error — enforcement denies on error rather than allowing
+- [ ] Audit trail is complete — every decision logged with correlation_id, agent, boundary, operation, scope, policies, and result
+- [ ] Decision cache invalidation works — policy change causes next identical operation to be re-evaluated
+- [ ] Quarantine release requires appropriate authority — high-severity quarantine requires admin authority to release
+- [ ] ViolationRecord is produced for every blocked operation with all required fields
+- [ ] ApprovalContext is produced when decision is require_approval, with policy and safety context attached
+- [ ] Storage proxy operation vocabulary matches safety.md OperationClass (read, create, modify, delete, destroy)

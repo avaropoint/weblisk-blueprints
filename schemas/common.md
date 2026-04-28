@@ -64,6 +64,7 @@ may add additional required fields.
 | `kind` | enum | `agent`, `domain` | Agent kind: `domain`, `work`, or `infrastructure` |
 | `port` | integer | `agent`, `domain` | Default port assignment (see architecture/agent port convention) |
 | `depends_on` | list | `agent`, `domain` | Runtime agent dependencies. `[]` if none. Distinguishes build-time (`requires`) from run-time (`depends_on`) dependencies. |
+| `domain` | string | `agent` (kind: work) | The domain this work agent belongs to. Must match an existing domain name in `examples/domains/`. |
 
 ### Field Constraints
 
@@ -84,8 +85,9 @@ may add additional required fields.
 6. If `type` is `agent` or `domain`, `kind` is required
 7. If `type` is `agent` or `domain`, `port` is required
 8. If `type` is `agent` or `domain`, `depends_on` is required (use `[]` for none)
-9. All fields are case-sensitive
-10. Unknown fields are rejected (no arbitrary metadata)
+9. If `type` is `agent` and `kind` is `work`, `domain` is required
+10. All fields are case-sensitive
+11. Unknown fields are rejected (no arbitrary metadata)
 
 ---
 

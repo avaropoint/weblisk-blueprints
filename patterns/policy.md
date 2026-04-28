@@ -71,7 +71,7 @@ requires:
         - name: ScopeLevel
           fields_used: [public, internal, confidential, restricted, critical]
         - name: EnvironmentProfile
-          fields_used: [environment_name, enforcement_level]
+          fields_used: [name, enforcement_level, scope_overrides]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -218,7 +218,7 @@ contracts:
 
 ---
 
-## Policy Types
+## Types
 
 ### PolicyDefinition
 
@@ -908,3 +908,73 @@ composition rules.
 - Extend the rule library with domain-specific rules via `custom`.
 - Implement evaluation as a separate service or in-process library.
 - Add custom metadata fields to PolicyDefinition for domain extensions.
+
+---
+
+## Error Handling
+
+| Code | HTTP | Description |
+|------|------|-------------|
+| `POLICY_EVAL_FAILED` | 500 | Policy evaluation failed due to internal error |
+| `POLICY_CONTEXT_INCOMPLETE` | 400 | Required context fields missing for evaluation |
+| `POLICY_INVALID_DEFINITION` | 422 | Policy YAML does not conform to PolicyDefinition schema |
+| `POLICY_NOT_FOUND` | 404 | Referenced policy name does not exist |
+| `POLICY_DENIED` | 403 | Operation denied by policy evaluation (enforcement = enforce) |
+| `POLICY_ESCALATED` | 202 | Operation paused pending approval (enforcement = escalate) |
+| `POLICY_LIFECYCLE_INVALID` | 409 | Invalid lifecycle state transition attempted |
+| `POLICY_CONFLICT` | 409 | Policy conflicts with existing active policy on same target |
+
+All error responses follow the standard `ErrorResponse` format from
+`protocol/types`.
+
+---
+
+## Implementation Notes
+
+- Policy evaluation MUST complete in bounded time. Set a hard timeout
+  (recommended: 100ms per policy, 500ms total per evaluation). On
+  timeout, fail-closed with deny.
+- Cache evaluation results keyed on `{policy_version, context_hash}`.
+  Recommended TTL: 30 seconds. Invalidate on `policy.updated` events.
+- Store policies in the agent's local storage using the standard
+  storage pattern. Index by `scope`, `target`, and `state` for
+  fast lookup during evaluation.
+- Custom rules (`rule: custom`) MUST be sandboxed. They receive a
+  read-only context and return a boolean. They MUST NOT perform I/O,
+  modify state, or access resources outside the context.
+- Policy hot-reload: active policies can be updated via governance
+  directives (patterns/governance) without agent restart. The agent
+  re-evaluates its policy cache on `policy_update` directive receipt.
+- Version history: retain at least 10 previous versions of each
+  policy for audit rollback. Older versions can be archived to
+  cold storage.
+- The `most-restrictive-wins` composition rule means: if ANY matching
+  policy denies, the final decision is deny — regardless of other
+  policies that allow. This is defense-in-depth by design.
+- Policy precedence rank (system=0, hub=1, namespace=2, agent=3)
+  determines evaluation order but NOT override power. A
+  namespace-scoped policy cannot allow what a system-scoped policy
+  denies.
+- For environments with high policy counts (>100 active), consider
+  pre-computing a policy decision tree at policy update time rather
+  than evaluating all policies per request.
+
+---
+
+## Verification Checklist
+
+- [ ] PolicyDefinition schema validates all required fields (name, description, scope, target, rules, enforcement, state)
+- [ ] Evaluation is fail-closed — missing context, errors, and timeouts produce deny
+- [ ] Multiple policies on the same target compose using most-restrictive-wins
+- [ ] Lower-precedence policies do not override higher-precedence decisions
+- [ ] Every evaluation emits a `policy.evaluated` event with full context
+- [ ] `enforce` blocks on deny; `audit` logs but allows; `escalate` pauses and requests approval
+- [ ] Lifecycle transitions follow the permitted transition table (draft→active→deprecated→archived)
+- [ ] Archived policies are immutable — updates are rejected with POLICY_LIFECYCLE_INVALID
+- [ ] Custom rules execute in a sandbox with read-only context and no I/O
+- [ ] Policy cache invalidates on `policy.updated` events
+- [ ] Evaluation completes within the configured timeout (default 500ms total)
+- [ ] Error responses use standard ErrorResponse format with appropriate POLICY_* codes
+- [ ] Policy version history retains at least 10 previous versions
+- [ ] All 12 rule types evaluate correctly against their documented parameters
+- [ ] Policy YAML that does not conform to PolicyDefinition schema is rejected with POLICY_INVALID_DEFINITION

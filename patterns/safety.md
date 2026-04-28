@@ -98,6 +98,8 @@ requires:
           fields_used: [identity, scope_level, environment, operation, resource, agent]
         - name: PolicyDecision
           fields_used: [result, policy_name, matched_rules, enforcement]
+        - name: PolicyDefinition
+          fields_used: [name, description, scope, target, rules, enforcement, state]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -284,7 +286,13 @@ contracts:
 
 ---
 
-## Operation Classification
+## Types
+
+All types declared in the Contracts section are defined below.
+Each type is detailed in its own subsection with full YAML
+definitions, matrices, and behavioral descriptions.
+
+### Operation Classification
 
 Every side-effecting operation is classified by its nature. The
 classification determines base-level protection requirements
@@ -292,7 +300,7 @@ independent of scope or environment. Classification is intrinsic
 to the operation — it does not change based on who performs it or
 where.
 
-### Operation Classes
+#### Operation Classes
 
 | Class | Ordinal | Side Effect | Reversibility | Description |
 |-------|---------|-------------|---------------|-------------|
@@ -334,7 +342,7 @@ OperationClass:
   comparison: ordinal-based; higher ordinal = more dangerous operation
 ```
 
-### Classification Rules
+#### Classification Rules
 
 Operations are classified by their **actual effect**, not their
 stated purpose:
@@ -354,13 +362,13 @@ it is classified as delete. Safety errs on the side of caution.
 
 ---
 
-## Resource Classification
+### Resource Classification
 
 The target of an operation is classified by its criticality. Resource
 classification modifies the protection level — the same operation
 on different resource classes triggers different gates.
 
-### Resource Classes
+#### Resource Classes
 
 | Class | Ordinal | Description | Examples |
 |-------|---------|-------------|----------|
@@ -392,7 +400,7 @@ ResourceClass:
   comparison: ordinal-based; higher ordinal = higher criticality
 ```
 
-### Resource Classification Defaults
+#### Resource Classification Defaults
 
 Resources that lack explicit classification receive a default based
 on their type:
@@ -422,7 +430,7 @@ Overrides can only increase criticality — they cannot reduce it.
 
 ---
 
-## Operation Intent
+### Operation Intent
 
 Before performing any classified operation (ordinal > 0), a component
 MUST file an operation intent. Intent is the pre-flight check. It
@@ -430,7 +438,7 @@ describes what the component plans to do, to what, in which context,
 and why. Intent is evaluated against applicable policies before
 execution is permitted.
 
-### Intent Structure
+#### Intent Structure
 
 ```yaml
 OperationIntent:
@@ -486,7 +494,7 @@ OperationIntent:
       description: Additional context for domain-specific safety evaluation
 ```
 
-### Intent Declaration Example
+#### Intent Declaration Example
 
 ```yaml
 intent:
@@ -503,7 +511,7 @@ intent:
   correlation_id: "workflow-exec-9f2a"
 ```
 
-### Intent Evaluation Flow
+#### Intent Evaluation Flow
 
 ```
 intent_evaluate(intent):
@@ -540,7 +548,7 @@ intent_evaluate(intent):
   RETURN decision
 ```
 
-### Intent Decision
+#### Intent Decision
 
 ```yaml
 IntentDecision:
@@ -579,14 +587,14 @@ IntentDecision:
 
 ---
 
-## Protection Gates
+### Protection Gates
 
 Protection gates determine the required action for an operation
 based on four dimensions: operation class, resource class, scope
 level, and environment. The gate matrix is the core of safety
 enforcement.
 
-### Gate Matrix — Environment × Operation Class
+#### Gate Matrix — Environment × Operation Class
 
 The base gate matrix uses environment and operation class as primary
 axes. Resource class and scope level amplify the result — they can
@@ -622,7 +630,7 @@ tighten a gate but never loosen it.
 | delete | audit | require_approval | require_approval | deny |
 | destroy | require_approval | deny | deny | deny |
 
-### Scope Amplification
+#### Scope Amplification
 
 Scope level amplifies the gate by shifting the result toward more
 restrictive outcomes. The amplification is applied **after** the
@@ -646,7 +654,7 @@ Restriction levels in order: `allow → audit → require_approval → deny`.
 shift to `require_approval` (capped — deny is reserved for
 destroy-class operations in production unless admin-overridden).
 
-### Gate Configuration (YAML)
+#### Gate Configuration (YAML)
 
 ```yaml
 protection_gates:
@@ -732,7 +740,7 @@ protection_gates:
       critical: deny
 ```
 
-### ProtectionGate Type
+#### ProtectionGate Type
 
 ```yaml
 ProtectionGate:
@@ -773,7 +781,7 @@ ProtectionGate:
       description: Justification for admin override — required when admin_override is true
 ```
 
-### Admin Override
+#### Admin Override
 
 Certain deny-level gates in production can be overridden by
 administrators. Admin override is the **only** mechanism for
@@ -799,14 +807,14 @@ admin_override:
 
 ---
 
-## Kill Switch
+### Kill Switch
 
 The kill switch is an emergency mechanism for immediately halting an
 agent that poses a safety risk. It is the second-to-last escalation
 step — only full deregistration is more severe, and deregistration
 is a separate operational concern.
 
-### Triggers
+#### Triggers
 
 A kill switch activates when any of the following conditions are met:
 
@@ -821,7 +829,7 @@ A kill switch activates when any of the following conditions are met:
 4. **System fault** — the safety engine detects an agent in an
    inconsistent state (e.g., executing intents that were never filed).
 
-### Kill Switch Lifecycle
+#### Kill Switch Lifecycle
 
 ```
                  ┌─────────┐
@@ -857,7 +865,7 @@ A kill switch activates when any of the following conditions are met:
    └─────────────────┘  └──────────────┘
 ```
 
-### Kill Switch Behavior
+#### Kill Switch Behavior
 
 When the kill switch is triggered:
 
@@ -872,7 +880,7 @@ When the kill switch is triggered:
    full context. Operators are notified via configured alerting
    channels.
 
-### KillSwitchEvent Type
+#### KillSwitchEvent Type
 
 ```yaml
 KillSwitchEvent:
@@ -922,7 +930,7 @@ KillSwitchEvent:
 
 ---
 
-## Quarantine
+### Quarantine
 
 Quarantine is the isolation mechanism for agents that have violated
 safety rules. A quarantined agent is NOT deregistered — its state,
@@ -930,7 +938,7 @@ configuration, task history, and violation records are preserved for
 investigation. Quarantine is the investigation state; deregistration
 is the permanent removal state.
 
-### Quarantine Effects
+#### Quarantine Effects
 
 A quarantined agent:
 
@@ -947,7 +955,7 @@ A quarantined agent:
   status `quarantined`. Its manifest and history are accessible to
   operators for investigation.
 
-### Quarantine Lifecycle
+#### Quarantine Lifecycle
 
 ```
               ┌──────────────┐
@@ -978,7 +986,7 @@ A quarantined agent:
 └────────────┘   └──────────────┘
 ```
 
-### Quarantine Entry
+#### Quarantine Entry
 
 Quarantine is entered via:
 
@@ -1002,7 +1010,7 @@ quarantine_thresholds:
   quarantine_threshold: 5
 ```
 
-### Quarantine Exit
+#### Quarantine Exit
 
 Exiting quarantine requires:
 
@@ -1014,7 +1022,7 @@ Exiting quarantine requires:
 4. **Re-registration** — agent must re-register with the hub,
    refreshing its manifest and capabilities.
 
-### QuarantineState Type
+#### QuarantineState Type
 
 ```yaml
 QuarantineState:
@@ -1070,7 +1078,7 @@ QuarantineState:
       description: Identity of the operator who approved quarantine exit
 ```
 
-### SafetyViolation Type
+#### SafetyViolation Type
 
 ```yaml
 SafetyViolation:

@@ -3,11 +3,12 @@ type: agent
 kind: infrastructure
 name: lifecycle
 version: 1.0.0
-extends: [patterns/scope, patterns/policy]
-requires: [protocol/spec, protocol/types, architecture/agent, architecture/lifecycle, patterns/messaging]
+port: 9782
+requires: [protocol/spec, protocol/types, architecture/agent, architecture/lifecycle]
+extends: [patterns/messaging, patterns/scope, patterns/policy]
+depends_on: []
 platform: any
 tier: free
-port: 9782
 -->
 
 # Lifecycle Agent

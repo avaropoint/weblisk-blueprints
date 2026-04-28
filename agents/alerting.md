@@ -3,12 +3,12 @@ type: agent
 kind: infrastructure
 name: alerting
 version: 1.1.0
-extends: [patterns/alerting, patterns/observability, patterns/storage, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
+port: 9752
 requires: [protocol/spec, protocol/types, architecture/agent, agents/email-send]
+extends: [patterns/alerting, patterns/observability, patterns/storage, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
 depends_on: [email-send]
 platform: any
 tier: free
-port: 9752
 -->
 
 # Alerting Agent

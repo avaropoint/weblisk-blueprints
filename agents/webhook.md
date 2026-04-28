@@ -3,12 +3,12 @@ type: agent
 kind: infrastructure
 name: webhook
 version: 1.1.0
-extends: [patterns/webhook, patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/security, patterns/governance]
+port: 9753
 requires: [protocol/spec, protocol/types, architecture/agent]
+extends: [patterns/webhook, patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/security, patterns/governance]
 depends_on: []
 platform: any
 tier: free
-port: 9753
 -->
 
 # Webhook Agent

@@ -2,7 +2,7 @@
 type: pattern
 name: approval
 version: 1.0.0
-requires: [protocol/spec, protocol/types, patterns/scope, patterns/policy]
+requires: [protocol/spec, protocol/types, patterns/scope, patterns/policy, patterns/safety]
 platform: any
 tier: free
 -->
@@ -105,6 +105,19 @@ requires:
           fields_used: [identity, scope_level, environment, operation, resource, agent]
         - name: PolicyDecision
           fields_used: [result, policy_name, matched_rules, enforcement]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/safety
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: OperationClass
+          fields_used: [read, create, modify, delete, destroy]
+        - name: ResourceClass
+          fields_used: [ephemeral, standard, sensitive, critical]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -294,7 +307,12 @@ contracts:
 
 ---
 
-## Authority Levels
+## Types
+
+All types declared in the Contracts section are defined below,
+organized by concern.
+
+### Authority Levels
 
 The approval system defines four authority levels. Each level
 represents a class of decider with increasing trust, scope, and
@@ -375,7 +393,7 @@ AuthorityLevel:
 
 ---
 
-## Approval Request
+### Approval Request
 
 When an operation requires approval — triggered by a `require_approval`
 or `escalate` decision from `patterns/safety` — the requesting
@@ -646,7 +664,7 @@ approval_routing:
 
 ---
 
-## Approval Decision
+### Approval Decision
 
 When a request reaches the assigned authority, the authority reviews
 the request context and makes a decision. Four outcomes are possible:
@@ -897,7 +915,7 @@ escalation_monitor():
 
 ---
 
-## Multi-Party Approval
+### Multi-Party Approval
 
 Critical operations may require approval from multiple independent
 authorities. Multi-party approval ensures that no single person can
@@ -1032,7 +1050,7 @@ validate_separation_of_duties(request, decider):
 
 ---
 
-## Emergency Override
+### Emergency Override
 
 Emergency overrides exist because production incidents do not wait
 for approval chains. When a critical system is failing and the fix

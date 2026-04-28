@@ -3,12 +3,12 @@ type: agent
 kind: infrastructure
 name: email-send
 version: 1.1.0
-extends: [patterns/observability, patterns/storage, patterns/retry, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/privacy, patterns/security, patterns/governance]
+port: 9754
 requires: [protocol/spec, protocol/types, architecture/agent]
+extends: [patterns/observability, patterns/storage, patterns/retry, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/privacy, patterns/security, patterns/governance]
 depends_on: []
 platform: any
 tier: free
-port: 9754
 -->
 
 # Email Send

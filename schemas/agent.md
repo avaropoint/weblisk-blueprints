@@ -23,6 +23,7 @@ extends: [<patterns/name>, ...]
 depends_on: [<agent-name>, ...] | []
 platform: any|go|cloudflare|node|rust
 tier: free|pro
+domain: <domain-name>          # required for kind: work
 -->
 ```
 
@@ -40,6 +41,7 @@ tier: free|pro
 | `depends_on` | list | References agent/domain names, or `[]` | Runtime agent dependencies |
 | `platform` | enum | `any`, `go`, `cloudflare`, `node`, `rust` | Target platform |
 | `tier` | enum | `free` or `pro` | Availability tier |
+| `domain` | string | Required for `kind: work`; must match existing domain | Domain membership |
 
 ---
 

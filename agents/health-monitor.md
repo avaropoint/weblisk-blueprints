@@ -3,12 +3,12 @@ type: agent
 kind: infrastructure
 name: health-monitor
 version: 1.1.0
-extends: [patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/security, patterns/governance]
+port: 9755
 requires: [protocol/spec, protocol/types, architecture/agent, agents/alerting]
+extends: [patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/security, patterns/governance]
 depends_on: [alerting]
 platform: any
 tier: free
-port: 9755
 -->
 
 # Health Monitor Agent

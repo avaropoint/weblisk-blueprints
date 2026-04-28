@@ -2,7 +2,7 @@
 type: pattern
 name: contract
 version: 1.0.0
-requires: [protocol/spec, protocol/types, patterns/scope, patterns/storage]
+requires: [protocol/spec, protocol/types, protocol/federation, patterns/scope, patterns/storage]
 platform: any
 tier: free
 -->
@@ -83,6 +83,17 @@ requires:
       types:
         - name: FieldType
           fields_used: [string, text, int, float, boolean, timestamp, json, uuid, map]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/federation
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: TrustTier
+          fields_used: [none, verified, trusted, federated]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -196,18 +207,23 @@ contracts:
       description: Runtime discovery of contract declarations
 
   events:
-    - name: contract.validated
+    - topic: contract.validated
       payload: { contract: string, version: string, scope: string, sender: string, receiver: string }
-    - name: contract.violated
+    - topic: contract.violated
       payload: { contract: string, party: string, rule_violated: string, severity: string, payload_hash: string }
-    - name: contract.negotiated
+    - topic: contract.negotiated
       payload: { contract: string, version: string, initiator: string, responder: string, scope: string }
-    - name: contract.deprecated
+    - topic: contract.deprecated
       payload: { contract: string, version: string, migration_target: string, deprecated_at: int }
 
 ---
 
-## Party Types
+## Types
+
+All types declared in the Contracts section are defined below,
+organized by concern.
+
+### Party Types
 
 Contracts govern exchange between any two parties. Each party type
 has different trust characteristics and default permission sets:
@@ -234,7 +250,7 @@ has different trust characteristics and default permission sets:
 
 ---
 
-## Contract Declaration
+### Contract Declaration
 
 Every component declares its contracts in its blueprint. Contracts
 are organized by role — what the component accepts (inputs) and
@@ -387,7 +403,7 @@ contracts:
 
 ---
 
-## Permissions
+### Permissions
 
 Permissions define what the consumer is allowed to do with data
 received through a contract. Permissions are declared per contract
@@ -434,7 +450,7 @@ B grants C: [read, derive]     ← INVALID (derive not in A→B)
 
 ---
 
-## Terms
+### Terms
 
 Collaboration terms define operational constraints on the exchange:
 
@@ -496,7 +512,7 @@ policies:
 
 ---
 
-## Message Envelope
+### Message Envelope
 
 All contract-governed data exchange uses a standard envelope that
 references the contract and carries scope metadata:
@@ -748,6 +764,7 @@ adds machine-checkable schemas, permissions, and terms.
     }
   }
 }
+```
 
 ---
 
