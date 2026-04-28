@@ -1,11 +1,12 @@
 <!-- blueprint
 type: agent
+kind: work
 name: seo-analyzer
 version: 1.1.0
-kind: work
 port: 9710
-extends: [patterns/observability, patterns/scope, patterns/policy, patterns/security]
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/domain]
+extends: [patterns/observability, patterns/scope, patterns/policy, patterns/security]
+depends_on: []
 platform: any
 tier: free
 domain: seo

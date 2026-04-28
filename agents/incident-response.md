@@ -3,11 +3,12 @@ type: agent
 kind: infrastructure
 name: incident-response
 version: 1.1.0
-extends: [patterns/incident-response, patterns/observability, patterns/storage, patterns/state-machine, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
+port: 9760
 requires: [protocol/spec, protocol/types, architecture/agent, agents/alerting]
+extends: [patterns/incident-response, patterns/observability, patterns/storage, patterns/state-machine, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
+depends_on: [alerting]
 platform: any
 tier: free
-port: 9760
 -->
 
 # Incident Response Agent

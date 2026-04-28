@@ -3,12 +3,12 @@ type: agent
 kind: infrastructure
 name: sync
 version: 1.1.0
-extends: [patterns/data-sync, patterns/observability, patterns/storage, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/privacy, patterns/security, patterns/governance]
+port: 9751
 requires: [protocol/spec, protocol/types, architecture/agent]
+extends: [patterns/data-sync, patterns/observability, patterns/storage, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/privacy, patterns/security, patterns/governance]
 depends_on: []
 platform: any
 tier: free
-port: 9751
 -->
 
 # Sync Agent

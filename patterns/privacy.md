@@ -314,6 +314,9 @@ contracts:
     - name: MinimizationRule
       description: Rule for stripping excess fields based on context and purpose
       inherited_by: Privacy Types section
+    - name: ErasureException
+      description: Record of a field or store that could not be erased, with reason
+      inherited_by: Types section
 
   events:
     - topic: privacy.consent_granted
@@ -379,7 +382,7 @@ requirements — they never remove protections from lower levels.
 
 ---
 
-## Privacy Types
+## Types
 
 ### ConsentRecord
 
@@ -1419,3 +1422,23 @@ lineage:
   payload_hash: "sha256:a3f2b8c1d4e5f6..."
   timestamp: 1745740800
 ```
+
+---
+
+## Verification Checklist
+
+- [ ] ConsentRecord schema validates all required fields (subject_id, purpose, scope, consented_fields, granted_at, expires_at)
+- [ ] Consent is evaluated before any data access — missing or expired consent produces deny
+- [ ] Masking rules activate at the correct scope level (public=none, internal=pseudonymize, confidential=hash/redact, restricted/critical=redact)
+- [ ] MaskingStrategy parameters are validated (e.g. hash requires algorithm + salt, pattern requires regex + replacement)
+- [ ] Erasure cascades propagate to all stores holding subject data — no orphaned records remain
+- [ ] ErasureResult includes confirmations for every store, plus exceptions for stores that could not erase
+- [ ] Legal-hold subjects are excluded from erasure — request returns hold_active exception
+- [ ] LineageEntry records are immutable (append-only) and survive data erasure
+- [ ] Lineage tracking cannot be disabled for scope >= confidential
+- [ ] MinimizationRule strips undeclared fields before data crosses contract boundaries
+- [ ] `privacy.consent_revoked` event triggers downstream cleanup within the configured deadline
+- [ ] `privacy.erasure_completed` event includes full ErasureResult with per-store outcomes
+- [ ] Consent record expiry is enforced — expired consent is functionally equivalent to revoked
+- [ ] Data purpose restriction is enforced — data accessed under one purpose cannot be used for another
+- [ ] All privacy events follow the standard event envelope from protocol/spec
