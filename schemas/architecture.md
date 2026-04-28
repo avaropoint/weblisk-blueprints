@@ -160,7 +160,7 @@ Use numbered flow descriptions or sequence diagrams:
 5. Orchestrator broadcasts updated directory to all agents
 
 ### Message Flow
-1. Agent A sends MessageEnvelope to orchestrator via POST /v1/message
+1. Agent A sends AgentMessage to orchestrator via POST /v1/message
 2. ...
 ```
 

@@ -271,7 +271,7 @@ export interface TaskResult {
   error?: string;
 }
 
-export interface HealthResponse {
+export interface HealthStatus {
   status: "healthy" | "degraded" | "unhealthy";
   component: string;
   version: string;
@@ -363,25 +363,26 @@ export async function verify(
 
 ```typescript
 import type { FastifyInstance } from "fastify";
-import type { AgentManifest, HealthResponse, TaskRequest } from "./types.js";
+import type { AgentManifest, HealthStatus, TaskRequest } from "./types.js";
 
 interface EndpointConfig {
   manifest: AgentManifest;
   startTime: number;
   onTask: (req: TaskRequest) => Promise<Record<string, unknown>>;
   onMessage?: (msg: Record<string, unknown>) => Promise<void>;
+  onEvent?: (event: Record<string, unknown>) => Promise<void>;
 }
 
 export function registerEndpoints(
   app: FastifyInstance,
   config: EndpointConfig
 ) {
-  const { manifest, startTime, onTask, onMessage } = config;
+  const { manifest, startTime, onTask, onMessage, onEvent } = config;
 
   // Health
-  app.post("/health", async () => {
+  app.post("/v1/health", async () => {
     const uptime = Math.floor((Date.now() - startTime) / 1000);
-    const response: HealthResponse = {
+    const response: HealthStatus = {
       status: "healthy",
       component: manifest.name,
       version: manifest.version,
@@ -391,12 +392,12 @@ export function registerEndpoints(
   });
 
   // Describe
-  app.post("/describe", async () => {
+  app.post("/v1/describe", async () => {
     return { manifest };
   });
 
-  // Task
-  app.post<{ Body: TaskRequest }>("/task", async (request, reply) => {
+  // Task (execute)
+  app.post<{ Body: TaskRequest }>("/v1/execute", async (request, reply) => {
     const task = request.body;
     try {
       const output = await onTask(task);
@@ -416,15 +417,29 @@ export function registerEndpoints(
   });
 
   // Message
-  app.post("/message", async (request) => {
+  app.post("/v1/message", async (request) => {
     if (onMessage) {
       await onMessage(request.body as Record<string, unknown>);
     }
     return { received: true };
   });
 
+  // Event (pub/sub)
+  app.post("/v1/event", async (request) => {
+    if (onEvent) {
+      await onEvent(request.body as Record<string, unknown>);
+    }
+    return { received: true };
+  });
+
+  // Services (service directory updates from orchestrator)
+  app.post("/v1/services", async (request) => {
+    // Accept service directory updates; agent may cache for peer discovery
+    return { acknowledged: true };
+  });
+
   // Governance
-  app.post("/governance", async (request) => {
+  app.post("/v1/governance", async (request) => {
     // Accept and acknowledge governance directives
     return { acknowledged: true };
   });

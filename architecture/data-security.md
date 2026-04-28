@@ -383,6 +383,63 @@ the application configures — not by the framework core.
   internal details from leaking. Agents SHOULD still avoid including
   sensitive data in error messages as defense in depth.
 
+---
+
+## Types
+
+### EncryptionPolicy
+
+Policy governing encryption-at-rest for agents handling sensitive data.
+Agents that opt into data-level security declare this in their config.
+
+```yaml
+EncryptionPolicy:
+  description: Encryption-at-rest policy for agent-managed data
+  fields:
+    algorithm:
+      type: string
+      description: Symmetric encryption algorithm for data at rest
+      constraints:
+        enum: [aes-256-gcm, xchacha20-poly1305]
+        default: aes-256-gcm
+    key_derivation:
+      type: string
+      description: How the encryption key is derived from the agent's Ed25519 key
+      constraints:
+        enum: [hkdf-sha256, hkdf-sha512]
+        default: hkdf-sha256
+    classification:
+      type: string
+      description: Minimum data classification that triggers encryption
+      constraints:
+        enum: [public, internal, confidential, restricted]
+        default: confidential
+```
+
+## Configuration
+
+```yaml
+data_security:
+  tls:
+    min_version: "1.3"
+    require_in_production: true
+    allow_plaintext_localhost: true
+  signing:
+    algorithm: ed25519
+    fields_covered: [from, to, action, payload]
+  encryption_at_rest:
+    algorithm: aes-256-gcm
+    key_derivation: hkdf-sha256
+    classification: confidential
+  audit:
+    retention_days: 90
+    tamper_detection: hash-chain
+    append_only: true
+  response_sanitization:
+    strip_headers: ["X-Gateway-*", "X-Agent-*", "Server", "X-Powered-By"]
+    strip_raw_errors: true
+```
+
 ## Verification Checklist
 
 - [ ] All inter-component communication uses TLS in production; plaintext HTTP permitted only on localhost in development

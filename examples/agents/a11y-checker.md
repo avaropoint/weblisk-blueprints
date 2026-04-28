@@ -48,10 +48,10 @@ requires:
           response_fields: [agent_id, token]
         - path: /v1/message
           methods: [POST]
-          request_type: MessageEnvelope
+          request_type: AgentMessage
           response_fields: [status, response]
         - path: /v1/health
-          methods: [GET]
+          methods: [POST]
           response_fields: [status, details]
     on_change:
       compatible: validate-and-adopt
@@ -684,7 +684,7 @@ Each task follows this pipeline:
 
 ```
 Phase 1 — Receive Task
-  Input:       MessageEnvelope from domain controller
+  Input:       AgentMessage from domain controller
   Validation:  action is one of [check_images, check_full, review_alt_text]
                payload matches expected schema for the action
                trace_id is present for correlation

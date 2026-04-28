@@ -51,7 +51,7 @@ requires:
         - path: /v1/register
           methods: [POST]
         - path: /v1/health
-          methods: [GET]
+          methods: [POST]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -85,7 +85,7 @@ requires:
         - path: /v1/admin/*
           methods: [GET, POST, PUT, DELETE]
         - path: /v1/services
-          methods: [GET]
+          methods: [POST]
         - path: /v1/audit
           methods: [GET]
     on_change:
@@ -402,14 +402,14 @@ operator-specific claims:
   "sub": "alice",
   "iss": "orchestrator",
   "iat": 1712160000,
-  "exp": 1712246400,
+  "exp": 1712174400,
   "cap": ["admin:read", "admin:approve", "admin:strategy"],
   "role": "operator",
   "type": "operator"
 }
 ```
 
-Operator tokens have a 24-hour TTL. The CLI refreshes them
+Operator tokens have a 4-hour TTL. The CLI refreshes them
 automatically on each command.
 
 ---

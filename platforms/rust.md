@@ -593,7 +593,7 @@ pub struct TaskResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct HealthResponse {
+pub struct HealthStatus {
     pub status: String,
     pub component: String,
     pub version: String,
@@ -743,7 +743,7 @@ async fn test_registration_flow() {
     let resp = reqwest::get(format!("{}/health", agent.url)).await.unwrap();
     assert_eq!(resp.status(), 200);
 
-    let health: HealthResponse = resp.json().await.unwrap();
+    let health: HealthStatus = resp.json().await.unwrap();
     assert_eq!(health.status, "healthy");
 }
 ```
@@ -799,7 +799,7 @@ opt-level = 3
 ## Verification Checklist
 
 - [ ] Cargo workspace contains `weblisk-core` library crate, `server` binary crate, and one or more `agents/<name>` binary crates — all listed in root `Cargo.toml` `[workspace]` members
-- [ ] All protocol types (`AgentManifest`, `TaskRequest`, `TaskResponse`, `HealthResponse`, `ErrorResponse`) are defined in `weblisk-core` with `#[derive(Serialize, Deserialize)]` and shared across all binary crates
+- [ ] All protocol types (`AgentManifest`, `TaskRequest`, `TaskResponse`, `HealthStatus`, `ErrorResponse`) are defined in `weblisk-core` with `#[derive(Serialize, Deserialize)]` and shared across all binary crates
 - [ ] `http_body_util::Limited` is applied on all request body reads: 1 MB for registration/messages, 10 MB for tasks, 64 KB for channels
 - [ ] All shared state is wrapped in `Arc<tokio::sync::RwLock<T>>` or `Arc<tokio::sync::Mutex<T>>` — no raw `Mutex` or unprotected shared mutable state
 - [ ] Concurrency limiter uses `tokio::sync::Semaphore` and returns 429 with `Retry-After` header and structured `ErrorResponse` when agent is at capacity

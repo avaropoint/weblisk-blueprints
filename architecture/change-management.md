@@ -71,7 +71,7 @@ requires:
         - path: /v1/register
           methods: [POST, DELETE]
         - path: /v1/services
-          methods: [GET]
+          methods: [POST]
       events:
         - topic: system.blueprint.changed
           fields_used: [blueprint_name, version, diff]
@@ -274,10 +274,10 @@ requires:
           response_fields: [agent_id, token, services]
         - path: /v1/message
           methods: [POST]
-          request_type: MessageEnvelope
+          request_type: AgentMessage
           response_fields: [status, response]
         - path: /v1/health
-          methods: [GET]
+          methods: [POST]
           response_fields: [status, details]
       types:
         - name: AgentManifest
@@ -300,7 +300,7 @@ requires:
           request_type: AgentManifest
           response_fields: [agent_id, token]
         - path: /v1/services
-          methods: [GET]
+          methods: [POST]
           response_fields: [agents]
       events:
         - topic: system.agent.registered

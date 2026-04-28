@@ -38,7 +38,7 @@ requires:
         - path: /v1/register
           methods: [POST]
         - path: /v1/health
-          methods: [GET]
+          methods: [POST]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -72,7 +72,7 @@ requires:
         - path: /v1/admin/*
           methods: [GET, POST, PUT, DELETE]
         - path: /v1/services
-          methods: [GET]
+          methods: [POST]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

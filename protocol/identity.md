@@ -209,7 +209,7 @@ types:
       private_key:
         type: string
         format: hex
-        description: 64-byte Ed25519 private key, hex-encoded (128 chars)
+        description: 64-byte Ed25519 expanded private key (32-byte seed + 32-byte public key), hex-encoded (128 chars)
         constraints:
           pattern: "^[0-9a-f]{128}$"
 
@@ -260,22 +260,26 @@ types:
         description: Ed25519 signature over header.payload
 
   KeyRotationRequest:
-    description: Request to rotate an agent or orchestrator key
+    description: Request to rotate an agent or orchestrator key (dual-signed)
     fields:
-      agent_name:
+      agent_id:
         type: string
-        description: Name of the entity rotating keys
-      old_public_key:
-        type: string
-        format: hex
-        description: Current public key (64 hex chars)
+        description: Agent identifier issued at registration
       new_public_key:
         type: string
         format: hex
-        description: New public key (64 hex chars)
+        description: New Ed25519 public key (64 hex chars)
+      current_signature:
+        type: string
+        format: hex
+        description: Agent manifest signed with current private key (128 hex chars)
+      new_signature:
+        type: string
+        format: hex
+        description: Same agent manifest signed with new private key (128 hex chars)
       timestamp:
         type: int64
-        description: Unix epoch seconds
+        description: Unix epoch seconds (replay window 300s)
 
   Signature:
     description: A detached Ed25519 signature over canonicalized content
@@ -383,16 +387,19 @@ agent migrates between hosts.
 ```
 Agent side:
   1. Generate new Ed25519 key pair
-  2. Sign rotation request with CURRENT private key:
-     {agent_name, old_public_key, new_public_key, timestamp}
-  3. Send POST /v1/rotate-key to orchestrator
+  2. Sign current manifest with CURRENT private key → current_signature
+  3. Sign current manifest with NEW private key → new_signature
+  4. Send POST /v1/rotate-key to orchestrator:
+     {agent_id, new_public_key, current_signature, new_signature, timestamp}
 
 Orchestrator side:
-  1. Verify rotation request signature with agent's current public key
-  2. Verify |now() - timestamp| < 300 seconds (replay protection)
-  3. Update agent's public key in service directory
-  4. Broadcast updated service directory to all agents
-  5. Respond with new WLT token signed with orchestrator's key
+  1. Look up agent by agent_id
+  2. Verify current_signature against agent's current public key
+  3. Verify new_signature against new_public_key (proves possession)
+  4. Verify |now() - timestamp| < 300 seconds (replay protection)
+  5. Update agent's public key in service directory
+  6. Broadcast updated service directory to all agents
+  7. Respond with updated RegisterResponse (new WLT token)
 
 Agent side (on success):
   1. Replace key files (.weblisk/keys/<name>.key and .pub)

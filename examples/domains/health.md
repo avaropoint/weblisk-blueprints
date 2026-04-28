@@ -52,10 +52,10 @@ requires:
           response_fields: [agent_id, token, services]
         - path: /v1/message
           methods: [POST]
-          request_type: MessageEnvelope
+          request_type: AgentMessage
           response_fields: [status, response]
         - path: /v1/health
-          methods: [GET]
+          methods: [POST]
           response_fields: [status, details]
     on_change:
       compatible: validate-and-adopt
@@ -959,7 +959,7 @@ triggers:
       action: get_status
       description: Domain health and agent availability query
       payload_type: null
-      response: HealthResponse
+      response: HealthStatus
 
     - source: admin
       action: get_workflows
@@ -1073,7 +1073,7 @@ actions:
   get_status:
     source: [orchestrator, admin]
     input: null
-    output: HealthResponse
+    output: HealthStatus
     description: Domain health and agent availability
 
   get_workflows:
