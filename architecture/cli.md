@@ -7,19 +7,35 @@ platform: any
 tier: free
 -->
 
-# Weblisk CLI
+# Weblisk CLI Specification
 
-Specification for CLI commands that interrogate and manage a running
-Weblisk server. These commands extend the `weblisk-cli` beyond
-scaffolding and code generation into operational management — giving
-developers and operators direct terminal access to their deployment.
+> **This is the authoritative specification for the
+> [weblisk-cli](https://github.com/avaropoint/weblisk-cli) project.**
+> Every command documented here MUST be implemented in weblisk-cli.
+> The CLI itself is ultra-lightweight — it resolves templates from
+> [weblisk-templates](https://github.com/avaropoint/weblisk-templates),
+> reads blueprints from this repository, and dispatches to the
+> configured LLM for code generation. The CLI carries minimal logic;
+> the LLM does the heavy lifting.
+
+Specification for CLI commands that manage the complete Weblisk
+development and operational lifecycle — from project creation through
+scaffolding, code generation, dev server, production build, blueprint
+management, and runtime operations.
 
 ## Overview
 
-The CLI operations commands communicate with the orchestrator's admin
-API endpoints using the operator's Ed25519 identity for authentication.
-Every command that reads or modifies the system requires a valid
-operator identity stored in `~/.weblisk/keys/`.
+The CLI has two command surfaces:
+
+1. **Development commands** — project scaffolding, code generation, dev
+   server, production builds (`weblisk new`, `weblisk dev`, `weblisk build`,
+   `weblisk server init`, `weblisk agent create`)
+2. **Operations commands** — interrogate and manage a running hub via the
+   orchestrator's admin API (`weblisk status`, `weblisk agents`,
+   `weblisk domains`, `weblisk audit`, `weblisk federation`)
+
+Operations commands use the operator's Ed25519 identity stored in
+`~/.weblisk/keys/` for authentication.
 
 Commands follow a `weblisk <noun> <verb>` pattern and output
 structured, human-readable tables by default, with `--json` for
@@ -105,6 +121,12 @@ requires:
 ### Owns
 
 - CLI command structure (`weblisk <noun> <verb>` pattern)
+- Project scaffolding from templates (`weblisk new`)
+- Code generation via LLM dispatch (`weblisk server init`, `weblisk agent create`)
+- Blueprint and template resolution (local → custom sources → core)
+- Dev server with file watching (`weblisk dev`)
+- Production builds (`weblisk build`)
+- Static framework vendoring (`weblisk vendor`)
 - Operator Ed25519 key pair generation and local key storage (`~/.weblisk/keys/`)
 - Operator registration and token management (`~/.weblisk/token`)
 - Human-readable table output and `--json` machine-readable output formatting
@@ -118,13 +140,19 @@ requires:
 - Admin dashboard SPA (owned by `architecture/admin`)
 - Operator authentication model (owned by `architecture/admin`; CLI consumes it)
 - Workflow or task execution (CLI triggers actions via API)
+- Template contents (owned by `weblisk-templates`)
+- Client framework (owned by `weblisk`)
+- Blueprint specifications (owned by this repository — `weblisk-blueprints`)
 
 ---
 
 ## Interfaces
 
 The CLI’s public interface is the set of terminal commands documented in
-the sections below: [Identity Commands](#identity-commands),
+the sections below: [Project Commands](#project-commands),
+[Server Commands](#server-commands),
+[Blueprint Commands](#blueprint-commands),
+[Identity Commands](#identity-commands),
 [Status Commands](#status-commands), [Agent Commands](#agent-commands),
 [Domain Commands](#domain-commands), [Workflow Commands](#workflow-commands),
 [Approval Commands](#approval-commands), [Strategy Commands](#strategy-commands),
@@ -159,6 +187,254 @@ the sections below: [Identity Commands](#identity-commands),
    with `--json` for scripts and piping.
 4. **Offline-aware** — If the orchestrator is unreachable, commands
    fail fast with a clear message and non-zero exit code.
+
+---
+
+## Project Commands
+
+### `weblisk new`
+
+Create a new project from a template.
+
+```bash
+$ weblisk new my-app
+$ weblisk new my-app --template client/blog
+$ weblisk new my-app --template server/starter
+$ weblisk new my-app --template client/blog --template server/starter
+```
+
+Templates are resolved from
+[weblisk-templates](https://github.com/avaropoint/weblisk-templates) in
+priority order: local `./templates/` → `WL_TEMPLATE_SOURCES` → core.
+
+When multiple `--template` flags are specified, files are merged — client
+templates provide pages and islands, server templates provide hub
+configuration and agent specs.
+
+| Flag | Description |
+|------|-------------|
+| `--template <path>` | Template to scaffold (default: `client/default`) |
+| `--local` | Use local framework files instead of CDN |
+| `--lib <path>` | Custom framework directory (default: `lib/weblisk`) |
+
+### `weblisk dev`
+
+Start the development server with file watching and live reload.
+
+```bash
+$ weblisk dev
+$ weblisk dev --port 3000
+```
+
+For client-only projects, serves static files with live reload. For
+server projects, builds and runs the hub with automatic restart on file
+changes.
+
+| Flag | Description |
+|------|-------------|
+| `--port <n>` | Dev server port (default: from `WL_PORT` or 3000) |
+
+### `weblisk build`
+
+Build for production — minify, fingerprint, and optimize.
+
+```bash
+$ weblisk build
+$ weblisk build --minify --fingerprint
+```
+
+| Flag | Description |
+|------|-------------|
+| `--minify` | Minify HTML, CSS, and JS |
+| `--fingerprint` | Add content hashes to filenames for cache busting |
+
+### `weblisk vendor`
+
+Copy the Weblisk client framework into the project for offline use.
+
+```bash
+$ weblisk vendor
+$ weblisk vendor --dest js/vendor
+```
+
+| Flag | Description |
+|------|-------------|
+| `--dest <path>` | Destination directory (default: `lib/weblisk`) |
+
+### `weblisk version`
+
+Print the CLI version.
+
+```bash
+$ weblisk version
+weblisk v1.1.0
+```
+
+---
+
+## Server Commands
+
+### `weblisk server init`
+
+Generate the server implementation from blueprint specs. The CLI reads
+`.weblisk/config.yaml`, `domains/*/domain.yaml`, and
+`agents/*/agent.yaml`, then dispatches to the configured LLM along
+with the platform blueprint to generate the implementation.
+
+```bash
+$ weblisk server init --platform go
+$ weblisk server init --platform cloudflare
+```
+
+| Flag | Description |
+|------|-------------|
+| `--platform <p>` | Target platform: `go`, `cloudflare` (default: `go`) |
+
+### `weblisk server start`
+
+Build (if needed) and start all hub components.
+
+```bash
+$ weblisk server start
+```
+
+Reads `.weblisk/config.yaml` to determine which components to build
+and start (orchestrator, gateway, domains, agents).
+
+### `weblisk server verify`
+
+Verify the server is running and healthy.
+
+```bash
+$ weblisk server verify
+$ weblisk server verify --url http://localhost:9800
+```
+
+| Flag | Description |
+|------|-------------|
+| `--url <url>` | Orchestrator URL (default: `http://localhost:9800`) |
+
+### `weblisk agent create`
+
+Generate an agent implementation from its blueprint spec.
+
+```bash
+$ weblisk agent create seo --platform go
+$ weblisk agent create forecaster --platform cloudflare
+```
+
+| Flag | Description |
+|------|-------------|
+| `--platform <p>` | Target platform (default: `go`) |
+
+### `weblisk agent start`
+
+Build and run a single agent.
+
+```bash
+$ weblisk agent start seo
+$ weblisk agent start seo --orch http://localhost:9800 --port 9710
+```
+
+| Flag | Description |
+|------|-------------|
+| `--orch <url>` | Orchestrator URL |
+| `--port <n>` | Listen port (default: auto-assigned) |
+
+### `weblisk agent verify`
+
+Run protocol conformance checks against a running agent.
+
+```bash
+$ weblisk agent verify --url http://localhost:9710
+```
+
+### `weblisk agent list`
+
+List locally scaffolded agents.
+
+```bash
+$ weblisk agent list
+```
+
+### `weblisk domain create`
+
+Generate a domain controller implementation from its spec.
+
+```bash
+$ weblisk domain create seo --platform go
+```
+
+| Flag | Description |
+|------|-------------|
+| `--platform <p>` | Target platform (default: `go`) |
+
+### `weblisk domain start`
+
+Build and run a single domain controller.
+
+```bash
+$ weblisk domain start seo
+```
+
+### `weblisk gateway create`
+
+Generate the application gateway from hub configuration.
+
+```bash
+$ weblisk gateway create --platform go
+```
+
+| Flag | Description |
+|------|-------------|
+| `--platform <p>` | Target platform (default: `go`) |
+
+### `weblisk gateway start`
+
+Build and run the application gateway.
+
+```bash
+$ weblisk gateway start
+```
+
+---
+
+## Blueprint Commands
+
+### `weblisk blueprints update`
+
+Force re-fetch all blueprint sources.
+
+```bash
+$ weblisk blueprints update
+```
+
+Performs `git pull` on each cached source in `~/.weblisk/blueprints/`.
+If a source is unreachable, uses the last cached version.
+
+### `weblisk validate`
+
+Validate blueprint compliance for the current project.
+
+```bash
+$ weblisk validate
+$ weblisk validate agents/seo-analyzer.yaml
+```
+
+Checks frontmatter, required sections, type definitions, dependency
+resolution, and compliance level assignment.
+
+### `weblisk pattern apply`
+
+Apply a cross-cutting pattern to a resource.
+
+```bash
+$ weblisk pattern apply auth-session --resource gateway
+$ weblisk pattern apply webhook-inbound --resource domain:seo
+```
+
+Reads the pattern blueprint, dispatches to the LLM with the target
+resource context, and generates the pattern implementation.
 
 ---
 
@@ -645,6 +921,34 @@ Every command that calls the orchestrator:
 
 ## Verification Checklist
 
+### Project & Development
+- [ ] `weblisk new` scaffolds a project from weblisk-templates with correct name replacement
+- [ ] `weblisk new --template client/blog --template server/starter` merges both template sets
+- [ ] `weblisk dev` starts a file-watching dev server with live reload for client projects
+- [ ] `weblisk dev` builds and runs the hub with restart-on-change for server projects
+- [ ] `weblisk build --minify --fingerprint` produces production-ready output
+- [ ] `weblisk vendor` copies the Weblisk client framework to the specified directory
+- [ ] Template resolution follows priority: local → WL_TEMPLATE_SOURCES → core
+
+### Server & Code Generation
+- [ ] `weblisk server init` reads YAML specs and dispatches to the configured LLM for code generation
+- [ ] `weblisk server start` reads .weblisk/config.yaml and builds+starts all declared components
+- [ ] `weblisk server verify` confirms orchestrator health and all registered components
+- [ ] `weblisk agent create` generates agent code from agent.yaml spec via LLM dispatch
+- [ ] `weblisk agent start` builds and runs a single agent with --orch and --port flags
+- [ ] `weblisk agent list` lists all locally scaffolded agents
+- [ ] `weblisk domain create` generates domain controller code from domain.yaml spec via LLM dispatch
+- [ ] `weblisk domain start` builds and runs a single domain controller
+- [ ] `weblisk gateway create` generates gateway code from hub configuration
+- [ ] `weblisk gateway start` builds and runs the application gateway
+
+### Blueprint Management
+- [ ] `weblisk blueprints update` re-fetches all cached blueprint sources
+- [ ] `weblisk validate` checks blueprint compliance (frontmatter, sections, types, deps)
+- [ ] `weblisk pattern apply` reads pattern blueprint, dispatches to LLM with target context
+- [ ] Blueprint resolution follows priority: local → WL_BLUEPRINT_SOURCES → core
+
+### Identity & Operations
 - [ ] `weblisk operator init` generates Ed25519 keys in ~/.weblisk/keys/ with 0700 directory and 0600 file permissions
 - [ ] `weblisk operator init` does not overwrite existing keys without --force flag
 - [ ] `weblisk operator register` signs the registration payload with the operator's private key and stores the returned token
