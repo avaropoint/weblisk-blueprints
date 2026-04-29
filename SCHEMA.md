@@ -19,7 +19,7 @@ framework without a schema-compliant blueprint.
 | [schemas/common.md](schemas/common.md) | Shared rules inherited by all types | Every blueprint |
 | [schemas/compliance.md](schemas/compliance.md) | Compliance levels, validation, enforcement, security boundaries | Every blueprint |
 | [schemas/agent.md](schemas/agent.md) | Infrastructure agent blueprints (22 required sections) | `agents/` |
-| [schemas/domain.md](schemas/domain.md) | Domain controller blueprints (27 sections) | `examples/domains/` |
+| [schemas/domain.md](schemas/domain.md) | Domain controller blueprints (27 sections) | `examples/templates/` (inline) |
 | [schemas/protocol.md](schemas/protocol.md) | Wire protocol specifications | `protocol/` |
 | [schemas/pattern.md](schemas/pattern.md) | Cross-cutting pattern contracts | `patterns/` |
 | [schemas/architecture.md](schemas/architecture.md) | System architecture components | `architecture/` |
@@ -50,7 +50,7 @@ pipeline, enforcement points, and security boundary model.
 | Type | Kind | Schema | Directory |
 |------|------|--------|-----------|
 | `agent` | `infrastructure`, `work`, `domain` | [schemas/agent.md](schemas/agent.md) | `agents/` |
-| `domain` | `domain` | [schemas/domain.md](schemas/domain.md) | `examples/domains/` |
+| `domain` | `domain` | [schemas/domain.md](schemas/domain.md) | `examples/templates/` (inline) |
 | `protocol` | — | [schemas/protocol.md](schemas/protocol.md) | `protocol/` |
 | `pattern` | — | [schemas/pattern.md](schemas/pattern.md) | `patterns/` |
 | `architecture` | — | [schemas/architecture.md](schemas/architecture.md) | `architecture/` |
