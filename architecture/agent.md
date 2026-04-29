@@ -235,6 +235,64 @@ The runtime context provided to Execute and HandleMessage:
 7. Print registration confirmation
 ```
 
+## Token Refresh
+
+WLT tokens expire after 24 hours (configurable via `WL_TOKEN_TTL`). Agents
+must re-register before expiry to maintain connectivity.
+
+```
+1. Track token expiry time (issued_at + TTL from RegisterResponse)
+2. When remaining TTL < 10% (default: ~2.4 hours before expiry):
+   a. Re-execute the full registration flow (sign manifest, POST /v1/register)
+   b. Orchestrator performs idempotent re-registration for existing agents
+   c. New token issued; old token invalidated
+3. If re-registration fails:
+   a. Retry with exponential backoff (1s, 2s, 4s, max 30s)
+   b. After 5 failures: log critical, enter degraded state
+   c. Continue serving in-flight tasks but reject new ones
+4. On success: update stored token and reset refresh timer
+```
+
+The orchestrator treats re-registration from an already-registered agent
+(same name + valid signature) as a token refresh. The agent's subscriptions,
+namespace ownership, and routing entries are preserved unchanged.
+
+**Environment variables:**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `WL_TOKEN_TTL` | `24h` | Token lifetime (set on orchestrator) |
+| `WL_TOKEN_REFRESH_THRESHOLD` | `0.1` | Fraction of TTL remaining to trigger refresh |
+
+## Graceful Shutdown
+
+When an agent receives a termination signal (SIGTERM, SIGINT), it performs
+an orderly shutdown to avoid disrupting in-flight work.
+
+```
+1. Stop accepting new tasks (return 503 Service Unavailable)
+2. Wait for in-flight tasks to complete (up to WL_SHUTDOWN_TIMEOUT)
+3. Deregister with orchestrator: DELETE /v1/register
+   - Header: Authorization: Bearer <token>
+   - Orchestrator releases namespaces, removes routing entries,
+     broadcasts updated ServiceDirectory to remaining agents
+4. If deregistration fails: log warning (orchestrator will detect
+   the agent is offline via health check timeout)
+5. Close HTTP server
+6. Exit process
+```
+
+**Environment variables:**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `WL_SHUTDOWN_TIMEOUT` | `30s` | Max time to wait for in-flight tasks |
+| `WL_SHUTDOWN_DRAIN` | `true` | Whether to drain tasks before exit |
+
+If an agent crashes without graceful shutdown, the orchestrator detects
+the failure via periodic health probes (default interval: 30s, timeout: 5s)
+and automatically deregisters unresponsive agents after 3 consecutive failures.
+
 ## Protocol Endpoint Implementations
 
 ### POST /v1/describe
@@ -694,3 +752,7 @@ Runtime state tracked per registered agent.
 - [ ] Default max concurrent limits are enforced: domain=10, work=5, infrastructure=20 (configurable via WL_MAX_CONCURRENT)
 - [ ] Outbound HTTP calls respect the WL_OUTBOUND_RATE limit (default 50 req/s)
 - [ ] Agent startup sequence generates Ed25519 keys, registers HTTP routes (6 endpoints), starts server, and registers with orchestrator
+- [ ] Token refresh triggers re-registration when remaining TTL drops below WL_TOKEN_REFRESH_THRESHOLD (default 10%)
+- [ ] Token refresh failure enters degraded state after 5 retries with exponential backoff
+- [ ] Graceful shutdown on SIGTERM/SIGINT: stops accepting tasks, drains in-flight work, sends DELETE /v1/register, closes server
+- [ ] Shutdown respects WL_SHUTDOWN_TIMEOUT (default 30s) for in-flight task drain
