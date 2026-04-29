@@ -297,7 +297,7 @@ After completing this quickstart, you have:
   understand how components interact
 - Review the [Domain Controller Architecture](architecture/domain.md)
   to build custom domains
-- Explore the [hello-world template](examples/templates/hello-world.md)
+- Explore the [starter template](examples/templates/starter.md)
   for a complete working example
 - Set up the [Admin Gateway](architecture/admin.md) for production
   operations
