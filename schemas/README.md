@@ -59,7 +59,7 @@ This applies to:
 | [compliance.md](compliance.md) | Compliance levels, validation, enforcement, security boundaries | Every blueprint |
 | [config.md](config.md) | Hub configuration file (`.weblisk/config.yaml`) | Every project |
 | [agent.md](agent.md) | Infrastructure agent blueprints | `agents/` directory |
-| [domain.md](domain.md) | Domain controller blueprints | `examples/templates/` (inline definitions) |
+| [domain.md](domain.md) | Domain controller blueprints | Domain YAML specs in project `domains/` |
 | [protocol.md](protocol.md) | Wire protocol specifications | `protocol/` directory |
 | [pattern.md](pattern.md) | Cross-cutting patterns | `patterns/` directory |
 | [architecture.md](architecture.md) | System architecture components | `architecture/` directory |

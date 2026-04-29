@@ -297,7 +297,7 @@ After completing this quickstart, you have:
   understand how components interact
 - Review the [Domain Controller Architecture](architecture/domain.md)
   to build custom domains
-- Explore the [starter template](examples/templates/starter.md)
+- Explore the [starter template](https://github.com/avaropoint/weblisk-templates/tree/main/server/starter)
   for a complete working example
 - Set up the [Admin Gateway](architecture/admin.md) for production
   operations
