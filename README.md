@@ -167,7 +167,7 @@ schemas/            Blueprint schema governance
   protocol.md         Protocol blueprint schema
 
 standards/          Project standards (best practices for blueprint-driven development)
-  STANDARDS.md        Overview — what standards are, how to use them
+  README.md           Overview — what standards are, how to use them
   project-structure.md  How to organize a blueprint-driven project
   global.md           Project identity, brand, policies, dependencies
   code.md             Code generation conventions and repeatability
