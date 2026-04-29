@@ -298,6 +298,36 @@ a customer's `domains/checkout.md` takes precedence over the core version.
 WL_BLUEPRINT_SOURCES=https://github.com/acme-corp/acme-blueprints.git
 ```
 
+**Multiple sources** are separated by newlines or commas:
+
+```bash
+# Multiple sources — comma-separated
+WL_BLUEPRINT_SOURCES=https://github.com/acme-corp/acme-blueprints.git,https://github.com/acme-corp/acme-blueprints-internal.git
+
+# Or newline-separated (in .env files)
+WL_BLUEPRINT_SOURCES="
+https://github.com/acme-corp/acme-blueprints.git
+https://github.com/acme-corp/acme-blueprints-internal.git
+"
+```
+
+**Source format:**
+
+| Format | Example | Notes |
+|--------|---------|-------|
+| HTTPS | `https://github.com/org/repo.git` | Uses git credential helper |
+| SSH | `git@github.com:org/repo.git` | Uses SSH key |
+| Branch/tag | `https://github.com/org/repo.git@v2.0` | Pin to ref after `@` |
+| Local path | `file:///path/to/local/blueprints` | For development |
+
+**Authentication:** The CLI uses the system's existing Git credentials —
+SSH keys, credential helpers, or GitHub CLI auth. No additional configuration
+is needed beyond what `git clone` already uses.
+
+**Update behavior:** `weblisk blueprints update` performs a `git pull` on each
+cached source. Sources are cached in `~/.weblisk/blueprints/`. If a source is
+unreachable, the CLI uses the last cached version and logs a warning.
+
 This supports multiple distribution models:
 
 | Source Type | Example | Typical Access |

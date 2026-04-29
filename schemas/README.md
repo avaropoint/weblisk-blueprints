@@ -57,6 +57,7 @@ This applies to:
 |--------|---------|------------|
 | [common.md](common.md) | Shared rules inherited by all blueprint types | Every blueprint |
 | [compliance.md](compliance.md) | Compliance levels, validation, enforcement, security boundaries | Every blueprint |
+| [config.md](config.md) | Hub configuration file (`.weblisk/config.yaml`) | Every project |
 | [agent.md](agent.md) | Infrastructure agent blueprints | `agents/` directory |
 | [domain.md](domain.md) | Domain controller blueprints | `examples/templates/` (inline definitions) |
 | [protocol.md](protocol.md) | Wire protocol specifications | `protocol/` directory |
@@ -69,6 +70,7 @@ This applies to:
 ```
 common.md (inherited by all)
 ├── compliance.md (enforcement layer — applies to all)
+├── config.md (hub configuration — .weblisk/config.yaml)
 ├── agent.md (type: agent)
 ├── domain.md (type: domain)
 ├── protocol.md (type: protocol)
