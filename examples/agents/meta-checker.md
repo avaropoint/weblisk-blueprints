@@ -2,7 +2,7 @@
 type: agent
 kind: work
 name: meta-checker
-version: 1.1.0
+version: 1.0.0
 port: 9721
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/domain]
 extends: [patterns/observability, patterns/scope, patterns/policy, patterns/security]

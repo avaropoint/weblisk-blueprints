@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: sync
-version: 1.1.0
+version: 1.0.0
 port: 9751
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/offline, patterns/observability, patterns/storage, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/privacy, patterns/security, patterns/governance]
