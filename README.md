@@ -168,7 +168,7 @@ schemas/            Blueprint schema governance
 
 examples/           Project templates — complete runnable applications
   templates/
-    hello-world.md    Minimal Weblisk app — one page, one domain, one agent
+    starter.md        Minimal Weblisk app — one page, one domain, one agent
 ```
 
 ### Architecture Hierarchy
@@ -341,7 +341,7 @@ work to agents, aggregate results, and drive the feedback loop. They MUST includ
 9. **Error Handling** — Failure modes and degradation behavior
 10. **Verification Checklist** — Testable compliance checks
 
-See [examples/templates/hello-world.md](examples/templates/hello-world.md) for the
+See [examples/templates/starter.md](examples/templates/starter.md) for the
 reference template showing a complete domain controller. See
 [architecture/domain.md](architecture/domain.md)
 for the full specification.
@@ -372,7 +372,7 @@ agents (system-level services). They MUST include:
 6. **Error Handling** — Failure modes and recovery
 7. **Verification Checklist** — Testable compliance checks
 
-See [examples/templates/hello-world.md](examples/templates/hello-world.md)
+See [examples/templates/starter.md](examples/templates/starter.md)
 for a working example including both a domain and a work agent. See
 [agents/alerting.md](agents/alerting.md) for an infrastructure agent example.
 

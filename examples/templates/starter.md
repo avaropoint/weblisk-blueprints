@@ -1,6 +1,6 @@
 <!-- blueprint
 type: template
-name: hello-world
+name: starter
 version: 1.0.0
 description: Minimal Weblisk application — one page, one domain, one agent
 requires: [architecture/orchestrator, architecture/gateway, architecture/agent, architecture/domain, architecture/client]
@@ -8,7 +8,7 @@ platform: any
 tier: free
 -->
 
-# Template: Hello World
+# Template: Starter
 
 The simplest possible Weblisk application. A single HTML page served
 through the application gateway, with one domain controller and one
@@ -122,18 +122,18 @@ Consult the relevant platform blueprint (`platforms/go.md`,
 # .weblisk/config.yaml
 
 hub:
-  name: hello-world
+  name: starter
   version: 1.0.0
 
 orchestrator:
   port: 9800
-  storage: memory                  # No persistence for hello-world
+  storage: memory                  # No persistence for starter
 
 gateway:
   port: 8080
   tls: false                       # Development mode — no TLS
   static_dir: public               # Serve files from ./public
-  auth: none                       # No authentication for hello-world
+  auth: none                       # No authentication for starter
   rate_limit: 100/min
 
 domains:
@@ -170,7 +170,7 @@ routes:
   # Island data routes
   - path: /islands/:page/:island
     target: resolve:island
-    auth: none                     # Public for hello-world
+    auth: none                     # Public for starter
 ```
 
 ### Island Routing
@@ -519,8 +519,8 @@ Complete step-by-step request flow for the greeting island:
 
 ```bash
 # Create a new project from this template
-mkdir hello-world && cd hello-world
-weblisk server init --template hello-world --platform go
+mkdir my-app && cd my-app
+weblisk server init --template starter --platform go
 
 # Start everything (orchestrator, gateway, domain, agent)
 weblisk server start
@@ -600,7 +600,7 @@ After starting the template, the hub looks like this:
 
 ```
 ┌─────────────────────────────────────────────┐
-│              hello-world hub                 │
+│              starter hub                     │
 │                                              │
 │  Gateway (:8080)                             │
 │    ├── GET /             → index.html        │
@@ -622,7 +622,7 @@ After starting the template, the hub looks like this:
 
 ## Next Steps
 
-Once the hello-world is running, extend it:
+Once the starter is running, extend it:
 
 - **Add authentication** — Apply `patterns/auth-session` to require
   login and protect island routes
@@ -638,5 +638,5 @@ Once the hello-world is running, extend it:
   process management, and monitoring
 
 Each step builds on this foundation. The architecture scales from
-this single-page hello-world to a full enterprise application with
+this single-page starter to a full enterprise application with
 multiple domains, dozens of agents, and federation across hubs.
