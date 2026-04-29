@@ -15,7 +15,7 @@ type-specific schema governs the blueprint.
 | Type | Schema | Directory | Description |
 |------|--------|-----------|-------------|
 | `agent` | [agent.md](agent.md) | `agents/` | Infrastructure service definitions |
-| `domain` | [domain.md](domain.md) | `examples/templates/` (inline) | Domain controller specifications |
+| `domain` | [domain.md](domain.md) | Domain YAML specs in project `domains/` | Domain controller specifications |
 | `protocol` | [protocol.md](protocol.md) | `protocol/` | Wire protocol specifications |
 | `pattern` | [pattern.md](pattern.md) | `patterns/` | Cross-cutting pattern contracts |
 | `architecture` | [architecture.md](architecture.md) | `architecture/` | System architecture components |

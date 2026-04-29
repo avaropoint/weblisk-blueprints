@@ -166,9 +166,7 @@ schemas/            Blueprint schema governance
   platform.md         Platform blueprint schema
   protocol.md         Protocol blueprint schema
 
-examples/           Project templates — complete runnable applications
-  templates/
-    starter.md        Minimal Weblisk app — one page, one domain, one agent
+examples/           Usage examples and reference configurations
 ```
 
 ### Architecture Hierarchy
@@ -233,7 +231,7 @@ Hub (self-sovereign deployment)
 - **Data Security** — Transport encryption, Ed25519 message integrity, scope-aware federation boundaries, response sanitization, framework audit trail. Provides opt-in data-level primitives (scope, policy, privacy, enforcement) for agents handling sensitive data
 - **Threat Model** — 5-boundary attack surface analysis (38+ vectors), OWASP Top 10 mapping, attack chain analysis, residual risk register
 - **Domains** — Own a business function, define workflows, publish workflow triggers, receive results via scoped events
-- **Work Agents** — Perform specific tasks dispatched by the Task Agent (see [examples/templates/](examples/templates/) for working examples)
+- **Work Agents** — Perform specific tasks dispatched by the Task Agent (see the [starter template](https://github.com/avaropoint/weblisk-templates/tree/main/server/starter) for a working example)
 - **Infrastructure Agents** — Provide system services (workflow execution, task dispatch, lifecycle optimization, alerting, incident response, health monitoring, hub registry, sync, cron, email, webhooks) used by any domain
 - **Marketplace** — Built into the hub — buy, sell, and share capabilities, blueprints, agents, and templates. Supports live services (invoked over federation) and installable assets (generated into your own hub). [weblisk.dev](https://weblisk.dev) serves as the public directory
 - **Patterns** — 37 cross-cutting concerns (scope, policy, safety, approval, privacy, contract, security, governance, observability, workflow, task dispatch, alerting, scheduling, data sync, incident response, notification, HTTP-based pub/sub messaging, retry, rate limiting, storage, caching, state machines, secrets, logging, versioning, command, interop adapters) and API patterns (REST, AI, auth, webhooks, real-time, file upload, user management, deployment) that apply across all agents via `extends` inheritance. Every infrastructure agent has a matching pattern that formalizes its platform-wide contract — the pattern defines WHAT, the agent implements HOW
@@ -371,8 +369,8 @@ work to agents, aggregate results, and drive the feedback loop. They MUST includ
 9. **Error Handling** — Failure modes and degradation behavior
 10. **Verification Checklist** — Testable compliance checks
 
-See [examples/templates/starter.md](examples/templates/starter.md) for the
-reference template showing a complete domain controller. See
+See the [starter template](https://github.com/avaropoint/weblisk-templates/tree/main/server/starter)
+for a reference showing a complete domain controller. See
 [architecture/domain.md](architecture/domain.md)
 for the full specification.
 
@@ -402,7 +400,7 @@ agents (system-level services). They MUST include:
 6. **Error Handling** — Failure modes and recovery
 7. **Verification Checklist** — Testable compliance checks
 
-See [examples/templates/starter.md](examples/templates/starter.md)
+See the [starter template](https://github.com/avaropoint/weblisk-templates/tree/main/server/starter)
 for a working example including both a domain and a work agent. See
 [agents/alerting.md](agents/alerting.md) for an infrastructure agent example.
 
