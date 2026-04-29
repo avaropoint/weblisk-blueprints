@@ -166,7 +166,17 @@ schemas/            Blueprint schema governance
   platform.md         Platform blueprint schema
   protocol.md         Protocol blueprint schema
 
-examples/           Usage examples and reference configurations
+standards/          Project standards (best practices for blueprint-driven development)
+  STANDARDS.md        Overview — what standards are, how to use them
+  project-structure.md  How to organize a blueprint-driven project
+  global.md           Project identity, brand, policies, dependencies
+  code.md             Code generation conventions and repeatability
+  theme.md            Design tokens, typography, spacing, breakpoints
+  pages.md            Describing routes, layouts, sections, SEO, structured data
+  components.md       Reusable UI: props, slots, variants, accessibility
+  islands.md          Interactive regions: agent binding, real-time, auth
+  assets.md           Static files, generated media, references
+  connections.md      External integrations, protocols, data sources
 ```
 
 ### Architecture Hierarchy
