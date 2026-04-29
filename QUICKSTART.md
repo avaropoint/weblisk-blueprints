@@ -74,14 +74,13 @@ curl http://localhost:9800/v1/health
 
 ## 4. Create a Domain Controller
 
-Pick a domain. We'll use the SEO domain from the examples:
+Pick a domain. We'll use the SEO domain as an example:
 
 ```bash
 weblisk domain create seo --platform go
 ```
 
-This generates a domain controller from the
-[SEO domain blueprint](examples/domains/seo.md):
+This generates a domain controller with the following structure:
 
 ```
 internal/
@@ -298,8 +297,8 @@ After completing this quickstart, you have:
   understand how components interact
 - Review the [Domain Controller Architecture](architecture/domain.md)
   to build custom domains
-- Explore the [examples/](examples/) directory for reference domain
-  and agent blueprints
+- Explore the [hello-world template](examples/templates/hello-world.md)
+  for a complete working example
 - Set up the [Admin Gateway](architecture/admin.md) for production
   operations
 - Review the [Threat Model](architecture/threat-model.md) before

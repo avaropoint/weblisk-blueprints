@@ -58,7 +58,7 @@ This applies to:
 | [common.md](common.md) | Shared rules inherited by all blueprint types | Every blueprint |
 | [compliance.md](compliance.md) | Compliance levels, validation, enforcement, security boundaries | Every blueprint |
 | [agent.md](agent.md) | Infrastructure agent blueprints | `agents/` directory |
-| [domain.md](domain.md) | Domain controller blueprints | `examples/domains/` directory |
+| [domain.md](domain.md) | Domain controller blueprints | `examples/templates/` (inline definitions) |
 | [protocol.md](protocol.md) | Wire protocol specifications | `protocol/` directory |
 | [pattern.md](pattern.md) | Cross-cutting patterns | `patterns/` directory |
 | [architecture.md](architecture.md) | System architecture components | `architecture/` directory |

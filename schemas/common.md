@@ -15,7 +15,7 @@ type-specific schema governs the blueprint.
 | Type | Schema | Directory | Description |
 |------|--------|-----------|-------------|
 | `agent` | [agent.md](agent.md) | `agents/` | Infrastructure service definitions |
-| `domain` | [domain.md](domain.md) | `examples/domains/` | Domain controller specifications |
+| `domain` | [domain.md](domain.md) | `examples/templates/` (inline) | Domain controller specifications |
 | `protocol` | [protocol.md](protocol.md) | `protocol/` | Wire protocol specifications |
 | `pattern` | [pattern.md](pattern.md) | `patterns/` | Cross-cutting pattern contracts |
 | `architecture` | [architecture.md](architecture.md) | `architecture/` | System architecture components |
@@ -64,7 +64,7 @@ may add additional required fields.
 | `kind` | enum | `agent`, `domain` | Agent kind: `domain`, `work`, or `infrastructure` |
 | `port` | integer | `agent`, `domain` | Default port assignment (see architecture/agent port convention) |
 | `depends_on` | list | `agent`, `domain` | Runtime agent dependencies. `[]` if none. Distinguishes build-time (`requires`) from run-time (`depends_on`) dependencies. |
-| `domain` | string | `agent` (kind: work) | The domain this work agent belongs to. Must match an existing domain name in `examples/domains/`. |
+| `domain` | string | `agent` (kind: work) | The domain this work agent belongs to. Must match an existing domain name defined in the project's domain configuration. |
 
 ### Field Constraints
 
@@ -589,7 +589,7 @@ true, false
 | Type | Directory | Naming Pattern | Example |
 |------|-----------|----------------|---------|
 | `agent` | `agents/` | `<name>.md` | `agents/cron.md` |
-| `domain` | `examples/domains/` | `<name>.md` | `examples/domains/seo.md` |
+| `domain` | project `domains/` | `<name>/blueprint.yaml` | `domains/greeting/blueprint.yaml` |
 | `protocol` | `protocol/` | `<name>.md` | `protocol/spec.md` |
 | `pattern` | `patterns/` | `<name>.md` | `patterns/messaging.md` |
 | `architecture` | `architecture/` | `<name>.md` | `architecture/agent.md` |
