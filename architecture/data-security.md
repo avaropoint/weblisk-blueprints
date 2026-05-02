@@ -313,6 +313,46 @@ up to the applications running on that hub.
 
 ---
 
+## Filesystem Protection
+
+The `.weblisk/` directory and all dotfiles/dotfolders are protected
+at every layer of the framework. These files contain secrets (private
+keys, tokens, API credentials) and configuration that must never be
+exposed.
+
+### Protection Layers
+
+| Layer | Rule | Enforcement |
+|-------|------|-------------|
+| **Gateway** | Reject any request path matching `/.[a-z]*` | Step 2 of request pipeline (before auth) |
+| **Static serving** | Never serve files from dotfolders | `dotfiles: deny` in route config |
+| **Agent sandbox** | Agents cannot read `.weblisk/` | Process-level filesystem restriction |
+| **CLI only** | Only the CLI process reads `.weblisk/config.yaml` and `~/.weblisk/keys/` | Owner-only file permissions (0600/0700) |
+
+### What `.weblisk/` Contains
+
+| File | Sensitivity | Who Reads It |
+|------|-------------|-------------|
+| `config.yaml` | High — may contain LLM API keys, database URLs | CLI, orchestrator process |
+| `keys/operator.key` | Critical — Ed25519 private key | CLI only |
+| `keys/operator.pub` | Low — public key | CLI, orchestrator |
+| `token` | High — auth token for orchestrator | CLI only |
+
+### Non-Bypassable Rules
+
+1. **No configuration override can enable dotfile serving.** The gateway
+   hard-blocks dotfile paths regardless of route configuration.
+2. **Agents declare their filesystem access in their blueprint.** No
+   agent may declare access to `.weblisk/` — the schema rejects it.
+3. **The `public/` directory is the only serveable root.** Static file
+   requests resolve only within `public/`. Path traversal out of this
+   directory is blocked.
+4. **404, not 403.** Blocked dotfile requests return 404 (Not Found),
+   never 403 (Forbidden). This avoids confirming the existence of
+   sensitive paths.
+
+---
+
 ## Audit Trail
 
 The framework provides a built-in audit trail for inter-component
@@ -442,6 +482,8 @@ data_security:
 
 ## Verification Checklist
 
+- [ ] The .weblisk/ directory is inaccessible to agents, web requests, and any non-CLI process; gateway blocks all dotfile/dotfolder paths; agents have no filesystem read access to .weblisk/
+- [ ] Static file serving excludes all dotfiles and dotfolders by default with no configuration override
 - [ ] All inter-component communication uses TLS in production; plaintext HTTP permitted only on localhost in development
 - [ ] Every agent-to-agent message is signed with the sender's Ed25519 key covering {from, to, action, payload}
 - [ ] Gateway injects X-Gateway-* headers on forwarded requests and agents reject these headers from any non-gateway source
