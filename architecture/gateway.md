@@ -253,20 +253,26 @@ bypasses.
    ├── HSTS header on every response
    └── Certificate validation
 
-2. RATE LIMITING
+2. PATH BLOCKING (before any processing)
+   ├── Reject paths containing /.weblisk/ → 404 Not Found
+   ├── Reject paths to any dotfile/dotfolder (/.[a-z]*) → 404 Not Found
+   ├── Reject path traversal sequences (../) → 400 Bad Request
+   └── This check is non-bypassable and runs before auth/session
+
+3. RATE LIMITING
    ├── Per-IP rate limit (default: 100 req/min)
    ├── Per-session rate limit (default: 300 req/min)
    ├── Endpoint-specific limits (auth endpoints: 10 req/min)
    └── 429 Too Many Requests on breach
 
-3. REQUEST VALIDATION
+4. REQUEST VALIDATION
    ├── Method allowed for route?
    ├── Content-Type valid?
    ├── Content-Length within limit?
    ├── Request body parseable?
    └── 400 Bad Request on failure
 
-4. SESSION RESOLUTION
+5. SESSION RESOLUTION
    ├── Extract session token from cookie
    ├── If no token → anonymous context (limited routes)
    ├── Validate token signature (Ed25519)
@@ -275,12 +281,12 @@ bypasses.
    ├── Load session state from session store
    └── 401 Unauthorized if session invalid
 
-5. CSRF VALIDATION (state-changing requests only)
+6. CSRF VALIDATION (state-changing requests only)
    ├── Extract CSRF token from X-CSRF-Token header
    ├── Validate against session's CSRF secret
    └── 403 Forbidden if CSRF check fails
 
-6. AUTHORIZATION (Policy Engine)
+7. AUTHORIZATION (Policy Engine)
    ├── Resolve user attributes (role, groups, permissions)
    ├── Resolve resource attributes (route, method, sensitivity)
    ├── Resolve context attributes (time, IP, device)
@@ -288,7 +294,7 @@ bypasses.
    ├── Log authorization decision (allow or deny + reason)
    └── 403 Forbidden if denied
 
-7. REQUEST MEDIATION
+8. REQUEST MEDIATION
    ├── Map route to target agent via route table
    ├── Strip browser-specific headers
    ├── Inject internal headers:
@@ -300,7 +306,7 @@ bypasses.
    ├── Forward request to agent via orchestrator or direct
    └── 502 Bad Gateway if agent unreachable
 
-8. RESPONSE PROCESSING
+9. RESPONSE PROCESSING
    ├── Validate response from agent
    ├── Apply response sanitization (strip internal headers/errors)
    ├── Apply application-configured response middleware (if any)
@@ -308,7 +314,7 @@ bypasses.
    ├── Log response metadata to audit trail
    └── Return response to browser
 
-9. SECURITY HEADERS (on EVERY response)
+10. SECURITY HEADERS (on EVERY response)
    ├── Strict-Transport-Security: max-age=31536000; includeSubDomains
    ├── X-Content-Type-Options: nosniff
    ├── X-Frame-Options: DENY
@@ -394,6 +400,7 @@ routes:
     target: static:filesystem
     auth: none
     cache: immutable
+    dotfiles: deny               # NEVER serve dotfiles from filesystem
 ```
 
 ### Route Resolution for Islands
@@ -911,6 +918,7 @@ The gateway's request lifecycle is fully documented in the
 
 - [ ] Gateway registers with orchestrator as an infrastructure agent with its own Ed25519 identity
 - [ ] HTTP requests in production redirect to HTTPS (301) and every response includes HSTS header
+- [ ] Path blocking rejects requests to /.weblisk/, any dotfile/dotfolder, and path traversal sequences before any other processing
 - [ ] Rate limits enforce per-IP (100/min), per-session (300/min), and auth endpoint (10/min) thresholds with 429 on breach
 - [ ] Session token is validated on every request: Ed25519 signature, expiry, client binding, and server-side state lookup
 - [ ] CSRF validation via X-CSRF-Token header is enforced on all state-changing requests (POST, PUT, DELETE)
