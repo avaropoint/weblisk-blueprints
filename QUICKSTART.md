@@ -256,10 +256,10 @@ weblisk domain create checkout --platform go
 
 ```bash
 # Initialize federation
-weblisk federation init
+weblisk federations init
 
 # Connect to a peer hub
-weblisk federation peer add https://partner-hub.example.com
+weblisk federations peer add https://partner-hub.example.com
 ```
 
 ---

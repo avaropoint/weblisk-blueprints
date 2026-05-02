@@ -424,7 +424,7 @@ secrets flow from operator to running deployment.
 
 | Model | Flow | Best For |
 |-------|------|----------|
-| **Direct provision** | Operator runs `weblisk secrets set` on production host | Single-server, VPS |
+| **Direct provision** | Operator runs `weblisk secret set` on production host | Single-server, VPS |
 | **Environment injection** | Platform injects env vars at deploy time | PaaS (Cloudflare, Railway, Fly) |
 | **Vault sync** | CI pulls from vault → sets env vars / writes files | Enterprise, multi-service |
 | **Sealed secrets** | Encrypted secret committed to repo, decrypted at deploy | Kubernetes, GitOps |
@@ -436,7 +436,7 @@ first start:
 
 ```bash
 # On production host
-$ weblisk secrets set email-send SMTP_PASSWORD
+$ weblisk secret set email-send SMTP_PASSWORD
 Enter value: ********
 ✓ Written to .weblisk/secrets/email-send/SMTP_PASSWORD (0600)
 
@@ -476,7 +476,7 @@ For vault-backed deployments (`WL_SECRET_STORE=vault`):
 # CI pipeline fetches secrets from vault and provisions them
 export VAULT_TOKEN=$(vault login -method=approle ...)
 vault kv get -field=value secret/weblisk/email-send/SMTP_PASSWORD | \
-  weblisk secrets set email-send SMTP_PASSWORD --stdin
+  weblisk secret set email-send SMTP_PASSWORD --stdin
 ```
 
 ### Sealed Secrets (Kubernetes / GitOps)
@@ -497,7 +497,7 @@ time and mounted as files or env vars in the pod.
 | Never Do This | Why | Alternative |
 |--------------|-----|-------------|
 | Hardcode secrets in workflow files | Plain text in repo | Use platform secret store |
-| Echo/print secret values for debugging | Appears in logs | Use `weblisk secrets list` to verify presence |
+| Echo/print secret values for debugging | Appears in logs | Use `weblisk secret list` to verify presence |
 | Pass secrets as CLI arguments | Shell history, process list | Use `--stdin` flag or interactive prompt |
 | Store secrets in build artifacts | Artifacts are downloadable | Inject at runtime only |
 | Use same secrets across environments | Blast radius | Separate secret sets per environment |
@@ -543,4 +543,4 @@ time and mounted as files or env vars in the pod.
 - [ ] CI/CD pipelines inject secrets from platform secret stores, never from repo files
 - [ ] Secret values never appear in CI/CD logs (log masking enforced)
 - [ ] Secrets are scoped per-environment (dev/staging/prod use different values)
-- [ ] `weblisk secrets set` uses interactive prompt or --stdin, never CLI arguments
+- [ ] `weblisk secret set` uses interactive prompt or --stdin, never CLI arguments

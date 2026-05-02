@@ -181,7 +181,7 @@ The primary recovery path is another registered operator:
 
 ```
 1. Second operator (already registered, admin role) logs in
-2. Runs: weblisk operator revoke <compromised-operator-name>
+2. Runs: weblisk operators revoke <compromised-operator-name>
 3. Orchestrator invalidates old operator's public key and token
 4. Compromised operator runs: weblisk operator init (generates new key pair)
 5. Compromised operator runs: weblisk operator register --orch <url>

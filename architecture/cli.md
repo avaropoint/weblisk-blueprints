@@ -32,7 +32,7 @@ The CLI has two command surfaces:
    `weblisk server init`, `weblisk agent create`)
 2. **Operations commands** — interrogate and manage a running hub via the
    orchestrator's admin API (`weblisk status`, `weblisk agents`,
-   `weblisk domains`, `weblisk audit`, `weblisk federation`)
+   `weblisk domains`, `weblisk audit`, `weblisk federations`)
 
 Operations commands use the operator's Ed25519 identity stored in
 `~/.weblisk/keys/` for authentication.
@@ -40,6 +40,11 @@ Operations commands use the operator's Ed25519 identity stored in
 Commands follow a `weblisk <noun> <verb>` pattern and output
 structured, human-readable tables by default, with `--json` for
 machine-readable output.
+
+**Naming convention:** Singular nouns (`agent`, `domain`, `secret`,
+`blueprint`, `operator`) are local/dev commands that operate on project
+files. Plural nouns (`agents`, `domains`, `operators`, `federations`,
+`approvals`) are remote commands that query the orchestrator admin API.
 
 ---
 
@@ -296,18 +301,18 @@ Checks performed:
 
 Exit codes: 0 = all pass, 1 = errors found, 2 = warnings only.
 
-### `weblisk secrets`
+### `weblisk secret`
 
 Manage secrets for the project. All operations are local — secrets
 live in `.weblisk/secrets/` and are never transmitted.
 
 ```bash
-$ weblisk secrets list
-$ weblisk secrets set email-send SMTP_PASSWORD
-$ weblisk secrets set _shared LLM_API_KEY
-$ weblisk secrets get email-send SMTP_PASSWORD
-$ weblisk secrets delete email-send SMTP_PASSWORD
-$ weblisk secrets rotate email-send SMTP_PASSWORD
+$ weblisk secret list
+$ weblisk secret set email-send SMTP_PASSWORD
+$ weblisk secret set _shared LLM_API_KEY
+$ weblisk secret get email-send SMTP_PASSWORD
+$ weblisk secret delete email-send SMTP_PASSWORD
+$ weblisk secret rotate email-send SMTP_PASSWORD
 ```
 
 | Subcommand | Description |
@@ -459,12 +464,12 @@ $ weblisk gateway start
 
 ## Blueprint Commands
 
-### `weblisk blueprints update`
+### `weblisk blueprint update`
 
 Force re-fetch all blueprint sources.
 
 ```bash
-$ weblisk blueprints update
+$ weblisk blueprint update
 ```
 
 Performs `git pull` on each cached source in `~/.weblisk/blueprints/`.
@@ -554,36 +559,6 @@ Orch:     http://localhost:9800
 
 $ weblisk operator token --refresh
 ✓ Token refreshed. Expires: 2026-04-27T10:00:00Z
-```
-
-### `weblisk operator revoke`
-
-Revoke another operator's access (admin only).
-
-```bash
-$ weblisk operator revoke bob
-Revoking operator 'bob'...
-Type operator name to confirm: bob
-✓ Operator 'bob' revoked. Public key invalidated, token expired.
-```
-
-- Requires admin role
-- Invalidates the target operator's public key and all active tokens
-- The revoked operator must re-run `operator init` + `operator register`
-  to regain access (pending approval from remaining admin)
-- Cannot revoke yourself (prevents lockout)
-- Cannot revoke the last admin (system requires at least one)
-
-### `weblisk operator list`
-
-List all registered operators and their status.
-
-```bash
-$ weblisk operator list
-NAME    ROLE     STATUS    REGISTERED
-alice   admin    active    2026-01-15T09:00:00Z
-bob     viewer   revoked   2026-02-20T14:30:00Z
-carol   admin    active    2026-03-01T11:00:00Z
 ```
 
 ---
@@ -801,10 +776,10 @@ rec-005   medium     content-analyzer pricing.html     Split long paragraph
 - `--priority <critical|high|medium|low>` to filter
 - `--agent <name>` to filter by recommending agent
 
-### `weblisk approvals show <id>`
+### `weblisk approvals describe <id>`
 
 ```bash
-$ weblisk approvals show rec-001
+$ weblisk approvals describe rec-001
 Recommendation: rec-001
 Agent:    seo-analyzer
 Priority: critical
@@ -894,40 +869,74 @@ Linked Recommendations: 38 (12 applied, 5 pending, 21 rejected)
 
 ## Federation Commands
 
-### `weblisk federation peers`
+### `weblisk federations peers`
 
 ```bash
-$ weblisk federation peers
+$ weblisk federations peers
 NAME           TIER      JURISDICTION  STATUS   CAPABILITIES      EXPIRES
 partner-corp   partner   US            active   seo:audit         2026-07-15
 acme-eu        private   EU            active   content:analyze   2026-06-20
 ```
 
-### `weblisk federation pending`
+### `weblisk federations pending`
 
 ```bash
-$ weblisk federation pending
+$ weblisk federations pending
 ID       FROM            CAPABILITIES REQUESTED     RECEIVED
 req-001  supplier-inc    logistics:track             2026-04-25 09:00
 ```
 
-### `weblisk federation accept <id>` / `weblisk federation reject <id>`
+### `weblisk federations accept <id>` / `weblisk federations reject <id>`
 
 ```bash
-$ weblisk federation accept req-001
+$ weblisk federations accept req-001
 ✓ Accepted peering request from supplier-inc
   Granted: logistics:track
   Tier: partner
   Expires: 2026-07-25
 ```
 
-### `weblisk federation revoke <peer>`
+### `weblisk federations revoke <peer>`
 
 ```bash
-$ weblisk federation revoke partner-corp
+$ weblisk federations revoke partner-corp
 ⚠ This will revoke all trust with 'partner-corp' and terminate active tasks.
   Type peer name to confirm: partner-corp
 ✓ Trust revoked for partner-corp.
+```
+
+---
+
+## Operator Admin Commands
+
+### `weblisk operators revoke`
+
+Revoke another operator's access (admin only).
+
+```bash
+$ weblisk operators revoke bob
+Revoking operator 'bob'...
+Type operator name to confirm: bob
+✓ Operator 'bob' revoked. Public key invalidated, token expired.
+```
+
+- Requires admin role
+- Invalidates the target operator's public key and all active tokens
+- The revoked operator must re-run `operator init` + `operator register`
+  to regain access (pending approval from remaining admin)
+- Cannot revoke yourself (prevents lockout)
+- Cannot revoke the last admin (system requires at least one)
+
+### `weblisk operators list`
+
+List all registered operators and their status.
+
+```bash
+$ weblisk operators list
+NAME    ROLE     STATUS    REGISTERED
+alice   admin    active    2026-01-15T09:00:00Z
+bob     viewer   revoked   2026-02-20T14:30:00Z
+carol   admin    active    2026-03-01T11:00:00Z
 ```
 
 ---
@@ -1030,12 +1039,12 @@ Every command that calls the orchestrator:
 - [ ] `weblisk doctor` cross-references secret declarations with stored values
 
 ### Secrets Management
-- [ ] `weblisk secrets list` shows all declared secrets and their set/missing status
-- [ ] `weblisk secrets set` prompts interactively for value (never passed as CLI argument)
-- [ ] `weblisk secrets set` writes to `.weblisk/secrets/{agent}/{KEY}` with 0600 permissions
-- [ ] `weblisk secrets get` requires --confirm flag and prints a terminal-sharing warning
-- [ ] `weblisk secrets delete` removes the secret file
-- [ ] `weblisk secrets rotate` triggers the rotation handler or prompts for new value
+- [ ] `weblisk secret list` shows all declared secrets and their set/missing status
+- [ ] `weblisk secret set` prompts interactively for value (never passed as CLI argument)
+- [ ] `weblisk secret set` writes to `.weblisk/secrets/{agent}/{KEY}` with 0600 permissions
+- [ ] `weblisk secret get` requires --confirm flag and prints a terminal-sharing warning
+- [ ] `weblisk secret delete` removes the secret file
+- [ ] `weblisk secret rotate` triggers the rotation handler or prompts for new value
 
 ### Server & Code Generation
 - [ ] `weblisk server init` reads YAML specs and dispatches to the configured LLM for code generation
@@ -1050,7 +1059,7 @@ Every command that calls the orchestrator:
 - [ ] `weblisk gateway start` builds and runs the application gateway
 
 ### Blueprint Management
-- [ ] `weblisk blueprints update` re-fetches all cached blueprint sources
+- [ ] `weblisk blueprint update` re-fetches all cached blueprint sources
 - [ ] `weblisk validate` checks blueprint compliance (frontmatter, sections, types, deps)
 - [ ] `weblisk pattern apply` reads pattern blueprint, dispatches to LLM with target context
 - [ ] Blueprint resolution follows priority: local → WL_BLUEPRINT_SOURCES → core
@@ -1062,11 +1071,11 @@ Every command that calls the orchestrator:
 - [ ] `weblisk operator init` does not overwrite existing keys without --force flag
 - [ ] `weblisk operator register` signs the registration payload with the operator's private key and stores the returned token
 - [ ] `weblisk operator token` auto-refreshes the token when less than 1 hour remaining before expiry
-- [ ] `weblisk operator revoke` invalidates target operator's public key and tokens (admin only)
-- [ ] `weblisk operator revoke` prevents self-revocation and revoking the last admin
-- [ ] `weblisk operator list` shows all registered operators with name, role, status, and registration date
+- [ ] `weblisk operators revoke` invalidates target operator's public key and tokens (admin only)
+- [ ] `weblisk operators revoke` prevents self-revocation and revoking the last admin
+- [ ] `weblisk operators list` shows all registered operators with name, role, status, and registration date
 - [ ] All commands output human-readable tables by default and structured JSON with --json flag
-- [ ] Destructive commands (agents deregister, federation revoke) require --confirm or interactive name-confirmation
+- [ ] Destructive commands (agents deregister, federations revoke) require --confirm or interactive name-confirmation
 - [ ] `weblisk approvals reject` requires a --reason argument for every rejection
 - [ ] `weblisk status` calls GET /v1/admin/overview and displays agents, domains, workflows, approvals, federation, and health score
 - [ ] Exit codes are 0=success, 1=general error, 2=auth error, 3=connection error, 4=not found, 5=permission denied

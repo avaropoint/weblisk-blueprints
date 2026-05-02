@@ -287,7 +287,7 @@ weblisk domain create seo --platform go
 weblisk agent create seo-analyzer --platform go
 
 # Force re-fetch all blueprint sources
-weblisk blueprints update
+weblisk blueprint update
 ```
 
 ### Multiple Blueprint Sources
@@ -332,7 +332,7 @@ https://github.com/acme-corp/acme-blueprints-internal.git
 SSH keys, credential helpers, or GitHub CLI auth. No additional configuration
 is needed beyond what `git clone` already uses.
 
-**Update behavior:** `weblisk blueprints update` performs a `git pull` on each
+**Update behavior:** `weblisk blueprint update` performs a `git pull` on each
 cached source. Sources are cached in `~/.weblisk/blueprints/`. If a source is
 unreachable, the CLI uses the last cached version and logs a warning.
 
