@@ -500,21 +500,28 @@ resource context, and generates the pattern implementation.
 
 ### `weblisk operator init`
 
-Generate an operator Ed25519 key pair.
+Generate an operator Ed25519 key pair, encrypted with a passphrase.
 
 ```bash
 $ weblisk operator init
+Enter passphrase (min 12 characters): ********
+Confirm passphrase: ********
 Generated operator key pair:
-  Private: ~/.weblisk/keys/operator.key
+  Private: ~/.weblisk/keys/operator.key (encrypted, argon2id + AES-256-GCM)
   Public:  ~/.weblisk/keys/operator.pub
   Key ID:  a1b2c3d4e5f6...
 
 Keep your private key safe. It is your identity.
+The passphrase is NOT stored — you must remember it.
 ```
 
 - Generates keys in `~/.weblisk/keys/` (mode 0700 directory, 0600 key)
+- ALWAYS prompts for passphrase — cannot be skipped or supplied via flag
+- Minimum passphrase length: 12 characters (enforced)
+- Private key stored in `weblisk-key-v1` format (Argon2id KDF + AES-256-GCM)
+- Passphrase is never written to disk, never in shell history
 - If keys already exist, prints the public key and exits (no overwrite)
-- `--force` to regenerate (prints warning about identity change)
+- `--force` to regenerate (prompts for new passphrase, prints identity change warning)
 - `--name <name>` to set operator name (default: system username)
 
 ### `weblisk operator register`
@@ -1020,6 +1027,8 @@ Every command that calls the orchestrator:
 
 ### Identity & Operations
 - [ ] `weblisk operator init` generates Ed25519 keys in ~/.weblisk/keys/ with 0700 directory and 0600 file permissions
+- [ ] `weblisk operator init` prompts for passphrase (min 12 chars), encrypts private key with Argon2id + AES-256-GCM
+- [ ] `weblisk operator init` passphrase cannot be skipped or supplied as CLI argument
 - [ ] `weblisk operator init` does not overwrite existing keys without --force flag
 - [ ] `weblisk operator register` signs the registration payload with the operator's private key and stores the returned token
 - [ ] `weblisk operator token` auto-refreshes the token when less than 1 hour remaining before expiry

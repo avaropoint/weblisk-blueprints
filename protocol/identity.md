@@ -69,17 +69,105 @@ requires:
 
 ### Storage
 - Directory: `.weblisk/keys/` in the working directory
-- Private key file: `.weblisk/keys/<name>.key` (hex-encoded, file mode 0600)
+- Private key file: `.weblisk/keys/<name>.key` (file mode 0600)
 - Public key file: `.weblisk/keys/<name>.pub` (hex-encoded, file mode 0644)
 - Directory mode: 0700
 - On startup: load existing keys if present, generate new ones if absent
 
+### Private Key Format
+
+Private keys are stored encrypted at rest. The file format is:
+
+```
+weblisk-key-v1
+<algorithm>
+<kdf>
+<kdf-params>
+<ciphertext>
+```
+
+| Field | Value | Description |
+|-------|-------|-------------|
+| Magic | `weblisk-key-v1` | Format identifier |
+| Algorithm | `ed25519` | Key algorithm |
+| KDF | `argon2id` or `none` | Key derivation function |
+| KDF Params | Base64url JSON | `{salt, time, memory, parallelism}` or `{}` |
+| Ciphertext | Base64url | AES-256-GCM encrypted private key (or plaintext hex if KDF = none) |
+
+### Encryption Scheme
+
+When `kdf = argon2id`:
+
+```
+1. passphrase → Argon2id(passphrase, salt, time=3, memory=65536, parallelism=4) → 32-byte key
+2. AES-256-GCM(derived_key, nonce=first_12_bytes_of_salt, plaintext=private_key_hex) → ciphertext
+3. Store ciphertext + tag as base64url
+```
+
+Decryption reverses the process — prompts for passphrase, derives key,
+decrypts.
+
+When `kdf = none`:
+- The private key is stored as hex (no encryption)
+- Used ONLY for automated service keys in environments where passphrase
+  input is impossible (containers, CI, headless servers)
+- File permissions (0600) are the sole protection layer
+
+### Key Categories
+
+| Category | KDF | Passphrase Source | Use Case |
+|----------|-----|------------------|----------|
+| **Operator keys** | `argon2id` | Interactive prompt | Human-operated CLI |
+| **Service keys** (orchestrator, gateway, agent) | `argon2id` or `none` | Env var `WL_KEY_PASSPHRASE` or none | Automated processes |
+
+**Rules:**
+1. `weblisk operator init` MUST prompt for a passphrase. Cannot be
+   skipped. Minimum 12 characters.
+2. `weblisk server init` defaults to `kdf = none` but accepts
+   `--encrypt-keys` to use Argon2id with passphrase from
+   `WL_KEY_PASSPHRASE` env var.
+3. Production deployments SHOULD encrypt service keys with passphrase
+   supplied via env var or secrets manager at startup.
+4. The passphrase is NEVER stored on disk. It exists only in memory
+   during the decrypt operation.
+5. Failed passphrase attempts log `security.key_decrypt_failed` and
+   exit with code 2 (auth error). No retry loop — the operator
+   re-runs the command.
+
 ### Key Loading Flow
 ```
 1. Check if .weblisk/keys/<name>.key exists
-2. If yes: read and decode hex → Ed25519 private key → derive public key
-3. If no: generate new key pair → save both files → return
+2. If yes:
+   a. Parse file header — check magic line is "weblisk-key-v1"
+   b. Read KDF field
+   c. If kdf = argon2id:
+      - Prompt for passphrase (interactive) or read WL_KEY_PASSPHRASE (env)
+      - Derive decryption key via Argon2id with stored params
+      - Decrypt ciphertext with AES-256-GCM
+      - Decode hex → Ed25519 private key
+   d. If kdf = none:
+      - Decode hex directly → Ed25519 private key
+   e. Derive public key from private key
+3. If no: generate new key pair → encrypt → save both files → return
 ```
+
+### Key Rotation
+
+Operator keys can be rotated without losing hub access:
+
+```
+1. weblisk operator rotate
+2. Prompts for current passphrase (decrypts existing key)
+3. Generates new Ed25519 key pair
+4. Prompts for new passphrase (encrypts new key)
+5. Registers new public key with orchestrator (signed by old key)
+6. Orchestrator validates old-key signature → stores new public key
+7. Old key file moved to .weblisk/keys/<name>.key.revoked (kept for audit)
+```
+
+Service keys follow the same rotation protocol but use
+`WL_KEY_PASSPHRASE` / `WL_KEY_PASSPHRASE_NEW` env vars instead of
+interactive prompts.
 
 ## Message Signing
 
@@ -585,6 +673,11 @@ security:
 Implementation MUST:
 - [ ] Generate keys with cryptographically secure random source
 - [ ] Store private keys with restricted permissions (0600)
+- [ ] Encrypt operator private keys with Argon2id + AES-256-GCM (passphrase required, min 12 chars)
+- [ ] Support encrypted service keys via WL_KEY_PASSPHRASE env var
+- [ ] Parse weblisk-key-v1 format correctly (magic, algorithm, kdf, params, ciphertext)
+- [ ] Never store passphrase on disk — only hold in memory during decrypt
+- [ ] Exit with code 2 on failed passphrase (no retry loop, no passphrase enumeration)
 - [ ] Verify all signatures before trusting data
 - [ ] Check token expiry on every verification
 - [ ] Enforce replay protection window (300 seconds) on registration
@@ -592,3 +685,5 @@ Implementation MUST:
 - [ ] Validate signature length (64 bytes / 128 hex chars)
 - [ ] Use constant-time comparison for signature verification
 - [ ] Never log or expose private keys
+- [ ] Key rotation registers new public key signed by old key before revoking old key
+- [ ] Revoked keys stored as .key.revoked for audit trail
