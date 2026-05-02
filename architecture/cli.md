@@ -41,10 +41,17 @@ Commands follow a `weblisk <noun> <verb>` pattern and output
 structured, human-readable tables by default, with `--json` for
 machine-readable output.
 
-**Naming convention:** Singular nouns (`agent`, `domain`, `secret`,
-`blueprint`, `operator`) are local/dev commands that operate on project
-files. Plural nouns (`agents`, `domains`, `operators`, `federations`,
-`approvals`) are remote commands that query the orchestrator admin API.
+**Conventions:**
+- Singular nouns act on a single resource (`agent create`, `secret set`)
+- Plural nouns query collections (`agents list`, `domains describe`)
+- `list` — enumerate resources (always supports `--json`)
+- `describe` — full detail for a single resource by name or ID
+- `create` — scaffold or provision a new resource
+- `delete` — remove a local resource (secrets, files)
+- `deregister` — remove a remote registration (agents)
+- `revoke` — invalidate trust or access (operators, federation peers)
+- `--json` — machine-readable output (available on all read commands)
+- `--confirm` — required for destructive operations (or interactive prompt)
 
 ---
 
@@ -561,6 +568,28 @@ $ weblisk operator token --refresh
 ✓ Token refreshed. Expires: 2026-04-27T10:00:00Z
 ```
 
+### `weblisk operator rotate`
+
+Rotate the operator's Ed25519 key pair.
+
+```bash
+$ weblisk operator rotate
+Enter current passphrase: ********
+Generating new key pair...
+Enter new passphrase (min 12 characters): ********
+Confirm new passphrase: ********
+Registering new public key with orchestrator (signed by old key)...
+✓ Key rotated successfully.
+  New Key ID: f7e8d9c0...
+  Old key archived: ~/.weblisk/keys/operator.key.revoked
+```
+
+- Decrypts existing key with current passphrase
+- Generates new Ed25519 key pair
+- Encrypts new key with new passphrase
+- Registers new public key with orchestrator (signed by old key for proof of continuity)
+- Old key moved to `~/.weblisk/keys/operator.key.revoked` for audit
+
 ---
 
 ## Status Commands
@@ -896,7 +925,7 @@ $ weblisk federations accept req-001
   Expires: 2026-07-25
 ```
 
-### `weblisk federations revoke <peer>`
+### `weblisk federations revoke <name>`
 
 ```bash
 $ weblisk federations revoke partner-corp
@@ -907,9 +936,9 @@ $ weblisk federations revoke partner-corp
 
 ---
 
-## Operator Admin Commands
+## Operator Commands
 
-### `weblisk operators revoke`
+### `weblisk operators revoke <name>`
 
 Revoke another operator's access (admin only).
 

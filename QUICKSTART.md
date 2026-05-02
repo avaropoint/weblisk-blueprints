@@ -255,11 +255,11 @@ weblisk domain create checkout --platform go
 ### Enable federation
 
 ```bash
-# Initialize federation
-weblisk federations init
+# View active federation peers
+weblisk federations peers
 
-# Connect to a peer hub
-weblisk federations peer add https://partner-hub.example.com
+# Accept a pending peering request
+weblisk federations accept req-001
 ```
 
 ---

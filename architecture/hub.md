@@ -1089,7 +1089,7 @@ weblisk marketplace reviews mkt-xxx          # view reviews for your listing
 
 # Buyer operations
 weblisk marketplace search "demand forecasting"
-weblisk marketplace info mkt-xxx             # detailed listing + metrics
+weblisk marketplace describe mkt-xxx          # detailed listing + metrics
 weblisk marketplace buy mkt-xxx --accept-contract --accept-pricing
 weblisk marketplace install mkt-xxx          # download + generate installable asset
 weblisk marketplace review mkt-xxx --rating 5 --title "Excellent"
