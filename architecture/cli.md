@@ -211,6 +211,10 @@ When multiple `--template` flags are specified, files are merged — client
 templates provide pages and islands, server templates provide hub
 configuration and agent specs.
 
+**Security:** Every scaffolded project MUST include a `.gitignore` with
+entries for `.weblisk/secrets/`, `.weblisk/keys/`, `.weblisk/token`,
+`.env`, and `.env.*`. This is non-configurable and always generated.
+
 | Flag | Description |
 |------|-------------|
 | `--template <path>` | Template to scaffold (default: `client/default`) |
@@ -269,6 +273,60 @@ Print the CLI version.
 $ weblisk version
 weblisk v1.1.0
 ```
+
+### `weblisk doctor`
+
+Validate project health and configuration.
+
+```bash
+$ weblisk doctor
+```
+
+Checks performed:
+
+| Check | Severity | Description |
+|-------|----------|-------------|
+| `.gitignore` exists | error | Project must have a `.gitignore` |
+| `.gitignore` excludes secrets | error | Must contain `.weblisk/secrets/`, `.weblisk/keys/`, `.weblisk/token` |
+| `.gitignore` excludes `.env` | warn | Should exclude `.env` and `.env.*` |
+| `.weblisk/config.yaml` valid | error | Config must parse and pass schema validation |
+| Blueprint YAML valid | error | All blueprints must parse without errors |
+| Secret declarations complete | warn | Declared secrets should have values in `.weblisk/secrets/` |
+| File permissions | warn | `.weblisk/secrets/` files should be 0600, directories 0700 |
+
+Exit codes: 0 = all pass, 1 = errors found, 2 = warnings only.
+
+### `weblisk secrets`
+
+Manage secrets for the project. All operations are local — secrets
+live in `.weblisk/secrets/` and are never transmitted.
+
+```bash
+$ weblisk secrets list
+$ weblisk secrets set email-send SMTP_PASSWORD
+$ weblisk secrets set _shared LLM_API_KEY
+$ weblisk secrets get email-send SMTP_PASSWORD
+$ weblisk secrets delete email-send SMTP_PASSWORD
+$ weblisk secrets rotate email-send SMTP_PASSWORD
+```
+
+| Subcommand | Description |
+|------------|-------------|
+| `list` | Show all declared secrets and their status (set/missing) |
+| `set <agent> <key>` | Set a secret value (prompts for value, never in args) |
+| `get <agent> <key>` | Print secret value (for debugging only, warns on use) |
+| `delete <agent> <key>` | Remove a secret value |
+| `rotate <agent> <key>` | Trigger rotation (prompts for new value or runs handler) |
+
+**Security rules:**
+- `set` prompts for the value interactively — it is NEVER passed as a
+  CLI argument (which would leak into shell history).
+- `get` prints a warning that secret values should not be displayed in
+  shared terminals. Requires `--confirm` flag.
+- All operations write to `.weblisk/secrets/{agent}/{KEY}` with 0600
+  permissions.
+- The `list` subcommand cross-references agent blueprint declarations
+  with stored values to show which secrets are missing.
 
 ---
 
@@ -923,12 +981,24 @@ Every command that calls the orchestrator:
 
 ### Project & Development
 - [ ] `weblisk new` scaffolds a project from weblisk-templates with correct name replacement
+- [ ] `weblisk new` always generates `.gitignore` with `.weblisk/secrets/`, `.weblisk/keys/`, `.weblisk/token`, `.env`, `.env.*`
 - [ ] `weblisk new --template client/blog --template server/starter` merges both template sets
 - [ ] `weblisk dev` starts a file-watching dev server with live reload for client projects
 - [ ] `weblisk dev` builds and runs the hub with restart-on-change for server projects
 - [ ] `weblisk build --minify --fingerprint` produces production-ready output
 - [ ] `weblisk vendor` copies the Weblisk client framework to the specified directory
 - [ ] Template resolution follows priority: local → WL_TEMPLATE_SOURCES → core
+- [ ] `weblisk doctor` validates .gitignore contains required secret exclusion entries
+- [ ] `weblisk doctor` validates .weblisk/secrets/ file permissions are 0600
+- [ ] `weblisk doctor` cross-references secret declarations with stored values
+
+### Secrets Management
+- [ ] `weblisk secrets list` shows all declared secrets and their set/missing status
+- [ ] `weblisk secrets set` prompts interactively for value (never passed as CLI argument)
+- [ ] `weblisk secrets set` writes to `.weblisk/secrets/{agent}/{KEY}` with 0600 permissions
+- [ ] `weblisk secrets get` requires --confirm flag and prints a terminal-sharing warning
+- [ ] `weblisk secrets delete` removes the secret file
+- [ ] `weblisk secrets rotate` triggers the rotation handler or prompts for new value
 
 ### Server & Code Generation
 - [ ] `weblisk server init` reads YAML specs and dispatches to the configured LLM for code generation

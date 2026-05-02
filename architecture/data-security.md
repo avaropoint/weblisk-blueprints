@@ -353,6 +353,90 @@ exposed.
 
 ---
 
+## Code Generation Isolation
+
+When the LLM generates code from blueprints, it operates under strict
+information boundaries that prevent secret exposure.
+
+### What the LLM Sees
+
+| Source | Content | Example |
+|--------|---------|---------|
+| Blueprint YAML | Key name + description | `key: SMTP_PASSWORD, description: "SMTP auth credential"` |
+| Agent spec | Secret declaration block | `secrets: [{key: API_KEY, required: true}]` |
+| Pattern docs | API shape | `secrets.get(key) → string \| error` |
+
+### What the LLM NEVER Sees
+
+| Protected Asset | Why It's Invisible |
+|-----------------|-------------------|
+| `.weblisk/secrets/` directory | Not part of blueprint input; filesystem-isolated |
+| Secret values | Stored at runtime, not in any source file |
+| `.weblisk/keys/` | Private keys never leave CLI/orchestrator process |
+| `.weblisk/token` | Auth token for operator identity |
+| `.env` files | Excluded from blueprint input by convention |
+
+### Enforcement
+
+1. **Blueprint input only.** The code generation pipeline receives
+   YAML blueprint files as input. Secret values exist in `.weblisk/`
+   which is never part of the input set.
+2. **Generated code uses the API.** The LLM produces calls to
+   `secrets.get("KEY_NAME")` — it never hardcodes values because
+   it doesn't have them.
+3. **No filesystem access during generation.** The LLM has no access
+   to the project filesystem. It operates solely on the blueprint
+   content provided to it.
+4. **Validation rule.** Generated code MUST NOT contain string
+   literals that match known secret key patterns (API keys, tokens,
+   passwords). Static analysis catches this post-generation.
+
+### The Isolation Chain
+
+```
+Blueprint (declares key name)
+  → LLM (generates secrets.get("KEY"))
+    → Runtime (orchestrator resolves actual value from .weblisk/secrets/)
+```
+
+At no point in this chain does the LLM or generated source code
+contain a secret value. The value only exists in the runtime
+environment, managed by the orchestrator's secrets subsystem.
+
+---
+
+## Version Control Protection
+
+Every Weblisk project MUST include `.gitignore` rules that prevent
+secrets from being committed to source control.
+
+### Required `.gitignore` Entries
+
+```gitignore
+# Weblisk framework (NEVER commit these)
+.weblisk/secrets/
+.weblisk/keys/
+.weblisk/token
+
+# Environment files with credentials
+.env
+.env.*
+!.env.example
+```
+
+### Enforcement
+
+1. **CLI scaffolding.** `weblisk new` MUST generate a `.gitignore`
+   containing these entries. No project can be created without them.
+2. **CLI validation.** `weblisk doctor` checks that `.gitignore`
+   exists and contains the required entries. Warns if missing.
+3. **Template requirement.** Every project template in the templates
+   repository MUST include a `.gitignore` with these entries.
+4. **Pre-commit hook (optional).** Projects MAY add a pre-commit hook
+   that rejects commits containing files matching `.weblisk/secrets/*`.
+
+---
+
 ## Audit Trail
 
 The framework provides a built-in audit trail for inter-component
@@ -495,3 +579,8 @@ data_security:
 - [ ] Audit trail is retained for at least 90 days and accessible only by admin and auditor roles
 - [ ] Response sanitization strips internal headers (X-Gateway-*, X-Agent-*, Server, X-Powered-By) and raw error messages before reaching the browser
 - [ ] Framework audit log records operations (registration, task dispatch, route decisions) but does NOT include request/response body content by default
+- [ ] Code generation pipeline receives only blueprint YAML as input, never .weblisk/ contents or .env files
+- [ ] Generated code references secrets exclusively via secrets.get(key), never as hardcoded string literals
+- [ ] Every project template ships with .gitignore containing .weblisk/secrets/, .weblisk/keys/, .weblisk/token
+- [ ] CLI `weblisk new` scaffolds .gitignore with required secret exclusion entries
+- [ ] CLI `weblisk doctor` validates .gitignore contains required entries and warns if missing
