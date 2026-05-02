@@ -556,6 +556,36 @@ $ weblisk operator token --refresh
 ✓ Token refreshed. Expires: 2026-04-27T10:00:00Z
 ```
 
+### `weblisk operator revoke`
+
+Revoke another operator's access (admin only).
+
+```bash
+$ weblisk operator revoke bob
+Revoking operator 'bob'...
+Type operator name to confirm: bob
+✓ Operator 'bob' revoked. Public key invalidated, token expired.
+```
+
+- Requires admin role
+- Invalidates the target operator's public key and all active tokens
+- The revoked operator must re-run `operator init` + `operator register`
+  to regain access (pending approval from remaining admin)
+- Cannot revoke yourself (prevents lockout)
+- Cannot revoke the last admin (system requires at least one)
+
+### `weblisk operator list`
+
+List all registered operators and their status.
+
+```bash
+$ weblisk operator list
+NAME    ROLE     STATUS    REGISTERED
+alice   admin    active    2026-01-15T09:00:00Z
+bob     viewer   revoked   2026-02-20T14:30:00Z
+carol   admin    active    2026-03-01T11:00:00Z
+```
+
 ---
 
 ## Status Commands
@@ -1032,6 +1062,9 @@ Every command that calls the orchestrator:
 - [ ] `weblisk operator init` does not overwrite existing keys without --force flag
 - [ ] `weblisk operator register` signs the registration payload with the operator's private key and stores the returned token
 - [ ] `weblisk operator token` auto-refreshes the token when less than 1 hour remaining before expiry
+- [ ] `weblisk operator revoke` invalidates target operator's public key and tokens (admin only)
+- [ ] `weblisk operator revoke` prevents self-revocation and revoking the last admin
+- [ ] `weblisk operator list` shows all registered operators with name, role, status, and registration date
 - [ ] All commands output human-readable tables by default and structured JSON with --json flag
 - [ ] Destructive commands (agents deregister, federation revoke) require --confirm or interactive name-confirmation
 - [ ] `weblisk approvals reject` requires a --reason argument for every rejection

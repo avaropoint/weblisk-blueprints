@@ -401,6 +401,80 @@ security events and routes notifications per severity.
 
 ---
 
+## Supply Chain Security
+
+The framework minimizes dependencies to reduce attack surface. When
+dependencies are used (server-side implementations), they must be
+pinned, audited, and monitored.
+
+### Dependency Rules
+
+| Rule | Enforcement | Rationale |
+|------|-------------|-----------|
+| **Pin exact versions** | Lockfile required (go.sum, package-lock.json) | Prevent silent upgrades |
+| **Minimal dependency count** | Code review policy | Fewer deps = smaller attack surface |
+| **No transitive wildcard** | Lockfile verification | Every transitive dep must be in lockfile |
+| **Audit on add** | `weblisk validate --deps` | New deps trigger license + vulnerability check |
+| **Monitor for CVEs** | CI + daily scan | Known vulnerabilities flagged immediately |
+
+### Client-Side Policy
+
+The Weblisk client framework has **zero runtime dependencies**. It
+ships as a single self-contained JavaScript file. This eliminates
+supply chain risk for the browser environment entirely.
+
+No npm packages, no CDN imports, no dynamic loading of third-party
+code. Islands that need external libraries declare them explicitly in
+their blueprint and the operator accepts the dependency.
+
+### Server-Side Policy
+
+Server implementations (Go, Cloudflare Workers) use the platform's
+standard library where possible. Required dependencies:
+
+```yaml
+# Go platform — acceptable dependencies
+allowed_categories:
+  - stdlib              # Always allowed
+  - crypto/primitives   # ed25519, aes, argon2 (well-audited libs)
+  - http/routing        # Standard library net/http preferred
+  - database/drivers    # SQLite, PostgreSQL drivers
+
+# NOT allowed without explicit justification
+restricted:
+  - utility_frameworks  # No lodash-equivalents; use stdlib
+  - ORMs               # Use raw SQL with parameterized queries
+  - reflection_heavy   # Prefer explicit code over magic
+```
+
+### Lockfile Verification
+
+The CLI validates lockfile integrity as part of `weblisk validate`:
+
+```bash
+$ weblisk validate --deps
+Checking dependency integrity...
+✓ go.sum matches go.mod (47 dependencies, all pinned)
+✓ No known vulnerabilities (checked against OSV database)
+✓ No new dependencies since last audit
+
+$ weblisk validate --deps
+✗ 1 issue found:
+  NEW: github.com/example/lib v1.2.3 (added since last audit)
+  Action: Run `weblisk deps audit github.com/example/lib` to review
+```
+
+### Vulnerability Response
+
+| Severity | Response Time | Action |
+|----------|--------------|--------|
+| Critical (CVSS ≥ 9.0) | 24 hours | Patch or remove dependency |
+| High (CVSS 7.0–8.9) | 72 hours | Patch, workaround, or isolate |
+| Medium (CVSS 4.0–6.9) | 1 week | Patch in next release |
+| Low (CVSS < 4.0) | Next release | Track and patch when convenient |
+
+---
+
 ## Implementation Notes
 
 - Security is defense-in-depth — no single layer is sufficient alone
@@ -461,3 +535,11 @@ is inherited and extends the agent-specific verification checklist.
 - [ ] Security events emitted for all threat classifications
 - [ ] Critical security events trigger immediate alerts
 - [ ] Failed auth attempts logged with source information
+
+### Supply Chain
+
+- [ ] All dependencies pinned to exact versions in lockfile
+- [ ] No new dependencies added without `weblisk deps audit` review
+- [ ] `weblisk validate --deps` passes (no known vulnerabilities)
+- [ ] Client-side framework has zero external runtime dependencies
+- [ ] Critical CVEs patched or mitigated within 24 hours
