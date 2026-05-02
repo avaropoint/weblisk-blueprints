@@ -169,6 +169,61 @@ Service keys follow the same rotation protocol but use
 `WL_KEY_PASSPHRASE` / `WL_KEY_PASSPHRASE_NEW` env vars instead of
 interactive prompts.
 
+### Key Recovery
+
+If an operator loses their passphrase, the encrypted private key is
+**unrecoverable by design**. There is no backdoor, no master key, and
+no reset mechanism. This section defines the recovery procedures.
+
+#### Recovery via Backup Operator
+
+The primary recovery path is another registered operator:
+
+```
+1. Second operator (already registered, admin role) logs in
+2. Runs: weblisk operator revoke <compromised-operator-name>
+3. Orchestrator invalidates old operator's public key and token
+4. Compromised operator runs: weblisk operator init (generates new key pair)
+5. Compromised operator runs: weblisk operator register --orch <url>
+6. Registration appears in approvals queue (not auto-approved)
+7. Second operator runs: weblisk approvals accept <registration-id>
+8. Access restored with new identity
+```
+
+**Requirement:** Every production deployment MUST have at least two
+registered operators. A single-operator deployment has no recovery
+path if the passphrase is lost.
+
+#### Recovery via Bootstrap Reset
+
+If ALL operator keys are lost (catastrophic scenario):
+
+```
+1. Stop the orchestrator
+2. Delete the operator registry from orchestrator storage
+3. Restart the orchestrator (enters bootstrap mode)
+4. First operator to register becomes admin (same as initial setup)
+5. All existing operator tokens are invalidated
+```
+
+This is destructive — it resets the entire operator trust chain.
+Agent registrations and data are preserved, but all operator
+permissions must be re-established.
+
+#### Key Backup Policy
+
+Operators SHOULD maintain an encrypted backup of their key file in a
+separate secure location (hardware security key, printed paper key,
+safety deposit box). The backup is the encrypted `.key` file itself —
+never the raw private key or passphrase.
+
+| Policy | Recommendation |
+|--------|---------------|
+| Minimum operators per deployment | 2 (production), 1 (development) |
+| Key backup storage | Offline, physically separated from primary |
+| Passphrase storage | Memory only — or written and stored in physical safe |
+| Recovery test frequency | Quarterly (verify backup operator can revoke/re-register) |
+
 ## Message Signing
 
 ### Sign
@@ -687,3 +742,6 @@ Implementation MUST:
 - [ ] Never log or expose private keys
 - [ ] Key rotation registers new public key signed by old key before revoking old key
 - [ ] Revoked keys stored as .key.revoked for audit trail
+- [ ] Production deployments have minimum 2 registered operators for recovery
+- [ ] Backup operator can revoke and re-register a compromised operator
+- [ ] Bootstrap reset (all keys lost) requires orchestrator restart and re-registration

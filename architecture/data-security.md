@@ -407,6 +407,158 @@ environment, managed by the orchestrator's secrets subsystem.
 
 ---
 
+## Generated Code Validation
+
+LLM-generated code is the runtime. It must be validated for security
+vulnerabilities before deployment. The CLI runs a post-generation
+security scan as part of every `weblisk server init`, `weblisk agent create`,
+and `weblisk domain create` command.
+
+### Validation Pipeline
+
+```
+LLM generates code
+  → Static security scan (immediate, blocking)
+    → If pass: write files to disk
+    → If fail: report violations, do NOT write files, exit 1
+```
+
+### Security Checks
+
+| Category | Check | Severity | Action on Fail |
+|----------|-------|----------|---------------|
+| **Secrets** | No string literals matching credential patterns (API keys, tokens, base64 secrets) | Error | Block |
+| **Injection** | No string concatenation in SQL/query construction | Error | Block |
+| **Injection** | No `exec`, `eval`, `system`, `child_process.exec` with user input | Error | Block |
+| **Network** | No hardcoded URLs or IP addresses (use config) | Warning | Warn |
+| **Network** | No outbound HTTP calls to undeclared endpoints | Error | Block |
+| **Filesystem** | No reads/writes outside declared storage paths | Error | Block |
+| **Filesystem** | No access to `.weblisk/`, `../`, or absolute paths | Error | Block |
+| **Crypto** | No custom crypto implementations (use framework primitives) | Error | Block |
+| **Crypto** | No weak algorithms (MD5, SHA1 for security, DES, RC4) | Error | Block |
+| **Auth** | No hardcoded credentials, passwords, or tokens | Error | Block |
+| **Logging** | No logging of request bodies, secrets, or PII fields | Warning | Warn |
+| **Dependencies** | No undeclared imports/packages beyond stdlib + framework | Error | Block |
+
+### Pattern Matching
+
+The scanner uses AST-level analysis where possible (Go AST, JS/TS AST),
+falling back to regex for languages without AST tooling:
+
+```yaml
+secret_patterns:
+  - pattern: '[A-Za-z0-9+/]{40,}'     # Base64-encoded keys
+  - pattern: 'sk_live_[a-zA-Z0-9]{24,}'  # Stripe-style keys
+  - pattern: 'AKIA[0-9A-Z]{16}'          # AWS access keys
+  - pattern: 'ghp_[a-zA-Z0-9]{36}'       # GitHub PATs
+  - pattern: '-----BEGIN.*PRIVATE KEY-----'  # PEM keys
+
+injection_patterns:
+  - pattern: 'fmt\.Sprintf.*SELECT|INSERT|UPDATE|DELETE'
+  - pattern: 'string\s*\+.*query|sql'
+  - pattern: 'exec\(.*\$|`.*\$'
+
+unsafe_apis:
+  go: [os/exec.Command with variable args, unsafe package]
+  js: [eval, Function(), child_process.exec with interpolation]
+```
+
+### Override Mechanism
+
+False positives can be suppressed with inline annotations:
+
+```go
+// weblisk:security-ignore reason="URL is build-time constant from config"
+const healthEndpoint = "http://localhost:9800/v1/health"
+```
+
+- Annotations are logged in the security audit trail
+- Each annotation requires a `reason` — bare `security-ignore` is rejected
+- Annotations are reviewable via `weblisk validate --security-overrides`
+
+### CLI Integration
+
+```bash
+$ weblisk server init --platform go
+Generating server implementation...
+Running security validation...
+✓ 12 files generated, 0 security violations
+
+$ weblisk agent create email-send
+Generating agent implementation...
+Running security validation...
+✗ 2 security violations found:
+  agents/email-send/handler.go:45 — hardcoded URL (use config)
+  agents/email-send/handler.go:78 — string concatenation in query
+Files NOT written. Fix blueprint and re-run.
+```
+
+---
+
+## Blueprint Integrity
+
+Blueprints drive code generation. A tampered blueprint produces
+malicious generated code. Blueprint integrity verification ensures
+the generation pipeline operates only on trusted input.
+
+### Threat
+
+If an attacker modifies a blueprint file (e.g., injects a malicious
+agent declaration, alters a data contract to expose forbidden fields,
+or changes a secret declaration to exfiltrate credentials), the LLM
+will faithfully generate code implementing the attacker's intent.
+
+### Integrity Controls
+
+| Control | Enforcement | Description |
+|---------|-------------|-------------|
+| **Git history** | VCS | All blueprint changes tracked with commit signatures |
+| **Schema validation** | CLI (`weblisk validate`) | Blueprints must pass schema before generation |
+| **Diff review** | Human | Blueprint changes require PR review (organizational policy) |
+| **Hash manifest** | CLI | `.weblisk/blueprint-manifest.sha256` records hash of every blueprint used in last generation |
+| **Generation audit** | CLI | Every `server init` / `agent create` logs which blueprints + versions were used |
+
+### Blueprint Manifest
+
+The CLI generates a manifest after every successful code generation:
+
+```
+# .weblisk/blueprint-manifest.sha256
+# Generated: 2026-05-02T14:30:00Z
+# Command: weblisk server init --platform go
+e3b0c44298fc1c149afbf4c8996fb924  architecture/orchestrator.md
+a7ffc6f8bf1ed76651c14756a061d662  architecture/gateway.md
+2c26b46b68ffc68ff99b453c1d304130  agents/email-send/agent.yaml
+fcde2b2edba56bf408601fb721fe9b5c  domains/content/domain.yaml
+d7a8fbb307d7809469ca9abcb0082e4f  patterns/secrets.md
+```
+
+**On subsequent generation runs:**
+1. CLI computes current SHA-256 of each blueprint file
+2. Compares against manifest from last generation
+3. If blueprints changed: logs diff summary, proceeds with new generation
+4. If `--verify-only`: reports changes without generating (for CI pipelines)
+
+### Signed Commits (Recommended)
+
+For high-security deployments, blueprint repositories SHOULD require
+signed commits (GPG or SSH signatures). The CLI can optionally verify
+commit signatures before generation:
+
+```bash
+$ weblisk server init --platform go --verify-signatures
+Verifying blueprint commit signatures...
+✓ All 14 blueprint files from signed commits
+Generating server implementation...
+```
+
+| Flag | Description |
+|------|-------------|
+| `--verify-signatures` | Require all blueprint files to be from signed Git commits |
+| `--allowed-signers <file>` | Path to allowed signers file (SSH) or keyring (GPG) |
+
+---
+
 ## Version Control Protection
 
 Every Weblisk project MUST include `.gitignore` rules that prevent
@@ -586,3 +738,8 @@ data_security:
 - [ ] Every project template ships with .gitignore containing .weblisk/secrets/, .weblisk/keys/, .weblisk/token
 - [ ] CLI `weblisk new` scaffolds .gitignore with required secret exclusion entries
 - [ ] CLI `weblisk doctor` validates .gitignore contains required entries and warns if missing
+- [ ] Post-generation security scan blocks file write when violations are found (injection, hardcoded creds, unsafe APIs)
+- [ ] Generated code scanner uses AST-level analysis for Go and JS/TS; regex fallback for other languages
+- [ ] Security-ignore annotations require a reason and are logged in audit trail
+- [ ] Blueprint manifest (.weblisk/blueprint-manifest.sha256) records SHA-256 of every blueprint used in generation
+- [ ] `weblisk server init --verify-signatures` validates blueprint files are from signed commits before generation

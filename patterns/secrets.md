@@ -414,6 +414,96 @@ Every secret operation is logged:
 
 ---
 
+## Deployment Secret Delivery
+
+Secrets must reach production environments without passing through
+source control, CI logs, or build artifacts. This section defines how
+secrets flow from operator to running deployment.
+
+### Delivery Models
+
+| Model | Flow | Best For |
+|-------|------|----------|
+| **Direct provision** | Operator runs `weblisk secrets set` on production host | Single-server, VPS |
+| **Environment injection** | Platform injects env vars at deploy time | PaaS (Cloudflare, Railway, Fly) |
+| **Vault sync** | CI pulls from vault → sets env vars / writes files | Enterprise, multi-service |
+| **Sealed secrets** | Encrypted secret committed to repo, decrypted at deploy | Kubernetes, GitOps |
+
+### Direct Provision (File Store)
+
+For file-based deployments, the operator provisions secrets before
+first start:
+
+```bash
+# On production host
+$ weblisk secrets set email-send SMTP_PASSWORD
+Enter value: ********
+✓ Written to .weblisk/secrets/email-send/SMTP_PASSWORD (0600)
+
+$ weblisk server start
+✓ All required secrets present. Starting...
+```
+
+### Environment Injection (PaaS)
+
+When `WL_SECRET_STORE=env`, the framework reads secrets from
+environment variables. The CI/CD pipeline sets these from the
+platform's secret store:
+
+```yaml
+# Example: GitHub Actions → Cloudflare Workers
+deploy:
+  steps:
+    - run: wrangler secret put SMTP_PASSWORD <<< "${{ secrets.SMTP_PASSWORD }}"
+    - run: wrangler secret put LLM_API_KEY <<< "${{ secrets.LLM_API_KEY }}"
+```
+
+**Rules for CI/CD pipelines:**
+1. Secrets are injected from the platform's secret store (GitHub Secrets,
+   Cloudflare Secrets, etc.) — never from repository files
+2. Secret values MUST NOT appear in pipeline logs. Use `::add-mask::`
+   or equivalent log masking
+3. Secret env vars are scoped to the deploy step only — not available
+   in build/test steps unless explicitly required
+4. Pipeline configuration files (`.github/workflows/*.yml`) commit to
+   the repo but reference secret names, never values
+
+### Vault Sync
+
+For vault-backed deployments (`WL_SECRET_STORE=vault`):
+
+```bash
+# CI pipeline fetches secrets from vault and provisions them
+export VAULT_TOKEN=$(vault login -method=approle ...)
+vault kv get -field=value secret/weblisk/email-send/SMTP_PASSWORD | \
+  weblisk secrets set email-send SMTP_PASSWORD --stdin
+```
+
+### Sealed Secrets (Kubernetes / GitOps)
+
+For Kubernetes deployments, secrets can be encrypted and committed:
+
+```bash
+# Encrypt secret for cluster (only cluster can decrypt)
+$ kubeseal --format=yaml < secret.yaml > sealed-secret.yaml
+$ git add sealed-secret.yaml  # Safe to commit — encrypted
+```
+
+The sealed secret is decrypted by the cluster controller at deploy
+time and mounted as files or env vars in the pod.
+
+### What MUST NOT Be in CI/CD Pipelines
+
+| Never Do This | Why | Alternative |
+|--------------|-----|-------------|
+| Hardcode secrets in workflow files | Plain text in repo | Use platform secret store |
+| Echo/print secret values for debugging | Appears in logs | Use `weblisk secrets list` to verify presence |
+| Pass secrets as CLI arguments | Shell history, process list | Use `--stdin` flag or interactive prompt |
+| Store secrets in build artifacts | Artifacts are downloadable | Inject at runtime only |
+| Use same secrets across environments | Blast radius | Separate secret sets per environment |
+
+---
+
 ## Implementation Notes
 
 - The file-based store is the default and works for all deployment
@@ -450,3 +540,7 @@ Every secret operation is logged:
 - [ ] File-based store uses 0600 permissions
 - [ ] Secret metadata tracks creation, rotation, and expiry
 - [ ] Shared secrets are accessible only to declaring agents
+- [ ] CI/CD pipelines inject secrets from platform secret stores, never from repo files
+- [ ] Secret values never appear in CI/CD logs (log masking enforced)
+- [ ] Secrets are scoped per-environment (dev/staging/prod use different values)
+- [ ] `weblisk secrets set` uses interactive prompt or --stdin, never CLI arguments
