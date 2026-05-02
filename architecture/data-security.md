@@ -331,12 +331,14 @@ exposed.
 
 ### What `.weblisk/` Contains
 
-| File | Sensitivity | Who Reads It |
-|------|-------------|-------------|
-| `config.yaml` | High — may contain LLM API keys, database URLs | CLI, orchestrator process |
-| `keys/operator.key` | Critical — Ed25519 private key | CLI only |
-| `keys/operator.pub` | Low — public key | CLI, orchestrator |
-| `token` | High — auth token for orchestrator | CLI only |
+| File | Sensitivity | Protection | Who Reads It |
+|------|-------------|-----------|-------------|
+| `config.yaml` | High — may contain LLM API keys, database URLs | File permissions (0600) | CLI, orchestrator process |
+| `keys/operator.key` | Critical — Ed25519 private key | Passphrase-encrypted (Argon2id + AES-256-GCM) | CLI only |
+| `keys/<service>.key` | Critical — Ed25519 private key | Encrypted (passphrase via env) or permissions-only | Orchestrator/gateway/agent process |
+| `keys/*.pub` | Low — public key | None needed | CLI, orchestrator |
+| `secrets/<agent>/<KEY>` | High — API keys, passwords | File permissions (0600), per-agent isolation | Orchestrator (on behalf of agent) |
+| `token` | High — auth token for orchestrator | File permissions (0600) | CLI only |
 
 ### Non-Bypassable Rules
 
