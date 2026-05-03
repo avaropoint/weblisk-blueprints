@@ -388,56 +388,12 @@ routes:
     sensitivity: pii
     data_masking: user-profile
 
-  # Island data routes (authenticated, specific to page components)
-  - path: /islands/:page/:island
-    target: resolve:island           # Dynamic resolution
-    auth: required
-    roles: [user, editor, admin]
-    rate_limit: 120/min
-
   # Static assets (public, cacheable)
   - path: /assets/*
     target: static:filesystem
     auth: none
     cache: immutable
     dotfiles: deny               # NEVER serve dotfiles from filesystem
-```
-
-### Route Resolution for Islands
-
-When a Weblisk island requests data, the URL encodes the page context
-and island identity:
-
-```
-GET /islands/dashboard/metrics → resolves to → health domain, metrics action
-GET /islands/editor/seo-score  → resolves to → seo domain, score action
-GET /islands/settings/profile  → resolves to → user-management, get-profile action
-```
-
-The gateway maintains an island routing table that maps
-`page:island` pairs to `domain:action` targets. This table is
-configured in the application's blueprint, not hardcoded:
-
-```yaml
-islands:
-  dashboard:
-    metrics:
-      target: domain:health
-      action: aggregate-metrics
-      roles: [user, editor, admin]
-    alerts:
-      target: agent:alerting
-      action: recent
-      roles: [admin]
-  editor:
-    seo-score:
-      target: domain:seo
-      action: quick-score
-      roles: [editor, admin]
-    content-quality:
-      target: domain:content
-      action: quick-score
-      roles: [editor, admin]
 ```
 
 ---
@@ -780,7 +736,6 @@ Local routing configuration mapping external paths to internal agents.
 | Field | Type | JSON Key | Required | Description |
 |-------|------|----------|----------|-------------|
 | Routes | []Route | `routes` | yes | Ordered list of route rules |
-| Islands | []string | `islands` | no | Isolated agent groups with separate routing |
 | UpdatedAt | int64 | `updated_at` | yes | Unix epoch of last route table refresh |
 
 ### Route
@@ -884,7 +839,6 @@ endpoints. Summary:
 | Interface | Type | Description |
 |-----------|------|-------------|
 | `GET/POST/PUT/DELETE /api/*` | HTTP (external) | Application routes — proxied to domain agents per route table |
-| `GET /islands/:page/:island` | HTTP (external) | Island data routes — resolved to domain:action targets |
 | `POST /auth/*` | HTTP (external) | Authentication endpoints (login, logout, MFA) — handled internally |
 | `GET /health` | HTTP (external) | Gateway health status |
 | `GET /assets/*` | HTTP (external) | Static asset serving (public, cacheable) |
@@ -927,6 +881,5 @@ The gateway's request lifecycle is fully documented in the
 - [ ] Response sanitization strips X-Gateway-*, X-Agent-*, Server, and X-Powered-By headers before reaching the browser
 - [ ] Security headers set on every response: X-Content-Type-Options: nosniff, X-Frame-Options: DENY, CSP, Referrer-Policy, COOP
 - [ ] Requests to /v1/admin/* return 404 (platform admin routes are never served by the application gateway)
-- [ ] Island routes resolve page:island pairs to domain:action targets with per-island role authorization
 - [ ] Agent failover returns 503 with Retry-After when agent is offline; session remains valid without re-authentication
 - [ ] Session store encryption uses AES-256-GCM with key derived from gateway's Ed25519 private key via HKDF

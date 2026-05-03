@@ -116,7 +116,7 @@ requires:
     bindings:
       types:
         - name: RouteTable
-          fields_used: [routes, islands]
+          fields_used: [routes]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
