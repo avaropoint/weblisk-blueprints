@@ -669,26 +669,26 @@ Data leaving the framework carries a TTL that the client MUST honour:
 
 The Weblisk client framework renders pages as compositions of
 independent islands. Each island is a self-contained UI component
-that fetches its own data from the server.
+that fetches its own data from the server via standard API routes.
 
 ```
 Page: /dashboard
 ┌────────────────────────────────────────────┐
 │  ┌──────────────────┐  ┌────────────────┐ │
 │  │  Navigation       │  │  User Menu     │ │
-│  │  (static island)  │  │  GET /islands/ │ │
-│  │                   │  │  dashboard/    │ │
-│  │                   │  │  user-menu     │ │
+│  │  (static island)  │  │  GET /api/     │ │
+│  │                   │  │  users/me      │ │
+│  │                   │  │                │ │
 │  └──────────────────┘  └────────────────┘ │
 │  ┌──────────────────┐  ┌────────────────┐ │
 │  │  Metrics Panel    │  │  Alert Feed    │ │
-│  │  GET /islands/    │  │  GET /islands/ │ │
-│  │  dashboard/       │  │  dashboard/    │ │
-│  │  metrics          │  │  alerts        │ │
+│  │  GET /api/        │  │  GET /api/     │ │
+│  │  health/metrics   │  │  alerts/       │ │
+│  │                   │  │  recent        │ │
 │  └──────────────────┘  └────────────────┘ │
 │  ┌─────────────────────────────────────┐  │
 │  │  Strategy Progress                  │  │
-│  │  GET /islands/dashboard/strategies  │  │
+│  │  GET /api/strategies/active         │  │
 │  └─────────────────────────────────────┘  │
 └────────────────────────────────────────────┘
 ```
@@ -698,8 +698,8 @@ Page: /dashboard
 Every island request carries the same session cookie. The gateway:
 
 1. Validates the session once per request (not once per page)
-2. Authorizes each island route independently
-3. Routes each island to the appropriate agent/domain
+2. Authorizes each API route independently
+3. Routes each request to the appropriate agent/domain
 4. Returns the response directly to the island
 
 #### Concurrent Safety
@@ -717,9 +717,9 @@ Multiple islands on the same page fire requests concurrently:
 If one island's agent is down:
 
 ```
-GET /islands/dashboard/metrics  → 200 OK (health domain responding)
-GET /islands/dashboard/alerts   → 503 (alerting agent down)
-GET /islands/dashboard/strategies → 200 OK (orchestrator responding)
+GET /api/health/metrics     → 200 OK (health domain responding)
+GET /api/alerts/recent      → 503 (alerting agent down)
+GET /api/strategies/active  → 200 OK (orchestrator responding)
 ```
 
 The browser renders the page with the failing island showing a loading
