@@ -333,6 +333,8 @@ $ weblisk secret rotate email-send SMTP_PASSWORD
 **Security rules:**
 - `set` prompts for the value interactively — it is NEVER passed as a
   CLI argument (which would leak into shell history).
+- `set --stdin` reads the value from stdin (for piping from a vault
+  or secrets manager in CI/CD — never from a shell argument).
 - `get` prints a warning that secret values should not be displayed in
   shared terminals. Requires `--confirm` flag.
 - All operations write to `.weblisk/secrets/{agent}/{KEY}` with 0600
@@ -354,11 +356,17 @@ with the platform blueprint to generate the implementation.
 ```bash
 $ weblisk server init --platform go
 $ weblisk server init --platform cloudflare
+$ weblisk server init --platform node
+$ weblisk server init --platform go --verify-signatures
 ```
 
 | Flag | Description |
 |------|-------------|
-| `--platform <p>` | Target platform: `go`, `cloudflare` (default: `go`) |
+| `--platform <p>` | Target platform: `go`, `cloudflare`, `node`, `rust` (default: `go`) |
+| `--verify-signatures` | Require all blueprint files to be from signed Git commits |
+| `--allowed-signers <file>` | Path to allowed signers file (SSH) or keyring (GPG) |
+| `--encrypt-keys` | Encrypt generated service keys at rest |
+| `--verify-only` | Report blueprint changes without generating (for CI) |
 
 ### `weblisk server start`
 
@@ -395,7 +403,7 @@ $ weblisk agent create forecaster --platform cloudflare
 
 | Flag | Description |
 |------|-------------|
-| `--platform <p>` | Target platform (default: `go`) |
+| `--platform <p>` | Target platform: `go`, `cloudflare`, `node`, `rust` (default: `go`) |
 
 ### `weblisk agent start`
 
@@ -433,11 +441,13 @@ Generate a domain controller implementation from its spec.
 
 ```bash
 $ weblisk domain create seo --platform go
+$ weblisk domain create seo --from marketplace
 ```
 
 | Flag | Description |
 |------|-------------|
-| `--platform <p>` | Target platform (default: `go`) |
+| `--platform <p>` | Target platform: `go`, `cloudflare`, `node`, `rust` (default: `go`) |
+| `--from marketplace` | Generate from a purchased marketplace asset |
 
 ### `weblisk domain start`
 
@@ -457,7 +467,7 @@ $ weblisk gateway create --platform go
 
 | Flag | Description |
 |------|-------------|
-| `--platform <p>` | Target platform (default: `go`) |
+| `--platform <p>` | Target platform: `go`, `cloudflare`, `node`, `rust` (default: `go`) |
 
 ### `weblisk gateway start`
 
@@ -489,7 +499,14 @@ Validate blueprint compliance for the current project.
 ```bash
 $ weblisk validate
 $ weblisk validate agents/seo-analyzer.yaml
+$ weblisk validate --deps
+$ weblisk validate --security-overrides
 ```
+
+| Flag | Description |
+|------|-------------|
+| `--deps` | Check dependency lockfile integrity and known vulnerabilities |
+| `--security-overrides` | Validate any security override declarations |
 
 Checks frontmatter, required sections, type definitions, dependency
 resolution, and compliance level assignment.
@@ -894,6 +911,38 @@ Linked Observations: 120
 Linked Recommendations: 38 (12 applied, 5 pending, 21 rejected)
 ```
 
+### `weblisk strategies update <id>`
+
+Update strategy targets or priority.
+
+```bash
+$ weblisk strategies update strat-001 --priority 2
+✓ Strategy strat-001 updated: priority 1 → 2
+
+$ weblisk strategies update strat-001 --deadline 2026-12-31
+✓ Strategy strat-001 updated: deadline extended to 2026-12-31
+```
+
+| Flag | Description |
+|------|-------------|
+| `--priority <n>` | New priority (1–5) |
+| `--deadline <date>` | New deadline (YYYY-MM-DD) |
+| `--json` | Accept full strategy update as JSON on stdin |
+
+### `weblisk strategies delete <id>`
+
+Archive a strategy (admin only).
+
+```bash
+$ weblisk strategies delete strat-003
+⚠ This will archive strategy 'strat-003' (Fix compliance gaps).
+  Type strategy ID to confirm: strat-003
+✓ Strategy strat-003 archived.
+```
+
+- Archived strategies remain queryable but stop generating workflows
+- Linked observations and recommendations are preserved
+
 ---
 
 ## Federation Commands
@@ -934,6 +983,44 @@ $ weblisk federations revoke partner-corp
 ✓ Trust revoked for partner-corp.
 ```
 
+### `weblisk federations describe <name>`
+
+Full detail for a federation peer.
+
+```bash
+$ weblisk federations describe partner-corp
+Peer: partner-corp
+Tier:         partner
+Jurisdiction: US
+Status:       active
+Expires:      2026-07-15
+
+Capabilities:
+  seo:audit (inbound)
+
+Data Contract:
+  Inbound:   url, title, meta_description
+  Outbound:  score, findings[], recommendations[]
+  Forbidden: user_data, analytics, revenue
+  Retention: 24h
+
+Metrics (30d):
+  Requests:    340
+  Avg latency: 1.2s
+  Error rate:  0.3%
+```
+
+### `weblisk federations contracts`
+
+List all active data contracts across federation peers.
+
+```bash
+$ weblisk federations contracts
+PEER            CAPABILITY       INBOUND FIELDS     OUTBOUND FIELDS    JURISDICTION  RETENTION
+partner-corp    seo:audit        url,title,meta     score,findings     US            24h
+acme-eu         content:analyze  url,body           quality_score      EU            12h
+```
+
 ---
 
 ## Operator Commands
@@ -968,6 +1055,33 @@ bob     viewer   revoked   2026-02-20T14:30:00Z
 carol   admin    active    2026-03-01T11:00:00Z
 ```
 
+### `weblisk operators describe <name>`
+
+Full detail for a single operator.
+
+```bash
+$ weblisk operators describe alice
+Operator: alice
+Role:     admin
+Status:   active
+Registered: 2026-01-15T09:00:00Z
+Last active: 2026-04-25T14:30:00Z
+Key ID:      a1b2c3d4e5f6...
+```
+
+### `weblisk operators role <name> <role>`
+
+Change an operator's role (admin only).
+
+```bash
+$ weblisk operators role bob operator
+✓ Operator 'bob' role changed: viewer → operator
+```
+
+- Requires admin role
+- Valid roles: `admin`, `operator`, `auditor`, `viewer`
+- Cannot demote yourself (prevents accidental lockout)
+
 ---
 
 ## Audit Commands
@@ -991,6 +1105,426 @@ TIME        ACTOR           ACTION      TARGET          DETAIL
 - `--since <duration>` to filter by time (e.g., `--since 1h`)
 - `--limit <n>` to control results
 - `--export <json|csv>` to export
+
+---
+
+## Observation Commands
+
+### `weblisk observations list`
+
+Browse observation history from the lifecycle loop.
+
+```bash
+$ weblisk observations list
+TIME        AGENT           STRATEGY    TARGET          FINDING
+10:30:01    seo-analyzer    strat-001   /about.html     Missing meta description
+10:25:12    content-analyzer strat-004  /blog/post-1    Readability score 42 (below target 60)
+09:15:00    perf-auditor    strat-002   /products       LCP 4.2s (above 2.5s threshold)
+```
+
+- `--strategy <id>` to filter by strategy
+- `--agent <name>` to filter by source agent
+- `--since <duration>` to filter by time
+- `--limit <n>` to control results
+- `--json` for machine-readable output
+
+### `weblisk observations trends`
+
+View trend data for strategy metrics over time.
+
+```bash
+$ weblisk observations trends --strategy strat-001
+Strategy: strat-001 (Improve organic traffic)
+
+METRIC            7d AGO    CURRENT   TREND     GOAL
+organic_sessions  13800     14200     +2.9%     16800
+bounce_rate       0.45      0.42      -6.7%     0.35
+avg_session_dur   1m 20s    1m 35s    +18.8%    2m 00s
+```
+
+| Flag | Description |
+|------|-------------|
+| `--strategy <id>` | Strategy to show trends for (required) |
+| `--range <7d\|30d\|90d>` | Time range (default: `30d`) |
+| `--json` | Machine-readable output |
+
+---
+
+## Test Commands
+
+### `weblisk test conformance`
+
+Run protocol conformance tests against a running system.
+
+```bash
+$ weblisk test conformance --orch http://localhost:9800
+Running conformance suite against http://localhost:9800...
+
+Level 1 — Protocol Basics (12 tests)
+  ✓ L1-01  POST /v1/register accepts valid manifest
+  ✓ L1-02  POST /v1/register rejects unsigned request
+  ✓ L1-03  agent_id is 32 hex chars
+  ...
+  ✓ L1-12  GET /v1/health returns status
+
+Level 2 — Behavior (18 tests)
+  ✓ L2-01  Events delivered to scoped subscribers
+  ...
+
+Level 3 — Integration (8 tests)
+  ✓ L3-01  Full workflow execution end-to-end
+  ...
+
+Results: 38/38 passed (0 failed, 0 skipped)
+```
+
+| Flag | Description |
+|------|-------------|
+| `--orch <url>` | Orchestrator URL to test against |
+| `--level <n>` | Run specific level only (1, 2, or 3) |
+| `--test <id>` | Run a single test by ID (e.g., `L1-03`) |
+| `--verbose` | Show request/response details for each test |
+| `--json` | Machine-readable test results |
+
+- Level 1: Protocol basics — registration, auth, health, service directory
+- Level 2: Behavior — event delivery, scoping, namespace enforcement
+- Level 3: Integration — full lifecycle loop with real agents
+
+### `weblisk test mock-orchestrator`
+
+Start a lightweight mock orchestrator for local testing.
+
+```bash
+$ weblisk test mock-orchestrator --port 19800
+Mock orchestrator running on http://localhost:19800
+  - Accepts all valid registrations
+  - Issues test tokens (24h TTL)
+  - Stores registrations in memory
+  Press Ctrl+C to stop.
+```
+
+| Flag | Description |
+|------|-------------|
+| `--port <n>` | Port to listen on (default: `19800`) |
+
+- Verifies signature format but accepts any valid Ed25519 signature
+- Useful for agent development without a full hub running
+- Does NOT forward tasks or events (registration and discovery only)
+
+---
+
+## Deploy Commands
+
+### `weblisk deploy rollback`
+
+Roll back a deployed environment to a previous version.
+
+```bash
+$ weblisk deploy rollback --env production
+Rolling back production to previous version (v1.1.0 → v1.0.9)...
+✓ Rollback complete. Current version: v1.0.9
+
+$ weblisk deploy rollback --env production --version 1.1.0
+Rolling back production to v1.1.0...
+✓ Rollback complete. Current version: v1.1.0
+```
+
+| Flag | Description |
+|------|-------------|
+| `--env <name>` | Target environment (required) |
+| `--version <v>` | Specific version to roll back to (default: previous) |
+
+- Rollback redeploys the previous container image tag
+- Audit entry is logged for the rollback event
+- Auto-rollback is triggered if error rate exceeds 5% within 5
+  minutes of a deploy (see patterns/deployment.md)
+
+---
+
+## Dependency Commands
+
+### `weblisk deps audit`
+
+Audit project dependencies for security vulnerabilities and policy
+compliance.
+
+```bash
+$ weblisk deps audit
+Checking dependency integrity...
+✓ go.sum matches go.mod (47 dependencies, all pinned)
+✓ No known vulnerabilities (checked against OSV database)
+✓ No new dependencies since last audit
+
+$ weblisk deps audit github.com/example/lib
+Auditing github.com/example/lib v1.2.3...
+  License:       MIT ✓
+  Last release:  2026-03-15 (47 days ago) ✓
+  Maintainers:   3 active ✓
+  CVEs:          none ✓
+  Dependents:    1,204 packages
+  Verdict:       APPROVED
+```
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Machine-readable output |
+
+- Checks lockfile integrity (go.sum, package-lock.json, etc.)
+- Queries the OSV database for known vulnerabilities
+- Flags any new dependencies added since the last audit
+- Per-package audit shows license, activity, and CVE history
+
+---
+
+## Policy Commands
+
+### `weblisk policy validate`
+
+Validate the gateway policy file for syntax and semantic errors.
+
+```bash
+$ weblisk policy validate
+Validating policies.yaml...
+✓ 12 policies parsed successfully
+✓ No conflicting rules
+✓ All referenced roles exist
+✓ No unreachable rules detected
+```
+
+- Loads `policies.yaml` (or `WL_POLICY_FILE` path)
+- Checks for syntax errors, conflicting rules, unreachable policies
+- Validates that referenced roles and resources exist in the project
+
+### `weblisk policy test`
+
+Run policy assertions against sample requests.
+
+```bash
+$ weblisk policy test
+Running policy test suite (policies_test.yaml)...
+  ✓ admin can access /api/admin/users
+  ✓ viewer cannot POST /api/admin/users
+  ✓ unauthenticated blocked from /api/*
+  ✓ rate limit applies to /api/public/*
+
+4/4 assertions passed.
+```
+
+- Reads test cases from `policies_test.yaml`
+- Each test case specifies a request (role, method, path) and
+  expected outcome (allow/deny)
+- Exit code 1 if any assertion fails
+
+---
+
+## Marketplace Commands
+
+### `weblisk marketplace search <query>`
+
+Search the marketplace for capabilities, blueprints, and agents.
+
+```bash
+$ weblisk marketplace search "demand forecasting"
+ID        NAME                        TYPE          SELLER        PRICE     RATING
+mkt-001   Demand Forecasting Agent    capability    acme-ai       $0.02/req  4.8★
+mkt-002   Supply Chain Optimizer      capability    logicorp      $0.05/req  4.5★
+mkt-003   Inventory Predictor         installable   predict-co    $99/mo     4.2★
+```
+
+### `weblisk marketplace describe <id>`
+
+Full detail for a marketplace listing.
+
+```bash
+$ weblisk marketplace describe mkt-001
+Listing: mkt-001
+Name:     Demand Forecasting Agent
+Type:     capability (live service)
+Seller:   acme-ai
+Price:    $0.02 per request
+Rating:   4.8★ (142 reviews)
+
+Description:
+  ML-powered demand forecasting with 94% accuracy on retail data.
+  Supports weekly and monthly prediction horizons.
+
+Capabilities:
+  forecast:demand (inbound: sku, history[])
+                  (outbound: prediction, confidence, horizon)
+
+Data Contract:
+  Jurisdiction: US
+  Retention:    none (stateless)
+  Forbidden:    customer_pii, payment_data
+```
+
+### `weblisk marketplace buy <id>`
+
+Purchase a marketplace capability or asset.
+
+```bash
+$ weblisk marketplace buy mkt-001 --accept-contract --accept-pricing
+Purchasing 'Demand Forecasting Agent' from acme-ai...
+✓ Purchase confirmed.
+  Type:   live capability
+  Access: federation peering initiated with acme-ai
+  Status: Active — capability available in workflows
+```
+
+| Flag | Description |
+|------|-------------|
+| `--accept-contract` | Accept the data contract without interactive review |
+| `--accept-pricing` | Accept the pricing terms without interactive review |
+
+- Without flags, displays contract and pricing for interactive review
+- For live capabilities: initiates federation peering automatically
+- For installable assets: downloads the asset blueprint
+
+### `weblisk marketplace install <id>`
+
+Download and generate a purchased installable asset.
+
+```bash
+$ weblisk marketplace install mkt-003
+Downloading 'Inventory Predictor' blueprint...
+✓ Blueprint downloaded to agents/inventory-predictor/
+  Run: weblisk agent create inventory-predictor --platform go
+```
+
+- Only works for installable-type purchases (not live capabilities)
+- Downloads blueprint files and places them in the correct directory
+
+### `weblisk marketplace list`
+
+List active purchases and subscriptions.
+
+```bash
+$ weblisk marketplace list
+ID        NAME                       TYPE          STATUS    COST(30d)
+mkt-001   Demand Forecasting Agent   capability    active    $12.40
+mkt-003   Inventory Predictor        installable   installed $99.00
+```
+
+### `weblisk marketplace publish`
+
+Publish a capability or asset to the marketplace.
+
+```bash
+$ weblisk marketplace publish --type capability --config listing.yaml
+Validating listing...
+✓ Listing validated
+✓ Data contract parsed
+✓ Pricing terms set
+Publishing to marketplace...
+✓ Published as mkt-xxx: Demand Forecasting Agent
+```
+
+| Flag | Description |
+|------|-------------|
+| `--type <t>` | Listing type: `capability`, `installable` |
+| `--config <file>` | Path to listing configuration YAML |
+
+### `weblisk marketplace update <id>`
+
+Update a published listing's pricing or metadata.
+
+```bash
+$ weblisk marketplace update mkt-xxx --price 0.03
+✓ Listing mkt-xxx price updated: $0.02 → $0.03/req
+```
+
+### `weblisk marketplace delist <id>`
+
+Remove a listing from the marketplace.
+
+```bash
+$ weblisk marketplace delist mkt-xxx --reason "end of life"
+⚠ Active buyers will be notified. Existing contracts honored until expiry.
+  Type listing ID to confirm: mkt-xxx
+✓ Listing mkt-xxx delisted.
+```
+
+| Flag | Description |
+|------|-------------|
+| `--reason <text>` | Reason for delisting (required) |
+
+### `weblisk marketplace dashboard`
+
+View seller metrics for your published listings.
+
+```bash
+$ weblisk marketplace dashboard
+LISTING     REVENUE(30d)  REQUESTS(30d)  ACTIVE BUYERS  RATING
+mkt-xxx     $1,240.00     62,000         8              4.8★
+mkt-yyy     $340.00       3,400          2              4.5★
+
+Total revenue (30d): $1,580.00
+```
+
+### `weblisk marketplace reviews <id>`
+
+View reviews for a listing you own.
+
+```bash
+$ weblisk marketplace reviews mkt-xxx
+RATING  DATE        BUYER         TITLE
+5★      2026-04-20  logicorp      Excellent accuracy
+4★      2026-04-15  retailco      Good but slow on large datasets
+5★      2026-04-10  supplier-inc  Perfect for our use case
+```
+
+### `weblisk marketplace review <id>`
+
+Leave a review for a purchased listing.
+
+```bash
+$ weblisk marketplace review mkt-001 --rating 5 --title "Excellent accuracy"
+✓ Review submitted for mkt-001.
+```
+
+| Flag | Description |
+|------|-------------|
+| `--rating <1-5>` | Star rating (required) |
+| `--title <text>` | Review title (required) |
+
+### `weblisk marketplace collaborations`
+
+List all active marketplace collaborations (live capability connections).
+
+```bash
+$ weblisk marketplace collaborations
+ID       PEER         CAPABILITY         STATUS    REQUESTS(30d)  COST(30d)
+col-001  acme-ai      forecast:demand    active    620            $12.40
+col-002  logicorp     logistics:track    active    1,200          $60.00
+```
+
+### `weblisk marketplace usage <id>`
+
+View usage metrics for a specific collaboration.
+
+```bash
+$ weblisk marketplace usage mkt-001
+Collaboration: col-001 (acme-ai / forecast:demand)
+Period: 30 days
+
+  Requests:       620
+  Avg latency:    340ms
+  Error rate:     0.2%
+  Total cost:     $12.40
+  Avg cost/req:   $0.02
+```
+
+### `weblisk marketplace terminate <id>`
+
+Initiate termination of a marketplace collaboration.
+
+```bash
+$ weblisk marketplace terminate mkt-001
+⚠ This will terminate the collaboration with acme-ai (forecast:demand).
+  Active workflows using this capability will fail.
+  Type listing ID to confirm: mkt-001
+✓ Termination initiated. Grace period: 7 days.
+```
 
 ---
 
@@ -1103,6 +1637,8 @@ Every command that calls the orchestrator:
 - [ ] `weblisk operators revoke` invalidates target operator's public key and tokens (admin only)
 - [ ] `weblisk operators revoke` prevents self-revocation and revoking the last admin
 - [ ] `weblisk operators list` shows all registered operators with name, role, status, and registration date
+- [ ] `weblisk operators describe` shows full detail for a single operator
+- [ ] `weblisk operators role` changes operator role (admin only, cannot demote self)
 - [ ] All commands output human-readable tables by default and structured JSON with --json flag
 - [ ] Destructive commands (agents deregister, federations revoke) require --confirm or interactive name-confirmation
 - [ ] `weblisk approvals reject` requires a --reason argument for every rejection
@@ -1111,3 +1647,44 @@ Every command that calls the orchestrator:
 - [ ] Config resolution order: command-line flags > WL_ORCH env var > .weblisk/config.json (project) > ~/.weblisk/config.json (user)
 - [ ] Commands fail fast with a clear message and non-zero exit code when the orchestrator is unreachable
 - [ ] Authentication flow retries once on 401 by refreshing the token; prints re-register message if refresh also fails
+
+### Testing
+- [ ] `weblisk test conformance` runs protocol conformance tests against a running system
+- [ ] `weblisk test conformance --level` filters to specific level (1, 2, or 3)
+- [ ] `weblisk test conformance --test` runs a single test by ID
+- [ ] `weblisk test mock-orchestrator` starts a lightweight mock for local development
+- [ ] Mock orchestrator accepts valid registrations but does not forward tasks or events
+
+### Deployment
+- [ ] `weblisk deploy rollback` redeploys previous container image tag
+- [ ] `weblisk deploy rollback --version` targets a specific version
+- [ ] Rollback logs an audit entry
+
+### Dependencies & Security
+- [ ] `weblisk deps audit` checks lockfile integrity and queries OSV for vulnerabilities
+- [ ] `weblisk deps audit <package>` audits a specific dependency (license, activity, CVEs)
+- [ ] `weblisk validate --deps` runs lockfile integrity as part of validation
+- [ ] `weblisk server init --verify-signatures` validates signed commits before generation
+- [ ] `weblisk policy validate` checks gateway policy file for syntax and semantic errors
+- [ ] `weblisk policy test` runs policy assertions from policies_test.yaml
+
+### Strategies
+- [ ] `weblisk strategies update` modifies priority, deadline, or targets of an existing strategy
+- [ ] `weblisk strategies delete` archives a strategy (admin only, requires confirmation)
+
+### Observations
+- [ ] `weblisk observations list` shows observation history with strategy/agent filters
+- [ ] `weblisk observations trends` displays metric trend data for a strategy
+
+### Federation
+- [ ] `weblisk federations describe` shows full peer detail including data contract and metrics
+- [ ] `weblisk federations contracts` lists all active data contracts across peers
+
+### Marketplace
+- [ ] `weblisk marketplace search` queries the marketplace with text search
+- [ ] `weblisk marketplace describe` shows full listing detail including data contract
+- [ ] `weblisk marketplace buy` purchases a listing (interactive contract/pricing review by default)
+- [ ] `weblisk marketplace install` downloads and places installable asset blueprints
+- [ ] `weblisk marketplace publish` publishes a capability or asset with listing config
+- [ ] `weblisk marketplace list` shows active purchases and subscriptions
+- [ ] `weblisk marketplace terminate` initiates collaboration termination with grace period
