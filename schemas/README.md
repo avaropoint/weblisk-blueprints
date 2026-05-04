@@ -64,6 +64,7 @@ This applies to:
 | [pattern.md](pattern.md) | Cross-cutting patterns | `patterns/` directory |
 | [architecture.md](architecture.md) | System architecture components | `architecture/` directory |
 | [platform.md](platform.md) | Platform implementation bindings | `platforms/` directory |
+| [standard.md](standard.md) | Project-level blueprint standards | `standards/` directory |
 
 ## Schema Hierarchy
 
@@ -76,7 +77,8 @@ common.md (inherited by all)
 ├── protocol.md (type: protocol)
 ├── pattern.md (type: pattern)
 ├── architecture.md (type: architecture)
-└── platform.md (type: platform)
+├── platform.md (type: platform)
+└── standard.md (standards/ — project-level blueprint types)
 ```
 
 Every type-specific schema inherits all rules from `common.md`. Type-specific
