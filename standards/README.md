@@ -18,15 +18,15 @@ Standards document how to structure a Weblisk project so that:
 
 ## Standards vs. Schemas
 
-| | Schemas (`schemas/`) | Standards (`standards/`) |
-|---|---|---|
-| **Nature** | Enforced specification | Best practice guidance |
-| **Scope** | Framework internals | Developer projects |
-| **Validation** | Machine-checked | Developer judgment |
-| **Target** | Blueprint authors (framework) | Project authors (users) |
+|                | Schemas (`schemas/`)          | Standards (`standards/`) |
+| -------------- | ----------------------------- | ------------------------ |
+| **Nature**     | Enforced specification        | Best practice guidance   |
+| **Scope**      | Framework internals           | Developer projects       |
+| **Validation** | Machine-checked               | Developer judgment       |
+| **Target**     | Blueprint authors (framework) | Project authors (users)  |
 
 Schemas govern how the framework itself is built. Standards guide how
-developers build *with* the framework.
+developers build _with_ the framework.
 
 ## How Blueprint-Driven Development Works
 
@@ -51,30 +51,28 @@ and produces: files that conform to all constraints simultaneously.
 
 ### Three Project Modes
 
-| Mode | What You Describe | What You Get |
-|------|-------------------|--------------|
-| **Client-only** | global + code + pages | Static HTML/CSS/JS, CDN import map |
-| **Client + Islands** | Above + islands | Static site + interactive regions bound to agents |
-| **Full stack** | Above + domains + agents | Complete hub with client and server |
+| Mode                 | What You Describe        | What You Get                                      |
+| -------------------- | ------------------------ | ------------------------------------------------- |
+| **Client-only**      | global + code + pages    | Static HTML/CSS/JS, CDN import map                |
+| **Client + Islands** | Above + islands          | Static site + interactive regions bound to agents |
+| **Full stack**       | Above + domains + agents | Complete hub with client and server               |
 
 A developer picks their complexity. A portfolio is 3 blueprints. A SaaS
 app is 30. The structure scales because each blueprint is self-contained.
 
 ## Standards Index
 
-| Standard | Covers |
-|----------|--------|
-| [project-structure.md](project-structure.md) | How to organize a blueprint-driven project |
-| [global.md](global.md) | Project identity, brand, policies, dependencies |
-| [code.md](code.md) | Code generation conventions and repeatability |
-| [theme.md](theme.md) | Design tokens, typography, spacing, breakpoints |
-| [pages.md](pages.md) | Describing routes, layouts, sections, SEO, structured data |
-| [components.md](components.md) | Reusable UI: props, slots, variants, accessibility |
-| [islands.md](islands.md) | Interactive regions: agent binding, real-time, auth |
-| [assets.md](assets.md) | Static files, generated media, references |
-| [connections.md](connections.md) | External integrations, protocols, data sources |
-| [styles.md](styles.md) | Page-scoped style declarations extending the theme |
-| [shell.md](shell.md) | Client-side shell: hydration bootstrap, service worker, deferred init |
+| Standard                                     | Covers                                                     |
+| -------------------------------------------- | ---------------------------------------------------------- |
+| [project-structure.md](project-structure.md) | How to organize a blueprint-driven project                 |
+| [global.md](global.md)                       | Project identity, brand, policies, dependencies            |
+| [code.md](code.md)                           | Code generation conventions and repeatability              |
+| [theme.md](theme.md)                         | Design tokens, typography, spacing, breakpoints            |
+| [pages.md](pages.md)                         | Describing routes, layouts, sections, SEO, structured data |
+| [components.md](components.md)               | Reusable UI: props, slots, variants, accessibility         |
+| [islands.md](islands.md)                     | Interactive regions: agent binding, real-time, auth        |
+| [assets.md](assets.md)                       | Static files, generated media, references                  |
+| [connections.md](connections.md)             | External integrations, protocols, data sources             |
 
 ## Guiding Principles
 
