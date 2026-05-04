@@ -73,6 +73,8 @@ app is 30. The structure scales because each blueprint is self-contained.
 | [islands.md](islands.md) | Interactive regions: agent binding, real-time, auth |
 | [assets.md](assets.md) | Static files, generated media, references |
 | [connections.md](connections.md) | External integrations, protocols, data sources |
+| [styles.md](styles.md) | Page-scoped style declarations extending the theme |
+| [shell.md](shell.md) | Client-side shell: hydration bootstrap, service worker, deferred init |
 
 ## Guiding Principles
 
