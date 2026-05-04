@@ -192,3 +192,34 @@ template:
 
 The LLM resolves the composition tree and generates a single component
 that incorporates both card and button patterns.
+
+## Styles
+
+Component blueprints can declare styles inline alongside their
+structure, props, and variants. These describe visual behavior
+that is specific to the component and not covered by theme tokens
+or variant presets alone.
+
+```yaml
+# blueprints/components/sidebar.yaml
+type: component
+name: sidebar
+
+styles:
+  width: 280px
+  border_right: 1px solid var(--color-border)
+  padding: var(--space-4)
+  responsive:
+    md: { width: 240px }
+    sm: { display: none }
+```
+
+### Principles
+
+1. **Variants for presets, styles for structure** — Use `variants:` for
+   named visual presets (color, weight, border). Use `styles:` for
+   structural properties (width, padding, layout) that don't change
+   by variant.
+2. **Theme tokens first** — Reference design tokens where applicable.
+3. **Co-located** — Component styles live in the component blueprint,
+   not in a separate file.

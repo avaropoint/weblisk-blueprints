@@ -173,3 +173,62 @@ sections:
 
 This inserts the contact-form island into the page. The island's own
 blueprint defines its behavior, agent binding, and UI.
+
+## Styles
+
+Page blueprints can declare styles inline. These are scoped to the page
+and describe layout, spacing, and any section-specific visual treatment
+that goes beyond the global theme tokens.
+
+Styles live with the thing they describe — not in separate files.
+This keeps change management simple: when a section changes, its
+style declaration is in the same blueprint.
+
+### Section-Level Styles
+
+Each section can include a `styles:` key:
+
+```yaml
+sections:
+  - id: hero
+    type: hero
+    heading: "Welcome"
+    styles:
+      padding: var(--space-8) var(--space-4)
+      max_width: 800px
+      text_align: center
+
+  - id: features
+    type: features
+    columns: 3
+    styles:
+      gap: var(--space-6)
+      responsive:
+        md: { columns: 2 }
+        sm: { columns: 1 }
+```
+
+### Page-Level Styles
+
+For styles that apply to the entire page (not a specific section),
+use a top-level `styles:` key:
+
+```yaml
+type: page
+route: /
+styles:
+  max_width: 1200px
+  background: var(--color-surface)
+```
+
+### Principles
+
+1. **Theme tokens first** — Use `var(--token)` references from
+   `theme.yaml` wherever possible. Raw values only when no token exists.
+2. **Minimal overrides** — Page styles should only cover
+   structure, layout, and unique elements. Shared visual patterns
+   belong in the theme or component variants.
+3. **Co-located** — Styles live in the same file as the thing they
+   describe. No separate style-only blueprints.
+4. **Single CSS output** — The pipeline collects theme tokens,
+   component variants, and page styles into one generated CSS file.
