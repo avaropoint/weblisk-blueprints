@@ -124,7 +124,7 @@ contracts:
       override_constraints: Must preserve the four defined states and valid transitions
 
     - name: metric-emission
-      description: Emit base metrics in Prometheus exposition format
+      description: Emit base metrics in structured format
       parameters:
         - name: metrics
           type: "[]MetricDefinition"
@@ -150,7 +150,7 @@ contracts:
       description: Health probe endpoint returning structured component status
       inherited_by: Health Endpoint section
     - path: /v1/metrics
-      description: Prometheus-format metrics endpoint for monitoring systems
+      description: Structured metrics endpoint for monitoring systems
       inherited_by: Base Metrics section
 
   events:
@@ -324,7 +324,9 @@ Domains inherit agent metrics plus the domain-specific set from
 
 ### Metrics Format
 
-Metrics use the Prometheus exposition format:
+Metrics use a structured exposition format. The wire format is
+deployment-specific; the metric names, types, and labels are
+the specification contract:
 
 ```
 # HELP agent_requests_total Total requests processed
@@ -342,7 +344,7 @@ agent_request_duration_seconds_bucket{action="check",le="+Inf"} 1542
 
 ### Metrics Endpoint
 
-Agents SHOULD expose metrics at `GET /v1/metrics` in Prometheus
+Agents SHOULD expose metrics at `GET /v1/metrics` in a structured
 format. This endpoint is called by the health-monitor agent and
 any external monitoring system.
 
@@ -491,7 +493,7 @@ applicable:
 | `agent_errors_total` | `http.server.error.count` |
 
 Implementations that export to OTel collectors SHOULD use the OTel
-semantic convention names. Internal Prometheus exposition uses the
+semantic convention names. Internal metrics exposition uses the
 Weblisk names.
 
 ### IETF Health Check Draft
@@ -514,7 +516,7 @@ The health endpoint response structure aligns with the
 - [ ] Health response includes name, version, state, uptime
 - [ ] State transitions follow the defined state machine
 - [ ] Base metrics (requests, duration, errors, state) are emitted
-- [ ] Metrics exposed at GET /v1/metrics in Prometheus format
+- [ ] Metrics exposed at GET /v1/metrics in structured format
 - [ ] State changes emit component.state_change events
 - [ ] Degraded threshold is configurable per agent
 - [ ] Failure threshold triggers offline state

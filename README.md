@@ -235,7 +235,7 @@ Hub (self-sovereign deployment)
 - **Orchestrator** — Trust anchor: manages registration, namespace ownership, service directory distribution, channel brokering. Does NOT execute tasks or manage strategies
 - **Admin** — Separate admin gateway (different domain, different network, different auth model), operator ML-DSA-65 identity, mandatory MFA, IP allowlisting, 4-eyes approval for destructive actions
 - **CLI** — Terminal commands for system interrogation and management
-- **Observability** — Structured JSON logs, distributed trace propagation, Prometheus metrics
+- **Observability** — Structured JSON logs, distributed trace propagation, structured metrics
 - **Gateway** — Application edge security agent: end-user authentication, ABAC authorization, rate limiting, route protection, request mediation, response sanitization. Separate from admin gateway
 - **Browser Sessions** — Cryptographically-bound sessions with ML-DSA-65 signing, device binding, island-aware concurrency, and failover continuity
 - **Data Security** — Transport encryption, ML-DSA-65 message integrity, scope-aware federation boundaries, response sanitization, framework audit trail. Provides opt-in data-level primitives (scope, policy, privacy, enforcement) for agents handling sensitive data

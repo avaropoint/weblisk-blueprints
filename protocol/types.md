@@ -902,7 +902,7 @@ Result of evaluating a policy against an operation context.
 | Field | Type | JSON Key | Required | Description |
 |-------|------|----------|----------|-------------|
 | PolicyName | string | `policy_name` | yes | Which policy was evaluated |
-| Decision | string | `decision` | yes | `allow`, `deny`, or `audit` |
+| Decision | DecisionResult | `decision` | yes | Policy evaluation result — uses the canonical `DecisionResult` enum |
 | RuleMatched | string | `rule_matched` | no | Which rule triggered the decision |
 | Reason | string | `reason` | no | Human-readable explanation |
 | Timestamp | int64 | `timestamp` | yes | When the decision was made |
@@ -1134,7 +1134,7 @@ security:
 - [ ] DeadLetterEntry includes `original_event`, `failure_reason`, `last_error`, `attempts`, and `subscriber`
 - [ ] ScopeLevel enum is constrained to `public`, `internal`, `confidential`, `restricted`, `critical`
 - [ ] ScopeDeclaration requires `target`, `level`, `declared_by`, and `timestamp`
-- [ ] PolicyDecision requires `policy_name`, `decision`, and `timestamp`; decision is `allow`, `deny`, or `audit`
+- [ ] PolicyDecision requires `policy_name`, `decision`, and `timestamp`; decision uses DecisionResult enum
 - [ ] OperationIntent requires `id`, `agent`, `operation`, `resource`, `resource_class`, `scope`, `environment`, and `timestamp`; operation includes `list` and `query`
 - [ ] IntentDecision requires `intent_id`, `decision`, `authority`, and `timestamp`; decision uses DecisionResult enum
 - [ ] EnforcementDecision requires `id`, `boundary`, `agent`, `action`, `timestamp`, and `trace_id`; boundary includes `response`

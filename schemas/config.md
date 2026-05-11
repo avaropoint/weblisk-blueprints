@@ -139,8 +139,8 @@ observability:
 | `log_format` | enum | no | `json` | Output format. Use `text` for local development. |
 | `trace_enabled` | boolean | no | `false` | Enable span emission and X-Trace-Id propagation |
 | `trace_sample_rate` | float | no | `1.0` | Fraction of requests to trace |
-| `metrics_enabled` | boolean | no | `true` | Expose Prometheus metrics at `/metrics` on each component |
-| `otlp_endpoint` | string | no | — | Send traces/metrics to this OTLP collector |
+| `metrics_enabled` | boolean | no | `true` | Expose structured metrics at `/metrics` on each component |
+| `trace_export_endpoint` | string | no | — | Send traces/metrics to an external collector |
 
 ## Port Conventions
 
