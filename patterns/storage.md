@@ -429,6 +429,81 @@ Every migration MUST have a `down` section for rollback. Migrations
 are applied in version order and tracked in a `schema_migrations`
 table.
 
+### Schema Version Interface
+
+Agents that declare migrations MUST expose schema version state
+through the following interface. This enables the migration
+governance pipeline (`patterns/migration`) to validate plans against
+current schema state and record migration history.
+
+```yaml
+schema_version_interface:
+  operations:
+    - name: GetSchemaVersion
+      description: Return the current schema version and migration state
+      returns:
+        version: string          # Current schema version (semver)
+        last_migration: string   # ID of the last applied migration
+        pending_migrations: int  # Number of unapplied migrations
+        schema_hash: string      # SHA-256 of current schema definition
+    - name: RecordMigration
+      description: Record a completed migration in the schema_migrations table
+      parameters:
+        version: string          # Version this migration targets
+        migration_id: string     # Migration plan ID from patterns/migration
+        direction: enum(up, down)
+        steps_applied: int
+        rows_affected: int
+        duration_ms: int
+        applied_at: int64        # Unix epoch seconds
+    - name: ValidateSchema
+      description: Verify that the current schema matches the declared types
+      returns:
+        valid: boolean
+        mismatches: "[]string"   # List of discrepancies (if any)
+```
+
+The `schema_migrations` tracking table:
+
+```yaml
+types:
+  SchemaMigration:
+    description: Record of an applied schema migration
+    fields:
+      id:
+        type: string
+        required: true
+        description: Migration plan ID
+      version:
+        type: string
+        required: true
+        description: Target version
+      direction:
+        type: enum(up, down)
+        required: true
+        description: Whether this was a forward or rollback migration
+      steps_applied:
+        type: int
+        required: true
+        description: Number of steps executed
+      rows_affected:
+        type: int
+        required: true
+        description: Total rows modified
+      duration_ms:
+        type: int
+        required: true
+        description: Execution time
+      applied_at:
+        type: timestamp
+        required: true
+        description: When the migration was applied
+      applied_by:
+        type: string
+        required: true
+        description: Identity that applied the migration (agent, operator)
+```
+
 ---
 
 ## Implementation Notes
@@ -461,3 +536,6 @@ table.
 - [ ] Migrations are versioned and applied in order
 - [ ] Retention rules configured for time-series data
 - [ ] Storage engine declared in agent config
+- [ ] Schema version interface exposes GetSchemaVersion, RecordMigration, ValidateSchema
+- [ ] schema_migrations table tracks all applied migrations
+- [ ] Data migrations follow governance pipeline defined in `patterns/migration`

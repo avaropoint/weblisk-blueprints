@@ -2,7 +2,7 @@
 type: architecture
 name: enforcement
 version: 1.0.0
-requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, architecture/orchestrator, architecture/gateway]
+requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, patterns/privacy, architecture/orchestrator, architecture/gateway]
 platform: any
 tier: free
 -->
@@ -34,7 +34,7 @@ but nothing forces agents to consult them. The orchestrator dispatches
 gateway handles HTTP routing for end users. Neither sits in the path
 between agents and their operational resources.
 
-The enforcement layer closes this gap. It operates at three boundaries
+The enforcement layer closes this gap. It operates at four boundaries
 where agents interact with the rest of the system:
 
 1. **Message boundary** — every message between agents passes through
@@ -54,10 +54,44 @@ where agents interact with the rest of the system:
    enforcement checking the target, the payload scope, and the
    agent's declared external capabilities.
 
+4. **Response boundary** — every response returned by an agent
+   passes through enforcement before delivery to the caller. An
+   agent cannot return data that exceeds its declared output scope,
+   contains fields outside its declared output contract, or includes
+   data from resources the agent is not authorized to expose. The
+   response boundary prevents data exfiltration through legitimate
+   response channels.
+
 Enforcement does not define policies, classify scopes, or determine
 safety intents. It consumes those patterns and applies them
 structurally. It is the difference between "here are the rules" and
 "the rules are enforced."
+
+Enforcement operates on four principles:
+
+1. **Structural non-bypassability** — agents MUST NOT have any path
+   to resources that does not pass through enforcement. This is a
+   platform invariant, not an agent contract. The enforcement layer
+   is the ONLY path to the message bus, storage layer, and external
+   services. Implementations MUST ensure this property holds
+   regardless of agent behavior — enforcement cannot depend on agent
+   cooperation for its guarantees.
+
+2. **Verify both input and output** — enforcement validates
+   operations before execution (what goes in) AND validates
+   responses after execution (what comes out). An agent that reads
+   authorized data but returns it through an unauthorized channel is
+   detected at the response boundary.
+
+3. **Declared authority only** — an agent can only perform operations
+   it has explicitly declared in its manifest AND that match its
+   active operational data contract. Having storage:read capability
+   does not grant access to all readable data — only to the tables,
+   columns, and row scopes declared in the agent's data contract.
+
+4. **Fail-closed at every boundary** — every error, timeout, or
+   missing context at any boundary produces a deny decision. No
+   boundary defaults to allow.
 
 ---
 
@@ -72,11 +106,11 @@ requires:
         - name: AuditEntry
           fields_used: [id, timestamp, actor, action, target, detail, status]
         - name: ErrorResponse
-          fields_used: [code, message, category]
+          fields_used: [code, error, category]
         - name: AgentManifest
           fields_used: [name, type, capabilities, publishes, subscriptions]
         - name: AgentMessage
-          fields_used: [from, to, action, payload, signature, metadata]
+          fields_used: [from, to, action, payload, signature, trace_id]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -110,11 +144,32 @@ requires:
     bindings:
       types:
         - name: OperationIntent
-          fields_used: [agent, operation_type, target, scope, environment, justification]
+          fields_used: [id, agent, operation, resource, resource_class, scope, environment, timestamp]
         - name: ProtectionGate
           fields_used: [decision, required_authority, escalation_path]
         - name: QuarantineOrder
-          fields_used: [agent_name, reason, severity, issued_by, correlation_id]
+          fields_used: [id, agent, reason, severity, source, issued_at, exit_requires]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/privacy
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ConsentRecord
+          fields_used: [subject_id, purpose, scope, fields, consumer, granted_at, expires_at, revoked_at]
+        - name: MaskingRule
+          fields_used: [scope_trigger, strategy, fields]
+        - name: MinimizationRule
+          fields_used: [scope, operation, fields_required, fields_permitted]
+      behaviors:
+        - name: consent-management
+          fields_used: [check_consent]
+        - name: field-masking
+          fields_used: [apply_masking]
+        - name: data-minimization
+          fields_used: [apply_minimization]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -124,7 +179,7 @@ requires:
     bindings:
       types:
         - name: ServiceDirectory
-          fields_used: [agents, routing_table, namespaces]
+          fields_used: [services, routing_table, namespaces]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -166,38 +221,38 @@ requires:
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────┐
-│                    Agents                        │
-│  ┌────────┐  ┌────────┐  ┌────────┐            │
-│  │ Agent A │  │ Agent B │  │ Agent C │            │
-│  └───┬─┬──┘  └──┬──┬──┘  └──┬──┬──┘            │
-│      │ │        │  │        │  │                 │
-│  ════╪═╪════════╪══╪════════╪══╪═══════════════  │
-│  ║   ENFORCEMENT LAYER (always active)        ║  │
-│  ║  ┌──────────┐ ┌───────────┐ ┌────────────┐║  │
-│  ║  │ Message  │ │  Storage  │ │  External  │║  │
-│  ║  │ Boundary │ │  Boundary │ │  Boundary  │║  │
-│  ║  └────┬─────┘ └─────┬─────┘ └─────┬──────┘║  │
-│  ║       │              │              │       ║  │
-│  ║  ┌────┴──────────────┴──────────────┴────┐ ║  │
-│  ║  │         Inspection Engine             │ ║  │
-│  ║  │  ┌─────────┐ ┌──────────┐ ┌────────┐ │ ║  │
-│  ║  │  │ Policy  │ │ Behavior │ │ Audit  │ │ ║  │
-│  ║  │  │Evaluator│ │ Analyzer │ │ Writer │ │ ║  │
-│  ║  │  └─────────┘ └──────────┘ └────────┘ │ ║  │
-│  ║  └───────────────────────────────────────┘ ║  │
-│  ║       │              │              │       ║  │
-│  ║  ┌────┴────┐  ┌──────┴────┐  ┌─────┴─────┐║  │
-│  ║  │Quarantin│  │ Decision  │  │ Violation │║  │
-│  ║  │  Store  │  │   Cache   │  │   Queue   │║  │
-│  ║  └─────────┘  └───────────┘  └───────────┘║  │
-│  ═════════════════════════════════════════════   │
-│      │ │        │  │        │  │                 │
-│  ┌───┴─┴──┐  ┌──┴──┴──┐  ┌──┴──┴──┐            │
-│  │Messages│  │Storage │  │External│              │
-│  │ Bus    │  │ Layer  │  │Services│              │
-│  └────────┘  └────────┘  └────────┘              │
-└─────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                    Agents                                 │
+│  ┌────────┐  ┌────────┐  ┌────────┐                     │
+│  │ Agent A │  │ Agent B │  │ Agent C │                     │
+│  └───┬─┬──┘  └──┬──┬──┘  └──┬──┬──┘                     │
+│      │ │        │  │        │  │                          │
+│  ════╪═╪════════╪══╪════════╪══╪══════════════════════    │
+│  ║   ENFORCEMENT LAYER (always active)                ║   │
+│  ║  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────────┐ ║   │
+│  ║  │Message │ │Storage │ │External│ │  Response  │ ║   │
+│  ║  │Boundary│ │Boundary│ │Boundary│ │  Boundary  │ ║   │
+│  ║  └───┬────┘ └───┬────┘ └───┬────┘ └─────┬──────┘ ║   │
+│  ║      │          │          │             │         ║   │
+│  ║  ┌───┴──────────┴──────────┴─────────────┴──────┐ ║   │
+│  ║  │           Inspection Engine                  │ ║   │
+│  ║  │  ┌──────────┐ ┌──────────┐ ┌──────────┐     │ ║   │
+│  ║  │  │  Policy  │ │ Behavior │ │  Audit   │     │ ║   │
+│  ║  │  │Evaluator │ │ Analyzer │ │  Writer  │     │ ║   │
+│  ║  │  └──────────┘ └──────────┘ └──────────┘     │ ║   │
+│  ║  └──────────────────────────────────────────────┘ ║   │
+│  ║      │          │          │             │         ║   │
+│  ║  ┌───┴────┐  ┌──┴─────┐  ┌┴──────────┐           ║   │
+│  ║  │Quarantn│  │Decision│  │ Violation │           ║   │
+│  ║  │ Store  │  │ Cache  │  │   Queue   │           ║   │
+│  ║  └────────┘  └────────┘  └───────────┘           ║   │
+│  ═════════════════════════════════════════════════════    │
+│      │ │        │  │        │  │                          │
+│  ┌───┴─┴──┐  ┌──┴──┴──┐  ┌──┴──┴──┐                     │
+│  │Messages│  │Storage │  │External│                       │
+│  │ Bus    │  │ Layer  │  │Services│                       │
+│  └────────┘  └────────┘  └────────┘                       │
+└──────────────────────────────────────────────────────────┘
 ```
 
 ### Sub-Components
@@ -226,6 +281,24 @@ agent has declared the external capability and that the target is not
 on a blocked list. Evaluates payload scope to prevent scope leakage
 — restricted-scope data cannot be sent to unclassified external
 endpoints.
+
+**Response Boundary** — Intercepts every response produced by an
+agent before it is delivered to the calling party (gateway, another
+agent, or orchestrator). Extracts the response payload scope, field
+set, and data volume. Validates that the response conforms to the
+agent's declared output contract — an agent that declares it outputs
+`{score, summary}` at scope `internal` cannot return a response
+containing `{score, summary, customer_email}` at scope `confidential`.
+The response boundary detects data exfiltration through legitimate
+response channels — an agent that reads authorized data but smuggles
+additional fields into its response is caught here. Responses that
+exceed the agent's declared output scope or output contract are
+blocked with a violation. The response boundary supports all
+DecisionResult values from the inspection engine. For synchronous
+response paths, `require_approval` blocks the response and returns
+an error to the caller indicating that the response requires operator
+review — the response content is held in the violation queue until
+approved or rejected.
 
 **Inspection Engine** — The shared evaluation core used by all three
 boundaries. Receives the intercepted operation context, builds a
@@ -256,7 +329,7 @@ include the specific policy that triggered the block.
 
 **Quarantine Store** — Maintains the list of currently quarantined
 agents. When an agent is quarantined, its entry is added to this
-store. All three boundaries check the quarantine store before
+store. All four boundaries check the quarantine store before
 evaluating policies — quarantined agents are blocked immediately
 without policy evaluation. The quarantine store is persistent across
 enforcement layer restarts.
@@ -281,13 +354,19 @@ and the alerting agent.
 ### Owns
 
 - **Policy evaluation at boundaries** — Intercepting operations at
-  message, storage, and external boundaries and evaluating them
-  against the policy engine before allowing execution
+  message, storage, external, and response boundaries and evaluating
+  them against the policy engine before allowing execution
 - **Rogue agent detection** — Behavioral analysis across all
   intercepted operations to detect capability mismatch, scope
   violation, volume anomaly, and pattern deviation
+- **Output contract enforcement** — Verifying that agent responses
+  conform to declared output contracts and do not exceed the agent's
+  operational scope or the caller's authorized receive scope
+- **Operational data contract enforcement** — Verifying that storage
+  operations target only resources declared in the agent's
+  operational data contract (see `patterns/contract`)
 - **Quarantine enforcement** — Blocking all communication to and from
-  quarantined agents across all three boundaries, preserving agent
+  quarantined agents across all four boundaries, preserving agent
   state for investigation
 - **Enforcement decision audit trail** — Recording every enforcement
   decision with full context, traceable via correlation ID
@@ -356,6 +435,11 @@ message_interception:
       - Evaluate policies via patterns/policy
       - Check safety intent — if required but missing → deny + violation
       - Verify sender has declared capability for the action type
+      - Apply privacy controls:
+        - Check active consent for data subjects in payload (via patterns/privacy)
+        - Apply field masking for fields at or above the recipient's masking threshold
+        - Apply data minimization — strip fields not required for the declared action
+        - If consent required but not active → deny + ENFORCEMENT_CONSENT_REQUIRED
       - Feed behavioral signals to behavior analyzer
       - Log decision to audit writer
       - Return decision
@@ -368,6 +452,8 @@ message_interception:
         when: Safety intent is required but not declared
       - code: ENFORCEMENT_CAPABILITY_MISMATCH
         when: Agent attempts action not in declared capabilities
+      - code: ENFORCEMENT_CONSENT_REQUIRED
+        when: Payload contains subject data requiring consent that is not active
 ```
 
 ### Storage Proxy
@@ -398,6 +484,12 @@ storage_proxy:
       - Evaluate policies via patterns/policy
       - Verify agent capabilities include the operation type
       - Verify resource scope does not exceed agent operational scope
+      - Verify operation target matches agent's declared data contract (see patterns/contract operational data contracts)
+      - Apply privacy controls:
+        - Check active consent for data subjects affected by the operation (via patterns/privacy)
+        - For read/list/query: apply field masking to results based on agent's scope and consent state
+        - For create/modify: verify agent has consent to process subject data for the declared purpose
+        - If consent required but not active → deny + ENFORCEMENT_CONSENT_REQUIRED
       - For create/modify/delete/destroy: check safety intent requirement
       - Feed behavioral signals to behavior analyzer
       - Log decision to audit writer
@@ -411,6 +503,10 @@ storage_proxy:
         when: Policy evaluation returns deny
       - code: ENFORCEMENT_CAPABILITY_MISMATCH
         when: Agent lacks declared capability for operation type
+      - code: ENFORCEMENT_DATA_CONTRACT_VIOLATION
+        when: Storage operation targets resources outside agent's declared data contract
+      - code: ENFORCEMENT_CONSENT_REQUIRED
+        when: Operation involves subject data requiring consent that is not active
 ```
 
 ### External Proxy
@@ -442,6 +538,11 @@ external_proxy:
       - Evaluate payload scope — restricted+ data to unclassified endpoints → deny
       - Build PolicyContext from agent, target, scope
       - Evaluate policies via patterns/policy
+      - Apply privacy controls:
+        - Verify outbound payload does not contain subject data without active consent for external sharing
+        - Apply field masking before payload leaves the platform boundary
+        - Apply data minimization — strip fields not required for the external operation
+        - If consent required for external sharing but not active → deny + ENFORCEMENT_CONSENT_REQUIRED
       - Feed behavioral signals to behavior analyzer
       - Log decision to audit writer
       - Return decision
@@ -454,6 +555,58 @@ external_proxy:
         when: Payload scope exceeds target endpoint classification
       - code: ENFORCEMENT_CAPABILITY_MISMATCH
         when: Agent lacks declared external capability
+      - code: ENFORCEMENT_CONSENT_REQUIRED
+        when: Outbound payload contains subject data without consent for external sharing
+```
+
+### Response Proxy
+
+Wraps agent response paths. Every response produced by an agent
+passes through this proxy before delivery to the caller.
+
+```yaml
+response_proxy:
+  intercept_response:
+    description: Intercept an agent response before delivery to caller
+    input:
+      agent: AgentManifest         # Agent producing the response
+      response:
+        caller: string             # Identity of the party that invoked the agent
+        output_contract: string    # Declared output contract name from agent manifest
+        payload_scope: ScopeLevel  # Highest scope in response payload
+        payload_fields: []string   # Top-level field names in response
+        payload_size: integer      # Bytes
+    output:
+      decision: enum(allow, deny, quarantine)
+      correlation_id: string
+      violation: ViolationRecord | null
+    behavior:
+      - Check quarantine store — if agent quarantined → deny
+      - Resolve agent's declared output contract from manifest
+      - If output contract declared: verify response fields are subset of contract schema
+      - If response contains fields NOT in declared output → deny + output_contract_violation
+      - Verify response scope does not exceed agent's operational scope
+      - If response scope > agent scope → deny + scope_leakage violation
+      - Verify response scope does not exceed what the caller is authorized to receive
+      - Apply privacy controls:
+        - Apply field masking to response based on caller's scope and consent state
+        - Apply data minimization — strip fields not required by the caller's request context
+        - Verify response does not contain subject data for which the caller lacks active consent
+        - If consent required but not active → deny + ENFORCEMENT_CONSENT_REQUIRED
+      - Feed behavioral signals to behavior analyzer
+      - Log decision to audit writer
+      - Return decision
+    errors:
+      - code: ENFORCEMENT_QUARANTINED
+        when: Agent is in quarantine store
+      - code: ENFORCEMENT_OUTPUT_CONTRACT_VIOLATION
+        when: Response contains fields outside declared output contract
+      - code: ENFORCEMENT_OUTPUT_SCOPE_EXCEEDED
+        when: Response scope exceeds agent's operational scope
+      - code: ENFORCEMENT_CALLER_SCOPE_EXCEEDED
+        when: Response scope exceeds what the calling party can receive
+      - code: ENFORCEMENT_CONSENT_REQUIRED
+        when: Response contains subject data for which the caller lacks active consent
 ```
 
 ### Quarantine API
@@ -470,11 +623,11 @@ quarantine_api:
     output:
       quarantine_id: string
       effective_at: timestamp
-      blocked_boundaries: [message, storage, external]
+      blocked_boundaries: [message, storage, external, response]
     behavior:
       - Validate quarantine order (agent exists, reason provided)
       - Add agent to quarantine store with timestamp and reason
-      - All three boundaries immediately begin blocking the agent
+      - All four boundaries immediately begin blocking the agent
       - Preserve agent state snapshot for investigation
       - Emit quarantine.entered event to system namespace
       - Notify operators via alerting channels
@@ -491,7 +644,7 @@ quarantine_api:
     behavior:
       - Validate release authority (admin or higher required)
       - Remove agent from quarantine store
-      - All three boundaries immediately resume normal evaluation
+      - All four boundaries immediately resume normal evaluation
       - Emit quarantine.exited event to system namespace
       - Log to audit writer with release justification
 
@@ -508,7 +661,7 @@ quarantine_api:
           reason: string
           severity: enum(low, medium, high, critical)
           entered_at: timestamp
-          blocked_boundaries: [message, storage, external]
+          blocked_boundaries: [message, storage, external, response]
           violation_count: integer
 ```
 
@@ -523,7 +676,7 @@ enforcement_report:
     input:
       filter:
         agent_name: string | null
-        boundary: enum(message, storage, external) | null
+        boundary: enum(message, storage, external, response) | null
         decision: enum(allow, require_approval, deny, quarantine) | null
         since: timestamp
         until: timestamp
@@ -533,7 +686,7 @@ enforcement_report:
         - correlation_id: string
           timestamp: timestamp
           agent: string
-          boundary: enum(message, storage, external)
+          boundary: enum(message, storage, external, response)
           operation_type: string
           target: string
           scope_level: ScopeLevel
@@ -703,7 +856,39 @@ External Boundary intercepts
   └─ Log decision to audit writer
 ```
 
-### 4. Rogue Detection Flow
+### 4. Response Flow
+
+```
+Agent produces response to a request (task result, query response)
+  │
+  ▼
+Response Boundary intercepts
+  │
+  ├─ Check quarantine store for agent
+  │  └─ If quarantined → DENY (suppress response)
+  │
+  ├─ Resolve agent's declared output contract from manifest
+  │
+  ├─ Extract: response fields, payload scope, payload size
+  │
+  ├─ Verify response fields ⊆ declared output contract fields
+  │  └─ If extra fields present → DENY + output_contract_violation
+  │     Example: agent declares output {score, summary}
+  │              response contains {score, summary, customer_email}
+  │              → customer_email not in contract → DENY
+  │
+  ├─ Verify response scope ≤ agent operational scope
+  │  └─ If exceeded → DENY + output_scope_exceeded
+  │
+  ├─ Verify response scope ≤ caller's authorized receive scope
+  │  └─ If exceeded → DENY + caller_scope_exceeded
+  │
+  ├─ Feed signals to behavior analyzer
+  │
+  └─ Log decision to audit writer
+```
+
+### 5. Rogue Detection Flow
 
 ```
 Behavior Analyzer receives signals continuously from all boundaries
@@ -758,7 +943,7 @@ ViolationRecord:
       required: true
       description: Unique identifier for this violation record
     boundary:
-      type: enum(message, storage, external)
+      type: enum(message, storage, external, response)
       required: true
       description: Which enforcement boundary detected the violation
     agent:
@@ -770,7 +955,7 @@ ViolationRecord:
       required: true
       description: The operation that was attempted (action name or operation type)
     violation_type:
-      type: enum(policy_denied, scope_exceeded, capability_mismatch, safety_blocked, contract_invalid, quarantine_active)
+      type: enum(policy_denied, scope_exceeded, capability_mismatch, safety_blocked, contract_invalid, quarantine_active, output_contract_violation, output_scope_exceeded, data_contract_violation)
       required: true
       description: Classification of why the operation was blocked
     policy_name:
@@ -819,7 +1004,7 @@ ApprovalContext:
       required: true
       description: Agent that requested the operation
     boundary:
-      type: enum(message, storage, external)
+      type: enum(message, storage, external, response)
       required: true
       description: Which enforcement boundary produced this context
     policy_decision:
@@ -880,10 +1065,35 @@ provides.
      - Message boundary: max(payload scope, recipient scope)
      - Storage boundary: resource scope from storage metadata
      - External boundary: payload scope
+     - Response boundary: payload scope from response content
    - Compare against agent's operational scope
    - If resource scope > agent scope → DENY + emit scope_violation
 
-5. SAFETY INTENT CHECK
+5. DATA CONTRACT VERIFICATION (storage and response boundaries)
+   - Storage boundary: verify the operation target (table, column,
+     row scope) matches the agent's declared operational data
+     contract (see patterns/contract)
+   - Response boundary: verify the response fields are a subset
+     of the agent's declared output contract schema
+   - If operation targets undeclared resources → DENY + emit
+     data_contract_violation
+   - If response contains undeclared fields → DENY + emit
+     output_contract_violation
+
+6. PRIVACY ENFORCEMENT (all boundaries)
+   - Check if the operation involves data subjects (personal data)
+   - If scope >= confidential:
+     - Verify active consent exists for each data subject and purpose
+     - If consent required but not active → DENY + emit consent_required
+   - Apply field masking per patterns/privacy masking rules:
+     - Fields at or above the masking threshold are masked before
+       delivery to the recipient/caller
+   - Apply data minimization per patterns/privacy minimization rules:
+     - Strip fields not required for the declared operation or action
+   - External boundary: verify consent includes external sharing permission
+   - Emit privacy.masking_applied event when masking is activated
+
+7. SAFETY INTENT CHECK
    - Determine if the operation requires a safety intent
      (based on operation type and scope — from patterns/safety)
    - If required: check that the agent has filed an OperationIntent
@@ -891,14 +1101,14 @@ provides.
    - If intent missing → DENY + emit missing_intent violation
    - If intent present but mismatched → DENY + emit intent_mismatch violation
 
-6. POLICY EVALUATION
+8. POLICY EVALUATION
    - Build PolicyContext from resolved metadata:
      identity, scope_level, environment, operation, resource, agent
    - Evaluate all matching policies via patterns/policy
    - Compose results using most-restrictive-wins
    - Result: allow, require_approval, deny, or escalate
 
-7. DECISION MAPPING
+9. DECISION MAPPING
    - allow → forward operation to target (bus, storage, external)
    - require_approval → hold operation, create ApprovalContext,
      defer to patterns/approval
@@ -906,16 +1116,16 @@ provides.
    - escalate → treat as require_approval with elevated authority
    - quarantine → execute quarantine_api.enter_quarantine, drop operation
 
-8. BEHAVIORAL SIGNAL EMISSION
-   - Regardless of decision, emit behavioral signal to analyzer:
-     [agent, boundary, operation_type, target, scope, decision,
-      timestamp, payload_size]
+10. BEHAVIORAL SIGNAL EMISSION
+    - Regardless of decision, emit behavioral signal to analyzer:
+      [agent, boundary, operation_type, target, scope, decision,
+       timestamp, payload_size]
 
-9. AUDIT LOGGING
-   - Record complete decision context to audit writer:
-     [correlation_id, agent, boundary, operation_type, target,
-      scope_level, policies_evaluated, decision, triggering_policy,
-      timestamp]
+11. AUDIT LOGGING
+    - Record complete decision context to audit writer:
+      [correlation_id, agent, boundary, operation_type, target,
+       scope_level, policies_evaluated, decision, triggering_policy,
+       privacy_actions_applied, timestamp]
 ```
 
 ### Decision Priority
@@ -937,7 +1147,7 @@ from policy evaluation.
 ## Rogue Agent Detection
 
 The behavior analyzer operates continuously, consuming signals from
-all three boundaries. It maintains per-agent behavioral profiles and
+all four boundaries. It maintains per-agent behavioral profiles and
 detects deviations that indicate malicious, compromised, or
 malfunctioning agents.
 
@@ -948,7 +1158,7 @@ Every intercepted operation produces a signal:
 ```yaml
 behavioral_signal:
   agent: string                  # Agent identity
-  boundary: enum(message, storage, external)
+  boundary: enum(message, storage, external, response)
   operation_type: string         # read, write, delete, send, etc.
   target: string                 # Recipient, resource path, or URL
   scope_level: ScopeLevel        # Resolved scope
@@ -1010,24 +1220,55 @@ its historical baseline.
 ```yaml
 pattern_deviation:
   trigger: operation distribution deviates > 3σ from historical baseline
-  severity: low → medium (if sustained)
+  severity: low → medium → high (if sustained)
   action: graduated_response
   response:
     - stage_1: deviation detected → audit alert
     - stage_2: sustained > 10 minutes → escalate to operator
-    - stage_3: operator confirms anomaly → quarantine (manual)
+    - stage_3: sustained > configurable auto_quarantine_threshold → automatic quarantine
+    - stage_4: operator confirms false positive → reset baseline
   threshold:
     baseline_window: 24 hours rolling
     deviation: 3 standard deviations
-    sustain_period: 10 minutes
+    escalation_period: 10 minutes
+    auto_quarantine_threshold: configurable (default: 30 minutes)
+  anti_manipulation:
+    multi_window_baselines:
+      - short_term: 1 hour rolling (detects sudden shifts)
+      - medium_term: 24 hours rolling (detects daily drift)
+      - long_term: 7 days rolling (detects gradual manipulation)
+    historical_anchor: >
+      An immutable snapshot of the agent's baseline taken at
+      registration and after each operator-confirmed baseline
+      reset. Deviation from the historical anchor is always
+      evaluated regardless of rolling window state. Prevents
+      gradual normalization of malicious patterns.
+    drift_rate_limit: >
+      The rate at which the rolling baseline may shift between
+      evaluation windows is bounded. If the baseline itself
+      changes faster than the configured drift rate, the shift
+      is flagged as potential manipulation regardless of whether
+      current operations deviate from the shifted baseline.
+    maximum_baseline_shift: >
+      The rolling baseline cannot shift beyond a configurable
+      maximum distance from the historical anchor. Once the
+      ceiling is reached, further baseline drift is rejected
+      and operations are evaluated against the anchor.
   notes: >
     Baseline is built from the agent's operation distribution over
-    the last 24 hours: percentage of reads vs writes, message
-    frequency, external call patterns. Deviation is calculated as
-    the Euclidean distance between the current window distribution
-    and the baseline distribution, normalized by standard deviation.
-    Pattern deviation alone never triggers automatic quarantine —
-    it always escalates to an operator for confirmation.
+    a rolling window: percentage of reads vs writes, message
+    frequency, external call patterns. Deviation is measured by
+    comparing the current window distribution against the baseline
+    distribution using a statistical distance metric, normalized
+    by standard deviation.
+    Pattern deviation that persists beyond the auto_quarantine_threshold
+    triggers automatic quarantine without operator confirmation. The
+    threshold is configurable per environment — production environments
+    SHOULD use shorter thresholds than development environments. This
+    ensures that sustained anomalous behavior is bounded even when
+    operators are unavailable. Operators can release the quarantine
+    and reset the baseline if the deviation is expected (e.g., after
+    a legitimate behavior change such as a new feature deployment).
 ```
 
 ### Agent Behavioral Profile
@@ -1050,6 +1291,10 @@ agent_profile:
     average_rate: float           # Operations per minute (1h rolling)
     peak_rate: float              # Highest observed rate
     common_targets: []string      # Most-accessed resources/agents
+  historical_anchor:              # Immutable snapshot from registration or last operator reset
+    operation_distribution: {}    # Same structure as baseline
+    captured_at: timestamp        # When anchor was established
+    reset_count: integer          # How many times anchor has been reset by operator
   current_window:
     operation_distribution: {}    # Same structure, current 5-min window
     current_rate: float
@@ -1069,7 +1314,7 @@ agent_profile:
 
 When quarantine is triggered — either by rogue detection, safety
 kill-switch, or operator action — the enforcement layer executes a
-complete isolation of the targeted agent across all three boundaries.
+complete isolation of the targeted agent across all four boundaries.
 
 ### Quarantine Sequence
 
@@ -1088,28 +1333,35 @@ complete isolation of the targeted agent across all three boundaries.
    - New messages are dropped with ENFORCEMENT_QUARANTINED
 
 4. Storage boundary:
-   - Block all write and delete operations from the quarantined agent
-   - Read operations: configurable (default: allow reads, block writes)
-     Rationale: investigation may require the agent's stored data
-   - New write/delete operations are rejected with ENFORCEMENT_QUARANTINED
+   - Block all read, write, and delete operations from the quarantined agent
+   - The agent's existing data is preserved but locked
+   - Operator/admin investigation access to the agent's stored data
+     is handled through separate administrative channels, not through
+     the agent's own storage proxy
+   - All agent storage operations are rejected with ENFORCEMENT_QUARANTINED
 
 5. External boundary:
    - Block all outbound calls from the quarantined agent
    - No exceptions — quarantined agents cannot reach external services
    - Pending outbound requests are cancelled
 
-6. State preservation:
+6. Response boundary:
+   - Block all responses from the quarantined agent
+   - Callers waiting for responses receive an error indicating
+     the agent is unavailable (without revealing quarantine status)
+
+7. State preservation:
    - Snapshot the agent's behavioral profile at quarantine time
    - Preserve the violation history and detection evidence
    - Mark the snapshot as investigation material (scope: restricted)
 
-7. Notification:
+8. Notification:
    - Emit quarantine.entered event to system.* namespace
    - Notify operators via configured alerting channels
    - Include: agent name, reason, severity, evidence summary,
      correlation_id linking to the triggering violation
 
-8. Audit:
+9. Audit:
    - Log quarantine entry to audit writer
    - Classification: restricted scope (quarantine events are sensitive)
 ```
@@ -1147,7 +1399,7 @@ classifications, and safety intents. It does NOT have write access
 to any of these — it consumes them, never modifies them.
 
 The enforcement layer is the only component that can:
-- Block agent operations across all three boundaries
+- Block agent operations across all four boundaries
 - Execute quarantine (complete agent isolation)
 - Execute kill-switch (permanent agent shutdown)
 
@@ -1204,6 +1456,9 @@ resource:
 - **External boundary**: The agent's HTTP/SMTP client is wrapped. The
   wrapper calls enforcement before dispatching the request. The
   external service is unaware of enforcement.
+- **Response boundary**: The agent's response path is wrapped. The
+  wrapper calls enforcement after the agent produces a response and
+  before delivery to the caller. The caller is unaware of enforcement.
 
 This wrapping approach means enforcement can be added to an existing
 Weblisk deployment without modifying the message bus, storage engine,
@@ -1218,6 +1473,7 @@ Enforcement adds latency to every operation. The performance budget:
 | Message  | < 1ms          | 5ms         |
 | Storage  | < 2ms          | 10ms        |
 | External | < 1ms          | 5ms         |
+| Response | < 1ms          | 5ms         |
 
 To meet these targets:
 - Decision cache eliminates repeated policy evaluation
@@ -1259,12 +1515,13 @@ If the enforcement layer experiences partial failure:
 
 ### Platform-Specific Considerations
 
-| Platform | Enforcement Strategy |
-|----------|---------------------|
-| Cloudflare Workers | Enforcement runs as middleware in the Worker pipeline; decision cache uses Workers KV; quarantine store uses Durable Objects |
-| Node.js | Enforcement runs as middleware wrapping message/storage/external adapters; in-process decision cache; quarantine store in configured persistence |
-| Go | Enforcement as interceptor middleware; concurrent-safe decision cache with sync.Map; quarantine store in configured persistence |
-| Rust | Enforcement as tower middleware layer; lock-free decision cache; quarantine store in configured persistence |
+Platform implementations define their enforcement integration strategy
+in the relevant `platforms/*.md` blueprint. All platforms MUST satisfy:
+
+- Enforcement runs as non-bypassable middleware wrapping all four boundaries
+- Decision cache is thread/concurrency-safe
+- Quarantine store uses persistent storage appropriate to the platform
+- Graceful degradation follows the table above
 
 ---
 
@@ -1273,13 +1530,23 @@ If the enforcement layer experiences partial failure:
 - [ ] Message boundary intercepts all messages — enforcement evaluates policies and logs decisions before delivery
 - [ ] Storage boundary blocks scope violations — agent with `internal` scope cannot write to `restricted` resource (ENFORCEMENT_SCOPE_VIOLATION)
 - [ ] External boundary prevents scope leakage — `restricted`-scope data cannot be sent to unclassified external endpoints (ENFORCEMENT_SCOPE_LEAKAGE)
-- [ ] Quarantine blocks all three boundaries — quarantined agent's messages, storage writes, and external calls are all rejected
+- [ ] Response boundary blocks output contract violations — agent cannot return fields outside its declared output contract (ENFORCEMENT_OUTPUT_CONTRACT_VIOLATION)
+- [ ] Response boundary blocks output scope exceeded — agent cannot return data at a scope higher than its declared operational scope (ENFORCEMENT_OUTPUT_SCOPE_EXCEEDED)
+- [ ] Quarantine blocks all four boundaries — quarantined agent's messages, storage writes, external calls, and responses are all rejected
 - [ ] Capability mismatch detected — agent with `[storage:read]` cannot perform `storage:create` (capability_mismatch violation)
+- [ ] Data contract enforcement — storage proxy verifies operations match declared data contract; undeclared resource access blocked (ENFORCEMENT_DATA_CONTRACT_VIOLATION)
 - [ ] Volume anomaly triggers graduated response — 10x spike emits audit alert; sustained 5 minutes triggers quarantine
+- [ ] Pattern deviation triggers auto-quarantine — sustained deviation beyond configurable threshold (default: 30 minutes) triggers automatic quarantine without operator confirmation
+- [ ] Baseline manipulation defended — multi-window baselines, historical anchor, drift rate limit, and maximum baseline shift prevent gradual normalization of malicious patterns
 - [ ] Fail-closed on policy evaluation error — enforcement denies on error rather than allowing
 - [ ] Audit trail is complete — every decision logged with correlation_id, agent, boundary, operation, scope, policies, and result
 - [ ] Decision cache invalidation works — policy change causes next identical operation to be re-evaluated
 - [ ] Quarantine release requires appropriate authority — high-severity quarantine requires admin authority to release
 - [ ] ViolationRecord is produced for every blocked operation with all required fields
 - [ ] ApprovalContext is produced when decision is require_approval, with policy and safety context attached
-- [ ] Storage proxy operation vocabulary matches safety.md OperationClass (read, create, modify, delete, destroy)
+- [ ] Storage proxy operation vocabulary matches safety.md OperationClass (read, list, query, create, modify, delete, destroy)
+- [ ] Privacy enforcement: consent checked at all 4 boundaries for scope >= confidential — missing consent blocks the operation (ENFORCEMENT_CONSENT_REQUIRED)
+- [ ] Privacy enforcement: field masking applied before data crosses any boundary — masked fields never reach unauthorized recipients
+- [ ] Privacy enforcement: data minimization strips fields not required for the declared operation before delivery
+- [ ] Privacy enforcement: external boundary verifies consent includes external sharing permission before payload leaves the platform
+- [ ] Non-bypassability verified — no agent has any path to message bus, storage layer, or external services that does not pass through enforcement

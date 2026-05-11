@@ -34,7 +34,7 @@ The CLI has two command surfaces:
    orchestrator's admin API (`weblisk status`, `weblisk agents`,
    `weblisk domains`, `weblisk audit`, `weblisk federations`)
 
-Operations commands use the operator's Ed25519 identity stored in
+Operations commands use the operator's ML-DSA-65 identity stored in
 `~/.weblisk/keys/` for authentication.
 
 Commands follow a `weblisk <noun> <verb>` pattern and output
@@ -75,7 +75,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Ed25519KeyPair
+        - name: SigningKeyPair
           fields_used: [public_key, private_key]
     on_change:
       compatible: validate-and-adopt
@@ -139,7 +139,7 @@ requires:
 - Dev server with file watching (`weblisk dev`)
 - Production builds (`weblisk build`)
 - Static framework vendoring (`weblisk vendor`)
-- Operator Ed25519 key pair generation and local key storage (`~/.weblisk/keys/`)
+- Operator ML-DSA-65 key pair generation and local key storage (`~/.weblisk/keys/`)
 - Operator registration and token management (`~/.weblisk/token`)
 - Human-readable table output and `--json` machine-readable output formatting
 - Interactive confirmation for destructive actions
@@ -179,7 +179,7 @@ the sections below: [Project Commands](#project-commands),
 2. CLI loads operator identity from `~/.weblisk/keys/operator.key`
 3. CLI loads auth token from `~/.weblisk/token` (refreshes if near expiry)
 4. CLI constructs HTTP request to orchestrator admin API endpoint
-5. Request signed with operator's Ed25519 key, token included in `Authorization: Bearer` header
+5. Request signed with operator's ML-DSA-65 key, token included in `Authorization: Bearer` header
 6. Orchestrator validates token, checks operator role against endpoint minimum
 7. Orchestrator returns JSON response
 8. CLI formats response as human-readable table (or raw JSON with `--json`)
@@ -190,7 +190,7 @@ the sections below: [Project Commands](#project-commands),
 
 ## Design Principles
 
-1. **Ed25519 identity, not passwords** — The CLI uses the same
+1. **ML-DSA-65 identity, not passwords** — The CLI uses the same
    cryptographic identity system as agents. No passwords, no session
    cookies.
 2. **Read by default, write with flags** — Destructive commands require
@@ -529,7 +529,7 @@ resource context, and generates the pattern implementation.
 
 ### `weblisk operator init`
 
-Generate an operator Ed25519 key pair, encrypted with a passphrase.
+Generate an operator ML-DSA-65 key pair, encrypted with a passphrase.
 
 ```bash
 $ weblisk operator init
@@ -587,7 +587,7 @@ $ weblisk operator token --refresh
 
 ### `weblisk operator rotate`
 
-Rotate the operator's Ed25519 key pair.
+Rotate the operator's ML-DSA-65 key pair.
 
 ```bash
 $ weblisk operator rotate
@@ -602,7 +602,7 @@ Registering new public key with orchestrator (signed by old key)...
 ```
 
 - Decrypts existing key with current passphrase
-- Generates new Ed25519 key pair
+- Generates new ML-DSA-65 key pair
 - Encrypts new key with new passphrase
 - Registers new public key with orchestrator (signed by old key for proof of continuity)
 - Old key moved to `~/.weblisk/keys/operator.key.revoked` for audit
@@ -1207,7 +1207,7 @@ Mock orchestrator running on http://localhost:19800
 |------|-------------|
 | `--port <n>` | Port to listen on (default: `19800`) |
 
-- Verifies signature format but accepts any valid Ed25519 signature
+- Verifies signature format but accepts any valid ML-DSA-65 signature
 - Useful for agent development without a full hub running
 - Does NOT forward tasks or events (registration and discovery only)
 
@@ -1628,7 +1628,7 @@ Every command that calls the orchestrator:
 - [ ] Blueprint resolution follows priority: local → WL_BLUEPRINT_SOURCES → core
 
 ### Identity & Operations
-- [ ] `weblisk operator init` generates Ed25519 keys in ~/.weblisk/keys/ with 0700 directory and 0600 file permissions
+- [ ] `weblisk operator init` generates ML-DSA-65 keys in ~/.weblisk/keys/ with 0700 directory and 0600 file permissions
 - [ ] `weblisk operator init` prompts for passphrase (min 12 chars), encrypts private key with Argon2id + AES-256-GCM
 - [ ] `weblisk operator init` passphrase cannot be skipped or supplied as CLI argument
 - [ ] `weblisk operator init` does not overwrite existing keys without --force flag

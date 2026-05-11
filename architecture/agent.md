@@ -44,7 +44,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Ed25519KeyPair
+        - name: SigningKeyPair
           fields_used: [public_key, private_key]
         - name: Signature
           fields_used: [algorithm, value]
@@ -107,7 +107,7 @@ requires:
 ### Owns
 
 - HTTP server hosting the 6 protocol endpoints (describe, execute, health, message, services, event)
-- Ed25519 key pair generation and message signing/verification
+- ML-DSA-65 key pair generation and message signing/verification
 - Registration with the orchestrator and token management
 - Service directory cache, routing table cache, and namespace map cache
 - Event publishing and subscription dispatch (via the framework base)
@@ -136,7 +136,7 @@ and the three developer-facing methods defined in
 
 ## Data Flow
 
-1. Agent starts: generates Ed25519 key pair, builds manifest, starts HTTP server
+1. Agent starts: generates ML-DSA-65 key pair, builds manifest, starts HTTP server
 2. Agent registers with orchestrator via `POST /v1/register` (signed manifest)
 3. Orchestrator returns token + service directory; agent caches both
 4. Inbound task arrives via `POST /v1/execute` — framework parses, delegates to `Execute()`
@@ -194,7 +194,7 @@ to registered event handlers by topic pattern. See
 ## Agent Context
 
 The runtime context provided to Execute and HandleMessage:
-- **Identity**: agent's Ed25519 key pair (for signing)
+- **Identity**: agent's ML-DSA-65 key pair (for signing)
 - **Services**: list of available agents (from service directory)
 - **Provider**: LLM provider (if configured via WL_AI_* env vars)
 - **Workspace**: file operations (read, scan, propose changes)
@@ -206,7 +206,7 @@ The runtime context provided to Execute and HandleMessage:
 ```
 1. Create AgentLogic implementation with domain-specific intelligence
 2. Define AgentManifest (name, version, capabilities, inputs, outputs, etc.)
-3. Generate Ed25519 key pair → set manifest.public_key
+3. Generate ML-DSA-65 key pair → set manifest.public_key
 4. Set manifest.url to the agent's listen address
 5. Configure LLM provider (if WL_AI_* env vars are set)
 6. Configure workspace (current directory)
@@ -427,7 +427,7 @@ For authenticated direct communication:
   "version": "1.0.0",
   "description": "What this agent does",
   "url": "http://localhost:9710",
-  "public_key": "<hex Ed25519 public key>",
+  "public_key": "<ML-DSA-65 public key (base64url)>",
   "capabilities": [
     {"name": "capability:type", "resources": ["glob/pattern/**"]}
   ],
@@ -689,7 +689,7 @@ Runtime context provided to agent business logic by the framework.
 
 | Field | Type | JSON Key | Required | Description |
 |-------|------|----------|----------|-------------|
-| Identity | Ed25519KeyPair | `identity` | yes | Agent's key pair for signing |
+| Identity | SigningKeyPair | `identity` | yes | Agent's key pair for signing |
 | Token | string | `token` | yes | Current WLT token from registration |
 | Services | map[string]ServiceEntry | `services` | yes | Cached service directory |
 | Provider | string | `provider` | no | Provider identifier (e.g., `"cloudflare"`) |
@@ -726,7 +726,7 @@ Runtime state tracked per registered agent.
 
 - The agent framework is the foundation layer — every running process in Weblisk is an agent
 - Registration is mandatory before any work can be done; unregistered agents receive no tasks
-- The Ed25519 key pair is generated once at first startup and persisted for the agent's lifetime
+- The ML-DSA-65 key pair is generated once at first startup and persisted for the agent's lifetime
 - Service directory caching avoids repeated calls to the orchestrator for agent-to-agent communication
 - Backpressure via concurrent task limiting prevents overload; rejected tasks return 429 to the orchestrator
 - Health checks should complete within the configured timeout; slow health responses degrade system-wide visibility
@@ -739,7 +739,7 @@ Runtime state tracked per registered agent.
 - [ ] POST /v1/execute parses TaskRequest, calls Execute, and returns a signed TaskResult with task_id, agent_name, and timestamp
 - [ ] POST /v1/execute returns status=failed with the error summary when Execute returns an error
 - [ ] POST /v1/health returns the health response per patterns/observability
-- [ ] POST /v1/message verifies the sender's Ed25519 signature when present and returns 401 on invalid signature
+- [ ] POST /v1/message verifies the sender's ML-DSA-65 signature when present and returns 401 on invalid signature
 - [ ] POST /v1/message builds a signed response with from=self, to=original sender, type=response
 - [ ] POST /v1/services updates the internal service list, routing table, and namespace map (thread-safe)
 - [ ] POST /v1/event checks idempotency (event_id), dispatches to matching handlers, returns 200 immediately
@@ -747,11 +747,11 @@ Runtime state tracked per registered agent.
 - [ ] Event handlers registered via on_event(pattern, handler) with topic matching (exact, *, #)
 - [ ] Framework resolves subscribers from local routing table when publishing (no orchestrator call)
 - [ ] Manifest declares publishes and subscriptions for namespace ownership and event routing
-- [ ] Registration flow signs the manifest JSON with the agent's Ed25519 private key and includes a timestamp
+- [ ] Registration flow signs the manifest JSON with the agent's ML-DSA-65 private key and includes a timestamp
 - [ ] Agent returns 429 Too Many Requests with Retry-After header and retryable error body when at max concurrent capacity
 - [ ] Default max concurrent limits are enforced: domain=10, work=5, infrastructure=20 (configurable via WL_MAX_CONCURRENT)
 - [ ] Outbound HTTP calls respect the WL_OUTBOUND_RATE limit (default 50 req/s)
-- [ ] Agent startup sequence generates Ed25519 keys, registers HTTP routes (6 endpoints), starts server, and registers with orchestrator
+- [ ] Agent startup sequence generates ML-DSA-65 keys, registers HTTP routes (6 endpoints), starts server, and registers with orchestrator
 - [ ] Token refresh triggers re-registration when remaining TTL drops below WL_TOKEN_REFRESH_THRESHOLD (default 10%)
 - [ ] Token refresh failure enters degraded state after 5 retries with exponential backoff
 - [ ] Graceful shutdown on SIGTERM/SIGINT: stops accepting tasks, drains in-flight work, sends DELETE /v1/register, closes server

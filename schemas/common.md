@@ -20,6 +20,7 @@ type-specific schema governs the blueprint.
 | `pattern` | [pattern.md](pattern.md) | `patterns/` | Cross-cutting pattern contracts |
 | `architecture` | [architecture.md](architecture.md) | `architecture/` | System architecture components |
 | `platform` | [platform.md](platform.md) | `platforms/` | Platform implementation bindings |
+| `standard` | [standard.md](standard.md) | `standards/` | Framework standards and conventions |
 
 ---
 
@@ -56,6 +57,11 @@ may add additional required fields.
 | `extends` | list | conditional | `[]` | Patterns this blueprint inherits. Format: `[patterns/name]`. Required for `agent` and `domain` types. |
 | `platform` | enum | **yes** | `any` | Target platform: `any`, `go`, `cloudflare`, `node`, `rust` |
 | `tier` | enum | **yes** | `free` | Availability tier: `free` or `pro` |
+| `author` | string | no | — | Original author or authoring organization of the blueprint |
+| `publisher` | string | no | — | Entity publishing the blueprint to a marketplace. Must conform to marketplace validation and verification requirements. |
+| `status` | enum | no | `active` | Lifecycle status: `active`, `deprecated`, `end-of-life` |
+| `superseded_by` | string | no | — | Blueprint reference (`type/name`) that replaces this one. Required when `status` is `deprecated`. |
+| `end_of_life` | date | no | — | ISO 8601 date after which the blueprint is unsupported. Required when `status` is `end-of-life`. |
 
 ### Type-Specific Fields
 
@@ -74,6 +80,29 @@ may add additional required fields.
 - `extends`: Each entry must be a pattern (`patterns/*`). The pattern must exist.
 - `port`: Integer in range 9700–9999. Must not conflict with other assigned ports.
 - `tier`: Only `free` or `pro`. Defaults to `free` if omitted (but SHOULD be explicit).
+- `author`: Free-form string. Informational only — does not confer trust or authority.
+- `publisher`: Must match a verified publisher identity in the target marketplace. Publisher conformance is validated at publish time, not at authoring time.
+- `status`: Defaults to `active` if omitted. Transition rules: `active` → `deprecated` → `end-of-life`. No reverse transitions.
+- `superseded_by`: Must reference a valid blueprint of the same type. The referenced blueprint must exist and be `active`.
+- `end_of_life`: Must be a future or current date in ISO 8601 format (`YYYY-MM-DD`).
+
+### Lifecycle Transitions
+
+```
+active ──→ deprecated ──→ end-of-life
+```
+
+- **active**: Blueprint is current and supported. Default state.
+- **deprecated**: Blueprint is superseded. `superseded_by` MUST reference the replacement. Consumers SHOULD migrate. Validators emit a warning on dependency to a deprecated blueprint.
+- **end-of-life**: Blueprint is unsupported after `end_of_life` date. `end_of_life` MUST be set. Validators emit an error on dependency to an end-of-life blueprint after the specified date.
+
+### Revocation
+
+Blueprint trust is mutual and revocable from either direction:
+
+- **Publisher revocation**: A publisher can revoke a published blueprint by transitioning it to `end-of-life` with an immediate date. The marketplace MUST remove revoked blueprints from discovery. Existing consumers retain their cached copy but receive a compliance warning.
+- **Consumer revocation**: A consumer can stop trusting a blueprint by removing it from their `requires` and `extends` declarations. No notification to the publisher is required.
+- **Marketplace revocation**: A marketplace can revoke a blueprint if compliance validation fails, the publisher violates marketplace terms, or a security vulnerability is reported. Marketplace revocation is independent of publisher intent.
 
 ### Validation Rules
 
@@ -88,6 +117,9 @@ may add additional required fields.
 9. If `type` is `agent` and `kind` is `work`, `domain` is required
 10. All fields are case-sensitive
 11. Unknown fields are rejected (no arbitrary metadata)
+12. If `status` is `deprecated`, `superseded_by` is required
+13. If `status` is `end-of-life`, `end_of_life` date is required
+14. `superseded_by` must reference an `active` blueprint of the same `type`
 
 ---
 

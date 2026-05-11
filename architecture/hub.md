@@ -83,7 +83,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Ed25519KeyPair
+        - name: SigningKeyPair
           fields_used: [public_key, sign, verify]
     on_change:
       compatible: validate-and-adopt
@@ -178,7 +178,7 @@ facts:
   "listing_id": "avaropoint:seo-audit",
   "provider": {
     "hub_name": "avaropoint-prod",
-    "public_key": "<hex Ed25519 public key>",
+    "public_key": "<ML-DSA-65 public key (base64url)>",
     "federation_url": "https://agents.avaropoint.com/v1/federation",
     "jurisdiction": "US",
     "verified": true
@@ -220,7 +220,7 @@ facts:
     "retention_hours": 24
   },
   "published_at": 1712160000,
-  "signature": "<provider's Ed25519 signature over listing>"
+  "signature": "<provider's ML-DSA-65 signature over listing>"
 }
 ```
 
@@ -702,7 +702,7 @@ and discoverability fields:
   "listing_type": "blueprint",
   "seller": {
     "hub_name": "avaropoint-prod",
-    "public_key": "<hex Ed25519 public key>",
+    "public_key": "<ML-DSA-65 public key (base64url)>",
     "verified_seller": true,
     "seller_since": 1704067200
   },
@@ -734,7 +734,7 @@ and discoverability fields:
     "support_email": "support@avaropoint.com",
     "sla": "business_hours"
   },
-  "signature": "<seller's Ed25519 signature over listing>"
+  "signature": "<seller's ML-DSA-65 signature over listing>"
 }
 ```
 
@@ -762,7 +762,7 @@ reviewer's hub key to prevent forgery:
   "marketplace_id": "mkt-avaropoint-seo-blueprint",
   "reviewer": {
     "hub_name": "acme-corp",
-    "public_key": "<reviewer's Ed25519 key>"
+    "public_key": "<reviewer's ML-DSA-65 key>"
   },
   "rating": 5,
   "title": "Production-ready out of the box",
@@ -770,7 +770,7 @@ reviewer's hub key to prevent forgery:
   "verified_purchase": true,
   "usage_duration_days": 45,
   "timestamp": 1712160000,
-  "signature": "<reviewer's Ed25519 signature>"
+  "signature": "<reviewer's ML-DSA-65 signature>"
 }
 ```
 
@@ -804,7 +804,7 @@ Sellers access analytics through the admin API:
        "marketplace_id": "mkt-avaropoint-seo-blueprint",
        "buyer_hub": "acme-corp",
        "accepted_terms": true,
-       "signature": "<buyer's Ed25519 signature>"
+       "signature": "<buyer's ML-DSA-65 signature>"
      }
 
 4. FULFILL
@@ -905,7 +905,7 @@ Seller Hub                           Registry Hub
 
 2. Seller's orchestrator:
    a. Builds marketplace listing JSON
-   b. Signs listing with hub's Ed25519 key
+   b. Signs listing with hub's ML-DSA-65 key
    c. POST /v1/hub/publish ──────────► 3. Registry orchestrator:
                                           a. Hub agent verification
                                              → verify-listing (signature check)
@@ -1144,7 +1144,7 @@ protocol:
    organizational identity) is required for paid listings.
 
 8. **Asset tampering** — Installable assets (blueprints, templates,
-   agents) are signed by the seller's Ed25519 key. The CLI verifies
+   agents) are signed by the seller's ML-DSA-65 key. The CLI verifies
    signatures before generation. A tampered asset is cryptographically
    detectable before any code is generated.
 
@@ -1212,7 +1212,7 @@ protocol:
 
 ## Verification Checklist
 
-- [ ] Listings are signed by provider hub's Ed25519 key
+- [ ] Listings are signed by provider hub's ML-DSA-65 key
 - [ ] Registry verifies listing signatures before indexing
 - [ ] Hubs can search by domain, action, tier, jurisdiction
 - [ ] Free tier uses the same security model as pro tier

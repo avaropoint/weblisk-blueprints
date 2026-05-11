@@ -2,7 +2,7 @@
 type: architecture
 name: data-security
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/federation, architecture/gateway, architecture/observability, patterns/scope, patterns/policy, patterns/privacy, architecture/enforcement]
+requires: [protocol/types, protocol/spec, protocol/identity, protocol/federation, architecture/gateway, architecture/observability, architecture/enforcement, patterns/scope, patterns/policy, patterns/privacy, patterns/contract]
 platform: any
 tier: free
 -->
@@ -64,7 +64,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Ed25519KeyPair
+        - name: SigningKeyPair
           fields_used: [public_key, private_key]
         - name: Signature
           fields_used: [algorithm, value]
@@ -117,11 +117,12 @@ The boundary between framework and application security is detailed in
 ### Owns
 
 - TLS termination and encryption-in-transit across all component boundaries
-- Ed25519 message signing and verification for agent-to-agent communication
+- ML-DSA-65 message signing and verification for agent-to-agent communication
 - Internal header trust model (`X-Gateway-*` injection and validation)
 - Federation data contract enforcement (forbidden field stripping at boundaries)
 - Append-only audit trail for inter-component operations
 - Response sanitization (stripping internal headers, server identification)
+- Storage integrity verification specification for agent-owned data at scope >= confidential
 
 ### Does NOT Own
 
@@ -144,7 +145,7 @@ The data security component does not expose standalone endpoints. Its
 interfaces are enforcement points integrated into other components:
 - Gateway: TLS termination, header injection, response sanitization
   (see [Transport Security](#transport-security) and [Response Sanitization](#response-sanitization))
-- Agent-to-agent: Ed25519 message signing covering `{from, to, action, payload}`
+- Agent-to-agent: ML-DSA-65 message signing covering `{from, to, action, payload}`
   (see [Authentication Boundaries](#authentication-boundaries))
 - Federation: data contract enforcement at hub boundaries
   (see [Federation Data Boundaries](#federation-data-boundaries))
@@ -160,7 +161,7 @@ interfaces are enforcement points integrated into other components:
 5. Agent verifies request originates from registered gateway (header validation)
 6. Agent processes request; response returned to gateway
 7. Gateway sanitizes response (strips internal headers, server identification)
-8. For agent-to-agent: sender signs `{from, to, action, payload}` with Ed25519; recipient verifies
+8. For agent-to-agent: sender signs `{from, to, action, payload}` with ML-DSA-65; recipient verifies
 9. For federation: sending gateway strips forbidden fields per data contract before transmission
 10. Receiving hub independently validates incoming data against its own contract
 11. All operations logged to append-only audit trail with tamper-detection hashing
@@ -173,9 +174,9 @@ interfaces are enforcement points integrated into other components:
 |----------|------------------------|
 | Browser ↔ Gateway | TLS termination, session binding, CSRF, ABAC |
 | Gateway ↔ Agents | Authenticated message routing, header injection, response sanitization |
-| Agent ↔ Agent | Ed25519-signed messages, channel-based direct communication |
+| Agent ↔ Agent | ML-DSA-65-signed messages, channel-based direct communication |
 | Agent ↔ Orchestrator | Mutual authentication, signed registration, token-based auth |
-| Hub ↔ Hub (federation) | TLS + Ed25519 message signing, data contracts |
+| Hub ↔ Hub (federation) | TLS + ML-DSA-65 message signing, data contracts |
 
 ## What the Framework Provides via Opt-in Patterns
 
@@ -188,6 +189,7 @@ interfaces are enforcement points integrated into other components:
 | Operation gating | patterns/safety | Protection gates based on scope × operation × environment |
 | Policy enforcement | patterns/policy + architecture/enforcement | Declarative rules enforced at boundaries |
 | Compliance reporting | patterns/governance | Evidence collection and profile-scoped reports |
+| Storage integrity | architecture/data-security | Record checksums, write provenance, version chain integrity for scope >= confidential |
 
 These are opt-in. The framework provides the primitives; agents
 adopt the ones they need. The framework doesn't impose a specific
@@ -203,8 +205,8 @@ data model — scope levels are universal and type-agnostic.
 |----------|----------|---------|
 | Browser ↔ Gateway | TLS 1.2+ (1.3 preferred) | Required in production |
 | Gateway ↔ Agents | TLS or mTLS | TLS required; mTLS for zero-trust |
-| Agent ↔ Agent (direct) | TLS + Ed25519 message signing | Required |
-| Agent ↔ Agent (federation) | TLS + Ed25519 message signing | Required |
+| Agent ↔ Agent (direct) | TLS + ML-DSA-65 message signing | Required |
+| Agent ↔ Agent (federation) | TLS + ML-DSA-65 message signing | Required |
 | Agent ↔ Storage | Local socket or encrypted connection | Platform-specific |
 
 All inter-component communication uses TLS in production. Development
@@ -212,9 +214,10 @@ environments MAY use plaintext HTTP on localhost only.
 
 ### Message Integrity
 
-Every message between agents is signed with the sender's Ed25519
-private key and verified by the recipient using the sender's public
-key (obtained during registration). This ensures:
+Every message between agents is signed with the sender's private
+key (ML-DSA-65) and verified
+by the recipient using the sender's public key (obtained during
+registration). This ensures:
 
 1. **Authenticity** — The message came from the claimed sender
 2. **Integrity** — The message was not modified in transit
@@ -248,7 +251,7 @@ them is rejected.
 
 ### Agent Registration
 
-Agents register with the orchestrator using Ed25519 signed manifests.
+Agents register with the orchestrator using ML-DSA-65 signed manifests.
 The orchestrator:
 
 1. Verifies the manifest signature against the agent's public key
@@ -266,12 +269,12 @@ the user's identity is injected into requests via internal headers —
 agents never see raw credentials.
 
 The admin gateway (see Admin Interface blueprint) uses a completely
-separate authentication flow with operator Ed25519 keys and mandatory
+separate authentication flow with operator ML-DSA-65 keys and mandatory
 MFA.
 
 ### Federation Authentication
 
-Hub-to-hub communication requires mutual TLS plus Ed25519 message
+Hub-to-hub communication requires mutual TLS plus ML-DSA-65 message
 signing. Federation peers exchange public keys during a trust
 establishment handshake. See the Federation protocol spec for the
 full trust model.
@@ -334,8 +337,8 @@ exposed.
 | File | Sensitivity | Protection | Who Reads It |
 |------|-------------|-----------|-------------|
 | `config.yaml` | High — may contain LLM API keys, database URLs | File permissions (0600) | CLI, orchestrator process |
-| `keys/operator.key` | Critical — Ed25519 private key | Passphrase-encrypted (Argon2id + AES-256-GCM) | CLI only |
-| `keys/<service>.key` | Critical — Ed25519 private key | Encrypted (passphrase via env) or permissions-only | Orchestrator/gateway/agent process |
+| `keys/operator.key` | Critical — ML-DSA-65 private key | Passphrase-encrypted (Argon2id + AES-256-GCM) | CLI only |
+| `keys/<service>.key` | Critical — ML-DSA-65 private key | Encrypted (passphrase via env) or permissions-only | Orchestrator/gateway/agent process |
 | `keys/*.pub` | Low — public key | None needed | CLI, orchestrator |
 | `secrets/<agent>/<KEY>` | High — API keys, passwords | File permissions (0600), per-agent isolation | Orchestrator (on behalf of agent) |
 | `token` | High — auth token for orchestrator | File permissions (0600) | CLI only |
@@ -410,30 +413,29 @@ environment, managed by the orchestrator's secrets subsystem.
 ## Generated Code Validation
 
 LLM-generated code is the runtime. It must be validated for security
-vulnerabilities before deployment. The CLI runs a post-generation
-security scan as part of every `weblisk server init`, `weblisk agent create`,
-and `weblisk domain create` command.
+vulnerabilities before deployment. A post-generation security scan
+runs as part of every code generation operation.
 
 ### Validation Pipeline
 
 ```
-LLM generates code
+Code generation completes
   → Static security scan (immediate, blocking)
-    → If pass: write files to disk
-    → If fail: report violations, do NOT write files, exit 1
+    → If pass: output accepted
+    → If fail: report violations, reject output
 ```
 
 ### Security Checks
 
 | Category | Check | Severity | Action on Fail |
 |----------|-------|----------|---------------|
-| **Secrets** | No string literals matching credential patterns (API keys, tokens, base64 secrets) | Error | Block |
+| **Secrets** | No string literals matching credential patterns (API keys, tokens, encoded secrets) | Error | Block |
 | **Injection** | No string concatenation in SQL/query construction | Error | Block |
-| **Injection** | No `exec`, `eval`, `system`, `child_process.exec` with user input | Error | Block |
+| **Injection** | No dynamic code execution with untrusted input | Error | Block |
 | **Network** | No hardcoded URLs or IP addresses (use config) | Warning | Warn |
-| **Network** | No outbound HTTP calls to undeclared endpoints | Error | Block |
+| **Network** | No outbound calls to undeclared endpoints | Error | Block |
 | **Filesystem** | No reads/writes outside declared storage paths | Error | Block |
-| **Filesystem** | No access to `.weblisk/`, `../`, or absolute paths | Error | Block |
+| **Filesystem** | No path traversal or access to framework internals | Error | Block |
 | **Crypto** | No custom crypto implementations (use framework primitives) | Error | Block |
 | **Crypto** | No weak algorithms (MD5, SHA1 for security, DES, RC4) | Error | Block |
 | **Auth** | No hardcoded credentials, passwords, or tokens | Error | Block |
@@ -442,56 +444,24 @@ LLM generates code
 
 ### Pattern Matching
 
-The scanner uses AST-level analysis where possible (Go AST, JS/TS AST),
-falling back to regex for languages without AST tooling:
+The scanner MUST use AST-level analysis where available for the target
+language, falling back to pattern matching for languages without AST
+tooling. The scanner MUST detect at minimum:
 
-```yaml
-secret_patterns:
-  - pattern: '[A-Za-z0-9+/]{40,}'     # Base64-encoded keys
-  - pattern: 'sk_live_[a-zA-Z0-9]{24,}'  # Stripe-style keys
-  - pattern: 'AKIA[0-9A-Z]{16}'          # AWS access keys
-  - pattern: 'ghp_[a-zA-Z0-9]{36}'       # GitHub PATs
-  - pattern: '-----BEGIN.*PRIVATE KEY-----'  # PEM keys
+- **Credential patterns**: Encoded keys, vendor-format tokens, PEM-encoded private keys
+- **Injection patterns**: String interpolation in query construction, dynamic code execution with variable input
+- **Unsafe API usage**: OS command execution with untrusted arguments, dynamic code evaluation
 
-injection_patterns:
-  - pattern: 'fmt\.Sprintf.*SELECT|INSERT|UPDATE|DELETE'
-  - pattern: 'string\s*\+.*query|sql'
-  - pattern: 'exec\(.*\$|`.*\$'
-
-unsafe_apis:
-  go: [os/exec.Command with variable args, unsafe package]
-  js: [eval, Function(), child_process.exec with interpolation]
-```
+Platform-specific scanner rules and patterns are defined in the
+relevant `platforms/*.md` blueprint.
 
 ### Override Mechanism
 
 False positives can be suppressed with inline annotations:
 
-```go
-// weblisk:security-ignore reason="URL is build-time constant from config"
-const healthEndpoint = "http://localhost:9800/v1/health"
-```
-
 - Annotations are logged in the security audit trail
-- Each annotation requires a `reason` — bare `security-ignore` is rejected
-- Annotations are reviewable via `weblisk validate --security-overrides`
-
-### CLI Integration
-
-```bash
-$ weblisk server init --platform go
-Generating server implementation...
-Running security validation...
-✓ 12 files generated, 0 security violations
-
-$ weblisk agent create email-send
-Generating agent implementation...
-Running security validation...
-✗ 2 security violations found:
-  agents/email-send/handler.go:45 — hardcoded URL (use config)
-  agents/email-send/handler.go:78 — string concatenation in query
-Files NOT written. Fix blueprint and re-run.
-```
+- Each annotation requires a `reason` — bare suppression markers are rejected
+- Annotations are reviewable via security validation tooling
 
 ---
 
@@ -643,7 +613,7 @@ the application configures — not by the framework core.
 ## Implementation Notes
 
 - The framework provides two tiers of data security: (1) **transport
-  security** (TLS, Ed25519 signing, header trust) which is always on,
+  security** (TLS, ML-DSA-65 signing, header trust) which is always on,
   and (2) **data-level security** (scope, policy, privacy, enforcement)
   which is opt-in via the corresponding patterns.
 - Agents that handle sensitive data SHOULD adopt patterns/scope to
@@ -651,7 +621,7 @@ the application configures — not by the framework core.
   patterns/policy for access rules. The enforcement architecture
   validates these at boundaries automatically.
 - Agents that handle sensitive data SHOULD implement their own
-  encryption-at-rest using the Ed25519 key hierarchy (HKDF-derived
+  encryption-at-rest using the ML-DSA-65 key hierarchy (HKDF-derived
   keys) provided by the identity protocol. The framework provides the
   cryptographic primitives; agents decide what to encrypt.
 - Federation data contracts (patterns/contract) carry scope metadata.
@@ -682,7 +652,7 @@ EncryptionPolicy:
         default: aes-256-gcm
     key_derivation:
       type: string
-      description: How the encryption key is derived from the agent's Ed25519 key
+      description: How the encryption key is derived from the agent's signing key
       constraints:
         enum: [hkdf-sha256, hkdf-sha512]
         default: hkdf-sha256
@@ -703,7 +673,7 @@ data_security:
     require_in_production: true
     allow_plaintext_localhost: true
   signing:
-    algorithm: ed25519
+    algorithm: ml-dsa-65
     fields_covered: [from, to, action, payload]
   encryption_at_rest:
     algorithm: aes-256-gcm
@@ -718,12 +688,129 @@ data_security:
     strip_raw_errors: true
 ```
 
+---
+
+## Storage Integrity Verification
+
+The framework provides transport security (TLS, message signing) and
+opt-in encryption at rest, but does not define a mechanism for
+detecting tampering of agent-owned stored data during normal
+operation. A compromised or malfunctioning agent could modify its
+own stored data in ways that are invisible to the system — the
+enforcement storage proxy validates that the agent has permission to
+write, but does not validate that the written data is correct or
+expected.
+
+Storage integrity verification closes this gap by defining
+verifiable conditions for agent-owned data that enable detection of
+anomalous modifications.
+
+### Scope
+
+Storage integrity verification applies to agent-owned data at scope
+>= `confidential`. Agents operating at `public` or `internal` scope
+MAY adopt these practices but are not required to.
+
+### Integrity Properties
+
+The following properties MUST be verifiable for agent-owned data at
+scope >= `confidential`:
+
+1. **Record-level checksums** — each stored record MUST carry a
+   checksum computed from its content fields. When a record is read
+   back, the checksum MUST be recomputable and comparable. A
+   mismatch indicates tampering or corruption.
+
+2. **Write provenance** — each write operation MUST record the
+   identity of the writing agent, the correlation ID linking to the
+   enforcement decision that authorized the write, and a timestamp.
+   Provenance records are append-only.
+
+3. **Version integrity** — for versioned records (records modified
+   over time), each version MUST reference the checksum of the
+   prior version. This creates a hash chain per record that detects
+   out-of-order modifications or deletions of intermediate versions.
+
+4. **Anomaly indicators** — the following conditions are storage
+   integrity anomalies that MUST be detectable:
+   - Record checksum mismatch on read
+   - Write provenance missing for a stored record
+   - Version chain broken (prior_checksum does not match previous
+     version's actual checksum)
+   - Record exists without a corresponding enforcement audit entry
+     for the write that created it
+   - Record count changes without corresponding write operations
+     in the enforcement audit trail
+
+### Integration with Enforcement
+
+The enforcement storage proxy (see `architecture/enforcement`) logs
+every authorized write operation. Storage integrity verification
+cross-references stored records against the enforcement audit trail.
+A record that exists in storage but has no corresponding
+enforcement-authorized write is an integrity anomaly.
+
+### Verification Interface
+
+Agents at scope >= `confidential` MUST expose the following
+verification capabilities:
+
+```yaml
+storage_integrity:
+  verify_record:
+    description: Verify checksum integrity of a specific record
+    input:
+      resource: string           # Resource path or table
+      record_id: string          # Record identifier
+    output:
+      valid: boolean
+      checksum_stored: string
+      checksum_computed: string
+      provenance:
+        written_by: string
+        correlation_id: string
+        written_at: timestamp
+
+  verify_resource:
+    description: Verify integrity of all records in a resource
+    input:
+      resource: string           # Resource path or table
+    output:
+      total_records: integer
+      valid_records: integer
+      anomalies:
+        - record_id: string
+          anomaly_type: enum(checksum_mismatch, missing_provenance, broken_chain, orphaned_record)
+          detail: string
+
+  verify_version_chain:
+    description: Verify the hash chain of a versioned record
+    input:
+      resource: string
+      record_id: string
+    output:
+      chain_valid: boolean
+      versions: integer
+      break_point: integer | null  # Version number where chain breaks, if any
+```
+
+### Configuration
+
+```yaml
+data_security:
+  storage_integrity:
+    required_above_scope: confidential
+    checksum_on_write: true
+    provenance_on_write: true
+    version_chain: true
+```
+
 ## Verification Checklist
 
 - [ ] The .weblisk/ directory is inaccessible to agents, web requests, and any non-CLI process; gateway blocks all dotfile/dotfolder paths; agents have no filesystem read access to .weblisk/
 - [ ] Static file serving excludes all dotfiles and dotfolders by default with no configuration override
 - [ ] All inter-component communication uses TLS in production; plaintext HTTP permitted only on localhost in development
-- [ ] Every agent-to-agent message is signed with the sender's Ed25519 key covering {from, to, action, payload}
+- [ ] Every agent-to-agent message is signed with the sender's ML-DSA-65 key covering {from, to, action, payload}
 - [ ] Gateway injects X-Gateway-* headers on forwarded requests and agents reject these headers from any non-gateway source
 - [ ] Orchestrator validates that only the registered gateway agent sets X-Gateway-* headers; other agents are rejected
 - [ ] Unregistered agents cannot communicate with any component in the system
@@ -743,3 +830,6 @@ data_security:
 - [ ] Security-ignore annotations require a reason and are logged in audit trail
 - [ ] Blueprint manifest (.weblisk/blueprint-manifest.sha256) records SHA-256 of every blueprint used in generation
 - [ ] `weblisk server init --verify-signatures` validates blueprint files are from signed commits before generation
+- [ ] Agents at scope >= confidential implement storage integrity verification: record-level checksums, write provenance, and version chain integrity
+- [ ] Storage integrity anomalies (checksum mismatch, missing provenance, broken version chain, orphaned records) are detectable and reported
+- [ ] Write provenance records are append-only and cross-referenceable with enforcement audit trail

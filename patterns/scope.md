@@ -753,15 +753,21 @@ scope:
     strict_propagation: true             # fail if scope cannot be propagated
 ```
 
-### Environment Variables
+### Runtime Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `WL_SCOPE_DEFAULT_LEVEL` | `internal` | Scope applied to unclassified entities |
-| `WL_SCOPE_ENVIRONMENT` | `production` | Active environment profile |
-| `WL_SCOPE_VIOLATION_ACTION` | `deny` | Default enforcement on violation (`audit`, `deny`, `block`) |
-| `WL_SCOPE_REJECT_UNSCOPED` | `false` | Whether to reject entities without scope declaration |
-| `WL_SCOPE_STRICT_PROPAGATION` | `true` | Whether to fail on scope propagation failures |
+The following configuration parameters control scope behavior at runtime:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| Default scope level | `internal` | Scope applied to unclassified entities |
+| Active environment | `production` | Active environment profile |
+| Violation action | `deny` | Default enforcement on violation (`audit`, `deny`, `block`) |
+| Reject unscoped | `false` | Whether to reject entities without scope declaration |
+| Strict propagation | `true` | Whether to fail if scope cannot be propagated |
+
+How these parameters are supplied (environment variables, configuration
+files, secrets manager) is platform-specific — see the relevant
+`platforms/*.md` blueprint.
 
 ---
 
@@ -1034,7 +1040,7 @@ federation_transfer:
 - Scope evaluation SHOULD be performed once at the boundary (when data
   enters a component) and cached for the duration of the request.
   Re-evaluating scope on every field access is unnecessary overhead.
-- Default scope (`WL_SCOPE_DEFAULT_LEVEL`) applies only to entities
+- The configured default scope level applies only to entities
   that have no explicit scope declaration. Implementations SHOULD
   log a warning when defaulting is applied, as it may indicate a
   missing classification.

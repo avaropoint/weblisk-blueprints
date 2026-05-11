@@ -24,8 +24,8 @@ JSON using the exact field names shown in the `json` column.
 
 - All timestamps are Unix epoch seconds (`int64`)
 - All IDs are 32-character hex strings (16 random bytes)
-- All signatures are hex-encoded Ed25519 signatures (128 hex chars)
-- All public keys are hex-encoded Ed25519 public keys (64 hex chars)
+- All signatures are base64url-encoded ML-DSA-65 signatures (3309 bytes)
+- All public keys are base64url-encoded ML-DSA-65 public keys (1952 bytes)
 - Optional fields MAY be omitted from JSON when empty/null
 - Unknown fields MUST be ignored (forward compatibility)
 
@@ -69,7 +69,7 @@ category and retry information are available.
 | Code | HTTP | Category | Description |
 |------|------|----------|-------------|
 | `INVALID_REQUEST` | 400 | permanent | Missing or malformed fields |
-| `INVALID_SIGNATURE` | 401 | permanent | Ed25519 signature verification failed |
+| `INVALID_SIGNATURE` | 401 | permanent | ML-DSA-65 signature verification failed |
 | `TOKEN_EXPIRED` | 401 | transient | Token past expiry — re-register to get a new one |
 | `FORBIDDEN` | 403 | permanent | Missing required capability |
 | `NOT_FOUND` | 404 | permanent | Agent or resource not in registry |
@@ -85,6 +85,99 @@ category and retry information are available.
 | `PHASE_FAILED` | 500 | varies | Workflow phase failed — check `detail.phase_name` |
 | `PARTIAL_FAILURE` | 207 | partial | Some phases succeeded, some failed |
 
+**Enforcement error codes** (produced by `architecture/enforcement`):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `ENFORCEMENT_QUARANTINED` | 403 | permanent | Agent is quarantined — all operations blocked |
+| `ENFORCEMENT_POLICY_DENY` | 403 | permanent | Policy evaluation returned deny |
+| `ENFORCEMENT_MISSING_INTENT` | 403 | permanent | Safety intent required but not filed |
+| `ENFORCEMENT_CAPABILITY_MISMATCH` | 403 | permanent | Agent lacks declared capability for operation |
+| `ENFORCEMENT_SCOPE_VIOLATION` | 403 | permanent | Resource scope exceeds agent operational scope |
+| `ENFORCEMENT_SCOPE_LEAKAGE` | 403 | permanent | Payload scope exceeds target endpoint classification |
+| `ENFORCEMENT_BLOCKED_TARGET` | 403 | permanent | Target is on the blocked endpoint list |
+| `ENFORCEMENT_DATA_CONTRACT_VIOLATION` | 403 | permanent | Operation targets resources outside agent's declared data contract |
+| `ENFORCEMENT_OUTPUT_CONTRACT_VIOLATION` | 403 | permanent | Response contains fields outside declared output contract |
+| `ENFORCEMENT_OUTPUT_SCOPE_EXCEEDED` | 403 | permanent | Response scope exceeds agent's operational scope |
+| `ENFORCEMENT_CALLER_SCOPE_EXCEEDED` | 403 | permanent | Response scope exceeds what the caller can receive |
+| `ENFORCEMENT_CONSENT_REQUIRED` | 403 | permanent | Operation involves subject data requiring consent that is not active |
+
+**Contract error codes** (produced by `patterns/contract`):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `CONTRACT_VIOLATION` | 400 | permanent | Contract terms violated |
+| `CONTRACT_UNKNOWN` | 404 | permanent | Referenced contract not found |
+| `SCHEMA_INVALID` | 400 | permanent | Data does not match contract schema |
+
+**Federation error codes** (produced by `protocol/federation`):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `PEER_UNTRUSTED` | 403 | permanent | Federation peer not in trust store |
+| `TRUST_EXPIRED` | 403 | permanent | Peer trust relationship has expired |
+| `JURISDICTION_DENIED` | 403 | permanent | Data cannot cross jurisdiction boundary |
+| `DATA_BOUNDARY_VIOLATION` | 400 | permanent | Payload violates federation data contract |
+
+**Safety error codes** (produced by `patterns/safety`):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `APPROVAL_TIMEOUT` | 408 | transient | Approval request timed out |
+
+**Policy error codes** (produced by `patterns/policy`):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `POLICY_DENIED` | 403 | permanent | Policy evaluation denied the operation |
+| `POLICY_ESCALATED` | 202 | transient | Policy requires approval escalation before proceeding |
+| `POLICY_NOT_FOUND` | 404 | permanent | Referenced policy does not exist |
+| `POLICY_EVAL_FAILED` | 500 | transient | Policy engine encountered an internal error during evaluation |
+| `POLICY_CONTEXT_INCOMPLETE` | 400 | permanent | Required policy context fields are missing — fail-closed deny |
+| `POLICY_INVALID_DEFINITION` | 400 | permanent | Policy definition does not pass schema validation |
+| `POLICY_LIFECYCLE_INVALID` | 409 | permanent | Invalid policy state transition (e.g., modifying an archived policy) |
+| `POLICY_CONFLICT` | 409 | permanent | Conflicting active policies detected for the same scope |
+
+**Identity error codes** (produced by `protocol/identity`):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `KEY_DECODE_ERROR` | 400 | permanent | Cryptographic key could not be decoded or parsed |
+
+**Common error codes** (reusable across agents and components):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `INVALID_INPUT` | 400 | permanent | Request input fails validation (malformed, missing required fields, constraint violation) |
+| `STORAGE_ERROR` | 500 | transient | Persistence layer operation failed (read, write, or query) |
+| `INVALID_STATE` | 409 | permanent | Operation is invalid for the current state of the target resource |
+| `TARGET_NOT_FOUND` | 404 | permanent | Dispatch target agent is not registered or unreachable |
+| `DISPATCH_TIMEOUT` | 408 | transient | Task dispatch to target agent timed out before acknowledgement |
+| `DISPATCH_ERROR` | 502 | transient | Task dispatch to target agent failed (transport or protocol error) |
+| `PAYLOAD_TOO_LARGE` | 413 | permanent | Request payload exceeds the maximum allowed size |
+| `DELIVERY_FAILED` | 502 | transient | Event or notification delivery to target failed after retries |
+| `CAPABILITY_DENIED` | 403 | permanent | Peer or agent lacks the required capability grant |
+| `BEHAVIORAL_CHANGE` | 403 | permanent | Entity behavior has deviated from its declared or historical pattern |
+| `RETENTION_EXPIRED` | 410 | permanent | Requested data has been purged per retention policy |
+
+#### Error Code Conventions
+
+Error codes follow the convention: `DOMAIN_SPECIFIC_ERROR`. Domain
+prefixes (`ENFORCEMENT_`, `CONTRACT_`, `POLICY_`, etc.) indicate the
+originating subsystem.
+
+**Registry vs. local codes:**
+- All protocol-level, enforcement, policy, contract, federation,
+  safety, identity, and common codes are registered in this central
+  table. These codes may appear in any component.
+- Agent-local codes (specific to a single agent's domain logic) are
+  defined in the agent's own blueprint. Agent-local codes MUST NOT
+  collide with registered codes and SHOULD use a descriptive name
+  that indicates the agent domain (e.g., `INVALID_SCHEDULE` in the
+  cron agent, `HARD_BOUNCE` in the email-send agent).
+- When an agent-local code is used by two or more unrelated agents,
+  it SHOULD be promoted to the common codes table in this registry.
+
 ### AgentManifest
 
 Describes an agent's identity, capabilities, and interface contract.
@@ -98,7 +191,7 @@ Returned by `POST /v1/describe` and sent during registration.
 | ProtocolVersion | string | `protocol_version` | no | Protocol version this agent implements (default: `"1"`) |
 | Description | string | `description` | yes | Human-readable purpose |
 | URL | string | `url` | yes | Agent's HTTP base URL |
-| PublicKey | string | `public_key` | yes | Hex-encoded Ed25519 public key |
+| PublicKey | string | `public_key` | yes | Base64url-encoded ML-DSA-65 public key (1952 bytes) |
 | Capabilities | []Capability | `capabilities` | yes | What this agent can do |
 | Inputs | []IOSpec | `inputs` | no | Expected input parameters |
 | Outputs | []IOSpec | `outputs` | no | What this agent produces |
@@ -106,7 +199,7 @@ Returned by `POST /v1/describe` and sent during registration.
 | Approval | string | `approval` | no | `"required"` or `"auto"` (default: `"required"`) |
 | RequiredAgents | []string | `required_agents` | no | Agents this domain needs (domain type only) |
 | Workflows | []string | `workflows` | no | Workflow names supported (domain type only) |
-| MaxConcurrent | int | `max_concurrent` | no | Max concurrent executions (advisory; default: 5) |
+| MaxConcurrent | int | `max_concurrent` | no | Max concurrent executions (default: 1 — serial execution; 0 means unlimited) |
 | Publishes | []string | `publishes` | no | Namespace patterns this agent may publish to (e.g., `["workflow.*"]`). The orchestrator enforces exclusive ownership — no two agents may claim the same namespace. See [spec.md — Namespace Control](spec.md#namespace-control). |
 | Subscriptions | []Subscription | `subscriptions` | no | Event subscription declarations. Each entry specifies a topic pattern, optional consumer group, scope, and concurrency limit. See [spec.md — Event Scoping](spec.md#event-scoping). |
 
@@ -317,7 +410,7 @@ or dispatched as part of a workflow phase.
 | Context | TaskContext | `context` | yes | Runtime context |
 | StrategyID | string | `strategy_id` | no | Associated strategy |
 | Token | string | `token` | yes | Auth token |
-| Signature | string | `signature` | no | Ed25519 signature of payload |
+| Signature | string | `signature` | no | ML-DSA-65 signature of payload (3309 bytes, base64url-encoded) |
 | Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
 
 ### TaskContext
@@ -346,7 +439,7 @@ Returned by an agent after task execution.
 | Observations | []Observation | `observations` | no | Measurements taken |
 | Recommendations | []Recommendation | `recommendations` | no | Suggested actions |
 | Metrics | map | `metrics` | no | Execution metrics |
-| Signature | string | `signature` | no | Ed25519 signature |
+| Signature | string | `signature` | no | ML-DSA-65 signature (3309 bytes, base64url-encoded) |
 | Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
 
 ### ProposedChange
@@ -511,7 +604,7 @@ Direct agent-to-agent or orchestrator-to-agent message.
 | Action | string | `action` | yes | Message action name |
 | Payload | map | `payload` | yes | Message data |
 | Token | string | `token` | no | Auth or channel token |
-| Signature | string | `signature` | no | Ed25519 signature |
+| Signature | string | `signature` | no | ML-DSA-65 signature (3309 bytes, base64url-encoded) |
 | Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
 | TraceID | string | `trace_id` | no | Correlation ID (propagated from TaskContext) |
 
@@ -528,7 +621,7 @@ Direct agent-to-agent or orchestrator-to-agent message.
 |-------|------|----------|----------|-------------|
 | Name | string | `name` | yes | Agent name |
 | URL | string | `url` | yes | Agent base URL |
-| PublicKey | string | `public_key` | yes | Hex Ed25519 public key |
+| PublicKey | string | `public_key` | yes | Base64url-encoded ML-DSA-65 public key (1952 bytes) |
 | Capabilities | []string | `capabilities` | yes | Capability names |
 | Status | string | `status` | yes | `online`, `offline`, `degraded` |
 
@@ -551,7 +644,7 @@ Direct agent-to-agent or orchestrator-to-agent message.
 | Field | Type | JSON Key | Required | Description |
 |-------|------|----------|----------|-------------|
 | Manifest | AgentManifest | `manifest` | yes | Agent's full manifest |
-| Signature | string | `signature` | yes | Ed25519 signature of JSON(manifest) |
+| Signature | string | `signature` | yes | ML-DSA-65 signature of JSON(manifest) (3309 bytes, base64url-encoded) |
 | Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
 
 ### RegisterResponse
@@ -570,7 +663,7 @@ Direct agent-to-agent or orchestrator-to-agent message.
 | Field | Type | JSON Key | Required | Description |
 |-------|------|----------|----------|-------------|
 | URL | string | `url` | yes | Orchestrator base URL |
-| PublicKey | string | `public_key` | yes | Hex Ed25519 public key |
+| PublicKey | string | `public_key` | yes | Base64url-encoded ML-DSA-65 public key (1952 bytes) |
 | Version | string | `version` | yes | Orchestrator software version |
 | SupportedVersions | []string | `supported_versions` | yes | Protocol versions this orchestrator supports (e.g., `["1"]`) |
 
@@ -593,7 +686,7 @@ orchestrator rejects with 400 and error code `UNSUPPORTED_VERSION`.
 | ToAgent | string | `to_agent` | yes | Target agent name |
 | Purpose | string | `purpose` | yes | Why the channel is needed |
 | Token | string | `token` | yes | Requestor's auth token |
-| Signature | string | `signature` | yes | Ed25519 signature over `canonicalize({from_agent, to_agent, purpose})` |
+| Signature | string | `signature` | yes | ML-DSA-65 signature over `canonicalize({from_agent, to_agent, purpose})` (3309 bytes, base64url-encoded) |
 
 ### ChannelGrant
 
@@ -694,7 +787,7 @@ topic pattern with scope and concurrency controls.
 | Pattern | string | `pattern` | yes | Topic or wildcard pattern (supports `*` for single segment, `#` for multi-segment) |
 | Group | string | `group` | no | Consumer group name. Events are load-balanced within a group. Defaults to agent name. |
 | Scope | string | `scope` | no | `"self"` (default), `"*"` (requires `event:observe`), or a specific agent name |
-| MaxConcurrent | int | `max_concurrent` | no | Max parallel event processing for this subscription (default: 5) |
+| MaxConcurrent | int | `max_concurrent` | no | Max parallel event processing for this subscription (default: 1) |
 
 ### RouteEntry
 
@@ -756,7 +849,7 @@ ErrorResponse section with their HTTP status mappings.
 Implementations MUST:
 - Always return at minimum `{"error": "message"}`
 - Include `code` and `category` when the information is available
-- Use exact error codes from the standard table (no custom codes without extension)
+- Use exact error codes from the central registry (agent-local codes are permitted — see Error Code Conventions)
 - Map error codes to the correct HTTP status codes
 
 ---
@@ -768,13 +861,13 @@ Implementations MUST:
 Enumeration of universal scope levels. Scope classifies any resource,
 operation, message, or data field.
 
-| Value | Description |
-|-------|-------------|
-| `public` | No restrictions — visible to anyone |
-| `internal` | Visible within the hub only |
-| `restricted` | Limited to authorized agents/roles |
-| `confidential` | Need-to-know basis with audit trail |
-| `critical` | Highest protection — requires approval for access |
+| Value | Ordinal | Description |
+|-------|---------|-------------|
+| `public` | 0 | No restrictions — visible to anyone |
+| `internal` | 1 | Visible within the hub only |
+| `confidential` | 2 | Need-to-know basis with audit trail |
+| `restricted` | 3 | Limited to authorized agents/roles |
+| `critical` | 4 | Highest protection — requires approval for access |
 
 ### ScopeDeclaration
 
@@ -827,7 +920,7 @@ evaluated before the operation executes.
 |-------|------|----------|----------|-------------|
 | ID | string | `id` | yes | Unique intent identifier |
 | Agent | string | `agent` | yes | Agent requesting the operation |
-| Operation | string | `operation` | yes | Operation class: `read`, `create`, `modify`, `delete`, `destroy` |
+| Operation | string | `operation` | yes | Operation class: `read`, `list`, `query`, `create`, `modify`, `delete`, `destroy` |
 | Resource | string | `resource` | yes | Target resource identifier |
 | ResourceClass | string | `resource_class` | yes | `ephemeral`, `application`, `system`, `critical` |
 | Scope | string | `scope` | yes | ScopeLevel of the target resource |
@@ -841,11 +934,70 @@ Response to an OperationIntent — whether the operation may proceed.
 | Field | Type | JSON Key | Required | Description |
 |-------|------|----------|----------|-------------|
 | IntentID | string | `intent_id` | yes | Which intent this decides |
-| Decision | string | `decision` | yes | `approve`, `deny`, `escalate` |
+| Decision | DecisionResult | `decision` | yes | Canonical decision outcome (see Decision Taxonomy) |
 | Authority | string | `authority` | yes | Who/what made the decision |
 | Conditions | []string | `conditions` | no | Conditions attached to approval |
 | Reason | string | `reason` | no | Explanation |
 | Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+
+---
+
+## Decision Taxonomy
+
+All components that produce access decisions — enforcement boundaries,
+safety gates, and policy evaluators — use a unified decision vocabulary.
+Each component produces decisions from its own subset; enforcement
+resolves them into a final action using most-restrictive-wins.
+
+### DecisionResult
+
+Canonical decision outcomes across all evaluation layers.
+
+| Value | Ordinal | Description | Produced By |
+|-------|---------|-------------|-------------|
+| `allow` | 0 | Operation permitted | enforcement, safety, policy |
+| `audit` | 1 | Operation permitted but logged for review | policy |
+| `require_approval` | 2 | Operation held pending operator/admin approval | enforcement, safety |
+| `escalate` | 3 | Operation held pending elevated authority approval | safety, policy |
+| `deny` | 4 | Operation rejected | enforcement, safety, policy |
+| `quarantine` | 5 | Operation rejected and agent isolated | enforcement |
+
+Comparison: ordinal-based; higher ordinal = more restrictive.
+Most-restrictive-wins: when multiple evaluations produce different
+decisions, the highest ordinal prevails.
+
+### Decision Mapping
+
+When combining decisions from different layers, enforcement maps
+each layer's output to the canonical DecisionResult:
+
+| Layer | Layer Decision | Maps To |
+|-------|---------------|---------|
+| Policy | `allow` | `allow` |
+| Policy | `audit` | `audit` — operation proceeds, decision logged for review |
+| Policy | `escalate` | `escalate` — treated as `require_approval` with elevated authority |
+| Policy | `deny` | `deny` |
+| Safety | `allow` | `allow` |
+| Safety | `require_approval` | `require_approval` |
+| Safety | `deny` | `deny` |
+| Safety | `escalate` | `escalate` |
+| Enforcement | `allow` | `allow` |
+| Enforcement | `require_approval` | `require_approval` |
+| Enforcement | `deny` | `deny` |
+| Enforcement | `quarantine` | `quarantine` — only enforcement can issue quarantine |
+
+### Severity
+
+Unified severity levels used by enforcement violations, security
+events, and safety classifications.
+
+| Value | Description |
+|-------|-------------|
+| `info` | Informational — no action required |
+| `low` | Minor issue — logged |
+| `medium` | Notable issue — may trigger alerts |
+| `high` | Serious issue — immediate escalation |
+| `critical` | Emergency — may trigger quarantine or kill-switch |
 
 ---
 
@@ -858,10 +1010,11 @@ Result of boundary inspection by the enforcement layer.
 | Field | Type | JSON Key | Required | Description |
 |-------|------|----------|----------|-------------|
 | ID | string | `id` | yes | Unique decision identifier |
-| Boundary | string | `boundary` | yes | `message`, `storage`, `external` |
+| Boundary | string | `boundary` | yes | `message`, `storage`, `external`, `response` |
 | Agent | string | `agent` | yes | Agent whose operation was inspected |
-| Action | string | `action` | yes | `allow`, `block`, `quarantine` |
-| Violations | []string | `violations` | no | Policy/scope violations detected |
+| Action | string | `action` | yes | DecisionResult value |
+| Violations | []string | `violations` | no | Policy/scope/privacy violations detected |
+| PrivacyActions | []string | `privacy_actions` | no | Privacy actions applied (masking, minimization) |
 | Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
 | TraceID | string | `trace_id` | yes | Correlation with distributed trace |
 
@@ -877,9 +1030,9 @@ here for completeness — identity.md is the authoritative source.
 | Field | Type | JSON Key | Required | Description |
 |-------|------|----------|----------|-------------|
 | AgentID | string | `agent_id` | yes | Agent ID (32 hex chars) |
-| NewPublicKey | string | `new_public_key` | yes | New Ed25519 public key (64 hex chars) |
-| CurrentSignature | string | `current_signature` | yes | Agent manifest signed with current private key (128 hex chars) |
-| NewSignature | string | `new_signature` | yes | Same manifest signed with new private key (128 hex chars) |
+| NewPublicKey | string | `new_public_key` | yes | New ML-DSA-65 public key (base64url-encoded, 1952 bytes) |
+| CurrentSignature | string | `current_signature` | yes | Agent manifest signed with current private key (base64url-encoded, 3309 bytes) |
+| NewSignature | string | `new_signature` | yes | Same manifest signed with new private key (base64url-encoded, 3309 bytes) |
 | Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
 
 ---
@@ -925,9 +1078,9 @@ security:
     - All string fields MUST be validated for maximum length before processing
     - No executable content in any type field
   signing:
-    algorithm: Ed25519
-    key_type: 32-byte public / 64-byte private
-    process: Signature fields contain hex-encoded Ed25519 signatures
+    algorithm: ML-DSA-65
+    key_type: 1952-byte public / 4032-byte private (FIPS 204)
+    process: Signature fields contain base64url-encoded ML-DSA-65 signatures
   verification:
     process: All signature fields verified against sender public key
   type_safety:
@@ -941,7 +1094,7 @@ security:
     - Descriptions and messages: max 1024 characters
     - Payload fields (JSON objects): max 1 MiB serialized
     - URL fields: max 2048 characters
-    - Hex-encoded keys/signatures: validated by exact length (64 or 128 chars)
+    - Base64url-encoded keys/signatures: validated by expected decoded byte lengths (1952 for public keys, 3309 for signatures)
 ```
 
 ---
@@ -961,7 +1114,7 @@ security:
 ## Verification Checklist
 
 - [ ] All IDs are 32-character hex strings (16 random bytes) and all timestamps are Unix epoch seconds (int64)
-- [ ] Ed25519 signatures serialize as 128 hex characters; public keys serialize as 64 hex characters
+- [ ] ML-DSA-65 signatures serialize as base64url-encoded 3309 bytes; public keys serialize as base64url-encoded 1952 bytes
 - [ ] ErrorResponse includes `error` (required), `code`, `category`, `retryable`, and `detail` fields with exact JSON keys
 - [ ] Error categories are constrained to `transient`, `permanent`, or `partial` and each standard error code maps to the correct HTTP status
 - [ ] Unknown JSON fields are silently ignored on deserialization (forward compatibility); optional fields are omitted when empty/null
@@ -979,9 +1132,13 @@ security:
 - [ ] ChannelGrant includes `channel_id`, scoped `channel_token`, `target_url`, `target_pub_key`, and `expires_at`
 - [ ] Protocol paths are all prefixed with `/v1` and method/auth requirements match the Protocol Paths table
 - [ ] DeadLetterEntry includes `original_event`, `failure_reason`, `last_error`, `attempts`, and `subscriber`
-- [ ] ScopeLevel enum is constrained to `public`, `internal`, `restricted`, `confidential`, `critical`
+- [ ] ScopeLevel enum is constrained to `public`, `internal`, `confidential`, `restricted`, `critical`
 - [ ] ScopeDeclaration requires `target`, `level`, `declared_by`, and `timestamp`
 - [ ] PolicyDecision requires `policy_name`, `decision`, and `timestamp`; decision is `allow`, `deny`, or `audit`
-- [ ] OperationIntent requires `id`, `agent`, `operation`, `resource`, `resource_class`, `scope`, `environment`, and `timestamp`
-- [ ] IntentDecision requires `intent_id`, `decision`, `authority`, and `timestamp`; decision is `approve`, `deny`, or `escalate`
-- [ ] EnforcementDecision requires `id`, `boundary`, `agent`, `action`, `timestamp`, and `trace_id`
+- [ ] OperationIntent requires `id`, `agent`, `operation`, `resource`, `resource_class`, `scope`, `environment`, and `timestamp`; operation includes `list` and `query`
+- [ ] IntentDecision requires `intent_id`, `decision`, `authority`, and `timestamp`; decision uses DecisionResult enum
+- [ ] EnforcementDecision requires `id`, `boundary`, `agent`, `action`, `timestamp`, and `trace_id`; boundary includes `response`
+- [ ] DecisionResult enum is constrained to `allow`, `audit`, `require_approval`, `escalate`, `deny`, `quarantine` with ordinal-based comparison
+- [ ] Severity enum is constrained to `info`, `low`, `medium`, `high`, `critical` — used consistently across enforcement, security, and safety
+- [ ] Decision mapping table resolves policy/safety/enforcement decisions to canonical DecisionResult using most-restrictive-wins
+- [ ] All protocol-level error codes (standard, enforcement, contract, federation, safety, policy, identity, common) are registered centrally; agent-local codes use domain-descriptive names and do not collide with registered codes

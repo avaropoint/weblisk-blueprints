@@ -44,7 +44,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Ed25519KeyPair
+        - name: SigningKeyPair
           fields_used: [public_key, private_key]
         - name: WLToken
           fields_used: [sub, cap, exp]
@@ -436,7 +436,7 @@ standard library where possible. Required dependencies:
 # Go platform — acceptable dependencies
 allowed_categories:
   - stdlib              # Always allowed
-  - crypto/primitives   # ed25519, aes, argon2 (well-audited libs)
+  - crypto/primitives   # ml-dsa-65, aes-256-gcm, argon2id (well-audited, NIST-approved)
   - http/routing        # Standard library net/http preferred
   - database/drivers    # SQLite, PostgreSQL drivers
 
@@ -525,10 +525,12 @@ is inherited and extends the agent-specific verification checklist.
 
 ### Identity
 
-- [ ] Token signature verified on all protected endpoints
+- [ ] Token signature verified on all protected endpoints (ML-DSA-65)
+- [ ] Token `alg` field checked against allowlist (ML-DSA-65) — reject unknown algorithms
 - [ ] Token expiry checked on every request
 - [ ] Message signatures verified when sender public key is known
 - [ ] Governance directive signatures verified against orchestrator key
+- [ ] New deployments default to ML-DSA-65 (FIPS 204) for post-quantum resistance
 
 ### Monitoring
 

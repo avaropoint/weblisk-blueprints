@@ -82,7 +82,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Ed25519KeyPair
+        - name: SigningKeyPair
           fields_used: [public_key, private_key]
         - name: WLToken
           fields_used: [header, payload, signature]
@@ -104,8 +104,8 @@ requires:
 - All paths are prefixed with `/v1`
 - All request/response bodies are `application/json`
 - All timestamps are Unix epoch seconds (`int64`)
-- All signatures are hex-encoded Ed25519 signatures (128 hex chars)
-- All public keys are hex-encoded Ed25519 public keys (64 hex chars)
+- All signatures are base64url-encoded ML-DSA-65 signatures (3309 bytes decoded)
+- All public keys are base64url-encoded ML-DSA-65 public keys (1952 bytes decoded)
 - Errors return `ErrorResponse` JSON (see [types.md](types.md)); at minimum `{"error": "message"}`
 - IDs are 32-character hex strings (16 random bytes); event IDs use UUID v7
   (time-sortable, 32 hex chars when formatted without hyphens)
@@ -135,7 +135,7 @@ namespace ownership. No auth required.
   "version": "1.0.0",
   "description": "Scans HTML files and analyzes SEO metadata",
   "url": "http://localhost:9710",
-  "public_key": "<64-char hex Ed25519 public key>",
+  "public_key": "<64-char hex ML-DSA-65 public key>",
   "capabilities": [
     {"name": "file:read", "resources": ["app/**/*.html"]},
     {"name": "llm:chat", "resources": []},
@@ -188,7 +188,7 @@ is returned.
     "services": {}
   },
   "token": "<WLT auth token>",
-  "signature": "<hex Ed25519 signature>",
+  "signature": "<hex ML-DSA-65 signature>",
   "timestamp": 1712160000
 }
 ```
@@ -205,7 +205,7 @@ is returned.
   "observations": [...],
   "recommendations": [...],
   "metrics": {"files_scanned": 5, "suggestions": 3},
-  "signature": "<hex Ed25519 signature>",
+  "signature": "<hex ML-DSA-65 signature>",
   "timestamp": 1712160001
 }
 ```
@@ -262,7 +262,7 @@ Signature covers: `canonicalize({from, to, action, payload})` per
   "action": "check-overlap",
   "type": "request",
   "payload": {"url": "/blog/post-1", "keywords": ["seo", "performance"]},
-  "signature": "<hex Ed25519 signature>",
+  "signature": "<hex ML-DSA-65 signature>",
   "timestamp": 1712160000
 }
 ```
@@ -406,7 +406,7 @@ The response includes:
 - `routing_table` — topic pattern → subscriber list (URL, group, scope)
 - `namespaces` — namespace → owning agent name
 - `updated_at` — timestamp of last change
-- `signature` — orchestrator's Ed25519 signature
+- `signature` — orchestrator's ML-DSA-65 signature
 
 ### POST /v1/channel
 
@@ -428,12 +428,12 @@ The orchestrator MUST:
 
 ### POST /v1/rotate-key
 
-Rotates an agent's Ed25519 key pair. The request must be dual-signed — once with the current key and once with the new key — to prove possession of both.
+Rotates an agent's ML-DSA-65 key pair. The request must be dual-signed — once with the current key and once with the new key — to prove possession of both.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | agent_id | string | yes | Agent identifier |
-| new_public_key | string | yes | Hex-encoded new Ed25519 public key |
+| new_public_key | string | yes | Base64url-encoded new ML-DSA-65 public key |
 | current_signature | string | yes | Manifest signed with current private key |
 | new_signature | string | yes | Same manifest signed with new private key |
 
@@ -648,7 +648,7 @@ handles routing and delivery:
 1. Validate namespace — topic must match one of agent's declared
    publishes entries. Reject if unowned.
 2. Build EventEnvelope:
-   - event_id: UUID v7 (time-sortable, globally unique)
+   - event_id: globally unique, time-sortable identifier
    - topic: the topic
    - source: this agent's name
    - scope: provided scope value
@@ -661,7 +661,7 @@ handles routing and delivery:
 3. Resolve subscribers from local routing table:
    a. Match topic against subscription patterns (exact, *, #)
    b. Apply scope filtering (see Scope Resolution above)
-   c. For consumer groups: select one subscriber per group (round-robin)
+   c. For consumer groups: select one subscriber per group
    d. For non-grouped subscribers: include all matching
 
 ### Subscription Pattern Grammar
@@ -676,16 +676,11 @@ handles routing and delivery:
 
 Segments are delimited by `.` (period). Wildcards may only appear as complete segments — `seo.au*` is invalid.
 4. For each resolved subscriber:
-   HTTP POST to subscriber.url + "/v1/event"
-   Body: EventEnvelope as JSON
-   Headers:
-     Content-Type: application/json
-     X-Event-Id: <event_id>
-     X-Trace-Id: <trace_id>
-5. On 2xx response: delivery acknowledged, proceed
-6. On 429 response: respect Retry-After header, retry later
-7. On other failure: retry per patterns/retry (exponential backoff)
-8. On retry exhaustion: store in local dead-letter queue
+   Deliver EventEnvelope to subscriber's event endpoint
+5. On acknowledgement: delivery complete, proceed
+6. On rate limit: respect backoff, retry later
+7. On other failure: retry per patterns/retry
+8. On retry exhaustion: store in dead-letter queue
 ```
 
 ### Dead-Letter Handling
@@ -696,7 +691,7 @@ dead-letter entries for inspection and replay:
 
 - Dead-letter entries include: original event, failure reason, last error,
   attempt count, subscriber name
-- Dead-letter retention: 7 days by default (`WL_DLQ_RETENTION`)
+- Dead-letter retention: configurable (default: 7 days)
 - Replay: the framework can re-attempt delivery of dead-lettered events
 
 For centralized dead-letter management, a hub MAY deploy a dead-letter
@@ -737,7 +732,7 @@ Flow:
 
 ## Token Renewal
 
-Agent auth tokens expire after 24 hours (configurable via `WL_TOKEN_TTL`).
+Agent auth tokens expire after a configurable TTL (default: 24 hours).
 Agents MUST re-register before their token expires to obtain a fresh token.
 Re-registration is idempotent — the orchestrator updates the existing
 registration entry rather than creating a duplicate.
@@ -746,14 +741,14 @@ registration entry rather than creating a duplicate.
 
 ```
 1. Agent tracks its token expiry (from RegisterResponse.expires_at)
-2. When remaining TTL < 10% of total TTL (e.g., < 2.4 hours for 24h tokens):
-   a. Agent re-sends POST /v1/register with its current manifest and signature
+2. When remaining TTL falls below a renewal threshold (default: 10% of total TTL):
+   a. Agent re-sends registration request with its current manifest and signature
    b. Orchestrator validates, issues new token, updates agent registry
    c. Agent receives new token in RegisterResponse
-3. On 401 response to any request (token already expired):
+3. On authentication failure to any request (token already expired):
    a. Agent immediately re-registers
    b. If re-registration fails: log error, enter degraded state, retry
-      with exponential backoff per patterns/retry
+      with backoff per patterns/retry
 ```
 
 **Key constraints:**
@@ -892,14 +887,14 @@ security:
     - Localhost-only communication permitted during development
     - No cleartext secrets in request/response bodies
   signing:
-    algorithm: Ed25519
-    key_type: 32-byte public / 64-byte private
+    algorithm: ML-DSA-65
+    key_type: 1952-byte public / 4032-byte private (FIPS 204)
     process: See protocol/identity for full signing specification
   verification:
     process: All signed messages verified against sender public key from service directory
   trust_model:
     description: >
-      Zero-trust agent model. Every agent authenticates via Ed25519 signature
+      Zero-trust agent model. Every agent authenticates via ML-DSA-65 signature
       at registration. All subsequent requests require WLT token issued by
       the orchestrator. Capabilities are declared in manifest and enforced
       at the orchestrator. Namespace ownership prevents event spoofing.
@@ -918,21 +913,21 @@ security:
 
 ## Implementation Notes
 
-- HTTP request bodies MUST be read with size limits (`io.LimitReader` or equivalent)
+- HTTP request bodies MUST be read with size limits enforced
 - All registries (agents, namespaces, channels) MUST be thread-safe
 - Service directory broadcasts are fire-and-forget (failures logged, not blocking).
   If an agent fails to receive a broadcast, it operates with a stale routing table
   until the next broadcast. Agents MUST periodically refresh their routing table
   by calling `GET /v1/services` on the orchestrator (recommended interval: 60
-  seconds, configurable via `WL_ROUTING_REFRESH`). The orchestrator includes an
+  seconds, configurable). The orchestrator includes an
   `updated_at` timestamp in the ServiceDirectory — agents compare this with their
   cached version and skip processing if unchanged.
-- Channel tokens have 1-hour TTL; expired channels should be cleaned up
+- Channel tokens have a configurable TTL (default: 1 hour); expired channels should be cleaned up
 - The orchestrator is NOT an agent — it does not implement agent endpoints
   (it implements orchestrator endpoints)
 - The orchestrator publishes to the `system.*` namespace. It delivers
-  system events to subscribers via the same `POST /v1/event` mechanism.
-- Event delivery is agent-to-agent via HTTP. The orchestrator is NOT
+  system events to subscribers via the same event delivery mechanism.
+- Event delivery is agent-to-agent. The orchestrator is NOT
   in the event delivery path. It only manages the routing table.
 - The routing table is distributed to all agents as part of the service
   directory. Agents resolve subscribers locally — no call to the

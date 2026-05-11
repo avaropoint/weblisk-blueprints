@@ -74,7 +74,7 @@ and work agents from scratch.
 ```
 protocol/           Wire protocol specifications
   spec.md             Full protocol specification (6 agent + 6 orchestrator endpoints)
-  identity.md         Ed25519 crypto, tokens, signing, key rotation
+  identity.md         ML-DSA-65 crypto, tokens, signing, key rotation
   types.md            Canonical type definitions (all JSON shapes)
   federation.md       Multi-orchestrator federation and data boundaries
 
@@ -99,7 +99,7 @@ architecture/       System architecture
 platforms/          Implementation guidance per runtime
   go.md               Go (stdlib only, local processes)
   cloudflare.md       Cloudflare Workers (Durable Objects, KV)
-  node.md             Node.js/TypeScript (Fastify, Ed25519, SQLite)
+  node.md             Node.js/TypeScript (Fastify, ML-DSA-65, SQLite)
   rust.md             Rust (tokio, hyper, serde, rusqlite)
 
 agents/             Infrastructure agents (system-level services)
@@ -190,7 +190,7 @@ Hub (self-sovereign deployment)
        ├── Route Protection (URL → agent mediation)
        └── Response Middleware (application-configured response processing)
   └── Admin Gateway (operator edge — separate domain/network)
-       ├── Operator Ed25519 Auth + MFA (always required)
+       ├── Operator ML-DSA-65 Auth + MFA (always required)
        ├── IP Allowlist / VPN / mTLS
        └── 4-Eyes Destructive Action Approval
   └── Orchestrator (trust anchor)
@@ -233,12 +233,12 @@ Hub (self-sovereign deployment)
 
 - **Hub** — A complete Weblisk deployment: orchestrator, domains, agents, data, and policies under one owner's control
 - **Orchestrator** — Trust anchor: manages registration, namespace ownership, service directory distribution, channel brokering. Does NOT execute tasks or manage strategies
-- **Admin** — Separate admin gateway (different domain, different network, different auth model), operator Ed25519 identity, mandatory MFA, IP allowlisting, 4-eyes approval for destructive actions
+- **Admin** — Separate admin gateway (different domain, different network, different auth model), operator ML-DSA-65 identity, mandatory MFA, IP allowlisting, 4-eyes approval for destructive actions
 - **CLI** — Terminal commands for system interrogation and management
 - **Observability** — Structured JSON logs, distributed trace propagation, Prometheus metrics
 - **Gateway** — Application edge security agent: end-user authentication, ABAC authorization, rate limiting, route protection, request mediation, response sanitization. Separate from admin gateway
-- **Browser Sessions** — Cryptographically-bound sessions with Ed25519 signing, device binding, island-aware concurrency, and failover continuity
-- **Data Security** — Transport encryption, Ed25519 message integrity, scope-aware federation boundaries, response sanitization, framework audit trail. Provides opt-in data-level primitives (scope, policy, privacy, enforcement) for agents handling sensitive data
+- **Browser Sessions** — Cryptographically-bound sessions with ML-DSA-65 signing, device binding, island-aware concurrency, and failover continuity
+- **Data Security** — Transport encryption, ML-DSA-65 message integrity, scope-aware federation boundaries, response sanitization, framework audit trail. Provides opt-in data-level primitives (scope, policy, privacy, enforcement) for agents handling sensitive data
 - **Threat Model** — 5-boundary attack surface analysis (38+ vectors), OWASP Top 10 mapping, attack chain analysis, residual risk register
 - **Domains** — Own a business function, define workflows, publish workflow triggers, receive results via scoped events
 - **Work Agents** — Perform specific tasks dispatched by the Task Agent (see the [starter template](https://github.com/avaropoint/weblisk-templates/tree/main/server/starter) for a working example)

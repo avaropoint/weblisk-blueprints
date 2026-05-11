@@ -512,7 +512,7 @@ Step 1 — Load Configuration
   Backout:     None
 
 Step 2 — Load Identity
-  Action:      Generate or load Ed25519 keypair from .weblisk/keys/webhook/
+  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/webhook/
   Pre-check:   .weblisk/keys/ directory exists and is writable
   Validates:   Public key is 32 bytes
   On Fail:     EXIT with IDENTITY_FAILED
@@ -707,7 +707,7 @@ Process an inbound webhook.
 2. Extract signature from configured header
 3. Compute HMAC-SHA256 over raw_body using source secret
 4. Constant-time compare signatures
-   If mismatch → reject with SIGNATURE_INVALID
+   If mismatch → reject with INVALID_SIGNATURE
 5. Parse JSON body
 6. Extract event type
 7. If event in source's allowed list (or list empty) → route to handler
@@ -722,7 +722,7 @@ Process an inbound webhook.
 
 ```yaml
 errors:
-  - code: SIGNATURE_INVALID
+  - code: INVALID_SIGNATURE
     condition: HMAC signature verification failed
     retryable: false
   - code: SOURCE_NOT_CONFIGURED
@@ -976,7 +976,7 @@ constraints:
 ```yaml
 errors:
   permanent:
-    - code: SIGNATURE_INVALID
+    - code: INVALID_SIGNATURE
       description: HMAC signature verification failed for inbound webhook
     - code: SOURCE_NOT_CONFIGURED
       description: No configuration for the inbound webhook source
@@ -1196,7 +1196,7 @@ tests:
       source: stripe
       headers: {X-Stripe-Signature: "sha256=invalid"}
       body: '{"type": "payment.completed"}'
-    expected_error: SIGNATURE_INVALID
+    expected_error: INVALID_SIGNATURE
     validates: Constant-time comparison rejects mismatch
 
   - name: Register subscriber with HTTP URL

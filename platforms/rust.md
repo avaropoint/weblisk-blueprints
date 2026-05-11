@@ -84,7 +84,7 @@ weblisk-app/
     src/
       lib.rs                  # Re-exports all modules
       protocol.rs             # Protocol types (AgentManifest, TaskRequest, etc.)
-      identity.rs             # Ed25519 key management, signing, tokens
+      identity.rs             # ML-DSA-65 key management, signing, tokens
       storage.rs              # Storage trait + SQLite implementation
       error.rs                # Error types (thiserror)
       config.rs               # Configuration loader (env vars, CLI flags, .env)
@@ -120,7 +120,7 @@ hyper-util = { version = "0.1", features = ["tokio"] }
 http-body-util = "0.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-ed25519-dalek = { version = "2", features = ["rand_core"] }
+pqcrypto-dilithium = "0.5"
 rand = "0.8"
 rusqlite = { version = "0.31", features = ["bundled"] }
 r2d2 = "0.8"
@@ -183,9 +183,9 @@ runtime:
       - name: serde_json
         version: "1"
         purpose: JSON parsing and generation
-      - name: ed25519-dalek
-        version: "2"
-        purpose: Ed25519 key generation, signing, verification
+      - name: pqcrypto-dilithium
+        version: "0.5"
+        purpose: ML-DSA-65 key generation, signing, verification
       - name: thiserror
         version: "1"
         purpose: Ergonomic error type definitions
@@ -630,7 +630,7 @@ pub struct ErrorResponse {
 
 ### Cryptography
 
-- `ed25519-dalek` for key generation, signing, and verification
+- `pqcrypto-dilithium` for ML-DSA-65 key generation, signing, and verification
 - `rand` crate with `OsRng` for all secure random generation
 - Hex encoding via the `hex` crate or manual implementation
 - No custom cryptography — use audited crates only

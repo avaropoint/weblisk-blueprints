@@ -54,7 +54,9 @@ requires:
     bindings:
       types:
         - name: ScopeDeclaration
-          fields_used: [level, context, propagation_rule]
+          fields_used: [target, level, declared_by, timestamp]
+        - name: ScopeLevel
+          fields_used: [public, internal, confidential, restricted, critical]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -97,6 +99,8 @@ requires:
           fields_used: [status, metrics, timestamp]
         - name: AgentManifest
           fields_used: [name, capabilities, url, type]
+        - name: EventEnvelope
+          fields_used: [topic, payload, scope, source]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -104,9 +108,9 @@ requires:
   - blueprint: patterns/messaging
     version: ">=1.0.0 <2.0.0"
     bindings:
-      types:
-        - name: EventEnvelope
-          fields_used: [topic, payload, scope, source]
+      behaviors:
+        - name: event-routing
+          fields_used: [publish, subscribe]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -131,6 +135,85 @@ requires:
 4. **Runtime directives** — Governance can update policies, revoke
    capabilities, suspend/resume agents, and adjust rate limits at
    runtime without redeployment.
+
+---
+
+## Continuous Compliance Trust Model
+
+Trust in Weblisk is not hierarchical — there is no central authority,
+no trust tiers, and no single entity that grants or controls trust.
+Trust is earned through continuous compliance and negotiated between
+parties.
+
+### Principles
+
+1. **Trust is earned, not assigned** — An entity's trustworthiness is
+   measured by its ongoing compliance record: policy adherence,
+   contract fulfillment, security posture, and behavioral consistency.
+   There is no mechanism to assign trust by fiat.
+
+2. **Trust is mutual** — Both parties in any relationship (hub-to-hub,
+   publisher-to-consumer, agent-to-orchestrator) must independently
+   satisfy the other's trust requirements. Neither party has
+   inherent authority over the other.
+
+3. **Trust is continuous** — Trust is not a one-time evaluation.
+   Compliance is monitored continuously. A previously trusted entity
+   that falls out of compliance loses trust progressively — not
+   retroactively.
+
+4. **Trust is risk-based** — Each party sets its own risk tolerance.
+   The framework provides the compliance evidence; the consuming
+   party decides whether that evidence meets its threshold.
+
+### Trust Signals
+
+Trust is assessed through observable, verifiable signals — never
+through self-assertion:
+
+| Signal | Source | Verifiable By |
+|--------|--------|--------------|
+| Compliance report | `schemas/compliance` validation pipeline | Any party with access to the report |
+| Data contract adherence | `patterns/contract` runtime enforcement | Receiving party's enforcement layer |
+| Behavioral consistency | `architecture/enforcement` behavioral baseline | The party's own enforcement layer |
+| Blueprint integrity | Content hash + ML-DSA-65 signature | Any party with the publisher's public key |
+| Policy conformance | `patterns/policy` evaluation history | Governance audit trail |
+| Scope discipline | `patterns/scope` enforcement record | Enforcement audit trail |
+
+### Marketplace Conformance
+
+Publishers distributing blueprints through a marketplace MUST satisfy
+the marketplace's conformance requirements:
+
+- Blueprint passes the `schemas/compliance` validation pipeline
+- Data contracts declare how consumer data is used (legal binding)
+- Scope declarations are explicit and complete
+- Publisher identity is verifiable via ML-DSA-65 public key
+- Blueprint integrity (content hash + signature) is provided
+
+Marketplace conformance does NOT imply trust. It means the blueprint
+meets the minimum bar for distribution. Consumers independently
+evaluate whether the publisher's compliance record meets their risk
+tolerance.
+
+### Protection Against Bad Actors
+
+An entity that meets all compliance requirements can still act
+maliciously (e.g., exfiltrating data after earning trust). The
+framework defends against this through:
+
+- **Behavioral baseline monitoring** — Enforcement detects operational
+  pattern deviations even from fully compliant agents (see
+  `architecture/enforcement` behavioral analysis)
+- **Data contract enforcement** — Runtime enforcement prevents data
+  access beyond declared contracts, regardless of trust status
+- **Scope enforcement** — Data classification prevents scope
+  escalation even by trusted entities
+- **Mutual revocation** — Either party can revoke trust at any time.
+  Revocation is immediate and does not require the other party's
+  consent (see `schemas/common` Revocation)
+- **Audit trail** — All operations are logged. Post-incident
+  forensics can determine exactly what a bad actor accessed
 
 ---
 
@@ -387,7 +470,7 @@ Directives are delivered as `POST /v1/message` with action
   "directive": "<directive-type>",
   "data": { ... },
   "timestamp": 1713264000,
-  "signature": "<orchestrator-ed25519-signature>"
+  "signature": "<orchestrator-ml-dsa-65-signature>"
 }
 ```
 
@@ -454,7 +537,7 @@ reports. Reports are served via the admin API (see
 
 ```
 GET /admin/governance/report
-  Auth: admin (operator Ed25519 + MFA)
+  Auth: admin (operator ML-DSA-65 + MFA)
   Query:
     period=24h|7d|30d
     profile=<profile-name>           # optional — filter by profile
@@ -520,7 +603,7 @@ exporting raw governance events as structured evidence:
 
 ```
 GET /admin/governance/evidence
-  Auth: admin (operator Ed25519 + MFA)
+  Auth: admin (operator ML-DSA-65 + MFA)
   Query:
     profile=<profile-name>
     control=<control-id>
@@ -555,10 +638,10 @@ evidence trail.
   [patterns/safety](./safety.md), and approval outcomes from
   [patterns/approval](./approval.md). It does not perform these
   evaluations itself.
-- Governance directives are delivered via the standard
-  `POST /v1/message` endpoint. Agents that do not handle
-  `governance.*` actions cannot receive runtime policy updates and
-  are limited to deploy-time policies only.
+- Governance directives are delivered via the standard messaging
+  protocol. Agents that do not handle `governance.*` actions
+  cannot receive runtime policy updates and are limited to
+  deploy-time policies only.
 - Governance events flow through the standard messaging bus (not
   direct HTTP) so the alerting agent can trigger on violations.
 - The compliance report is generated on demand, not continuously.
@@ -578,3 +661,7 @@ evidence trail.
 - [ ] policy_update directive installs new policies at runtime
 - [ ] suspend/resume directives control task acceptance
 - [ ] Metrics emit for evaluations, violations, and directives
+- [ ] Trust is assessed through verifiable compliance signals, not assertions
+- [ ] No trust hierarchy exists — trust is mutual and negotiated between parties
+- [ ] Marketplace publishers satisfy conformance validation before distribution
+- [ ] Either party can revoke trust independently without the other's consent

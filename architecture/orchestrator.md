@@ -28,7 +28,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Ed25519KeyPair
+        - name: SigningKeyPair
           fields_used: [public_key, private_key, sign, verify]
         - name: SignatureVerification
           fields_used: [verify_signature, check_replay]
@@ -96,14 +96,14 @@ The orchestrator exposes exactly 6 endpoints:
 | GET | /v1/health | no | Orchestrator and hub health |
 | GET | /v1/audit | yes | Query audit log |
 
-\* Registration uses Ed25519 identity verification instead of tokens.
+\* Registration uses ML-DSA-65 identity verification instead of tokens.
 
 ---
 
 ## Startup Sequence
 
 ```
-1. Load or generate Ed25519 identity (name: "orchestrator")
+1. Load or generate ML-DSA-65 identity (name: "orchestrator")
 2. Initialize empty agent registry, namespace map, routing table, audit log
 3. Reserve "system" namespace for orchestrator
 4. Register HTTP routes for all 6 endpoints
@@ -139,7 +139,7 @@ for the authoritative registration contract.
        - scope "<name>" → check collaborator relationship → 403 if unauthorized
 5.  Generate agent ID and auth token (WLT format — see
     [protocol/identity.md Token System](../protocol/identity.md#token-system)):
-    - Token type: WLT (Weblisk Token) with Ed25519 signature
+    - Token type: WLT (Weblisk Token) with ML-DSA-65 signature
     - Claims: sub=agent_name, iss="orchestrator", cap=manifest.capabilities
     - Expiry: 24 hours (configurable via WL_TOKEN_TTL)
 6.  Store agent in registry:
@@ -414,7 +414,7 @@ An entry in the orchestrator's internal agent registry.
 | Token | string | `token` | yes | Issued WLT token |
 | Status | string | `status` | yes | `"registered"`, `"active"`, `"offline"` |
 | RegisteredAt | int64 | `registered_at` | yes | Unix epoch of registration |
-| PublicKey | string | `public_key` | yes | Agent's Ed25519 public key (hex) |
+| PublicKey | string | `public_key` | yes | Agent's ML-DSA-65 public key (base64url) |
 | Namespaces | []string | `namespaces` | yes | Owned publish namespaces |
 
 ---
@@ -425,14 +425,14 @@ An entry in the orchestrator's internal agent registry.
 - Namespace ownership is exclusive — once claimed, a namespace is locked to the registering agent
 - Service directory broadcasts are pushed to all agents after every registration or deregistration change
 - Channel brokering creates short-lived tokens scoped to a specific agent pair
-- Auth middleware validates Ed25519 signatures and WLT tokens on every request (except /v1/health)
+- Auth middleware validates ML-DSA-65 signatures and WLT tokens on every request (except /v1/health)
 - The orchestrator should be stateless where possible — registry data can be backed by the storage engine
 
 ---
 
 ## Verification Checklist
 
-- [ ] POST /v1/register verifies Ed25519 signature and replay protection
+- [ ] POST /v1/register verifies ML-DSA-65 signature and replay protection
 - [ ] POST /v1/register enforces exclusive namespace ownership (409 on conflict)
 - [ ] POST /v1/register rejects reserved namespace claims (403)
 - [ ] POST /v1/register validates subscription scopes (event:observe for "*")

@@ -70,7 +70,7 @@ server/
   src/
     index.js           # Worker entry point — router + handlers
     protocol.js        # Protocol types and validation
-    identity.js        # Ed25519 via Web Crypto API (crypto.subtle)
+    identity.js        # ML-DSA-65 via @noble/post-quantum
     orchestrator.js    # Registration, routing, channel brokering
   package.json         # No runtime deps — devDependencies only for wrangler
 ```
@@ -121,10 +121,8 @@ for detailed platform API usage.
 ## Cloudflare-Specific Requirements
 
 ### Crypto
-- Use Web Crypto API (`crypto.subtle`) for Ed25519
-- `crypto.subtle.generateKey("Ed25519", true, ["sign", "verify"])`
-- `crypto.subtle.sign("Ed25519", privateKey, data)`
-- `crypto.subtle.verify("Ed25519", publicKey, signature, data)`
+- ML-DSA-65 (FIPS 204) is the signing algorithm for post-quantum security
+- ML-DSA-65 operations use @noble/post-quantum until Web Crypto adds native support
 - Export keys as raw ArrayBuffer, convert to hex for protocol
 
 ### State (Orchestrator)
@@ -232,7 +230,7 @@ wrangler secret put WL_AI_KEY
 |--------|-----------|------------|
 | Runtime | Go binary | V8 isolate |
 | State | In-memory maps | Durable Objects + KV |
-| Crypto | crypto/ed25519 | crypto.subtle (Web Crypto) |
+| Crypto | circl (ML-DSA-65) | @noble/post-quantum (ML-DSA-65) |
 | HTTP | net/http | fetch API |
 | Persistence | Memory (lost on restart) | Durable Objects (persisted) |
 | Deployment | Local process | Edge (200+ locations) |
@@ -396,7 +394,7 @@ Domain controllers running as Workers dispatch phases using
 ### Cryptography
 
 - Use Web Crypto API (`crypto.subtle`) exclusively — no external crypto libraries
-- Ed25519 for identity and signing (native in Workers runtime)
+- ML-DSA-65 for identity and signing (via @noble/post-quantum)
 - Use `crypto.getRandomValues()` for secure random generation
 
 ### Dependencies
@@ -466,7 +464,7 @@ describe("health endpoint", () => {
 
 ## Verification Checklist
 
-- [ ] Ed25519 operations use Web Crypto API (`crypto.subtle.generateKey`, `sign`, `verify`); keys exported as raw ArrayBuffer and hex-encoded for protocol
+- [ ] ML-DSA-65 operations use @noble/post-quantum for signing; keys exported as raw ArrayBuffer and hex-encoded for protocol
 - [ ] Agent registry is stored in a Durable Object for strong consistency; KV is used for the service directory cache (eventually consistent)
 - [ ] Durable Object alarm handles channel TTL cleanup
 - [ ] Queryable data (observations, audit logs, workflow executions) is stored in D1; entity context uses KV for fast edge reads

@@ -10,14 +10,14 @@ gateway implements these specs regardless of platform or language.
 | Spec | Purpose |
 |------|---------|
 | [spec.md](spec.md) | Full protocol specification — 6 agent + 6 orchestrator endpoints |
-| [identity.md](identity.md) | Ed25519 cryptography, tokens, signing, key rotation |
+| [identity.md](identity.md) | ML-DSA-65 cryptography, tokens, signing, key rotation |
 | [types.md](types.md) | Canonical type definitions — all JSON shapes |
 | [federation.md](federation.md) | Multi-orchestrator federation and data boundaries |
 
 ## Key Design Decisions
 
 - **HTTP + JSON** — No binary protocols. Every message is inspectable.
-- **Ed25519 signatures** — All registration and inter-hub communication
+- **ML-DSA-65 signatures** — All registration and inter-hub communication
   is cryptographically signed. No shared secrets.
 - **Stateless tokens** — Agents authenticate with short-lived tokens
   issued by the orchestrator. No session state on the server.

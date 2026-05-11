@@ -2,7 +2,7 @@
 type: architecture
 name: threat-model
 version: 1.0.0
-requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/data-security, architecture/admin, architecture/observability]
+requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/data-security, architecture/admin, architecture/observability, architecture/enforcement, patterns/contract]
 platform: any
 tier: free
 -->
@@ -15,7 +15,7 @@ gateway to agent, agent to storage, and hub to hub.
 
 ## Overview
 
-Weblisk has five trust boundaries. An attack surface exists at every
+Weblisk has six trust boundaries. An attack surface exists at every
 point where data crosses a boundary. This document catalogs every
 known attack vector at every boundary, the mitigation in place, and
 the residual risk.
@@ -40,6 +40,10 @@ the residual risk.
 ┌────────────────────────────────────┐
 │  BOUNDARY 5: Hub ↔ Hub (Federation)│ ← Cross-organization boundary
 └────────────────────────────────────┘
+
+┌────────────────────────────────────┐
+│  BOUNDARY 6: Enforcement Layer     │ ← Policy decision boundary
+└────────────────────────────────────┘
 ```
 
 ---
@@ -52,8 +56,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Ed25519KeyPair
-          fields_used: [public_key, sign, verify]
+        - name: SigningKeyPair
+          fields_used: [public_key, sign, verify, algorithm]
         - name: SignatureVerification
           fields_used: [verify_signature, check_replay]
     on_change:
@@ -138,6 +142,31 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
+  - blueprint: architecture/enforcement
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: EnforcementDecision
+          fields_used: [boundary, action, violations, agent]
+        - name: QuarantineOrder
+          fields_used: [id, agent, reason, severity, source]
+      behaviors:
+        - name: boundary-enforcement
+          fields_used: [message, storage, external, response]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/contract
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: DataContract
+          fields_used: [fields, operations, retention, scope]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
 ```
 
 ---
@@ -145,7 +174,7 @@ requires:
 ## Responsibilities
 
 ### Owns
-- Comprehensive attack surface analysis across all 5 trust boundaries
+- Comprehensive attack surface analysis across all 6 trust boundaries
 - Mitigation strategy definition for each identified attack vector
 - OWASP Top 10 coverage mapping to Weblisk controls
 - Attack chain analysis (multi-vector compound exploits)
@@ -174,7 +203,7 @@ defines security contracts that other components implement:
 | Session binding and CSRF | Gateway + Browser Session | 1.9–1.13 |
 | Input validation and CSP | Gateway + Agents | 1.14–1.21 |
 | mTLS and agent identity verification | Orchestrator + Agents | 2.1–2.10 |
-| Encryption at rest and key management | Agents + Data Security | 3.1–3.8 |
+| Encryption at rest and key management | Agents + Data Security | 3.1–3.11 |
 | Admin gateway separation and MFA | Admin Gateway | 4.1–4.8 |
 | Federation data contracts and trust tiers | Federation Protocol | 5.1–5.8 |
 
@@ -191,7 +220,7 @@ Security controls are applied as data crosses each boundary:
 5. Agent validates gateway identity via WLT token, checks request ID for replay
 6. Agent processes task using parameterized queries against scoped storage (Boundary 3 crossing)
 7. Agent returns response; gateway sanitizes response before returning to browser (Boundary 1 exit)
-8. For admin operations: separate admin gateway enforces Ed25519 key + MFA + IP allowlist (Boundary 4)
+8. For admin operations: separate admin gateway enforces ML-DSA-65 key + MFA + IP allowlist (Boundary 4)
 9. For federation: hub validates peer identity, enforces data contract field filtering (Boundary 5)
 10. All security events logged to append-only audit trail with hash chain integrity
 
@@ -247,7 +276,7 @@ client.
 
 | # | Attack Vector | Description | Mitigation | Control |
 |---|--------------|-------------|------------|---------|
-| 1.9 | **Session hijacking** | Steal session cookie via XSS or network interception | HttpOnly + Secure + SameSite=Strict cookie; Ed25519-signed session token; client binding hash (UA + IP/24 + TLS) | Browser session spec |
+| 1.9 | **Session hijacking** | Steal session cookie via XSS or network interception | HttpOnly + Secure + SameSite=Strict cookie; ML-DSA-65-signed session token; client binding hash (UA + IP/24 + TLS) | Browser session spec |
 | 1.10 | **Session fixation** | Set a known session ID before victim authenticates | New session ID on every auth event (login, MFA, level upgrade); old session immediately invalidated | Browser session spec |
 | 1.11 | **Session replay** | Reuse a captured session token | Token binding to TLS channel; short renewal window (1 hour); blacklist old tokens after renewal | Browser session spec |
 | 1.12 | **Cookie theft via subdomain** | Attacker-controlled subdomain reads main domain cookies | `Domain` set to exact application domain; no wildcard domain cookies; separate domains for user content | Cookie policy |
@@ -310,14 +339,14 @@ identity on every request.
 
 | # | Attack Vector | Description | Mitigation | Control |
 |---|--------------|-------------|------------|---------|
-| 2.1 | **Rogue gateway** | Attacker deploys fake gateway that claims to be legitimate | Agents verify `Authorization` header contains valid WLT signed by registered gateway's Ed25519 key; orchestrator validates gateway registration | Protocol identity |
+| 2.1 | **Rogue gateway** | Attacker deploys fake gateway that claims to be legitimate | Agents verify `Authorization` header contains valid WLT signed by registered gateway's ML-DSA-65 key; orchestrator validates gateway registration | Protocol identity |
 | 2.2 | **Header spoofing** | Attacker injects `X-Gateway-*` headers from non-gateway source | Agents ONLY accept `X-Gateway-*` headers from the registered gateway IP/identity; orchestrator strips these headers from non-gateway requests | Agent validation |
 | 2.3 | **Privilege escalation via header** | Gateway sends `X-Gateway-Roles: admin` for non-admin user | Gateway's role injection is validated against session state (server-side, not from browser); agents can verify via orchestrator callback for critical operations | Defense in depth |
-| 2.4 | **Agent impersonation** | Attacker poses as a legitimate agent | Every agent has unique Ed25519 key pair; orchestrator verifies agent identity on registration and health checks; behavioral fingerprinting detects drift | Protocol identity + lifecycle |
-| 2.5 | **Man-in-the-middle (internal)** | Intercept gateway-to-agent traffic | mTLS between gateway and agents (zero-trust mode); or TLS + trusted network isolation; Ed25519-signed messages provide additional integrity | Network + protocol |
+| 2.4 | **Agent impersonation** | Attacker poses as a legitimate agent | Every agent has unique ML-DSA-65 key pair; orchestrator verifies agent identity on registration and health checks; behavioral fingerprinting detects drift | Protocol identity + lifecycle |
+| 2.5 | **Man-in-the-middle (internal)** | Intercept gateway-to-agent traffic | mTLS between gateway and agents (zero-trust mode); or TLS + trusted network isolation; ML-DSA-65-signed messages provide additional integrity | Network + protocol |
 | 2.6 | **SSRF via gateway** | Trick gateway into making requests to internal services | Route table uses allowlisted agent targets only; no user-controlled URLs in forwarding; gateway resolves targets from orchestrator registry, not from request input | Gateway route table |
 | 2.7 | **Agent overload** | Route excessive traffic to a single agent | Per-agent rate limiting at gateway; circuit breaker (3 failures → open for 30s); orchestrator redistributes if agent reports degraded | Gateway + orchestrator |
-| 2.8 | **Data exfiltration via agent** | Compromised agent sends data to external endpoint | Agents have no outbound network access except to orchestrator and configured storage; egress firewall rules; agent behavioral monitoring | Network policy + monitoring |
+| 2.8 | **Data exfiltration via agent** | Compromised agent sends data to external endpoint | Enforcement external boundary intercepts all outbound calls; agents can only reach declared external endpoints; scope-based leakage prevention blocks restricted data from crossing boundaries; agent behavioral monitoring detects anomalous external call patterns | Enforcement external boundary + monitoring |
 | 2.9 | **Deserialization attack** | Malicious payload in agent request/response | JSON-only protocol (no binary serialization); strict schema validation on all messages; no arbitrary object deserialization | Protocol spec |
 | 2.10 | **Replay attack (internal)** | Replay a valid gateway-to-agent request | Request includes `X-Request-Id` (UUID) + `X-Trace-Id`; agents track recent request IDs; duplicate requests rejected within replay window (300 seconds) | Protocol spec |
 
@@ -342,13 +371,16 @@ TRUSTED NETWORK MODE (acceptable for single-host deployments):
 | # | Attack Vector | Description | Mitigation | Control |
 |---|--------------|-------------|------------|---------|
 | 3.1 | **SQL injection (agent-side)** | Agent constructs queries from task input | Parameterized queries only; no string concatenation for SQL; ORM or query builder with auto-parameterization | Agent implementation |
-| 3.2 | **Unencrypted storage** | Data at rest readable by filesystem access | AES-256-GCM encryption for stored data; agents responsible for encryption-at-rest of their own data; HKDF-derived keys from Ed25519 identity; encrypted backups | Agent implementation |
+| 3.2 | **Unencrypted storage** | Data at rest readable by filesystem access | AES-256-GCM encryption for stored data; agents responsible for encryption-at-rest of their own data; HKDF-derived keys from signing identity; encrypted backups | Agent implementation |
 | 3.3 | **Key compromise** | Encryption key stolen from agent process | Keys loaded into memory only at startup; not written to disk as plaintext; keys derived via HKDF from root key; root key in secure enclave or HSM where available | Key management |
 | 3.4 | **Backup exposure** | Unencrypted database backup accessed | Backups encrypted at same level as primary storage; backup access logged and restricted | Agent implementation |
 | 3.5 | **Connection string leakage** | Database credentials in logs or config files | Connection strings from environment variables only (never in config files); masked in logs; rotated on schedule | Observability + deployment |
-| 3.6 | **Excessive data access** | Agent reads more data than needed for task | Agents scoped to their own storage namespace; cross-agent data access goes through orchestrator (never direct); query result size limits | Storage spec |
-| 3.7 | **Data tampering** | Unauthorized modification of stored data | Write operations require valid task context (task_id from orchestrator); audit trail on all writes; integrity checksums on critical records | Orchestrator + audit |
+| 3.6 | **Excessive data access** | Agent reads more data than needed for task | Enforcement storage boundary validates all operations against data contracts; agents scoped to their own storage namespace; undeclared resource access blocked; scope-level enforcement prevents reading above agent's clearance | Enforcement storage boundary + data contracts |
+| 3.7 | **Data tampering** | Unauthorized modification of stored data | Enforcement storage boundary validates write operations against agent capabilities and data contracts; audit trail on all writes; integrity checksums on critical records; storage integrity verification for scope >= confidential (see architecture/data-security) | Enforcement storage boundary + audit + data-security |
 | 3.8 | **Log injection** | Malicious data written to logs that is later rendered or parsed | Structured JSON logging only (no string interpolation); log field values are escaped; log viewer treats all fields as data, not markup | Observability spec |
+| 3.9 | **Response-channel exfiltration** | Agent reads authorized data but smuggles additional fields into its response payload | Enforcement response boundary validates agent output against declared output contract; response fields MUST be a subset of declared output schema; response scope MUST NOT exceed agent operational scope (see architecture/enforcement response boundary) | Enforcement response boundary |
+| 3.10 | **Self-storage poisoning** | Compromised agent corrupts its own stored data to influence downstream consumers | Storage integrity verification detects anomalous modifications via record checksums, write provenance, and version chain integrity; enforcement audit trail cross-referenced against stored records to detect orphaned writes (see architecture/data-security storage integrity) | Data security + enforcement audit |
+| 3.11 | **Undeclared resource access** | Agent accesses storage resources outside its declared operational data contract | Enforcement storage proxy verifies every storage operation against agent's declared operational data contract; undeclared resource access denied with ENFORCEMENT_DATA_CONTRACT_VIOLATION (see patterns/contract operational data contracts) | Enforcement + contract |
 
 ---
 
@@ -373,7 +405,7 @@ through the application gateway.
 | Concern | Application Gateway | Admin Gateway |
 |---------|-------------------|---------------|
 | Audience | End users (untrusted, high volume) | Operators (trusted, low volume) |
-| Auth model | User credentials → session cookie | Operator Ed25519 key → operator token |
+| Auth model | User credentials → session cookie | Operator ML-DSA-65 key → operator token |
 | Session binding | Device fingerprint + IP/24 | Operator key + IP allowlist |
 | Network exposure | Public internet | Private network or VPN + IP allowlist |
 | MFA | Optional (policy-driven) | Always required |
@@ -385,7 +417,7 @@ through the application gateway.
 
 | # | Attack Vector | Description | Mitigation | Control |
 |---|--------------|-------------|------------|---------|
-| 4.1 | **Operator key theft** | Attacker steals Ed25519 private key | Key stored encrypted on disk (passphrase-protected); MFA required even with valid key; key revocation via another admin | Operator identity + MFA |
+| 4.1 | **Operator key theft** | Attacker steals ML-DSA-65 private key | Key stored encrypted on disk (passphrase-protected); MFA required even with valid key; key revocation via another admin | Operator identity + MFA |
 | 4.2 | **Admin portal discovery** | Attacker finds admin URL and probes it | Admin gateway on separate domain/port; not linked from application; IP allowlist rejects unknown sources before any processing | Network isolation |
 | 4.3 | **Privilege escalation** | Lower-role operator gains admin access | Role hierarchy enforced server-side; role changes require admin approval + audit log entry; no client-side role checks | Admin auth middleware |
 | 4.4 | **Admin session hijacking** | Steal admin session cookie | Admin sessions use strict IP binding (exact IP, not /24); sessions expire in 4 hours (not 24); MFA required for session creation | Admin session policy |
@@ -400,7 +432,7 @@ through the application gateway.
 
 | # | Attack Vector | Description | Mitigation | Control |
 |---|--------------|-------------|------------|---------|
-| 5.1 | **Hub impersonation** | Fake hub claims to be a trusted peer | Mutual Ed25519 authentication; hub identity verified against known public key from peering ceremony; manifest signature validation | Federation protocol |
+| 5.1 | **Hub impersonation** | Fake hub claims to be a trusted peer | Mutual ML-DSA-65 authentication; hub identity verified against known public key from peering ceremony; manifest signature validation | Federation protocol |
 | 5.2 | **Data contract violation** | Peer sends forbidden fields or omits required fields | Receiving hub validates every response against data contract; violations logged + alert; trust tier downgrade on repeated violations | Federation data contracts |
 | 5.3 | **Key rotation race** | Attacker uses old key during rotation window | Grace period accepts both old and new key; old key has strict expiry; key rotation ceremony requires both sides to acknowledge | Federation key rotation |
 | 5.4 | **Cross-boundary data leak** | Sensitive data leaves jurisdiction | Federation data contracts control which fields cross boundaries; forbidden fields stripped by sending gateway; receiving hub independently validates | Federation data contracts |
@@ -411,20 +443,38 @@ through the application gateway.
 
 ---
 
+## Boundary 6: Enforcement Layer
+
+The enforcement layer is the most privileged component — it makes
+all access decisions. Its compromise is a total-breach scenario.
+
+| # | Attack Vector | Description | Mitigation | Control |
+|---|--------------|-------------|------------|---------|
+| 6.1 | **Enforcement bypass** | Agent or component routes operations around enforcement boundaries | All four boundaries are non-bypassable by architecture — agents access storage/messaging/external only through enforcement proxies; no direct access paths exist | Architecture/enforcement |
+| 6.2 | **Decision cache poisoning** | Attacker injects false allow decisions into the decision cache | Decision cache keys are derived from policy version + operation parameters; cache invalidates on any policy change; cache entries are not externally writable | Enforcement cache |
+| 6.3 | **TOCTOU between check and execution** | Conditions change between enforcement decision and operation execution | Enforcement proxy performs check-then-execute atomically — the proxy both decides and forwards in a single operation; no window between decision and execution | Enforcement proxy |
+| 6.4 | **Policy evaluation denial of service** | Complex or recursive policies cause enforcement to hang | Policy evaluation has bounded complexity (most-restrictive-wins, no recursive rules); timeout on policy evaluation; fail-closed on timeout | Policy pattern |
+| 6.5 | **Baseline manipulation (boiling frog)** | Attacker gradually shifts behavioral baseline to normalize malicious patterns | Multi-window baselines (short-term, medium-term, long-term); immutable historical anchors; drift rate limits; maximum baseline shift caps per window | Enforcement behavioral analysis |
+| 6.6 | **Quarantine escape** | Quarantined agent attempts to operate through a non-quarantine-checked path | Quarantine status checked at all four boundaries; quarantine store is fail-closed (unavailable store = deny all); no agent self-unquarantine | Enforcement quarantine |
+| 6.7 | **Audit trail tampering** | Attacker modifies enforcement audit entries to hide violations | Audit entries are append-only with hash chain integrity; audit writer failure does not suppress enforcement (decisions continue, audit gap alerted) | Observability |
+| 6.8 | **Privilege escalation via enforcement configuration** | Operator misconfigures policy to grant excessive access | Policy composition uses most-restrictive-wins (cannot widen access by adding rules); fail-closed defaults; policy changes logged in audit trail | Policy pattern |
+
+---
+
 ## OWASP Top 10 Coverage
 
 Cross-reference of OWASP 2021 Top 10 against Weblisk controls:
 
 | OWASP | Category | Primary Controls | Vectors |
 |-------|----------|-----------------|---------|
-| A01 | Broken Access Control | ABAC policy engine; deny-by-default; role hierarchy; owner-based access; data masking by classification | 1.13, 2.3, 4.3 |
-| A02 | Cryptographic Failures | AES-256-GCM at rest; TLS 1.2+ in transit; Ed25519 for identity; HKDF key derivation; no hardcoded secrets | 1.1, 1.2, 3.2, 3.3 |
+| A01 | Broken Access Control | ABAC policy engine; deny-by-default; role hierarchy; owner-based access; data masking by classification; response boundary output contract enforcement; enforcement layer non-bypassable boundaries | 1.13, 2.3, 3.9, 3.11, 4.3, 6.1 |
+| A02 | Cryptographic Failures | AES-256-GCM at rest; TLS 1.2+ in transit; ML-DSA-65 (post-quantum) for identity; HKDF key derivation; no hardcoded secrets | 1.1, 1.2, 3.2, 3.3 |
 | A03 | Injection | Parameterized queries; input validation at gateway + agent; JSON-only protocol; no shell execution from input | 1.17, 1.18, 1.19, 1.20, 1.21, 3.1 |
-| A04 | Insecure Design | Threat model (this document); zero-trust internal network; defense in depth; classification-first data model | All boundaries |
+| A04 | Insecure Design | Threat model (this document); zero-trust internal network; defense in depth; classification-first data model; enforcement layer threat analysis | All boundaries |
 | A05 | Security Misconfiguration | Secure defaults (deny-by-default, TLS required, MFA for admin); no debug mode in production; stripped server headers | 1.33, 1.34, 1.38 |
 | A06 | Vulnerable Components | Security scanner agent audits dependencies; security domain scores component freshness; agent behavioral fingerprinting detects drift | 2.4, 5.6 |
-| A07 | Identification and Authentication Failures | Ed25519 cryptographic identity; bcrypt/argon2id passwords; MFA support; session binding; account lockout | 1.5-1.12, 4.1 |
-| A08 | Software and Data Integrity Failures | Ed25519 signed messages; hash chain audit logs; agent registration verification; federation manifest signatures | 2.1, 2.4, 3.7, 4.6, 5.1 |
+| A07 | Identification and Authentication Failures | ML-DSA-65 cryptographic identity; bcrypt/argon2id passwords; MFA support; session binding; account lockout | 1.5-1.12, 4.1 |
+| A08 | Software and Data Integrity Failures | ML-DSA-65 signed messages; hash chain audit logs; agent registration verification; federation manifest signatures; storage integrity verification for scope >= confidential | 2.1, 2.4, 3.7, 3.10, 4.6, 5.1 |
 | A09 | Security Logging and Monitoring Failures | Structured logging; full audit trail; anomaly detection; alerting agent; distributed tracing | All boundaries |
 | A10 | Server-Side Request Forgery | Route table allowlists; no user-controlled URLs in agent forwarding; agent egress firewall | 2.6, 2.8 |
 
@@ -450,7 +500,7 @@ Layers:    3 independent controls must ALL be bypassed
 ```
 Attack:    Leaked creds → login → discover admin paths → access admin functions
 Broken at: Rate limiting blocks credential stuffing (1.5) AND admin is on separate
-           domain/port (4.2) AND admin requires Ed25519 key + MFA (4.1)
+           domain/port (4.2) AND admin requires ML-DSA-65 key + MFA (4.1)
 Layers:    4 independent controls (rate limit, domain separation, key auth, MFA)
 ```
 
@@ -484,6 +534,30 @@ Broken at: Data contracts enforce field-level filtering (5.2) AND Restricted dat
 Layers:    3 independent controls
 ```
 
+### Chain 6: Authorized Read → Response Smuggling → Data Exfiltration
+
+```
+Attack:    Agent legitimately reads authorized data → smuggles extra fields into
+           response payload → caller receives data above its authorization
+Broken at: Response boundary validates output against declared contract (3.9) AND
+           enforcement verifies response scope ≤ agent scope ≤ caller scope AND
+           behavioral analyzer detects unusual response size/field patterns
+Layers:    3 independent controls (output contract, scope chain, behavior analysis)
+```
+
+### Chain 7: Self-Storage Poisoning → Downstream Consumption → Integrity Breach
+
+```
+Attack:    Compromised agent writes corrupted data to own storage → downstream
+           agent reads poisoned data via orchestrator → downstream agent acts on
+           corrupted data
+Broken at: Storage integrity verification detects checksum mismatch (3.10) AND
+           enforcement audit trail has no matching authorized write for orphaned
+           records AND downstream agent validates input via contract schema
+Layers:    3 independent controls (integrity checksums, audit cross-reference,
+           input contract validation)
+```
+
 ---
 
 ## Security Testing Requirements
@@ -494,7 +568,7 @@ Layers:    3 independent controls
 |----------|---------------|
 | Browser ↔ App Gateway | OWASP ZAP scan; TLS configuration audit; CSP validator; rate limit verification; session management tests |
 | App Gateway ↔ Agents | mTLS validation; header spoofing tests; SSRF tests; replay detection tests |
-| Agents ↔ Storage | SQL injection scan; encryption-at-rest verification; key rotation test |
+| Agents ↔ Storage | SQL injection scan; encryption-at-rest verification; key rotation test; response boundary output contract validation; storage integrity verification; operational data contract enforcement test |
 | Operator ↔ Admin Gateway | IP allowlist enforcement; MFA bypass attempts; role escalation tests; destructive action confirmation tests |
 | Hub ↔ Hub | Identity verification; data contract enforcement; key rotation ceremony; trust tier boundary tests |
 
@@ -520,7 +594,7 @@ After all mitigations, these residual risks remain:
 |------|-----------|--------|-------------------|-------|
 | Zero-day in TLS implementation | Low | High | Monitor CVEs; patch within 24h of disclosure | Depends on runtime TLS library |
 | Operator key compromise via physical access | Low | Critical | MFA + key passphrase; revocation by other admin | Human factor — cannot fully eliminate |
-| Side-channel attacks on Ed25519 | Very Low | High | Use constant-time implementations only | Validated by library choice |
+| Side-channel attacks on ML-DSA-65 | Very Low | High | Use constant-time implementations only | Validated by library choice |
 | DDoS beyond rate limiter capacity | Medium | Medium | External DDoS protection (CDN/WAF) recommended for high-traffic deployments | Out of scope for application layer |
 | Social engineering of operators | Low | Critical | Security training; 4-eyes for destructive actions; audit trail | Human factor |
 | Supply chain attack on dependencies | Low | High | Dependency scanning; lockfile pinning; minimal dependency count | Weblisk itself is zero-dependency on client side |
@@ -535,7 +609,7 @@ After all mitigations, these residual risks remain:
 - Every numbered vector (1.1 through 5.8) MUST have a corresponding
   test in the conformance test suite.
 - The attack chain analysis MUST be validated during penetration
-  testing — testers should attempt each chain and verify that all
+  testing — testers should attempt each chain (1–7) and verify that all
   stated controls hold.
 - Residual risks MUST be accepted by the deployment operator and
   documented in the deployment's risk register.
@@ -545,7 +619,7 @@ After all mitigations, these residual risks remain:
 ## Verification Checklist
 
 - [ ] Auth endpoints enforce rate limit of 10 requests/min/IP with account lockout after 5 failures and CAPTCHA after 3
-- [ ] Session cookies are HttpOnly + Secure + SameSite=Strict with Ed25519-signed tokens and client binding hash
+- [ ] Session cookies are HttpOnly + Secure + SameSite=Strict with ML-DSA-65-signed tokens and client binding hash
 - [ ] CSP with strict script-src is set on every response; X-Frame-Options: DENY prevents clickjacking
 - [ ] Gateway route table uses allowlisted agent targets only — no user-controlled URLs in forwarding (SSRF prevention)
 - [ ] Internal replay detection rejects duplicate X-Request-Id values within a 300-second window
@@ -554,6 +628,6 @@ After all mitigations, these residual risks remain:
 - [ ] Destructive admin actions require per-request HMAC confirmation and 4-eyes approval with immutable audit logging
 - [ ] Federation data contracts enforce field-level filtering; forbidden fields stripped by sender, independently validated by receiver
 - [ ] Every numbered attack vector (1.1–5.8) has a corresponding test in the conformance test suite
-- [ ] Attack chains 1–5 are validated during penetration testing to confirm all stated control layers hold
+- [ ] Attack chains 1–7 are validated during penetration testing to confirm all stated control layers hold
 - [ ] Continuous security checks run at specified frequencies: dependency scan on every deploy, TLS expiry daily, OWASP baseline weekly
 - [ ] Residual risks are documented and accepted by the deployment operator in the deployment's risk register

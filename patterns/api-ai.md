@@ -290,7 +290,7 @@ Single-shot completion without conversation history.
 ```json
 {
   "model": "codellama",
-  "prompt": "Write a Go function that validates an Ed25519 signature:",
+  "prompt": "Write a Go function that validates an ML-DSA-65 signature:",
   "temperature": 0.3,
   "max_tokens": 1024,
   "stop": ["\n\n"]

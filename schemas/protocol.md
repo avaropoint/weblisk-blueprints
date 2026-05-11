@@ -318,7 +318,7 @@ security:
   transport:
     - <requirement>
   signing:
-    algorithm: Ed25519
+    algorithm: ML-DSA-65
 ```
 
 ---
