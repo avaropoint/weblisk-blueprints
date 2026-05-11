@@ -434,20 +434,15 @@ cat logs.jsonl | jq 'select(.trace_id == "abc123...")'
 
 ### Dashboard Queries
 
-For deployments using a log aggregation service (Loki, Elasticsearch,
-CloudWatch Logs):
+Deployments using a log aggregation or metrics service SHOULD build
+dashboards for these key queries:
 
-```
-# Error rate by agent (last 24h)
-count_over_time({component_type="agent"} | json | level="error" [24h])
-  / count_over_time({component_type="agent"} [24h])
-
-# P95 task duration by domain
-histogram_quantile(0.95, sum(rate(wl_task_duration_seconds_bucket[5m])) by (le, domain))
-
-# Active agents
-wl_agents_status{status="online"}
-```
+- **Error rate by agent** — ratio of error-level log entries to total
+  entries per agent over a rolling window (e.g., 24h)
+- **P95 task duration by domain** — 95th percentile of
+  `wl_task_duration_seconds` grouped by domain
+- **Active agents** — current value of `wl_agents_status` where
+  status is `online`
 
 ---
 

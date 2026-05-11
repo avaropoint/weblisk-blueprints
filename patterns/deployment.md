@@ -234,15 +234,15 @@ Secrets MUST NOT appear in:
 
 Secrets SHOULD be provided via:
 - **Environment variables** — injected by the deployment platform
-- **Secrets manager** — AWS Secrets Manager, Vault, Doppler
+- **Secrets manager** — External secret management service
 - **Mounted files** — Kubernetes secrets mounted as volumes
 
-| Secret | Variable | Description |
-|--------|----------|-------------|
-| Server identity key | `WL_IDENTITY_KEY` | ML-DSA-65 private key |
-| OAuth client secrets | `WL_OAUTH_*_CLIENT_SECRET` | Per-provider |
-| Webhook secrets | `WL_ALERT_WEBHOOK_SECRET` | HMAC signing key |
-| Database credentials | `WL_STORAGE_DSN` | Connection string with creds |
+| Secret | Description |
+|--------|-------------|
+| Server identity key | ML-DSA-65 private key |
+| OAuth client secrets | Per-provider client secrets |
+| Webhook secrets | HMAC signing key |
+| Database credentials | Connection string with credentials |
 
 ---
 

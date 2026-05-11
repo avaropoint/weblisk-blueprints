@@ -109,10 +109,9 @@ requires:
 - NEVER hardcode or share private keys
 
 ### Storage
-- Directory: `.weblisk/keys/` in the working directory
-- Private key file: `.weblisk/keys/<name>.key` (file mode 0600)
-- Public key file: `.weblisk/keys/<name>.pub` (base64url-encoded, file mode 0644)
-- Directory mode: 0700
+- Keys MUST be stored in a dedicated directory with restricted access
+- Private key files MUST have restrictive permissions (readable only by the owning process)
+- Public key files contain the base64url-encoded public key
 - On startup: load existing keys if present, generate new ones if absent
 
 ### Private Key Format
@@ -152,23 +151,22 @@ When `kdf = none`:
 - The private key is stored as hex (no encryption)
 - Used ONLY for automated service keys in environments where passphrase
   input is impossible (containers, CI, headless servers)
-- File permissions (0600) are the sole protection layer
+- Restrictive file permissions are the sole protection layer
 
 ### Key Categories
 
 | Category | KDF | Passphrase Source | Use Case |
 |----------|-----|------------------|----------|
-| **Operator keys** | `argon2id` | Interactive prompt | Human-operated CLI |
-| **Service keys** (orchestrator, gateway, agent) | `argon2id` or `none` | Env var `WL_KEY_PASSPHRASE` or none | Automated processes |
+| **Operator keys** | `argon2id` | Interactive prompt | Human-operated tooling |
+| **Service keys** (orchestrator, gateway, agent) | `argon2id` or `none` | Secure configuration or none | Automated processes |
 
 **Rules:**
-1. `weblisk operator init` MUST prompt for a passphrase. Cannot be
+1. Operator key generation MUST prompt for a passphrase. Cannot be
    skipped. Minimum 12 characters.
-2. `weblisk server init` defaults to `kdf = none` but accepts
-   `--encrypt-keys` to use Argon2id with passphrase from
-   `WL_KEY_PASSPHRASE` env var.
+2. Service key generation defaults to `kdf = none` but SHOULD support
+   encrypted keys with passphrase supplied via secure configuration.
 3. Production deployments SHOULD encrypt service keys with passphrase
-   supplied via env var or secrets manager at startup.
+   supplied via secure configuration or secrets manager at startup.
 4. The passphrase is NEVER stored on disk. It exists only in memory
    during the decrypt operation.
 5. Failed passphrase attempts log `security.key_decrypt_failed` and
@@ -593,7 +591,7 @@ Orchestrator side:
   7. Respond with updated RegisterResponse (new WLT token)
 
 Agent side (on success):
-  1. Replace key files (.weblisk/keys/<name>.key and .pub)
+  1. Replace stored key material (private and public key files)
   2. Begin using new key for all future signing
   3. Old key is no longer valid
 ```
@@ -732,8 +730,8 @@ error_codes:
 ```yaml
 security:
   transport:
-    - Private keys MUST be stored with restricted permissions (0600)
-    - Key directory MUST have restricted permissions (0700)
+    - Private keys MUST be stored with restrictive permissions (readable only by owning process)
+    - Key directory MUST have restrictive permissions (accessible only by owning process)
     - Private keys MUST NOT be logged, exposed, or transmitted
   signing:
     algorithm: ML-DSA-65 (FIPS 204)
@@ -765,7 +763,7 @@ security:
 
 ## Implementation Notes
 
-- Keys are stored in `.weblisk/keys/` relative to the working directory
+- Keys are stored in a dedicated directory relative to the working directory
 - All keys use base64url encoding for portable, size-efficient storage
 - Token lifetimes are deliberately short (24h auth, 1h channel) to limit blast radius
 - WLT is structurally similar to JWT but uses `typ: WLT` to prevent cross-system confusion
@@ -787,9 +785,9 @@ Implementation MUST:
 - [ ] Generate ML-DSA-65 key pairs (FIPS 204) — no other signing algorithm is permitted
 - [ ] Reject any key, signature, or token using a non-ML-DSA-65 algorithm
 - [ ] Generate keys with cryptographically secure random source
-- [ ] Store private keys with restricted permissions (0600)
+- [ ] Store private keys with restricted permissions (readable only by owning process)
 - [ ] Encrypt operator private keys with Argon2id + AES-256-GCM (passphrase required, min 12 chars)
-- [ ] Support encrypted service keys via WL_KEY_PASSPHRASE env var
+- [ ] Support encrypted service keys via secure configuration
 - [ ] Parse weblisk-key-v1 format correctly (magic, algorithm=ml-dsa-65, kdf, params, ciphertext)
 - [ ] Never store passphrase on disk — only hold in memory during decrypt
 - [ ] Exit with code 2 on failed passphrase (no retry loop, no passphrase enumeration)

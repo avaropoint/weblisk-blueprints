@@ -218,19 +218,14 @@ deterministic responses (temperature = 0) and embeddings:
 
 ## Configuration
 
-```bash
-# Maximum entries per agent cache (default: 10000)
-WL_CACHE_MAX_SIZE=10000
+### Configuration Parameters
 
-# Default TTL in seconds when not specified per-entry (default: 300)
-WL_CACHE_DEFAULT_TTL=300
-
-# Enable cache stats in health response (default: true)
-WL_CACHE_STATS_ENABLED=true
-
-# Background sweep interval in seconds (default: 60)
-WL_CACHE_SWEEP_INTERVAL=60
-```
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| Maximum cache size | `10000` | Maximum entries per agent cache |
+| Default TTL | `300` | Default TTL in seconds when not specified per-entry |
+| Stats enabled | `true` | Include cache stats in health response |
+| Sweep interval | `60` | Background sweep interval in seconds |
 
 ## Observability
 
@@ -252,21 +247,20 @@ health response (POST /v1/health):
 }
 ```
 
-Prometheus-format metrics (if patterns/observability is extended):
+Standard metrics (if patterns/observability is extended):
 
-```
-wl_cache_hits_total{agent="seo-analyzer", namespace="ai"} 8420
-wl_cache_misses_total{agent="seo-analyzer", namespace="ai"} 312
-wl_cache_evictions_total{agent="seo-analyzer", namespace="service"} 15
-wl_cache_size{agent="seo-analyzer"} 4210
-wl_cache_memory_bytes{agent="seo-analyzer"} 8421376
-```
+| Metric | Type | Labels | Description |
+|--------|------|--------|-------------|
+| `wl_cache_hits_total` | counter | `agent`, `namespace` | Cache hits |
+| `wl_cache_misses_total` | counter | `agent`, `namespace` | Cache misses |
+| `wl_cache_evictions_total` | counter | `agent`, `namespace` | Cache evictions |
+| `wl_cache_size` | gauge | `agent` | Current cache entries |
+| `wl_cache_memory_bytes` | gauge | `agent` | Current cache memory usage |
 
 ## Implementation Notes
 
 - **Thread safety** — cache operations MUST be safe for concurrent
-  access. Use sync.RWMutex (Go), Map with locks (Node), or platform
-  equivalents.
+  access. Use platform-appropriate concurrency primitives.
 - **Memory limits** — agents SHOULD monitor `memory_bytes` and reduce
   `max_size` if memory pressure is detected. A conservative default
   is 10,000 entries.

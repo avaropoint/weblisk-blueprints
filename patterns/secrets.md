@@ -218,18 +218,18 @@ stored separately from the secret value:
 
 ### Alternative Stores
 
-Implementations MAY support external secret stores:
+Implementations MAY support external secret stores in addition to
+the default file-based store. The framework's secret client abstracts
+the backend — agent code is identical regardless of store.
 
-| Store | Configuration |
-|-------|--------------|
-| Environment variables | `WL_SECRET_STORE=env` — secrets read from env vars prefixed with `WL_SECRET_` |
-| HashiCorp Vault | `WL_SECRET_STORE=vault` — requires `WL_VAULT_ADDR` and `WL_VAULT_TOKEN` |
-| AWS Secrets Manager | `WL_SECRET_STORE=aws-sm` — requires AWS credentials |
-| Azure Key Vault | `WL_SECRET_STORE=azure-kv` — requires `WL_AZURE_KV_URL` |
-| Cloudflare Secrets | `WL_SECRET_STORE=cf-secrets` — for Cloudflare Workers |
+Alternative store backends MUST:
+- Implement the same `secrets.get(key)` / `secrets.exists(key)` interface
+- Support the same per-agent isolation model
+- Integrate with the rotation lifecycle
+- Emit the same audit trail events
 
-The agent code is identical regardless of store. The framework's
-secret client abstracts the backend.
+The store backend is selected via runtime configuration. Platform
+guides (`platforms/*.md`) document specific backend integrations.
 
 ---
 
@@ -342,8 +342,8 @@ When multiple agents need the same credential:
 
 1. Each agent declares the secret in its blueprint independently
 2. The operator provisions the same value under each agent's scope
-3. OR: the operator uses `WL_SECRET_SHARED_PREFIX` to define a shared
-   scope that multiple agents can read from
+3. OR: the operator defines a shared scope (via the configured shared
+   prefix) that multiple agents can read from
 
 ```
 .weblisk/secrets/
@@ -360,16 +360,14 @@ The `_shared` scope is a storage optimization, not a permission bypass.
 
 ## Configuration
 
-### Environment Variables
+### Configuration Parameters
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `WL_SECRET_STORE` | `file` | Secret backend: `file`, `env`, `vault`, `aws-sm`, `azure-kv`, `cf-secrets` |
-| `WL_SECRET_PATH` | `.weblisk/secrets` | File store path |
-| `WL_SECRET_CACHE_TTL` | `0` | Cache TTL in seconds (0 = no cache) |
-| `WL_SECRET_SHARED_PREFIX` | `_shared` | Shared secrets directory name |
-| `WL_VAULT_ADDR` | — | HashiCorp Vault address |
-| `WL_VAULT_TOKEN` | — | HashiCorp Vault token |
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| Secret store backend | `file` | Backend type (file-based, environment, or external vault) |
+| Secret store path | Implementation-defined | File store location |
+| Cache TTL | `0` | Cache TTL in seconds (0 = no cache) |
+| Shared prefix | `_shared` | Shared secrets namespace |
 
 ---
 
@@ -446,59 +444,38 @@ $ weblisk server start
 
 ### Environment Injection (PaaS)
 
-When `WL_SECRET_STORE=env`, the framework reads secrets from
-environment variables. The CI/CD pipeline sets these from the
-platform's secret store:
-
-```yaml
-# Example: GitHub Actions → Cloudflare Workers
-deploy:
-  steps:
-    - run: wrangler secret put SMTP_PASSWORD <<< "${{ secrets.SMTP_PASSWORD }}"
-    - run: wrangler secret put LLM_API_KEY <<< "${{ secrets.LLM_API_KEY }}"
-```
+When using environment variables as the secret backend, the
+framework reads secrets from environment variables. The CI/CD
+pipeline sets these from the platform's secret store.
 
 **Rules for CI/CD pipelines:**
-1. Secrets are injected from the platform's secret store (GitHub Secrets,
-   Cloudflare Secrets, etc.) — never from repository files
-2. Secret values MUST NOT appear in pipeline logs. Use `::add-mask::`
-   or equivalent log masking
+1. Secrets are injected from the platform's secret store — never
+   from repository files
+2. Secret values MUST NOT appear in pipeline logs
 3. Secret env vars are scoped to the deploy step only — not available
    in build/test steps unless explicitly required
-4. Pipeline configuration files (`.github/workflows/*.yml`) commit to
-   the repo but reference secret names, never values
+4. Pipeline configuration files commit to the repo but reference
+   secret names, never values
 
-### Vault Sync
+### External Vault Sync
 
-For vault-backed deployments (`WL_SECRET_STORE=vault`):
-
-```bash
-# CI pipeline fetches secrets from vault and provisions them
-export VAULT_TOKEN=$(vault login -method=approle ...)
-vault kv get -field=value secret/weblisk/email-send/SMTP_PASSWORD | \
-  weblisk secret set email-send SMTP_PASSWORD --stdin
-```
+For vault-backed deployments, the CI pipeline fetches secrets from
+the external vault and provisions them into the framework's secret
+store. The specific vault CLI commands are platform-dependent.
 
 ### Sealed Secrets (Kubernetes / GitOps)
 
-For Kubernetes deployments, secrets can be encrypted and committed:
-
-```bash
-# Encrypt secret for cluster (only cluster can decrypt)
-$ kubeseal --format=yaml < secret.yaml > sealed-secret.yaml
-$ git add sealed-secret.yaml  # Safe to commit — encrypted
-```
-
-The sealed secret is decrypted by the cluster controller at deploy
-time and mounted as files or env vars in the pod.
+For Kubernetes deployments, secrets can be encrypted and committed
+to version control. The cluster controller decrypts them at deploy
+time. The specific sealing mechanism is platform-dependent.
 
 ### What MUST NOT Be in CI/CD Pipelines
 
 | Never Do This | Why | Alternative |
 |--------------|-----|-------------|
 | Hardcode secrets in workflow files | Plain text in repo | Use platform secret store |
-| Echo/print secret values for debugging | Appears in logs | Use `weblisk secret list` to verify presence |
-| Pass secrets as CLI arguments | Shell history, process list | Use `--stdin` flag or interactive prompt |
+| Echo/print secret values for debugging | Appears in logs | Verify presence without revealing values |
+| Pass secrets as CLI arguments | Shell history, process list | Use stdin or interactive prompt |
 | Store secrets in build artifacts | Artifacts are downloadable | Inject at runtime only |
 | Use same secrets across environments | Blast radius | Separate secret sets per environment |
 
@@ -510,10 +487,9 @@ time and mounted as files or env vars in the pod.
   models. External vault integration is an optimization for
   enterprise deployments, not a requirement.
 - Secret files MUST NOT be committed to version control. Add
-  `.weblisk/secrets/` to `.gitignore`.
+  the secrets directory to `.gitignore`.
 - When using environment variables as the store, secret keys are
-  prefixed with `WL_SECRET_` and scoped by agent name:
-  `WL_SECRET_EMAIL_SEND_SMTP_PASSWORD`.
+  prefixed with a framework-specific prefix and scoped by agent name.
 - Cache TTL should be short (30-60 seconds max) to ensure rotation
   takes effect quickly. For most agents, no cache (TTL=0) is
   acceptable.
