@@ -885,14 +885,14 @@ Retention defaults:
 
 ## Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `WL_LIFECYCLE_PORT` | `9782` | Listen port |
-| `WL_LIFECYCLE_MAX_CONCURRENT` | `20` | Max concurrent event processing |
-| `WL_LIFECYCLE_DATA_DIR` | `.weblisk/data/lifecycle` | Storage directory |
-| `WL_LIFECYCLE_OBS_RETENTION` | `7776000` | Observation retention (seconds, 90d) |
-| `WL_LIFECYCLE_REC_RETENTION` | `7776000` | Recommendation retention (seconds, 90d) |
-| `WL_LIFECYCLE_FB_RETENTION` | `15552000` | Feedback retention (seconds, 180d) |
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| Listen port | `9782` | Listen port |
+| Max concurrent | `20` | Max concurrent event processing |
+| Data directory | Implementation-defined | Storage directory |
+| Observation retention | `7776000` | Observation retention (seconds, 90d) |
+| Recommendation retention | `7776000` | Recommendation retention (seconds, 90d) |
+| Feedback retention | `15552000` | Feedback retention (seconds, 180d) |
 
 ---
 
@@ -984,17 +984,17 @@ override_levels:
 overridable_behaviors:
   - behavior: auto_approval
     default: enabled (for domains with approval = "auto")
-    override: Set WL_LIFECYCLE_AUTO_APPROVE=false
+    override: Disable auto-approval via configuration
     audit: logged
 
   - behavior: strategy_workflow_trigger
     default: enabled
-    override: Set WL_LIFECYCLE_AUTO_TRIGGER=false
+    override: Disable auto-trigger via configuration
     audit: logged
 
   - behavior: self_update
     default: enabled
-    override: WL_AUTO_UPDATE=false
+    override: Disable via configuration
     audit: logged
 
 manual_actions:
@@ -1038,8 +1038,8 @@ constraints:
     memory: 256 MB (process limit)
     max_active_strategies: 1000
     max_pending_recommendations: 10000
-    observations_storage: governed by config.WL_LIFECYCLE_OBS_RETENTION
-    recommendations_storage: governed by config.WL_LIFECYCLE_REC_RETENTION
+    observations_storage: governed by configured observation retention
+    recommendations_storage: governed by configured recommendation retention
 ```
 
 ---

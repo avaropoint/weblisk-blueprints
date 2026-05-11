@@ -166,8 +166,8 @@ Test Domain:
   public_key:  derived from private key via ML-DSA-65
 ```
 
-Implementations MUST support a `--test-keys` flag or `WL_TEST_KEYS=1`
-environment variable that loads these deterministic keys instead of
+Implementations MUST support a `--test-keys` flag or equivalent
+configuration option that loads these deterministic keys instead of
 generating random ones. This enables reproducible tests.
 
 ### Manifest Fixtures

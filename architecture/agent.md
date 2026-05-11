@@ -196,7 +196,7 @@ to registered event handlers by topic pattern. See
 The runtime context provided to Execute and HandleMessage:
 - **Identity**: agent's ML-DSA-65 key pair (for signing)
 - **Services**: list of available agents (from service directory)
-- **Provider**: LLM provider (if configured via WL_AI_* env vars)
+- **Provider**: LLM provider (if configured)
 - **Workspace**: file operations (read, scan, propose changes)
 - **Orch**: orchestrator info (URL, public key, version)
 - **Token**: auth token from orchestrator
@@ -208,7 +208,7 @@ The runtime context provided to Execute and HandleMessage:
 2. Define AgentManifest (name, version, capabilities, inputs, outputs, etc.)
 3. Generate ML-DSA-65 key pair → set manifest.public_key
 4. Set manifest.url to the agent's listen address
-5. Configure LLM provider (if WL_AI_* env vars are set)
+5. Configure LLM provider (if LLM configuration is provided)
 6. Configure workspace (current directory)
 7. Register HTTP routes for all 6 protocol endpoints
 8. Register event handlers (on_event bindings)
@@ -237,7 +237,7 @@ The runtime context provided to Execute and HandleMessage:
 
 ## Token Refresh
 
-WLT tokens expire after 24 hours (configurable via `WL_TOKEN_TTL`). Agents
+WLT tokens expire after 24 hours (configurable via the token TTL setting). Agents
 must re-register before expiry to maintain connectivity.
 
 ```
@@ -257,12 +257,12 @@ The orchestrator treats re-registration from an already-registered agent
 (same name + valid signature) as a token refresh. The agent's subscriptions,
 namespace ownership, and routing entries are preserved unchanged.
 
-**Environment variables:**
+**Configuration parameters:**
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `WL_TOKEN_TTL` | `24h` | Token lifetime (set on orchestrator) |
-| `WL_TOKEN_REFRESH_THRESHOLD` | `0.1` | Fraction of TTL remaining to trigger refresh |
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| Token TTL | `24h` | Token lifetime (set on orchestrator) |
+| Token refresh threshold | `0.1` | Fraction of TTL remaining to trigger refresh |
 
 ## Graceful Shutdown
 
@@ -271,7 +271,7 @@ an orderly shutdown to avoid disrupting in-flight work.
 
 ```
 1. Stop accepting new tasks (return 503 Service Unavailable)
-2. Wait for in-flight tasks to complete (up to WL_SHUTDOWN_TIMEOUT)
+2. Wait for in-flight tasks to complete (up to the configured shutdown timeout)
 3. Deregister with orchestrator: DELETE /v1/register
    - Header: Authorization: Bearer <token>
    - Orchestrator releases namespaces, removes routing entries,
@@ -282,12 +282,12 @@ an orderly shutdown to avoid disrupting in-flight work.
 6. Exit process
 ```
 
-**Environment variables:**
+**Configuration parameters:**
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `WL_SHUTDOWN_TIMEOUT` | `30s` | Max time to wait for in-flight tasks |
-| `WL_SHUTDOWN_DRAIN` | `true` | Whether to drain tasks before exit |
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| Shutdown timeout | `30s` | Max time to wait for in-flight tasks |
+| Shutdown drain | `true` | Whether to drain tasks before exit |
 
 If an agent crashes without graceful shutdown, the orchestrator detects
 the failure via periodic health probes (default interval: 30s, timeout: 5s)
@@ -535,19 +535,12 @@ For serverless and auto-scaling environments where agent URLs are
 not known in advance:
 
 1. The platform assigns the agent a URL at startup.
-2. The agent reads its own URL from the platform environment
-   (e.g., `WL_AGENT_URL` or platform-specific variable).
+2. The agent reads its own URL from the platform configuration.
 3. The agent registers with the orchestrator using that URL.
 4. The orchestrator distributes the updated service directory to all
    agents via POST /v1/services.
 5. If the URL changes (redeploy, scale event), the agent re-registers.
    The orchestrator updates the directory and pushes to all agents.
-
-```bash
-# Environment-driven addressing
-WL_AGENT_URL=https://my-agent.us-east-1.lambda.amazonaws.com
-WL_ORCHESTRATOR_URL=https://hub.example.com:9800
-```
 
 ### Cold Start and Warm-Up
 
@@ -579,11 +572,11 @@ domain controllers MUST respect agent capacity limits.
 Every agent SHOULD enforce a maximum number of concurrent executions.
 Defaults:
 
-| Agent Kind | Default Max Concurrent | Configurable Via |
-|------------|----------------------|------------------|
-| Domain controller | 10 | `WL_MAX_CONCURRENT` env var |
-| Work agent | 5 | `WL_MAX_CONCURRENT` env var |
-| Infrastructure agent | 20 | `WL_MAX_CONCURRENT` env var |
+| Agent Kind | Default Max Concurrent | Configurable |
+|------------|----------------------|--------------|
+| Domain controller | 10 | Yes, via runtime configuration |
+| Work agent | 5 | Yes, via runtime configuration |
+| Infrastructure agent | 20 | Yes, via runtime configuration |
 
 When at capacity, agents MUST return `429 Too Many Requests` with
 a structured error:
@@ -654,14 +647,14 @@ source for backoff algorithms, circuit breaker logic, and error
 classification. The table below lists agent-level defaults that feed
 into the retry pattern:
 
-| Setting | Default | Env Var | Description |
-|---------|---------|---------|-------------|
-| Task timeout | 30s | `WL_TASK_TIMEOUT` | Max execution time per task |
-| HTTP outbound timeout | 10s | `WL_HTTP_TIMEOUT` | Per-request timeout for outbound calls |
-| Retry attempts | 3 | `WL_RETRY_MAX` | Max retries on transient failure |
-| Backoff base | 1s | `WL_BACKOFF_BASE` | Exponential backoff: base × 2^attempt |
-| Backoff max | 30s | `WL_BACKOFF_MAX` | Cap on backoff delay |
-| Outbound rate limit | 50 req/s | `WL_OUTBOUND_RATE` | Max outbound HTTP requests per second |
+| Setting | Default | Description |
+|---------|---------|-------------|
+| Task timeout | 30s | Max execution time per task |
+| HTTP outbound timeout | 10s | Per-request timeout for outbound calls |
+| Retry attempts | 3 | Max retries on transient failure |
+| Backoff base | 1s | Exponential backoff: base × 2^attempt |
+| Backoff max | 30s | Cap on backoff delay |
+| Outbound rate limit | 50 req/s | Max outbound HTTP requests per second |
 
 Agents that make outbound HTTP calls (security-scanner, uptime-checker,
 perf-auditor, etc.) MUST respect the outbound rate limit to avoid
@@ -749,10 +742,10 @@ Runtime state tracked per registered agent.
 - [ ] Manifest declares publishes and subscriptions for namespace ownership and event routing
 - [ ] Registration flow signs the manifest JSON with the agent's ML-DSA-65 private key and includes a timestamp
 - [ ] Agent returns 429 Too Many Requests with Retry-After header and retryable error body when at max concurrent capacity
-- [ ] Default max concurrent limits are enforced: domain=10, work=5, infrastructure=20 (configurable via WL_MAX_CONCURRENT)
-- [ ] Outbound HTTP calls respect the WL_OUTBOUND_RATE limit (default 50 req/s)
+- [ ] Default max concurrent limits are enforced: domain=10, work=5, infrastructure=20 (configurable via runtime configuration)
+- [ ] Outbound HTTP calls respect the configured outbound rate limit (default 50 req/s)
 - [ ] Agent startup sequence generates ML-DSA-65 keys, registers HTTP routes (6 endpoints), starts server, and registers with orchestrator
-- [ ] Token refresh triggers re-registration when remaining TTL drops below WL_TOKEN_REFRESH_THRESHOLD (default 10%)
+- [ ] Token refresh triggers re-registration when remaining TTL drops below the configured refresh threshold (default 10%)
 - [ ] Token refresh failure enters degraded state after 5 retries with exponential backoff
 - [ ] Graceful shutdown on SIGTERM/SIGINT: stops accepting tasks, drains in-flight work, sends DELETE /v1/register, closes server
-- [ ] Shutdown respects WL_SHUTDOWN_TIMEOUT (default 30s) for in-flight task drain
+- [ ] Shutdown respects the configured shutdown timeout (default 30s) for in-flight task drain

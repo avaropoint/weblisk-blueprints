@@ -176,7 +176,6 @@ config:
   check_interval:
     type: int
     default: 30
-    env: WL_HEALTHMON_CHECK_INTERVAL
     min: 5
     max: 300
     unit: seconds
@@ -185,7 +184,6 @@ config:
   response_timeout:
     type: int
     default: 5000
-    env: WL_HEALTHMON_RESPONSE_TIMEOUT
     min: 500
     max: 30000
     unit: milliseconds
@@ -194,7 +192,6 @@ config:
   degraded_threshold:
     type: int
     default: 500
-    env: WL_HEALTHMON_DEGRADED_THRESHOLD
     min: 100
     max: 10000
     unit: milliseconds
@@ -203,7 +200,6 @@ config:
   failure_threshold:
     type: int
     default: 3
-    env: WL_HEALTHMON_FAILURE_THRESHOLD
     min: 1
     max: 20
     description: Consecutive failures before marking offline
@@ -211,25 +207,21 @@ config:
   alert_on_degraded:
     type: bool
     default: true
-    env: WL_HEALTHMON_ALERT_DEGRADED
     description: Fire alert when component degrades
 
   alert_on_offline:
     type: bool
     default: true
-    env: WL_HEALTHMON_ALERT_OFFLINE
     description: Fire alert when component goes offline
 
   alert_on_recovery:
     type: bool
     default: true
-    env: WL_HEALTHMON_ALERT_RECOVERY
     description: Fire alert when component recovers
 
   snapshot_retention:
     type: int
     default: 604800
-    env: WL_HEALTHMON_SNAPSHOT_RETENTION
     min: 3600
     unit: seconds
     description: Health snapshot retention (default 7 days)
@@ -1100,7 +1092,7 @@ overridable_behaviors:
 
   - behavior: self_update
     default: enabled
-    override: WL_AUTO_UPDATE=false
+    override: Disable via configuration
     audit: logged
 
 manual_actions:

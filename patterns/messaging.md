@@ -594,7 +594,7 @@ Each agent's framework exposes dead-letter data for local inspection:
 | Replay | Framework API: `replay_dead_letter(event_id)` — re-attempt delivery |
 | Purge | Framework API: `purge_dead_letters(topic?, older_than?)` |
 
-Dead-letter retention: 7 days by default (`WL_DLQ_RETENTION`).
+Dead-letter retention: 7 days by default (configurable).
 
 ### Centralized Dead-Letter (Optional)
 
@@ -661,14 +661,14 @@ messaging:
   idempotency_window: 86400     # Seconds to track processed event_ids
 ```
 
-### Environment Variables
+### Configuration Parameters
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `WL_EVENT_DEFAULT_TTL` | `86400` | Default event TTL (seconds) |
-| `WL_DLQ_RETENTION` | `604800` | Dead-letter entry retention (seconds) |
-| `WL_EVENT_RETRY_MAX` | `3` | Max delivery retry attempts |
-| `WL_EVENT_IDEMPOTENCY_WINDOW` | `86400` | Processed event_id tracking window (seconds) |
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| Default event TTL | `86400` | Default event TTL (seconds) |
+| DLQ retention | `604800` | Dead-letter entry retention (seconds) |
+| Delivery retry max | `3` | Max delivery retry attempts |
+| Idempotency window | `86400` | Processed event_id tracking window (seconds) |
 
 ---
 
@@ -677,7 +677,7 @@ messaging:
 - Event delivery is HTTP POST to subscriber's `/v1/event` endpoint — no external message broker required
 - Agents resolve subscribers from their local routing table copy — no call to the orchestrator needed
 - Consumer groups enable load balancing — the framework selects one subscriber per group using round-robin
-- Idempotency requires tracking processed `event_id` values for at least `WL_EVENT_IDEMPOTENCY_WINDOW` seconds
+- Idempotency requires tracking processed `event_id` values for at least the configured idempotency window
 - Dead-letter entries should be periodically reviewed and replayed or purged
 - Event ordering is best-effort — agents should not depend on strict ordering across topics
 - CloudEvents alignment enables future interop with external systems via simple field mapping

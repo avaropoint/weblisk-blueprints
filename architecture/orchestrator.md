@@ -141,7 +141,7 @@ for the authoritative registration contract.
     [protocol/identity.md Token System](../protocol/identity.md#token-system)):
     - Token type: WLT (Weblisk Token) with ML-DSA-65 signature
     - Claims: sub=agent_name, iss="orchestrator", cap=manifest.capabilities
-    - Expiry: 24 hours (configurable via WL_TOKEN_TTL)
+    - Expiry: 24 hours (configurable via token TTL setting)
 6.  Store agent in registry:
     {manifest, agentID, token, registeredAt, lastSeen, status: "online"}
 7.  Build routing table entries for this agent's subscriptions:
@@ -392,12 +392,12 @@ and [protocol/types.md](../protocol/types.md) for type definitions.
 
 ## Configuration
 
-| Setting | Flag | Env Var | Default |
-|---------|------|---------|---------|
-| Port | `--port` | `WL_ORCH_PORT` | `9800` |
-| Identity key path | `--keys` | `WL_KEYS_DIR` | `.weblisk/keys/` |
-| Audit log path | `--audit` | `WL_AUDIT_PATH` | `.weblisk/audit.jsonl` |
-| Channel TTL | — | `WL_CHANNEL_TTL` | `3600` (1 hour) |
+| Setting | Flag | Default |
+|---------|------|---------|
+| Port | `--port` | `9800` |
+| Identity key path | `--keys` | Implementation-defined |
+| Audit log path | `--audit` | Implementation-defined |
+| Channel TTL | — | `3600` (1 hour) |
 
 ---
 

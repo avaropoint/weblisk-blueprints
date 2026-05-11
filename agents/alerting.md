@@ -181,31 +181,30 @@ depends_on:
 
 ```yaml
 config:
-  env:
-    WL_ALERT_DEDUP_WINDOW:
-      type: integer
-      default: 300
-      description: Deduplication window in seconds
-    WL_ALERT_DEFAULT_CHANNEL:
-      type: string
-      default: log
-      description: Default delivery channel when no route matches
-    WL_ALERT_RETRY_MAX:
-      type: integer
-      default: 3
-      description: Max delivery retry attempts
-    WL_ALERT_RETRY_DELAY:
-      type: integer
-      default: 5000
-      description: Initial retry delay in milliseconds
-    WL_ALERT_HISTORY_TTL:
-      type: integer
-      default: 604800
-      description: Alert history retention in seconds (7 days)
-    WL_ALERT_BATCH_SIZE:
-      type: integer
-      default: 50
-      description: Max alerts processed per batch
+  dedup_window:
+    type: integer
+    default: 300
+    description: Deduplication window in seconds
+  default_channel:
+    type: string
+    default: log
+    description: Default delivery channel when no route matches
+  retry_max:
+    type: integer
+    default: 3
+    description: Max delivery retry attempts
+  retry_delay:
+    type: integer
+    default: 5000
+    description: Initial retry delay in milliseconds
+  history_ttl:
+    type: integer
+    default: 604800
+    description: Alert history retention in seconds (7 days)
+  batch_size:
+    type: integer
+    default: 50
+    description: Max alerts processed per batch
 ```
 
 ---
@@ -264,10 +263,10 @@ config:
     webhook:
       enabled: true
       url: https://hooks.example.com/weblisk
-      secret: ${WL_ALERT_WEBHOOK_SECRET}
+      secret: <configured via secrets>
     slack:
       enabled: false
-      webhook_url: ${WL_SLACK_WEBHOOK_URL}
+      webhook_url: <configured via secrets>
   
   rules:
     - severity: critical
@@ -1171,7 +1170,7 @@ overridable_behaviors:
 
   - behavior: self_update
     default: enabled
-    override: WL_AUTO_UPDATE=false
+    override: Disable via configuration
     audit: logged
 
 manual_actions:

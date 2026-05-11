@@ -277,19 +277,18 @@ logging:
     orchestrator: warn
 ```
 
-### Environment Variables
+### Configuration Parameters
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `WL_LOG_LEVEL` | `info` | Minimum log level |
-| `WL_LOG_LEVEL_OVERRIDES` | `""` | Comma-separated `component=level` pairs |
-| `WL_LOG_FORMAT` | `json` | Output format: `json` or `text` (dev only) |
-| `WL_LOG_OUTPUT` | `stdout` | Output target: `stdout`, `stderr`, or file path |
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| Log level | `info` | Minimum log level |
+| Log level overrides | `""` | Per-component level overrides (component=level pairs) |
+| Log format | `json` | Output format: `json` or `text` (dev only) |
+| Log output | `stdout` | Output target: `stdout`, `stderr`, or file path |
 
 ### Text Format (Development Only)
 
-For local development, `WL_LOG_FORMAT=text` produces human-readable
-output:
+When log format is set to `text`, the output is human-readable:
 
 ```
 2026-04-25 10:30:01.123 INFO  [cron] action.completed — Task registered successfully (45ms)
@@ -334,7 +333,7 @@ Returns every log line from every component involved in that request.
 
 ### File-Based Rotation
 
-When `WL_LOG_OUTPUT` is a file path:
+When the log output is configured as a file path:
 
 ```yaml
 rotation:
@@ -394,7 +393,7 @@ agent-specific custom types need to be declared.
 
 - Log emission MUST be non-blocking. If stdout is backed up, logs
   MAY be dropped rather than blocking the agent's event loop. Dropped
-  logs SHOULD increment a `wl_logs_dropped_total` counter.
+  logs SHOULD increment a dropped logs counter.
 - Timestamp precision matters. Use the highest precision available
   (milliseconds minimum, microseconds if supported) for accurate
   duration calculations.

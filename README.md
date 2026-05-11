@@ -295,28 +295,21 @@ weblisk blueprint update
 The CLI resolves blueprints in priority order:
 
 1. **Local project** — `./patterns/` in the user's project
-2. **Custom sources** — additional repos via `WL_BLUEPRINT_SOURCES`
+2. **Custom sources** — additional repos via configured blueprint sources
 3. **Core** — this repository (always present)
 
 Custom sources override core blueprints with the same path. For example,
 a customer's `domains/checkout.md` takes precedence over the core version.
 
-```bash
-# .env — add additional blueprint repositories
-WL_BLUEPRINT_SOURCES=https://github.com/acme-corp/acme-blueprints.git
-```
+Blueprint sources are configured via runtime configuration (e.g.,
+environment variable, config file, or CLI flag). Multiple sources
+are separated by newlines or commas:
 
-**Multiple sources** are separated by newlines or commas:
-
-```bash
-# Multiple sources — comma-separated
-WL_BLUEPRINT_SOURCES=https://github.com/acme-corp/acme-blueprints.git,https://github.com/acme-corp/acme-blueprints-internal.git
-
-# Or newline-separated (in .env files)
-WL_BLUEPRINT_SOURCES="
-https://github.com/acme-corp/acme-blueprints.git
-https://github.com/acme-corp/acme-blueprints-internal.git
-"
+```yaml
+# Example configuration
+blueprint_sources:
+  - https://github.com/acme-corp/acme-blueprints.git
+  - https://github.com/acme-corp/acme-blueprints-internal.git
 ```
 
 **Source format:**

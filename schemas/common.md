@@ -404,7 +404,6 @@ config:
   parameter_name:
     type: <scalar-type>
     default: <value>
-    env: WL_<AGENT>_<PARAM>
     min: <number>          # optional
     max: <number>          # optional
     enum: [val1, val2]     # optional
@@ -418,7 +417,6 @@ config:
 |-------|------|----------|-------------|
 | `type` | string | yes | Scalar type from the Types scalar types table |
 | `default` | any | yes | Default value. Must satisfy all constraints. |
-| `env` | string | yes | Environment variable name. Must follow `WL_<AGENT>_<PARAM>` convention. |
 | `min` | number | no | Minimum value (numeric) or minimum length (string) |
 | `max` | number | no | Maximum value (numeric) or maximum length (string) |
 | `enum` | list | no | Allowed values |
@@ -427,19 +425,18 @@ config:
 
 ### Naming Convention
 
-Environment variable names MUST follow: `WL_<AGENT_NAME>_<PARAMETER>`
-- `WL_` prefix is mandatory
-- `<AGENT_NAME>` is the blueprint name in UPPER_SNAKE_CASE
-- `<PARAMETER>` is the parameter name in UPPER_SNAKE_CASE
-- Example: `WL_CRON_TICK_INTERVAL`
+Configuration parameter names SHOULD follow a consistent naming scheme
+within each implementation. The specification defines semantic parameter
+names (e.g., `tick_interval`, `max_retries`). Platform implementations
+MAY map these to environment variables, config files, or other mechanisms
+using their own conventions.
 
 ### Validation Rules
 
-1. Every config parameter must have `type`, `default`, `env`, and `description`
+1. Every config parameter must have `type`, `default`, and `description`
 2. `default` must satisfy `min`, `max`, and `enum` constraints
-3. `env` must follow the naming convention
-4. No two blueprints may share the same `env` variable name
-5. Config parameters must not expose secrets — use `patterns/secrets` for sensitive values
+3. No two blueprints may share the same configuration parameter name
+4. Config parameters must not expose secrets — use `patterns/secrets` for sensitive values
 
 ---
 

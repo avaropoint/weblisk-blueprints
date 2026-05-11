@@ -309,13 +309,13 @@ configuration file.
 
 ### Configuration Properties
 
-| Property | Type | Default | Env Var | Description |
-|----------|------|---------|---------|-------------|
-| `port` | int | `3000` | `WL_PORT` | HTTP listen port |
-| `host` | string | `127.0.0.1` | `WL_HOST` | Listen address (localhost only in dev) |
-| `public_dir` | string | `public` | — | Directory containing static assets |
-| `blueprint_dir` | string | `blueprints` | — | Directory containing blueprint YAML files |
-| `watch_interval` | duration | `500ms` | — | File system polling interval (if not using native FS events) |
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `port` | int | `3000` | HTTP listen port |
+| `host` | string | `127.0.0.1` | Listen address (localhost only in dev) |
+| `public_dir` | string | `public` | Directory containing static assets |
+| `blueprint_dir` | string | `blueprints` | Directory containing blueprint YAML files |
+| `watch_interval` | duration | `500ms` | File system polling interval (if not using native FS events) |
 
 ### Configuration Precedence
 
@@ -485,7 +485,7 @@ Implementation MUST:
 - [ ] Implement SSE-based live reload at `/__livereload`
 - [ ] Watch configured directories and extensions for file changes
 - [ ] Send `data: reload\n\n` SSE event on file change
-- [ ] Support `WL_PORT` environment variable for port configuration
+- [ ] Support configurable port via environment or CLI flag
 - [ ] Support `--port` CLI flag that overrides environment variable
 - [ ] Listen on localhost only by default (not `0.0.0.0`)
 - [ ] Set `Cache-Control: no-cache` on all responses

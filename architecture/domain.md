@@ -680,15 +680,15 @@ execution.
 
 ## Domain Configuration
 
-Domains MAY accept configuration values at startup via environment
-variables or configuration files. These values are accessible in
+Domains MAY accept configuration values at startup via
+configuration files or runtime settings. These values are accessible in
 workflow reference expressions as `$config.<key>`.
 
-```bash
-# Environment variables (prefix WL_DOMAIN_)
-WL_DOMAIN_MAX_ISSUES_PER_FILE=50
-WL_DOMAIN_SCORE_THRESHOLD=70
-WL_DOMAIN_MEASUREMENT_WINDOW=86400
+```yaml
+# Domain configuration parameters
+max_issues_per_file: 50
+score_threshold: 70
+measurement_window: 86400
 ```
 
 Within the domain controller, configuration is stored as a flat

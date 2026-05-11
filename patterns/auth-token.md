@@ -260,7 +260,7 @@ Request:
 Response (201 Created):
 ```json
 {
-  "key": "wl_key_a1b2c3d4...",
+  "key": "<generated API key>",
   "name": "CI Pipeline",
   "scopes": ["read"],
   "expires_at": 1715856000,
@@ -278,7 +278,7 @@ For protected endpoints:
 
 ```
 1. Extract Authorization header: "Bearer <token>"
-2. If token starts with "wl_key_" → API key path:
+2. If token matches the API key format → API key path:
    a. Look up API key in store
    b. Validate not expired and not revoked
    c. Check scopes against endpoint requirements

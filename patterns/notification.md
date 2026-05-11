@@ -201,15 +201,15 @@ notification:
       enabled: false
       adapter: builtin
       config:
-        webhook_url_env: WL_SLACK_WEBHOOK_URL
+        webhook_url: <configured via secrets>
     
     sms:
       enabled: false
       adapter: builtin
       config:
         provider: twilio
-        from_number_env: WL_SMS_FROM
-        api_key_env: WL_TWILIO_API_KEY
+        from_number: <configured via secrets>
+        api_key: <configured via secrets>
     
     in_app:
       enabled: true

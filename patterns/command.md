@@ -285,10 +285,10 @@ sandbox:
 | Resource | Default Limit | Configurable |
 |----------|--------------|-------------|
 | CPU time | 120 seconds | Per-command max_timeout |
-| Memory | 512 MB | `WL_CMD_MAX_MEMORY` |
-| Disk write | 100 MB | `WL_CMD_MAX_DISK` |
-| Open files | 256 | `WL_CMD_MAX_FILES` |
-| Child processes | 10 | `WL_CMD_MAX_PROCS` |
+| Memory | 512 MB | Via runtime configuration |
+| Disk write | 100 MB | Via runtime configuration |
+| Open files | 256 | Via runtime configuration |
+| Child processes | 10 | Via runtime configuration |
 
 ### Timeout Enforcement
 
@@ -439,21 +439,21 @@ Every command execution is logged:
 
 ## Configuration
 
-### Environment Variables
+### Configuration Parameters
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `WL_CMD_ENABLED` | `true` | Enable/disable command execution globally |
-| `WL_CMD_SANDBOX` | `true` | Enable sandbox restrictions |
-| `WL_CMD_MAX_MEMORY` | `512` | Max memory per command (MB) |
-| `WL_CMD_MAX_DISK` | `100` | Max disk write per command (MB) |
-| `WL_CMD_MAX_FILES` | `256` | Max open files per command |
-| `WL_CMD_MAX_PROCS` | `10` | Max child processes per command |
-| `WL_CMD_WORK_DIR` | `/tmp/weblisk-cmd` | Base working directory |
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| Command execution enabled | `true` | Enable/disable command execution globally |
+| Sandbox enabled | `true` | Enable sandbox restrictions |
+| Max memory | `512` | Max memory per command (MB) |
+| Max disk write | `100` | Max disk write per command (MB) |
+| Max open files | `256` | Max open files per command |
+| Max child processes | `10` | Max child processes per command |
+| Working directory | Implementation-defined | Base working directory |
 
 ### Disabling Command Execution
 
-Setting `WL_CMD_ENABLED=false` disables all command execution. Agents
+When command execution is disabled via configuration, agents
 that extend this pattern will receive `COMMAND_DISABLED` errors for
 all `cmd.execute()` calls. This is useful for environments where
 external command execution is not permitted (e.g., Cloudflare Workers).
@@ -498,7 +498,7 @@ external command execution is not permitted (e.g., Cloudflare Workers).
 
 - On platforms that don't support process execution (Cloudflare
   Workers, browser environments), this pattern is unavailable.
-  Agents SHOULD check `WL_CMD_ENABLED` at startup and disable
+  Agents SHOULD check whether command execution is enabled at startup and disable
   command-dependent features gracefully.
 - Working directories are created per-execution and cleaned up after
   the command completes. Persistent working directories require
@@ -534,5 +534,5 @@ external command execution is not permitted (e.g., Cloudflare Workers).
 - [ ] Resource limits (memory, disk, processes) are enforced
 - [ ] Remote execution validates host against declared hosts
 - [ ] Remote execution uses SSH key authentication only
-- [ ] WL_CMD_ENABLED=false disables all command execution
+- [ ] Disabling command execution via configuration prevents all command execution
 - [ ] Failed argument validation is logged as command.rejected

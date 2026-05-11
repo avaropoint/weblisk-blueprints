@@ -112,7 +112,6 @@ config:
   parameter_name:
     type: <scalar-type>
     default: <value>
-    env: WL_<AGENT>_<PARAM>
     min: <number>
     max: <number>
     enum: [val1, val2]
@@ -768,7 +767,6 @@ config:
   # example_param:
   #   type: int
   #   default: 60
-  #   env: WL_<AGENT>_EXAMPLE_PARAM
   #   min: 1
   #   max: 3600
   #   unit: seconds

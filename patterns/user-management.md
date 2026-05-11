@@ -425,9 +425,9 @@ Rate limit: 1 request per 5 minutes.
 | GitHub | `https://github.com/login/oauth/authorize` | `https://github.com/login/oauth/access_token` | `https://api.github.com/user` |
 | Google | `https://accounts.google.com/o/oauth2/v2/auth` | `https://oauth2.googleapis.com/token` | `https://www.googleapis.com/oauth2/v2/userinfo` |
 
-Providers are configured via environment variables:
-- `WL_OAUTH_GITHUB_CLIENT_ID`, `WL_OAUTH_GITHUB_CLIENT_SECRET`
-- `WL_OAUTH_GOOGLE_CLIENT_ID`, `WL_OAUTH_GOOGLE_CLIENT_SECRET`
+Providers are configured via secure configuration (e.g., secrets
+manager or runtime configuration). Each provider requires a client
+ID and client secret.
 
 ### OAuth Flow
 
