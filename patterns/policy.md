@@ -141,13 +141,17 @@ contracts:
           required: true
           description: Individual decisions from each matching policy
         - name: composition_strategy
-          type: enum(most_restrictive, first_match)
+          type: enum(most_restrictive)
           required: false
           default: most_restrictive
-          description: How to combine — most restrictive (default) or first match in priority order
+          description: >
+            How to combine decisions from multiple matching policies.
+            Most-restrictive-wins is the only composition strategy —
+            the final decision is always the single most restrictive
+            decision from all evaluated policies. This is a non-overridable
+            framework invariant.
       inherits: Decision ranking, monotonic restriction enforcement, composition audit trail
-      overridable: true
-      override_constraints: Most-restrictive strategy cannot be overridden to produce a LESS restrictive result than any individual decision
+      overridable: false
 
     - name: policy-lifecycle
       description: Manage the lifecycle of a policy from creation through archival
@@ -533,8 +537,10 @@ FUNCTION evaluate_policies(context: PolicyContext) -> PolicyDecision:
 
     # Step 6: Compose decisions — most restrictive wins
     IF decisions IS EMPTY:
-        # No matching policies — allow by default (opt-in model)
-        RETURN PolicyDecision{result: allow, policy_name: "_default_allow"}
+        # No matching policies — deny by default (fail-closed)
+        # A system with no active policies MUST NOT allow operations.
+        # At minimum, system-level baseline policies must always be present.
+        RETURN PolicyDecision{result: deny, policy_name: "_no_matching_policy"}
 
     final_decision = compose_decisions(decisions)
 

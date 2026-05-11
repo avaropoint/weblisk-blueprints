@@ -82,14 +82,14 @@ requires:
 - Structured log format definition (JSON shape, required fields, levels)
 - Distributed trace context propagation rules (X-Trace-Id, X-Span-Id headers)
 - Trace ID generation and span lifecycle conventions
-- Metrics endpoint contract (Prometheus exposition format, `wl_` prefix)
+- Metrics endpoint contract (standard structured format, `wl_` prefix)
 - Standard metric definitions for orchestrator, domain controllers, and agents
 - Health endpoint response schema and status semantics
 - Correlation patterns for end-to-end debugging
 
 ### Does NOT Own
 - Log aggregation infrastructure (deployment-specific: Loki, ELK, CloudWatch)
-- Metrics scraping configuration (deployment-specific: Prometheus, Datadog)
+- Metrics scraping configuration (deployment-specific)
 - Alerting rules and thresholds (owned by agents/alerting and patterns/observability)
 - Per-agent health check logic (owned by each agent's implementation)
 - Agent-level health contract and state machine (owned by patterns/observability)
@@ -100,7 +100,7 @@ requires:
 
 | Interface | Type | Description |
 |-----------|------|-------------|
-| `GET /metrics` | HTTP (per-component) | Prometheus exposition format metrics endpoint (no auth required) |
+| `GET /metrics` | HTTP (per-component) | Structured metrics endpoint (no auth required) |
 | `POST /v1/health` (agents) / `GET /v1/health` (orchestrator) | HTTP (per-component) | Structured health status with checks map |
 | `X-Trace-Id` header | HTTP header | 32 hex char trace identifier propagated on all inter-component requests |
 | `X-Span-Id` header | HTTP header | 16 hex char span identifier for trace tree construction |
@@ -142,7 +142,7 @@ requires:
    system.
 3. **Zero-dependency core** — The observability contract is based on
    plain JSON logs and HTTP endpoints. No vendor SDK is required.
-   Prometheus scraping and OTLP export are optional integrations —
+   External metrics collection and trace export are optional integrations —
    the system works without them.
 4. **Opt-in depth** — Basic logging is always on. Tracing and metrics
    can be enabled per-deployment.
@@ -308,10 +308,12 @@ Spans are emitted as structured JSON logs by default (same stdout
 stream, with `"type": "span"`). For production deployments, spans
 can be exported to:
 
-- **OTLP endpoint**: Set `OTEL_EXPORTER_OTLP_ENDPOINT` environment
-  variable. The component pushes spans via HTTP/protobuf.
-- **File**: Set `WL_TRACE_FILE=/path/to/traces.jsonl` to write
-  spans to a file (one JSON object per line).
+- **Trace collector**: Export spans to an external trace collector
+  (e.g., OpenTelemetry-compatible endpoint).
+- **File**: Write spans to a local file (one JSON object per line).
+
+Export configuration is deployment-specific and not prescribed by
+this blueprint.
 
 ---
 
@@ -319,25 +321,10 @@ can be exported to:
 
 ### Metrics Endpoint
 
-Every component exposes `GET /metrics` returning metrics in
-Prometheus exposition format.
-
-```
-# HELP wl_tasks_total Total tasks processed
-# TYPE wl_tasks_total counter
-wl_tasks_total{component="seo-analyzer",status="completed"} 45
-wl_tasks_total{component="seo-analyzer",status="failed"} 2
-
-# HELP wl_task_duration_seconds Task processing duration
-# TYPE wl_task_duration_seconds histogram
-wl_task_duration_seconds_bucket{component="seo-analyzer",le="0.5"} 5
-wl_task_duration_seconds_bucket{component="seo-analyzer",le="1"} 15
-wl_task_duration_seconds_bucket{component="seo-analyzer",le="5"} 40
-wl_task_duration_seconds_bucket{component="seo-analyzer",le="10"} 45
-wl_task_duration_seconds_bucket{component="seo-analyzer",le="+Inf"} 47
-wl_task_duration_seconds_sum{component="seo-analyzer"} 108.5
-wl_task_duration_seconds_count{component="seo-analyzer"} 47
-```
+Every component exposes `GET /metrics` returning metrics in a
+structured format. The endpoint MUST support counter, gauge, and
+histogram metric types with the labels defined in the standard
+metric tables below. The wire format is deployment-specific.
 
 ### Standard Metrics
 
@@ -466,21 +453,20 @@ wl_agents_status{status="online"}
 
 ## Configuration
 
-### Environment Variables
+### Configuration Parameters
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `WL_LOG_LEVEL` | `info` | Global log level |
-| `WL_LOG_FORMAT` | `json` | `json` or `text` (text for local dev) |
-| `WL_TRACE_ENABLED` | `false` | Enable distributed tracing |
-| `WL_TRACE_SAMPLE_RATE` | `1.0` | Trace sampling rate (0.0–1.0) |
-| `WL_TRACE_FILE` | — | File path for span export |
-| `WL_METRICS_ENABLED` | `true` | Expose /metrics endpoint |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | — | OTLP collector URL for trace export |
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| Log level | `info` | Global log level |
+| Log format | `json` | `json` or `text` (text for local dev) |
+| Tracing enabled | `false` | Enable distributed tracing |
+| Trace sample rate | `1.0` | Trace sampling rate (0.0–1.0) |
+| Trace export target | — | File path or collector endpoint for span export |
+| Metrics enabled | `true` | Expose /metrics endpoint |
 
 ### Local Development
 
-In development mode (`weblisk dev`):
+In development mode:
 - Log format defaults to `text` (human-readable, colorized)
 - Tracing is disabled (less noise)
 - Metrics endpoint is available at each component's port + `/metrics`
@@ -491,7 +477,7 @@ In development mode (`weblisk dev`):
 In production:
 - Log format: `json` (parseable by log aggregation)
 - Tracing: enabled with sampling (0.1 = 10% of requests)
-- Metrics: scraped by Prometheus or compatible collector
+- Metrics: scraped by a compatible metrics collector
 - Components write to stdout; container runtime captures logs
 
 ---
@@ -499,11 +485,11 @@ In production:
 ## Implementation Notes
 
 - Structured logging MUST be the default — never use unstructured
-  `fmt.Println` or equivalent for operational events
+  print statements for operational events
 - Trace IDs MUST be propagated on ALL inter-component HTTP requests,
   including health checks and governance calls
 - The `/metrics` endpoint MUST NOT require authentication (standard
-  Prometheus convention)
+  metrics collection convention)
 - Metrics MUST NOT include PII or sensitive data in labels
 - Log rotation is the responsibility of the runtime environment
   (container, systemd, etc.), not the application
@@ -515,14 +501,14 @@ In production:
 ## Verification Checklist
 
 - [ ] All components emit JSON logs to stdout with required fields: ts (ISO 8601), level, msg, component, component_type
-- [ ] Log levels are configurable globally via WL_LOG_LEVEL and per-component via log_level_overrides
+- [ ] Log levels are configurable globally and per-component via configuration parameters
 - [ ] Trace ID (X-Trace-Id, 32 hex chars from crypto/rand) is propagated on ALL inter-component HTTP requests
 - [ ] Incoming requests with an existing X-Trace-Id preserve it; new trace IDs are generated only when missing
 - [ ] Each component creates child spans with X-Span-Id and X-Parent-Span-Id on outgoing requests
-- [ ] GET /metrics returns Prometheus exposition format with wl_ prefix and does NOT require authentication
+- [ ] GET /metrics returns structured metrics with wl_ prefix and does NOT require authentication
 - [ ] Orchestrator exposes wl_agents_registered, wl_tasks_total, wl_task_duration_seconds, and wl_http_requests_total metrics
 - [ ] Agent metrics include wl_tasks_total by action/status, wl_llm_calls_total, and wl_llm_tokens_total by model/type
 - [ ] Metrics labels do NOT include high-cardinality values (user_id, URL) or PII
 - [ ] Health endpoint returns structured JSON with status, component, version, uptime_seconds, and checks map
-- [ ] Spans are emitted as structured JSON logs (type: span) by default and exportable to OTLP when OTEL_EXPORTER_OTLP_ENDPOINT is set
+- [ ] Spans are emitted as structured JSON logs (type: span) by default and exportable to an external trace collector when configured
 - [ ] Components limit log output to ~100 lines per task at info level to prevent log flooding

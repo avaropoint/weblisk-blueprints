@@ -60,7 +60,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Ed25519KeyPair
+        - name: SigningKeyPair
           fields_used: [public_key, private_key]
     on_change:
       compatible: validate-and-adopt
@@ -211,7 +211,7 @@ different threat profiles:
 |---------|-------------------|---------------|
 | Audience | End users (untrusted, high volume) | Operators (trusted, low volume) |
 | Network | Public internet | Private network, VPN, or IP-restricted |
-| Auth model | User credentials → session cookie | Operator Ed25519 key → operator token |
+| Auth model | User credentials → session cookie | Operator ML-DSA-65 key → operator token |
 | Session binding | Device fingerprint + IP/24 | Operator key + exact IP allowlist |
 | MFA | Policy-driven (optional for standard routes) | Always required, no exceptions |
 | Rate limits | High (accommodate user traffic) | Low (operators don't generate burst traffic) |
@@ -226,7 +226,7 @@ different threat profiles:
 │  End-User Browser        │      │  Operator Browser          │
 │  (app.example.com)       │      │  (admin.example.com)       │
 │                          │      │  VPN / IP allowlist only    │
-│  Islands → HTTP → Cookie │      │  SPA → HTTP → Ed25519 Token│
+│  Islands → HTTP → Cookie │      │  SPA → HTTP → ML-DSA-65 Token│
 └────────────┬─────────────┘      └──────────────┬─────────────┘
              │                                    │
              ▼                                    ▼
@@ -312,7 +312,7 @@ operator tokens (WLT) with stricter controls:
 | Property | Application Session (WLS) | Admin Session (WLT) |
 |----------|--------------------------|---------------------|
 | Token type | `WLS` (Weblisk Session) | `WLT` (Weblisk Token) |
-| Signing key | Gateway's Ed25519 key | Orchestrator's Ed25519 key |
+| Signing key | Gateway's ML-DSA-65 key | Orchestrator's ML-DSA-65 key |
 | TTL | 24 hours | 4 hours |
 | Idle timeout | 1 hour | 30 minutes |
 | IP binding | /24 subnet (allows roaming) | Exact IP (no roaming) |
@@ -341,8 +341,8 @@ acceptable for single-host deployments.
    observation: viewing agents, reading logs, monitoring workflows.
    Writes are limited to approvals, strategy management, and
    configuration.
-2. **Ed25519 operator identity** — Operators authenticate using the
-   same Ed25519 identity system as agents. The orchestrator issues
+2. **ML-DSA-65 operator identity** — Operators authenticate using the
+   same ML-DSA-65 identity system as agents. The orchestrator issues
    operator tokens with admin-scoped capabilities.
 3. **Offline-capable** — The dashboard is a static SPA that works
    even when the orchestrator is degraded. It shows stale data with
@@ -361,19 +361,19 @@ acceptable for single-host deployments.
 ## Operator Identity
 
 Operators are human users who manage the Weblisk deployment. They
-use the same Ed25519 identity system as agents but with
+use the same ML-DSA-65 identity system as agents but with
 operator-specific capabilities.
 
 ### Operator Registration
 
 ```
-1. Operator generates Ed25519 key pair (via CLI: weblisk operator init)
+1. Operator generates ML-DSA-65 key pair (via CLI: weblisk operator init)
 2. CLI stores keys in ~/.weblisk/keys/operator.key and operator.pub
 3. Operator registers with orchestrator:
    POST /v1/admin/operators/register
    {
      "name": "alice",
-     "public_key": "<hex Ed25519 public key>",
+     "public_key": "<ML-DSA-65 public key (base64url)>",
      "role": "admin",
      "signature": "<signed registration payload>"
    }
@@ -743,7 +743,7 @@ The orchestrator stores operator records alongside agent records:
 | Field | Type | Description |
 |-------|------|-------------|
 | Name | string | Operator identifier |
-| PublicKey | string | Hex-encoded Ed25519 public key |
+| PublicKey | string | base64url-encoded ML-DSA-65 public key |
 | Role | string | `admin`, `operator`, `viewer`, `auditor` |
 | Token | string | Current auth token |
 | RegisteredAt | int64 | Unix epoch seconds |

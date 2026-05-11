@@ -112,7 +112,7 @@ outputs, required agents, and workflows.
   "version": "<semver>",
   "description": "<one-line description>",
   "url": "http://localhost:<port>",
-  "public_key": "<hex Ed25519 public key>",
+  "public_key": "<ML-DSA-65 public key (base64url)>",
   "capabilities": [
     {"name": "<capability>", "resources": []}
   ],

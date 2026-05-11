@@ -30,7 +30,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Ed25519KeyPair
+        - name: SigningKeyPair
           fields_used: [public_key, private_key]
     on_change:
       compatible: validate-and-adopt
@@ -220,7 +220,7 @@ structure with domain-specific fields:
   "version": "1.0.0",
   "description": "SEO optimization — audits, recommendations, and automated fixes",
   "url": "http://localhost:9700",
-  "public_key": "<hex Ed25519 public key>",
+  "public_key": "<ML-DSA-65 public key (base64url)>",
   "capabilities": [
     {"name": "agent:message", "resources": []},
     {"name": "workflow:execute", "resources": []}

@@ -245,6 +245,9 @@ contracts:
     - name: KillSwitchEvent
       description: Record of an agent emergency halt
       inherited_by: Types section
+    - name: QuarantineOrder
+      description: Command to initiate quarantine of an agent
+      inherited_by: Types section
     - name: QuarantineState
       description: Current quarantine status of an isolated agent
       inherited_by: Types section
@@ -308,6 +311,16 @@ OperationClass:
       side_effect: none
       reversibility: not_applicable
       description: No state change — queries, fetches, inspections
+    - name: list
+      ordinal: 0
+      side_effect: none
+      reversibility: not_applicable
+      description: Enumerates resources or records — no state change. Subject to result size limits.
+    - name: query
+      ordinal: 0
+      side_effect: none
+      reversibility: not_applicable
+      description: Searches or filters resources — no state change. Subject to result size limits.
     - name: create
       ordinal: 1
       side_effect: additive
@@ -1067,6 +1080,46 @@ QuarantineState:
       description: Identity of the operator who approved quarantine exit
 ```
 
+#### QuarantineOrder Type
+
+```yaml
+QuarantineOrder:
+  description: Command to initiate quarantine of an agent. Issued by the safety system or rogue detection and consumed by the enforcement layer.
+  fields:
+    - name: id
+      type: string
+      required: true
+      description: Unique order identifier
+    - name: agent
+      type: string
+      required: true
+      description: Name of the agent to quarantine
+    - name: reason
+      type: string
+      required: true
+      description: Summary of why quarantine is being ordered
+    - name: violations
+      type: "[]SafetyViolation"
+      required: true
+      description: Violations that triggered this order
+    - name: severity
+      type: enum(low, medium, high, critical)
+      required: true
+      description: Severity of the triggering condition
+    - name: source
+      type: enum(safety_gate, rogue_detection, kill_switch, operator)
+      required: true
+      description: What system issued the quarantine order
+    - name: issued_at
+      type: int64
+      required: true
+      description: Unix epoch seconds when the order was issued
+    - name: exit_requires
+      type: "[]string"
+      required: true
+      description: Conditions that must be met before the agent can exit quarantine
+```
+
 #### SafetyViolation Type
 
 ```yaml
@@ -1263,6 +1316,33 @@ dashboards, alerting, and audit. Key metrics:
 - `safety.kill_switches.total` — counter of kill switch activations
 - `safety.quarantines.active` — gauge of currently quarantined agents
 
+### Migration (`patterns/migration`)
+
+Data migrations integrate with safety through `MigrationIntent` — a
+specialized `OperationIntent` that carries migration-specific context
+(blast radius, affected tables, data loss risk, dry-run status,
+reversibility proof). The safety pipeline uses these fields to apply
+migration-specific gate modifiers:
+
+- **No dry-run report** in staging/production → `deny`
+- **Permanent data loss risk** → amplification +1
+- **No reversibility proof** → amplification +1
+
+Migrations that bypass the migration governance pipeline (executing
+without a plan, without approval, or outside a mutation contract)
+are classified as `rogue_behavior` safety violations and trigger
+kill-switch enforcement.
+
+Specific integration points:
+
+- `MigrationIntent` type — extends `OperationIntent` with
+  `plan_id`, `tables_affected`, `estimated_rows`, `data_loss_risk`,
+  `has_dry_run_report`, `reversibility_proof` fields.
+- Migration gate modifiers — applied after base gate evaluation to
+  tighten enforcement for high-risk migrations.
+- Safety violations — migration governance bypass triggers
+  kill-switch per the standard violation escalation path.
+
 ### Workflow (`patterns/workflow`)
 
 Workflows that include destructive phases integrate with safety via
@@ -1395,6 +1475,7 @@ same operator approval mechanism.
 - Implementations MAY extend the ResourceClass enum with domain-specific classes that map to a base class.
 - Implementations MAY implement the safety engine as a separate service or in-process library.
 - Implementations MAY add custom severity weights to the quarantine threshold calculator.
+- Implementations MAY extend the gate evaluation with a `simulate_first` result for migration intents, requiring a successful dry-run before the operation proceeds. See `patterns/migration` for the full dry-run protocol.
 
 ---
 

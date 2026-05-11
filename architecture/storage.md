@@ -607,7 +607,7 @@ comparison against the stored hash.
   feedback: 180d, audit: 90d) SHOULD rotate files by month and
   delete or archive expired segments.
 - **Encryption**: Agents MAY encrypt data files at rest using
-  AES-256-GCM with a key derived from the agent's Ed25519 secret.
+  AES-256-GCM with a key derived from the agent's signing secret.
   See [data-security.md](data-security.md) for key management.
 - **Backup**: Production deployments SHOULD implement storage backup.
   This is platform-specific and outside the scope of this interface.

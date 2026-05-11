@@ -42,7 +42,7 @@ When a hub operates in the registry role, the hub agent provides:
    volume, and behavioral change history. Metrics are observed from
    actual usage — never self-reported by providers.
 
-4. **Verification** — Validates Ed25519 signatures on listings and
+4. **Verification** — Validates ML-DSA-65 signatures on listings and
    manifests, detects behavioral changes via fingerprinting, enforces
    key rotation protocol, and validates data contracts.
 
@@ -63,7 +63,7 @@ Weblisk messaging bus and federation protocol endpoints.
     {"name": "http:send", "resources": ["https://*"]},
     {"name": "database:read", "resources": ["listing_index", "provider_registry", "metrics_store", "verification_log", "behavioral_fingerprints", "search_analytics", "alert_rules", "alert_history"]},
     {"name": "database:write", "resources": ["listing_index", "provider_registry", "metrics_store", "verification_log", "behavioral_fingerprints", "search_analytics", "alert_history"]},
-    {"name": "crypto:verify", "resources": ["ed25519"]}
+    {"name": "crypto:verify", "resources": ["ml-dsa-65"]}
   ],
   "inputs": [
     {"name": "listing_entry", "type": "json", "description": "Published listing from a provider hub"},
@@ -114,7 +114,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Ed25519KeyPair
+        - name: SigningKeyPair
           fields_used: [public_key, sign, verify]
         - name: KeyRotationAnnouncement
           fields_used: [hub_name, old_key, new_key, old_signature, new_signature, timestamp]
@@ -756,7 +756,7 @@ types:
         description: Listing version
       signature:
         type: string
-        description: Ed25519 signature over listing content
+        description: ML-DSA-65 signature over listing content
       public_key:
         type: string
         description: Provider's public key used for signature
@@ -791,7 +791,7 @@ types:
         description: Provider's federation endpoint
       public_key:
         type: string
-        description: Provider's current Ed25519 public key
+        description: Provider's current ML-DSA-65 public key
       last_seen:
         type: int64
         description: Last successful contact timestamp
@@ -1713,7 +1713,7 @@ Step 1 — Load Configuration
   On Fail:     EXIT with CONFIG_INVALID — log which keys failed validation
 
 Step 2 — Load Identity
-  Action:      Load Ed25519 keypair from .weblisk/keys/hub/
+  Action:      Load ML-DSA-65 keypair from .weblisk/keys/hub/
   Validates:   Public key is 32 bytes, private key decrypts test payload
   On Fail:     EXIT with IDENTITY_FAILED
 
@@ -1996,7 +1996,7 @@ Index a published listing after signature verification.
 **Processing:**
 
 ```
-1. Verify Ed25519 signature over listing content
+1. Verify ML-DSA-65 signature over listing content
    If verification fails → reject, log, emit hub.verification.failure
 2. Validate listing schema — required fields present, version is valid semver
 3. Check for duplicates:
@@ -2011,7 +2011,7 @@ Index a published listing after signature verification.
 
 **Output:** `{listing_id: string, status: "indexed" | "updated" | "rejected", reason?: string}`
 
-**Errors:** `SIGNATURE_INVALID` (permanent), `SCHEMA_INVALID` (permanent), `STORAGE_ERROR` (transient)
+**Errors:** `INVALID_SIGNATURE` (permanent), `SCHEMA_INVALID` (permanent), `STORAGE_ERROR` (transient)
 
 ---
 
@@ -2372,7 +2372,7 @@ Network-wide aggregate statistics.
 
 #### verify-listing
 
-Verify Ed25519 signature on a listing.
+Verify ML-DSA-65 signature on a listing.
 
 **Source:** Indexing subsystem
 
@@ -2383,7 +2383,7 @@ Verify Ed25519 signature on a listing.
 ```
 1. Check key against revocation list → if revoked, fail immediately
 2. Reconstruct canonical listing bytes (deterministic serialization)
-3. Verify Ed25519 signature: crypto.verify(public_key, canonical_bytes, signature)
+3. Verify ML-DSA-65 signature: crypto.verify(public_key, canonical_bytes, signature)
 4. Check key matches provider's registered identity
 5. Record VerificationRecord
 6. If fail → emit hub.verification.failure
@@ -2391,7 +2391,7 @@ Verify Ed25519 signature on a listing.
 
 **Output:** `{result: "pass" | "fail", verification_id: string, reason?: string}`
 
-**Errors:** `KEY_REVOKED` (permanent), `SIGNATURE_INVALID` (permanent), `STORAGE_ERROR` (transient)
+**Errors:** `KEY_REVOKED` (permanent), `INVALID_SIGNATURE` (permanent), `STORAGE_ERROR` (transient)
 
 ---
 
@@ -3082,7 +3082,7 @@ override_audit:
 constraints:
   blast_radius:
     - MUST NOT modify provider hub data — index is a read-only mirror
-    - MUST NOT accept listings without valid Ed25519 signature
+    - MUST NOT accept listings without valid ML-DSA-65 signature
     - MUST NOT fabricate or alter metrics data
     - MUST NOT send notifications to hubs not in collaborator registry
     - Crawl rate bounded by config.max_concurrent_crawls
@@ -3091,14 +3091,14 @@ constraints:
 
   forbidden_actions:
     - MUST NOT index unsigned or unverified listings
-    - MUST NOT bypass Ed25519 signature verification for any reason
+    - MUST NOT bypass ML-DSA-65 signature verification for any reason
     - MUST NOT accept key rotations without dual-signature proof
     - MUST NOT accept key rotations within cooldown period
     - MUST NOT self-report provider metrics — only record observed data
     - MUST NOT skip probe results (even if unfavorable to providers)
     - MUST NOT expose raw invocation data to unauthorized consumers
     - MUST NOT expose provider private keys or internal state
-    - MUST NOT send federation notifications without valid Ed25519 signature
+    - MUST NOT send federation notifications without valid ML-DSA-65 signature
     - MUST NOT bypass deduplication for non-operator callers
 
   resource_limits:
@@ -3119,8 +3119,8 @@ constraints:
 ```yaml
 errors:
   permanent:
-    - code: SIGNATURE_INVALID
-      description: Ed25519 signature verification failed
+    - code: INVALID_SIGNATURE
+      description: ML-DSA-65 signature verification failed
       subsystem: indexing, verification
     - code: SCHEMA_INVALID
       description: Listing schema validation failed
@@ -3413,7 +3413,7 @@ security:
       description: Write to all hub data stores
 
     - capability: crypto:verify
-      resources: [ed25519]
+      resources: [ml-dsa-65]
       description: Verify signatures on listings, manifests, key rotations,
                    and data contracts
 
@@ -3468,7 +3468,7 @@ security:
 
     - data: Federation notification signatures
       classification: high
-      handling: Ed25519 private key never logged or transmitted
+      handling: ML-DSA-65 private key never logged or transmitted
 
   access_control:
     # Indexing
@@ -3526,7 +3526,7 @@ tests:
       capability: {domain: "seo", action: "audit", version: "1.2.0"}
       tier: pro
       version: "1.2.0"
-      signature: "<valid-ed25519-signature>"
+      signature: "<valid-ml-dsa-65-signature>"
       public_key: "<provider-public-key>"
     expected:
       listing_id: "avaropoint:seo-audit"
@@ -3609,14 +3609,14 @@ tests:
     validates:
       - CRITICAL severity bypasses mute suppression
       - All collaborators and registry operators notified
-      - Federation notifications sent with Ed25519 signature
+      - Federation notifications sent with ML-DSA-65 signature
 ```
 
 ---
 
 ## Implementation Notes
 
-- **Unified identity**: The hub agent uses a single Ed25519 keypair
+- **Unified identity**: The hub agent uses a single ML-DSA-65 keypair
   for all subsystems. This eliminates cross-agent authentication
   overhead and simplifies key management.
 
@@ -3626,7 +3626,7 @@ tests:
   alerting subsystem — no IPC latency. Events are still emitted to
   the bus for external consumers.
 
-- **Signature-first**: Every listing MUST pass Ed25519 verification
+- **Signature-first**: Every listing MUST pass ML-DSA-65 verification
   before indexing. No exceptions, no override. This is the core trust
   property of the hub network.
 
@@ -3724,7 +3724,7 @@ scaling:
 - [ ] Availability probes run on schedule for all active listings
 - [ ] Rolling aggregates computed correctly for all windows (1h, 24h, 7d, 30d)
 - [ ] SLA breach detection triggers alerts within one probe cycle
-- [ ] Ed25519 signatures verified for listings, manifests, and key rotations
+- [ ] ML-DSA-65 signatures verified for listings, manifests, and key rotations
 - [ ] Key rotation requires valid dual-signature proof
 - [ ] Behavioral fingerprints sampled on schedule with change classification
 - [ ] CRITICAL changes trigger immediate listing suspension
@@ -3732,7 +3732,7 @@ scaling:
 - [ ] Deduplication prevents repeated alerts within suppression window
 - [ ] Muted listings suppress non-CRITICAL alerts
 - [ ] CRITICAL alerts bypass mute suppression
-- [ ] Cross-hub notifications use federation protocol with Ed25519 signatures
+- [ ] Cross-hub notifications use federation protocol with ML-DSA-65 signatures
 - [ ] Revoked keys are rejected immediately
 - [ ] Dependency contracts declare version ranges and specific bindings
 - [ ] State machine validates all entity transitions

@@ -485,6 +485,13 @@ revision records:
   backend supports it. On backends without transactions (e.g., some
   KV stores), migrations MUST be idempotent — safe to re-run if
   interrupted.
+- Data migrations that modify, delete, or transform existing data
+  MUST follow the migration governance pipeline defined in
+  [`patterns/migration`](migration.md) — including migration plan
+  creation, dry-run validation, approval, blast radius enforcement,
+  and post-migration integrity verification. Schema-only changes
+  (add column, add index) that do not affect existing data may
+  follow the lighter versioning-only path.
 - The diff endpoint returns a structured diff, not a text diff. It
   shows added/removed/changed sections, actions, types, and
   configuration values.
@@ -504,6 +511,7 @@ revision records:
 - [ ] Migration steps execute in order
 - [ ] Failed migrations trigger automatic rollback
 - [ ] Post-migration validation runs after migration
+- [ ] Data migrations follow governance pipeline in `patterns/migration`
 - [ ] Manual rollback to any previous version works
 - [ ] Revision history is retained indefinitely
 - [ ] Compatibility matrix validates cross-blueprint dependencies

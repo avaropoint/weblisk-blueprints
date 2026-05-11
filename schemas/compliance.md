@@ -177,6 +177,25 @@ structural_checks:
     description: No unrecognized fields in frontmatter
     severity: minor
     fails_to: compliant
+
+  - id: S011
+    name: content-hash-present
+    description: >
+      Blueprint content produces a deterministic cryptographic hash
+      that can be compared against the compliance report's
+      integrity.content_hash to detect post-validation tampering
+    severity: critical
+    fails_to: rejected
+
+  - id: S012
+    name: schema-version-current
+    description: >
+      Blueprint was validated against the current schema version.
+      Validation reports produced against older schema versions
+      are not accepted — blueprints must be re-validated when the
+      schema system is updated.
+    severity: critical
+    fails_to: non_compliant
 ```
 
 ### Phase 2 — Dependency Validation
@@ -244,6 +263,41 @@ dependency_checks:
     description: No circular dependency chains exist
     severity: critical
     fails_to: non_compliant
+
+  - id: D011
+    name: requires-compliance
+    description: >
+      Every entry in requires references a blueprint that is itself
+      compliant or certified. A certified blueprint MUST NOT depend
+      on a non-compliant, restricted, or rejected blueprint.
+    severity: critical
+    fails_to: restricted
+
+  - id: D012
+    name: extends-security-preserved
+    description: >
+      Extending a pattern MUST NOT weaken or remove security properties
+      declared by the parent pattern. Specifically: security capabilities
+      MUST NOT be broadened beyond the pattern's declared scope, access
+      control MUST NOT become less restrictive, data sensitivity
+      classifications MUST NOT be lowered, and blast radius constraints
+      MUST NOT be expanded. An extender may only add security restrictions,
+      never remove or weaken them.
+    severity: critical
+    fails_to: rejected
+    applies_to: [agent, domain]
+
+  - id: D013
+    name: extends-override-floor
+    description: >
+      When overriding a behavior from an extended pattern, the overriding
+      definition MUST satisfy all override_constraints declared by the
+      pattern. Security-relevant behaviors (those affecting authentication,
+      authorization, data access, or scope) MUST NOT be overridden to
+      produce a less restrictive result than the pattern's default.
+    severity: critical
+    fails_to: rejected
+    applies_to: [agent, domain]
 ```
 
 ### Phase 3 — Type Validation
@@ -499,6 +553,10 @@ compliance_report:
   validated_at: <ISO8601>
   schema_version: <schema-system-version>
   level: certified|compliant|restricted|non_compliant|rejected
+  integrity:
+    content_hash: <cryptographic hash of the validated blueprint content>
+    report_signature: <ML-DSA-65 signature over this report by the validating authority>
+    signed_by: <identity of the validating authority>
   checks:
     passed: <count>
     failed: <count>
@@ -531,9 +589,14 @@ compliance_report:
 When an agent or domain controller registers with the orchestrator:
 
 1. Orchestrator retrieves the blueprint from the repository
-2. Orchestrator runs the full validation pipeline
-3. Compliance level is computed
-4. Registration decision:
+2. Orchestrator verifies the blueprint's content hash matches the
+   compliance report's `integrity.content_hash` — if the blueprint
+   was modified after validation, registration is rejected
+3. Orchestrator verifies the compliance report's `integrity.report_signature`
+   was produced by a trusted validating authority
+4. Orchestrator runs the full validation pipeline
+5. Compliance level is computed
+6. Registration decision:
 
 ```yaml
 registration_enforcement:
@@ -763,6 +826,9 @@ Before submitting a blueprint, verify:
 - [ ] Frontmatter has all required fields for this blueprint type
 - [ ] `name` matches filename
 - [ ] All `requires` and `extends` entries resolve to existing blueprints
+- [ ] All `requires` entries reference compliant or certified blueprints (D011)
+- [ ] Extending a pattern does not weaken its security properties (D012)
+- [ ] Pattern behavior overrides satisfy all override_constraints (D013)
 - [ ] `## Dependencies` section has full YAML with bindings and on_change for every dependency
 - [ ] Types are in YAML format with descriptions, types, and constraints
 - [ ] Security section declares all capabilities with specific resources
@@ -776,3 +842,5 @@ Before submitting a blueprint, verify:
 - [ ] Implementation notes cover pitfalls, performance, security, testing
 - [ ] Test fixtures cover happy path, errors, and edge cases
 - [ ] Blueprint is implementable from this document alone (no follow-up questions needed)
+- [ ] Blueprint content hash in compliance report matches current content (S011)
+- [ ] Compliance report is signed by a trusted validating authority

@@ -35,6 +35,12 @@ The protocol is built on three principles:
 3. **Blue-green safety** — when reconciliation requires a version bump,
    the new version is built and validated alongside the old one before
    traffic cuts over. Rollback is always possible.
+4. **Migration governance** — schema and data migrations triggered by
+   blueprint changes are subject to the full migration governance
+   pipeline ([`patterns/migration`](../patterns/migration.md)) —
+   including migration plans, dry-run validation, approval gates,
+   blast radius enforcement, and integrity verification. No
+   migration runs without a contract.
 
 ---
 

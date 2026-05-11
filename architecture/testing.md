@@ -36,7 +36,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Ed25519KeyPair
+        - name: SigningKeyPair
           fields_used: [public_key, private_key, sign, verify]
         - name: SignatureVerification
           fields_used: [verify_signature, check_replay]
@@ -98,7 +98,7 @@ requires:
 
 ### Owns
 - Conformance test suite definition (Level 1: protocol, Level 2: security, Level 3: lifecycle)
-- Test fixture definitions (deterministic Ed25519 key pairs, manifest fixtures)
+- Test fixture definitions (deterministic ML-DSA-65 key pairs, manifest fixtures)
 - Mock orchestrator specification and behavior contract
 - Mock agent specification and configurable response contract
 - Test execution CLI interface (`weblisk test conformance`)
@@ -146,24 +146,24 @@ requires:
 
 ### Identity Fixtures
 
-Fixed Ed25519 key pairs for deterministic testing. These are TEST KEYS
+Fixed ML-DSA-65 key pairs for deterministic testing. These are TEST KEYS
 ONLY — never use in production.
 
 ```
 Test Orchestrator:
   name: "test-orchestrator"
   private_key: "0000000000000000000000000000000000000000000000000000000000000001" (test only)
-  public_key:  derived from private key via Ed25519
+  public_key:  derived from private key via ML-DSA-65
 
 Test Agent (work):
   name: "test-agent"
   private_key: "0000000000000000000000000000000000000000000000000000000000000002" (test only)
-  public_key:  derived from private key via Ed25519
+  public_key:  derived from private key via ML-DSA-65
 
 Test Domain:
   name: "test-domain"
   private_key: "0000000000000000000000000000000000000000000000000000000000000003" (test only)
-  public_key:  derived from private key via Ed25519
+  public_key:  derived from private key via ML-DSA-65
 ```
 
 Implementations MUST support a `--test-keys` flag or `WL_TEST_KEYS=1`

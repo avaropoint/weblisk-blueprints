@@ -555,7 +555,7 @@ Step 1 — Load Configuration
   Backout:     None
 
 Step 2 — Load Identity
-  Action:      Generate or load Ed25519 keypair from .weblisk/keys/email-send/
+  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/email-send/
   Pre-check:   .weblisk/keys/ directory exists and is writable
   Validates:   Public key is 32 bytes
   On Fail:     EXIT with IDENTITY_FAILED

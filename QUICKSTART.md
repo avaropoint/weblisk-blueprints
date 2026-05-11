@@ -36,7 +36,7 @@ This creates:
 ```
 my-hub/
   .weblisk/
-    keys/              # Ed25519 keys (generated on first run)
+    keys/              # ML-DSA-65 keys (post-quantum, generated on first run)
     config.yaml        # Hub configuration
   cmd/
     orchestrator/      # Orchestrator entry point
@@ -60,7 +60,7 @@ The orchestrator starts on port 9800 and waits for agents to register.
 
 ```
 [INFO] Orchestrator started on :9800
-[INFO] Identity: generated new Ed25519 key pair
+[INFO] Identity: generated new ML-DSA-65 key pair (post-quantum)
 [INFO] Storage: SQLite initialized at .weblisk/data/orchestrator.db
 [INFO] Waiting for agent registrations...
 ```
@@ -279,7 +279,7 @@ After completing this quickstart, you have:
 │  Orchestrator (:9800)                       │
 │    ├── Agent registry                       │
 │    ├── Task routing                         │
-│    └── Security (Ed25519, tokens)           │
+│    └── Security (ML-DSA-65, tokens)         │
 │                                              │
 │  SEO Domain (:9700)                         │
 │    ├── seo-analyzer (:9710)                 │

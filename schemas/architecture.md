@@ -53,7 +53,7 @@ Architecture blueprints do NOT use: `kind`, `port`, `extends`, `depends_on`.
 | 8 | Data Flow | `## Data Flow` | **Yes** | How data moves through this component |
 | 9 | Types | `## Types` | Conditional | Data structures in YAML (if component defines types) |
 | 10 | Configuration | `## Configuration` | Optional | Component-level configuration |
-| 11 | Security | `## Security` | Conditional | Required for components with trust/auth responsibilities |
+| 11 | Security | `## Security` | **Yes** | Security posture, trust model, and boundaries |
 | 12 | Implementation Notes | `## Implementation Notes` | **Yes** | Practical guidance |
 | 13 | Verification Checklist | `## Verification Checklist` | **Yes** | Testable assertions (min 5) |
 
@@ -177,8 +177,9 @@ define the structural contracts that agents and domains implement.
 
 ### Security (`## Security`)
 
-Required for architecture components that have security responsibilities
-(e.g., orchestrator trust model, identity management, gateway auth):
+Required for all architecture components. Every component has a security
+posture — even components without direct auth responsibilities must
+declare their trust assumptions and boundaries:
 
 ```yaml
 security:

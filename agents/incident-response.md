@@ -682,7 +682,7 @@ Step 1 — Load Configuration
   On Fail:     EXIT with CONFIG_INVALID
 
 Step 2 — Load Identity
-  Action:      Generate or load Ed25519 keypair from .weblisk/keys/incident-response/
+  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/incident-response/
   Validates:   Public key is 32 bytes, private key decrypts test payload
   On Fail:     EXIT with IDENTITY_FAILED
 

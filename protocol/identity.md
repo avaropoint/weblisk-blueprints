@@ -10,19 +10,58 @@ tier: free
 # Weblisk Identity & Security Specification
 
 Cryptographic identity for all agents and orchestrators. Every entity
-generates an Ed25519 key pair and uses it for signing, verification,
-and token-based authentication.
+generates a key pair and uses it for signing, verification, and
+token-based authentication.
 
 ## Overview
 
 The Weblisk Identity specification defines how agents and orchestrators
 establish cryptographic identity, sign messages, verify signatures,
-and manage authentication tokens. Ed25519 is the sole signing algorithm.
-Every entity generates a key pair on first run, uses it for registration
-signature verification, and receives a Weblisk Token (WLT) for
-subsequent authenticated requests. This specification is the single
-source of truth for all identity and cryptographic operations in the
-Weblisk framework.
+and manage authentication tokens. Every entity generates a key pair on
+first run, uses it for registration signature verification, and receives
+a Weblisk Token (WLT) for subsequent authenticated requests. This
+specification is the single source of truth for all identity and
+cryptographic operations in the Weblisk framework.
+
+### Post-Quantum Cryptography
+
+Weblisk adopts NIST's post-quantum cryptography standards (released
+August 2024) to protect against future quantum computing threats.
+
+| Purpose | Algorithm | Standard |
+|---------|-----------|----------|
+| Digital signatures | **ML-DSA-65** (CRYSTALS-Dilithium) | FIPS 204 |
+| Key encapsulation | **ML-KEM-768** (CRYSTALS-Kyber) | FIPS 203 |
+| Backup signatures | **SLH-DSA-SHA2-128s** (SPHINCS+) | FIPS 205 |
+| Symmetric encryption | **AES-256-GCM** | FIPS 197 |
+| Key derivation | **Argon2id** | RFC 9106 |
+
+All algorithms are quantum-resistant. Weblisk does not use any
+quantum-vulnerable algorithms (no RSA, no ECDSA, no Ed25519, no
+classical Diffie-Hellman).
+
+**Why ML-DSA-65?** ML-DSA is a lattice-based digital signature scheme
+selected by NIST after an 8-year international evaluation process
+(FIPS 204, finalized August 2024). It is resistant to both classical
+and quantum attacks. ML-DSA-65 provides NIST Security Level 3
+(equivalent to AES-192 against classical and quantum adversaries).
+
+**Why not Ed25519?** Ed25519 (elliptic curve) is vulnerable to Shor's
+algorithm on quantum computers. Per NIST IR 8547, all elliptic curve
+and RSA algorithms will be deprecated by 2030 and removed from NIST
+standards by 2035. Weblisk eliminates this class of vulnerability
+entirely by using only post-quantum algorithms.
+
+**Why AES-256-GCM?** Grover's algorithm reduces AES-256 to ~128-bit
+equivalent security against quantum attacks. 128-bit security remains
+far beyond brute-force feasibility. NIST considers AES-256
+quantum-resistant and recommends no change.
+
+**Backup algorithm:** SLH-DSA-SHA2-128s (FIPS 205) is a stateless
+hash-based signature scheme that provides a conservative fallback if
+lattice-based cryptography is ever compromised. It is slower and
+produces larger signatures than ML-DSA but relies only on the security
+of hash functions.
 
 ---
 
@@ -50,27 +89,29 @@ requires:
 
 ## Conventions
 
-- Algorithm: Ed25519 (RFC 8032) — the sole signing algorithm
-- Key size: 32-byte public key, 64-byte private key
-- Encoding: hex for protocol exchange (64 chars for public, 128 for private)
+- Signing algorithm: ML-DSA-65 (FIPS 204) — the sole signing algorithm
+- Key encapsulation: ML-KEM-768 (FIPS 203) — for any key exchange operations
+- Key sizes: 1952-byte public key, 4032-byte private key, 3309-byte signature
+- Encoding: base64url for all keys and signatures (size-efficient for
+  ML-DSA's larger key material)
 - JSON signing: RFC 8785 JSON Canonicalization Scheme (JCS) — mandatory
   for all JSON values that are signed
 - Token format: `base64url(header).base64url(payload).base64url(signature)`
 - All three token parts use base64url encoding WITHOUT padding (RFC 4648 §5)
-- Algorithm agility: the token header `alg` field allows future swap to
-  post-quantum algorithms (e.g., ML-DSA / FIPS 204) with zero protocol changes
+- Algorithm header: the token header `alg` field MUST be `ML-DSA-65`.
+  Tokens with any other `alg` value MUST be rejected
 
 ## Key Management
 
 ### Generation
-- Generate a fresh Ed25519 key pair on first run
+- Generate a fresh ML-DSA-65 key pair on first run
 - Use cryptographically secure random source (e.g., crypto/rand, Web Crypto API)
 - NEVER hardcode or share private keys
 
 ### Storage
 - Directory: `.weblisk/keys/` in the working directory
 - Private key file: `.weblisk/keys/<name>.key` (file mode 0600)
-- Public key file: `.weblisk/keys/<name>.pub` (hex-encoded, file mode 0644)
+- Public key file: `.weblisk/keys/<name>.pub` (base64url-encoded, file mode 0644)
 - Directory mode: 0700
 - On startup: load existing keys if present, generate new ones if absent
 
@@ -89,10 +130,10 @@ weblisk-key-v1
 | Field | Value | Description |
 |-------|-------|-------------|
 | Magic | `weblisk-key-v1` | Format identifier |
-| Algorithm | `ed25519` | Key algorithm |
+| Algorithm | `ml-dsa-65` | Key algorithm |
 | KDF | `argon2id` or `none` | Key derivation function |
 | KDF Params | Base64url JSON | `{salt, time, memory, parallelism}` or `{}` |
-| Ciphertext | Base64url | AES-256-GCM encrypted private key (or plaintext hex if KDF = none) |
+| Ciphertext | Base64url | AES-256-GCM encrypted private key (or plaintext if KDF = none) |
 
 ### Encryption Scheme
 
@@ -136,19 +177,19 @@ When `kdf = none`:
 
 ### Key Loading Flow
 ```
-1. Check if .weblisk/keys/<name>.key exists
+1. Check if a stored key exists for this identity
 2. If yes:
-   a. Parse file header — check magic line is "weblisk-key-v1"
+   a. Parse stored key format and validate header
    b. Read KDF field
-   c. If kdf = argon2id:
-      - Prompt for passphrase (interactive) or read WL_KEY_PASSPHRASE (env)
-      - Derive decryption key via Argon2id with stored params
-      - Decrypt ciphertext with AES-256-GCM
-      - Decode hex → Ed25519 private key
-   d. If kdf = none:
-      - Decode hex directly → Ed25519 private key
+   c. If encrypted (KDF applied):
+      - Obtain passphrase (interactive prompt or secure configuration)
+      - Derive decryption key via the configured KDF with stored params
+      - Decrypt ciphertext with authenticated encryption
+      - Decode → ML-DSA-65 private key
+   d. If unencrypted:
+      - Decode directly → ML-DSA-65 private key
    e. Derive public key from private key
-3. If no: generate new key pair → encrypt → save both files → return
+3. If no: generate new key pair → encrypt → save → return
 ```
 
 ### Key Rotation
@@ -156,17 +197,17 @@ When `kdf = none`:
 Operator keys can be rotated without losing hub access:
 
 ```
-1. weblisk operator rotate
-2. Prompts for current passphrase (decrypts existing key)
-3. Generates new Ed25519 key pair
-4. Prompts for new passphrase (encrypts new key)
-5. Registers new public key with orchestrator (signed by old key)
+1. Operator initiates key rotation
+2. Current passphrase is required (decrypts existing key)
+3. New ML-DSA-65 key pair is generated
+4. New passphrase is set (encrypts new key)
+5. New public key is registered with orchestrator (signed by old key)
 6. Orchestrator validates old-key signature → stores new public key
-7. Old key file moved to .weblisk/keys/<name>.key.revoked (kept for audit)
+7. Old key is marked as revoked (preserved for audit)
 ```
 
 Service keys follow the same rotation protocol but use
-`WL_KEY_PASSPHRASE` / `WL_KEY_PASSPHRASE_NEW` env vars instead of
+secure configuration (secrets manager, environment) instead of
 interactive prompts.
 
 ### Key Recovery
@@ -180,13 +221,13 @@ no reset mechanism. This section defines the recovery procedures.
 The primary recovery path is another registered operator:
 
 ```
-1. Second operator (already registered, admin role) logs in
-2. Runs: weblisk operators revoke <compromised-operator-name>
+1. Second operator (already registered, admin role) authenticates
+2. Revokes the compromised operator's identity
 3. Orchestrator invalidates old operator's public key and token
-4. Compromised operator runs: weblisk operator init (generates new key pair)
-5. Compromised operator runs: weblisk operator register --orch <url>
+4. Compromised operator generates a new key pair
+5. Compromised operator submits a new registration request
 6. Registration appears in approvals queue (not auto-approved)
-7. Second operator runs: weblisk approvals accept <registration-id>
+7. Second operator approves the registration
 8. Access restored with new identity
 ```
 
@@ -212,9 +253,9 @@ permissions must be re-established.
 
 #### Key Backup Policy
 
-Operators SHOULD maintain an encrypted backup of their key file in a
+Operators SHOULD maintain an encrypted backup of their key in a
 separate secure location (hardware security key, printed paper key,
-safety deposit box). The backup is the encrypted `.key` file itself —
+safety deposit box). The backup is the encrypted key itself —
 never the raw private key or passphrase.
 
 | Policy | Recommendation |
@@ -229,14 +270,14 @@ never the raw private key or passphrase.
 ### Sign
 ```
 input: data (bytes)
-output: hex-encoded Ed25519 signature (128 hex chars)
-process: sig = Ed25519.Sign(privateKey, data)
+output: base64url-encoded ML-DSA-65 signature (3309 bytes)
+process: sig = ML_DSA_65.Sign(privateKey, data)
 ```
 
 ### Sign JSON
 ```
 input: any JSON-serializable value
-output: hex-encoded Ed25519 signature
+output: base64url-encoded ML-DSA-65 signature
 process: data = canonicalize(value) → Sign(data)
 ```
 
@@ -257,12 +298,12 @@ compliant JCS library or implement the RFC 8785 algorithm directly.
 
 ### Verify Signature
 ```
-input: publicKeyHex (string), signatureHex (string), data (bytes)
+input: publicKey (bytes), signature (bytes), data (bytes)
 output: boolean
 process:
-  1. Decode publicKeyHex to bytes (must be 32 bytes)
-  2. Decode signatureHex to bytes (must be 64 bytes)
-  3. Return Ed25519.Verify(publicKey, data, signature)
+  1. Validate public key is 1952 bytes
+  2. Validate signature is 3309 bytes
+  3. Return ML_DSA_65.Verify(publicKey, data, signature)
   4. Return false on any decode error
 ```
 
@@ -281,10 +322,13 @@ All three parts use base64url encoding WITHOUT padding (RFC 4648 §5).
 
 ### Header
 ```json
-{"alg": "Ed25519", "typ": "WLT"}
+{"alg": "ML-DSA-65", "typ": "WLT"}
 ```
-- `alg`: signing algorithm (for algorithm agility)
-- `typ`: token type identifier
+- `alg`: signing algorithm — MUST be `ML-DSA-65`
+- `typ`: token type identifier — MUST be `WLT`
+
+Verifiers MUST check the `alg` field is exactly `ML-DSA-65`. Tokens
+with any other `alg` value MUST be rejected.
 
 ### Payload (Claims)
 ```json
@@ -311,17 +355,17 @@ Fields:
 1. Serialize header to JSON → base64url encode → headerB64
 2. Serialize payload to JSON → base64url encode → payloadB64
 3. signingInput = headerB64 + "." + payloadB64
-4. signature = Ed25519.Sign(privateKey, bytes(signingInput))
+4. signature = ML_DSA_65.Sign(privateKey, bytes(signingInput))
 5. token = signingInput + "." + base64url(signature)
 ```
 
 ### Token Verification
 ```
 1. Split token on "." → must have exactly 3 parts
-2. Decode header (parts[0]) → verify alg == "Ed25519"
+2. Decode header (parts[0]) → verify alg == "ML-DSA-65"
 3. signingInput = parts[0] + "." + parts[1]
 4. Decode signature (parts[2])
-5. Verify: Ed25519.Verify(issuerPublicKey, bytes(signingInput), signature)
+5. Verify: ML_DSA_65.Verify(issuerPublicKey, bytes(signingInput), signature)
 6. Decode payload (parts[1]) → parse claims
 7. If exp > 0 and current_time > exp → token expired
 8. Return claims
@@ -341,20 +385,24 @@ Generate 16 cryptographically random bytes → hex encode → 32-char string
 ```yaml
 types:
   Ed25519KeyPair:
-    description: Cryptographic key pair for agent/orchestrator identity
+    description: "DEPRECATED — replaced by SigningKeyPair. Do not use."
+
+  SigningKeyPair:
+    description: ML-DSA-65 key pair for agent/orchestrator identity (FIPS 204)
     fields:
+      algorithm:
+        type: string
+        description: Signing algorithm identifier
+        constraints:
+          enum: [ML-DSA-65]
       public_key:
         type: string
-        format: hex
-        description: 32-byte Ed25519 public key, hex-encoded (64 chars)
-        constraints:
-          pattern: "^[0-9a-f]{64}$"
+        format: base64url
+        description: 1952-byte ML-DSA-65 public key, base64url-encoded
       private_key:
         type: string
-        format: hex
-        description: 64-byte Ed25519 expanded private key (32-byte seed + 32-byte public key), hex-encoded (128 chars)
-        constraints:
-          pattern: "^[0-9a-f]{128}$"
+        format: base64url
+        description: 4032-byte ML-DSA-65 private key, base64url-encoded
 
   WLToken:
     description: Weblisk Token — signed claims for authentication
@@ -367,7 +415,7 @@ types:
             type: string
             description: Signing algorithm
             constraints:
-              enum: [Ed25519]
+              enum: [ML-DSA-65]
           typ:
             type: string
             description: Token type identifier
@@ -400,7 +448,7 @@ types:
       signature:
         type: string
         format: base64url
-        description: Ed25519 signature over header.payload
+        description: ML-DSA-65 signature over header.payload
 
   KeyRotationRequest:
     description: Request to rotate an agent or orchestrator key (dual-signed)
@@ -410,44 +458,44 @@ types:
         description: Agent identifier issued at registration
       new_public_key:
         type: string
-        format: hex
-        description: New Ed25519 public key (64 hex chars)
+        format: base64url
+        description: New ML-DSA-65 public key (1952 bytes, base64url-encoded)
       current_signature:
         type: string
-        format: hex
-        description: Agent manifest signed with current private key (128 hex chars)
+        format: base64url
+        description: Agent manifest signed with current private key
       new_signature:
         type: string
-        format: hex
-        description: Same agent manifest signed with new private key (128 hex chars)
+        format: base64url
+        description: Same agent manifest signed with new private key
       timestamp:
         type: int64
         description: Unix epoch seconds (replay window 300s)
 
   Signature:
-    description: A detached Ed25519 signature over canonicalized content
+    description: A detached ML-DSA-65 signature over canonicalized content
     fields:
       algorithm:
         type: string
         description: Signing algorithm
         constraints:
-          enum: [Ed25519]
+          enum: [ML-DSA-65]
       value:
         type: string
-        format: hex
-        description: 64-byte Ed25519 signature, hex-encoded (128 chars)
+        format: base64url
+        description: 3309-byte ML-DSA-65 signature, base64url-encoded
       signer:
         type: string
-        description: Public key of the signer (hex)
+        description: Public key of the signer (base64url)
         required: false
 
   SignatureVerification:
     description: Operations for verifying signed messages and preventing replay
     operations:
       verify_signature:
-        input: [message_bytes, signature_hex, public_key_hex]
+        input: [message_bytes, signature_base64url, public_key_base64url]
         output: bool
-        description: Verify an Ed25519 signature against the signer's public key
+        description: Verify an ML-DSA-65 signature against the signer's public key
       check_replay:
         input: [message_id, timestamp]
         output: bool
@@ -464,13 +512,13 @@ authentication:
   token_format:
     structure: base64url(header).base64url(payload).base64url(signature)
     fields: [sub, iss, iat, exp, cap, cid]
-    signing: Ed25519
+    signing: ML-DSA-65
     expiry: 24 hours (agent auth), 1 hour (channel)
     verification: >
-      Split on ".", decode header, verify alg == "Ed25519",
+      Split on ".", decode header, verify alg == "ML-DSA-65",
       verify signature against issuer public key, check expiry
   flow:
-    - step: Agent generates Ed25519 key pair on first run
+    - step: Agent generates ML-DSA-65 key pair on first run
     - step: Agent signs manifest with private key
     - step: Orchestrator verifies signature with agent public key
     - step: Orchestrator issues WLT token with capabilities
@@ -488,14 +536,14 @@ When an agent registers with the orchestrator:
 Agent side:
   1. manifest = AgentManifest{name, version, url, public_key, ...}
   2. manifestJSON = canonicalize(manifest)   // RFC 8785 JCS
-  3. signature = Ed25519.Sign(agent_private_key, manifestJSON)
+  3. signature = ML_DSA_65.Sign(agent_private_key, manifestJSON)
   4. Send: {manifest, signature, timestamp: now()}
 
 Orchestrator side:
   1. Receive {manifest, signature, timestamp}
   2. Verify |now() - timestamp| < 300 seconds (replay protection)
   3. manifestJSON = canonicalize(manifest)   // RFC 8785 JCS
-  4. Verify: Ed25519.Verify(manifest.public_key, signature, manifestJSON)
+  4. Verify: ML_DSA_65.Verify(manifest.public_key, signature, manifestJSON)
   5. If valid: issue token, register agent
   6. If invalid: reject with 401
 ```
@@ -508,19 +556,19 @@ When agents communicate directly:
 Sender:
   1. payload = {from, to, action, payload}
   2. payloadJSON = canonicalize(payload)   // RFC 8785 JCS
-  3. signature = Ed25519.Sign(sender_private_key, payloadJSON)
+  3. signature = ML_DSA_65.Sign(sender_private_key, payloadJSON)
   4. Include signature in message
 
 Receiver:
   1. Look up sender's public key from service directory
   2. payloadJSON = canonicalize({from, to, action, payload})   // RFC 8785 JCS
-  3. Verify: Ed25519.Verify(sender_public_key, signature, payloadJSON)
+  3. Verify: ML_DSA_65.Verify(sender_public_key, signature, payloadJSON)
   4. If invalid: reject with 401
 ```
 
 ## Key Rotation
 
-Key rotation replaces an agent's Ed25519 key pair without
+Key rotation replaces an agent's ML-DSA-65 key pair without
 interrupting service. This is required when a key is compromised,
 when operational policy mandates periodic rotation, or when an
 agent migrates between hosts.
@@ -529,7 +577,7 @@ agent migrates between hosts.
 
 ```
 Agent side:
-  1. Generate new Ed25519 key pair
+  1. Generate new ML-DSA-65 key pair
   2. Sign current manifest with CURRENT private key → current_signature
   3. Sign current manifest with NEW private key → new_signature
   4. Send POST /v1/rotate-key to orchestrator:
@@ -595,7 +643,7 @@ handshake and trust store update procedure.
 ### Orchestrator High Availability
 
 In a multi-instance orchestrator deployment, all instances MUST
-share the same Ed25519 key pair. The key is loaded from shared
+share the same ML-DSA-65 key pair. The key is loaded from shared
 storage (not generated per instance).
 
 ### Agent Migration
@@ -638,10 +686,12 @@ with deliberate deviations:
 | Feature | JWT Standard | WLT Choice | Rationale |
 |---------|-------------|------------|-----------|
 | Token type | `"typ": "JWT"` | `"typ": "WLT"` | Distinguish from generic JWTs; prevent cross-system token confusion |
-| Algorithm | RS256, ES256, etc. | `"alg": "Ed25519"` | Ed25519 is faster, simpler, and has no algorithm confusion. Single algorithm eliminates `alg` header attacks |
+| Algorithm | JWT Standard | WLT Choice | Rationale |
+|---------|-------------|------------|----------|
+| Algorithm | RS256, ES256, etc. | `"alg": "ML-DSA-65"` | ML-DSA-65 provides NIST Level 3 post-quantum security; single algorithm eliminates `alg` header confusion attacks |
 | Capabilities | Not in JWT | `"cap": [...]` claim | Core to Weblisk's capability-based auth model |
 | Channel scoping | Not in JWT | `"cid": "..."` claim | Agent-to-agent channel tokens |
-| Algorithm agility | Multiple algorithms | Single algorithm, header reserved for future swap | Prevents downgrade attacks while allowing post-quantum migration via `alg` field |
+| Algorithm agility | Multiple algorithms | Single algorithm (ML-DSA-65 only) | Eliminates downgrade attacks entirely; post-quantum from day one |
 
 ### Interoperability
 
@@ -659,7 +709,7 @@ issuance and validation separately.
 error_codes:
   - code: INVALID_SIGNATURE
     status: 401
-    description: Ed25519 signature verification failed
+    description: ML-DSA-65 signature verification failed
     retryable: false
   - code: TOKEN_EXPIRED
     status: 401
@@ -671,7 +721,7 @@ error_codes:
     retryable: false
   - code: KEY_DECODE_ERROR
     status: 400
-    description: Public key or signature could not be hex-decoded
+    description: Public key or signature could not be decoded
     retryable: false
 ```
 
@@ -686,11 +736,14 @@ security:
     - Key directory MUST have restricted permissions (0700)
     - Private keys MUST NOT be logged, exposed, or transmitted
   signing:
-    algorithm: Ed25519
-    key_type: 32-byte public / 64-byte private
-    process: Ed25519.Sign(privateKey, data) → 64-byte signature
+    algorithm: ML-DSA-65 (FIPS 204)
+    key_sizes:
+      public_key: 1952 bytes
+      private_key: 4032 bytes
+      signature: 3309 bytes
+    process: ML_DSA_65.Sign(privateKey, data) → 3309-byte signature
   verification:
-    process: Ed25519.Verify(publicKey, data, signature) → boolean
+    process: ML_DSA_65.Verify(publicKey, data, signature) → boolean
   trust_model:
     description: >
       Self-sovereign identity. Each agent generates its own key pair.
@@ -701,8 +754,8 @@ security:
     - Use cryptographically secure random source (crypto/rand, Web Crypto API)
     - NEVER hardcode or share private keys
     - Use constant-time comparison for signature verification
-    - Validate public key length (32 bytes / 64 hex chars) before use
-    - Validate signature length (64 bytes / 128 hex chars) before use
+    - Validate public key length (1952 bytes for ML-DSA-65) before use
+    - Validate signature length (3309 bytes for ML-DSA-65) before use
   replay_protection:
     window: 300 seconds
     applies_to: registration signatures, key rotation requests
@@ -713,31 +766,38 @@ security:
 ## Implementation Notes
 
 - Keys are stored in `.weblisk/keys/` relative to the working directory
-- Key files use hex encoding for portability across platforms
+- All keys use base64url encoding for portable, size-efficient storage
 - Token lifetimes are deliberately short (24h auth, 1h channel) to limit blast radius
 - WLT is structurally similar to JWT but uses `typ: WLT` to prevent cross-system confusion
-- Single-algorithm design (Ed25519 only) eliminates algorithm confusion attacks
-- The `alg` header field is reserved for future post-quantum migration
+- Single-algorithm design (ML-DSA-65 only) eliminates algorithm confusion and downgrade attacks
+- The `alg` header field MUST be `ML-DSA-65` — any other value is rejected
 - Key rotation is atomic — old key is invalid immediately after rotation
 - Federation key rotation uses dual-signature (old + new) for zero-downtime transitions
+- ML-DSA-65 signatures are ~3.3 KB — larger than classical algorithms but necessary for
+  quantum resistance. This is an acceptable tradeoff for security
+- AES-256-GCM remains quantum-resistant (128-bit equivalent under Grover’s algorithm)
+- Argon2id key derivation is unaffected by quantum computing (symmetric primitive)
+- No quantum-vulnerable algorithms are used anywhere in the framework
 
 ---
 
 ## Verification Checklist
 
 Implementation MUST:
+- [ ] Generate ML-DSA-65 key pairs (FIPS 204) — no other signing algorithm is permitted
+- [ ] Reject any key, signature, or token using a non-ML-DSA-65 algorithm
 - [ ] Generate keys with cryptographically secure random source
 - [ ] Store private keys with restricted permissions (0600)
 - [ ] Encrypt operator private keys with Argon2id + AES-256-GCM (passphrase required, min 12 chars)
 - [ ] Support encrypted service keys via WL_KEY_PASSPHRASE env var
-- [ ] Parse weblisk-key-v1 format correctly (magic, algorithm, kdf, params, ciphertext)
+- [ ] Parse weblisk-key-v1 format correctly (magic, algorithm=ml-dsa-65, kdf, params, ciphertext)
 - [ ] Never store passphrase on disk — only hold in memory during decrypt
 - [ ] Exit with code 2 on failed passphrase (no retry loop, no passphrase enumeration)
-- [ ] Verify all signatures before trusting data
+- [ ] Verify all signatures before trusting data using ML_DSA_65.Verify
+- [ ] Verify token `alg` header is exactly `ML-DSA-65` — reject all other values
 - [ ] Check token expiry on every verification
 - [ ] Enforce replay protection window (300 seconds) on registration
-- [ ] Validate public key length (32 bytes / 64 hex chars)
-- [ ] Validate signature length (64 bytes / 128 hex chars)
+- [ ] Validate public key size (1952 bytes) and signature size (3309 bytes)
 - [ ] Use constant-time comparison for signature verification
 - [ ] Never log or expose private keys
 - [ ] Key rotation registers new public key signed by old key before revoking old key
@@ -745,3 +805,4 @@ Implementation MUST:
 - [ ] Production deployments have minimum 2 registered operators for recovery
 - [ ] Backup operator can revoke and re-register a compromised operator
 - [ ] Bootstrap reset (all keys lost) requires orchestrator restart and re-registration
+- [ ] No quantum-vulnerable algorithms (Ed25519, ECDSA, RSA) are used anywhere

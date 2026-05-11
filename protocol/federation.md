@@ -50,7 +50,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Ed25519KeyPair
+        - name: SigningKeyPair
           fields_used: [public_key, private_key]
         - name: WLToken
           fields_used: [header, payload, signature]
@@ -97,7 +97,7 @@ requires:
 - Trust relationships are explicit, non-transitive, and time-limited
 - Data contracts are fail-closed — unknown fields are rejected, not ignored
 - All timestamps are Unix epoch seconds (`int64`)
-- All public keys are hex-encoded Ed25519 public keys (64 hex chars)
+- All public keys are base64url-encoded ML-DSA-65 public keys (1952 bytes decoded)
 - Federation topic qualification uses `::` separator (e.g., `acme-corp::workflow.completed`)
 - Hub-qualified topics do NOT match unqualified subscription patterns
 
@@ -127,7 +127,7 @@ requires:
 
 ## Orchestrator Identity
 
-Every orchestrator MUST have a cryptographic identity (Ed25519 key pair)
+Every orchestrator MUST have a cryptographic identity (ML-DSA-65 key pair)
 following the same rules as agent identity (see [identity.md](identity.md)).
 
 ### Orchestrator Manifest
@@ -139,7 +139,7 @@ following the same rules as agent identity (see [identity.md](identity.md)).
   "version": "1.0.0",
   "description": "ACME Corporation agent environment",
   "federation_url": "https://agents.acme.com/v1/federation",
-  "public_key": "<hex Ed25519 public key>",
+  "public_key": "<hex ML-DSA-65 public key>",
   "jurisdiction": "US",
   "published_capabilities": [
     {
@@ -151,7 +151,7 @@ following the same rules as agent identity (see [identity.md](identity.md)).
   ],
   "trust_policy": "explicit",
   "max_concurrent_federated": 20,
-  "signature": "<hex Ed25519 signature>"
+  "signature": "<hex ML-DSA-65 signature>"
 }
 ```
 
@@ -164,7 +164,7 @@ following the same rules as agent identity (see [identity.md](identity.md)).
 | Version | string | `version` | yes | Semver version |
 | Description | string | `description` | yes | Human-readable purpose |
 | FederationURL | string | `federation_url` | yes | HTTPS endpoint for federation protocol |
-| PublicKey | string | `public_key` | yes | Hex-encoded Ed25519 public key |
+| PublicKey | string | `public_key` | yes | Base64url-encoded ML-DSA-65 public key |
 | Jurisdiction | string | `jurisdiction` | yes | ISO 3166-1 alpha-2 country code (primary data jurisdiction) |
 | PublishedCapabilities | []PubCap | `published_capabilities` | no | Capabilities exposed to federation |
 | TrustPolicy | string | `trust_policy` | yes | `"explicit"` (manual approval) or `"registry"` (trust via hub registry) |
@@ -232,7 +232,7 @@ Trust relationships:
 
 ### Key Rotation
 
-When an orchestrator rotates its Ed25519 key pair:
+When an orchestrator rotates its ML-DSA-65 key pair:
 
 ```
 1. Generate new key pair
@@ -504,7 +504,7 @@ Orchestrator A (requester)            Orchestrator B (provider)
 | RequesterOrch | string | `requester_orch` | yes | Requesting orchestrator name |
 | Payload | map | `payload` | yes | Task data (pre-filtered by data contract) |
 | TraceID | string | `trace_id` | no | Correlation ID |
-| Signature | string | `signature` | yes | Requester's Ed25519 signature |
+| Signature | string | `signature` | yes | Requester's ML-DSA-65 signature |
 | Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
 
 ### FederatedTaskResult
@@ -516,7 +516,7 @@ Orchestrator A (requester)            Orchestrator B (provider)
 | Status | string | `status` | yes | `success`, `failed`, `rejected` |
 | Result | map | `result` | no | Task output (filtered by outbound contract) |
 | Error | ErrorResponse | `error` | no | Error details if failed/rejected |
-| Signature | string | `signature` | yes | Provider's Ed25519 signature |
+| Signature | string | `signature` | yes | Provider's ML-DSA-65 signature |
 | Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
 
 ---
@@ -567,8 +567,8 @@ types:
         description: HTTPS endpoint for federation protocol
       public_key:
         type: string
-        format: hex
-        description: Hex-encoded Ed25519 public key
+        format: base64url
+        description: Base64url-encoded ML-DSA-65 public key
       jurisdiction:
         type: string
         description: ISO 3166-1 alpha-2 country code
@@ -814,7 +814,7 @@ authentication:
   mechanism: signature
   models:
     peering:
-      description: Mutual Ed25519 signature verification during trust establishment
+      description: Mutual ML-DSA-65 signature verification during trust establishment
       flow:
         - step: Initiator signs manifest with own private key
         - step: Responder verifies initiator signature with initiator public key
@@ -914,7 +914,7 @@ independent, all enforced concurrently:
 | Layer | What It Protects | Mechanism |
 |-------|-----------------|-----------|
 | **1. Transport** | Data in transit | TLS 1.3 required for all federation endpoints |
-| **2. Identity** | Authenticity | Ed25519 signatures on every message |
+| **2. Identity** | Authenticity | ML-DSA-65 signatures on every message |
 | **3. Trust** | Authorization | Explicit peering with expiry, non-transitive |
 | **4. Data contracts** | Data minimization | Fail-closed field filtering at every boundary |
 | **5. Behavioral integrity** | Agent reliability | Manifest fingerprinting + change detection |
@@ -983,7 +983,7 @@ error_codes:
 
 ## Verification Checklist
 
-- [ ] Orchestrator generates and stores Ed25519 identity
+- [ ] Orchestrator generates and stores ML-DSA-65 identity
 - [ ] Orchestrator manifest is self-signed and verifiable
 - [ ] Peering flow requires mutual signature verification
 - [ ] Trust relationships have explicit expiry (default: 90 days)

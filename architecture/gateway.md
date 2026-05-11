@@ -33,7 +33,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Ed25519KeyPair
+        - name: SigningKeyPair
           fields_used: [public_key, private_key, sign, verify]
     on_change:
       compatible: validate-and-adopt
@@ -144,14 +144,14 @@ authorized, and audited.
 ## Design Principles
 
 1. **Agent-native, not server-shaped** — The gateway IS an agent. It
-   has an Ed25519 identity, registers with the orchestrator, and
+   has an ML-DSA-65 identity, registers with the orchestrator, and
    follows the protocol. It just happens to face the browser instead
    of other agents.
 2. **Defense in depth** — Authentication at the edge, authorization
    at the route, validation at the agent. Three independent checks
    that must ALL pass.
 3. **Cryptographic session binding** — Sessions are not just random
-   cookies. They are Ed25519-signed tokens bound to the client
+   cookies. They are ML-DSA-65-signed tokens bound to the client
    context, resistant to replay, hijacking, and fixation.
 4. **Survive anything** — Browser sessions survive agent restarts,
    deployments, and partial outages. The session contract is between
@@ -195,7 +195,7 @@ authorized, and audited.
 │  │ Middleware │  │ Sanitization │  │ (Route → Agent Map)  │ │
 │  └────────────┘  └──────────────┘  └──────────────────────┘ │
 │                                                              │
-│  Ed25519 Identity  │  Session Store  │  Policy Store         │
+│  ML-DSA-65 Identity  │  Session Store  │  Policy Store         │
 └──────────────────────────────────────────────────────────────┘
                            │
                            ▼
@@ -221,7 +221,7 @@ The gateway is an infrastructure agent with elevated privileges.
   "version": "1.0.0",
   "description": "Edge security gateway for browser-to-agent mediation",
   "url": "https://app.example.com",
-  "public_key": "<hex Ed25519 public key>",
+  "public_key": "<ML-DSA-65 public key (base64url)>",
   "capabilities": [
     {"name": "agent:message", "resources": ["*"]},
     {"name": "http:proxy", "resources": ["*"]}
@@ -248,43 +248,43 @@ bypasses.
 
 ```
 1. TLS TERMINATION
-   ├── HTTPS required in production (HTTP → 301 to HTTPS)
+   ├── HTTPS required in production (HTTP redirected to HTTPS)
    ├── TLS 1.2+ only (1.3 preferred)
    ├── HSTS header on every response
    └── Certificate validation
 
 2. PATH BLOCKING (before any processing)
-   ├── Reject paths containing /.weblisk/ → 404 Not Found
-   ├── Reject paths to any dotfile/dotfolder (/.[a-z]*) → 404 Not Found
-   ├── Reject path traversal sequences (../) → 400 Bad Request
+   ├── Reject paths containing framework-internal directories → 404
+   ├── Reject paths to dotfiles/dotfolders → 404
+   ├── Reject path traversal sequences → 400
    └── This check is non-bypassable and runs before auth/session
 
 3. RATE LIMITING
-   ├── Per-IP rate limit (default: 100 req/min)
-   ├── Per-session rate limit (default: 300 req/min)
-   ├── Endpoint-specific limits (auth endpoints: 10 req/min)
-   └── 429 Too Many Requests on breach
+   ├── Per-IP rate limit (configurable)
+   ├── Per-session rate limit (configurable)
+   ├── Endpoint-specific limits (auth endpoints: lower threshold)
+   └── Rate limit exceeded → 429
 
 4. REQUEST VALIDATION
    ├── Method allowed for route?
    ├── Content-Type valid?
    ├── Content-Length within limit?
    ├── Request body parseable?
-   └── 400 Bad Request on failure
+   └── Invalid request → 400
 
 5. SESSION RESOLUTION
    ├── Extract session token from cookie
    ├── If no token → anonymous context (limited routes)
-   ├── Validate token signature (Ed25519)
+   ├── Validate token signature (ML-DSA-65)
    ├── Validate token expiry
    ├── Validate client binding (see Browser Session spec)
    ├── Load session state from session store
-   └── 401 Unauthorized if session invalid
+   └── Invalid session → 401
 
 6. CSRF VALIDATION (state-changing requests only)
-   ├── Extract CSRF token from X-CSRF-Token header
+   ├── Extract CSRF token from request header
    ├── Validate against session's CSRF secret
-   └── 403 Forbidden if CSRF check fails
+   └── CSRF failure → 403
 
 7. AUTHORIZATION (Policy Engine)
    ├── Resolve user attributes (role, groups, permissions)
@@ -292,19 +292,19 @@ bypasses.
    ├── Resolve context attributes (time, IP, device)
    ├── Evaluate ABAC policy rules
    ├── Log authorization decision (allow or deny + reason)
-   └── 403 Forbidden if denied
+   └── Denied → 403
 
 8. REQUEST MEDIATION
    ├── Map route to target agent via route table
    ├── Strip browser-specific headers
-   ├── Inject internal headers:
-   │   ├── X-Gateway-Session: <session_id>
-   │   ├── X-Gateway-User: <user_id>
-   │   ├── X-Gateway-Roles: <comma-separated roles>
-   │   ├── X-Trace-Id: <trace_id>
-   │   └── Authorization: Bearer <internal agent token>
+   ├── Inject internal context headers:
+   │   ├── Session identifier
+   │   ├── Authenticated user identifier
+   │   ├── User roles
+   │   ├── Trace identifier
+   │   └── Internal agent authorization token
    ├── Forward request to agent via orchestrator or direct
-   └── 502 Bad Gateway if agent unreachable
+   └── Agent unreachable → 502
 
 9. RESPONSE PROCESSING
    ├── Validate response from agent
@@ -315,14 +315,14 @@ bypasses.
    └── Return response to browser
 
 10. SECURITY HEADERS (on EVERY response)
-   ├── Strict-Transport-Security: max-age=31536000; includeSubDomains
-   ├── X-Content-Type-Options: nosniff
-   ├── X-Frame-Options: DENY
-   ├── Content-Security-Policy: <per-route policy>
-   ├── Referrer-Policy: strict-origin-when-cross-origin
-   ├── Permissions-Policy: <restrictive>
-   ├── Cross-Origin-Opener-Policy: same-origin
-   └── Cache-Control: <per-route policy>
+    ├── Strict-Transport-Security (HSTS with long max-age)
+    ├── X-Content-Type-Options: nosniff
+    ├── X-Frame-Options: DENY
+    ├── Content-Security-Policy (per-route policy)
+    ├── Referrer-Policy: strict-origin-when-cross-origin
+    ├── Permissions-Policy (restrictive defaults)
+    ├── Cross-Origin-Opener-Policy: same-origin
+    └── Cache-Control (per-route policy)
 ```
 
 ---
@@ -777,7 +777,7 @@ Top-level gateway configuration.
 - The gateway SHOULD be stateless except for the session store. This
   allows horizontal scaling behind a load balancer.
 - Session store encryption uses AES-256-GCM with a key derived from
-  the gateway's Ed25519 private key via HKDF.
+  the gateway's signing private key via HKDF.
 - ABAC policies are loaded from a YAML file (`policies.yaml` by
   default, configurable via `WL_POLICY_FILE` env var). On startup,
   the gateway compiles policies into decision trees for microsecond
@@ -858,7 +858,7 @@ The gateway's request lifecycle is fully documented in the
 2. Gateway terminates TLS and enforces HSTS
 3. Rate limiter checks per-IP and per-session thresholds
 4. Request validation: method, content-type, content-length, body parsing
-5. Session resolution: extract/validate Ed25519-signed session token from cookie
+5. Session resolution: extract/validate ML-DSA-65-signed session token from cookie
 6. CSRF validation on state-changing requests (POST/PUT/DELETE)
 7. ABAC policy engine evaluates subject, resource, and context attributes
 8. Request mediation: map route to target agent, inject internal headers
@@ -870,11 +870,11 @@ The gateway's request lifecycle is fully documented in the
 
 ## Verification Checklist
 
-- [ ] Gateway registers with orchestrator as an infrastructure agent with its own Ed25519 identity
+- [ ] Gateway registers with orchestrator as an infrastructure agent with its own ML-DSA-65 identity
 - [ ] HTTP requests in production redirect to HTTPS (301) and every response includes HSTS header
 - [ ] Path blocking rejects requests to /.weblisk/, any dotfile/dotfolder, and path traversal sequences before any other processing
 - [ ] Rate limits enforce per-IP (100/min), per-session (300/min), and auth endpoint (10/min) thresholds with 429 on breach
-- [ ] Session token is validated on every request: Ed25519 signature, expiry, client binding, and server-side state lookup
+- [ ] Session token is validated on every request: ML-DSA-65 signature, expiry, client binding, and server-side state lookup
 - [ ] CSRF validation via X-CSRF-Token header is enforced on all state-changing requests (POST, PUT, DELETE)
 - [ ] ABAC policy engine evaluates subject, resource, and context attributes with deny-by-default resolution
 - [ ] Request mediation injects X-Gateway-Session, X-Gateway-User, X-Gateway-Roles, X-Trace-Id, and Authorization headers
@@ -882,4 +882,4 @@ The gateway's request lifecycle is fully documented in the
 - [ ] Security headers set on every response: X-Content-Type-Options: nosniff, X-Frame-Options: DENY, CSP, Referrer-Policy, COOP
 - [ ] Requests to /v1/admin/* return 404 (platform admin routes are never served by the application gateway)
 - [ ] Agent failover returns 503 with Retry-After when agent is offline; session remains valid without re-authentication
-- [ ] Session store encryption uses AES-256-GCM with key derived from gateway's Ed25519 private key via HKDF
+- [ ] Session store encryption uses AES-256-GCM with key derived from gateway's signing private key via HKDF

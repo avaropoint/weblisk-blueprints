@@ -14,7 +14,7 @@ Blueprints are implementation-agnostic. Platforms make them concrete.
 |----------|---------|---------------------|
 | [go.md](go.md) | Go (stdlib only) | Single binary, local processes, SQLite embedded |
 | [cloudflare.md](cloudflare.md) | Cloudflare Workers | Durable Objects, KV, Web Crypto, edge-native |
-| [node.md](node.md) | Node.js / TypeScript | Fastify, better-sqlite3, Ed25519, flexible |
+| [node.md](node.md) | Node.js / TypeScript | Fastify, better-sqlite3, ML-DSA-65, flexible |
 | [rust.md](rust.md) | Rust | tokio, hyper, serde, rusqlite, static binary |
 
 ## Zero-Dependency Principle

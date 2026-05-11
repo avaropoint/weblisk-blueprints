@@ -81,7 +81,7 @@ requires:
 
 1. **Thin wrapper** — the adapter translates protocol calls only; it never re-implements or modifies the external framework's logic.
 2. **Framework-agnostic** — any process that implements the 6-endpoint protocol can participate in a hub, regardless of internal implementation language or framework.
-3. **Security parity** — adapted agents sign all outbound messages with Ed25519 and authenticate identically to native agents; no convenience bypasses are permitted.
+3. **Security parity** — adapted agents sign all outbound messages with ML-DSA-65 and authenticate identically to native agents; no convenience bypasses are permitted.
 
 ---
 
@@ -103,7 +103,7 @@ contracts:
           description: External framework name (langchain, crewai, adk, http, custom)
       inherits: TaskRequest-to-framework and framework-to-TaskResult translation maps
       overridable: true
-      override_constraints: Must preserve all 6 protocol endpoints and Ed25519 signing
+      override_constraints: Must preserve all 6 protocol endpoints and ML-DSA-65 signing
 
     - name: health-mapping
       description: Combine adapter health with wrapped framework health into standard response
@@ -154,8 +154,8 @@ Every adapter MUST:
 1. **Expose all 6 protocol endpoints** — `/v1/describe`, `/v1/execute`,
    `/v1/health`, `/v1/message`, `/v1/services`, `/v1/event`
 2. **Register with the orchestrator** — providing a valid manifest
-   with Ed25519 keys
-3. **Sign all outbound messages** — using the agent's Ed25519 keypair
+   with ML-DSA-65 keys
+3. **Sign all outbound messages** — using the agent's ML-DSA-65 keypair
 4. **Translate TaskRequest → framework input** and
    **framework output → TaskResult**
 5. **Report health** — the adapter wraps the framework's health status
@@ -165,7 +165,7 @@ Adapters MUST NOT:
 
 - Expose the external framework's native API alongside Weblisk endpoints
 - Allow unauthenticated access to the wrapped framework
-- Bypass Ed25519 signing for "convenience"
+- Bypass ML-DSA-65 signing for "convenience"
 
 ## Translation Map
 
@@ -347,7 +347,7 @@ WL_ORCHESTRATOR_URL=http://localhost:9800
 
 - [ ] Adapter exposes all 6 protocol endpoints
 - [ ] Registration with orchestrator succeeds
-- [ ] Ed25519 signing works on all outbound messages
+- [ ] ML-DSA-65 signing works on all outbound messages
 - [ ] TaskRequest is correctly translated to framework input
 - [ ] Framework output is correctly translated to TaskResult
 - [ ] Health endpoint reflects both adapter and framework health

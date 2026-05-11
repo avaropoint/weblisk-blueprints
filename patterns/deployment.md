@@ -223,7 +223,7 @@ Configuration is resolved in order (later overrides earlier):
 | `WL_LOG_LEVEL` | Log level | `info` |
 | `WL_LOG_FORMAT` | Log format | `json` |
 | `WL_STORAGE_DSN` | Database connection string | `sqlite:///app/data/wl.db` |
-| `WL_IDENTITY_KEY` | Server Ed25519 private key (base64) | `...` |
+| `WL_IDENTITY_KEY` | Server ML-DSA-65 private key (base64) | `...` |
 
 ### Secrets
 
@@ -239,7 +239,7 @@ Secrets SHOULD be provided via:
 
 | Secret | Variable | Description |
 |--------|----------|-------------|
-| Server identity key | `WL_IDENTITY_KEY` | Ed25519 private key |
+| Server identity key | `WL_IDENTITY_KEY` | ML-DSA-65 private key |
 | OAuth client secrets | `WL_OAUTH_*_CLIENT_SECRET` | Per-provider |
 | Webhook secrets | `WL_ALERT_WEBHOOK_SECRET` | HMAC signing key |
 | Database credentials | `WL_STORAGE_DSN` | Connection string with creds |

@@ -71,7 +71,7 @@ server/
   go.mod              # module server; go 1.22
   main.go             # Entry point — configure and start orchestrator
   protocol.go         # All protocol types (AgentManifest, TaskRequest, etc.)
-  identity.go         # Ed25519 key management, signing, tokens
+  identity.go         # ML-DSA-65 key management, signing, tokens
   orchestrator.go     # HTTP server with registration, routing, channels, audit
   helpers.go          # JSON helpers, utility functions
 ```
@@ -130,7 +130,7 @@ detailed stdlib package usage and conventions.
 
 ### Dependencies
 - Zero external dependencies. Use only Go standard library.
-- `crypto/ed25519` for key generation and signing
+- ML-DSA-65 (FIPS 204) via `circl` library from Cloudflare for post-quantum signing
 - `crypto/rand` for secure random generation  
 - `encoding/json` for JSON serialization
 - `encoding/hex` for hex encoding
@@ -407,10 +407,10 @@ a dependency level. Use a semaphore per target agent to respect
 
 ### Cryptography
 
-- `crypto/ed25519` for key generation, signing, and verification
+- ML-DSA-65 (FIPS 204) via `circl` library for key generation, signing, and verification
 - `crypto/rand` for all secure random generation
 - `encoding/hex` for key encoding in protocol messages
-- No external cryptography libraries needed
+- No other external cryptography libraries needed
 
 ### Dependencies
 

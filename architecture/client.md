@@ -60,8 +60,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Ed25519KeyPair
-          fields_used: [public_key, private_key]
+        - name: SigningKeyPair
+          fields_used: [public_key, private_key, algorithm]
         - name: Signature
           fields_used: [algorithm, value]
     on_change:
@@ -217,7 +217,7 @@ The gateway determines client type using the following precedence:
 1. mTLS client certificate present → api-server (or iot-device if X-Device-ID set)
 2. X-Client-Type: native-mobile → native-mobile
 3. X-Client-Type: native-desktop → native-desktop
-4. Cookie: wl_session present → browser
+4. Session cookie present → browser
 5. Authorization: Bearer <WLC> → native-mobile or native-desktop (from token claims)
 6. None of the above → reject with 401
 ```
@@ -253,7 +253,7 @@ session's lifetime. A browser session cannot become a mobile session.
 ### Browser Sessions (WLS)
 
 Browser sessions use the WLS (Weblisk Session) token — a
-cryptographically-bound, Ed25519-signed token carried in an HttpOnly
+cryptographically-bound, ML-DSA-65-signed token carried in an HttpOnly
 cookie.
 
 #### Token Structure
@@ -266,7 +266,7 @@ base64url(header) . base64url(payload) . base64url(signature)
 
 ```json
 {
-  "alg": "Ed25519",
+  "alg": "ML-DSA-65",
   "typ": "WLS"
 }
 ```
@@ -314,14 +314,14 @@ base64url(header) . base64url(payload) . base64url(signature)
    c. Gateway computes client binding hash
    d. Gateway generates CSRF secret (32 random bytes)
    e. Gateway creates WLS token with all claims
-   f. Gateway signs token with its Ed25519 private key
+   f. Gateway signs token with its ML-DSA-65 private key
    g. Gateway stores server-side session state
    h. Gateway sets HttpOnly cookie with token
    i. Gateway returns CSRF token in response body
 
 2. VALIDATION (on every request)
    a. Extract token from cookie
-   b. Verify Ed25519 signature (gateway's public key)
+   b. Verify ML-DSA-65 signature (gateway's public key)
    c. Check exp > now (not expired)
    d. Check ren — if now > ren, trigger silent renewal
    e. Verify bind claim matches current client context
@@ -355,7 +355,7 @@ platform-specific secure storage.
 
 ```json
 {
-  "alg": "Ed25519",
+  "alg": "ML-DSA-65",
   "typ": "WLC"
 }
 ```
@@ -403,13 +403,13 @@ platform-specific secure storage.
    a. Client authenticates via /auth/login with credentials + client ID
    b. Gateway validates credentials and client registration
    c. Gateway computes device binding hash
-   d. Gateway creates WLC token, signs with Ed25519 key
+   d. Gateway creates WLC token, signs with ML-DSA-65 key
    e. Gateway returns token in response body (NOT a cookie)
    f. Client stores token in platform secure storage (Keychain/Credential Manager)
 
 3. VALIDATION (on every request)
    a. Client sends token in Authorization: Bearer <WLC> header
-   b. Gateway verifies Ed25519 signature
+   b. Gateway verifies ML-DSA-65 signature
    c. Gateway checks expiry, device binding, client registration status
    d. If any check fails → 401
 
@@ -602,7 +602,7 @@ Sessions are stored encrypted in the gateway's storage backend:
 
 ```
 Encryption: AES-256-GCM
-Key derivation: HKDF(gateway_ed25519_private_key, "session-encryption", salt)
+Key derivation: HKDF(gateway_signing_private_key, "session-encryption", salt)
 Salt: unique per session (stored alongside ciphertext)
 ```
 
@@ -755,26 +755,21 @@ tools, and ZERO framework dependencies:
 - Include any SDK, build step, or dependency for security
 ```
 
-#### Cookie Specification
+#### Cookie Requirements
 
-```
-Set-Cookie: wl_session=<WLS token>;
-  HttpOnly;
-  Secure;
-  SameSite=Strict;
-  Path=/;
-  Max-Age=86400;
-  Domain=app.example.com
-```
+The session cookie MUST be set with the following attributes:
 
-| Attribute | Value | Purpose |
-|-----------|-------|---------|
+| Attribute | Requirement | Purpose |
+|-----------|-------------|---------|
 | HttpOnly | always | Prevents JavaScript access (XSS protection) |
 | Secure | always (prod) | HTTPS only |
 | SameSite | Strict | Prevents cross-site request attachment |
 | Path | / | Consistent across all routes |
 | Max-Age | Session TTL | Browser-managed expiry |
 | Domain | Application domain | Scoped to the application |
+
+The cookie name is implementation-defined. Cookie value MUST be
+the WLS token.
 
 ---
 
@@ -1018,16 +1013,16 @@ config:
 
 ## Implementation Notes
 
-- Session token signing MUST use the gateway's Ed25519 key — not a
+- Session token signing MUST use the gateway's ML-DSA-65 key — not a
   shared secret. This allows any party holding the gateway's public
   key to verify a session token without possessing the signing key.
 - Browser client binding hashes MUST be computed from raw header
   values, not parsed/normalized versions, to prevent bypass via
   header manipulation.
 - The TLS channel binding component (browser sessions) requires
-  access to the TLS session — in Go, use
-  `tls.ConnectionState().TLSUnique`; in Node.js, use
-  `socket.getTLSTicket()`.
+  access to the TLS session at the platform level. Implementations
+  MUST extract the TLS channel binding value (per RFC 5929) using
+  the platform's TLS API.
 - Session cleanup (purging expired sessions) MUST run as a background
   task, not inline with request processing.
 - Anomaly detection thresholds are defaults — production deployments
@@ -1054,7 +1049,7 @@ config:
 
 ## Verification Checklist
 
-- [ ] Browser session token uses WLS type (distinct from WLT), signed by gateway's Ed25519 key, with all required claims (sub, iss, iat, exp, sid, roles, bind, csrf, sec, mfa, ren)
+- [ ] Browser session token uses WLS type (distinct from WLT), signed by gateway's ML-DSA-65 key, with all required claims (sub, iss, iat, exp, sid, roles, bind, csrf, sec, mfa, ren)
 - [ ] Native client token uses WLC type with required claims (sub, iss, iat, exp, cid, roles, bind, cap, sec) and is stored in platform secure storage
 - [ ] Client type detection follows the defined precedence (mTLS → X-Client-Type → cookie → Bearer → reject)
 - [ ] Browser binding hash is SHA-256 of concatenated UA + Accept-Language + IP/24 + TLS session hash

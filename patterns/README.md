@@ -41,6 +41,7 @@ frontmatter. A pattern is a dependency that provides a known contract.
 | [approval.md](approval.md) | Intent-based approval — authority routing, multi-party, emergency override |
 | [privacy.md](privacy.md) | Consent, masking, anonymization, minimization, erasure cascade |
 | [governance.md](governance.md) | Compliance profiles, evidence collection, governance directives |
+| [migration.md](migration.md) | Migration governance — plans, dry runs, blast radius, integrity verification |
 
 ## Infrastructure
 
@@ -67,6 +68,7 @@ frontmatter. A pattern is a dependency that provides a known contract.
 
 | Pattern | Purpose |
 |---------|---------|
+| [development.md](development.md) | Development server — routing, security headers, live reload, blueprint API |
 | [deployment.md](deployment.md) | CI/CD pipelines, containerization, environment management |
 | [file-upload.md](file-upload.md) | File upload, processing, CDN delivery, signed URLs |
 | [alerting.md](alerting.md) | Alert rule evaluation, severity routing, dedup, escalation, muting |

@@ -27,7 +27,7 @@ not HOW. This guide recommends specific Node.js libraries that
 implement the blueprint contracts well, but these are **choices,
 not requirements**. Any library that satisfies the protocol and
 architecture contracts is valid. Teams may use Express instead of
-Fastify, node:crypto instead of @noble/ed25519, or any SQLite
+Fastify, node:crypto instead of @noble/post-quantum, or any SQLite
 binding — as long as the contracts are met.
 
 The only true requirement is the Node.js runtime itself (v20+) and
@@ -69,7 +69,7 @@ weblisk-app/
 │   │       └── analyze.ts
 │   ├── protocol/
 │   │   ├── types.ts          # Shared type definitions
-│   │   ├── identity.ts       # Ed25519 identity management
+│   │   ├── identity.ts       # ML-DSA-65 identity management
 │   │   ├── token.ts          # WLT token create/verify
 │   │   └── endpoints.ts      # Standard endpoint handlers
 │   ├── storage/
@@ -130,7 +130,7 @@ projects with these defaults, but teams can swap them.
 | Package | Purpose | Why | Alternatives |
 |---------|---------|-----|-------------|
 | `fastify` | HTTP server | Fast, schema validation built-in, plugin ecosystem | Express, Koa, Hono, node:http |
-| `@noble/ed25519` | Ed25519 cryptography | Pure JS, audited, no native deps | node:crypto (Ed25519 in Node 20+), tweetnacl |
+| `@noble/post-quantum` | ML-DSA-65 cryptography (FIPS 204) | Pure JS, audited, FIPS 204 compliant | node:crypto (when ML-DSA support lands) |
 | `better-sqlite3` | SQLite storage | Synchronous API, fast, reliable | sql.js, node:sqlite (experimental), any DB driver |
 | `pino` | Structured logging | JSON output, fast, Fastify-native | winston, console.log with JSON.stringify |
 | `zod` | Schema validation | Runtime type checking for payloads | ajv, joi, io-ts, manual validation |
@@ -153,7 +153,7 @@ projects with these defaults, but teams can swap them.
   },
   "dependencies": {
     "fastify": "^4.28.0",
-    "@noble/ed25519": "^2.1.0",
+    "@noble/post-quantum": "^0.2.0",
     "better-sqlite3": "^11.0.0",
     "pino": "^9.0.0",
     "zod": "^3.23.0",
@@ -182,9 +182,9 @@ runtime:
       - name: fastify
         version: "^4.28.0"
         purpose: HTTP server with schema validation
-      - name: "@noble/ed25519"
-        version: "^2.1.0"
-        purpose: Ed25519 cryptography (pure JS, audited)
+      - name: "@noble/post-quantum"
+        version: "^0.2.0"
+        purpose: ML-DSA-65 signing (FIPS 204)
       - name: better-sqlite3
         version: "^11.0.0"
         purpose: SQLite storage with synchronous API
@@ -305,7 +305,7 @@ export interface Recommendation {
 ### Identity (src/protocol/identity.ts)
 
 ```typescript
-import * as ed from "@noble/ed25519";
+import { ml_dsa65 } from "@noble/post-quantum/ml-dsa";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
@@ -316,46 +316,46 @@ export interface Identity {
   keyId: string;
 }
 
-export async function generateIdentity(
-  keyDir: string
-): Promise<Identity> {
+export function generateIdentity(keyDir: string): Identity {
   mkdirSync(keyDir, { recursive: true, mode: 0o700 });
-  const privateKey = ed.utils.randomPrivateKey();
-  const publicKey = await ed.getPublicKeyAsync(privateKey);
-  const keyId = Buffer.from(publicKey.slice(0, 16)).toString("hex");
+  const seed = randomBytes(32);
+  const keys = ml_dsa65.keygen(seed);
+  const keyId = Buffer.from(keys.publicKey.slice(0, 16)).toString("hex");
 
-  writeFileSync(join(keyDir, "private.key"), privateKey, {
+  writeFileSync(join(keyDir, "private.key"), keys.secretKey, {
     mode: 0o600,
   });
-  writeFileSync(join(keyDir, "public.key"), publicKey, {
+  writeFileSync(join(keyDir, "public.key"), keys.publicKey, {
     mode: 0o644,
   });
 
-  return { privateKey, publicKey, keyId };
+  return { privateKey: keys.secretKey, publicKey: keys.publicKey, keyId };
 }
 
-export async function loadIdentity(keyDir: string): Promise<Identity> {
+export function loadIdentity(keyDir: string): Identity {
   const privateKey = new Uint8Array(
     readFileSync(join(keyDir, "private.key"))
   );
-  const publicKey = await ed.getPublicKeyAsync(privateKey);
+  const publicKey = new Uint8Array(
+    readFileSync(join(keyDir, "public.key"))
+  );
   const keyId = Buffer.from(publicKey.slice(0, 16)).toString("hex");
   return { privateKey, publicKey, keyId };
 }
 
-export async function sign(
+export function sign(
   data: Uint8Array,
   privateKey: Uint8Array
-): Promise<Uint8Array> {
-  return ed.signAsync(data, privateKey);
+): Uint8Array {
+  return ml_dsa65.sign(privateKey, data);
 }
 
-export async function verify(
+export function verify(
   signature: Uint8Array,
   data: Uint8Array,
   publicKey: Uint8Array
-): Promise<boolean> {
-  return ed.verifyAsync(signature, data, publicKey);
+): boolean {
+  return ml_dsa65.verify(publicKey, data, signature);
 }
 ```
 
@@ -644,8 +644,8 @@ for process management, performance, and security details.
 
 ### Cryptography
 
-- `@noble/ed25519` for Ed25519 operations (pure JS, audited)
-- Alternative: `node:crypto` Ed25519 support (Node 20+)
+- `@noble/post-quantum` for ML-DSA-65 operations (FIPS 204, pure JS, audited)
+- Alternative: `node:crypto` when native ML-DSA-65 support lands
 - Private keys stored with file mode `0o600`
 
 ### Dependencies
@@ -800,7 +800,7 @@ the npm ecosystem.
 ## Verification Checklist
 
 - [ ] Project uses Node.js 20+ with ES modules (`"type": "module"` in package.json) and TypeScript compiled to JavaScript for production
-- [ ] Ed25519 keys are generated and verified via `@noble/ed25519` (or `node:crypto`); private keys stored with mode 0o600
+- [ ] ML-DSA-65 keys are generated and verified via `@noble/post-quantum` (FIPS 204); private keys stored with mode 0o600
 - [ ] SQLite is configured with `pragma journal_mode = WAL` and `pragma foreign_keys = ON`
 - [ ] Structured logging uses pino with JSON output in production; log entries include `component` and `component_type` base fields
 - [ ] SIGTERM triggers graceful shutdown: Fastify server closes, storage closes, then process exits
