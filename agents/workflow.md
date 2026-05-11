@@ -893,13 +893,13 @@ cache[domain_name][workflow_name] → WorkflowDefinition
 
 ## Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `WL_WORKFLOW_PORT` | `9780` | Listen port |
-| `WL_WORKFLOW_MAX_CONCURRENT` | `10` | Max concurrent workflow executions |
-| `WL_WORKFLOW_TIMEOUT` | `600` | Default workflow timeout (seconds) |
-| `WL_WORKFLOW_PHASE_TIMEOUT` | `300` | Default phase timeout (seconds) |
-| `WL_WORKFLOW_DATA_DIR` | `.weblisk/data/workflow` | Storage directory |
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| Listen port | `9780` | Listen port |
+| Max concurrent | `10` | Max concurrent workflow executions |
+| Workflow timeout | `600` | Default workflow timeout (seconds) |
+| Phase timeout | `300` | Default phase timeout (seconds) |
+| Data directory | Implementation-defined | Storage directory |
 
 ---
 
@@ -1002,17 +1002,17 @@ override_levels:
 overridable_behaviors:
   - behavior: automatic_execution
     default: enabled
-    override: Set WL_WORKFLOW_PAUSED=true
+    override: Pause execution via configuration or manual action
     audit: logged
 
   - behavior: auto_advance_levels
     default: enabled
-    override: Set WL_WORKFLOW_STEP_MODE=true (pause between levels)
+    override: Enable step mode via configuration (pause between levels)
     audit: logged
 
   - behavior: self_update
     default: enabled
-    override: WL_AUTO_UPDATE=false
+    override: Disable via configuration
     audit: logged
 
 manual_actions:

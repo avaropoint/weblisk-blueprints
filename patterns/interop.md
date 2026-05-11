@@ -236,14 +236,12 @@ already expose an HTTP API.
 
 **Configuration:**
 
-```bash
-# Sidecar adapter configuration
-WL_ADAPTER_TYPE=sidecar
-WL_ADAPTER_TARGET=http://localhost:8080
-WL_ADAPTER_HEALTH_PATH=/health
-WL_ADAPTER_EXECUTE_PATH=/invoke
-WL_ADAPTER_TIMEOUT=60
-```
+The sidecar adapter requires the following configuration parameters:
+- Adapter type: `sidecar`
+- Target URL (e.g., `http://localhost:8080`)
+- Health check path (e.g., `/health`)
+- Execute path (e.g., `/invoke`)
+- Timeout in seconds (e.g., `60`)
 
 ### Type 3: Subprocess Adapter
 
@@ -307,21 +305,18 @@ responses. Log them internally; return sanitized error messages.
 
 ## Configuration
 
-```bash
-# Common adapter configuration
-WL_ADAPTER_TYPE=in-process|sidecar|subprocess
-WL_ADAPTER_FRAMEWORK=langchain|crewai|adk|http|custom
+The adapter requires the following configuration parameters:
 
-# Sidecar / subprocess specific
-WL_ADAPTER_TARGET=http://localhost:8080
-WL_ADAPTER_COMMAND=python my_agent.py
-WL_ADAPTER_TIMEOUT=60
-
-# Manifest overrides
-WL_AGENT_NAME=my-adapted-agent
-WL_AGENT_URL=http://localhost:9830
-WL_ORCHESTRATOR_URL=http://localhost:9800
-```
+| Parameter | Description |
+|-----------|-------------|
+| Adapter type | `in-process`, `sidecar`, or `subprocess` |
+| Framework | `langchain`, `crewai`, `adk`, `http`, `custom` |
+| Target URL | HTTP endpoint for sidecar mode |
+| Command | Process command for subprocess mode |
+| Timeout | Execution timeout in seconds |
+| Agent name | Name for the adapted agent's manifest |
+| Agent URL | Listen URL for the adapted agent |
+| Orchestrator URL | URL of the orchestrator to register with |
 
 ## Implementation Notes
 

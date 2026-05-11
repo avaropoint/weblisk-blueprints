@@ -229,8 +229,8 @@ agents:
     port: 9710
     replicas: 3
     env:
-      WL_AI_PROVIDER: openai
-      WL_AI_MODEL: gpt-4o
+      ai_provider: openai
+      ai_model: gpt-4o
   - name: forecaster
     type: work
     domain: analytics

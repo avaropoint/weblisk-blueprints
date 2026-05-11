@@ -246,7 +246,8 @@ weblisk pattern apply user-management
 
 ```bash
 # Add a custom blueprint source
-echo 'WL_BLUEPRINT_SOURCES=https://github.com/your-org/your-blueprints.git' >> .env
+# Add a custom blueprint source (implementation-specific)
+# Configure blueprint sources per your platform's documentation
 
 # Create a domain from your custom blueprints
 weblisk domain create checkout --platform go

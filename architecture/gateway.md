@@ -723,7 +723,7 @@ domain before streaming events. Connection timeout: 5 minutes
 3. Both mechanisms use the same ABAC policy evaluation
 4. Execution status endpoints are rate-limited per-session
 5. Results are available for 24 hours after completion (configurable
-   via `WL_RESULT_RETENTION`)
+   via the result retention setting)
 
 ---
 
@@ -779,7 +779,7 @@ Top-level gateway configuration.
 - Session store encryption uses AES-256-GCM with a key derived from
   the gateway's signing private key via HKDF.
 - ABAC policies are loaded from a YAML file (`policies.yaml` by
-  default, configurable via `WL_POLICY_FILE` env var). On startup,
+  default, configurable via runtime configuration). On startup,
   the gateway compiles policies into decision trees for microsecond
   evaluation. The gateway watches the policy file for changes and
   hot-reloads on modification — no restart required. During reload,

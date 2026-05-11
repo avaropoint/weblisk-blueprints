@@ -781,13 +781,13 @@ pending tasks in storage on restart).
 
 ## Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `WL_TASK_PORT` | `9781` | Listen port |
-| `WL_TASK_MAX_CONCURRENT` | `50` | Max concurrent task dispatches |
-| `WL_TASK_DEFAULT_TIMEOUT` | `300` | Default task timeout (seconds) |
-| `WL_TASK_QUEUE_MAX` | `1000` | Max queued tasks before rejecting |
-| `WL_TASK_DATA_DIR` | `.weblisk/data/task` | Storage directory |
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| Listen port | `9781` | Listen port |
+| Max concurrent | `50` | Max concurrent task dispatches |
+| Default timeout | `300` | Default task timeout (seconds) |
+| Queue max | `1000` | Max queued tasks before rejecting |
+| Data directory | Implementation-defined | Storage directory |
 
 ---
 
@@ -869,17 +869,17 @@ override_levels:
 overridable_behaviors:
   - behavior: automatic_dispatch
     default: enabled
-    override: Set WL_TASK_DISPATCH_PAUSED=true
+    override: Pause dispatch via configuration or manual action
     audit: logged
 
   - behavior: automatic_retry
     default: enabled (per patterns/retry)
-    override: Set WL_TASK_MAX_RETRIES=0
+    override: Set max retries to 0 via configuration
     audit: logged
 
   - behavior: self_update
     default: enabled
-    override: WL_AUTO_UPDATE=false
+    override: Disable via configuration
     audit: logged
 
 manual_actions:

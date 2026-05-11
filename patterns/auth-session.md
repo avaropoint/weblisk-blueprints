@@ -144,7 +144,7 @@ description: Session-based authentication with secure cookies
 
 config:
   session_duration: 86400       # 24 hours in seconds
-  cookie_name: wl_session
+  cookie_name: <implementation-defined>
   csrf_header: X-CSRF-Token
   max_sessions_per_user: 5
   password_min_length: 8

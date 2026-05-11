@@ -173,9 +173,9 @@ services:
     ports:
       - "9800:9800"
     environment:
-      - WL_ENV=development
-      - WL_LOG_FORMAT=text
-      - WL_LOG_LEVEL=debug
+      - ENV=development
+      - LOG_FORMAT=text
+      - LOG_LEVEL=debug
     volumes:
       - ./data:/app/data
       - ./agents:/app/agents
@@ -210,20 +210,20 @@ Configuration is resolved in order (later overrides earlier):
 1. Built-in defaults (compiled into binary)
 2. Config file: weblisk.yaml (committed, non-secret)
 3. Environment-specific file: weblisk.staging.yaml (committed)
-4. Environment variables: WL_* (injected at runtime)
+4. Runtime configuration (implementation-defined)
 5. Secrets manager (runtime fetch)
 ```
 
-### Environment Variables
+### Configuration Parameters
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `WL_ENV` | Environment tier | `production` |
-| `WL_PORT` | Orchestrator port | `9800` |
-| `WL_LOG_LEVEL` | Log level | `info` |
-| `WL_LOG_FORMAT` | Log format | `json` |
-| `WL_STORAGE_DSN` | Database connection string | `sqlite:///app/data/wl.db` |
-| `WL_IDENTITY_KEY` | Server ML-DSA-65 private key (base64) | `...` |
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| Environment tier | Environment tier | `production` |
+| Listen port | Orchestrator port | `9800` |
+| Log level | Log level | `info` |
+| Log format | Log format | `json` |
+| Storage DSN | Database connection string | `sqlite:///app/data/wl.db` |
+| Identity key | Server ML-DSA-65 private key (base64) | Stored via secrets manager |
 
 ### Secrets
 

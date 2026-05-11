@@ -1060,17 +1060,17 @@ override_levels:
 overridable_behaviors:
   - behavior: automatic_runbook_execution
     default: enabled
-    override: Set WL_INCIDENT_AUTO_RUNBOOK=false
+    override: Disable automatic runbook execution via configuration
     audit: logged
 
   - behavior: auto_resolution
     default: enabled
-    override: Set WL_INCIDENT_AUTO_RESOLVE=false
+    override: Disable auto-resolution via configuration
     audit: logged
 
   - behavior: self_update
     default: enabled
-    override: WL_AUTO_UPDATE=false
+    override: Disable via configuration
     audit: logged
 
 manual_actions:

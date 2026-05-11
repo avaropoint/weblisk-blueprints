@@ -178,8 +178,8 @@ tls:
   
   # manual mode: operator provides certificates
   manual:
-    cert_path_env: WL_TLS_CERT_PATH
-    key_path_env: WL_TLS_KEY_PATH
+    cert_path: <configured certificate path>
+    key_path: <configured private key path>
   
   # platform mode: TLS terminated by platform (Cloudflare, ALB)
   platform:

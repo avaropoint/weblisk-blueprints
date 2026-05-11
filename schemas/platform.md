@@ -140,10 +140,10 @@ Step-by-step instructions:
 <exact-run-commands-with-flags>
 ```
 
-### Environment Variables
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `WL_PORT` | no | 9800 | Listen port |
+### Configuration Parameters
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| Listen port | no | 9800 | Listen port |
 ```
 
 ### Platform-Specific Conventions (`## Platform-Specific Conventions`)

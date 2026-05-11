@@ -217,7 +217,7 @@ $ weblisk new my-app --template client/blog --template server/starter
 
 Templates are resolved from
 [weblisk-templates](https://github.com/avaropoint/weblisk-templates) in
-priority order: local `./templates/` → `WL_TEMPLATE_SOURCES` → core.
+priority order: local `./templates/` → configured template sources → core.
 
 When multiple `--template` flags are specified, files are merged — client
 templates provide pages and islands, server templates provide hub
@@ -248,7 +248,7 @@ changes.
 
 | Flag | Description |
 |------|-------------|
-| `--port <n>` | Dev server port (default: from `WL_PORT` or 3000) |
+| `--port <n>` | Dev server port (default: 3000, configurable) |
 
 ### `weblisk build`
 
@@ -1291,7 +1291,7 @@ Validating policies.yaml...
 ✓ No unreachable rules detected
 ```
 
-- Loads `policies.yaml` (or `WL_POLICY_FILE` path)
+- Loads `policies.yaml` (or configured policy file path)
 - Checks for syntax errors, conflicting rules, unreachable policies
 - Validates that referenced roles and resources exist in the project
 
@@ -1533,7 +1533,7 @@ $ weblisk marketplace terminate mkt-001
 The CLI reads orchestrator connection details from (in priority order):
 
 1. Command-line flags: `--orch http://localhost:9800`
-2. Environment variable: `WL_ORCH=http://localhost:9800`
+2. Environment variable (implementation-defined)
 3. Project config: `.weblisk/config.json` in the working directory
 4. User config: `~/.weblisk/config.json`
 
@@ -1596,7 +1596,7 @@ Every command that calls the orchestrator:
 - [ ] `weblisk dev` builds and runs the hub with restart-on-change for server projects
 - [ ] `weblisk build --minify --fingerprint` produces production-ready output
 - [ ] `weblisk vendor` copies the Weblisk client framework to the specified directory
-- [ ] Template resolution follows priority: local → WL_TEMPLATE_SOURCES → core
+- [ ] Template resolution follows priority: local → configured template sources → core
 - [ ] `weblisk doctor` validates .gitignore contains required secret exclusion entries
 - [ ] `weblisk doctor` validates .weblisk/secrets/ file permissions are 0600
 - [ ] `weblisk doctor` cross-references secret declarations with stored values
@@ -1625,7 +1625,7 @@ Every command that calls the orchestrator:
 - [ ] `weblisk blueprint update` re-fetches all cached blueprint sources
 - [ ] `weblisk validate` checks blueprint compliance (frontmatter, sections, types, deps)
 - [ ] `weblisk pattern apply` reads pattern blueprint, dispatches to LLM with target context
-- [ ] Blueprint resolution follows priority: local → WL_BLUEPRINT_SOURCES → core
+- [ ] Blueprint resolution follows priority: local → configured blueprint sources → core
 
 ### Identity & Operations
 - [ ] `weblisk operator init` generates ML-DSA-65 keys in ~/.weblisk/keys/ with 0700 directory and 0600 file permissions
@@ -1644,7 +1644,7 @@ Every command that calls the orchestrator:
 - [ ] `weblisk approvals reject` requires a --reason argument for every rejection
 - [ ] `weblisk status` calls GET /v1/admin/overview and displays agents, domains, workflows, approvals, federation, and health score
 - [ ] Exit codes are 0=success, 1=general error, 2=auth error, 3=connection error, 4=not found, 5=permission denied
-- [ ] Config resolution order: command-line flags > WL_ORCH env var > .weblisk/config.json (project) > ~/.weblisk/config.json (user)
+- [ ] Config resolution order: command-line flags > environment variable > .weblisk/config.json (project) > ~/.weblisk/config.json (user)
 - [ ] Commands fail fast with a clear message and non-zero exit code when the orchestrator is unreachable
 - [ ] Authentication flow retries once on 401 by refreshing the token; prints re-register message if refresh also fails
 

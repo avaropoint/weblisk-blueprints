@@ -182,13 +182,13 @@ providers:
   openai:
     type: remote
     auth: bearer
-    env_key: WL_AI_OPENAI_KEY
+    key: <configured via secrets>
     models: [gpt-4o, gpt-4o-mini]
 
   anthropic:
     type: remote
     auth: x-api-key
-    env_key: WL_AI_ANTHROPIC_KEY
+    key: <configured via secrets>
     models: [claude-sonnet-4-20250514, claude-haiku-4-20250414]
 
   workers-ai:
@@ -520,22 +520,19 @@ each provider's format. Agents never see provider-specific payloads.
 
 ## Configuration
 
-```bash
-# Default provider and model
-WL_AI_PROVIDER=ollama
-WL_AI_MODEL=llama3
+The AI provider is configured via runtime settings:
 
-# Provider-specific keys
-WL_AI_OPENAI_KEY=sk-...
-WL_AI_ANTHROPIC_KEY=sk-ant-...
-
-# Rate limits
-WL_AI_RATE_LIMIT=60          # requests per minute
-WL_AI_MAX_CONCURRENT=5       # concurrent inference requests
-
-# Timeouts
-WL_AI_TIMEOUT=120             # seconds per request
-WL_AI_RETRY_COUNT=2           # retries on transient failure
+```yaml
+ai:
+  provider: ollama              # Default provider
+  model: llama3                  # Default model
+  keys:
+    openai: <configured via secrets>
+    anthropic: <configured via secrets>
+  rate_limit: 60                 # requests per minute
+  max_concurrent: 5              # concurrent inference requests
+  timeout: 120                   # seconds per request
+  retry_count: 2                 # retries on transient failure
 ```
 
 ## Model Routing
@@ -611,12 +608,12 @@ When a provider is unhealthy:
 For cost-sensitive deployments, the router MAY enforce per-agent
 token budgets:
 
-```bash
+```yaml
 # Monthly token budget per agent (0 = unlimited)
-WL_AI_TOKEN_BUDGET=1000000
+ai_token_budget: 1000000
 
 # Action when budget exceeded: block | downgrade | alert
-WL_AI_BUDGET_ACTION=downgrade
+ai_budget_action: downgrade
 ```
 
 When `downgrade` is configured and an agent exceeds its budget, the

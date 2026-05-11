@@ -374,13 +374,11 @@ config:
   crawl_interval:
     type: string
     default: "0 */6 * * *"
-    env: WL_HUB_INDEX_CRAWL_INTERVAL
     description: Cron expression for full provider re-crawl schedule
 
   crawl_timeout:
     type: int
     default: 60
-    env: WL_HUB_INDEX_CRAWL_TIMEOUT
     min: 10
     max: 300
     unit: seconds
@@ -389,7 +387,6 @@ config:
   max_concurrent_crawls:
     type: int
     default: 5
-    env: WL_HUB_INDEX_MAX_CRAWLS
     min: 1
     max: 50
     description: Maximum simultaneous provider crawls
@@ -397,7 +394,6 @@ config:
   stale_threshold:
     type: int
     default: 259200
-    env: WL_HUB_INDEX_STALE_THRESHOLD
     min: 3600
     unit: seconds
     description: Mark listings stale after provider unreachable for this duration (default 72h)
@@ -405,7 +401,6 @@ config:
   stale_grace_period:
     type: int
     default: 604800
-    env: WL_HUB_INDEX_STALE_GRACE
     min: 86400
     unit: seconds
     description: Remove stale listings from active index after this grace period (default 7d)
@@ -413,7 +408,6 @@ config:
   listing_refresh_max_age:
     type: int
     default: 2592000
-    env: WL_HUB_INDEX_REFRESH_MAX_AGE
     min: 86400
     unit: seconds
     description: Mark listing stale if not refreshed within this period (default 30d)
@@ -421,7 +415,6 @@ config:
   miss_count_threshold:
     type: int
     default: 3
-    env: WL_HUB_INDEX_MISS_THRESHOLD
     min: 1
     max: 10
     description: Consecutive crawl misses before marking provider listings stale
@@ -429,7 +422,6 @@ config:
   max_listings:
     type: int
     default: 100000
-    env: WL_HUB_INDEX_MAX_LISTINGS
     min: 1000
     description: Maximum active listings in index
 ```
@@ -441,7 +433,6 @@ config:
   query_result_cache_ttl:
     type: int
     default: 60
-    env: WL_HUB_SEARCH_CACHE_TTL
     min: 0
     max: 600
     unit: seconds
@@ -450,7 +441,6 @@ config:
   facet_cache_ttl:
     type: int
     default: 300
-    env: WL_HUB_SEARCH_FACET_TTL
     min: 0
     max: 3600
     unit: seconds
@@ -459,7 +449,6 @@ config:
   trending_cache_ttl:
     type: int
     default: 900
-    env: WL_HUB_SEARCH_TRENDING_TTL
     min: 60
     max: 3600
     unit: seconds
@@ -468,7 +457,6 @@ config:
   autocomplete_cache_ttl:
     type: int
     default: 1800
-    env: WL_HUB_SEARCH_AUTOCOMPLETE_TTL
     min: 60
     max: 7200
     unit: seconds
@@ -477,7 +465,6 @@ config:
   max_results_per_page:
     type: int
     default: 100
-    env: WL_HUB_SEARCH_MAX_PER_PAGE
     min: 10
     max: 500
     description: Maximum results per page
@@ -485,7 +472,6 @@ config:
   default_results_per_page:
     type: int
     default: 20
-    env: WL_HUB_SEARCH_DEFAULT_PER_PAGE
     min: 1
     max: 100
     description: Default results per page
@@ -493,7 +479,6 @@ config:
   query_timeout:
     type: int
     default: 10
-    env: WL_HUB_SEARCH_QUERY_TIMEOUT
     min: 1
     max: 60
     unit: seconds
@@ -502,7 +487,6 @@ config:
   max_cache_entries:
     type: int
     default: 10000
-    env: WL_HUB_SEARCH_MAX_CACHE
     min: 100
     max: 100000
     description: Maximum entries in query result cache
@@ -515,13 +499,11 @@ config:
   probe_interval:
     type: string
     default: "*/5 * * * *"
-    env: WL_HUB_METRICS_PROBE_INTERVAL
     description: Cron expression for availability probe schedule
 
   probe_timeout:
     type: int
     default: 10
-    env: WL_HUB_METRICS_PROBE_TIMEOUT
     min: 1
     max: 60
     unit: seconds
@@ -530,13 +512,11 @@ config:
   aggregation_interval:
     type: string
     default: "0 * * * *"
-    env: WL_HUB_METRICS_AGG_INTERVAL
     description: Cron expression for rolling aggregate recomputation
 
   max_concurrent_probes:
     type: int
     default: 20
-    env: WL_HUB_METRICS_MAX_PROBES
     min: 1
     max: 100
     description: Maximum simultaneous availability probes
@@ -544,7 +524,6 @@ config:
   retention_hourly:
     type: int
     default: 172800
-    env: WL_HUB_METRICS_RETENTION_HOURLY
     min: 3600
     unit: seconds
     description: Hourly data retention (default 48h)
@@ -552,7 +531,6 @@ config:
   retention_daily:
     type: int
     default: 7776000
-    env: WL_HUB_METRICS_RETENTION_DAILY
     min: 86400
     unit: seconds
     description: Daily aggregate retention (default 90d)
@@ -560,7 +538,6 @@ config:
   retention_weekly:
     type: int
     default: 31536000
-    env: WL_HUB_METRICS_RETENTION_WEEKLY
     min: 604800
     unit: seconds
     description: Weekly aggregate retention (default 1 year)
@@ -568,7 +545,6 @@ config:
   retention_monthly:
     type: int
     default: 63072000
-    env: WL_HUB_METRICS_RETENTION_MONTHLY
     min: 2592000
     unit: seconds
     description: Monthly aggregate retention (default 2 years)
@@ -576,7 +552,6 @@ config:
   sla_uptime_threshold:
     type: float
     default: 99.0
-    env: WL_HUB_METRICS_SLA_UPTIME
     min: 0.0
     max: 100.0
     description: Uptime percentage below which SLA breach is triggered
@@ -589,13 +564,11 @@ config:
   fingerprint_interval:
     type: string
     default: "0 */4 * * *"
-    env: WL_HUB_VERIFY_FINGERPRINT_INTERVAL
     description: Cron expression for behavioral fingerprint sampling schedule
 
   fingerprint_timeout:
     type: int
     default: 30
-    env: WL_HUB_VERIFY_FINGERPRINT_TIMEOUT
     min: 5
     max: 120
     unit: seconds
@@ -604,7 +577,6 @@ config:
   max_concurrent_fingerprint_probes:
     type: int
     default: 10
-    env: WL_HUB_VERIFY_MAX_PROBES
     min: 1
     max: 50
     description: Maximum simultaneous behavioral probes
@@ -612,7 +584,6 @@ config:
   key_rotation_cooldown:
     type: int
     default: 86400
-    env: WL_HUB_VERIFY_ROTATION_COOLDOWN
     min: 3600
     unit: seconds
     description: Minimum time between key rotations (default 24h)
@@ -620,7 +591,6 @@ config:
   verification_log_retention:
     type: int
     default: 7776000
-    env: WL_HUB_VERIFY_LOG_RETENTION
     min: 2592000
     unit: seconds
     description: Verification log retention period (default 90 days)
@@ -628,7 +598,6 @@ config:
   fingerprint_retention:
     type: int
     default: 15552000
-    env: WL_HUB_VERIFY_FP_RETENTION
     min: 2592000
     unit: seconds
     description: Behavioral fingerprint retention period (default 180 days)
@@ -636,7 +605,6 @@ config:
   response_tolerance_time_pct:
     type: float
     default: 20.0
-    env: WL_HUB_VERIFY_TIME_TOLERANCE
     min: 1.0
     max: 100.0
     description: Response time change percentage threshold for BENIGN classification
@@ -644,7 +612,6 @@ config:
   response_tolerance_size_pct:
     type: float
     default: 10.0
-    env: WL_HUB_VERIFY_SIZE_TOLERANCE
     min: 1.0
     max: 100.0
     description: Response size change percentage threshold for BENIGN classification
@@ -657,7 +624,6 @@ config:
   dedup_window:
     type: int
     default: 3600
-    env: WL_HUB_ALERT_DEDUP_WINDOW
     min: 60
     max: 86400
     unit: seconds
@@ -666,7 +632,6 @@ config:
   max_batch_size:
     type: int
     default: 50
-    env: WL_HUB_ALERT_MAX_BATCH
     min: 1
     max: 500
     description: Maximum notifications per batch delivery to alerting agent
@@ -674,7 +639,6 @@ config:
   notification_timeout:
     type: int
     default: 30
-    env: WL_HUB_ALERT_NOTIFY_TIMEOUT
     min: 5
     max: 120
     unit: seconds
@@ -683,7 +647,6 @@ config:
   federation_notify_timeout:
     type: int
     default: 15
-    env: WL_HUB_ALERT_FED_TIMEOUT
     min: 5
     max: 60
     unit: seconds
@@ -692,7 +655,6 @@ config:
   flapping_threshold:
     type: int
     default: 3
-    env: WL_HUB_ALERT_FLAP_THRESHOLD
     min: 2
     max: 20
     description: State changes within dedup_window to trigger flapping consolidation
@@ -700,7 +662,6 @@ config:
   mute_max_duration:
     type: int
     default: 86400
-    env: WL_HUB_ALERT_MUTE_MAX
     min: 300
     max: 604800
     unit: seconds
@@ -709,7 +670,6 @@ config:
   alert_retry_max:
     type: int
     default: 3
-    env: WL_HUB_ALERT_RETRY_MAX
     min: 0
     max: 10
     description: Retry attempts for failed notification delivery
@@ -717,7 +677,6 @@ config:
   alert_history_retention:
     type: int
     default: 2592000
-    env: WL_HUB_ALERT_HISTORY_RETENTION
     min: 86400
     unit: seconds
     description: Alert history retention period (default 30 days)
@@ -2944,7 +2903,7 @@ overridable_behaviors:
   # Indexing
   - behavior: automatic_crawling
     default: enabled
-    override: Set WL_HUB_INDEX_CRAWL_ENABLED=false
+    override: Disable index crawling via configuration
     audit: logged
 
   - behavior: automatic_pruning
@@ -2955,12 +2914,12 @@ overridable_behaviors:
   # Metrics
   - behavior: automatic_probing
     default: enabled
-    override: Set WL_HUB_METRICS_PROBES_ENABLED=false
+    override: Disable availability probing via configuration
     audit: logged
 
   - behavior: automatic_aggregation
     default: enabled
-    override: Set WL_HUB_METRICS_AGG_ENABLED=false
+    override: Disable automatic aggregation via configuration
     audit: logged
 
   - behavior: sla_breach_detection
@@ -2971,12 +2930,12 @@ overridable_behaviors:
   # Verification
   - behavior: automatic_fingerprinting
     default: enabled
-    override: Set WL_HUB_VERIFY_FINGERPRINT_ENABLED=false
+    override: Disable automatic fingerprinting via configuration
     audit: logged
 
   - behavior: automatic_suspension
     default: enabled
-    override: Set WL_HUB_VERIFY_AUTO_SUSPEND=false
+    override: Disable automatic suspension via configuration
     audit: logged
     note: CRITICAL changes will still be flagged but not auto-suspended
 
@@ -2993,13 +2952,13 @@ overridable_behaviors:
 
   - behavior: federation_notifications
     default: enabled
-    override: Disable via WL_HUB_ALERT_FED_ENABLED=false
+    override: Disable federation notifications via configuration
     audit: logged
 
   # System
   - behavior: self_update
     default: enabled
-    override: WL_AUTO_UPDATE=false
+    override: Disable self-update via configuration
     audit: logged
 
 manual_actions:

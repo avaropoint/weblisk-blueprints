@@ -223,7 +223,6 @@ config:
   tick_interval:
     type: int
     default: 60
-    env: WL_CRON_TICK_INTERVAL
     min: 1
     max: 3600
     unit: seconds
@@ -232,7 +231,6 @@ config:
   max_retries:
     type: int
     default: 3
-    env: WL_CRON_MAX_RETRIES
     min: 0
     max: 100
     description: Default retry attempts per task
@@ -240,14 +238,12 @@ config:
   retry_backoff:
     type: string
     default: exponential
-    env: WL_CRON_RETRY_BACKOFF
     enum: [fixed, linear, exponential]
     description: Backoff strategy between retries
 
   max_concurrent:
     type: int
     default: 10
-    env: WL_CRON_MAX_CONCURRENT
     min: 1
     max: 100
     description: Max tasks dispatched simultaneously per tick
@@ -255,7 +251,6 @@ config:
   history_retention:
     type: int
     default: 604800
-    env: WL_CRON_HISTORY_RETENTION
     min: 0
     unit: seconds
     description: Execution history TTL (0 = disabled)
@@ -263,7 +258,6 @@ config:
   task_timeout:
     type: int
     default: 30
-    env: WL_CRON_TASK_TIMEOUT
     min: 1
     max: 300
     unit: seconds
@@ -272,7 +266,6 @@ config:
   lock_ttl:
     type: int
     default: 120
-    env: WL_CRON_LOCK_TTL
     min: 10
     unit: seconds
     description: Distributed tick lock TTL
@@ -1296,7 +1289,7 @@ overridable_behaviors:
 
   - behavior: self_update
     default: enabled
-    override: WL_AUTO_UPDATE=false
+    override: Disable via configuration
     audit: logged
 
 manual_actions:
