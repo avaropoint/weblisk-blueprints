@@ -68,6 +68,9 @@ describes itself — `name: go` implies `platform: go`.
 | `## Performance` | Platform-Specific Conventions | Performance tuning for this runtime |
 | `## Examples` | Any section | Code examples in the target language |
 
+A platform blueprint MAY also carry a `### Generation Manifest` subsection
+inside Project Structure — see below.
+
 ---
 
 ## Section Specifications
@@ -220,6 +223,72 @@ tests/
 ### Coverage
 - <Minimum coverage requirements>
 ```
+
+### Generation Manifest (`### Generation Manifest`)
+
+**Optional.** A machine-readable form of the layout stated in Project Structure,
+for tooling that GENERATES an implementation for this platform.
+
+#### What it is not
+
+It is not the definition of a hub. `protocol/spec.md` defines the wire contract
+and `architecture/testing.md` proves an implementation meets it. A hub written by
+hand, produced by other tooling, or written in a language with no platform
+blueprint is fully valid the moment it serves the protocol and passes
+conformance.
+
+A platform blueprint with no manifest is complete. A manifest that disagrees with
+a working implementation is the manifest's problem, not the implementation's.
+
+#### Why it exists
+
+Generating a whole implementation in one request has no checkpoint, no
+attributable failure and no progress, and it leaves the FILE SET to the
+generating model rather than to the blueprint. A manifest makes one route
+repeatable: the same blueprints produce the same structure however many times,
+and by whichever model.
+
+Repeatability here means behavioural equivalence, not identical source. Two
+models will name and split things differently. What is fixed is what a caller can
+observe — the files that exist, what each exports, the endpoints served, and the
+conformance result.
+
+#### Structure
+
+```yaml
+generate:
+  <target>:                 # orchestrator | agent | domain | gateway
+    root: <dir>             # where files are written, relative to the project
+    build: <command>        # must succeed before conformance is attempted
+    files:
+      - path: <relative>    # required
+        purpose: <text>     # required — what this file is for
+        must_define: []     # optional — symbols that must exist
+        must_serve: []      # optional — "METHOD /path" this file must handle
+    conformance: [L1]       # levels from architecture/testing.md
+```
+
+#### Validation Rules
+
+1. Every `path` MUST be relative and MUST NOT traverse outside `root`.
+2. `purpose` MUST be present on every file — a path with no stated purpose gives
+   a generator nothing to generate.
+3. `must_serve` entries MUST use endpoints defined in `protocol/spec.md`; a
+   manifest MUST NOT introduce an endpoint the protocol does not define.
+4. The union of `must_serve` across all files for the `orchestrator` target MUST
+   cover every orchestrator endpoint in `protocol/spec.md`.
+5. `build` MUST be a command that fails on a structurally invalid result.
+6. `conformance` MUST name at least `L1`.
+7. A manifest that has not been exercised by a generation run SHOULD say so, so
+   that an untested file list is not mistaken for a tested one.
+
+#### Consuming it
+
+Tooling SHOULD generate one file per call rather than one call per
+implementation, and SHOULD verify `must_define` and `must_serve` before running
+`build`, and `build` before conformance. Each check is cheaper than the one after
+it and localises the failure further.
+
 
 ---
 
