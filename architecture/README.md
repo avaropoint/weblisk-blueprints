@@ -26,6 +26,7 @@ specifications that all implementations must satisfy.
 | [observability.md](observability.md) | Structured logging, distributed tracing, metrics |
 | [lifecycle.md](lifecycle.md) | Continuous optimization loop (event-driven) |
 | [testing.md](testing.md) | Conformance test suite specification |
+| [generation.md](generation.md) | Producing an implementation from blueprints — prompt contract, generation loop, verification gate |
 | [change-management.md](change-management.md) | Versioning, migration, deprecation lifecycle |
 
 ## Security
