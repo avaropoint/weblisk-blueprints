@@ -2,7 +2,7 @@
 type: architecture
 name: generation
 version: 1.0.0
-requires: [protocol/spec, architecture/testing, schemas/platform]
+requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
 -->
@@ -28,7 +28,7 @@ non-determinism the specification exists to remove.
 
 This blueprint closes that. It defines the prompt contract, the generation loop,
 and the verification gate. It does not define what to build; that remains
-`protocol/spec.md`, the platform blueprint, and the manifest.
+`protocol/spec.md`, `protocol/types.md` and the platform blueprint.
 
 **Determinism here means behavioural equivalence, not identical source.** Two
 models will name and structure things differently. What must not differ is what
@@ -63,12 +63,12 @@ requires:
       breaking: version-bump
       removed: halt-immediately
 
-  - blueprint: schemas/platform
+  - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: GenerationManifest
-          fields_used: [files, build, conformance]
+        - name: protocol-types
+          fields_used: [name, fields]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -80,18 +80,22 @@ requires:
 ## Architecture
 
 ```
-  blueprints ──┐
-               ├──▶ prompt assembly ──▶ model ──▶ candidate file
-  manifest ────┤            ▲                          │
-               │            │                          ▼
-  checklists ──┘            └──── rejection ──── contract check
-                                                       │ accepted
-                                                       ▼
-                                              accumulated declarations
-                                                       │
-                                    (all files) ───────┤
-                                                       ▼
-                                    structure → coherence → properties → behaviour
+  blueprints ──▶ requirements ──▶ model plans ──▶ plan validated
+                (types,             (its own       (all requirements
+                 endpoints,          file set       placed?)
+                 assertions)         and order)          │
+                                          ▲              │ accepted
+                                          └── rejected ──┤
+                                                         ▼
+                       ┌────────── per file, in the plan's order ──────────┐
+                       │                                                    │
+                       ▼                                                    │
+             prompt assembly ──▶ model ──▶ contract check ──▶ declarations ─┘
+                       ▲                        │ rejected
+                       └────────────────────────┘
+                                                         │ all accepted
+                                                         ▼
+                              structure → coherence → properties → behaviour
 ```
 
 Four gates in ascending cost. Each is cheaper than the one after it and
@@ -111,8 +115,8 @@ can see it.
 
 ### Does NOT Own
 
-- What to build. `protocol/spec.md` defines the wire contract; a platform
-  blueprint defines the layout; the manifest declares the file set
+- What to build. `protocol/spec.md` defines the wire contract and the types; a
+  platform blueprint gives language direction
 - How to verify behaviour. `architecture/testing.md` owns conformance
 - Prompt wording. This blueprint fixes what must be conveyed, never the phrasing
 - Model selection. Any model that satisfies the contract is acceptable
@@ -125,11 +129,11 @@ can see it.
 interfaces:
   generate:
     description: Produce one target's files from blueprints
-    inputs: [manifest_target, blueprints, platform_blueprint, checklists]
+    inputs: [requirements, plan, blueprints, platform_blueprint, checklists]
     outputs: [files, progress_stream]
   verify:
     description: Gate a generated target before it is called finished
-    inputs: [files, manifest_target, checklists, protocol_spec]
+    inputs: [files, plan, checklists, protocol_spec]
     outputs: [layer_results, failures]
 ```
 
@@ -137,16 +141,87 @@ interfaces:
 
 ## Data Flow
 
-1. The manifest for the target is read; its file list is the file set. A
-   generator MUST NOT add to it or omit from it.
-2. Verification Checklists are extracted from every blueprint being read and
-   carried as explicit acceptance criteria.
-3. For each file in order: assemble the prompt, call the model, check the
-   response against the contract, retry with the specific complaint on failure.
-4. On acceptance, the file's top-level declarations are extracted and added to
+1. **Requirements are extracted from the blueprints** — the types the protocol
+   enumerates, the endpoints it defines, the assertions every Verification
+   Checklist states. This is the specification, and it already exists; nothing
+   is authored to restate it.
+2. **The model proposes a plan** — which files it will write, what each contains,
+   and in what order they must be generated. The structure is the MODEL's.
+3. **The plan is validated against the requirements** — is every required type
+   placed in some file? every endpoint served? Rejected plans are returned with
+   what is missing, and re-planned.
+4. For each file in the plan's order: assemble the prompt, call the model, check
+   the response against the contract, retry with the specific complaint.
+5. On acceptance, the file's top-level declarations are extracted and added to
    the accumulated declarations passed to every subsequent file.
-5. When every file has succeeded, all are written together.
-6. The gate runs: structure, coherence, properties, behaviour.
+6. When every file has succeeded, all are written together.
+7. The gate runs: structure, coherence, properties, behaviour.
+8. The plan is recorded with the output as provenance.
+
+---
+
+## The plan
+
+A generator MUST NOT impose a file structure. It asks the model for one.
+
+### Why the structure is the model's
+
+A specification constrains BEHAVIOUR. What a caller can observe — the endpoints
+served, the types exchanged, the properties asserted — is the contract. How that
+is divided into files is an implementation decision, and a specification that
+fixes it is asserting authority it does not have.
+
+There is a practical cost too. A file list authored by hand is a guess, and a
+guess encoded as law prevents a model from making a better decision: putting
+fifty-five types in three files rather than one, or omitting a helpers file it
+does not need. Worse, an authored list tends to be a SUBSET of what the
+blueprints already enumerate — naming four required types where the protocol
+defines fifty-five — and so narrows the specification while appearing to
+sharpen it.
+
+The blueprints already state what must exist. The plan states how this
+implementation will arrange it.
+
+### What a plan declares
+
+```yaml
+plan:
+  target: orchestrator
+  root: <dir>
+  build: <command>          # from the platform blueprint's Build and Run
+  files:
+    - path: <relative>
+      purpose: <text>
+      declares: []          # symbols this file will define
+      serves: []            # "METHOD /path" this file will handle
+      depends_on: []        # files that must be generated first
+```
+
+### Validating a plan
+
+A plan is checked against the extracted requirements BEFORE any file is
+generated. It MUST be rejected, with what is missing, when:
+
+1. A type the protocol enumerates is placed in no file.
+2. An endpoint the protocol defines for this target is served by no file.
+3. A symbol is declared by more than one file.
+4. `depends_on` contains a cycle, or names a file not in the plan.
+5. A file has no purpose.
+
+Rejection returns the specific gap and asks for a revised plan. This costs one
+call and saves generating a structure that could never satisfy the blueprints.
+
+### Generation order comes from the plan
+
+Files are generated in dependency order, derived from `depends_on`. This is not
+cosmetic: an entry point generated before the component it constructs cannot know
+that component's signature, however complete the declarations passed to it. The
+first real run of this pipeline failed exactly there — an entry point written
+second called a constructor written fifth.
+
+A reader's order and a generator's order are different. A layout in a platform
+blueprint is written for a person, entry point first; a plan is ordered for
+production, dependencies first.
 
 ---
 
@@ -158,9 +233,9 @@ choice; content is not.
 | # | Element | Why it is required |
 |---|---------|--------------------|
 | 1 | **Output contract** — exactly one file, no prose, no fences, first character is the file's first character | A convention requested in prose is honoured differently by different models. This is the single largest source of unusable output |
-| 2 | **The file's obligations** — its `path`, `purpose`, `must_define`, `must_serve` | A file generated from a filename alone is a guess |
+| 2 | **The file's obligations** — its `path`, `purpose`, `declares`, `serves`, from the plan | A file generated from a filename alone is a guess |
 | 3 | **Accumulated declarations** — the actual top-level symbols already defined by previously generated files | Naming the FILES is not enough. A generator told only that `helpers.go` exists will redeclare its symbols, or invent helpers that were never written |
-| 4 | **The complete file set** — every path in the target | So a file knows what it is NOT responsible for, and does not absorb another file's work |
+| 4 | **The complete file set** — every path in the plan | So a file knows what it is NOT responsible for, and does not absorb another file's work |
 | 5 | **Platform constraints** — language, dependency policy, idioms | From the platform blueprint |
 | 6 | **Verification Checklists** — as explicit acceptance criteria, not buried in the blueprint body | A checklist present as context is complied with by luck. Present as criteria, it is complied with on purpose |
 | 7 | **Scope prohibition** — build the declared obligations and nothing else | Below |
@@ -168,10 +243,10 @@ choice; content is not.
 
 ### Scope discipline
 
-A generator MUST instruct the model to produce ONLY what the manifest declares
-for that file. It MUST NOT invite, and SHOULD explicitly forbid:
+A generator MUST instruct the model to produce ONLY what the plan declares for
+that file. It MUST NOT invite, and SHOULD explicitly forbid:
 
-- endpoints, routes or handlers not named in `must_serve`
+- endpoints, routes or handlers not named in the plan for this file
 - configuration, metrics, dashboards, health pages or admin surfaces not
   specified by a blueprint
 - dependencies beyond the platform's stated policy
@@ -191,8 +266,8 @@ a later layer's result is meaningless once an earlier one has failed.
 
 ### Layer 1 — Structure
 
-Every file in the manifest exists; every `must_define` symbol appears; every
-`must_serve` endpoint appears. Answerable in milliseconds, and localises a
+Every file in the plan exists; every symbol it said it would declare appears;
+every endpoint it said it would serve appears. Answerable in milliseconds, and localises a
 failure to one file.
 
 ### Layer 2 — Coherence
@@ -201,7 +276,7 @@ The files agree with each other:
 
 - every top-level symbol is declared exactly **once** across the target
 - every call site matches the declared signature
-- the target builds with the manifest's `build` command
+- the target builds with the plan's `build` command
 
 Layer 2 exists because a target can pass Layer 1 completely and not compile —
 each file individually correct, collectively contradictory. This is the most
@@ -220,7 +295,7 @@ verified is not a satisfied one.
 
 ### Layer 4 — Behaviour
 
-`architecture/testing.md` conformance, at the levels the manifest names.
+`architecture/testing.md` conformance, at the levels the platform blueprint names.
 
 ---
 
@@ -272,7 +347,12 @@ and "nothing contradicted it".
 
 ## Verification Checklist
 
-- [ ] A generator produces exactly the files the manifest declares — no more, no fewer
+- [ ] A generator asks the model for a plan and does not impose a file structure
+- [ ] A plan omitting a type the protocol enumerates is rejected, naming the type
+- [ ] A plan omitting an endpoint the protocol defines is rejected, naming the endpoint
+- [ ] A plan declaring one symbol in two files is rejected
+- [ ] Files are generated in the plan's dependency order, dependencies first
+- [ ] A generator produces exactly the files the plan declares — no more, no fewer
 - [ ] A response containing prose before the file content is rejected and retried with that reason
 - [ ] A wrapping code fence is stripped; a response with prose around a fence is rejected
 - [ ] Each file's prompt includes the top-level declarations of every previously accepted file
@@ -284,4 +364,4 @@ and "nothing contradicted it".
 - [ ] Layer 3 evaluates every mechanically checkable checklist assertion and reports the rest as unchecked
 - [ ] A failure at any layer prevents later layers from reporting a result
 - [ ] Generated file paths are validated for containment before any write
-- [ ] The model, blueprint versions and manifest version used are recorded with the output
+- [ ] The model, blueprint versions and the plan used are recorded with the output
