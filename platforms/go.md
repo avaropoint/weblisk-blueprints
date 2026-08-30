@@ -103,7 +103,7 @@ runtime:
   language: Go
   version: ">=1.22"
   dependencies:
-    required: []  # Zero external dependencies — Go standard library only
+    required: [github.com/cloudflare/circl]  # ML-DSA-65; Go has no PQC signatures
     optional:
       - name: modernc.org/sqlite
         version: "latest"
@@ -117,9 +117,16 @@ runtime:
       purpose: Go compiler and toolchain
 ```
 
-Go achieves true zero external dependencies — the entire framework
-compiles from the Go standard library alone. The only exception is
-an optional SQLite driver for production persistence.
+Go compiles from the standard library alone with two declared exceptions, and
+no others:
+
+| Dependency | Why it cannot be stdlib |
+|---|---|
+| `github.com/cloudflare/circl` | ML-DSA-65 (FIPS 204). The protocol mandates it and Go has no post-quantum signature implementation |
+| a SQLite driver | optional, for production persistence |
+
+Both MUST appear in `go.mod`. "Zero external dependencies" describes everything
+else: no framework, no router, no middleware stack, no logging library.
 
 See [Go-Specific Requirements](#go-specific-requirements) for
 detailed stdlib package usage and conventions.
@@ -129,8 +136,8 @@ detailed stdlib package usage and conventions.
 ## Go-Specific Requirements
 
 ### Dependencies
-- Zero external dependencies. Use only Go standard library.
-- ML-DSA-65 (FIPS 204) via `circl` library from Cloudflare for post-quantum signing
+- Standard library only, except the two dependencies declared above
+- ML-DSA-65 (FIPS 204) via `github.com/cloudflare/circl` — required, and must be in go.mod
 - `crypto/rand` for secure random generation  
 - `encoding/json` for JSON serialization
 - `encoding/hex` for hex encoding
@@ -486,7 +493,7 @@ go test -race -count=1 ./...
 
 ## Verification Checklist
 
-- [ ] Zero external dependencies — only Go standard library is imported (exception: one SQLite driver for persistence)
+- [ ] No dependency beyond `github.com/cloudflare/circl` and an optional SQLite driver, and both are declared in go.mod
 - [ ] All source files are in `package main`; shared code (protocol.go, identity.go, helpers.go) is copied between orchestrator and agents
 - [ ] `io.LimitReader` is applied on all request body reads: 1 MB for registration/messages, 10 MB for tasks, 64 KB for channels
 - [ ] All registries and shared maps are protected by `sync.RWMutex` with `RLock` for reads and `Lock` for writes
