@@ -27,6 +27,7 @@ frontmatter. A pattern is a dependency that provides a known contract.
 | [auth-session.md](auth-session.md) | Session-based auth with secure cookies, CSRF |
 | [auth-token.md](auth-token.md) | JWT and API key auth with refresh tokens, scopes |
 | [user-management.md](user-management.md) | User lifecycle — profiles, roles, password reset, OAuth |
+| [principal-identity.md](principal-identity.md) | Portable identity, hub grants, per-hub authentication policy |
 | [security.md](security.md) | Transport security, input validation, zero-trust, threat events |
 | [secrets.md](secrets.md) | Secret lifecycle — storage, rotation, access control |
 
@@ -41,6 +42,7 @@ frontmatter. A pattern is a dependency that provides a known contract.
 | [approval.md](approval.md) | Intent-based approval — authority routing, multi-party, emergency override |
 | [privacy.md](privacy.md) | Consent, masking, anonymization, minimization, erasure cascade |
 | [governance.md](governance.md) | Compliance profiles, evidence collection, governance directives |
+| [content-identity.md](content-identity.md) | Content-addressed versions — digest as join key, derived staleness |
 | [migration.md](migration.md) | Migration governance — plans, dry runs, blast radius, integrity verification |
 
 ## Infrastructure

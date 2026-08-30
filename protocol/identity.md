@@ -173,6 +173,63 @@ When `kdf = none`:
    exit with code 2 (auth error). No retry loop — the operator
    re-runs the command.
 
+### Service Key Protection
+
+Rules 2 and 3 above date from a model in which a service held one
+long-lived key on disk, and `kdf = none` was the only way a headless
+process could start unattended. That trade is no longer necessary, and
+it is no longer permitted in production.
+
+A service key protected by file permissions alone is a permanent and
+SILENT compromise. Anyone who reads the file — from a backup, a
+container image, a mounted volume, a crash dump, or a co-located
+process — holds that identity indefinitely. Nothing about the theft is
+observable: there is no passphrase to fail, no presence check to miss,
+and no expiry to reach. A stolen operator key is noticed; a stolen
+service key is not.
+
+The resolution is not stronger encryption of a long-lived key. It is
+to stop persisting one.
+
+**Rules:**
+
+6. A production service MUST NOT hold a long-lived private key
+   protected by file permissions alone. `kdf = none` is permitted ONLY
+   in development, and an implementation MUST report such a key as
+   development-only rather than treating it as ordinary.
+
+7. A service's OPERATING credential MUST be short-lived, minted at
+   process start, held in memory only, and never written to disk. Its
+   lifetime SHOULD be hours, and MUST NOT exceed the rotation interval
+   for the key that attested it.
+
+8. The long-lived material that attests those credentials MUST be
+   protected by one of, in descending preference:
+
+   | Protection | Mechanism |
+   |------------|-----------|
+   | Hardware | TPM, secure enclave, HSM — key is non-extractable |
+   | Platform attestation | The runtime proves the workload's identity (workload identity, instance metadata, TPM quote) and the key is released only to a matching measurement |
+   | Managed secret | KMS or secrets manager, authenticated by platform identity, never materialised on disk |
+   | Injected passphrase | Supplied at start via a credential channel, held in memory only |
+
+9. A key or passphrase MUST NOT be supplied through an environment
+   variable. Environment is readable via `/proc`, container
+   inspection, crash dumps and diagnostic output, and it is inherited
+   by every child process.
+
+10. In-memory key material MUST be zeroised after use, SHOULD be
+    excluded from swap where the platform allows it, and MUST be
+    excluded from core dumps.
+
+11. Where platform attestation is available, a service SHOULD hold no
+    long-lived private key at all: the platform identity is the root of
+    trust, and every credential the service uses is short-lived and
+    re-minted.
+
+Rules 6–11 raise the bar set by rules 2 and 3. A deployment relying on
+`kdf = none` outside development is NOT conformant.
+
 ### Key Loading Flow
 ```
 1. Check if a stored key exists for this identity

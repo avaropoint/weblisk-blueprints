@@ -22,6 +22,22 @@ management — creating accounts, assigning roles, recovering access,
 and linking external identity providers. Together, they form the
 complete user system for a Weblisk application.
 
+**Scope: one deployment.** The User record below carries a single `Role` drawn
+from that application's own role set, and its OAuth links are social sign-in for
+that application. This is the right model for a Weblisk application with its own
+users.
+
+It is NOT the model for a subject that works across several hubs. There, the
+subject holds a self-generated identity that no deployment owns, enters each hub
+through a credential that hub attested, and holds a separate grant in each — see
+[principal-identity](principal-identity.md). A deployment MAY use both: this
+pattern for its own account lifecycle, `principal-identity` for admitting
+subjects who exist beyond it.
+
+The two MUST NOT be joined on email address. A subject may hold accounts under
+several addresses in several directories at once; the identity key is the
+identifier and the address is a coordinate.
+
 ---
 
 ## Dependencies

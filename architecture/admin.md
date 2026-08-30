@@ -286,6 +286,8 @@ Critical rules:
    ├── Verify token.mfa == true
    ├── If false → 403 with X-MFA-Required: true
    └── MFA must be TOTP or WebAuthn (no SMS)
+       (a WebAuthn passkey MAY instead be the primary credential —
+        see patterns/principal-identity)
 
 6. ROLE AUTHORIZATION
    ├── Check token.role against endpoint's minimum role
@@ -363,6 +365,26 @@ acceptable for single-host deployments.
 Operators are human users who manage the Weblisk deployment. They
 use the same ML-DSA-65 identity system as agents but with
 operator-specific capabilities.
+
+**Scope: this deployment.** The registration flow below binds an operator to ONE
+orchestrator. A subject who operates several hubs holds one self-generated
+identity and a separate credential attested by each hub — the registration below
+is then how one of those credentials is established, not how the subject's
+identity is created. See
+[patterns/principal-identity](../patterns/principal-identity.md).
+
+Two consequences worth stating here, because this file is where operators are
+defined:
+
+- **Creating a hub grants nothing beyond that hub.** The first-operator
+  auto-approval below is a grant recorded in the orchestrator it was made
+  against. It is revocable, including revoking the creator, and it confers no
+  standing at any other hub. A control plane that provisions hubs therefore
+  accumulates grants, not privilege.
+- **A directory never authenticates.** Where an external directory or control
+  plane lists operators, an orchestrator MUST still verify signatures against the
+  public key in its OWN records. Consulting a directory at authentication time
+  would make that directory a skeleton key for every deployment trusting it.
 
 ### Operator Registration
 

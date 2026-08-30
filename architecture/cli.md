@@ -353,6 +353,62 @@ Generate the server implementation from blueprint specs. The CLI reads
 `agents/*/agent.yaml`, then dispatches to the configured LLM along
 with the platform blueprint to generate the implementation.
 
+**Generation MUST NOT require a hosted account.** Standing up a first hub is the
+entry point to the whole framework, and putting a paid API key in front of it
+makes the framework unusable to anyone evaluating it, unusable offline, and
+unusable where data policy forbids sending source to a third party. The provider
+set therefore includes backends that run entirely on the operator's machine:
+
+| `WL_AI_PROVIDER` | Transport | Requires |
+|------------------|-----------|----------|
+| `claude-code` | local subprocess | Claude Code installed; uses its own login |
+| `ollama` | local HTTP | Ollama running |
+| `local-cli` | local subprocess | any tool, via `WL_AI_COMMAND` |
+| `openai`, `anthropic`, `cloudflare` | hosted HTTP | `WL_AI_KEY` |
+
+Local CLI backends are a subprocess, not an endpoint: there is no base URL and no
+key, and the credential is whatever the tool is already authenticated with.
+Implementations MUST resolve such a binary by searching the usual install
+locations as well as `PATH` — a process started by launchd, systemd or an editor
+does not inherit a login shell's PATH, and reporting "not installed" for a tool
+the operator is using in another window is a diagnosis nobody can act on.
+
+The provider that generated a hub, and the blueprint version it generated from,
+are part of that hub's provenance and MUST be recorded.
+
+#### Generated output is untrusted
+
+A model's response is data, not instruction, and **the file paths inside it are
+attacker-influenced input**. Blueprints are the generator's instructions and a
+hub adopts them from a marketplace, so an untrusted blueprint is untrusted input
+to a code generator: prompt injection there is a file-write primitive, and a
+write to a VCS hook directory or a shell profile is code execution on the
+operator's machine. A merely mistaken path is no better — it destroys a key store
+just as thoroughly.
+
+Implementations MUST therefore:
+
+1. Reject any generated path that is absolute, or that contains a `..` segment.
+2. Verify the resolved path lies inside the target directory, comparing cleaned
+   absolute paths with a separator appended so that `server-old` is not treated
+   as inside `server`.
+3. Refuse any path naming a location that carries authority — `.git`, `secrets`,
+   `keys`, `.ssh`, `.env`, `.weblisk` — even when it is nominally inside the
+   target.
+4. Re-check containment after directory creation, because a symlinked directory
+   inside the target can point anywhere.
+5. Validate EVERY path in a response before writing ANY file. A generation that
+   attempted to escape must not be partially applied.
+
+The generator MUST NOT be given filesystem tools, the operator's MCP servers, or
+session state. It receives blueprints and returns text; the CLI writes the files.
+A generator that can write directly has no boundary between "generate a hub" and
+"do anything to this machine".
+
+The generator MUST NOT be given secrets, key material, or tenant content. It
+needs blueprints and a platform specification, and nothing in `.weblisk/secrets/`,
+`.weblisk/keys/` or a tenant's documents is an input to generating a hub.
+
 ```bash
 $ weblisk server init --platform go
 $ weblisk server init --platform cloudflare

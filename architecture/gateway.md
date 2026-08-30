@@ -516,6 +516,18 @@ can require for sensitive operations.
 | TOTP | RFC 6238 | User's shared secret (encrypted) |
 | WebAuthn | W3C WebAuthn L2 | User's credential public key |
 
+**WebAuthn is also a primary credential, not only a second factor.** A passkey
+is a distinct key pair per relying party, generated on the device and
+non-exportable — the same shape as a hub credential. Where a gateway fronts a
+hub admitting subjects who hold their own identities, a passkey MAY be the
+credential itself rather than an addition to a password. See
+[patterns/principal-identity](../patterns/principal-identity.md) for the binding,
+and for the three constraints that apply: a passkey signs with ES256 or EdDSA and
+therefore authenticates but never attests; a SYNCED passkey exists on every
+device its provider enrolled, so per-device revocation requires refusing syncable
+credentials at registration; and user verification must be read from the
+authenticator's UV flag, never inferred from a valid signature.
+
 ---
 
 ## Agent Failover and Session Continuity
