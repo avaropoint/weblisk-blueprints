@@ -90,6 +90,53 @@ agents/<name>/
 
 ---
 
+### Generation Manifest
+
+Machine-readable form of the layout above. Generation is a loop over `files`,
+one call per file, rather than a single request for a whole implementation:
+
+- the file set is the BLUEPRINT's, not the model's
+- a failure is attributable to a file, and retried without discarding the rest
+- progress is real, which a graphical caller needs
+- `must_define` and `must_serve` are checked BEFORE the conformance suite runs,
+  so a missing symbol is found in seconds rather than as a protocol failure
+  minutes later
+
+Two implementations generated from this manifest will differ in wording and
+still be the same hub: the file set, the exported surface and the served
+endpoints are fixed here, and behaviour is fixed by `architecture/testing.md`.
+
+```yaml
+generate:
+  orchestrator:
+    root: server
+    build: npx wrangler deploy --dry-run
+    files:
+      - path: wrangler.toml
+        purpose: Worker configuration
+      - path: package.json
+        purpose: No runtime dependencies — devDependencies only for wrangler
+      - path: src/index.js
+        purpose: Worker entry point — router and handlers
+        must_define: [fetch]
+        must_serve:
+          - POST /v1/register
+          - DELETE /v1/register
+          - GET /v1/services
+          - POST /v1/channel
+          - POST /v1/rotate-key
+          - GET /v1/health
+          - GET /v1/audit
+      - path: src/protocol.js
+        purpose: Protocol types and validation
+      - path: src/identity.js
+        purpose: ML-DSA-65 via @noble/post-quantum
+        must_define: [generateKeyPair, sign, verify, issueToken, verifyToken]
+      - path: src/orchestrator.js
+        purpose: Registration, routing, channel brokering
+    conformance: [L1]
+```
+
 ## Runtime Requirements
 
 ```yaml

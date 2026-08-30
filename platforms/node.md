@@ -88,6 +88,55 @@ weblisk-app/
     └── integration/
 ```
 
+### Generation Manifest
+
+Machine-readable form of the layout above. Generation is a loop over `files`,
+one call per file, rather than a single request for a whole implementation:
+
+- the file set is the BLUEPRINT's, not the model's
+- a failure is attributable to a file, and retried without discarding the rest
+- progress is real, which a graphical caller needs
+- `must_define` and `must_serve` are checked BEFORE the conformance suite runs,
+  so a missing symbol is found in seconds rather than as a protocol failure
+  minutes later
+
+Two implementations generated from this manifest will differ in wording and
+still be the same hub: the file set, the exported surface and the served
+endpoints are fixed here, and behaviour is fixed by `architecture/testing.md`.
+
+```yaml
+generate:
+  orchestrator:
+    root: .
+    build: npm run build
+    files:
+      - path: package.json
+        purpose: Package manifest and scripts
+      - path: tsconfig.json
+        purpose: TypeScript configuration
+      - path: src/server.ts
+        purpose: Entry point — starts the orchestrator
+      - path: src/orchestrator/index.ts
+        purpose: Orchestrator setup and routes
+        must_serve:
+          - POST /v1/register
+          - DELETE /v1/register
+          - GET /v1/services
+          - POST /v1/channel
+          - POST /v1/rotate-key
+          - GET /v1/health
+          - GET /v1/audit
+      - path: src/orchestrator/router.ts
+        purpose: Task routing logic
+      - path: src/orchestrator/registry.ts
+        purpose: Agent registry
+      - path: src/protocol/types.ts
+        purpose: Protocol types
+      - path: src/protocol/identity.ts
+        purpose: ML-DSA-65 keys, signing, WLT tokens
+    conformance: [L1]
+```
+
 ## Dependencies
 
 ### Blueprint Dependencies

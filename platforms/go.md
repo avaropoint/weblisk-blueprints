@@ -96,6 +96,55 @@ Run: `./agents/seo --port 9710 --orch http://localhost:9800`
 
 ---
 
+### Generation Manifest
+
+Machine-readable form of the layout above. Generation is a loop over `files`,
+one call per file, rather than a single request for a whole implementation:
+
+- the file set is the BLUEPRINT's, not the model's
+- a failure is attributable to a file, and retried without discarding the rest
+- progress is real, which a graphical caller needs
+- `must_define` and `must_serve` are checked BEFORE the conformance suite runs,
+  so a missing symbol is found in seconds rather than as a protocol failure
+  minutes later
+
+Two implementations generated from this manifest will differ in wording and
+still be the same hub: the file set, the exported surface and the served
+endpoints are fixed here, and behaviour is fixed by `architecture/testing.md`.
+
+```yaml
+generate:
+  orchestrator:
+    root: server
+    build: go build ./...
+    files:
+      - path: go.mod
+        purpose: Module definition. Standard library only — no external dependencies
+      - path: main.go
+        purpose: Entry point — configure and start the orchestrator
+        must_define: [main]
+      - path: protocol.go
+        purpose: Protocol types, shared verbatim with agents
+        must_define: [AgentManifest, RegisterRequest, TaskRequest, ErrorResponse]
+      - path: identity.go
+        purpose: ML-DSA-65 key management, signing, WLT tokens
+        must_define: [GenerateKeyPair, Sign, Verify, IssueToken, VerifyToken]
+      - path: orchestrator.go
+        purpose: HTTP server — registration, directory, channels, audit
+        must_define: [Orchestrator, Start]
+        must_serve:
+          - POST /v1/register
+          - DELETE /v1/register
+          - GET /v1/services
+          - POST /v1/channel
+          - POST /v1/rotate-key
+          - GET /v1/health
+          - GET /v1/audit
+      - path: helpers.go
+        purpose: JSON helpers and shared utilities
+    conformance: [L1]
+```
+
 ## Runtime Requirements
 
 ```yaml
