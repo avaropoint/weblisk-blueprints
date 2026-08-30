@@ -229,16 +229,44 @@ tests/
 **Optional.** A machine-readable form of the layout stated in Project Structure,
 for tooling that GENERATES an implementation for this platform.
 
-#### What it is not
+#### Status: optional to the framework, required by the tooling
 
-It is not the definition of a hub. `protocol/spec.md` defines the wire contract
-and `architecture/testing.md` proves an implementation meets it. A hub written by
-hand, produced by other tooling, or written in a language with no platform
-blueprint is fully valid the moment it serves the protocol and passes
-conformance.
+These are different claims and both are true, so both are stated.
 
-A platform blueprint with no manifest is complete. A manifest that disagrees with
-a working implementation is the manifest's problem, not the implementation's.
+**Optional to the framework.** It is not the definition of a hub.
+`protocol/spec.md` defines the wire contract and `architecture/testing.md` proves
+an implementation meets it. A hub written by hand, produced by other tooling, or
+written in a language with no platform blueprint is fully valid the moment it
+serves the protocol and passes conformance. A platform blueprint with no manifest
+is complete, and a manifest that disagrees with a working implementation is the
+manifest's problem.
+
+**Required by the reference tooling.** `weblisk server init` uses the manifest to
+generate one file per call against a fixed file set. A platform blueprint without
+one falls back to requesting a whole implementation in a single call, which has
+no checkpoint, no attributable failure and no progress. That path exists and is
+not recommended.
+
+So: a platform MAY omit the manifest, and a platform that wants repeatable
+generation MUST have one. Implementations of the framework are free to ignore
+this section entirely; implementations of the reference CLI are not.
+
+#### It is a versioned artifact
+
+A manifest is content other tooling reads, so it changes under the same rules as
+any other blueprint (`patterns/versioning`):
+
+- Adding a file, or adding `must_define`/`must_serve` entries, is a MINOR change:
+  existing generated implementations remain valid, and the next generation
+  produces more.
+- Removing a file, or renaming one, is a MAJOR change: an implementation
+  generated from the previous manifest no longer matches the current one.
+- A manifest MUST be validated against the rules below before publication.
+  Reference implementation: `weblisk validate --manifest`.
+
+A manifest that has never been exercised by a generation run MUST say so
+(rule 7). An untested file list that reads like a tested one is the more
+expensive kind of documentation.
 
 #### Why it exists
 
