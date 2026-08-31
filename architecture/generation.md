@@ -192,10 +192,20 @@ plan:
   files:
     - path: <relative>
       purpose: <text>
-      declares: []          # symbols this file will define
+      declares: []          # TOP-LEVEL symbols only — see below
       serves: []            # "METHOD /path" this file will handle
       depends_on: []        # files that must be generated first
 ```
+
+`declares` means top-level symbols: types, functions, methods, constants and
+package-level variables. It MUST NOT list struct fields, local variables, or
+anything nested inside another declaration — a verifier cannot distinguish those
+from an omission, and rejecting on one has ended a run over correct code.
+
+A method MUST be named in receiver notation, `(Type).Method`, so that identity is
+unambiguous both when checking the file and when detecting collisions between
+files. A generator MUST state these rules when asking for a plan; a planner told
+only "symbols this file will define" will reasonably list fields.
 
 ### Validating a plan
 
@@ -267,20 +277,55 @@ a later layer's result is meaningless once an earlier one has failed.
 ### Layer 1 — Structure
 
 Every file in the plan exists; every symbol it said it would declare appears;
-every endpoint it said it would serve appears. Answerable in milliseconds, and localises a
-failure to one file.
+every endpoint it said it would serve appears. Answerable in milliseconds, and
+localises a failure to one file.
+
+**Layer 1 is a pre-filter, not the authority. Layer 2 is.** The costs are
+asymmetric: a false rejection here discards the file and spends the retry budget,
+and a run has died at eleven of twelve files over one — while a false acceptance
+is caught by the build minutes later. So Layer 1 SHOULD be permissive and MUST
+NOT reject on ambiguity.
+
+Concretely, a required symbol is satisfied when it appears as a parsed top-level
+declaration OR anywhere in the file. A plan may legitimately name something the
+implementation expresses as a struct field, a constant inside a block, or a
+member of a type — none of which a top-level parse can see, and all of which are
+correct.
+
+The exception is a symbol named in method notation. `(Type).Method` states a
+receiver and is therefore unambiguous, so it MUST be verified by parsing: a
+substring match would accept `Method` declared on some other type, which is a
+different promise from the one the plan made.
 
 ### Layer 2 — Coherence
 
 The files agree with each other:
 
-- every top-level symbol is declared exactly **once** across the target
+- every symbol is declared exactly **once** across the target
 - every call site matches the declared signature
 - the target builds with the plan's `build` command
+
+**Symbol identity is receiver-qualified where the language namespaces by
+receiver.** In Go, `func (s *SQLiteStore) Load()` and `func (m *MemStore) Load()`
+are different methods, and two types implementing an interface both declare its
+methods. Comparing bare names reports that legal arrangement as a redeclaration —
+which stopped a run in which all files had generated correctly.
 
 Layer 2 exists because a target can pass Layer 1 completely and not compile —
 each file individually correct, collectively contradictory. This is the most
 common failure of per-file generation and it is invisible to every other layer.
+
+### A note on checking layers
+
+Every defect found in this pipeline so far has been in the checking layers rather
+than in a model's output or a blueprint's content, and each produced a confident,
+specific, correctly formatted rejection of work that was fine.
+
+That is the characteristic failure mode of verification: a wrong check is more
+persuasive than no check. Implementations SHOULD test checking layers against
+real generated output rather than fixtures alone — a fixture written by the same
+author as the check inherits its assumptions, and none of these four were
+reachable by a test that author would have thought to write.
 
 ### Layer 3 — Properties
 
@@ -360,7 +405,11 @@ and "nothing contradicted it".
 - [ ] Each file's prompt forbids endpoints, configuration and dependencies not declared for it
 - [ ] No file is written to disk until every file in the target has been accepted
 - [ ] Layer 1 failure names the file and the missing symbol or endpoint
+- [ ] Layer 1 accepts a required symbol the implementation expresses as a struct field
+- [ ] Layer 1 rejects a method named in receiver notation but declared on another type
 - [ ] Layer 2 detects a symbol declared in two files, and a call site disagreeing with its declaration
+- [ ] Layer 2 does NOT report two methods of the same name on different receivers as a collision
+- [ ] A plan naming a struct field in `declares` is corrected by the planning instructions rather than tolerated by the checker
 - [ ] Layer 3 evaluates every mechanically checkable checklist assertion and reports the rest as unchecked
 - [ ] A failure at any layer prevents later layers from reporting a result
 - [ ] Generated file paths are validated for containment before any write
