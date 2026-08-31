@@ -2,7 +2,7 @@
 type: architecture
 name: agent
 version: 1.0.0
-requires: [protocol/spec, protocol/identity, protocol/types, patterns/retry, patterns/messaging]
+requires: [protocol/spec, protocol/identity, protocol/types, architecture/observability, patterns/retry, patterns/messaging]
 platform: any
 tier: free
 -->
