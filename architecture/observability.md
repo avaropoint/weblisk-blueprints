@@ -465,7 +465,7 @@ In development mode:
 - Log format defaults to `text` (human-readable, colorized)
 - Tracing is disabled (less noise)
 - Metrics endpoint is available at each component's port + `/metrics`
-- All components log to their own stdout (visible in terminal)
+- All components write logs to the runtime's own log stream, wherever a developer sees it
 
 ### Production
 

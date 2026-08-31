@@ -266,8 +266,14 @@ namespace ownership, and routing entries are preserved unchanged.
 
 ## Graceful Shutdown
 
-When an agent receives a termination signal (SIGTERM, SIGINT), it performs
-an orderly shutdown to avoid disrupting in-flight work.
+When an agent is asked to stop, it performs an orderly shutdown rather than
+disrupting in-flight work.
+
+How that request arrives belongs to the platform blueprint: a process receives a
+signal, a serverless invocation is told its context is ending, a managed runtime
+calls a lifecycle hook. The sequence below is the same in every case, and an
+implementation that can only be stopped abruptly must say so rather than claim
+this.
 
 ```
 1. Stop accepting new tasks (return 503 Service Unavailable)
@@ -747,5 +753,5 @@ Runtime state tracked per registered agent.
 - [ ] Agent startup sequence generates ML-DSA-65 keys, registers HTTP routes (6 endpoints), starts server, and registers with orchestrator
 - [ ] Token refresh triggers re-registration when remaining TTL drops below the configured refresh threshold (default 10%)
 - [ ] Token refresh failure enters degraded state after 5 retries with exponential backoff
-- [ ] Graceful shutdown on SIGTERM/SIGINT: stops accepting tasks, drains in-flight work, sends DELETE /v1/register, closes server
+- [ ] Graceful shutdown when asked to stop, by whatever mechanism the platform blueprint names: stops accepting tasks, drains in-flight work, sends DELETE /v1/register, closes the server
 - [ ] Shutdown respects the configured shutdown timeout (default 30s) for in-flight task drain

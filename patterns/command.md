@@ -30,6 +30,14 @@ interface for command execution that provides:
 - Remote execution over SSH with credential management
 
 Agents extend this pattern when they need to invoke external commands.
+
+**This pattern requires a runtime that can spawn processes.** It names exit
+codes, stdin, stdout and process signals because those are its subject, not
+because it assumes them of something else. A runtime without processes — a
+Cloudflare Worker, a browser, any sandbox without a process table — cannot
+implement this pattern at all, and an agent that depends on it cannot be deployed
+there. That is a deployment constraint to state up front, not a conformance
+failure to discover during generation.
 The framework provides the execution runtime; the agent declares what
 commands it's allowed to run.
 

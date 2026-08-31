@@ -279,7 +279,7 @@ Rules 6–11 raise the bar set by rules 2 and 3. A deployment relying on
    a. Parse stored key format and validate header
    b. Read KDF field
    c. If encrypted (KDF applied):
-      - Obtain passphrase (interactive prompt or secure configuration)
+      - Obtain passphrase over a non-echoing channel (the platform blueprint names it)
       - Derive decryption key via the configured KDF with stored params
       - Decrypt ciphertext with authenticated encryption
       - Decode → ML-DSA-65 private key
