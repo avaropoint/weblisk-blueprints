@@ -541,6 +541,19 @@ the assertion's wording, and MUST report excluded assertions with their count an
 the component they belong to — an assertion left out silently is indistinguishable
 from an assertion that was never written.
 
+### Conditional assertions
+
+An assertion whose obligation depends on a choice the implementation makes MUST
+be written as `IF <premise>: <obligation>`:
+
+```markdown
+- [ ] IF SQLite was chosen: WAL journal mode, `user_version` pragma for migrations
+```
+
+Written without the prefix, such an assertion fails every implementation that
+made a different — and permitted — choice. The `IF` is what lets a tool tell "this
+does not apply" from "this is unmet".
+
 ### Rules
 
 1. Every item must be a checkbox (`- [ ]`)
@@ -551,6 +564,7 @@ from an assertion that was never written.
 6. Minimum 5 items for all other types
 7. A `###` group addressed to one component MUST begin with that component's name;
    an assertion belonging to no single component MUST NOT sit in such a group
+8. An assertion conditional on a choice MUST be written `IF <premise>: <obligation>`
 
 ---
 

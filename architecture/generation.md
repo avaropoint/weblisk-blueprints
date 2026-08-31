@@ -344,7 +344,7 @@ Implementations MUST check every mechanically checkable assertion and MUST
 report the remainder as unchecked rather than passed. An assertion nobody
 verified is not a satisfied one.
 
-#### Four outcomes, never three
+#### Five outcomes, never three
 
 Assertions are not uniformly checkable, and the interesting ones are only
 **partly** checkable. "POST /v1/register enforces exclusive namespace ownership
@@ -355,18 +355,53 @@ an honest gap. Reporting it as unchecked discards a cheap detection of a definit
 fault.
 
 So a check MAY be **one-way**: it tests a necessary condition, so failure is
-conclusive and success is not. Every implementation MUST report four outcomes:
+conclusive and success is not. Every implementation MUST report five outcomes:
 
 | Outcome | Meaning |
 |---|---|
 | `verified` | a check settles the assertion, and it holds |
 | `failed` | a check settles it against the artifact, or a necessary condition is unmet |
 | `necessary` | a necessary condition holds; the assertion is NOT established |
+| `not-applicable` | the assertion is conditional and its premise is established false |
 | `unchecked` | nothing mechanical applies |
 
 `necessary` MUST NOT be counted as `verified`, and MUST NOT be folded into
 `unchecked` — the first is the fault this layer exists to prevent, the second
 discards a real result. Only `failed` may drive a repair.
+
+`not-applicable` MUST NOT be folded into `unchecked` either. They call for
+different things: an unchecked assertion needs a human to look at it and an
+inapplicable one needs nobody, so folding them inflates the review queue with
+work that does not exist.
+
+#### Conditional assertions
+
+An assertion whose obligation depends on a choice MUST be written `IF premise:
+obligation` and MUST be evaluated only when the premise holds.
+
+platforms/go.md: *"IF SQLite was chosen: WAL journal mode, `user_version` pragma
+for migrations, tables created with `CREATE TABLE IF NOT EXISTS`"*. Evaluated
+unconditionally, that assertion fails every implementation that took the JSONL
+default the same blueprint recommends — a failure for making the recommended
+choice.
+
+A premise MUST be settled by an explicit test or not at all. Where nothing
+settles it, the assertion MUST be reported `unchecked` **with the premise
+quoted**, never `not-applicable`: guessing that a premise is false is how a
+checking layer begins silently forgiving requirements, which is worse than the
+false failure it would be avoiding.
+
+#### The specification is the authority, not a copy of it
+
+A check that compares an artifact against a table, a code registry or an enum
+MUST read that table from the blueprint. It MUST NOT carry its own transcription.
+
+protocol/types.md lists every protocol error code with its HTTP status and
+category. A checker holding a second copy of that table has created a second
+thing to keep right, and the two disagree the moment either moves — at which
+point the tooling is grading implementations against a specification nobody
+maintains. Reading the blueprint means a corrected table corrects every check
+that depends on it.
 
 #### Structure, not substrings
 
@@ -473,7 +508,9 @@ and "nothing contradicted it".
 - [ ] A plan naming a struct field in `declares` is corrected by the planning instructions rather than tolerated by the checker
 - [ ] Layer 3 evaluates every mechanically checkable checklist assertion and reports the rest as unchecked
 - [ ] The checklist is gathered from exactly the blueprint set the target was generated from
-- [ ] Four outcomes are reported: `verified`, `failed`, `necessary`, `unchecked` — `necessary` is folded into neither of the others
+- [ ] Five outcomes are reported: `verified`, `failed`, `necessary`, `not-applicable`, `unchecked` — `necessary` and `not-applicable` are folded into none of the others
+- [ ] A conditional assertion is evaluated only when its premise holds; an unsettled premise leaves the assertion unchecked with the premise quoted
+- [ ] Checks that compare against a table, registry or enum read it from the blueprint rather than from a transcription
 - [ ] Structural checks read the artifact's parse tree; substring checks are treated as one-way
 - [ ] An artifact that does not parse contributes no structure to any check
 - [ ] Each refuted assertion names the artifacts it is about, attributed by the check that refuted it
