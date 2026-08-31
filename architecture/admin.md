@@ -82,7 +82,12 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       endpoints:
-        - path: /v1/admin/*
+        # The orchestrator-provided groups only. Strategies, approvals,
+        # workflows and federation are bound from their own providers — see
+        # "The admin API is an aggregate".
+        - path: /v1/admin/operators
+        - path: /v1/admin/agents
+        - path: /v1/admin/overview
           methods: [GET, POST, PUT, DELETE]
         - path: /v1/services
           methods: [POST]
@@ -439,7 +444,36 @@ automatically on each command.
 ## Admin Endpoints
 
 All admin endpoints are served under `/v1/admin/` and require a valid
-operator token. These extend the orchestrator's existing endpoint set.
+operator token.
+
+### The admin API is an aggregate
+
+Each group below is **specified and served by the component that owns the
+state**. The admin service holds `admin:` capabilities, calls those endpoints,
+and composes one operator surface behind its own enforcement. It is not the owner
+of the data and it is not co-located with any single provider.
+
+| Group | Provider | Present when |
+|---|---|---|
+| Operator management | Orchestrator | always — it is the trust anchor and holds operator records |
+| Agent management | Orchestrator | always |
+| Audit | Orchestrator | always |
+| System overview | aggregate | always, with absent providers reported absent |
+| Domain & workflow | Domain controllers | a domain controller is deployed |
+| Strategies, approvals, observations | Lifecycle Agent | the lifecycle agent is deployed |
+| Federation | Federation layer | the deployment federates |
+
+An earlier version of this section read *"These extend the orchestrator's
+existing endpoint set"*, which cannot be satisfied.
+[`architecture/lifecycle`](lifecycle.md) states that *"Strategies, approvals, and
+feedback are managed entirely by the Lifecycle Agent — not the orchestrator"*,
+and workflows belong to domain controllers. An orchestrator asked to serve
+`/v1/admin/strategies` would have to own state another component owns.
+
+**An endpoint whose provider is not deployed MUST report itself unavailable, and
+MUST NOT return an empty result.** An empty approval queue and an absent approval
+system are different facts, and a console that renders them identically tells an
+operator the system is quiet when it is simply not there.
 
 ### Operator Management
 
@@ -884,7 +918,9 @@ Admin endpoints SHOULD be rate-limited:
 - [ ] Role hierarchy admin > operator > auditor > viewer is enforced server-side on every /v1/admin/* endpoint
 - [ ] Destructive actions (deregister agent, revoke federation, delete operator) require 4-eyes approval and X-Confirm HMAC
 - [ ] Application gateway returns 404 for any request to /v1/admin/* paths
-- [ ] GET /v1/admin/overview returns agent counts, domain status, workflow stats, approval counts, and health score
+- [ ] GET /v1/admin/overview returns agent counts, domain status, workflow stats, approval counts, and health score — with any figure whose provider is not deployed reported as unavailable rather than zero
+- [ ] Each admin endpoint group is served by the component that owns its state; the admin service composes them and owns none of them
+- [ ] An admin endpoint whose provider is not deployed reports itself unavailable and never returns an empty result
 - [ ] All admin API responses include Cache-Control: no-store header
 - [ ] Admin auth middleware verifies token.type == "operator" and checks role against endpoint minimum
 - [ ] Bootstrap event (first operator registration) is permanently recorded in the audit log

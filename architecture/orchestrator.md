@@ -56,6 +56,10 @@ requires:
           fields_used: [name, type, version, url, public_key, capabilities, publishes, subscriptions]
         - name: AuditEntry
           fields_used: [id, timestamp, actor, action, target, detail, status]
+        - name: Capability
+          fields_used: [name, resources]
+        - name: Operator
+          fields_used: [name, public_key, role, status, created_at]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -85,7 +89,7 @@ See [Lifecycle](lifecycle.md) for the continuous optimization loop.
 
 ## Endpoints
 
-The orchestrator exposes exactly 6 endpoints:
+### Protocol endpoints
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
@@ -97,6 +101,39 @@ The orchestrator exposes exactly 6 endpoints:
 | GET | /v1/audit | yes | Query audit log |
 
 \* Registration uses ML-DSA-65 identity verification instead of tokens.
+
+### Administrative endpoints
+
+The orchestrator is the trust anchor and it holds the operator and agent
+records, so it serves the administrative endpoints backed by that state.
+It serves **only** those. Strategies, approvals and observations belong to the
+Lifecycle Agent, workflows to domain controllers, and peers to the federation
+layer; each provider specifies and serves its own, and
+[`architecture/admin`](admin.md) composes them behind one operator surface.
+
+Every endpoint here requires the stated `admin:` capability from
+[`protocol/types`](../protocol/types.md), carried in the caller's token.
+Administration is a capability like any other, which is what allows an
+administrative interface to be a service holding a grant rather than a
+privileged position in the deployment.
+
+| Method | Path | Capability | Purpose |
+|--------|------|-----------|---------|
+| POST | /v1/admin/operators/register | — | Register an operator. The first is auto-approved; every later one requires `admin:*` |
+| GET | /v1/admin/operators | `admin:*` | List operators |
+| GET | /v1/admin/operators/{name} | `admin:read` | Operator detail |
+| DELETE | /v1/admin/operators/{name} | `admin:*` | Remove an operator |
+| PUT | /v1/admin/operators/{name}/role | `admin:*` | Change an operator's role |
+| GET | /v1/admin/agents | `admin:read` | Agents with status, type and metrics |
+| GET | /v1/admin/agents/{name} | `admin:read` | Agent detail — manifest, metrics, recent tasks |
+| POST | /v1/admin/agents/{name}/deregister | `admin:*` | Force-deregister an agent |
+| GET | /v1/admin/overview | `admin:read` | Summary of the state this orchestrator holds |
+
+`/v1/admin/overview` reports what the orchestrator knows — agent counts,
+namespace count, audit depth, health. Figures owned by components that are not
+deployed MUST be reported **unavailable**, never zero. An empty workflow list and
+an absent workflow engine are different facts, and a console that renders them
+identically tells an operator the system is quiet when it is simply not there.
 
 ---
 
@@ -450,3 +487,6 @@ An entry in the orchestrator's internal agent registry.
 - [ ] Every operation creates an AuditEntry logged to stderr and persisted to JSONL
 - [ ] Domain dependency status recalculated on registration/deregistration
 - [ ] Orchestrator does NOT handle tasks, strategies, context, observations, or approvals
+- [ ] Administrative endpoints are gated on `admin:` capabilities carried in the caller's token, not on a separate role model
+- [ ] The orchestrator serves only the administrative endpoints backed by state it owns — operators, agents, and its own overview
+- [ ] `/v1/admin/overview` reports figures owned by undeployed components as unavailable, never as zero
