@@ -67,6 +67,36 @@ requires:
 
 ---
 
+## Primitive Mapping
+
+This is the whole job of a platform blueprint: the protocol names the primitives
+an implementation must use, and this table says where each one comes from on this
+platform. It does not restate what the primitives are, what standard defines them,
+or what parameters they take — those live in the blueprint that requires them, and
+a copy here would be a second normative statement free to drift from the first.
+
+A slot marked **UNFILLED** is a stated gap, not a detail. Generation for this
+platform MUST NOT proceed as though an unfilled slot were satisfied; the module or
+mechanism has to be named — and verified to exist — when the implementation is
+commissioned.
+
+| Primitive required by | Provided in Rust by | Status |
+|---|---|---|
+| `protocol/identity` — signature algorithm | a post-quantum signature crate | **UNFILLED** — the RustCrypto `ml-dsa` crate is the candidate; confirm its maturity before commissioning |
+| `protocol/identity` — key-derivation function | `argon2` (RustCrypto) | required |
+| `protocol/identity` — symmetric encryption | `aes-gcm` (RustCrypto) | required |
+| `protocol/identity` — random source | `getrandom` or `rand` | required |
+| `protocol/types` — canonical JSON | `serde_json` plus canonicalisation | required |
+| `protocol/spec` — HTTP transport | std or a minimal HTTP crate | required |
+| `architecture/storage` — default backend | `std::fs` — flat-file JSONL | std |
+| `architecture/storage` — non-default backend | a driver for the chosen engine | only if chosen |
+
+Rust's standard library carries no cryptography, so every primitive above is a
+crate. That is a property of the platform, not a relaxation of the dependency
+discipline: the set is fixed here and nothing outside it is permitted.
+
+---
+
 ## Project Structure
 
 ### Workspace Layout
@@ -391,13 +421,19 @@ protocol endpoints). The workflow engine lives in `domain.rs` — see
 
 ---
 
-## Storage Mapping (Rust / SQLite)
+## Storage Mapping (Rust)
 
-The Rust platform uses SQLite via `rusqlite` for persistent storage.
-Each component gets its own database file under `.weblisk/data/`.
+The default backend is **flat-file JSONL** under `.weblisk/data/`, per the
+Primitive Mapping table. It satisfies `architecture/storage`'s contract using
+`std::fs` alone.
 
-See [architecture/storage.md](../architecture/storage.md) for the
-abstract storage interface.
+The table below maps each store to a file, and the SQLite layout that follows it
+applies **only when SQLite was chosen** when the implementation was commissioned.
+An implementation is non-conformant only if it fails the storage contract, never
+for the backend it satisfies it with.
+
+See [architecture/storage.md](../architecture/storage.md) for the contract every
+backend must meet.
 
 | Store | File | Table |
 |-------|------|-------|

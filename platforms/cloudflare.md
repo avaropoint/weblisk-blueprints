@@ -61,6 +61,42 @@ requires:
 
 ---
 
+## Primitive Mapping
+
+This is the whole job of a platform blueprint: the protocol names the primitives
+an implementation must use, and this table says where each one comes from on this
+platform. It does not restate what the primitives are, what standard defines them,
+or what parameters they take — those live in the blueprint that requires them, and
+a copy here would be a second normative statement free to drift from the first.
+
+A slot marked **UNFILLED** is a stated gap, not a detail. Generation for this
+platform MUST NOT proceed as though an unfilled slot were satisfied; the module or
+mechanism has to be named — and verified to exist — when the implementation is
+commissioned.
+
+| Primitive required by | Provided on Workers by | Status |
+|---|---|---|
+| `protocol/identity` — signature algorithm | — | **UNFILLED** — WebCrypto has no post-quantum signature scheme; a WASM implementation is required |
+| `protocol/identity` — key-derivation function | — | **UNFILLED** — WebCrypto offers PBKDF2 and HKDF, neither of which is the memory-hard function the protocol names; a WASM implementation is required |
+| `protocol/identity` — symmetric encryption | WebCrypto `AES-GCM` | runtime |
+| `protocol/identity` — random source | `crypto.getRandomValues` | runtime |
+| `protocol/types` — canonical JSON | `JSON` plus canonicalisation | runtime |
+| `protocol/spec` — HTTP transport | the `fetch` handler | runtime |
+| `architecture/storage` — default backend | Durable Objects, with KV where eventual consistency is acceptable | runtime |
+| `architecture/storage` — non-default backend | not applicable | — |
+
+The Workers runtime has no filesystem, so the flat-file default other platforms
+use is unavailable and Durable Objects are this platform's embedded equivalent —
+which is exactly the kind of answer `architecture/storage` leaves to a platform
+blueprint rather than deciding for it.
+
+The two unfilled cryptographic slots are the real constraint on this platform, and
+they are load-bearing: substituting PBKDF2 for the required key-derivation
+function would produce key files no other Weblisk hub can read. State the WASM
+module when commissioning, or do not claim conformance to `protocol/identity`.
+
+---
+
 ## Project Structure
 
 ### Orchestrator

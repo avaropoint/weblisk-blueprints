@@ -171,6 +171,37 @@ projects with these defaults, but teams can swap them.
 
 ---
 
+## Primitive Mapping
+
+This is the whole job of a platform blueprint: the protocol names the primitives
+an implementation must use, and this table says where each one comes from on this
+platform. It does not restate what the primitives are, what standard defines them,
+or what parameters they take — those live in the blueprint that requires them, and
+a copy here would be a second normative statement free to drift from the first.
+
+A slot marked **UNFILLED** is a stated gap, not a detail. Generation for this
+platform MUST NOT proceed as though an unfilled slot were satisfied; the module or
+mechanism has to be named — and verified to exist — when the implementation is
+commissioned.
+
+| Primitive required by | Provided in Node.js by | Status |
+|---|---|---|
+| `protocol/identity` — signature algorithm | — | **UNFILLED** — `node:crypto` has no post-quantum signature scheme; a module must be named when commissioned |
+| `protocol/identity` — key-derivation function | — | **UNFILLED** — `node:crypto` offers `scrypt` and `pbkdf2` but not the memory-hard function the protocol names; a module must be named when commissioned |
+| `protocol/identity` — symmetric encryption | `node:crypto` | stdlib |
+| `protocol/identity` — random source | `node:crypto` `randomBytes` | stdlib |
+| `protocol/types` — canonical JSON | `JSON` plus canonicalisation | stdlib |
+| `protocol/spec` — HTTP transport | `node:http` | stdlib |
+| `architecture/storage` — default backend | `node:fs` — flat-file JSONL | stdlib |
+| `architecture/storage` — non-default backend | a driver for the chosen engine | only if chosen |
+
+Two slots are unfilled, and both are cryptographic. A Node implementation is not
+conformant to `protocol/identity` until they are named, and substituting a
+different algorithm is not an option: a key file or signature this hub produces
+must be readable by a hub on another platform.
+
+---
+
 ## Runtime Requirements
 
 ```yaml
@@ -549,7 +580,15 @@ logger.info(
 
 ## Storage
 
-### SQLite Implementation (src/storage/sqlite.ts)
+The default backend is **flat-file JSONL** under `.weblisk/data/`, per the
+Primitive Mapping table. It satisfies `architecture/storage`'s contract using
+`node:fs` alone and needs no dependency — which matters more here than on other
+platforms, because every SQLite option in Node is third-party.
+
+The implementation below applies **only when SQLite was chosen** when the
+implementation was commissioned.
+
+### SQLite Implementation — only if SQLite was chosen (src/storage/sqlite.ts)
 
 ```typescript
 import Database from "better-sqlite3";

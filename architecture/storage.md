@@ -188,18 +188,25 @@ surface. Summary of stores:
    implementation is non-conformant only if it fails the contract, never
    for the backend it satisfies it with.
 
-## Storage Backends by Platform
+## What a Backend Must Be
 
-| Platform | Default | Notes |
-|----------|---------|-------|
-| Go | Flat-file (JSONL) | Standard library only |
-| Node.js | Flat-file (JSONL) | Standard library only |
-| Rust | Flat-file (JSONL) | Standard library only |
-| Cloudflare | Durable Objects + KV | The platform provides no filesystem; this is its embedded equivalent |
+This document does not name a backend per platform. Naming one would be the same
+mistake as naming an engine, one level up: which store satisfies this contract on
+a given runtime is that runtime's question, and the **platform blueprint** answers
+it. This section states what any answer must be true of.
 
-**Flat-file JSONL is the default on every platform that has a
-filesystem.** It satisfies the contract with nothing beyond the standard
-library, which is why it is the default rather than merely permitted.
+| Requirement | Meaning |
+|---|---|
+| **Embeddable** | Runs inside the implementation's own process. No database server to install, configure or operate |
+| **Available in the standard library where possible** | A backend needing no dependency is preferred to one that does, all else equal |
+| **Durable across restart** | Every store survives the process ending, by any means the runtime offers |
+| **Append-friendly** | The audit log is append-only with a hash chain, so the backend must make appends cheap and ordered |
+| **Cursor-capable** | List operations paginate by opaque cursor, so the backend must support ordered traversal from a position |
+
+**Flat-file JSONL satisfies all five with nothing beyond a standard library, on
+any runtime with a filesystem** — which is why platform blueprints default to it
+rather than merely permitting it. A runtime without a filesystem must offer its
+own embedded equivalent, and its platform blueprint names it.
 
 Any other backend is available and none is required. An embedded
 key-value store, SQLite, a relational database, an object store — all are
@@ -618,9 +625,8 @@ comparison against the stored hash.
 - **Pagination**: All list/query operations support cursor-based
   pagination. Cursors are opaque strings — implementations may use
   offsets, timestamps, or encoded keys.
-- **Migrations**: Schema changes are versioned. Each platform doc
-  specifies how migrations are applied (e.g., SQLite `user_version`
-  pragma for Go, Durable Object migration tags for Cloudflare).
+- **Migrations**: Schema changes are versioned. The mechanism that applies a
+  version change belongs to the backend, so the platform blueprint states it.
 - **Retention**: Stores with retention policies (observations: 90d,
   feedback: 180d, audit: 90d) SHOULD rotate files by month and
   delete or archive expired segments.
