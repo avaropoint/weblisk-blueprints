@@ -131,7 +131,7 @@ projects with these defaults, but teams can swap them.
 |---------|---------|-----|-------------|
 | `fastify` | HTTP server | Fast, schema validation built-in, plugin ecosystem | Express, Koa, Hono, node:http |
 | `@noble/post-quantum` | ML-DSA-65 cryptography (FIPS 204) | Pure JS, audited, FIPS 204 compliant | node:crypto (when ML-DSA support lands) |
-| `better-sqlite3` | SQLite storage | Synchronous API, fast, reliable | sql.js, node:sqlite (experimental), any DB driver |
+| `better-sqlite3` | SQLite storage — **only if SQLite was chosen** | Synchronous API, fast, reliable | `node:fs` JSONL is the default and needs nothing; sql.js, node:sqlite, any DB driver |
 | `pino` | Structured logging | JSON output, fast, Fastify-native | winston, console.log with JSON.stringify |
 | `zod` | Schema validation | Runtime type checking for payloads | ajv, joi, io-ts, manual validation |
 | `sharp` | Image processing | High-performance, libvips-based | jimp (pure JS), @squoosh/lib |
@@ -186,19 +186,20 @@ commissioned.
 
 | Primitive required by | Provided in Node.js by | Status |
 |---|---|---|
-| `protocol/identity` — signature algorithm | — | **UNFILLED** — `node:crypto` has no post-quantum signature scheme; a module must be named when commissioned |
+| `protocol/identity` — signature algorithm | `@noble/post-quantum` | required — `node:crypto` has no post-quantum signature scheme |
 | `protocol/identity` — key-derivation function | — | **UNFILLED** — `node:crypto` offers `scrypt` and `pbkdf2` but not the memory-hard function the protocol names; a module must be named when commissioned |
 | `protocol/identity` — symmetric encryption | `node:crypto` | stdlib |
 | `protocol/identity` — random source | `node:crypto` `randomBytes` | stdlib |
 | `protocol/types` — canonical JSON | `JSON` plus canonicalisation | stdlib |
-| `protocol/spec` — HTTP transport | `node:http` | stdlib |
+| `protocol/spec` — HTTP transport | `fastify` by default; `node:http` is sufficient | see the package table |
 | `architecture/storage` — default backend | `node:fs` — flat-file JSONL | stdlib |
 | `architecture/storage` — non-default backend | a driver for the chosen engine | only if chosen |
 
-Two slots are unfilled, and both are cryptographic. A Node implementation is not
-conformant to `protocol/identity` until they are named, and substituting a
-different algorithm is not an option: a key file or signature this hub produces
-must be readable by a hub on another platform.
+One slot is unfilled: the key-derivation function. `node:crypto` offers `scrypt`
+and `pbkdf2`, and neither is the memory-hard function `protocol/identity` names. A
+Node implementation is not conformant until a module is named, and substituting a
+different function is not an option — a key file this hub writes must be readable
+by a hub on another platform.
 
 ---
 

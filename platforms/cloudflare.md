@@ -76,8 +76,8 @@ commissioned.
 
 | Primitive required by | Provided on Workers by | Status |
 |---|---|---|
-| `protocol/identity` — signature algorithm | — | **UNFILLED** — WebCrypto has no post-quantum signature scheme; a WASM implementation is required |
-| `protocol/identity` — key-derivation function | — | **UNFILLED** — WebCrypto offers PBKDF2 and HKDF, neither of which is the memory-hard function the protocol names; a WASM implementation is required |
+| `protocol/identity` — signature algorithm | `@noble/post-quantum` is the candidate | **UNFILLED** — WebCrypto has no post-quantum signature scheme. The candidate is pure JavaScript, which is the property that matters on Workers, but confirm it runs within the runtime's limits before commissioning |
+| `protocol/identity` — key-derivation function | — | **UNFILLED** — WebCrypto offers PBKDF2 and HKDF, neither of which is the memory-hard function the protocol names. A pure-JavaScript or WASM implementation must be named |
 | `protocol/identity` — symmetric encryption | WebCrypto `AES-GCM` | runtime |
 | `protocol/identity` — random source | `crypto.getRandomValues` | runtime |
 | `protocol/types` — canonical JSON | `JSON` plus canonicalisation | runtime |
@@ -91,9 +91,15 @@ which is exactly the kind of answer `architecture/storage` leaves to a platform
 blueprint rather than deciding for it.
 
 The two unfilled cryptographic slots are the real constraint on this platform, and
-they are load-bearing: substituting PBKDF2 for the required key-derivation
-function would produce key files no other Weblisk hub can read. State the WASM
-module when commissioning, or do not claim conformance to `protocol/identity`.
+the key-derivation one is load-bearing: substituting PBKDF2 for the required
+memory-hard function would produce key files no other Weblisk hub can read. Name
+what fills each slot when commissioning, having verified it runs here, or do not
+claim conformance to `protocol/identity`.
+
+Neither slot is marked UNFILLED because nothing could fill it. They are unfilled
+because nobody has confirmed what does, and a plausible package name in a
+specification is worse than an admitted gap — the gap gets checked before the hub
+is trusted, and the plausible name does not.
 
 ---
 
@@ -157,7 +163,7 @@ for detailed platform API usage.
 ## Cloudflare-Specific Requirements
 
 ### Crypto
-- ML-DSA-65 (FIPS 204) is the signing algorithm for post-quantum security
+- The signature algorithm is the one `protocol/identity` names; on Workers it has no runtime implementation, so see the Primitive Mapping table
 - ML-DSA-65 operations use @noble/post-quantum until Web Crypto adds native support
 - Export keys as raw ArrayBuffer, convert to hex for protocol
 
