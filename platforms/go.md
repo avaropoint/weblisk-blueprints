@@ -72,42 +72,75 @@ requires:
 
 ## Project Structure
 
-### Orchestrator
+### One module, one definition of everything
+
 ```
-server/
-  go.mod              # module server; go 1.22
-  main.go             # Entry point — configure and start orchestrator
-  protocol.go         # All protocol types (AgentManifest, TaskRequest, etc.)
-  identity.go         # ML-DSA-65 key management, signing, tokens
-  orchestrator.go     # HTTP server with registration, routing, channels, audit
-  helpers.go          # JSON helpers, utility functions
+<tenant>/
+  go.mod                    # module <tenant>; go 1.22
+  go.sum
+  cmd/
+    orchestrator/
+      main.go               # entry point — configure and serve
+    <component>/
+      main.go               # one directory per binary
+  internal/
+    protocol/               # wire types, error registry — ONE definition
+    identity/               # keys, signing, tokens, replay protection
+    storage/                # the storage contract and its backends
+    observability/          # logging, metrics, tracing
+    orchestrator/           # registry, routing, channels, audit, admin
+    agent/                  # the agent framework, for components that are agents
+  bin/                      # build output, not source
 ```
 
-Prepare: `cd server && go mod tidy`
-Build: `cd server && go build -o orchestrator .`
-Run: `./orchestrator --port 9800`
+Prepare: `go mod tidy`
+Build: `go build -o bin/orchestrator ./cmd/orchestrator`
+Run: `./bin/orchestrator --port 9800`
 
 The prepare step is not optional and not part of the build. `go.mod` declares the
 dependencies; `go.sum` records their checksums, and Go refuses to build without
 it. Writing source files cannot produce it — only resolution can. A generator
-that emits a correct `go.mod` and a correct `identity.go` and then builds will
+that emits a correct `go.mod` and a correct identity package and then builds will
 fail with "missing go.sum entry", naming a source file that has nothing wrong
 with it.
 
-### Agent
-```
-agents/<name>/
-  go.mod              # module weblisk-agent-<name>; go 1.22
-  main.go             # Entry point — configure manifest, create agent, start
-  protocol.go         # Same protocol types as orchestrator (shared contract)
-  identity.go         # Same identity/crypto code
-  agent.go            # Agent base framework (HTTP server, registration, messaging)
-  <name>.go           # Domain-specific logic (Execute + HandleMessage)
-  helpers.go          # Shared utility functions
-```
+### Why one module, and not a copy per binary
 
-Build: `cd agents/<name> && go build -o <name> .`
-Run: `./agents/seo --port 9710 --orch http://localhost:9800`
+An earlier version of this document specified a module per component with
+`package main` throughout, and said of the shared files: *"copy, don't import
+(keeps each binary standalone)."*
+
+That rationale does not hold. Go static-links: `go build ./cmd/orchestrator`
+produces a single binary with no runtime dependency on anything, whether its
+source was imported or copied. **Standalone is a property of the binary, not of
+the source layout.** Copying buys nothing it does not already have.
+
+What copying costs is exact:
+
+- **Definitions drift.** The same type exists in N places and nothing makes them
+  agree. The wire contract stops being one thing.
+- **Impact analysis is defeated.** `architecture/change-management` computes
+  impact at binding level, then every component's copy of the protocol file
+  changes on any type change — so versioning fires for components that consume
+  nothing that moved.
+- **Dead code becomes mandatory.** A copied file must serve every component that
+  copies it, so it must carry every type any of them needs. A generated
+  orchestrator carried task, workflow and observation types it never referenced,
+  for exactly this reason, and it was right to: the blueprint told it the file was
+  shared by copying.
+
+With one module, `internal/protocol` is defined once and imported. Each binary
+links only what it reaches, the compiler removes the rest, and a change to a type
+nobody imports touches nobody.
+
+### A component's shape
+
+A component is a directory under `cmd/` and whatever it imports. This document
+does not name any component beyond the orchestrator, because none is required:
+which agents and domain controllers a deployment has is chosen by adopting their
+blueprints, not by this file. An agent's structure comes from
+[`architecture/agent`](../architecture/agent.md); this document says only how a
+Go binary for one is laid out and built.
 
 ---
 
@@ -205,9 +238,12 @@ detailed stdlib package usage and conventions.
   - Service updates: 1 MB limit
 
 ### Package Organization
-- All files in a single Go package (`package main` for standalone binaries)
-- Shared code (protocol.go, identity.go, helpers.go) is identical between
-  orchestrator and agents — copy, don't import (keeps each binary standalone)
+- One module for the deployment. Each binary is a `package main` under `cmd/`,
+  and everything else is a package under `internal/`
+- Shared code is **imported, never copied**. One definition of every wire type,
+  reached by import path — see "Why one module, and not a copy per binary"
+- A package under `internal/` cannot be imported from outside the module, which
+  is what keeps the deployment's internals out of anyone else's dependency graph
 
 ### Error Handling
 - Return errors from functions, don't panic
@@ -227,22 +263,21 @@ detailed stdlib package usage and conventions.
 ### Build
 
 ```bash
-# Build orchestrator
-cd server && go build -o orchestrator .
-
-# Build agent
-cd agents/<name> && go build -o <name> .
+go mod tidy                                    # once, and after any import change
+go build -o bin/orchestrator ./cmd/orchestrator
+go build ./...                                 # every binary in the module
 ```
 
 ### Run
 
 ```bash
-# Run orchestrator
-./server/orchestrator --port 9800
-
-# Run agent (connects to orchestrator)
-WL_AI_PROVIDER=ollama WL_AI_MODEL=llama3 ./agents/seo --orch http://localhost:9800
+./bin/orchestrator --port 9800
 ```
+
+A component other than the orchestrator is built the same way — `go build -o
+bin/<component> ./cmd/<component>` — and run with the flags its own blueprint
+defines. This document names no component beyond the orchestrator on purpose;
+which ones a deployment has is decided by adopting their blueprints.
 
 ### Environment Variables
 
@@ -261,17 +296,11 @@ See [Build Commands](#build-commands) for additional build examples.
 ## Build Commands
 
 ```bash
-# Build orchestrator
-cd server && go build -o orchestrator .
-
-# Build agent
-cd agents/seo && go build -o seo .
-
-# Run orchestrator
-./server/orchestrator --port 9800
-
-# Run agent (connects to orchestrator)
-WL_AI_PROVIDER=ollama WL_AI_MODEL=llama3 ./agents/seo --orch http://localhost:9800
+go mod tidy
+go build ./...                                 # every binary under cmd/
+go vet ./...
+go test -race -count=1 ./...
+./bin/orchestrator --port 9800
 ```
 
 ## Go Module File
@@ -323,25 +352,21 @@ conventions including package organization and configuration.
 ## Project Structure: Domain Controller
 
 ```
-domains/<name>/
-  go.mod              # module weblisk-domain-<name>; go 1.22
-  main.go             # Entry point — manifest, workflows, start
-  protocol.go         # Same protocol types
-  identity.go         # Same identity/crypto code
-  agent.go            # Agent base framework (shared with work agents)
-  domain.go           # Domain controller logic: workflow engine, dispatch, aggregation
-  workflows.go        # Workflow definitions (parsed from embedded YAML or code)
-  <name>.go           # Domain-specific aggregation rules and HandleMessage actions
-  helpers.go          # Shared utility functions
+cmd/<domain-controller>/
+  main.go             # entry point — manifest, workflows, start
+internal/
+  domain/             # workflow engine, dispatch, aggregation
+  agent/              # the same agent framework work agents use
 ```
 
-Build: `cd domains/<name> && go build -o <name> .`
-Run: `./domains/seo --port 9700 --orch http://localhost:9800`
+Build: `go build -o bin/<domain-controller> ./cmd/<domain-controller>`
+Run: `./bin/<domain-controller> --port 9700 --orch http://localhost:9800`
 
-The domain controller uses the same agent base framework as work agents
-(6 protocol endpoints). The additional workflow engine lives in
-`domain.go` — see [architecture/domain.md](../architecture/domain.md)
-for the execution flow.
+A domain controller uses the same agent framework as a work agent (6 protocol
+endpoints) and adds the workflow engine in `internal/domain` — see
+[architecture/domain.md](../architecture/domain.md) for the execution flow.
+Its own aggregation rules live in the package its blueprint defines; this
+document does not name one.
 
 ## Storage Mapping (Go)
 
@@ -491,8 +516,8 @@ a dependency level. Use a semaphore per target agent to respect
 ### Unit Tests
 
 ```bash
-cd server && go test -v ./...
-cd agents/<name> && go test -v ./...
+go test ./...                 # the whole module
+go test ./internal/protocol   # one package
 ```
 
 Use table-driven tests for protocol validation:
@@ -504,7 +529,7 @@ func TestValidateManifest(t *testing.T) {
         input   AgentManifest
         wantErr bool
     }{
-        {"valid", AgentManifest{Name: "seo", Version: "1.0.0"}, false},
+        {"valid", AgentManifest{Name: "example", Version: "1.0.0"}, false},
         {"missing name", AgentManifest{Version: "1.0.0"}, true},
     }
     for _, tt := range tests {
@@ -535,7 +560,7 @@ go test -race -count=1 ./...
 
 ## Implementation Notes
 
-- All files in `package main` — shared code is copied between binaries, not imported
+- Binaries are `package main` under `cmd/`; shared code is imported from `internal/`, never copied
 - Use manual `os.Args` parsing or a simple flag loop for CLI flags (no `flag` package required)
 - If SQLite was chosen: WAL journal mode and `user_version` pragma for schema migrations
 - When `WL_DEV=1`, fall back to in-memory maps with a printed warning
@@ -550,7 +575,9 @@ Assertions here apply to any Go implementation unless a group narrows them to on
 component. See `schemas/common.md` for what a group heading means.
 
 - [ ] No dependency outside the Primitive Mapping table — `github.com/cloudflare/circl`, `golang.org/x/crypto`, `golang.org/x/term`, and a storage driver only if a backend other than the JSONL default was chosen; every dependency declared in go.mod
-- [ ] All source files are in `package main`; shared code (protocol.go, identity.go, helpers.go) is copied between orchestrator and agents
+- [ ] One module for the deployment; each binary is `package main` under `cmd/` and shared code is a package under `internal/`
+- [ ] No type, constant or function is defined in more than one place — shared code is imported, never copied
+- [ ] The blueprint names no specific agent or domain; which components exist is chosen by adopting their blueprints
 - [ ] `io.LimitReader` is applied on all request body reads: 1 MB for registration/messages, 10 MB for tasks, 64 KB for channels
 - [ ] All registries and shared maps are protected by `sync.RWMutex` with `RLock` for reads and `Lock` for writes
 - [ ] Concurrency limiter returns 429 with `Retry-After` header and structured ErrorResponse when agent is at capacity
