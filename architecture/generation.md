@@ -334,9 +334,70 @@ Those assertions are the blueprint's own statement of what a correct
 implementation looks like; a generator that reads a blueprint and ignores its
 checklist has used half the document.
 
+The checklist MUST be gathered from **exactly** the blueprints the target was
+generated from — the same set, resolved once. A generator that plans from one
+list, prompts from a second and grades against a third is planning against one
+specification, building against another and grading against a third, and no
+result it reports means anything.
+
 Implementations MUST check every mechanically checkable assertion and MUST
 report the remainder as unchecked rather than passed. An assertion nobody
 verified is not a satisfied one.
+
+#### Four outcomes, never three
+
+Assertions are not uniformly checkable, and the interesting ones are only
+**partly** checkable. "POST /v1/register enforces exclusive namespace ownership
+(409 on conflict)" contains a structural claim a parser settles — is a handler
+routed there — and a behavioural claim it cannot. Reporting the assertion as
+passed because the route exists is a confident wrong answer, which is worse than
+an honest gap. Reporting it as unchecked discards a cheap detection of a definite
+fault.
+
+So a check MAY be **one-way**: it tests a necessary condition, so failure is
+conclusive and success is not. Every implementation MUST report four outcomes:
+
+| Outcome | Meaning |
+|---|---|
+| `verified` | a check settles the assertion, and it holds |
+| `failed` | a check settles it against the artifact, or a necessary condition is unmet |
+| `necessary` | a necessary condition holds; the assertion is NOT established |
+| `unchecked` | nothing mechanical applies |
+
+`necessary` MUST NOT be counted as `verified`, and MUST NOT be folded into
+`unchecked` — the first is the fault this layer exists to prevent, the second
+discards a real result. Only `failed` may drive a repair.
+
+#### Structure, not substrings
+
+A check MUST derive its answer from the artifact's structure — its parse tree,
+its module manifest — and MUST NOT rely on a substring search where structure is
+available. A search for `Retry-After` passes on a comment mentioning
+`Retry-After`; a search for `/v1/audit` passes on an error message quoting it.
+Where only a substring check exists, it MUST be treated as one-way.
+
+An artifact that does not parse MUST contribute no structure. Inventing structure
+from broken source makes Layer 3 disagree with Layer 2, and Layer 2 is the
+authority.
+
+#### A failing assertion names its file
+
+A check that refutes an assertion MUST report which artifacts the failure is
+about, and that attribution MUST come from the check itself — the only thing that
+knows why it failed. A separate attribution pass is a second answer to the same
+question, free to drift from the first.
+
+An assertion that names no generated artifact MUST be reported rather than
+assigned to a plausible one. A repair aimed at the wrong file edits correct code
+to satisfy something it does not control.
+
+#### The loop ends when verification passes
+
+Layer 2 succeeding is not completion. A generator MUST continue while any
+assertion is `failed`, and MUST stop when the count of failures stops falling.
+Build errors and failing assertions MUST be counted separately: errors falling to
+zero and assertions then appearing is progress, and one counter reads it as a
+regression precisely when the loop begins doing the more valuable half of its job.
 
 ### Layer 4 — Behaviour
 
@@ -411,6 +472,13 @@ and "nothing contradicted it".
 - [ ] Layer 2 does NOT report two methods of the same name on different receivers as a collision
 - [ ] A plan naming a struct field in `declares` is corrected by the planning instructions rather than tolerated by the checker
 - [ ] Layer 3 evaluates every mechanically checkable checklist assertion and reports the rest as unchecked
+- [ ] The checklist is gathered from exactly the blueprint set the target was generated from
+- [ ] Four outcomes are reported: `verified`, `failed`, `necessary`, `unchecked` — `necessary` is folded into neither of the others
+- [ ] Structural checks read the artifact's parse tree; substring checks are treated as one-way
+- [ ] An artifact that does not parse contributes no structure to any check
+- [ ] Each refuted assertion names the artifacts it is about, attributed by the check that refuted it
+- [ ] The loop continues while any assertion is `failed` and stops when the failure count stops falling
+- [ ] Build errors and failing assertions are counted separately for progress
 - [ ] A failure at any layer prevents later layers from reporting a result
 - [ ] Generated file paths are validated for containment before any write
 - [ ] The model, blueprint versions and the plan used are recorded with the output
