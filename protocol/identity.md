@@ -23,6 +23,40 @@ a Weblisk Token (WLT) for subsequent authenticated requests. This
 specification is the single source of truth for all identity and
 cryptographic operations in the Weblisk framework.
 
+### What this document specifies, and what it does not
+
+Every requirement here is stated in terms of algorithms, formats and behaviour —
+never in terms of a language, a runtime, a module or an API. That is deliberate.
+A hub generated for Go and a hub generated for Cloudflare must be able to verify
+each other's signatures and read each other's key files, which is only true if
+what they conform to is the algorithm and the format rather than one platform's
+way of reaching them.
+
+Where a platform's standard library does not provide a primitive named here, the
+**platform blueprint** names what does. That is a platform blueprint's entire
+purpose: translating these requirements into the native terms of one language or
+runtime. Concretely, `platforms/go.md` carries a Primitive Mapping table because
+Go ships neither a post-quantum signature implementation nor a memory-hard
+key-derivation function, and something has to say where a Go implementation gets
+them.
+
+Two rules follow, and both have been broken already:
+
+- This document MUST NOT name a module, package, API or language construct. A
+  checklist item once read *"verify all signatures … using ML_DSA_65.Verify"*,
+  which is an identifier, not a requirement — and no Rust or JavaScript
+  implementation has a symbol by that name.
+- A platform blueprint MUST NOT restate a requirement from here. `platforms/go.md`
+  once carried the key-derivation algorithm with its RFC number and its
+  parameters, which made a second normative copy of this section, free to drift
+  from it. It may name the module that provides the primitive; it may not
+  redefine the primitive.
+
+**Notation.** Where a process below reads `sign(privateKey, data)` or
+`verify(publicKey, data, signature)`, those name the signature algorithm's own
+primitives as defined by its standard — not a function in any library. An
+implementation calls whatever its platform blueprint maps them to.
+
 ### Post-Quantum Cryptography
 
 Weblisk adopts NIST's post-quantum cryptography standards (released
@@ -326,7 +360,7 @@ never the raw private key or passphrase.
 ```
 input: data (bytes)
 output: base64url-encoded ML-DSA-65 signature (3309 bytes)
-process: sig = ML_DSA_65.Sign(privateKey, data)
+process: sig = sign(privateKey, data)
 ```
 
 ### Sign JSON
@@ -358,7 +392,7 @@ output: boolean
 process:
   1. Validate public key is 1952 bytes
   2. Validate signature is 3309 bytes
-  3. Return ML_DSA_65.Verify(publicKey, data, signature)
+  3. Return verify(publicKey, data, signature)
   4. Return false on any decode error
 ```
 
@@ -410,7 +444,7 @@ Fields:
 1. Serialize header to JSON → base64url encode → headerB64
 2. Serialize payload to JSON → base64url encode → payloadB64
 3. signingInput = headerB64 + "." + payloadB64
-4. signature = ML_DSA_65.Sign(privateKey, bytes(signingInput))
+4. signature = sign(privateKey, bytes(signingInput))
 5. token = signingInput + "." + base64url(signature)
 ```
 
@@ -420,7 +454,7 @@ Fields:
 2. Decode header (parts[0]) → verify alg == "ML-DSA-65"
 3. signingInput = parts[0] + "." + parts[1]
 4. Decode signature (parts[2])
-5. Verify: ML_DSA_65.Verify(issuerPublicKey, bytes(signingInput), signature)
+5. Verify: verify(issuerPublicKey, bytes(signingInput), signature)
 6. Decode payload (parts[1]) → parse claims
 7. If exp > 0 and current_time > exp → token expired
 8. Return claims
@@ -591,14 +625,14 @@ When an agent registers with the orchestrator:
 Agent side:
   1. manifest = AgentManifest{name, version, url, public_key, ...}
   2. manifestJSON = canonicalize(manifest)   // RFC 8785 JCS
-  3. signature = ML_DSA_65.Sign(agent_private_key, manifestJSON)
+  3. signature = sign(agent_private_key, manifestJSON)
   4. Send: {manifest, signature, timestamp: now()}
 
 Orchestrator side:
   1. Receive {manifest, signature, timestamp}
   2. Verify |now() - timestamp| < 300 seconds (replay protection)
   3. manifestJSON = canonicalize(manifest)   // RFC 8785 JCS
-  4. Verify: ML_DSA_65.Verify(manifest.public_key, signature, manifestJSON)
+  4. Verify: verify(manifest.public_key, signature, manifestJSON)
   5. If valid: issue token, register agent
   6. If invalid: reject with 401
 ```
@@ -611,13 +645,13 @@ When agents communicate directly:
 Sender:
   1. payload = {from, to, action, payload}
   2. payloadJSON = canonicalize(payload)   // RFC 8785 JCS
-  3. signature = ML_DSA_65.Sign(sender_private_key, payloadJSON)
+  3. signature = sign(sender_private_key, payloadJSON)
   4. Include signature in message
 
 Receiver:
   1. Look up sender's public key from service directory
   2. payloadJSON = canonicalize({from, to, action, payload})   // RFC 8785 JCS
-  3. Verify: ML_DSA_65.Verify(sender_public_key, signature, payloadJSON)
+  3. Verify: verify(sender_public_key, signature, payloadJSON)
   4. If invalid: reject with 401
 ```
 
@@ -796,9 +830,9 @@ security:
       public_key: 1952 bytes
       private_key: 4032 bytes
       signature: 3309 bytes
-    process: ML_DSA_65.Sign(privateKey, data) → 3309-byte signature
+    process: sign(privateKey, data) → 3309-byte signature
   verification:
-    process: ML_DSA_65.Verify(publicKey, data, signature) → boolean
+    process: verify(publicKey, data, signature) → boolean
   trust_model:
     description: >
       Self-sovereign identity. Each agent generates its own key pair.
@@ -847,8 +881,8 @@ Implementation MUST:
 - [ ] Support encrypted service keys via secure configuration
 - [ ] Parse weblisk-key-v1 format correctly (magic, algorithm=ml-dsa-65, kdf, params, ciphertext)
 - [ ] Never store passphrase on disk — only hold in memory during decrypt
-- [ ] Exit with code 2 on failed passphrase (no retry loop, no passphrase enumeration)
-- [ ] Verify all signatures before trusting data using ML_DSA_65.Verify
+- [ ] A failed passphrase terminates the operation immediately — no retry loop, no passphrase enumeration. The platform blueprint states how termination is signalled
+- [ ] Verify all signatures before trusting data, using the signature algorithm's verification primitive
 - [ ] Verify token `alg` header is exactly `ML-DSA-65` — reject all other values
 - [ ] Check token expiry on every verification
 - [ ] Enforce replay protection window (300 seconds) on registration

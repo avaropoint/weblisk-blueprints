@@ -568,6 +568,64 @@ does not apply" from "this is unmet".
 
 ---
 
+## Platform Neutrality
+
+A blueprint is either a **specification** or a **translation**, and the two must
+not mix.
+
+### Specification blueprints — `protocol/`, `architecture/`, `patterns/`, `agents/`
+
+These state requirements in terms of algorithms, formats, wire shapes and
+behaviour. They MUST NOT name:
+
+- a language, or a construct belonging to one
+- a module, package, crate or library
+- an API identifier or function signature
+- a runtime facility not every platform has
+
+A hub generated for one platform and a hub generated for another must be able to
+verify each other's signatures, read each other's files and answer each other's
+requests. That is only true if what they conform to is the algorithm and the
+format, rather than one platform's way of reaching them.
+
+Pseudocode is permitted in process descriptions provided its notation is declared
+and is not an API. `verify(publicKey, data, signature)` names a primitive;
+`ML_DSA_65.Verify(...)` names an identifier that exists in no Rust or JavaScript
+implementation.
+
+### Platform blueprints — `platforms/`
+
+These translate, and translation is their entire purpose. They MAY name modules,
+packages, APIs and runtime facilities freely — that is the content nobody else
+can carry.
+
+They MUST NOT restate a requirement from a specification blueprint. Naming the
+module that provides a primitive is translation; repeating the primitive's
+standard, parameters or rationale creates a second normative statement, free to
+drift from the first.
+
+Every platform blueprint MUST carry a `## Primitive Mapping` section covering
+every primitive the specification blueprints require, with one row per primitive.
+A primitive the platform cannot provide MUST be marked **UNFILLED** rather than
+omitted or approximated. An unfilled slot is a stated gap; an omitted one is
+indistinguishable from a satisfied one.
+
+### Why this is a rule and not a preference
+
+Both directions have been violated, and each violation broke a build.
+
+`platforms/go.md` said "standard library only, except one module" while
+`protocol/identity` required a key-derivation function Go does not ship. Both
+statements were reasonable; together they were unsatisfiable, and an
+implementation that resolved the conflict correctly was reported as violating its
+own platform's dependency policy.
+
+`architecture/storage.md` carried a table of backends per platform, in the same
+document as a design principle stating that a blueprint names a contract and never
+a product. It contradicted itself, and the platform blueprints inherited the
+contradiction: two of them mandated SQLite for storage the standard library
+already handles.
+
 ## Implementation Notes Section
 
 Every blueprint MUST include a `## Implementation Notes` section with

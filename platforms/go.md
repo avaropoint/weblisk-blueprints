@@ -16,16 +16,16 @@ the reference implementation for all Weblisk blueprints.
 Go is the ideal fit for Weblisk because it needs **almost nothing beyond
 its own standard library** — no framework, no router, no middleware
 stack, no logging library, no package manager at runtime, no native
-bindings and no external database server. Two dependencies are required,
-and each is required because Go does not ship the primitive: circl for
-ML-DSA-65 post-quantum signing, and golang.org/x/crypto for Argon2id.
-A storage driver is optional and compiles into the binary — embedded,
-never an external server.
+bindings and no external database server. Two modules are required,
+each because Go does not ship the primitive the protocol calls for; see
+the Primitive Mapping table below. A storage driver is optional and
+compiles into the binary — embedded, never an external server.
 
 "Zero external dependencies" was the earlier phrasing, and it was an
 overclaim that mattered: it was written as an unconditional acceptance
-criterion, and an implementation that correctly added Argon2id was then
-reported as violating its own platform's dependency policy.
+criterion, and an implementation that correctly reached for a primitive
+Go does not have was then reported as violating its own platform's
+dependency policy.
 
 ## Overview
 
@@ -119,8 +119,8 @@ runtime:
   version: ">=1.22"
   dependencies:
     required:
-      - github.com/cloudflare/circl   # ML-DSA-65; Go has no PQC signatures
-      - golang.org/x/crypto           # Argon2id; Go has no Argon2 in the stdlib
+      - github.com/cloudflare/circl   # signature algorithm; not in the stdlib
+      - golang.org/x/crypto           # key-derivation function; not in the stdlib
     optional:
       - name: modernc.org/sqlite
         version: "latest"
@@ -134,34 +134,37 @@ runtime:
       purpose: Go compiler and toolchain
 ```
 
-Go compiles from the standard library alone with three declared exceptions, and
-no others:
+### Primitive Mapping
 
-| Dependency | Status | Why it cannot be stdlib |
+This is the whole job of a platform blueprint: the protocol names the primitives
+an implementation must use, and this table says where each one comes from in Go.
+It does not restate what the primitives are, what standard defines them, or what
+parameters they take. Those live in the blueprint that requires them, and a copy
+here would be a second thing to keep right.
+
+| Primitive required by | Provided in Go by | Status |
 |---|---|---|
-| `github.com/cloudflare/circl` | **required** | ML-DSA-65 (FIPS 204). The protocol mandates it and Go has no post-quantum signature implementation |
-| `golang.org/x/crypto` | **required** | Argon2id (RFC 9106). `protocol/identity` mandates it for key encryption at rest and Go has no Argon2 in the standard library |
-| a storage driver | **only if chosen** | The default storage backend is flat-file JSONL, which needs nothing. A driver appears only when the implementation was commissioned with a different backend |
+| `protocol/identity` — signature algorithm | `github.com/cloudflare/circl` | **required** |
+| `protocol/identity` — key-derivation function | `golang.org/x/crypto` | **required** |
+| `protocol/identity` — symmetric encryption | stdlib `crypto/aes`, `crypto/cipher` | stdlib |
+| `protocol/identity` — random source | stdlib `crypto/rand` | stdlib |
+| `protocol/types` — canonical JSON | stdlib `encoding/json` + canonicalisation | stdlib |
+| `protocol/spec` — HTTP transport | stdlib `net/http` | stdlib |
+| `architecture/storage` — default backend | stdlib `os`, `encoding/json` | stdlib |
+| `architecture/storage` — non-default backend | a driver for the chosen engine | **only if chosen** |
 
-Both required dependencies MUST appear in `go.mod`.
+Both required modules MUST appear in `go.mod`. Everything else Weblisk needs, Go
+already ships.
 
-`golang.org/x/crypto` is here because the alternative is worse. `protocol/identity`
-fixes Argon2id with explicit parameters — time=3, memory=65536, parallelism=4 —
-and the standard library has no Argon2 at any parameters. The only way to honour a
-stdlib-only rule would be to implement a password-hashing function by hand, which
-is the single worst place in a system to write original code. `golang.org/x/crypto`
-is maintained by the Go project itself under the same review as the standard
-library; it is not a third-party dependency in any sense that a dependency policy
-is trying to protect against.
+Two primitives are not in the standard library and cannot be. Go has no
+post-quantum signature implementation and no memory-hard key-derivation function,
+and the alternative to a module for either is writing original cryptographic code,
+which is the worst place in a system to do it. `github.com/cloudflare/circl` and
+`golang.org/x/crypto` are both maintained under public cryptographic review;
+`golang.org/x/crypto` is maintained by the Go project itself.
 
-An earlier version of this document said "standard library only, except circl"
-while `protocol/identity` mandated Argon2id. The two could not both be satisfied,
-and the contradiction surfaced the only way contradictions in a specification ever
-do: an implementation built from both, which added `golang.org/x/crypto` and was
-then reported as violating its dependency policy for doing the right thing.
-
-"Zero external dependencies" describes everything beyond that — no framework, no
-router, no middleware stack, no logging library, and no database engine.
+Beyond those two: no framework, no router, no middleware stack, no logging
+library, no database engine, and no package manager at runtime.
 
 See [Go-Specific Requirements](#go-specific-requirements) for
 detailed stdlib package usage and conventions.
@@ -171,9 +174,9 @@ detailed stdlib package usage and conventions.
 ## Go-Specific Requirements
 
 ### Dependencies
-- Standard library only, except the dependencies declared above
-- ML-DSA-65 (FIPS 204) via `github.com/cloudflare/circl` — required, and must be in go.mod
-- Argon2id (RFC 9106) via `golang.org/x/crypto/argon2` — required, and must be in go.mod
+- Standard library only, except the two modules in the Primitive Mapping table
+- The signature algorithm comes from `github.com/cloudflare/circl`
+- The key-derivation function comes from `golang.org/x/crypto/argon2`
 - `crypto/rand` for secure random generation  
 - `encoding/json` for JSON serialization
 - `encoding/hex` for hex encoding
@@ -461,14 +464,16 @@ a dependency level. Use a semaphore per target agent to respect
 
 ### Cryptography
 
-- ML-DSA-65 (FIPS 204) via `circl` library for key generation, signing, and verification
+- The signature algorithm `protocol/identity` requires comes from `circl` — key generation, signing and verification
+- The key-derivation function it requires comes from `golang.org/x/crypto/argon2`
 - `crypto/rand` for all secure random generation
 - `encoding/hex` for key encoding in protocol messages
-- No other external cryptography libraries needed
+- No other external cryptography libraries — algorithms, standards and parameters are `protocol/identity`'s to state, not this document's
 
 ### Dependencies
 
-- Zero external dependencies eliminates supply chain attack surface
+- Two modules, both for primitives Go does not ship; see the Primitive Mapping table
+- Nothing beyond them: a minimal dependency set is a minimal supply chain attack surface
 - Exception: a storage driver, only when a backend other than the JSONL default was chosen
 - Use `go mod verify` to validate module checksums
 
