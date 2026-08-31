@@ -178,8 +178,14 @@ When `kdf = argon2id`:
 3. Store ciphertext + tag as base64url
 ```
 
-Decryption reverses the process — prompts for passphrase, derives key,
+Decryption reverses the process — obtains the passphrase, derives the key,
 decrypts.
+
+**How a passphrase reaches an implementation is not specified here.** It MUST
+arrive over a channel that does not echo it, does not persist it and does not log
+it; which channel that is belongs to the platform blueprint. A runtime with a
+terminal will prompt; a runtime without one — a Worker, a container, a scheduled
+task — cannot, and a specification that says "prompt" has excluded it.
 
 When `kdf = none`:
 - The private key is stored as hex (no encryption)
@@ -191,12 +197,14 @@ When `kdf = none`:
 
 | Category | KDF | Passphrase Source | Use Case |
 |----------|-----|------------------|----------|
-| **Operator keys** | `argon2id` | Interactive prompt | Human-operated tooling |
-| **Service keys** (orchestrator, gateway, agent) | `argon2id` or `none` | Secure configuration or none | Automated processes |
+| **Operator keys** | `argon2id` | A non-echoing channel operated by a human | Human-operated tooling |
+| **Service keys** (orchestrator, gateway, agent) | `argon2id` or `none` | An injected credential channel, or none | Automated processes |
 
 **Rules:**
-1. Operator key generation MUST prompt for a passphrase. Cannot be
-   skipped. Minimum 12 characters.
+1. Operator key generation MUST require a passphrase. It cannot be skipped, and
+   the minimum is 12 characters. The channel it arrives over is the platform
+   blueprint's to name; a headless implementation uses rules 7 and 8 rather than
+   asking a human who is not there.
 2. Service key generation defaults to `kdf = none` but SHOULD support
    encrypted keys with passphrase supplied via secure configuration.
 3. Production deployments SHOULD encrypt service keys with passphrase

@@ -148,6 +148,7 @@ here would be a second thing to keep right.
 | `protocol/identity` — key-derivation function | `golang.org/x/crypto` | **required** |
 | `protocol/identity` — symmetric encryption | stdlib `crypto/aes`, `crypto/cipher` | stdlib |
 | `protocol/identity` — random source | stdlib `crypto/rand` | stdlib |
+| `protocol/identity` — non-echoing passphrase channel | `golang.org/x/term` | **only if the implementation prompts** — a headless service takes an injected credential and needs no terminal |
 | `protocol/types` — canonical JSON | stdlib `encoding/json` + canonicalisation | stdlib |
 | `protocol/spec` — HTTP transport | stdlib `net/http` | stdlib |
 | `architecture/storage` — default backend | stdlib `os`, `encoding/json` | stdlib |
@@ -548,7 +549,7 @@ go test -race -count=1 ./...
 Assertions here apply to any Go implementation unless a group narrows them to one
 component. See `schemas/common.md` for what a group heading means.
 
-- [ ] No dependency beyond `github.com/cloudflare/circl` and `golang.org/x/crypto`, plus a storage driver only if a backend other than the JSONL default was chosen; every dependency declared in go.mod
+- [ ] No dependency outside the Primitive Mapping table — `github.com/cloudflare/circl`, `golang.org/x/crypto`, `golang.org/x/term`, and a storage driver only if a backend other than the JSONL default was chosen; every dependency declared in go.mod
 - [ ] All source files are in `package main`; shared code (protocol.go, identity.go, helpers.go) is copied between orchestrator and agents
 - [ ] `io.LimitReader` is applied on all request body reads: 1 MB for registration/messages, 10 MB for tasks, 64 KB for channels
 - [ ] All registries and shared maps are protected by `sync.RWMutex` with `RLock` for reads and `Lock` for writes
