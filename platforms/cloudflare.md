@@ -260,7 +260,7 @@ npm install -g wrangler
 cd server && wrangler deploy
 
 # Deploy agent
-cd agents/seo && wrangler deploy
+cd agents/<component> && wrangler deploy
 
 # Set secrets
 wrangler secret put WL_AI_KEY

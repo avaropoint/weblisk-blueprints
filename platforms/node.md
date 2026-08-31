@@ -52,21 +52,13 @@ weblisk-app/
 │   │   ├── registry.ts       # Agent registry
 │   │   └── admin.ts          # Admin API endpoints
 │   ├── domains/
-│   │   ├── seo/
-│   │   │   ├── index.ts      # Domain controller
-│   │   │   └── workflows.ts  # Workflow definitions
-│   │   └── content/
-│   │       ├── index.ts
-│   │       └── workflows.ts
+│   │   └── <component>/      # one directory per domain controller adopted
+│   │       ├── index.ts      # Domain controller
+│   │       └── workflows.ts  # Workflow definitions
 │   ├── agents/
-│   │   ├── seo-analyzer/
-│   │   │   ├── index.ts      # Agent entry point
-│   │   │   ├── handler.ts    # Task action handlers
-│   │   │   └── analyze.ts    # Analysis logic
-│   │   └── content-analyzer/
-│   │       ├── index.ts
-│   │       ├── handler.ts
-│   │       └── analyze.ts
+│   │   └── <component>/      # one directory per agent adopted
+│   │       ├── index.ts      # Agent entry point
+│   │       └── handler.ts    # Task action handlers
 │   ├── protocol/
 │   │   ├── types.ts          # Shared type definitions
 │   │   ├── identity.ts       # ML-DSA-65 identity management
@@ -74,13 +66,13 @@ weblisk-app/
 │   │   └── endpoints.ts      # Standard endpoint handlers
 │   ├── storage/
 │   │   ├── interface.ts      # Storage interface definition
-│   │   └── sqlite.ts         # SQLite implementation
+│   │   ├── jsonl.ts          # Flat-file JSONL — the default backend
+│   │   └── sqlite.ts         # only if SQLite was chosen
 │   └── lib/
 │       ├── logger.ts         # Structured logging
 │       └── config.ts         # Configuration loader
-├── agents/                   # Agent blueprint YAML files
-│   ├── seo-analyzer.yaml
-│   └── content-analyzer.yaml
+├── agents/                   # Agent blueprint YAML files, one per agent adopted
+│   └── <component>.yaml
 ├── migrations/
 │   └── 001_initial.sql
 └── tests/
@@ -482,7 +474,7 @@ export function registerEndpoints(
 
 ## Agent Implementation
 
-### Agent Entry Point (src/agents/seo-analyzer/index.ts)
+### Agent Entry Point (src/agents/<component>/index.ts)
 
 ```typescript
 import Fastify from "fastify";
@@ -495,12 +487,12 @@ const PORT = parseInt(process.env.WL_AGENT_PORT || "9710", 10);
 
 async function start() {
   const app = Fastify({ logger });
-  const identity = await loadIdentity("./.weblisk/keys/seo-analyzer");
+  const identity = await loadIdentity("./.weblisk/keys/<component>");
   const startTime = Date.now();
 
   registerEndpoints(app, {
     manifest: {
-      name: "seo-analyzer",
+      name: "<component>",
       version: "1.0.0",
       capabilities: ["file:read", "llm:chat"],
       actions: ["analyze", "audit"],
@@ -510,7 +502,7 @@ async function start() {
   });
 
   await app.listen({ port: PORT, host: "0.0.0.0" });
-  logger.info({ port: PORT, agent: "seo-analyzer" }, "Agent started");
+  logger.info({ port: PORT, agent: "<component>" }, "Agent started");
 }
 
 start().catch((err) => {
@@ -519,7 +511,7 @@ start().catch((err) => {
 });
 ```
 
-### Task Handler (src/agents/seo-analyzer/handler.ts)
+### Task Handler (src/agents/<component>/handler.ts)
 
 ```typescript
 import type { TaskRequest } from "../../protocol/types.js";
@@ -708,23 +700,23 @@ for process management, performance, and security details.
 
 ```typescript
 import { describe, it, expect } from "vitest";
-import { analyzeSeo } from "../src/agents/seo-analyzer/analyze.js";
+import { execute } from "../src/agents/<component>/handler.js";
 
-describe("seo-analyzer", () => {
-  it("should detect missing title tag", async () => {
-    const result = await analyzeSeo({
-      html: "<html><head></head><body></body></html>",
+// A component's own tests belong to its blueprint. This shows the shape a
+// generated test takes on this platform — the assertions come from the
+// component's Verification Checklist, not from here.
+describe("<component>", () => {
+  it("returns a TaskResult for a valid TaskRequest", async () => {
+    const result = await execute({
+      id: "0123456789abcdef0123456789abcdef",
+      action: "example",
+      payload: {},
     });
 
-    expect(result.findings).toContainEqual(
-      expect.objectContaining({
-        type: "missing_title",
-        severity: "critical",
-      })
-    );
+    expect(result.status).toBe("success");
   });
 });
-```
+
 
 ### Integration Tests
 
