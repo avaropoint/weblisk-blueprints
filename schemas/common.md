@@ -509,6 +509,38 @@ implementation of the blueprint.
 - [ ] Another assertion
 ```
 
+Assertions MAY be grouped under `###` subheadings. A group whose heading BEGINS
+with a component name — `Agent`, `Orchestrator`, `Domain`, `Gateway` — addresses
+that component only. Every other group, and every ungrouped assertion, addresses
+any implementation of the blueprint.
+
+```markdown
+## Verification Checklist
+
+### Agent Protocol
+- [ ] Agent responds to `POST /v1/describe` with a valid `AgentManifest`
+
+### Orchestrator Protocol
+- [ ] Orchestrator `POST /v1/register` validates namespace ownership (409 on conflict)
+
+### Cross-Cutting
+- [ ] All error responses use `ErrorResponse` format with an `error` field
+```
+
+### Why grouping is structural, not cosmetic
+
+A protocol blueprint describes both ends of a conversation, so its checklist
+contains assertions no single implementation can satisfy. An orchestrator does not
+serve `POST /v1/describe`; an agent does. A tool that hands an orchestrator
+generator all of `protocol/spec.md`'s assertions is grading it against another
+component's obligations, and will report failures that are correct behaviour.
+
+The group heading is how the blueprint says which component an assertion is
+addressed to. A tool MUST read it from the heading rather than infer scope from
+the assertion's wording, and MUST report excluded assertions with their count and
+the component they belong to — an assertion left out silently is indistinguishable
+from an assertion that was never written.
+
 ### Rules
 
 1. Every item must be a checkbox (`- [ ]`)
@@ -517,6 +549,8 @@ implementation of the blueprint.
 4. Items must reference specific types, endpoints, actions, or constraints by name
 5. Minimum 10 items for agent and domain blueprints
 6. Minimum 5 items for all other types
+7. A `###` group addressed to one component MUST begin with that component's name;
+   an assertion belonging to no single component MUST NOT sit in such a group
 
 ---
 

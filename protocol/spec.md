@@ -946,6 +946,7 @@ security:
 - [ ] Agent accepts `POST /v1/event` and dispatches to matching handlers
 - [ ] Agent returns 200 OK immediately on event receipt (processing is async)
 - [ ] Agent returns 429 with `Retry-After` when at event processing capacity
+- [ ] Agent returns 429 with `RATE_LIMITED` when at max_concurrent capacity
 - [ ] Agent deduplicates events by `event_id`
 
 ### Event Publishing
@@ -976,5 +977,4 @@ security:
 - [ ] Error responses include `code` and `category` when available
 - [ ] `trace_id` is propagated through all events, tasks, and messages
 - [ ] `correlation_id` links all events in a single execution chain
-- [ ] Agent returns 429 with `RATE_LIMITED` when at max_concurrent capacity
 - [ ] All protected endpoints reject requests without valid tokens
