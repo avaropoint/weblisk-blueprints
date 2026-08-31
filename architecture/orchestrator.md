@@ -64,6 +64,33 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
+  - blueprint: architecture/storage
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        # The four stores this component owns, and nothing else.
+        # architecture/storage documents fourteen; the other ten belong to the
+        # Lifecycle, Workflow and Task agents and to the Gateway.
+        - name: AgentEntry
+          fields_used: [manifest, agent_id, status, registered_at, last_seen]
+        - name: ChannelEntry
+          fields_used: [channel_id, from_agent, to_agent, expires_at]
+        - name: AuditFilter
+          fields_used: [actor, action, since, cursor, limit]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/observability
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: HealthStatus
+          fields_used: [status, component, version, uptime_seconds]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
 ```
 
 ---

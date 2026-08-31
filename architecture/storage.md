@@ -188,6 +188,30 @@ surface. Summary of stores:
    implementation is non-conformant only if it fails the contract, never
    for the backend it satisfies it with.
 
+## A Component Implements Only the Stores It Owns
+
+Every store below names an **Owner**. That attribution is normative: an
+implementation provides the stores its own blueprint owns and **MUST NOT**
+provide the others.
+
+This document describes all fourteen stores in one place because they share one
+contract, one durability rule and one pagination model — not because any one
+component holds them. The Orchestrator owns four: Agent Registry, Namespace
+Registry, Channels, and the Audit Log. Seven belong to the Lifecycle Agent, one
+each to the Workflow and Task agents, and two to the Gateway.
+
+An orchestrator that also implements the workflow-execution store has taken on
+state another component owns. Two writers then exist for one record, the audit
+chain forks, and `architecture/change-management`'s impact assessment — which
+maps a blueprint change onto the *declared* consumers of each binding — assesses
+the wrong set.
+
+The failure mode is quiet, which is why this is stated rather than assumed: a
+generated orchestrator carrying `store_lifecycle.go` and `store_gateway.go`
+compiles perfectly well and looks thorough.
+
+---
+
 ## What a Backend Must Be
 
 This document does not name a backend per platform. Naming one would be the same
@@ -641,6 +665,7 @@ comparison against the stored hash.
 
 ## Verification Checklist
 
+- [ ] A component implements exactly the stores its own blueprint owns, and none belonging to another component
 - [ ] All stores survive process restart
 - [ ] Observations are retained for at least 90 days
 - [ ] Audit entries are retained for at least 90 days
