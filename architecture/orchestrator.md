@@ -2,7 +2,7 @@
 type: architecture
 name: orchestrator
 version: 1.0.0
-requires: [protocol/identity, protocol/types, architecture/storage]
+requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability]
 platform: any
 tier: free
 -->
