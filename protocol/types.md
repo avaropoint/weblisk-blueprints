@@ -226,6 +226,32 @@ A single thing an agent can do, with optional resource scoping.
 - `event:observe` — observe all events for a topic regardless of scope
 - `realtime:publish` — publish to real-time channels
 
+**Administrative capabilities:**
+- `admin:read` — read administrative state: overview, agents, domains, workflows, operators
+- `admin:approve` — act on the approval queue
+- `admin:strategy` — create, amend and retire strategies
+- `admin:audit` — read the full audit log, including export
+- `admin:*` — every capability in the `admin` family
+
+Administration is expressed in capabilities like everything else, and an
+operator's **role is a bundle of them** — `architecture/admin` defines `viewer` as
+`admin:read`, `auditor` as `admin:read` plus `admin:audit`, and so on. This is
+what allows an administrative interface to be a service that holds grants rather
+than a second authority system running alongside the first: whatever asks to
+administer a component presents capabilities, and the component checks them the
+same way it checks `agent:message`.
+
+`admin:*` is the only wildcard capability name. It exists because a full-access
+role has to be nameable, and it denotes the whole family rather than a resource
+glob — resource scoping stays in `resources`, as for every other capability.
+
+> **Gap.** `architecture/admin`'s `admin` role relies on `admin:*` for operator
+> management, agent deregistration and federation approval, none of which is
+> separately nameable here. A deployment that wants an operator who may approve
+> federation but not deregister agents cannot express it. Naming those is
+> `architecture/admin`'s to do, and this list will follow it — inventing the
+> names here would put the wrong document in charge of what administration means.
+
 ### IOSpec
 
 Describes an input or output parameter.
@@ -1142,3 +1168,4 @@ security:
 - [ ] Severity enum is constrained to `info`, `low`, `medium`, `high`, `critical` — used consistently across enforcement, security, and safety
 - [ ] Decision mapping table resolves policy/safety/enforcement decisions to canonical DecisionResult using most-restrictive-wins
 - [ ] All protocol-level error codes (standard, enforcement, contract, federation, safety, policy, identity, common) are registered centrally; agent-local codes use domain-descriptive names and do not collide with registered codes
+- [ ] Administrative authority is expressed as `admin:` capabilities in the standard list — not as a separate role model — and `admin:*` denotes the whole family
