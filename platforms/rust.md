@@ -188,7 +188,7 @@ agents/<name>/
 ```
 
 Build: `cargo build --release -p weblisk-agent-<name>`
-Run: `./target/release/weblisk-agent-seo --port 9710 --orch http://localhost:9800`
+Run: `./target/release/weblisk-agent-<component> --port 9710 --orch http://localhost:9800`
 
 ---
 
@@ -271,7 +271,7 @@ cargo build --release
 
 # Build specific binary
 cargo build --release -p server
-cargo build --release -p weblisk-agent-seo
+cargo build --release -p weblisk-agent-<component>
 ```
 
 ### Run
@@ -282,11 +282,11 @@ cargo build --release -p weblisk-agent-seo
 
 # Run agent (connects to orchestrator)
 WL_AI_PROVIDER=ollama WL_AI_MODEL=llama3 \
-  ./target/release/weblisk-agent-seo --orch http://localhost:9800
+  ./target/release/weblisk-agent-<component> --orch http://localhost:9800
 
 # Run directly via cargo (development)
 cargo run -p server -- --port 9800
-cargo run -p weblisk-agent-seo -- --orch http://localhost:9800
+cargo run -p weblisk-agent-<component> -- --orch http://localhost:9800
 ```
 
 ### Environment Variables
@@ -413,7 +413,7 @@ domains/<name>/
 ```
 
 Build: `cargo build --release -p weblisk-domain-<name>`
-Run: `./target/release/weblisk-domain-seo --port 9700 --orch http://localhost:9800`
+Run: `./target/release/weblisk-domain-<component> --port 9700 --orch http://localhost:9800`
 
 The domain controller uses the same agent trait as work agents (6
 protocol endpoints). The workflow engine lives in `domain.rs` — see
@@ -706,7 +706,7 @@ cargo test
 # Run tests for a specific crate
 cargo test -p weblisk-core
 cargo test -p server
-cargo test -p weblisk-agent-seo
+cargo test -p weblisk-agent-<component>
 
 # Run with output
 cargo test -- --nocapture
@@ -722,7 +722,7 @@ mod tests {
     #[test]
     fn test_validate_manifest_valid() {
         let manifest = AgentManifest {
-            name: "seo".into(),
+            name: "example".into(),
             version: "1.0.0".into(),
             capabilities: vec!["analyze".into()],
             actions: vec![],
