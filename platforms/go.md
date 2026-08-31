@@ -16,7 +16,8 @@ the reference implementation for all Weblisk blueprints.
 Go is the ideal fit for Weblisk because it achieves **true zero
 external dependencies** — the entire framework compiles from the Go
 standard library alone. No package manager, no native bindings, no
-external database servers. The only exception is the optional SQLite
+external database servers. The only required dependency is circl for
+post-quantum signing; the optional storage
 driver for persistence, which compiles into the binary (embedded,
 not an external server).
 
@@ -76,8 +77,16 @@ server/
   helpers.go          # JSON helpers, utility functions
 ```
 
+Prepare: `cd server && go mod tidy`
 Build: `cd server && go build -o orchestrator .`
 Run: `./orchestrator --port 9800`
+
+The prepare step is not optional and not part of the build. `go.mod` declares the
+dependencies; `go.sum` records their checksums, and Go refuses to build without
+it. Writing source files cannot produce it — only resolution can. A generator
+that emits a correct `go.mod` and a correct `identity.go` and then builds will
+fail with "missing go.sum entry", naming a source file that has nothing wrong
+with it.
 
 ### Agent
 ```
@@ -120,13 +129,16 @@ runtime:
 Go compiles from the standard library alone with two declared exceptions, and
 no others:
 
-| Dependency | Why it cannot be stdlib |
-|---|---|
-| `github.com/cloudflare/circl` | ML-DSA-65 (FIPS 204). The protocol mandates it and Go has no post-quantum signature implementation |
-| a SQLite driver | optional, for production persistence |
+| Dependency | Status | Why it cannot be stdlib |
+|---|---|---|
+| `github.com/cloudflare/circl` | **required** | ML-DSA-65 (FIPS 204). The protocol mandates it and Go has no post-quantum signature implementation |
+| a storage driver | **only if chosen** | The default storage backend is flat-file JSONL, which needs nothing. A driver appears only when the implementation was commissioned with a different backend |
 
-Both MUST appear in `go.mod`. "Zero external dependencies" describes everything
-else: no framework, no router, no middleware stack, no logging library.
+`circl` MUST appear in `go.mod`. Nothing else is required: the default Go
+orchestrator is the standard library plus one dependency.
+
+"Zero external dependencies" describes everything beyond that — no framework, no
+router, no middleware stack, no logging library, and no database engine.
 
 See [Go-Specific Requirements](#go-specific-requirements) for
 detailed stdlib package usage and conventions.
@@ -303,9 +315,20 @@ The domain controller uses the same agent base framework as work agents
 `domain.go` — see [architecture/domain.md](../architecture/domain.md)
 for the execution flow.
 
-## Storage Mapping (Go / SQLite)
+## Storage Mapping (Go)
 
-The Go platform uses SQLite for persistent storage. Each component
+The default backend is **flat-file JSONL**, per
+[architecture/storage](../architecture/storage.md): append-only files under the
+instance's own directory, readable with `cat`, needing nothing beyond
+`encoding/json` and `os`.
+
+Any other backend is valid the moment it satisfies the storage contract. SQLite,
+an embedded key-value store, a relational or object store — that is a choice made
+when the implementation is commissioned, stated at that point, and never
+required by this blueprint. The sections below describe SQLite because it is the
+most common such choice, and they apply only when it has been made.
+
+Each component
 gets its own database file under `.weblisk/data/`.
 
 See [architecture/storage.md](../architecture/storage.md) for the
@@ -325,7 +348,7 @@ abstract storage interface.
 | Workflow Executions | `.weblisk/data/workflow.db` | `executions` |
 | Task Records | `.weblisk/data/task.db` | `tasks` |
 
-### SQLite Requirements
+### SQLite Requirements — only when SQLite was chosen
 - Use `database/sql` with `modernc.org/sqlite` (pure Go, no CGo) or
   `mattn/go-sqlite3` (CGo, faster).
 - Exception to zero-dependency rule: one SQLite driver dependency is
@@ -422,7 +445,7 @@ a dependency level. Use a semaphore per target agent to respect
 ### Dependencies
 
 - Zero external dependencies eliminates supply chain attack surface
-- Exception: one SQLite driver for production persistence (auditable, well-known)
+- Exception: a storage driver, only when a backend other than the JSONL default was chosen
 - Use `go mod verify` to validate module checksums
 
 ### Key Management
@@ -484,7 +507,7 @@ go test -race -count=1 ./...
 
 - All files in `package main` — shared code is copied between binaries, not imported
 - Use manual `os.Args` parsing or a simple flag loop for CLI flags (no `flag` package required)
-- SQLite uses WAL journal mode and `user_version` pragma for schema migrations
+- If SQLite was chosen: WAL journal mode and `user_version` pragma for schema migrations
 - When `WL_DEV=1`, fall back to in-memory maps with a printed warning
 - Binaries are fully static — deploy as single file with no runtime dependencies
 - Go’s `net/http` default server is production-ready (timeouts should be configured)
@@ -493,12 +516,13 @@ go test -race -count=1 ./...
 
 ## Verification Checklist
 
-- [ ] No dependency beyond `github.com/cloudflare/circl` and an optional SQLite driver, and both are declared in go.mod
+- [ ] No dependency beyond `github.com/cloudflare/circl`, plus a storage driver only if a backend other than the JSONL default was chosen; every dependency declared in go.mod
 - [ ] All source files are in `package main`; shared code (protocol.go, identity.go, helpers.go) is copied between orchestrator and agents
 - [ ] `io.LimitReader` is applied on all request body reads: 1 MB for registration/messages, 10 MB for tasks, 64 KB for channels
 - [ ] All registries and shared maps are protected by `sync.RWMutex` with `RLock` for reads and `Lock` for writes
 - [ ] Concurrency limiter returns 429 with `Retry-After` header and structured ErrorResponse when agent is at capacity
-- [ ] SQLite uses WAL journal mode and `user_version` pragma for schema migrations; tables created with `CREATE TABLE IF NOT EXISTS`
+- [ ] The storage contract in architecture/storage is satisfied — every declared operation exists and survives a restart
+- [ ] IF SQLite was chosen: WAL journal mode, `user_version` pragma for migrations, tables created with `CREATE TABLE IF NOT EXISTS`
 - [ ] When `WL_DEV=1`, storage falls back to in-memory maps and prints warning: `"[dev] using in-memory storage — data will not survive restart"`
 - [ ] Functions return errors — HTTP handlers write error JSON responses and do not panic; registration failures are fatal
 - [ ] Configuration loads from environment variables (`WL_*`), command-line flags (`--port`, `--orch`), and `.env` file from working directory

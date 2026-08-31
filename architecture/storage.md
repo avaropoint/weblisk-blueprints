@@ -173,23 +173,41 @@ surface. Summary of stores:
    No generic query language, no ORM.
 4. **Idempotent writes** — all store operations are safe to retry.
 5. **Zero external dependencies** — storage backends MUST be
-   embeddable or built into the platform. SQLite for Go and Node.js,
-   Durable Objects + KV for Cloudflare. External databases
-   (PostgreSQL, MySQL, etc.) MAY be used as optional backends but
-   are never required.
+   embeddable or built into the platform. No implementation requires a
+   database server.
+
+6. **The blueprint names a contract, never a product** — this document
+   specifies the operations a store MUST provide. It does not specify
+   which engine provides them, and no blueprint may require a
+   particular one. Flat-file JSONL is the default on every platform
+   because it needs nothing beyond the standard library; any other
+   backend — an embedded key-value store, SQLite, a relational or
+   object store — is a CONSUMER's choice, expressed when the
+   implementation is commissioned. A blueprint that mandates an engine
+   has decided something that is not its to decide, and an
+   implementation is non-conformant only if it fails the contract, never
+   for the backend it satisfies it with.
 
 ## Storage Backends by Platform
 
-| Platform | Orchestrator | Infrastructure Agents | Work Agents |
-|----------|-------------|----------------------|-------------|
-| Go (local) | Flat-file (JSONL) | Flat-file (JSONL) per agent | Flat-file (JSONL) per agent |
-| Cloudflare | Durable Objects + KV | Durable Objects + KV | Durable Objects + KV |
-| Node.js | Flat-file (JSONL) or SQLite | Flat-file (JSONL) or SQLite per agent | Flat-file (JSONL) or SQLite per agent |
+| Platform | Default | Notes |
+|----------|---------|-------|
+| Go | Flat-file (JSONL) | Standard library only |
+| Node.js | Flat-file (JSONL) | Standard library only |
+| Rust | Flat-file (JSONL) | Standard library only |
+| Cloudflare | Durable Objects + KV | The platform provides no filesystem; this is its embedded equivalent |
 
-All backends are embedded — no external database server is required.
-External databases (PostgreSQL, MySQL, etc.) MAY be supported as
-optional backends for teams that prefer them, but Weblisk's default
-storage is always self-contained.
+**Flat-file JSONL is the default on every platform that has a
+filesystem.** It satisfies the contract with nothing beyond the standard
+library, which is why it is the default rather than merely permitted.
+
+Any other backend is available and none is required. An embedded
+key-value store, SQLite, a relational database, an object store — all are
+valid the moment they satisfy the operations below. That choice belongs
+to whoever commissions the implementation, is stated at that point, and
+is not a property of the platform. Cloudflare is the one row where the
+default differs, and only because the runtime has no filesystem to write
+JSONL to.
 
 Implementations MAY use in-memory storage for development/testing,
 but production deployments MUST use persistent backends.
