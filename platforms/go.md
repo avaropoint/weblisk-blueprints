@@ -13,13 +13,19 @@ Guidance for generating Weblisk orchestrator and agent implementations
 in Go, running as local processes. This is the default platform and
 the reference implementation for all Weblisk blueprints.
 
-Go is the ideal fit for Weblisk because it achieves **true zero
-external dependencies** — the entire framework compiles from the Go
-standard library alone. No package manager, no native bindings, no
-external database servers. The only required dependency is circl for
-post-quantum signing; the optional storage
-driver for persistence, which compiles into the binary (embedded,
-not an external server).
+Go is the ideal fit for Weblisk because it needs **almost nothing beyond
+its own standard library** — no framework, no router, no middleware
+stack, no logging library, no package manager at runtime, no native
+bindings and no external database server. Two dependencies are required,
+and each is required because Go does not ship the primitive: circl for
+ML-DSA-65 post-quantum signing, and golang.org/x/crypto for Argon2id.
+A storage driver is optional and compiles into the binary — embedded,
+never an external server.
+
+"Zero external dependencies" was the earlier phrasing, and it was an
+overclaim that mattered: it was written as an unconditional acceptance
+criterion, and an implementation that correctly added Argon2id was then
+reported as violating its own platform's dependency policy.
 
 ## Overview
 
@@ -112,7 +118,9 @@ runtime:
   language: Go
   version: ">=1.22"
   dependencies:
-    required: [github.com/cloudflare/circl]  # ML-DSA-65; Go has no PQC signatures
+    required:
+      - github.com/cloudflare/circl   # ML-DSA-65; Go has no PQC signatures
+      - golang.org/x/crypto           # Argon2id; Go has no Argon2 in the stdlib
     optional:
       - name: modernc.org/sqlite
         version: "latest"
@@ -126,16 +134,31 @@ runtime:
       purpose: Go compiler and toolchain
 ```
 
-Go compiles from the standard library alone with two declared exceptions, and
+Go compiles from the standard library alone with three declared exceptions, and
 no others:
 
 | Dependency | Status | Why it cannot be stdlib |
 |---|---|---|
 | `github.com/cloudflare/circl` | **required** | ML-DSA-65 (FIPS 204). The protocol mandates it and Go has no post-quantum signature implementation |
+| `golang.org/x/crypto` | **required** | Argon2id (RFC 9106). `protocol/identity` mandates it for key encryption at rest and Go has no Argon2 in the standard library |
 | a storage driver | **only if chosen** | The default storage backend is flat-file JSONL, which needs nothing. A driver appears only when the implementation was commissioned with a different backend |
 
-`circl` MUST appear in `go.mod`. Nothing else is required: the default Go
-orchestrator is the standard library plus one dependency.
+Both required dependencies MUST appear in `go.mod`.
+
+`golang.org/x/crypto` is here because the alternative is worse. `protocol/identity`
+fixes Argon2id with explicit parameters — time=3, memory=65536, parallelism=4 —
+and the standard library has no Argon2 at any parameters. The only way to honour a
+stdlib-only rule would be to implement a password-hashing function by hand, which
+is the single worst place in a system to write original code. `golang.org/x/crypto`
+is maintained by the Go project itself under the same review as the standard
+library; it is not a third-party dependency in any sense that a dependency policy
+is trying to protect against.
+
+An earlier version of this document said "standard library only, except circl"
+while `protocol/identity` mandated Argon2id. The two could not both be satisfied,
+and the contradiction surfaced the only way contradictions in a specification ever
+do: an implementation built from both, which added `golang.org/x/crypto` and was
+then reported as violating its dependency policy for doing the right thing.
 
 "Zero external dependencies" describes everything beyond that — no framework, no
 router, no middleware stack, no logging library, and no database engine.
@@ -148,8 +171,9 @@ detailed stdlib package usage and conventions.
 ## Go-Specific Requirements
 
 ### Dependencies
-- Standard library only, except the two dependencies declared above
+- Standard library only, except the dependencies declared above
 - ML-DSA-65 (FIPS 204) via `github.com/cloudflare/circl` — required, and must be in go.mod
+- Argon2id (RFC 9106) via `golang.org/x/crypto/argon2` — required, and must be in go.mod
 - `crypto/rand` for secure random generation  
 - `encoding/json` for JSON serialization
 - `encoding/hex` for hex encoding
@@ -516,7 +540,10 @@ go test -race -count=1 ./...
 
 ## Verification Checklist
 
-- [ ] No dependency beyond `github.com/cloudflare/circl`, plus a storage driver only if a backend other than the JSONL default was chosen; every dependency declared in go.mod
+Assertions here apply to any Go implementation unless a group narrows them to one
+component. See `schemas/common.md` for what a group heading means.
+
+- [ ] No dependency beyond `github.com/cloudflare/circl` and `golang.org/x/crypto`, plus a storage driver only if a backend other than the JSONL default was chosen; every dependency declared in go.mod
 - [ ] All source files are in `package main`; shared code (protocol.go, identity.go, helpers.go) is copied between orchestrator and agents
 - [ ] `io.LimitReader` is applied on all request body reads: 1 MB for registration/messages, 10 MB for tasks, 64 KB for channels
 - [ ] All registries and shared maps are protected by `sync.RWMutex` with `RLock` for reads and `Lock` for writes
@@ -526,4 +553,6 @@ go test -race -count=1 ./...
 - [ ] When `WL_DEV=1`, storage falls back to in-memory maps and prints warning: `"[dev] using in-memory storage — data will not survive restart"`
 - [ ] Functions return errors — HTTP handlers write error JSON responses and do not panic; registration failures are fatal
 - [ ] Configuration loads from environment variables (`WL_*`), command-line flags (`--port`, `--orch`), and `.env` file from working directory
+
+### Domain Controllers
 - [ ] Domain controllers use `sync.WaitGroup` + goroutines for parallel phase execution and a per-agent semaphore respecting `max_concurrent`
