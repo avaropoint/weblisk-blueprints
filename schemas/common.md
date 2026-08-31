@@ -593,6 +593,20 @@ and is not an API. `verify(publicKey, data, signature)` names a primitive;
 `ML_DSA_65.Verify(...)` names an identifier that exists in no Rust or JavaScript
 implementation.
 
+**Exception: a blueprint whose subject IS a platform facility.** `patterns/command`
+specifies running operating-system processes, so it names exit codes, stdin and
+SIGTERM because those are its subject rather than an assumption about how
+something else is implemented. Such a blueprint MUST state, in its overview, that
+the capability is unavailable where the facility is absent — a Worker cannot spawn
+a process, and a blueprint about spawning processes has to say so rather than let
+a generator discover it.
+
+This exception is narrow. It covers a blueprint whose whole purpose is a facility;
+it does not cover a blueprint that merely assumes one while specifying something
+else. "An agent shuts down gracefully on SIGTERM" was the second kind: the
+requirement is orderly shutdown, and the signal was one runtime's way of asking
+for it.
+
 ### Platform blueprints — `platforms/`
 
 These translate, and translation is their entire purpose. They MAY name modules,

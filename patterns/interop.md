@@ -248,6 +248,10 @@ The sidecar adapter requires the following configuration parameters:
 The adapter spawns the framework as a child process and communicates
 via stdin/stdout (JSON lines).
 
+An adapter that spawns a framework process **requires a runtime that can spawn
+processes**, and is unavailable where there is no process table. The HTTP
+adapter form carries no such constraint and is the portable option.
+
 ```
 Weblisk HTTP → Adapter → spawn(framework) → stdin/stdout → TaskResult
 ```
