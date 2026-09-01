@@ -226,8 +226,9 @@ here would be a second thing to keep right.
 
 | Primitive required by | Provided in Go by | Status |
 |---|---|---|
-| `protocol/identity` — signature algorithm | `github.com/cloudflare/circl` | **required** |
-| `protocol/identity` — key-derivation function | `golang.org/x/crypto` | **required** |
+| `protocol/identity` — signature algorithm | `github.com/cloudflare/circl/sign/mldsa/mldsa65` | **required** |
+| `protocol/identity` — backup signature algorithm | `github.com/cloudflare/circl/sign/slhdsa` | only if backup signing is implemented |
+| `protocol/identity` — key-derivation function | `golang.org/x/crypto/argon2` | **required** |
 | `protocol/identity` — symmetric encryption | stdlib `crypto/aes`, `crypto/cipher` | stdlib |
 | `protocol/identity` — random source | stdlib `crypto/rand` | stdlib |
 | `protocol/identity` — non-echoing passphrase channel | `golang.org/x/term` | **only if the implementation prompts** — a headless service takes an injected credential and needs no terminal |
@@ -235,6 +236,14 @@ here would be a second thing to keep right.
 | `protocol/spec` — HTTP transport | stdlib `net/http` | stdlib |
 | `architecture/storage` — default backend | stdlib `os`, `encoding/json` | stdlib |
 | `architecture/storage` — non-default backend | a driver for the chosen engine | **only if chosen** |
+
+**The import paths above are exact.** They are the whole reason a platform
+blueprint exists: the specification names a primitive, and this document says
+what to type. A generated hub once imported
+`github.com/cloudflare/circl/sign/mldsa65` — a plausible path that does not
+exist — and `go mod tidy` refused the build with "module found, but does not
+contain package". Nothing in the source was wrong; the import was guessed
+because this table gave a module and not a package.
 
 Both required modules MUST appear in `go.mod`. Everything else Weblisk needs, Go
 already ships.
@@ -258,7 +267,7 @@ detailed stdlib package usage and conventions.
 
 ### Dependencies
 - Standard library only, except the two modules in the Primitive Mapping table
-- The signature algorithm comes from `github.com/cloudflare/circl`
+- The signature algorithm comes from `github.com/cloudflare/circl/sign/mldsa/mldsa65`
 - The key-derivation function comes from `golang.org/x/crypto/argon2`
 - `crypto/rand` for secure random generation  
 - `encoding/json` for JSON serialization
@@ -623,6 +632,7 @@ go test -race -count=1 ./...
 Assertions here apply to any Go implementation unless a group narrows them to one
 component. See `schemas/common.md` for what a group heading means.
 
+- [ ] Every import of a required module uses the exact package path in the Primitive Mapping table
 - [ ] No dependency outside the Primitive Mapping table — `github.com/cloudflare/circl`, `golang.org/x/crypto`, `golang.org/x/term`, and a storage driver only if a backend other than the JSONL default was chosen; every dependency declared in go.mod
 - [ ] One module rooted at the tenant folder, with `go.mod` at that root
 - [ ] Every package is named after the blueprint that specifies it; no directory is named after anything else
