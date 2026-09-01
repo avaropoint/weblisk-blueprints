@@ -287,17 +287,38 @@ mockAgent.OnMessage("scan_html", func(payload map) map {
 
 ### Level 1: Protocol Compliance
 
-These tests verify basic endpoint behavior. Every implementation
-MUST pass all Level 1 tests.
+These tests verify basic endpoint behavior. Every implementation MUST pass every
+Level 1 test **that applies to it**.
+
+Each test names the components it applies to. A test addressed to an agent is
+not a failure of an orchestrator: they serve different endpoints, and running
+every test against every component reports a correct implementation as broken —
+the same fault the Verification Checklists had before their groups were read.
 
 #### L1-01: Health Check
+
+Applies to: **orchestrator**, **agent**. Method differs by component —
+`protocol/spec` gives the orchestrator `GET /v1/health` and an agent
+`POST /v1/health`.
+
 ```
-POST /v1/health → 200
-Response MUST contain: name, state, version, uptime_seconds
-state MUST be "online"
+GET /v1/health  (orchestrator)   → 200
+POST /v1/health (agent)          → 200
+No auth required.
+Response MUST be a HealthStatus: name, status, version, uptime, timestamp
+status MUST be one of: healthy, degraded, unhealthy
 ```
 
+This test previously read `POST /v1/health`, required fields `state` and
+`uptime_seconds`, and demanded `state == "online"`. `protocol/types` defines
+HealthStatus with `status`, `uptime` and the values healthy/degraded/unhealthy,
+and `protocol/spec` gives the orchestrator GET. A conformant implementation
+failed the test, which is the wrong way round: **the type definition is the
+authority and a test asserts it**, never the reverse.
+
 #### L1-02: Describe
+
+Applies to: **agent** only — the orchestrator does not serve `/v1/describe`.
 ```
 POST /v1/describe → 200
 Response MUST be a valid AgentManifest
@@ -305,6 +326,8 @@ Response MUST contain: name, version, url, public_key, capabilities
 ```
 
 #### L1-03: Registration
+
+Applies to: **orchestrator** only — it is the registry.
 ```
 1. Build RegisterRequest with valid manifest + signature
 2. POST /v1/register → 200
@@ -314,6 +337,8 @@ Response MUST contain: name, version, url, public_key, capabilities
 ```
 
 #### L1-04: Registration Rejects Bad Signature
+
+Applies to: **orchestrator** only.
 ```
 1. Build RegisterRequest with wrong signature
 2. POST /v1/register → 401
@@ -321,6 +346,8 @@ Response MUST contain: name, version, url, public_key, capabilities
 ```
 
 #### L1-05: Registration Rejects Stale Timestamp
+
+Applies to: **orchestrator** only.
 ```
 1. Build RegisterRequest with timestamp = now - 600 seconds
 2. POST /v1/register → 401
@@ -328,6 +355,8 @@ Response MUST contain: name, version, url, public_key, capabilities
 ```
 
 #### L1-06: Execute Task
+
+Applies to: **agent** only.
 ```
 1. Register agent (get token)
 2. Build TaskRequest with valid token
@@ -338,6 +367,8 @@ Response MUST contain: name, version, url, public_key, capabilities
 ```
 
 #### L1-07: Protected Endpoints Require Auth
+
+Applies to: **orchestrator**, **agent** — against each component's own protected endpoints.
 ```
 For each protected endpoint (/v1/services, /v1/execute, /v1/audit, etc.):
   1. Send request without token → 401
@@ -346,6 +377,8 @@ For each protected endpoint (/v1/services, /v1/execute, /v1/audit, etc.):
 ```
 
 #### L1-08: Message Handling
+
+Applies to: **agent** only.
 ```
 1. Register agent
 2. Build AgentMessage: {from: "test", to: agent.name, type: "request", action: "scan_html", payload: {...}}
@@ -356,6 +389,8 @@ For each protected endpoint (/v1/services, /v1/execute, /v1/audit, etc.):
 ```
 
 #### L1-09: Service Directory Update
+
+Applies to: **agent** only — the orchestrator PUBLISHES the directory.
 ```
 1. Register agent
 2. POST /v1/services with ServiceDirectory → 200
@@ -363,6 +398,8 @@ For each protected endpoint (/v1/services, /v1/execute, /v1/audit, etc.):
 ```
 
 #### L1-10: Error Response Format
+
+Applies to: **orchestrator**, **agent** — every component.
 ```
 For any 4xx/5xx response:
   Body MUST be JSON
