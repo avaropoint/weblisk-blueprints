@@ -42,7 +42,7 @@ source code. HTML, CSS, and JS are the compiled output.
 ### The Generation Pipeline
 
 1. **global.yaml** — Project identity, brand, policies (loaded first, always)
-2. **code.yaml** — Code conventions (loaded second, constrains all output)
+2. **code.yaml** — Client code conventions (loaded second, constrains all client output)
 3. **theme.yaml** — Design tokens derived from global brand
 4. **Individual blueprints** — Pages, components, islands, etc.
 
@@ -59,6 +59,28 @@ and produces: files that conform to all constraints simultaneously.
 
 A developer picks their complexity. A portfolio is 3 blueprints. A SaaS
 app is 30. The structure scales because each blueprint is self-contained.
+
+## Client, Not Server
+
+**These standards govern client output** — the HTML, CSS and JavaScript generated
+for a website: pages, components, islands, theme, assets. Every document here
+except `project-structure.md` is about what a browser receives.
+
+**Server-side components are the platform blueprint's.** How an orchestrator, an
+agent or a domain controller is laid out, named, built and run belongs to
+[`platforms/<language>`](../platforms/), because those conventions are properties
+of the language rather than of Weblisk. A Go binary and a browser page share
+almost nothing about naming, file size, imports or structure.
+
+The distinction is not cosmetic. `code.md` declares `file_naming: kebab-case`,
+which is right for a stylesheet and wrong for Go, where files are lowercase and a
+hyphen is not valid in an identifier. A server generator that took `code.yaml` as
+its convention would produce non-idiomatic code from a document that was never
+describing it.
+
+`project-structure.md` is the one document that spans both, because a tenant
+holds client blueprints and server components in the same directory. It marks
+which parts are which.
 
 ## Standards Index
 
