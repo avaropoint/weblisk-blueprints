@@ -1,13 +1,24 @@
-# Code Conventions
+# Client Code Conventions
 
-> Declares how generated code should be written. Makes generation
-> repeatable — same blueprints, same output.
+> Declares how generated CLIENT code should be written — the HTML, CSS and
+> JavaScript a browser receives. Makes generation repeatable: same blueprints,
+> same output.
+
+**Scope.** Every convention here is about client output. Server-side components —
+an orchestrator, an agent, a domain controller — take their conventions from
+[`platforms/<language>`](../platforms/) instead, because naming, file size,
+imports and structure are properties of the language.
+
+`file_naming: kebab-case` below is the clearest illustration: correct for a
+stylesheet, wrong for Go, where files are lowercase and a hyphen is not valid in
+an identifier. A server generator that read this document as its convention would
+produce non-idiomatic code from a specification that was never describing it.
 
 ## Purpose
 
 `code.yaml` eliminates the "LLM generates different code every time"
-problem. It's sent with every generation request and constrains the
-style, patterns, and conventions of all output.
+problem. It is sent with every CLIENT generation request and constrains the
+style, patterns and conventions of that output.
 
 ## Structure
 

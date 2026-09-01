@@ -53,6 +53,22 @@ my-project/
     assets/
 ```
 
+## Client And Server In One Tenant
+
+A tenant holds both, and they follow different conventions:
+
+| | Governed by | In this listing |
+|---|---|---|
+| **Client** — pages, components, islands, theme, assets | `standards/` | `blueprints/`, `assets/`, `public/` |
+| **Server** — orchestrator, agents, domain controllers | `platforms/<language>` | the adopted `*.yaml`, and the code layout the platform defines |
+
+`blueprints/` is client source; `public/` is client output. Server components are
+declared by the blueprints a tenant adopts, and their code is laid out by the
+platform blueprint — every package named after the blueprint that specifies it.
+
+This document says what a tenant *contains*. What a browser page should look like
+is `standards/`; what a Go binary should look like is `platforms/go`.
+
 ## Key Conventions
 
 ### `blueprints/` Is Source Code

@@ -6,6 +6,22 @@ specifications (agents, domains, protocols) into concrete guidance for
 a target language and runtime — dependencies, project structure, code
 patterns, and deployment considerations.
 
+## Server, Not Client
+
+**These blueprints govern server-side components** — how an orchestrator, an
+agent, a domain controller or an administrative service is laid out, named,
+built and run in one language.
+
+**Client output is `standards/`** — the HTML, CSS and JavaScript a browser
+receives. Those conventions are different in kind: `standards/code.md` declares
+`file_naming: kebab-case`, which is right for a stylesheet and wrong for Go.
+
+A platform blueprint's job is translation. The specification blueprints state
+requirements in terms of algorithms, formats and behaviour; a platform blueprint
+says what those become in one language, and names the package for each blueprint
+that specifies it.
+
+
 Blueprints are implementation-agnostic. Platforms make them concrete.
 
 ## Platform Blueprints
