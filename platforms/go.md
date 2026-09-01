@@ -74,8 +74,15 @@ requires:
 
 ### One module, one definition of everything
 
+The **tenant folder is the module root.** Everything a tenant owns is scoped to
+that one directory — its configuration, its keys, its adopted blueprints, and
+its code. There is no `server/` subdirectory: the orchestrator is one binary
+among the tenant's binaries, not the thing the tenant is arranged around.
+
 ```
-<tenant>/
+<tenant>/                   # the tenant IS the module root
+  .weblisk/                 # configuration, keys, grants, data
+  blueprints/               # the blueprints this tenant has adopted
   go.mod                    # module <tenant>; go 1.22
   go.sum
   cmd/
@@ -575,7 +582,8 @@ Assertions here apply to any Go implementation unless a group narrows them to on
 component. See `schemas/common.md` for what a group heading means.
 
 - [ ] No dependency outside the Primitive Mapping table — `github.com/cloudflare/circl`, `golang.org/x/crypto`, `golang.org/x/term`, and a storage driver only if a backend other than the JSONL default was chosen; every dependency declared in go.mod
-- [ ] One module for the deployment; each binary is `package main` under `cmd/` and shared code is a package under `internal/`
+- [ ] One module rooted at the tenant folder; each binary is `package main` under `cmd/` and shared code is a package under `internal/`
+- [ ] No `server/` subdirectory — the orchestrator is one binary under `cmd/`, not the shape of the project
 - [ ] No type, constant or function is defined in more than one place — shared code is imported, never copied
 - [ ] The blueprint names no specific agent or domain; which components exist is chosen by adopting their blueprints
 - [ ] `io.LimitReader` is applied on all request body reads: 1 MB for registration/messages, 10 MB for tasks, 64 KB for channels
