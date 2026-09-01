@@ -76,8 +76,7 @@ requires:
 
 The **tenant folder is the module root.** Everything a tenant owns is scoped to
 that one directory — its configuration, its keys, its adopted blueprints, and
-its code. There is no `server/` subdirectory: the orchestrator is one binary
-among the tenant's binaries, not the thing the tenant is arranged around.
+its code.
 
 ```
 <tenant>/                   # the tenant IS the module root
@@ -85,31 +84,40 @@ among the tenant's binaries, not the thing the tenant is arranged around.
   blueprints/               # the blueprints this tenant has adopted
   go.mod                    # module <tenant>; go 1.22
   go.sum
-  cmd/
-    orchestrator/
-      main.go               # entry point — configure and serve
-    <component>/
-      main.go               # one directory per binary
-  internal/
-    protocol/               # wire types, error registry — ONE definition
+
+  internal/                 # shared code — one definition, imported everywhere
+    protocol/               # wire types, error registry
     identity/               # keys, signing, tokens, replay protection
     storage/                # the storage contract and its backends
     observability/          # logging, metrics, tracing
+    agent/                  # the agent framework: registration, messaging, health
     orchestrator/           # registry, routing, channels, audit, admin
-    agent/                  # the agent framework, for components that are agents
+
+  server/                   # package main — the orchestrator binary
+  agents/<component>/       # package main — one directory per agent adopted
+  domains/<component>/      # package main — one per domain controller adopted
+  admin/                    # package main — the administrative service
+
   bin/                      # build output, not source
 ```
 
-Prepare: `go mod tidy`
-Build: `go build -o bin/orchestrator ./cmd/orchestrator`
-Run: `./bin/orchestrator --port 9800`
+A `main` package may live in any directory in Go; `cmd/` is a convention, not a
+requirement. Naming the directories after what the components *are* — `server`,
+`agents`, `domains`, `admin` — keeps the tenant's shape legible, and each
+component being its own package is what makes symbol collisions between them
+impossible.
 
-The prepare step is not optional and not part of the build. `go.mod` declares the
-dependencies; `go.sum` records their checksums, and Go refuses to build without
-it. Writing source files cannot produce it — only resolution can. A generator
-that emits a correct `go.mod` and a correct identity package and then builds will
-fail with "missing go.sum entry", naming a source file that has nothing wrong
-with it.
+### A domain controller is an agent
+
+`architecture/domain` registers a domain controller with the same
+`AgentManifest` as any other agent, distinguished by `type: "domain"`, and it
+uses the same six protocol endpoints. The difference is a workflow engine, not a
+different kind of thing.
+
+So both import `internal/agent`, and `domains/` exists beside `agents/` because
+the two are operated differently — a domain orchestrates work across agents —
+not because they are different species. A tenant with no domain controllers
+simply has no `domains/` directory.
 
 ### Why one module, and not a copy per binary
 
@@ -117,7 +125,7 @@ An earlier version of this document specified a module per component with
 `package main` throughout, and said of the shared files: *"copy, don't import
 (keeps each binary standalone)."*
 
-That rationale does not hold. Go static-links: `go build ./cmd/orchestrator`
+That rationale does not hold. Go static-links: `go build ./server`
 produces a single binary with no runtime dependency on anything, whether its
 source was imported or copied. **Standalone is a property of the binary, not of
 the source layout.** Copying buys nothing it does not already have.
@@ -142,12 +150,13 @@ nobody imports touches nobody.
 
 ### A component's shape
 
-A component is a directory under `cmd/` and whatever it imports. This document
-does not name any component beyond the orchestrator, because none is required:
-which agents and domain controllers a deployment has is chosen by adopting their
-blueprints, not by this file. An agent's structure comes from
-[`architecture/agent`](../architecture/agent.md); this document says only how a
-Go binary for one is laid out and built.
+A component is a directory holding a `main` package, plus whatever it imports
+from `internal/`. This document names no component beyond the orchestrator and
+the administrative service, because no other is required: which agents and
+domain controllers a tenant has is chosen by adopting their blueprints. An
+agent's behaviour comes from [`architecture/agent`](../architecture/agent.md)
+and its own blueprint; this document says only how a Go binary for one is laid
+out and built.
 
 ---
 
@@ -245,8 +254,9 @@ detailed stdlib package usage and conventions.
   - Service updates: 1 MB limit
 
 ### Package Organization
-- One module for the deployment. Each binary is a `package main` under `cmd/`,
-  and everything else is a package under `internal/`
+- One module rooted at the tenant. Each component is a `package main` in its own
+  directory — `server/`, `agents/<component>/`, `domains/<component>/`, `admin/`
+  — and everything shared is a package under `internal/`
 - Shared code is **imported, never copied**. One definition of every wire type,
   reached by import path — see "Why one module, and not a copy per binary"
 - A package under `internal/` cannot be imported from outside the module, which
@@ -271,7 +281,7 @@ detailed stdlib package usage and conventions.
 
 ```bash
 go mod tidy                                    # once, and after any import change
-go build -o bin/orchestrator ./cmd/orchestrator
+go build -o bin/orchestrator ./server
 go build ./...                                 # every binary in the module
 ```
 
@@ -282,7 +292,7 @@ go build ./...                                 # every binary in the module
 ```
 
 A component other than the orchestrator is built the same way — `go build -o
-bin/<component> ./cmd/<component>` — and run with the flags its own blueprint
+bin/<component> ./agents/<component>` — and run with the flags its own blueprint
 defines. This document names no component beyond the orchestrator on purpose;
 which ones a deployment has is decided by adopting their blueprints.
 
@@ -304,7 +314,7 @@ See [Build Commands](#build-commands) for additional build examples.
 
 ```bash
 go mod tidy
-go build ./...                                 # every binary under cmd/
+go build ./...                                 # every binary in the module
 go vet ./...
 go test -race -count=1 ./...
 ./bin/orchestrator --port 9800
@@ -359,18 +369,19 @@ conventions including package organization and configuration.
 ## Project Structure: Domain Controller
 
 ```
-cmd/<domain-controller>/
-  main.go             # entry point — manifest, workflows, start
+domains/<component>/
+  main.go             # entry point — manifest with type: "domain", workflows, start
 internal/
   domain/             # workflow engine, dispatch, aggregation
-  agent/              # the same agent framework work agents use
+  agent/              # the same framework a work agent uses
 ```
 
-Build: `go build -o bin/<domain-controller> ./cmd/<domain-controller>`
-Run: `./bin/<domain-controller> --port 9700 --orch http://localhost:9800`
+Build: `go build -o bin/<component> ./domains/<component>`
+Run: `./bin/<component> --port 9700 --orch http://localhost:9800`
 
-A domain controller uses the same agent framework as a work agent (6 protocol
-endpoints) and adds the workflow engine in `internal/domain` — see
+A domain controller registers with the same `AgentManifest` as any agent, with
+`type: "domain"`, and serves the same six protocol endpoints. It adds the
+workflow engine in `internal/domain` — see
 [architecture/domain.md](../architecture/domain.md) for the execution flow.
 Its own aggregation rules live in the package its blueprint defines; this
 document does not name one.
@@ -567,7 +578,7 @@ go test -race -count=1 ./...
 
 ## Implementation Notes
 
-- Binaries are `package main` under `cmd/`; shared code is imported from `internal/`, never copied
+- Each component is `package main` in its own directory; shared code is imported from `internal/`, never copied
 - Use manual `os.Args` parsing or a simple flag loop for CLI flags (no `flag` package required)
 - If SQLite was chosen: WAL journal mode and `user_version` pragma for schema migrations
 - When `WL_DEV=1`, fall back to in-memory maps with a printed warning
@@ -582,8 +593,8 @@ Assertions here apply to any Go implementation unless a group narrows them to on
 component. See `schemas/common.md` for what a group heading means.
 
 - [ ] No dependency outside the Primitive Mapping table — `github.com/cloudflare/circl`, `golang.org/x/crypto`, `golang.org/x/term`, and a storage driver only if a backend other than the JSONL default was chosen; every dependency declared in go.mod
-- [ ] One module rooted at the tenant folder; each binary is `package main` under `cmd/` and shared code is a package under `internal/`
-- [ ] No `server/` subdirectory — the orchestrator is one binary under `cmd/`, not the shape of the project
+- [ ] One module rooted at the tenant folder; each component is `package main` in its own directory and shared code is a package under `internal/`
+- [ ] A domain controller imports the same `internal/agent` framework as a work agent, and registers with `type: "domain"`
 - [ ] No type, constant or function is defined in more than one place — shared code is imported, never copied
 - [ ] The blueprint names no specific agent or domain; which components exist is chosen by adopting their blueprints
 - [ ] `io.LimitReader` is applied on all request body reads: 1 MB for registration/messages, 10 MB for tasks, 64 KB for channels
