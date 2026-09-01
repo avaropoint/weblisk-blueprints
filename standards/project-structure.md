@@ -36,11 +36,15 @@ my-project/
     fonts/
       inter-var.woff2
   domains/                  # Server-side domain controllers (if needed)
-    content/
-      domain.yaml
+    <component>/
+      domain.yaml           # the blueprint this tenant adopted
+      ...                   # and the code generated from it
   agents/                   # Server-side agents (if needed)
-    chat-responder/
-      agent.yaml
+    <component>/
+      agent.yaml            # the blueprint this tenant adopted
+      ...                   # and the code generated from it
+  server/                   # The orchestrator (if the tenant runs a hub)
+  admin/                    # The administrative service (if the tenant runs a hub)
   public/                   # Generated output (build artifact)
     index.html
     css/
@@ -71,6 +75,22 @@ the generation pipeline.
 
 Describes how physical assets are used, what sizes to generate for
 responsive images, what favicon set to produce, etc.
+
+### A Component Directory Holds Its Specification And Its Implementation
+
+`agents/<component>/` contains `agent.yaml` — the blueprint this tenant adopted —
+and the code generated from it. They live together so a component is something
+you can read, regenerate and move as one thing, rather than a blueprint here and
+an implementation somewhere else with nothing connecting them.
+
+A **domain controller is an agent**: `architecture/domain` registers it with the
+same `AgentManifest` under `type: "domain"`, serving the same protocol endpoints.
+`domains/` sits beside `agents/` because the two are operated differently — a
+domain orchestrates work across agents — not because they are different species.
+
+The language-specific part of a component's layout, and where shared code lives,
+belongs to the platform blueprint. This document says what a tenant contains;
+`platforms/<language>` says what a binary for it looks like.
 
 ### `.weblisk/config.yaml` Is Runtime Config
 
@@ -119,7 +139,7 @@ my-site/
       chat.yaml
   .weblisk/config.yaml      # needed for agent connection
   agents/
-    chat-responder/
+    <component>/
       agent.yaml
   public/                   # generated
 ```

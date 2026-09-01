@@ -79,13 +79,17 @@ that one directory — its configuration, its keys, its adopted blueprints, and
 its code.
 
 ```
-<tenant>/                   # the tenant IS the module root
-  .weblisk/                 # configuration, keys, grants, data
-  blueprints/               # the blueprints this tenant has adopted
-  go.mod                    # module <tenant>; go 1.22
-  go.sum
+<tenant>/                   # the tenant IS the root, and the module root
+  .weblisk/
+    config.yaml             # hub configuration — ports, provider, environment
+    keys/  grants/          # identity and admission
+  blueprints/               # SOURCE. Human-authored YAML, per standards/project-structure
+    global.yaml  code.yaml  theme.yaml
+    pages/  components/  islands/  content/  connections/  assets/
+  assets/                   # physical media — what cannot be generated
 
-  internal/                 # shared code — one definition, imported everywhere
+  go.mod                    # module <tenant>; go 1.22
+  internal/                 # shared Go code — one definition, imported everywhere
     protocol/               # wire types, error registry
     identity/               # keys, signing, tokens, replay protection
     storage/                # the storage contract and its backends
@@ -93,13 +97,25 @@ its code.
     agent/                  # the agent framework: registration, messaging, health
     orchestrator/           # registry, routing, channels, audit, admin
 
-  server/                   # package main — the orchestrator binary
-  agents/<component>/       # package main — one directory per agent adopted
-  domains/<component>/      # package main — one per domain controller adopted
-  admin/                    # package main — the administrative service
+  server/                   # the orchestrator binary
+  admin/                    # the administrative service
+  agents/<component>/       # agent.yaml + its Go code, one per agent adopted
+  domains/<component>/      # domain.yaml + its Go code, one per controller adopted
 
-  bin/                      # build output, not source
+  bin/                      # compiled binaries
+  public/                   # generated client output — a build artifact
 ```
+
+The tenant-level layout — `blueprints/`, `assets/`, `agents/<name>/`,
+`domains/<name>/`, `public/` — is
+[`standards/project-structure`](../standards/project-structure.md), not this
+document's to invent. What belongs here is only what Go adds: the module, the
+shared packages under `internal/`, and the compiled output.
+
+A component's directory holds **both its specification and its implementation** —
+`agents/<component>/agent.yaml` is the blueprint a tenant adopted, and the Go
+files beside it are what was generated from it. Keeping them together is what
+makes a component something you can read, regenerate and move as one thing.
 
 A `main` package may live in any directory in Go; `cmd/` is a convention, not a
 requirement. Naming the directories after what the components *are* — `server`,
