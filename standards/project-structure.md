@@ -43,8 +43,9 @@ my-project/
     <component>/
       agent.yaml            # the blueprint this tenant adopted
       ...                   # and the code generated from it
-  server/                   # The orchestrator (if the tenant runs a hub)
-  admin/                    # The administrative service (if the tenant runs a hub)
+                            # Server-side CODE follows the platform blueprint's
+                            # layout — see platforms/<language>. Every package is
+                            # named after the blueprint that specifies it.
   public/                   # Generated output (build artifact)
     index.html
     css/
@@ -76,12 +77,17 @@ the generation pipeline.
 Describes how physical assets are used, what sizes to generate for
 responsive images, what favicon set to produce, etc.
 
-### A Component Directory Holds Its Specification And Its Implementation
+### A Package Is Named After The Blueprint That Specifies It
 
-`agents/<component>/` contains `agent.yaml` — the blueprint this tenant adopted —
-and the code generated from it. They live together so a component is something
-you can read, regenerate and move as one thing, rather than a blueprint here and
-an implementation somewhere else with nothing connecting them.
+`agents/<component>/agent.yaml` is the blueprint this tenant adopted. The code
+generated from it lives where the platform blueprint says — for Go, a binary at
+`cmd/<component>` and its logic at `internal/agents/<component>`.
+
+The two are connected by **name**, not by adjacency: every package is named after
+the blueprint it implements, so any package can be traced back to the
+specification that produced it. A directory named after something that is not a
+blueprint — `server/`, say — traces back to nothing, and a generator has to be
+told where it goes instead of deriving it.
 
 A **domain controller is an agent**: `architecture/domain` registers it with the
 same `AgentManifest` under `type: "domain"`, serving the same protocol endpoints.
