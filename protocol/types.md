@@ -226,6 +226,18 @@ A single thing an agent can do, with optional resource scoping.
 - `event:observe` — observe all events for a topic regardless of scope
 - `realtime:publish` — publish to real-time channels
 
+**Content capabilities:**
+- `content:read` — read entries and list a content repository
+- `content:write` — create, modify and remove entries
+- `content:describe` — read a repository's custody class, attestations and derived ceiling
+- `content:reconcile` — run custody reconciliation on a shared repository
+
+A capability name is `family:verb`. A component that invents one is refused at
+registration with `INVALID_REQUEST` — which is correct, and is why a component's
+capabilities belong in this list before that component is built. The content
+service was generated asking for `content.read`, with a dot and no declared
+family, and the orchestrator rejected it exactly as it should.
+
 **Administrative capabilities:**
 - `admin:read` — read administrative state: overview, agents, domains, workflows, operators
 - `admin:approve` — act on the approval queue
