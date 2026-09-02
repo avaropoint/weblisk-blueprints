@@ -533,10 +533,34 @@ the preceding entry, forming a tamper-evident append-only log:
 
 | Operation | Signature | Description |
 |-----------|-----------|-------------|
-| ClaimNamespace | `(namespace string, agent string) → error` | Register exclusive ownership (409 if taken) |
+| ClaimNamespace | `(namespace string, agent string) → error` | Record exclusive ownership (409 if already owned by another) |
 | ReleaseNamespace | `(namespace string) → error` | Release on agent deregistration |
 | GetOwner | `(namespace string) → (string, error)` | Look up which agent owns a namespace |
 | ListNamespaces | `() → (map[string]string, error)` | All namespace → agent mappings |
+
+**This store records ownership. It does not decide who may ask.**
+
+`system.*` is reserved, and the rule is a REGISTRATION rule:
+[`protocol/spec`](../protocol/spec.md) rejects an agent claiming it with 403
+"reserved for orchestrator". The orchestrator itself claims `system` at startup —
+[`architecture/orchestrator`](orchestrator.md)'s startup sequence — through this
+same store.
+
+An implementation that puts the reservation check inside `ClaimNamespace`
+therefore refuses the one component that is supposed to own it. That happened:
+a generated orchestrator died two seconds into startup with
+
+```
+startup: reserve namespace "system": namespace "system" is reserved
+```
+
+and its own health check then honestly reported `namespaces: degraded`, because
+the orchestrator did not own the namespace it is required to own.
+
+The general form is worth stating because it will recur: **a store records, a
+policy decides.** Enforcement that belongs to a request path, placed in the
+store beneath it, applies to every caller including the ones the rule exists to
+serve.
 
 ---
 
@@ -666,6 +690,8 @@ comparison against the stored hash.
 ## Verification Checklist
 
 - [ ] A component implements exactly the stores its own blueprint owns, and none belonging to another component
+- [ ] Stores record; they do not enforce request-path policy. `ClaimNamespace` accepts `system` from the orchestrator, and `protocol/spec`'s registration flow is what refuses it from an agent
+- [ ] A freshly started orchestrator owns the `system` namespace and reports `namespaces: ok`
 - [ ] All stores survive process restart
 - [ ] Observations are retained for at least 90 days
 - [ ] Audit entries are retained for at least 90 days
