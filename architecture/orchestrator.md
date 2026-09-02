@@ -47,7 +47,7 @@ requires:
         - name: RegisterResponse
           fields_used: [agent_id, token, expires_at, services]
         - name: ServiceDirectory
-          fields_used: [agents, routing_table, namespaces]
+          fields_used: [services, routing_table, namespaces]
         - name: ChannelRequest
           fields_used: [from_agent, to_agent, purpose]
         - name: ChannelGrant
@@ -86,7 +86,7 @@ requires:
     bindings:
       types:
         - name: HealthStatus
-          fields_used: [status, component, version, uptime_seconds]
+          fields_used: [status, name, version, uptime]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

@@ -47,7 +47,7 @@ requires:
     bindings:
       types:
         - name: ErrorResponse
-          fields_used: [code, message, detail]
+          fields_used: [code, error, detail]
         - name: TaskRequest
           fields_used: [action, payload, context]
     on_change:

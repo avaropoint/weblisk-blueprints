@@ -73,7 +73,7 @@ requires:
     bindings:
       types:
         - name: ErrorResponse
-          fields_used: [code, message, category]
+          fields_used: [code, error, category]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

@@ -34,7 +34,7 @@ requires:
         - name: FileRecord
           fields_used: [id, filename, mime_type, size, visibility, urls, owner_id]
         - name: ErrorResponse
-          fields_used: [code, message, category, retryable]
+          fields_used: [code, error, category, retryable]
         - name: AgentManifest
           fields_used: [name, version, url, capabilities]
     on_change:

@@ -48,11 +48,11 @@ requires:
         - name: Feedback
           fields_used: [id, recommendation_id, signal, metric_before, metric_after]
         - name: ServiceDirectory
-          fields_used: [agents, routing_table]
+          fields_used: [services, routing_table]
         - name: EventEnvelope
           fields_used: [topic, scope, payload, source]
         - name: HealthStatus
-          fields_used: [status, component, checks]
+          fields_used: [status, name, checks]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

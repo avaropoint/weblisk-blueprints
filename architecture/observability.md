@@ -55,7 +55,7 @@ requires:
     bindings:
       types:
         - name: ServiceDirectory
-          fields_used: [agents]
+          fields_used: [services]
         - name: AuditEntry
           fields_used: [timestamp, actor, action]
     on_change:
@@ -67,7 +67,7 @@ requires:
     bindings:
       types:
         - name: HealthStatus
-          fields_used: [status, component, version, uptime_seconds, checks]
+          fields_used: [name, status, version, uptime, checks]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -255,7 +255,7 @@ Client Request
   "span_id": "span1234abcd",
   "parent_span_id": null,
   "name": "orchestrator.handle_task",
-  "component": "orchestrator",
+  "name": "orchestrator",
   "start_time": "2026-04-25T10:30:01.000Z",
   "end_time": "2026-04-25T10:30:03.100Z",
   "duration_ms": 2100,
@@ -379,10 +379,10 @@ suitable for monitoring:
 
 ```json
 {
+  "name": "seo-analyzer",
   "status": "healthy",
-  "component": "seo-analyzer",
   "version": "1.0.0",
-  "uptime_seconds": 172800,
+  "uptime": 172800,
   "checks": {
     "storage": "ok",
     "llm": "ok",
@@ -504,6 +504,6 @@ In production:
 - [ ] Orchestrator exposes wl_agents_registered, wl_tasks_total, wl_task_duration_seconds, and wl_http_requests_total metrics
 - [ ] Agent metrics include wl_tasks_total by action/status, wl_llm_calls_total, and wl_llm_tokens_total by model/type
 - [ ] Metrics labels do NOT include high-cardinality values (user_id, URL) or PII
-- [ ] Health endpoint returns structured JSON with status, component, version, uptime_seconds, and checks map
+- [ ] Health endpoint returns structured JSON with `name`, `status`, `version`, `uptime` and a `checks` map, per protocol/types HealthStatus — not `component`, and not `uptime_seconds`
 - [ ] Spans are emitted as structured JSON logs (type: span) by default and exportable to an external trace collector when configured
 - [ ] Components limit log output to ~100 lines per task at info level to prevent log flooding

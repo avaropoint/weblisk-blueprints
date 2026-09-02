@@ -50,7 +50,7 @@ requires:
         - name: EventEnvelope
           fields_used: [event_id, topic, source, scope, timestamp, payload]
         - name: ErrorResponse
-          fields_used: [code, message, detail]
+          fields_used: [code, error, detail]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

@@ -42,7 +42,7 @@ requires:
     bindings:
       types:
         - name: ErrorResponse
-          fields_used: [code, message, retryable, retry_after, detail]
+          fields_used: [code, error, retryable, retry_after, detail]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

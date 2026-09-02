@@ -42,7 +42,7 @@ requires:
         - name: TypeDefinition
           fields_used: [name, fields]
         - name: ErrorResponse
-          fields_used: [code, message]
+          fields_used: [code, error]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

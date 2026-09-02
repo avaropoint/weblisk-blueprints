@@ -40,7 +40,7 @@ requires:
         - name: RateLimitConfig
           fields_used: [algorithm, storage, defaults, routes]
         - name: ErrorResponse
-          fields_used: [code, message, category, retryable]
+          fields_used: [code, error, category, retryable]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

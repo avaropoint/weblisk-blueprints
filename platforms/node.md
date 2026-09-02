@@ -101,7 +101,7 @@ requires:
     bindings:
       types:
         - name: HealthStatus
-          fields_used: [status, component, version, uptime_seconds]
+          fields_used: [status, name, version, uptime]
         - name: AgentManifest
           fields_used: [name, version, capabilities, actions]
         - name: TaskRequest

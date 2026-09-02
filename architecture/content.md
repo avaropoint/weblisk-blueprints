@@ -48,7 +48,7 @@ requires:
     bindings:
       types:
         - name: ErrorResponse
-          fields_used: [code, message, category, retryable]
+          fields_used: [code, error, category, retryable]
         - name: AgentManifest
           fields_used: [name, capabilities]
         - name: AuditEntry
