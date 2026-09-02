@@ -217,9 +217,48 @@ generated. It MUST be rejected, with what is missing, when:
 3. A symbol is declared by more than one file.
 4. `depends_on` contains a cycle, or names a file not in the plan.
 5. A file has no purpose.
+6. A path belongs to another component of the same target — its module, its
+   entry point, or a file another component's manifest claims.
 
 Rejection returns the specific gap and asks for a revised plan. This costs one
 call and saves generating a structure that could never satisfy the blueprints.
+
+Rule 6 exists because a tenant root is the module root, so every component a
+tenant grows is planned into the same tree. Asked for a content service, a
+planner given only the blueprints planned `module weblisk-tenant` over a module
+already called something else, re-implemented three packages the tenant had, and
+put its entry point in the orchestrator's `cmd/` directory. Twelve of
+thirty-two files duplicated existing packages and one would have replaced the
+component that was running.
+
+The plan was not wrong about the blueprints. It was answering *what does a
+content service consist of* when the question is *what must this tenant grow in
+order to have one*. Element 9 of the prompt contract is what lets a planner
+answer the second; rule 6 is what happens when it does not, because an
+instruction a model may decline is not a guard.
+
+### Reconciling a target
+
+Generation removes files a previous run of THE SAME COMPONENT wrote that the
+current plan omits, and leaves everything else alone. Three distinctions are
+required, and collapsing any two of them destroys work:
+
+| The file is | Action |
+|---|---|
+| In this plan | Written |
+| Written by a previous run of this component, and this plan drops it | Removed — the plan is a complete statement |
+| Written by a previous run, and this plan was TOLD to omit it | **Kept.** Reported as retained |
+| Written by nobody — hand-edited, or another component's | Kept. Reported as foreign |
+
+The record of what a run wrote MUST be keyed by component, not by output
+directory. Keying it by directory made two components of one tenant share one
+record, and the second build read the first's files as stale and deleted the
+module file.
+
+The third row is the one that is easy to miss. Element 9 tells a planner not to
+plan a file that already exists; the planner complies; and a reconciler that
+knows only "previously written, now absent" reads that compliance as a deletion.
+Both rules are correct and their conjunction deletes a working tenant.
 
 ### Generation order comes from the plan
 
@@ -250,6 +289,22 @@ choice; content is not.
 | 6 | **Verification Checklists** — as explicit acceptance criteria, not buried in the blueprint body | A checklist present as context is complied with by luck. Present as criteria, it is complied with on purpose |
 | 7 | **Scope prohibition** — build the declared obligations and nothing else | Below |
 | 8 | **The blueprints themselves** | The specification being implemented |
+| 9 | **The tenant's existing state** — module path, the packages already present with their exported names, and which component owns which file | A component is almost never the first thing in a tenant. Without this a generator re-declares what it could import, and names the module something the tenant is not |
+
+Element 9 is a statement of FACT, not of policy — what exists, not what is
+allowed. That distinction is why it belongs in a prompt at all: the blueprints
+cannot know what a given tenant contains, and everything else in this table is
+derived from them.
+
+It carries a cost that is worth stating. Exported names belong in the invariant
+prefix, so a run pays for them once rather than per file; and the PLAN's cache
+key must be derived from the tenant's shape — module, package directories,
+owners — and not from the export text, or every component in a tenant re-plans
+whenever any other one gains a constant.
+
+A component MUST NOT be shown its own previous output as existing state. That
+output is what the run replaces, and presenting it tells a regeneration its own
+types already exist somewhere it must not re-declare them.
 
 ### Scope discipline
 
@@ -487,6 +542,14 @@ and "nothing contradicted it".
 ---
 
 ## Verification Checklist
+- [ ] A plan naming another component's module file, entry point or owned file is rejected, and the rejection names the owning component
+- [ ] A plan is judged against the CALLER's target, never a target the model declared in its own output
+- [ ] A file a previous run wrote and this plan was instructed to omit survives reconciliation and is reported as retained
+- [ ] A file a previous run wrote and this plan genuinely dropped is removed
+- [ ] The record of what a run wrote is keyed by component; two components in one tenant never share one record
+- [ ] A generation prompt states the tenant's module path and the exported names of packages already present
+- [ ] A component is not shown its own previous output as existing tenant state
+- [ ] A plan is not re-made because an unrelated component gained an exported name
 
 - [ ] A generator asks the model for a plan and does not impose a file structure
 - [ ] A plan omitting a type the protocol enumerates is rejected, naming the type
