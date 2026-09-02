@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: threat-model
-version: 1.0.0
-requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/data-security, architecture/admin, architecture/observability, architecture/enforcement, patterns/contract]
+version: 1.1.0
+requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/content, architecture/data-security, architecture/admin, architecture/observability, architecture/enforcement, patterns/contract]
 platform: any
 tier: free
 -->
@@ -163,6 +163,19 @@ requires:
       types:
         - name: DataContract
           fields_used: [fields, operations, retention, scope]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/content
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ContentRepository
+          fields_used: [custody, attestations, ceiling]
+        - name: AccessStatement
+          fields_used: [access_complete, principals]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -381,6 +394,18 @@ TRUSTED NETWORK MODE (acceptable for single-host deployments):
 | 3.9 | **Response-channel exfiltration** | Agent reads authorized data but smuggles additional fields into its response payload | Enforcement response boundary validates agent output against declared output contract; response fields MUST be a subset of declared output schema; response scope MUST NOT exceed agent operational scope (see architecture/enforcement response boundary) | Enforcement response boundary |
 | 3.10 | **Self-storage poisoning** | Compromised agent corrupts its own stored data to influence downstream consumers | Storage integrity verification detects anomalous modifications via record checksums, write provenance, and version chain integrity; enforcement audit trail cross-referenced against stored records to detect orphaned writes (see architecture/data-security storage integrity) | Data security + enforcement audit |
 | 3.11 | **Undeclared resource access** | Agent accesses storage resources outside its declared operational data contract | Enforcement storage proxy verifies every storage operation against agent's declared operational data contract; undeclared resource access denied with ENFORCEMENT_DATA_CONTRACT_VIOLATION (see patterns/contract operational data contracts) | Enforcement + contract |
+| 3.12 | **Backend permission exceeds contract** | The storage backend's own ACL grants access to principals the data contract never authorised, so content is reachable without passing enforcement | Custody classification at declaration; scope ceiling derived from what the backend can attest; content above the ceiling refused rather than downgraded | Content service + scope |
+| 3.13 | **Out-of-band write** | A second authority modifies content directly on the backend, bypassing every boundary | Digest reconciliation detects the change and records it as `external` provenance; the change is surfaced, not silently absorbed. Under shared custody this is expected behaviour, not an attack | Content service reconciler |
+| 3.14 | **Out-of-band read invisible to audit** | Content is read directly from the backend, so no access record exists and the audit trail implies nobody read it | Cannot be prevented where a second authority holds the bytes. Every access statement from shared or opaque custody is marked `access_complete: false`; principals are enumerated where the backend attests them | Content service + audit honesty |
+| 3.15 | **Custody misdeclaration** | A repository is declared `exclusive` when a second authority in fact holds access, so the full integrity model is applied to storage that cannot support it | Attestations must be demonstrated, not asserted; an undemonstrated property is `false` and an undeclared repository is `opaque`; re-verification on a schedule lowers the ceiling and publishes `content.custody_degraded` | Content service registry |
+
+
+**Custody note.** Vectors 3.1–3.11 assume this system is the only writer to the
+storage in question. Where content lives on a backend a second authority can
+also write, that assumption fails in both directions: an ordinary authorised
+edit looks like tampering, and a genuine out-of-band read leaves no trace at
+all. Vectors 3.12–3.15 cover that case. Which set applies is determined by the
+repository's custody class — see [`architecture/content`](content.md).
 
 ---
 
