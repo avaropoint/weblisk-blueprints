@@ -49,18 +49,20 @@ Architecture blueprints do NOT use: `kind`, `port`, `extends`, `depends_on`.
 | 4 | Dependencies | `## Dependencies` | **Yes** | Dependency contracts |
 | 5 | Architecture | `## Architecture` | **Yes** | Component diagram and responsibilities |
 | 6 | Responsibilities | `## Responsibilities` | **Yes** | What this component owns and does NOT own |
-| 7 | Interfaces | `## Interfaces` | **Yes** | Public API surface (methods, endpoints, events) |
-| 8 | Data Flow | `## Data Flow` | **Yes** | How data moves through this component |
-| 9 | Types | `## Types` | Conditional | Data structures in YAML (if component defines types) |
-| 10 | Configuration | `## Configuration` | Optional | Component-level configuration |
-| 11 | Security | `## Security` | **Yes** | Security posture, trust model, and boundaries |
-| 12 | Implementation Notes | `## Implementation Notes` | **Yes** | Practical guidance |
-| 13 | Verification Checklist | `## Verification Checklist` | **Yes** | Testable assertions (min 5) |
+| 7 | Endpoints | `## Endpoints` | Conditional | HTTP surface as a table. **Required if the component serves any** — see below |
+| 8 | Interfaces | `## Interfaces` | **Yes** | Public API surface (methods, endpoints, events) |
+| 9 | Data Flow | `## Data Flow` | **Yes** | How data moves through this component |
+| 10 | Types | `## Types` | Conditional | Data structures in YAML (if component defines types) |
+| 11 | Configuration | `## Configuration` | Optional | Component-level configuration |
+| 12 | Security | `## Security` | **Yes** | Security posture, trust model, and boundaries |
+| 13 | Implementation Notes | `## Implementation Notes` | **Yes** | Practical guidance |
+| 14 | Verification Checklist | `## Verification Checklist` | **Yes** | Testable assertions (min 5) |
 
 ### Optional Sections
 
 | Section | Insert After | When Needed |
 |---------|-------------|-------------|
+| `## Design Principles` | Data Flow | Numbered decisions the component's shape follows from. Used by most architecture blueprints; place it after Data Flow, as `storage`, `observability` and `threat-model` do |
 | `## Collaboration` | Data Flow | Multi-component interaction patterns |
 | `## Error Handling` | Interfaces | Component-level error strategies |
 | `## Scaling` | Implementation Notes | Scaling characteristics of this component |
@@ -112,6 +114,30 @@ Two lists: what the component IS responsible for, and what it is NOT.
 
 Both lists are required. The "Does NOT Own" list prevents scope creep
 and clarifies boundaries.
+
+### Endpoints (`## Endpoints`)
+
+The component's HTTP surface, as a **markdown table**. Required for any
+component that serves HTTP.
+
+```markdown
+## Endpoints
+
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| POST | /v1/register | no* | Agent registration (identity-verified) |
+| GET | /v1/health | no | Component health |
+```
+
+**The table form is load-bearing, not cosmetic.** Generation reads a component's
+required endpoints from this section — it does not read the `endpoints:` list in
+`## Interfaces`. A blueprint that declares its surface only in the YAML block
+states it for a human reader and states nothing to the pipeline, so the plan is
+never validated against those endpoints and a component can be generated
+complete-looking with an endpoint missing.
+
+Declare endpoints here, and describe them in `## Interfaces` alongside methods
+and events if the component's consumers need more than the table carries.
 
 ### Interfaces (`## Interfaces`)
 

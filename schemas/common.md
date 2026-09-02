@@ -510,7 +510,7 @@ implementation of the blueprint.
 ```
 
 Assertions MAY be grouped under `###` subheadings. A group whose heading BEGINS
-with a component name — `Agent`, `Orchestrator`, `Domain`, `Gateway` — addresses
+with a component name — `Agent`, `Orchestrator`, `Domain`, `Gateway`, `Content` — addresses
 that component only. Every other group, and every ungrouped assertion, addresses
 any implementation of the blueprint.
 
