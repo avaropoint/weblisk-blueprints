@@ -694,7 +694,7 @@ requires:
         - name: EventEnvelope
           fields_used: [from, to, action, payload, trace_id]
         - name: HealthStatus
-          fields_used: [status, details]
+          fields_used: [status, checks]
     on_change:
       compatible: validate
       breaking: version-bump

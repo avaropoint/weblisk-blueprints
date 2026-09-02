@@ -52,7 +52,7 @@ requires:
         - name: TaskResult
           fields_used: [task_id, status, output]
         - name: ServiceDirectory
-          fields_used: [agents, routing_table, namespaces]
+          fields_used: [services, routing_table, namespaces]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

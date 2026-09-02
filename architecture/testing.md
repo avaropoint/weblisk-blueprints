@@ -63,7 +63,7 @@ requires:
         - name: ErrorResponse
           fields_used: [error, code]
         - name: ServiceDirectory
-          fields_used: [agents, routing_table, namespaces]
+          fields_used: [services, routing_table, namespaces]
         - name: ChannelGrant
           fields_used: [channel_id, token, target_url]
     on_change:

@@ -51,7 +51,7 @@ requires:
         - name: TypeDefinition
           fields_used: [name, fields]
         - name: ErrorResponse
-          fields_used: [code, message, detail]
+          fields_used: [code, error, detail]
         - name: PaginatedResponse
           fields_used: [data, pagination]
     on_change:

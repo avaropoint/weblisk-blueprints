@@ -60,7 +60,7 @@ requires:
     bindings:
       types:
         - name: ErrorResponse
-          fields_used: [code, message, category]
+          fields_used: [code, error, category]
         - name: AgentManifest
           fields_used: [name, capabilities, type]
     on_change:

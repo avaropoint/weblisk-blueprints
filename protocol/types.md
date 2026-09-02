@@ -765,8 +765,17 @@ Stored record of an active channel in the orchestrator's channel registry.
 | Status | string | `status` | yes | `healthy`, `degraded`, `unhealthy` |
 | Version | string | `version` | yes | Component version |
 | Uptime | int64 | `uptime` | yes | Seconds since start |
+| Checks | map | `checks` | no | Per-subsystem health: subsystem name → `ok`, `degraded` or `failed`. A component that names a failing subsystem says WHERE it is unwell; one that reports only `status` says that it is |
 | Metrics | map | `metrics` | no | Component-specific metrics |
 | Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+
+The component's own name is `name` and its age is `uptime`. Neither is
+`component` nor `uptime_seconds`: those were bound by
+[`architecture/observability`](../architecture/observability.md) from this type
+for a while, and since this type never had them, a generated orchestrator
+emitted the observability names, satisfied observability's assertion, and failed
+`L1-01` against this definition. **This table is the authority and every other
+blueprint binds the names in it.**
 
 ---
 
