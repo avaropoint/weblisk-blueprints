@@ -366,6 +366,43 @@ The content service is a component in the mesh: it registers with the
 orchestrator, claims the `content.*` namespace exclusively, and verifies caller
 tokens against the orchestrator's public key.
 
+Its manifest declares `protocol_version` `"1"` — the wire protocol version from
+[`protocol/types`](../protocol/types.md), **not** the component's own semver —
+and these capabilities, which are the `content:` family that document declares:
+
+| Capability | Guards |
+|---|---|
+| `content:read` | `GET /v1/content`, `GET /v1/content/entry`, `GET /v1/content/stat` |
+| `content:write` | `PUT /v1/content/entry`, `DELETE /v1/content/entry` |
+| `content:describe` | `GET /v1/content/repositories` |
+| `content:reconcile` | `POST /v1/content/reconcile` |
+
+A capability name is `family:verb`. An invented name is refused at registration,
+so these MUST be the names `protocol/types` declares and no others.
+
+### Startup Sequence
+
+The order is not free, because the key this service authenticates with arrives
+in the registration response:
+
+```
+1. Load configuration and open storage
+2. Load or generate the ML-DSA-65 key pair
+3. Verify each declared repository's custody attestations
+4. Construct the authenticator WITHOUT an issuer key — it refuses every token
+   until one arrives, which is the correct standalone behaviour
+5. Register HTTP routes and start listening
+6. Register with the orchestrator, if an orchestrator URL is configured
+7. On the registration response, set the issuer public key on the authenticator
+8. Start the reconcile and re-verify loops
+9. Serve until signalled
+```
+
+Steps 4 to 7 are stated because the obvious order fails in a way that cannot
+recover: a service that requires the orchestrator's public key in order to
+construct its authenticator exits before step 6, so it can never obtain the key
+it refused to start without.
+
 **An orchestrator is not required in order to start.** Where no orchestrator URL
 is configured:
 

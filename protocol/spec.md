@@ -352,7 +352,8 @@ Agent registration. No auth required (this is how agents GET auth).
 
 The orchestrator MUST:
 1. Validate: `manifest.name`, `manifest.url`, `manifest.public_key` are non-empty
-2. Verify `signature` against `manifest.public_key` over `canonicalize(manifest)` per RFC 8785
+2. Verify `signature` against `manifest.public_key` over `canonicalize(manifest)` per RFC 8785,
+   canonicalizing the manifest **as received** — see [Signing input](#signing-input) below
 3. Reject if `|server_time - timestamp|` > 300 seconds (replay protection)
 4. **Validate namespace ownership** (see Namespace Control below):
    a. For each namespace in `manifest.publishes`:
@@ -466,6 +467,38 @@ Audit log. Requires valid auth token.
 - `limit` — max results (default: 100)
 
 ---
+
+
+### Signing input
+
+The bytes a signature covers are `canonicalize(manifest)` where the manifest is
+the JSON object **as it arrived on the wire**, not a re-serialization of the
+verifier's own manifest type.
+
+This is normative because the alternative is unimplementable. `protocol/types`
+requires that unknown fields be ignored on decode, so a verifier that parses the
+manifest into its own struct and canonicalizes THAT drops every field it does
+not know — and the digest it verifies is then not the digest that was signed. Any
+implementation carrying a field the verifier lacks produces a signature that can
+never verify, and the failure reports as an invalid signature rather than as a
+field asymmetry.
+
+It happened: a content service signed a manifest carrying a `contracts` object,
+the orchestrator's `AgentManifest` had no such field, and registration failed
+with `manifest signature verification failed` on a signature that was correct.
+
+Two rules follow:
+
+- A verifier MUST canonicalize the received manifest object, preserving fields it
+  does not recognise, and MUST NOT canonicalize a value re-serialized from a
+  local type.
+- A registering component MUST NOT add wire fields to its manifest beyond those
+  `protocol/types` defines for `AgentManifest`. Extra fields are legitimate to
+  carry and are the verifier's to preserve, but a component that invents them is
+  relying on every peer implementing the rule above.
+
+The same applies to every signed payload in this protocol, not only
+registration: `canonicalize` is always applied to what was received.
 
 ## Namespace Control
 
@@ -936,6 +969,8 @@ security:
 ---
 
 ## Verification Checklist
+- [ ] A manifest carrying a field the verifier's own type does not define still verifies — canonicalization preserves it
+- [ ] A signed payload is canonicalized as received, never re-serialized from a local type before verification
 
 ### Agent Protocol
 - [ ] Agent responds to `POST /v1/describe` with valid `AgentManifest` including `publishes` and `subscriptions`
