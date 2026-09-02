@@ -469,6 +469,41 @@ Audit log. Requires valid auth token.
 ---
 
 
+### Two words that mean two things
+
+Both collisions below cost a registration failure, and both read as a correct
+implementation of the wrong specification. A component consuming these
+blueprints consumes both sides of each.
+
+**`scope`.** A subscription's `scope` is a DELIVERY scope — `self` (default),
+`*` (requires `event:observe`), or a specific agent name. It is not a
+`ScopeLevel` from [`patterns/scope`](../patterns/scope.md), which classifies
+sensitivity as public, internal, confidential, restricted or critical. A
+component that sets a subscription scope to `internal` is refused, because
+`internal` is a classification and never an audience.
+
+**`version`.** `protocol_version` is the WIRE protocol version: a bare major
+number, `"1"`. It is not semver, and it is not the component's own `version`
+field, which is semver. Nor is it a data-contract version, which
+[`patterns/contract`](../patterns/contract.md) does express as semver and
+compares with major/minor compatibility. Applying the contract check to the
+protocol version rejects an orchestrator for answering `"1"` exactly as
+specified.
+
+A component MUST compare `protocol_version` for equality with the wire version
+it implements, and MUST NOT parse it as semver.
+
+### Endpoint paths are absolute
+
+An orchestrator URL is an ORIGIN — scheme, host, port — and carries no path.
+Every endpoint in this specification is written as the full path a client
+requests, `/v1/register` and not `/register`, and a client composes a request as
+`origin + path`.
+
+Stated because the split is invisible in a single implementation: a component
+that holds `/register` and an origin, and a base that happens to be mounted at
+`/v1`, works until it meets an orchestrator that is not.
+
 ### Signing input
 
 The bytes a signature covers are `canonicalize(manifest)` where the manifest is
@@ -969,6 +1004,9 @@ security:
 ---
 
 ## Verification Checklist
+- [ ] A subscription scope is `self`, `*` or an agent name — never a ScopeLevel
+- [ ] `protocol_version` is compared for equality with the wire version, not parsed as semver
+- [ ] A client composes requests as origin + absolute path; no endpoint constant omits its `/v1` prefix
 - [ ] A manifest carrying a field the verifier's own type does not define still verifies — canonicalization preserves it
 - [ ] A signed payload is canonicalized as received, never re-serialized from a local type before verification
 

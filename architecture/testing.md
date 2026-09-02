@@ -233,6 +233,31 @@ Implements only the endpoints agents call during their lifecycle.
 - Stores registrations in memory
 - Does NOT forward tasks (mock only)
 
+### What the mock cannot establish
+
+The mock is deliberately permissive, which makes it useful for developing an
+agent and useless for concluding that the agent can register. Reusing the
+provided public key means a signature verifies whatever bytes were signed;
+accepting any valid registration means the manifest is never judged against the
+registry's vocabulary.
+
+Every one of these passes against the mock and is refused by a real
+orchestrator:
+
+| Fault | Why the mock misses it |
+|---|---|
+| Signature over different bytes than the verifier canonicalizes | The mock verifies with the key the caller supplied, over the caller's own payload |
+| A manifest field the registry's type does not define | The mock does not re-canonicalize a parse, so no asymmetry arises |
+| A capability name outside `protocol/types` | The mock enforces no vocabulary |
+| A subscription scope that is not `self`, `*` or an agent name | Not validated |
+| `protocol_version` that is not the wire version | Not negotiated |
+| Registering at a path the orchestrator does not serve | The mock is mounted wherever the test mounts it |
+
+**A component MUST NOT be signed off as conformant on the strength of the mock
+alone.** Level 4 is where registration is actually established, and until it
+passes, "registers successfully" is an untested claim. The mock's value is that
+it fails fast during development; it is not evidence.
+
 ### Usage
 
 ```bash
@@ -507,6 +532,74 @@ Tests the full feedback loop. Requires orchestrator + domain + agent.
 
 ---
 
+### Level 4: Interoperability
+
+Levels 1 to 3 run one component against fixtures. Level 4 runs a component
+against **the real orchestrator it will register with**, because a component can
+satisfy every assertion about itself and still be unable to join a mesh.
+
+This level exists because it was missing. The first time two independently
+generated components of one tenant were asked to interoperate, the second could
+not register — eight consecutive refusals, each a contract stated in a way that
+cannot be implemented twice, and none of them visible to a suite that starts one
+binary alone.
+
+#### L4-01: Registers With A Real Orchestrator
+
+Applies to: every component that registers — **not** the orchestrator itself.
+```
+1. Start a real orchestrator on an ephemeral port
+2. Start the component with that orchestrator's URL
+3. The component MUST reach a listening state and MUST NOT exit
+4. GET /v1/health on the orchestrator MUST report agents >= 1
+5. The component's health MUST report its registration as healthy
+6. The component MUST hold an agent_id and a token
+```
+
+The order of 3 and 4 matters. A component that requires the orchestrator's
+public key in order to construct its authenticator exits before it registers,
+and can therefore never obtain the key it refused to start without. A component
+MUST be able to listen before it has registered.
+
+#### L4-02: Manifest Is Accepted On Its Own Terms
+
+```
+1. Register against a real orchestrator
+2. Every capability name MUST be one protocol/types declares
+3. Every subscription scope MUST be `self`, `*`, or an agent name
+4. protocol_version MUST be the wire version, not the component's semver
+5. The manifest MUST carry no field outside AgentManifest
+6. Registration MUST NOT be refused with INVALID_REQUEST
+```
+
+#### L4-03: Signature Survives A Foreign Verifier
+
+```
+1. Sign a manifest that carries one field the verifier's type does not define
+2. Register against a real orchestrator
+3. Registration MUST succeed
+```
+
+A failure here is a canonicalization fault on one side or the other, not an
+invalid key — see `protocol/spec` Signing input. It is asserted with an extra
+field deliberately, because that is the case a verifier re-serializing its own
+parse gets wrong, and the case a shared struct definition hides.
+
+#### L4-04: Standalone Operation
+
+Applies to: every component that registers.
+```
+1. Start the component with NO orchestrator URL
+2. It MUST serve GET /v1/health unauthenticated and MUST NOT exit
+3. Every protected endpoint MUST refuse with 401 and a structured ErrorResponse
+4. Health MUST report degraded — never healthy, never unhealthy
+```
+
+A component that cannot verify a token MUST NOT accept one, and a component that
+cannot be started alone cannot be conformance-tested at all.
+
+---
+
 ## Running Tests
 
 ```bash
@@ -537,6 +630,10 @@ weblisk test conformance --verbose
   easy triage: `FAIL L1-03: agent_id must be 32 hex chars, got 28`.
 
 ## Verification Checklist
+- [ ] Conformance sign-off requires Level 4 against a real orchestrator; the mock alone is never sufficient
+- [ ] Every registering component passes L4-01: it listens, registers, and the orchestrator counts it
+- [ ] A manifest carrying an extra field still registers (L4-03)
+- [ ] Every registering component passes L4-04: it starts with no orchestrator, serves health, and refuses protected endpoints with 401
 
 - [ ] All Level 1 tests pass (protocol compliance)
 - [ ] All Level 2 tests pass (security compliance)
