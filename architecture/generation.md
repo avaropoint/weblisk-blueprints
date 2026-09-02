@@ -260,6 +260,55 @@ plan a file that already exists; the planner complies; and a reconciler that
 knows only "previously written, now absent" reads that compliance as a deletion.
 Both rules are correct and their conjunction deletes a working tenant.
 
+### Deciding whether a file must be rebuilt
+
+A rebuild is not "generate everything again". It is a decision made per file,
+and the default answer is KEEP. Regenerating a file that still satisfies its
+obligations costs a model call, produces bytes nobody needed, and hides the
+files that did change among the ones that did not.
+
+A generator MUST record, for each file it writes: the plan entry that produced it
+(`path`, `purpose`, `declares`, `serves`), the digest of the file as written, the
+digest of each blueprint the file was generated from, and the bindings and
+checklist assertions that file is answerable for. One digest over a whole prompt
+is not sufficient — it can answer *did anything change* and cannot answer *did
+anything I depend on change*, which is the only question worth asking.
+
+The decision, in order, and the first matching row wins:
+
+| Condition | Action |
+|---|---|
+| The file is absent | **Generate** |
+| Its digest differs from the recorded digest | **Refuse.** It was edited outside generation. Report it and generate nothing |
+| It no longer declares every symbol its plan entry declares, or no longer serves every endpoint it is assigned | **Generate** — it is out of compliance with the blueprints regardless of what changed |
+| A blueprint it was generated from changed, AND the change touches a binding or an assertion this file is answerable for | **Generate** |
+| A blueprint it was generated from changed, and the change touches nothing this file is answerable for | **Keep**, and report that it was assessed and kept |
+| Nothing changed | **Keep** |
+
+Row two is not a nicety. A file generation wrote and a person then edited is
+invisible to a reconciler that only knows "written previously, absent now" —
+so without this rule a rebuild silently destroys hand work and reports success.
+An edited file is reported and left alone; adopting the edit or discarding it is
+a decision for whoever made it, and the generator's job is to make sure they are
+asked.
+
+Row three is what makes KEEP safe. A file is not kept because its inputs look
+unchanged; it is kept because it was inspected and still meets its obligations.
+Provenance says a file *should* still be right. Only the file says whether it is.
+
+Rows four and five are [`architecture/change-management`](change-management.md)'s
+impact assessment applied to generation: a blueprint diff is mapped onto the
+declared bindings of each dependent, and only what the diff actually reaches is
+regenerated. This is why bindings are declared at field granularity, and why a
+dependency present in `requires:` and absent from the Dependencies block breaks
+more than tidiness — a file answerable for a binding nobody declared cannot be
+assessed, so it must be conservatively regenerated every time.
+
+Until the cascade is implemented, an implementation MAY treat any change to a
+blueprint a file was generated from as reaching it. That is sound and blunt: it
+never keeps a file it should have rebuilt, and it rebuilds many it should have
+kept. It MUST NOT be described as incremental.
+
 ### Generation order comes from the plan
 
 Files are generated in dependency order, derived from `depends_on`. This is not
@@ -542,6 +591,11 @@ and "nothing contradicted it".
 ---
 
 ## Verification Checklist
+- [ ] A file whose digest differs from the recorded digest is reported and NOT overwritten
+- [ ] A file that no longer declares its assigned symbols is regenerated even when no input changed
+- [ ] A file whose blueprints are unchanged and whose obligations are met is kept, and reported as assessed
+- [ ] The per-file record carries the digest of each blueprint the file was generated from, not one digest over the whole prompt
+- [ ] An implementation that regenerates on any blueprint change does not describe itself as incremental
 - [ ] A plan naming another component's module file, entry point or owned file is rejected, and the rejection names the owning component
 - [ ] A plan is judged against the CALLER's target, never a target the model declared in its own output
 - [ ] A file a previous run wrote and this plan was instructed to omit survives reconciliation and is reported as retained
