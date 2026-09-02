@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: data-security
-version: 1.0.0
-requires: [protocol/types, protocol/spec, protocol/identity, protocol/federation, architecture/gateway, architecture/observability, architecture/enforcement, patterns/scope, patterns/policy, patterns/privacy, patterns/contract]
+version: 1.1.0
+requires: [protocol/types, protocol/spec, protocol/identity, protocol/federation, architecture/content, architecture/gateway, architecture/observability, architecture/enforcement, patterns/scope, patterns/policy, patterns/privacy, patterns/contract]
 platform: any
 tier: free
 -->
@@ -100,6 +100,19 @@ requires:
       types:
         - name: AuditEntry
           fields_used: [id, timestamp, actor, action, target]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/content
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ContentRepository
+          fields_used: [custody, attestations, ceiling]
+        - name: ContentObservation
+          fields_used: [path, recorded_digest, current_digest, state]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -711,6 +724,25 @@ Storage integrity verification applies to agent-owned data at scope
 >= `confidential`. Agents operating at `public` or `internal` scope
 MAY adopt these practices but are not required to.
 
+**It applies only under exclusive custody** — storage no authority other
+than the owning component can write. Every indicator below infers tampering
+from the absence of an authorising record, and that inference is sound only
+when this system is the sole writer.
+
+Where content is held on a backend a second authority can also write — a
+network share, a synced drive, a repository people push to — the same
+indicators fire on ordinary authorised work. A person editing a document in
+their own editor produces a record with no enforcement audit entry, which is
+the exact signature described below. Treating that as tampering produces
+continuous false alarms, and a control that is switched off because it cries
+wolf is worse than one that was never claimed.
+
+Under shared or opaque custody, use the reconciliation model in
+[`architecture/content`](content.md), which records an unexplained change as
+an observation with `external` provenance rather than an anomaly. Custody
+classification, its attestation properties, and the scope ceiling derived
+from them are defined there.
+
 ### Integrity Properties
 
 The following properties MUST be verifiable for agent-owned data at
@@ -741,6 +773,11 @@ scope >= `confidential`:
      for the write that created it
    - Record count changes without corresponding write operations
      in the enforcement audit trail
+
+   The last two indicators are valid **only under exclusive custody**. Under
+   shared custody both describe an ordinary authorised edit made outside this
+   system, and MUST NOT be reported as integrity anomalies. See
+   [`architecture/content`](content.md).
 
 ### Integration with Enforcement
 

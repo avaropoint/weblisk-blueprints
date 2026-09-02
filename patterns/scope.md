@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 1.0.0
+version: 1.1.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -279,6 +279,25 @@ protections from lower levels plus additional requirements:
   default. `policy-driven` = domain-specific retention policy.
   `strict` = minimum necessary retention. `regulatory` = retention
   per applicable regulatory requirements.
+
+---
+
+## Placement Ceilings
+
+A classification states how sensitive content is. It does not state whether the
+place holding that content can support it.
+
+Where content is stored on a backend that concedes access to another authority,
+the highest level that may be placed there is capped by what that backend can
+demonstrate — not by what the content deserves. A `restricted` document placed
+on a share whose principals cannot be enumerated is `restricted` in name only:
+nothing enforces the access control the level requires.
+
+[`architecture/content`](../architecture/content.md) defines custody classes,
+the attestation properties a backend must demonstrate, and the ceiling derived
+from them. A write above the ceiling is refused, never downgraded — a level the
+system quietly lowered is a classification nobody made, and the record would
+then understate the sensitivity of its own content.
 
 ---
 
