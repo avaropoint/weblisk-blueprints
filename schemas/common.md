@@ -249,6 +249,38 @@ They serve three purposes:
 | `topic` | string | yes | Event topic in `namespace.event.name` format |
 | `fields_used` | list | yes | Fields consumed from the event payload |
 
+### fields_used
+
+`fields_used` lists the JSON keys a consumer reads from a type. It is a YAML
+sequence and MAY be written inline or wrapped:
+
+```yaml
+# inline
+types:
+  - name: TaskRequest
+    fields_used: [id, action, payload]
+```
+
+```yaml
+# wrapped across lines — the same sequence
+types:
+  - name: MetricsInfo
+    fields_used: [listing_id, uptime_30d,
+                  total_invocations_30d]
+```
+
+Both are valid YAML and MUST parse identically. A reader that requires the
+closing bracket on the opening line returns an EMPTY list for the second form —
+which is what happened, silently, so the fields of three types in `agents/hub`
+reached generation as nothing at all.
+
+To bind a whole type, write `["*"]`. The asterisk MUST be quoted: a bare `*` is
+YAML's alias indicator and makes the block unparseable, which is what
+`schemas/platform` did.
+
+Omitting `fields_used` binds no field, and is correct for a type consumed as an
+opaque whole — an enum, for instance, which declares values rather than fields.
+
 ### Version Ranges
 
 Version ranges use semver range syntax:

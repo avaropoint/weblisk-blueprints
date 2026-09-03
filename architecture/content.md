@@ -78,12 +78,12 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
+        # An enum: it declares values, not fields, so nothing is bound FROM it.
         - name: ScopeLevel
-          fields_used: [name, ordinal]
         - name: ScopeDeclaration
           fields_used: [level, context]
         - name: ScopeViolation
-          fields_used: [required, actual, detail]
+          fields_used: [expected_scope, actual_scope, entity]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

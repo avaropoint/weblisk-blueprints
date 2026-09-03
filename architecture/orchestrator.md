@@ -29,7 +29,7 @@ requires:
     bindings:
       types:
         - name: SigningKeyPair
-          fields_used: [public_key, private_key, sign, verify]
+          fields_used: [public_key, private_key]
         - name: SignatureVerification
           fields_used: [verify_signature, check_replay]
         - name: WLToken
@@ -51,7 +51,7 @@ requires:
         - name: ChannelRequest
           fields_used: [from_agent, to_agent, purpose]
         - name: ChannelGrant
-          fields_used: [channel_id, token, target_url, target_public_key]
+          fields_used: [channel_id, channel_token, target_url, target_pub_key]
         - name: AgentManifest
           fields_used: [name, type, version, url, public_key, capabilities, publishes, subscriptions]
         - name: AuditEntry

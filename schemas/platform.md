@@ -253,7 +253,7 @@ requires:
     bindings:
       types:
         - name: AgentManifest
-          fields_used: [*]
+          fields_used: ["*"]   # the whole type; quoted because a bare * is a YAML alias
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
