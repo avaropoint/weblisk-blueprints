@@ -65,7 +65,7 @@ requires:
         - name: EventEnvelope
           fields_used: [event_id, topic, payload, source, scope, correlation_id]
         - name: TaskRequest
-          fields_used: [task_id, action, payload, context]
+          fields_used: [id, action, payload, context]
         - name: TaskResult
           fields_used: [task_id, agent_name, status, summary, timestamp]
         - name: AgentMessage
