@@ -146,7 +146,8 @@ privileged position in the deployment.
 
 | Method | Path | Capability | Purpose |
 |--------|------|-----------|---------|
-| POST | /v1/admin/operators/register | — | Register an operator. The first is auto-approved; every later one requires `admin:*` |
+| POST | /v1/admin/operators/register | — | Register an operator. The first is auto-approved; every later one requires `admin:*`. Returns a token ONLY when registration also approved — see [`architecture/admin`](admin.md#the-registration-response) |
+| POST | /v1/admin/operators/token | — | Issue an operator token to a caller who signs `{name, timestamp}` with the private key matching this orchestrator's record. Unauthenticated by token, because it is what issues them |
 | GET | /v1/admin/operators | `admin:*` | List operators |
 | GET | /v1/admin/operators/{name} | `admin:read` | Operator detail |
 | DELETE | /v1/admin/operators/{name} | `admin:*` | Remove an operator |
@@ -495,6 +496,9 @@ An entry in the orchestrator's internal agent registry.
 ---
 
 ## Verification Checklist
+- [ ] `POST /v1/admin/operators/token` issues a token to an approved operator whose signature verifies against the stored public key
+- [ ] `POST /v1/admin/operators/token` requires no bearer token — it is the endpoint that issues them
+- [ ] An operator token carries the role and capabilities from the orchestrator's own record, never from the request
 
 - [ ] POST /v1/register verifies ML-DSA-65 signature and replay protection
 - [ ] POST /v1/register enforces exclusive namespace ownership (409 on conflict)

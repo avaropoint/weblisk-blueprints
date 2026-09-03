@@ -410,6 +410,69 @@ defined:
 7. Orchestrator issues operator token with admin capabilities
 ```
 
+### Obtaining a token
+
+Registration establishes an operator. It does not keep them signed in: tokens
+expire in four hours, so there MUST be a way to obtain a new one that does not
+require registering again.
+
+`POST /v1/admin/operators/token` is that way, and it is **unauthenticated by
+token because it is what issues them**. The operator's private key is the
+credential:
+
+```
+POST /v1/admin/operators/token
+{
+  "name": "alice",
+  "timestamp": 1712160000,
+  "signature": "<sign(canonicalize({name, timestamp}))>"
+}
+```
+
+The orchestrator MUST:
+
+1. Look up the operator by `name` in its OWN records — never in a directory.
+2. Verify the signature against the public key in that record, over
+   `canonicalize({name, timestamp})` as received, per
+   [`protocol/spec`](../protocol/spec.md#signing-input).
+3. Refuse a `timestamp` outside the 300-second replay window.
+4. Refuse an operator whose status is not approved, with `403` — a registered
+   but unapproved operator is a different fact from an unknown one.
+5. Issue a token carrying that operator's role and capabilities.
+
+```
+200 {
+  "token": "<WLT>",
+  "expires_at": 1712174400,
+  "role": "operator",
+  "capabilities": ["admin:read", "admin:approve", "admin:strategy"]
+}
+```
+
+Refresh is the same call. A separate refresh endpoint would need a valid token
+to obtain a token, which fails exactly when it is needed — after expiry.
+
+### The registration response
+
+`POST /v1/admin/operators/register` returns the operator record, and a token
+**only when registration also approved the operator** — the first-operator
+bootstrap. Otherwise there is no token to give, and the response says so:
+
+```
+200 { "operator": {...}, "status": "approved", "token": "<WLT>", "expires_at": ... }
+200 { "operator": {...}, "status": "pending" }
+```
+
+Stated because it was not, and the omission broke the chain in a way that looked
+like success. A generated orchestrator returned the operator record alone; the
+CLI stored a token only if the response carried one, so it printed
+`[ok] Registered` and saved nothing; `operator token` then reported no token;
+and every `/v1/admin/*` call answered `401`. Each component behaved correctly
+against what it had been told, and the deployment could not be administered.
+
+**A client MUST NOT infer a token from a successful registration.** It reads
+`status`, and calls the token endpoint when none was issued.
+
 ### Operator Roles
 
 | Role | Capabilities | Description |
@@ -480,6 +543,7 @@ operator the system is quiet when it is simply not there.
 | Path | Method | Role | Purpose |
 |------|--------|------|---------|
 | `/v1/admin/operators/register` | POST | — | Register new operator (first is auto-approved) |
+| `/v1/admin/operators/token` | POST | — | Obtain an operator token by signing a challenge |
 | `/v1/admin/operators` | GET | admin | List all operators |
 | `/v1/admin/operators/:name` | GET | viewer+ | Get operator details |
 | `/v1/admin/operators/:name` | DELETE | admin | Remove an operator |
@@ -909,6 +973,12 @@ Admin endpoints SHOULD be rate-limited:
   X-Gateway-* headers from the admin gateway.
 
 ## Verification Checklist
+- [ ] `POST /v1/admin/operators/token` issues a token to an approved operator who signs `{name, timestamp}` with their private key
+- [ ] The signature is verified against the public key in the orchestrator's OWN operator record, never a directory
+- [ ] A token request outside the 300-second replay window is refused
+- [ ] A token request for a pending operator is refused with 403, distinctly from an unknown operator
+- [ ] Registration that also approves returns a token and `status: approved`; registration that does not returns `status: pending` and no token
+- [ ] A four-hour-old token can be replaced without re-registering
 
 - [ ] Admin gateway is a separate process/listener from the application gateway with its own TLS certificate and domain
 - [ ] Admin gateway rejects requests from IPs not in the operator allowlist before any processing (403, no body)
