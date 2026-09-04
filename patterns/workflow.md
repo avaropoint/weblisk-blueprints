@@ -631,57 +631,171 @@ Referenced from `protocol/types.md`.
 
 ### WorkflowDefinition
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| name | string | yes | Workflow identifier (lowercase, hyphens) |
-| description | string | yes | What this workflow does |
-| trigger | string | yes | Action name that invokes this workflow |
-| timeout | int | no | Workflow-level timeout in seconds (default: 600) |
-| phases | []WorkflowPhase | yes | Ordered execution steps |
+```yaml
+types:
+  WorkflowDefinition:
+    fields:
+      name:
+        type: string
+        required: true
+        description: "Workflow identifier (lowercase, hyphens)"
+      description:
+        type: string
+        required: true
+        description: "What this workflow does"
+      trigger:
+        type: string
+        required: true
+        description: "Action name that invokes this workflow"
+      timeout:
+        type: int
+        required: false
+        description: "Workflow-level timeout in seconds (default: 600)"
+      phases:
+        type: "[]WorkflowPhase"
+        required: true
+        description: "Ordered execution steps"
+```
 
 ### WorkflowPhase
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| name | string | yes | Phase identifier (unique within workflow) |
-| agent | string | yes | Target agent or `self` |
-| action | string | yes | Task action to invoke |
-| input | map | no | Input mapping with reference expressions |
-| output | string | no | Key name for storing phase result |
-| depends_on | []string | no | Phases that must complete first |
-| timeout | int | no | Phase timeout in seconds (default: 300) |
-| approval | string | no | `required` or `auto` (default: `auto`) |
-| on_error | string | no | `fail`, `skip`, or `retry` (default: `fail`) |
-| max_retries | int | no | Retry count when on_error = retry (default: 0) |
-| condition | string | no | Expression evaluated per [patterns/expression](expression.md) (Workflow Phase Context); phase skipped if falsy |
+```yaml
+types:
+  WorkflowPhase:
+    fields:
+      name:
+        type: string
+        required: true
+        description: "Phase identifier (unique within workflow)"
+      agent:
+        type: string
+        required: true
+        description: "Target agent or `self`"
+      action:
+        type: string
+        required: true
+        description: "Task action to invoke"
+      input:
+        type: map
+        required: false
+        description: "Input mapping with reference expressions"
+      output:
+        type: string
+        required: false
+        description: "Key name for storing phase result"
+      depends_on:
+        type: "[]string"
+        required: false
+        description: "Phases that must complete first"
+      timeout:
+        type: int
+        required: false
+        description: "Phase timeout in seconds (default: 300)"
+      approval:
+        type: string
+        required: false
+        description: "`required` or `auto` (default: `auto`)"
+      on_error:
+        type: string
+        required: false
+        description: "`fail`, `skip`, or `retry` (default: `fail`)"
+      max_retries:
+        type: int
+        required: false
+        description: "Retry count when on_error = retry (default: 0)"
+      condition:
+        type: string
+        required: false
+        description: "Expression evaluated per [patterns/expression](expression.md) (Workflow Phase Context); phase skipped if falsy"
+```
 
 ### WorkflowExecution
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| id | string | yes | Unique execution identifier |
-| workflow_name | string | yes | Which workflow is executing |
-| invoker | string | yes | Agent that triggered the workflow |
-| correlation_id | string | yes | Links all events in this execution |
-| trace_id | string | no | Distributed trace context |
-| callback_topic | string | no | Topic for result delivery |
-| status | string | yes | pending / running / pending_approval / completed / failed |
-| phases | []PhaseResult | yes | Results per phase |
-| started_at | int64 | yes | Unix epoch seconds |
-| completed_at | int64 | no | Unix epoch seconds |
+```yaml
+types:
+  WorkflowExecution:
+    fields:
+      id:
+        type: string
+        required: true
+        description: "Unique execution identifier"
+      workflow_name:
+        type: string
+        required: true
+        description: "Which workflow is executing"
+      invoker:
+        type: string
+        required: true
+        description: "Agent that triggered the workflow"
+      correlation_id:
+        type: string
+        required: true
+        description: "Links all events in this execution"
+      trace_id:
+        type: string
+        required: false
+        description: "Distributed trace context"
+      callback_topic:
+        type: string
+        required: false
+        description: "Topic for result delivery"
+      status:
+        type: string
+        required: true
+        description: "pending / running / pending_approval / completed / failed"
+      phases:
+        type: "[]PhaseResult"
+        required: true
+        description: "Results per phase"
+      started_at:
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+      completed_at:
+        type: int64
+        required: false
+        description: "Unix epoch seconds"
+```
 
 ### PhaseResult
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| phase_name | string | yes | Phase identifier |
-| agent_name | string | yes | Agent that executed this phase |
-| status | string | yes | pending / running / completed / failed / skipped |
-| output | map | no | Phase output data |
-| started_at | int64 | no | Unix epoch seconds |
-| completed_at | int64 | no | Unix epoch seconds |
-| error | string | no | Error message if failed |
-| retries | int | no | Number of retry attempts |
+```yaml
+types:
+  PhaseResult:
+    fields:
+      phase_name:
+        type: string
+        required: true
+        description: "Phase identifier"
+      agent_name:
+        type: string
+        required: true
+        description: "Agent that executed this phase"
+      status:
+        type: string
+        required: true
+        description: "pending / running / completed / failed / skipped"
+      output:
+        type: map
+        required: false
+        description: "Phase output data"
+      started_at:
+        type: int64
+        required: false
+        description: "Unix epoch seconds"
+      completed_at:
+        type: int64
+        required: false
+        description: "Unix epoch seconds"
+      error:
+        type: string
+        required: false
+        description: "Error message if failed"
+      retries:
+        type: int
+        required: false
+        description: "Number of retry attempts"
+```
 
 ---
 

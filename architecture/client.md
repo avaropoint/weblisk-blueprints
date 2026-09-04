@@ -571,30 +571,77 @@ clients are not vulnerable to CSRF (no automatic cookie attachment).
 
 ### Session Record (All Client Types)
 
-| Field | Type | Description |
-|-------|------|-------------|
-| session_id | string | Unique session identifier |
-| client_type | string | `browser`, `native-mobile`, `native-desktop`, `api-server`, `iot-device` |
-| user_id | string | Authenticated user (or service identity for api-server) |
-| client_id | string | Client registration ID (WLC/IoT) or null (browser/mTLS) |
-| roles | []string | Roles at session creation |
-| groups | []string | Groups at session creation |
-| capabilities | []string | Declared client capabilities |
-| trust_level | string | `untrusted`, `semi-trusted`, `trusted`, `constrained` |
-| csrf_secret | bytes | CSRF secret — browser sessions only (encrypted at rest) |
-| binding_hash | string | Client binding hash |
-| security_level | string | `standard`, `elevated`, `critical` |
-| mfa_verified | bool | MFA completed this session |
-| mfa_method | string | Which MFA method was used |
-| created_at | int64 | Session creation time |
-| last_active | int64 | Last request timestamp |
-| expires_at | int64 | Absolute session expiry |
-| idle_expires_at | int64 | Idle timeout expiry |
-| ip_address | string | Client IP at creation |
-| user_agent | string | Client UA at creation (browser) or app identifier (native) |
-| anomaly_count | int | Binding mismatches detected |
-| revoked | bool | Whether session has been force-killed |
-| metadata | json | Application-specific session data |
+```yaml
+types:
+  Classification:
+    fields:
+      session_id:
+        type: string
+        description: "Unique session identifier"
+      client_type:
+        type: string
+        description: "`browser`, `native-mobile`, `native-desktop`, `api-server`, `iot-device`"
+      user_id:
+        type: string
+        description: "Authenticated user (or service identity for api-server)"
+      client_id:
+        type: string
+        description: "Client registration ID (WLC/IoT) or null (browser/mTLS)"
+      roles:
+        type: "[]string"
+        description: "Roles at session creation"
+      groups:
+        type: "[]string"
+        description: "Groups at session creation"
+      capabilities:
+        type: "[]string"
+        description: "Declared client capabilities"
+      trust_level:
+        type: string
+        description: "`untrusted`, `semi-trusted`, `trusted`, `constrained`"
+      csrf_secret:
+        type: bytes
+        description: "CSRF secret — browser sessions only (encrypted at rest)"
+      binding_hash:
+        type: string
+        description: "Client binding hash"
+      security_level:
+        type: string
+        description: "`standard`, `elevated`, `critical`"
+      mfa_verified:
+        type: bool
+        description: "MFA completed this session"
+      mfa_method:
+        type: string
+        description: "Which MFA method was used"
+      created_at:
+        type: int64
+        description: "Session creation time"
+      last_active:
+        type: int64
+        description: "Last request timestamp"
+      expires_at:
+        type: int64
+        description: "Absolute session expiry"
+      idle_expires_at:
+        type: int64
+        description: "Idle timeout expiry"
+      ip_address:
+        type: string
+        description: "Client IP at creation"
+      user_agent:
+        type: string
+        description: "Client UA at creation (browser) or app identifier (native)"
+      anomaly_count:
+        type: int
+        description: "Binding mismatches detected"
+      revoked:
+        type: bool
+        description: "Whether session has been force-killed"
+      metadata:
+        type: json
+        description: "Application-specific session data"
+```
 
 ### Session Storage
 
@@ -914,31 +961,85 @@ Enumeration of capabilities a client may declare.
 
 Server-side registration for non-browser clients.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| client_id | string | yes | Unique client registration ID |
-| client_type | ClientType | yes | Type of client |
-| user_id | string | yes | Owning user |
-| device_name | string | no | Human-readable device name |
-| binding_hash | string | yes | Device/app binding hash at registration |
-| capabilities | []ClientCapability | yes | Declared capabilities |
-| trust_level | TrustLevel | yes | Assigned trust classification |
-| registered_at | int64 | yes | Registration timestamp |
-| last_seen | int64 | yes | Last successful authentication |
-| revoked | bool | yes | Whether registration has been revoked |
-| revoked_reason | string | no | Reason for revocation |
-| attestation | object | no | Platform attestation data |
+```yaml
+types:
+  ClientRecord:
+    fields:
+      client_id:
+        type: string
+        required: true
+        description: "Unique client registration ID"
+      client_type:
+        type: ClientType
+        required: true
+        description: "Type of client"
+      user_id:
+        type: string
+        required: true
+        description: "Owning user"
+      device_name:
+        type: string
+        required: false
+        description: "Human-readable device name"
+      binding_hash:
+        type: string
+        required: true
+        description: "Device/app binding hash at registration"
+      capabilities:
+        type: "[]ClientCapability"
+        required: true
+        description: "Declared capabilities"
+      trust_level:
+        type: TrustLevel
+        required: true
+        description: "Assigned trust classification"
+      registered_at:
+        type: int64
+        required: true
+        description: "Registration timestamp"
+      last_seen:
+        type: int64
+        required: true
+        description: "Last successful authentication"
+      revoked:
+        type: bool
+        required: true
+        description: "Whether registration has been revoked"
+      revoked_reason:
+        type: string
+        required: false
+        description: "Reason for revocation"
+      attestation:
+        type: object
+        required: false
+        description: "Platform attestation data"
+```
 
 ### DataBoundaryTag
 
 Metadata attached to outbound response fields.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| scope | string | yes | Scope classification level |
-| ttl | int | yes | Maximum client-side retention in seconds |
-| offline_permitted | bool | yes | Whether client may persist this data offline |
-| encryption_required | string | no | Required encryption level for persistence (`none`, `aes-256-gcm`, `hardware-backed`) |
+```yaml
+types:
+  DataBoundaryTag:
+    fields:
+      scope:
+        type: string
+        required: true
+        description: "Scope classification level"
+      ttl:
+        type: int
+        required: true
+        description: "Maximum client-side retention in seconds"
+      offline_permitted:
+        type: bool
+        required: true
+        description: "Whether client may persist this data offline"
+      encryption_required:
+        type: string
+        required: false
+        description: "Required encryption level for persistence (`none`, `aes-256-gcm`, `hardware-backed`)"
+```
 
 ---
 

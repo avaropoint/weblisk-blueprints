@@ -226,18 +226,51 @@ facts:
 
 ### Listing Fields
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| listing_id | string | yes | `{hub}:{capability}` unique identifier |
-| provider | ProviderInfo | yes | Provider hub identity |
-| capability | CapabilityInfo | yes | What the listing offers |
-| tier | string | yes | `"free"` or `"pro"` |
-| pricing | PricingInfo | yes for pro | Pricing model and rates |
-| sla | SLAInfo | yes for pro | Service level commitments |
-| metrics | MetricsInfo | yes | Verifiable performance data (auto-populated by registry) |
-| compliance | ComplianceInfo | yes | Regulatory and data handling metadata |
-| published_at | int64 | yes | Unix epoch seconds |
-| signature | string | yes | Provider's signature over the listing |
+```yaml
+types:
+  ListingEntry:
+    fields:
+      listing_id:
+        type: string
+        required: true
+        description: "`{hub}:{capability}` unique identifier"
+      provider:
+        type: ProviderInfo
+        required: true
+        description: "Provider hub identity"
+      capability:
+        type: CapabilityInfo
+        required: true
+        description: "What the listing offers"
+      tier:
+        type: string
+        required: true
+        description: "`\"free\"` or `\"pro\"`"
+      pricing:
+        type: PricingInfo
+        required: true
+        description: "Pricing model and rates"
+      sla:
+        type: SLAInfo
+        required: true
+        description: "Service level commitments"
+      metrics:
+        type: MetricsInfo
+        required: true
+        description: "Verifiable performance data (auto-populated by registry)"
+      compliance:
+        type: ComplianceInfo
+        required: true
+        description: "Regulatory and data handling metadata"
+      published_at:
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+      signature:
+        type: string
+        required: true
+        description: "Provider's signature over the listing"
+```
 
 ---
 

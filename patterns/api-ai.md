@@ -430,77 +430,203 @@ Provider connectivity and latency.
 
 ### ChatRequest
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| model | string | no | Model name (uses default if omitted) |
-| messages | []Message | yes | Conversation history |
-| temperature | float | no | Sampling temperature (0.0–2.0, default: 0.7) |
-| max_tokens | int | no | Max response tokens (default: 4096) |
-| tools | []ToolDef | no | Available tools for function calling |
-| stream | bool | no | Stream response tokens (default: false) |
-| trace_id | string | no | Correlation ID for tracing |
+```yaml
+types:
+  ChatRequest:
+    fields:
+      model:
+        type: string
+        required: false
+        description: "Model name (uses default if omitted)"
+      messages:
+        type: "[]Message"
+        required: true
+        description: "Conversation history"
+      temperature:
+        type: float
+        required: false
+        description: "Sampling temperature (0.0–2.0, default: 0.7)"
+      max_tokens:
+        type: int
+        required: false
+        description: "Max response tokens (default: 4096)"
+      tools:
+        type: "[]ToolDef"
+        required: false
+        description: "Available tools for function calling"
+      stream:
+        type: bool
+        required: false
+        description: "Stream response tokens (default: false)"
+      trace_id:
+        type: string
+        required: false
+        description: "Correlation ID for tracing"
+```
 
 ### Message
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| role | string | yes | `system`, `user`, `assistant`, or `tool` |
-| content | string | yes | Message content |
-| tool_call_id | string | no | ID of the tool call this message responds to |
+```yaml
+types:
+  Message:
+    fields:
+      role:
+        type: string
+        required: true
+        description: "`system`, `user`, `assistant`, or `tool`"
+      content:
+        type: string
+        required: true
+        description: "Message content"
+      tool_call_id:
+        type: string
+        required: false
+        description: "ID of the tool call this message responds to"
+```
 
 ### ChatResponse
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| id | string | yes | Response identifier |
-| model | string | yes | Model used |
-| provider | string | yes | Provider used |
-| message | Message | yes | Assistant response |
-| tool_calls | []ToolCall | no | Tool invocations requested by model |
-| usage | Usage | yes | Token usage |
-| latency_ms | int | yes | End-to-end latency |
-| trace_id | string | no | Correlation ID |
+```yaml
+types:
+  ChatResponse:
+    fields:
+      id:
+        type: string
+        required: true
+        description: "Response identifier"
+      model:
+        type: string
+        required: true
+        description: "Model used"
+      provider:
+        type: string
+        required: true
+        description: "Provider used"
+      message:
+        type: Message
+        required: true
+        description: "Assistant response"
+      tool_calls:
+        type: "[]ToolCall"
+        required: false
+        description: "Tool invocations requested by model"
+      usage:
+        type: Usage
+        required: true
+        description: "Token usage"
+      latency_ms:
+        type: int
+        required: true
+        description: "End-to-end latency"
+      trace_id:
+        type: string
+        required: false
+        description: "Correlation ID"
+```
 
 ### ExtractRequest
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| model | string | no | Model name |
-| input | string | yes | Text to extract from |
-| schema | object | yes | JSON Schema for output shape |
-| instructions | string | no | Additional extraction guidance |
+```yaml
+types:
+  ExtractRequest:
+    fields:
+      model:
+        type: string
+        required: false
+        description: "Model name"
+      input:
+        type: string
+        required: true
+        description: "Text to extract from"
+      schema:
+        type: object
+        required: true
+        description: "JSON Schema for output shape"
+      instructions:
+        type: string
+        required: false
+        description: "Additional extraction guidance"
+```
 
 ### EmbedRequest
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| model | string | no | Embedding model name |
-| input | []string | yes | Texts to embed |
-| dimensions | int | no | Output dimensions (if model supports it) |
+```yaml
+types:
+  EmbedRequest:
+    fields:
+      model:
+        type: string
+        required: false
+        description: "Embedding model name"
+      input:
+        type: "[]string"
+        required: true
+        description: "Texts to embed"
+      dimensions:
+        type: int
+        required: false
+        description: "Output dimensions (if model supports it)"
+```
 
 ### Usage
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| prompt_tokens | int | yes | Input tokens consumed |
-| completion_tokens | int | no | Output tokens generated |
-| total_tokens | int | yes | Total tokens |
+```yaml
+types:
+  Usage:
+    fields:
+      prompt_tokens:
+        type: int
+        required: true
+        description: "Input tokens consumed"
+      completion_tokens:
+        type: int
+        required: false
+        description: "Output tokens generated"
+      total_tokens:
+        type: int
+        required: true
+        description: "Total tokens"
+```
 
 ### ToolDef
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| name | string | yes | Tool identifier |
-| description | string | yes | What the tool does |
-| parameters | object | yes | JSON Schema for tool parameters |
+```yaml
+types:
+  ToolDef:
+    fields:
+      name:
+        type: string
+        required: true
+        description: "Tool identifier"
+      description:
+        type: string
+        required: true
+        description: "What the tool does"
+      parameters:
+        type: object
+        required: true
+        description: "JSON Schema for tool parameters"
+```
 
 ### ToolCall
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| id | string | yes | Call identifier (for matching responses) |
-| name | string | yes | Tool name |
-| arguments | object | yes | Parsed arguments |
+```yaml
+types:
+  ToolCall:
+    fields:
+      id:
+        type: string
+        required: true
+        description: "Call identifier (for matching responses)"
+      name:
+        type: string
+        required: true
+        description: "Tool name"
+      arguments:
+        type: object
+        required: true
+        description: "Parsed arguments"
+```
 
 ## Provider Abstraction
 

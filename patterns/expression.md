@@ -279,14 +279,35 @@ security:
 Contract type describing what the expression language provides.
 Consumers bind to this to declare their use of the expression system.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| Path | string | Dot-separated field access (e.g., `entity.name`) |
-| Comparison | []string | Supported comparison operators: `==`, `!=`, `>`, `>=`, `<`, `<=`, `IN`, `NOT IN`, `MATCHES`, `CONTAINS`, `STARTS_WITH`, `ENDS_WITH` |
-| LogicalOperators | []string | `AND`, `OR`, `NOT` |
-| Arithmetic | []string | `+`, `-`, `*`, `/`, `%` |
-| ValueTypes | []string | `string`, `number`, `boolean`, `null`, `array` |
-| ContextRoots | map[string][]string | Context roots per consumer (e.g., `state_machine: [entity, transition, now]`) |
+```yaml
+types:
+  ExpressionGrammar:
+    fields:
+      path:
+        name: Path
+        type: string
+        description: "Dot-separated field access (e.g., `entity.name`)"
+      comparison:
+        name: Comparison
+        type: "[]string"
+        description: "Supported comparison operators: `==`, `!=`, `>`, `>=`, `<`, `<=`, `IN`, `NOT IN`, `MATCHES`, `CONTAINS`, `STARTS_WITH`, `ENDS_WITH`"
+      logical_operators:
+        name: LogicalOperators
+        type: "[]string"
+        description: "`AND`, `OR`, `NOT`"
+      arithmetic:
+        name: Arithmetic
+        type: "[]string"
+        description: "`+`, `-`, `*`, `/`, `%`"
+      value_types:
+        name: ValueTypes
+        type: "[]string"
+        description: "`string`, `number`, `boolean`, `null`, `array`"
+      context_roots:
+        name: ContextRoots
+        type: "map[string][]string"
+        description: "Context roots per consumer (e.g., `state_machine: [entity, transition, now]`)"
+```
 
 ---
 

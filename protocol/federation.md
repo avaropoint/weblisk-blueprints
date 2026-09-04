@@ -334,12 +334,23 @@ exactly what data MAY cross a trust boundary and in what form.
 
 ### BoundarySpec
 
-| Field | Type | Description |
-|-------|------|-------------|
-| required | []FieldSpec | Fields that MUST be present |
-| permitted | []FieldSpec | Fields that MAY be present |
-| forbidden | []PatternSpec | Patterns that MUST be stripped |
-| transformations | []Transform | Mutations applied before crossing |
+```yaml
+types:
+  BoundarySpec:
+    fields:
+      required:
+        type: "[]FieldSpec"
+        description: "Fields that MUST be present"
+      permitted:
+        type: "[]FieldSpec"
+        description: "Fields that MAY be present"
+      forbidden:
+        type: "[]PatternSpec"
+        description: "Patterns that MUST be stripped"
+      transformations:
+        type: "[]Transform"
+        description: "Mutations applied before crossing"
+```
 
 ### Enforcement
 
@@ -497,27 +508,89 @@ Orchestrator A (requester)            Orchestrator B (provider)
 
 ### FederatedTaskRequest
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| TaskID | string | `task_id` | yes | Unique task identifier |
-| ContractName | string | `contract_name` | yes | Data contract governing this exchange |
-| RequesterOrch | string | `requester_orch` | yes | Requesting orchestrator name |
-| Payload | map | `payload` | yes | Task data (pre-filtered by data contract) |
-| TraceID | string | `trace_id` | no | Correlation ID |
-| Signature | string | `signature` | yes | Requester's ML-DSA-65 signature |
-| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+```yaml
+types:
+  FederatedTaskRequest:
+    fields:
+      task_id:
+        name: TaskID
+        type: string
+        required: true
+        description: "Unique task identifier"
+      contract_name:
+        name: ContractName
+        type: string
+        required: true
+        description: "Data contract governing this exchange"
+      requester_orch:
+        name: RequesterOrch
+        type: string
+        required: true
+        description: "Requesting orchestrator name"
+      payload:
+        name: Payload
+        type: map
+        required: true
+        description: "Task data (pre-filtered by data contract)"
+      trace_id:
+        name: TraceID
+        type: string
+        required: false
+        description: "Correlation ID"
+      signature:
+        name: Signature
+        type: string
+        required: true
+        description: "Requester's ML-DSA-65 signature"
+      timestamp:
+        name: Timestamp
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+```
 
 ### FederatedTaskResult
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| TaskID | string | `task_id` | yes | Matching request task ID |
-| ProviderOrch | string | `provider_orch` | yes | Providing orchestrator name |
-| Status | string | `status` | yes | `success`, `failed`, `rejected` |
-| Result | map | `result` | no | Task output (filtered by outbound contract) |
-| Error | ErrorResponse | `error` | no | Error details if failed/rejected |
-| Signature | string | `signature` | yes | Provider's ML-DSA-65 signature |
-| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+```yaml
+types:
+  FederatedTaskResult:
+    fields:
+      task_id:
+        name: TaskID
+        type: string
+        required: true
+        description: "Matching request task ID"
+      provider_orch:
+        name: ProviderOrch
+        type: string
+        required: true
+        description: "Providing orchestrator name"
+      status:
+        name: Status
+        type: string
+        required: true
+        description: "`success`, `failed`, `rejected`"
+      result:
+        name: Result
+        type: map
+        required: false
+        description: "Task output (filtered by outbound contract)"
+      error:
+        name: Error
+        type: ErrorResponse
+        required: false
+        description: "Error details if failed/rejected"
+      signature:
+        name: Signature
+        type: string
+        required: true
+        description: "Provider's ML-DSA-65 signature"
+      timestamp:
+        name: Timestamp
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+```
 
 ---
 

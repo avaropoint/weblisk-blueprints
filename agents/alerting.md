@@ -959,20 +959,47 @@ HTTP POST to a Slack incoming webhook URL.
 
 Alerts are stored for querying via the admin API and CLI.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| alert_id | string | Unique alert ID |
-| severity | string | Alert severity |
-| source_type | string | Source type |
-| source_name | string | Source name |
-| title | string | Alert title |
-| message | string | Alert message |
-| context | json | Alert context |
-| channels_delivered | []string | Channels that received the alert |
-| delivery_status | map | Per-channel delivery result |
-| throttled | bool | Whether this was a throttled duplicate |
-| timestamp | int64 | Alert timestamp |
-| processed_at | int64 | When the alerting agent processed it |
+```yaml
+types:
+  Storage:
+    fields:
+      alert_id:
+        type: string
+        description: "Unique alert ID"
+      severity:
+        type: string
+        description: "Alert severity"
+      source_type:
+        type: string
+        description: "Source type"
+      source_name:
+        type: string
+        description: "Source name"
+      title:
+        type: string
+        description: "Alert title"
+      message:
+        type: string
+        description: "Alert message"
+      context:
+        type: json
+        description: "Alert context"
+      channels_delivered:
+        type: "[]string"
+        description: "Channels that received the alert"
+      delivery_status:
+        type: map
+        description: "Per-channel delivery result"
+      throttled:
+        type: bool
+        description: "Whether this was a throttled duplicate"
+      timestamp:
+        type: int64
+        description: "Alert timestamp"
+      processed_at:
+        type: int64
+        description: "When the alerting agent processed it"
+```
 
 ### Retention
 

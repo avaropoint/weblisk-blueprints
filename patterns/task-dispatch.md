@@ -504,17 +504,38 @@ dead-letter store. Dead-lettered tasks are never silently dropped.
 
 Each dead-letter entry preserves:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| task_id | string | Original task ID |
-| target_agent | string | Agent the task was dispatched to |
-| action | string | Action that was requested |
-| original_submission | object | Full original TaskSubmission envelope |
-| error | string | Final failure reason |
-| attempts | int | Total dispatch attempts |
-| first_attempt_at | int64 | Timestamp of first dispatch attempt |
-| dead_lettered_at | int64 | Timestamp of dead-letter capture |
-| trace_id | string | Trace context for correlation |
+```yaml
+types:
+  States:
+    fields:
+      task_id:
+        type: string
+        description: "Original task ID"
+      target_agent:
+        type: string
+        description: "Agent the task was dispatched to"
+      action:
+        type: string
+        description: "Action that was requested"
+      original_submission:
+        type: object
+        description: "Full original TaskSubmission envelope"
+      error:
+        type: string
+        description: "Final failure reason"
+      attempts:
+        type: int
+        description: "Total dispatch attempts"
+      first_attempt_at:
+        type: int64
+        description: "Timestamp of first dispatch attempt"
+      dead_lettered_at:
+        type: int64
+        description: "Timestamp of dead-letter capture"
+      trace_id:
+        type: string
+        description: "Trace context for correlation"
+```
 
 ### Retention
 

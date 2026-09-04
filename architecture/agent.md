@@ -123,6 +123,38 @@ requires:
 
 ---
 
+## Endpoints
+
+Every agent serves the same six. The surface is the protocol's, not each
+agent's: an orchestrator, a domain controller and a peer must be able to call
+any agent without knowing which one it is.
+
+`Auth` here matches [`protocol/types`](../protocol/types.md#protocol-paths),
+which is the single source of truth for it. `Operation` is the declared name
+every generated symbol is spelled from — see
+[`schemas/common`](../schemas/common.md#declared-names) and the platform
+blueprint's mapping table.
+
+| Method | Path | Operation | Auth | Purpose |
+|--------|------|-----------|------|---------|
+| POST | /v1/describe | Describe | no | Return this agent's manifest |
+| POST | /v1/execute | Execute | yes | Execute a task synchronously and return a signed TaskResult |
+| POST | /v1/health | Health | no | Health check — state, uptime, sub-component checks, metrics snapshot |
+| POST | /v1/message | Message | yes | Direct agent-to-agent request/response |
+| POST | /v1/services | Services | yes | Accept a service directory and routing table pushed by the orchestrator |
+| POST | /v1/event | Event | yes | Receive a delivered event |
+
+`POST /v1/health` rather than `GET` is deliberate and is the protocol's choice:
+an agent answers every endpoint with one method, so a caller needs no
+per-endpoint knowledge. The orchestrator's health is a `GET`, because its
+surface is browsable.
+
+The implementation of each is in
+[Protocol Endpoint Implementations](#protocol-endpoint-implementations) below;
+this table is what the endpoint IS, that section is how it behaves.
+
+---
+
 ## Interfaces
 
 The agent’s public API surface is the 6 protocol endpoints defined in
@@ -673,51 +705,151 @@ retry settings from the api-ai pattern configuration.
 
 The set of protocol endpoints every agent exposes.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Describe | string | `describe` | yes | Path to describe endpoint (`/v1/describe`) |
-| Execute | string | `execute` | yes | Path to execute endpoint (`/v1/execute`) |
-| Message | string | `message` | yes | Path to message endpoint (`/v1/message`) |
-| Health | string | `health` | yes | Path to health endpoint (`/v1/health`) |
-| Services | string | `services` | yes | Path to services endpoint (`/v1/services`) |
-| Event | string | `event` | yes | Path to event endpoint (`/v1/event`) |
+```yaml
+types:
+  AgentEndpoints:
+    fields:
+      describe:
+        name: Describe
+        type: string
+        required: true
+        description: "Path to describe endpoint (`/v1/describe`)"
+      execute:
+        name: Execute
+        type: string
+        required: true
+        description: "Path to execute endpoint (`/v1/execute`)"
+      message:
+        name: Message
+        type: string
+        required: true
+        description: "Path to message endpoint (`/v1/message`)"
+      health:
+        name: Health
+        type: string
+        required: true
+        description: "Path to health endpoint (`/v1/health`)"
+      services:
+        name: Services
+        type: string
+        required: true
+        description: "Path to services endpoint (`/v1/services`)"
+      event:
+        name: Event
+        type: string
+        required: true
+        description: "Path to event endpoint (`/v1/event`)"
+```
 
 ### AgentContext
 
 Runtime context provided to agent business logic by the framework.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Identity | SigningKeyPair | `identity` | yes | Agent's key pair for signing |
-| Token | string | `token` | yes | Current WLT token from registration |
-| Services | map[string]ServiceEntry | `services` | yes | Cached service directory |
-| Provider | string | `provider` | no | Provider identifier (e.g., `"cloudflare"`) |
-| Workspace | string | `workspace` | no | Filesystem root for agent storage |
+```yaml
+types:
+  AgentContext:
+    fields:
+      identity:
+        name: Identity
+        type: SigningKeyPair
+        required: true
+        description: "Agent's key pair for signing"
+      token:
+        name: Token
+        type: string
+        required: true
+        description: "Current WLT token from registration"
+      services:
+        name: Services
+        type: "map[string]ServiceEntry"
+        required: true
+        description: "Cached service directory"
+      provider:
+        name: Provider
+        type: string
+        required: false
+        description: "Provider identifier (e.g., `\"cloudflare\"`)"
+      workspace:
+        name: Workspace
+        type: string
+        required: false
+        description: "Filesystem root for agent storage"
+```
 
 ### AgentConfig
 
 Configuration struct for agent runtime behavior.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Name | string | `name` | yes | Agent name (must match manifest) |
-| Port | int | `port` | yes | HTTP listen port |
-| OrchestratorURL | string | `orchestrator_url` | yes | Orchestrator base URL |
-| MaxConcurrent | int | `max_concurrent` | no | Max parallel task executions (default: 5) |
-| Retry | RetryConfig | `retry` | no | Retry strategy configuration |
-| CircuitBreaker | CircuitBreakerConfig | `circuit_breaker` | no | Circuit breaker configuration |
+```yaml
+types:
+  AgentConfig:
+    fields:
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "Agent name (must match manifest)"
+      port:
+        name: Port
+        type: int
+        required: true
+        description: "HTTP listen port"
+      orchestrator_url:
+        name: OrchestratorURL
+        type: string
+        required: true
+        description: "Orchestrator base URL"
+      max_concurrent:
+        name: MaxConcurrent
+        type: int
+        required: false
+        description: "Max parallel task executions (default: 5)"
+      retry:
+        name: Retry
+        type: RetryConfig
+        required: false
+        description: "Retry strategy configuration"
+      circuit_breaker:
+        name: CircuitBreaker
+        type: CircuitBreakerConfig
+        required: false
+        description: "Circuit breaker configuration"
+```
 
 ### AgentState
 
 Runtime state tracked per registered agent.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| State | string | `state` | yes | `"registered"`, `"active"`, `"degraded"`, `"offline"` |
-| URL | string | `url` | yes | Agent's current base URL |
-| Subscriptions | []Subscription | `subscriptions` | yes | Active event subscriptions |
-| LastHealthCheck | int64 | `last_health_check` | no | Unix epoch of last health probe |
-| RegisteredAt | int64 | `registered_at` | yes | Unix epoch of registration |
+```yaml
+types:
+  AgentState:
+    fields:
+      state:
+        name: State
+        type: string
+        required: true
+        description: "`\"registered\"`, `\"active\"`, `\"degraded\"`, `\"offline\"`"
+      url:
+        name: URL
+        type: string
+        required: true
+        description: "Agent's current base URL"
+      subscriptions:
+        name: Subscriptions
+        type: "[]Subscription"
+        required: true
+        description: "Active event subscriptions"
+      last_health_check:
+        name: LastHealthCheck
+        type: int64
+        required: false
+        description: "Unix epoch of last health probe"
+      registered_at:
+        name: RegisteredAt
+        type: int64
+        required: true
+        description: "Unix epoch of registration"
+```
 
 ---
 

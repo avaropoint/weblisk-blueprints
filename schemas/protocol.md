@@ -9,7 +9,7 @@ the foundation layer that every other blueprint type builds on.
 
 ## Frontmatter
 
-```yaml
+```markdown
 <!-- blueprint
 type: protocol
 name: <protocol-name>

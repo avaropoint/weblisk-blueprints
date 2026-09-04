@@ -37,6 +37,50 @@ The CLI has two command surfaces:
 Operations commands use the operator's ML-DSA-65 identity stored in
 `~/.weblisk/keys/` for authentication.
 
+### The binary is named `weblisk`
+
+Stated explicitly because it was only ever implied. Every example here invokes
+`weblisk`, and nothing said that the installed executable MUST carry that name —
+so a Go implementation whose module path ends in `weblisk-cli` installed as
+`weblisk-cli`, and Studio, which resolves the CLI by the name this blueprint
+uses, reported "the weblisk CLI is not on PATH" on a machine where it was
+installed and working.
+
+The invocation name is part of the interface. Anything that shells out to this
+CLI — a control plane, a CI job, an operator's script, this blueprint's own
+examples — resolves it as `weblisk`, so an implementation MUST install it under
+that name regardless of what its module, crate or package is called.
+
+A consumer MUST NOT accumulate a list of alternative spellings to try. That
+turns one interface into several and hides the fault in whichever build produced
+the wrong name.
+
+#### Resolving it, and why PATH alone is not enough
+
+A consumer MUST resolve `weblisk` by searching the usual install locations **as
+well as** `PATH`, and MUST honour an explicit override.
+
+This is the same requirement this blueprint already states for a local AI
+backend, and it applies to resolving this CLI for the same reason: a process
+started by launchd, systemd, a double-click or an editor does not inherit a
+login shell's `PATH`. Go installs to `$GOBIN` or `$(go env GOPATH)/bin`, which
+is on `PATH` only because a shell profile puts it there — so a control plane
+started outside a terminal reports "the weblisk CLI is not on PATH" on a machine
+where it is installed and an operator is using it in another window. That is a
+diagnosis nobody can act on.
+
+The locations to search, in addition to `PATH`:
+
+| Location | Why |
+|---|---|
+| `$WL_CLI` | an explicit path, honoured exactly as given and never second-guessed |
+| `$GOBIN`, `$(go env GOPATH)/bin` | where `go build -o` and `go install` put it |
+| `~/.local/bin` | the convention for a user-scoped install |
+| `/opt/homebrew/bin`, `/usr/local/bin` | Homebrew on Apple silicon and Intel |
+
+A refusal MUST name every location searched. "Not installed" without the list
+cannot be acted on; "looked on PATH and in these five places" can.
+
 Commands follow a `weblisk <noun> <verb>` pattern and output
 structured, human-readable tables by default, with `--json` for
 machine-readable output.
@@ -346,6 +390,29 @@ $ weblisk secret rotate email-send SMTP_PASSWORD
 
 ## Server Commands
 
+### `weblisk component <name> init`
+
+Generate one component into a tenant that already exists.
+
+```bash
+$ weblisk component content init
+  Weblisk Component Init — content
+  Mode:      amending an existing tenant
+```
+
+Which components exist is read from the installation's blueprints, not compiled
+in: an architecture blueprint that states an `## Endpoints` table and declares
+its bindings IS a buildable component. `weblisk component help` lists what this
+installation supports.
+
+The tenant root is the module root, so every component is generated into the
+same tree. Generation therefore reads what the tenant already contains — module
+path, packages present with their exported names, and which component owns which
+file — and REFUSES a plan that names another component's files. See
+[`architecture/generation`](generation.md#deciding-whether-a-file-must-be-rebuilt).
+
+---
+
 ### `weblisk server init`
 
 Generate the server implementation from blueprint specs. The CLI reads
@@ -535,6 +602,35 @@ $ weblisk gateway start
 
 ---
 
+### `weblisk server provision`
+
+Establish a tenant's FIRST operator against a hub this CLI started.
+
+```bash
+$ weblisk server provision --operator lloyd
+  Operator passphrase: ********
+
+  orchestrator running at http://127.0.0.1:9800
+  operator identity created for lloyd
+  operator registered — first operator is auto-approved
+  token issued, expires 2026-09-03T18:00:00Z
+
+  Connected to http://127.0.0.1:9800 as lloyd
+```
+
+This is BOOTSTRAP, not connect. It is local by necessity — it reads the run
+state of a hub this CLI started — and it is the one path that establishes a
+hub's first operator. To reach a hub that already runs, use
+[`weblisk operator connect`](#weblisk-operator-connect), which needs only an
+address.
+
+Generation is deliberately not folded in. It takes tens of minutes, streams
+progress and is resumable; wrapping it in a call that also handles a credential
+would make one action out of two very different failure modes, and would hold a
+passphrase in memory for the length of a build.
+
+---
+
 ## Blueprint Commands
 
 ### `weblisk blueprint update`
@@ -625,6 +721,54 @@ Registering operator 'alice' with http://localhost:9800...
 - Stores the returned token in `~/.weblisk/token`
 - If not the first operator, prints "Registration pending admin approval"
 - `--role <role>` to request a specific role (admin may override)
+
+### `weblisk operator connect`
+
+Obtain an operator credential from a hub that is already running.
+
+```bash
+$ weblisk operator connect --orch https://hub.example.com
+  Passphrase: ********
+
+  existing operator identity unlocked
+  token issued — this hub already knows this operator
+
+  [ok] Connected to https://hub.example.com as lloyd
+```
+
+**Needs an address and an identity, and nothing else.** No project directory,
+no recorded run state, no access to the hub's files. A hub on another host, in
+a container, or started by something other than this CLI is reachable on
+exactly the same terms as one in the next directory — see
+[`architecture/admin`](admin.md#bootstrapping-and-connecting-are-different-acts)
+for why that separation matters.
+
+Idempotent, because it is the ordinary way to connect and will be run
+repeatedly. It asks for a token FIRST: a hub that already knows the operator
+needs no registration, and registering first against a hub with no operators
+would silently make this identity the bootstrap admin of somebody else's
+tenant.
+
+Three outcomes, and they are told apart:
+
+| State | Meaning |
+|---|---|
+| `connected` | a token was issued and stored beside the identity |
+| `pending_approval` | the hub will not issue one yet. **Not a failure** — the first operator of a hub is auto-approved and every later one needs an existing admin. The message names who can act |
+| `unreachable` | nothing answered, or the hub does not serve `POST /v1/admin/operators/token` — reported distinctly, because telling somebody to await an approval that is never coming is worse than saying the hub is too old |
+
+Flags:
+
+| Flag | Purpose |
+|---|---|
+| `--orch <url>` | the hub's address. Required |
+| `--name <name>` | the operator. Defaults to the stored identity's name |
+| `--keys-dir <path>` | which identity to use. One machine may serve several |
+| `--json` | machine-readable result, for a console driving this |
+
+**The passphrase arrives on stdin and never in argv.** A passphrase in a
+command-line argument is readable by every process on the machine, so one is
+refused rather than accepted with a warning.
 
 ### `weblisk operator token`
 

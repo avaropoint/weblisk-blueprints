@@ -260,6 +260,219 @@ plan a file that already exists; the planner complies; and a reconciler that
 knows only "previously written, now absent" reads that compliance as a deletion.
 Both rules are correct and their conjunction deletes a working tenant.
 
+### Surviving a provider outage
+
+A build takes tens of minutes and depends on a service that is sometimes
+unavailable. Five tenant builds were lost to that: twice to a stream that ended
+without a stop reason, once at the provider reachability check, once at file 10
+of 35, once at file 32 of 35. Every one of them had banked its completed files
+in the cache, and every one still needed a person to notice and start it again.
+
+Two layers, because they answer different questions.
+
+**Inside a call**, a failure that says it is temporary is retried with growing
+backoff. The window MUST be sized for the BUILD, not for an interactive
+command: it was three attempts across ten seconds, so a thirty-second outage
+discarded forty minutes of work after correctly identifying the error as
+temporary. About six minutes is enough for an ordinary outage and still fails
+in bounded time.
+
+**Around the run**, a failure that is the provider's resumes the whole
+operation. This is not a second retry of the same call — it is the observation
+that a run which reached file 32 has banked 31, so re-running it costs only
+what remains. Waits are longer than the inner window, because if six minutes of
+retrying did not clear it, the outage is not measured in seconds.
+
+Both layers MUST refuse to retry what is not transient:
+
+- A build that will not compile, a plan that will not validate, a refusal to
+  overwrite an edited file — these recur identically, and looping on them
+  consumes the window a real outage needs.
+- A session or quota limit is measured in hours. It arrives as a 429, so it
+  MUST be checked BEFORE the retryable status codes, or it is mistaken for rate
+  limiting and retried until the attempts run out.
+
+The outer loop MUST be bounded. A process that never gives up cannot be
+reasoned about, and a build that has been resumed five times across an hour is
+telling the operator something they need to hear.
+
+#### A retry decision MUST be made from structure, not from text
+
+Both layers ask the same question — is this failure transient — and that
+question MUST be answered from the fields a provider fills in, never by
+searching its error text for words.
+
+This is not a preference. The policy above was written, tested and documented,
+and it never fired once. Retry was decided by substring: the permanent list was
+checked first and contained `permission`, and every Claude Code result envelope
+contains
+
+```json
+{ "permission_denials": [] }
+```
+
+so every failure matched `permission`, was classified permanent, and was
+returned immediately. Five builds died to overloads that named themselves
+temporary and asked to be retried. The tests passed throughout, because they
+were written against hand-composed error strings that did not carry the field
+that broke it.
+
+A generator MUST therefore:
+
+- Represent a provider failure as a **value with named fields** — upstream
+  status, terminal reason, subtype, and the human message — not as a formatted
+  string. The envelope MUST be retained for diagnostics and MUST NOT appear in
+  the error's own text, because anything in that text can decide a retry.
+- Decide from the **status code** where one was given. A status the provider
+  named that is not a declared transient status is the request's problem, and
+  asking again changes nothing.
+- Recognise a stream that ended without a stop reason by its **terminal
+  reason**, since it carries no status at all.
+- Fall back to matching words ONLY when the provider gave nothing structural,
+  and then match the **human message alone**.
+- Test the classifier against **captured real failures**, kept as fixtures in
+  the shape the provider actually sends — including every field nobody thought
+  about. A retry policy proven only against invented strings is not proven.
+
+The declared transient statuses are 408, 409, 425, 429, 500, 502, 503 and 504,
+together with 529 for overload. A session or quota limit is settled from the
+message before this table is consulted, as stated above.
+
+---
+
+### A rebuild input MUST NOT be something the build changes
+
+The plan is cached on the inputs that determine it. One of those inputs was the
+tenant's *shape*, which included each package's export count — and generating
+files changes export counts. So:
+
+```
+build → files written → export counts change → shape changes →
+plan cache misses → the model re-plans → it names things differently →
+every file declaring the old names is non-compliant → regenerate → repeat
+```
+
+The plan cache could never hit after the first successful build, and a rebuild
+that should have cost nothing cost twenty files. One measured run regenerated
+ten files whose only fault was that the plan had been re-derived since they
+were written.
+
+A generator MUST therefore key a plan only on inputs the build does not
+produce: the requirements, the target, the platform, the platform blueprint and
+the instructions.
+
+**The test to apply to a candidate key input is not "is it structural?" but
+"can a build produce it?"** Anything a build can produce is a feedback loop
+whatever else it is.
+
+Applying the wrong test cost two rounds. The export count went first, and the
+module path was left — and the build writes `go.mod`, so the first run saw no
+module, the second saw one, and the plan was re-derived on the second run of
+every tenant that had ever been built. Measured directly: `""` then
+`"tenant-v7"`.
+
+Neither is a plan input in any case. A plan decides which files exist, what each
+declares, what each serves, and in what order. The module path decides **import
+statements**, which is file content — and a file is keyed on its whole rendered
+prompt, so a module rename already invalidates every file precisely, without
+disturbing a plan that was correct before it.
+
+What remains is the package directories, their names, and who owns them. Those
+change only when something has really moved.
+
+Tenant exports still reach the per-file prompts, where the names matter.
+
+This is the difference between an incremental build and a build that merely
+starts from a cache: an input that the output perturbs is a feedback loop, not a
+key.
+
+### A name MUST come from the blueprint that declares it
+
+The plan chooses the symbols every generated file then depends on, so a name
+changed between two generations of the same blueprints makes every dependent
+file stale and rebuilds work that was correct. One measured orchestrator build
+regenerated ten compliant files for this reason.
+
+**This pipeline holds no naming convention of its own.** Names are declared in
+the blueprint that specifies the thing, and the rules are in
+[`schemas/common`](../schemas/common.md#declared-names):
+
+| What | Declared in |
+|---|---|
+| A type | the `## Types` section of its blueprint |
+| An endpoint | the `Operation` column of the serving component's `## Endpoints` table |
+| A store operation | the store contract's operations list |
+| An event topic | the topic table of the publishing blueprint |
+| An error code | the central code registry |
+| The spelling of any of these in a language | that platform's `### The HTTP Surface` mapping table |
+
+A generator MUST read those declarations and pass them to the model as
+requirements, and MUST validate the plan declares them. It MUST NOT restate them
+here in different words.
+
+This section previously did restate them, and got it wrong: it said a store
+operation should be named "the noun is the type and the verb is the operation —
+`Get`, `Put`, `List`, `Delete`", while
+[`architecture/storage`](storage.md#interfaces) had all along declared
+`GetAgent`, `PutAgent`, `ListAgents`. The pipeline had acquired a naming opinion
+that contradicted the specification, and a plan following either one was
+non-compliant with the other. A rule copied into a second place is a rule that
+will disagree with itself.
+
+Where a name cannot be found in any blueprint, that is a gap **in the
+blueprint**. It MUST be reported as one and MUST NOT be filled in.
+
+### A coherence fault MUST be caught where it is created
+
+A symbol may be declared by exactly one file. That was checked after every file
+had been generated — so a thirty-one-file build completed and was then discarded
+whole, because file nine and file ten both declared `EncodePublicKey`.
+
+The per-file contract check **caused** the collision the final check could not
+see:
+
+1. The plan assigned `EncodePublicKey` to `sign.go`.
+2. `keys.go` was generated first and declared it anyway. Nothing objected —
+   the check only asked whether a file declared what its OWN entry named.
+3. `sign.go` was generated correctly, without it, and was **rejected** for not
+   declaring what its plan entry requires.
+4. The retry complied. Both files now declared it.
+5. Thirty minutes later the coherence check reported the duplicate and the run
+   was thrown away.
+
+Every step behaved as specified and the result was a guard manufacturing the
+fault it was too late to catch.
+
+So a generator MUST check, as each file is produced, that it declares no symbol
+belonging to another file — from the plan for a file not yet written, and from
+what has been written for a symbol the plan did not name. The complaint MUST
+name the owning file, so the retry has somewhere to import from rather than a
+prohibition it can only guess at.
+
+The final check stays. It is the backstop, and a backstop that fires means the
+per-file check has a hole; it must not be the first thing to notice.
+
+More generally: **a check MUST run at the point where its fault can still be
+repaired cheaply.** A correct answer delivered after the work is discarded is
+worth less than a wrong one delivered early, because the early one is retried
+and the late one is not.
+
+### One question MUST have one implementation
+
+"Does this file still declare what the plan says it declares" was answered in
+two places. The generation-time check resolved method notation properly —
+`(*Registry).Load` against a declaration parsed as name `Load` with receiver
+`Registry`. The rebuild decision re-implemented it by indexing bare names and
+looking up the plan's spelling directly, so **every method in every plan read as
+missing**. On one orchestrator build, nine of one file's twenty-two reported
+gaps were present in the file, and eight other files failed the same way.
+
+Where two code paths ask the same question of the same artifact, they MUST share
+one implementation. The wrong second copy is invisible: it produces a plausible
+answer, and the correct copy passing its tests says nothing about it.
+
+---
+
 ### Deciding whether a file must be rebuilt
 
 A rebuild is not "generate everything again". It is a decision made per file,
@@ -370,6 +583,50 @@ A model asked to build an orchestrator will build a generous one. Every
 unrequested addition is code nobody specified, nobody reviewed, and somebody
 must read before it can be trusted — and in a bootstrapped hub it is code that
 enlarges the attack surface of the component holding the tenant's keys.
+
+---
+
+### Repairing a disagreement between files
+
+A build failure names a file. The fix does not always live in it.
+
+    internal/storage/store.go:143:9: cannot use p (variable of type
+    *jsonlPersister) as persister value in assignment: *jsonlPersister does
+    not implement persister (wrong type for method load)
+
+The interface is in `store.go`; the method that does not match is in
+`jsonl.go`. A generator asked to rewrite `store.go` alone can only change the
+interface to match whatever it believes the implementer looks like — and asked
+next round to rewrite `jsonl.go`, it changes the method to match the interface
+it just saw. Each rewrite is locally reasonable and the pair never agrees. A
+real build reported the same three errors on rounds 3, 4 and 5 and stopped.
+
+**A contract between files MUST be repaired across those files in one
+response.** A generator MUST therefore:
+
+1. **Resolve an error to every file it implicates**, not only the file it names.
+   An unsatisfied interface implicates the file declaring the interface and the
+   file declaring the concrete type. A symbol declared twice implicates both
+   declaring files. An undefined symbol implicates whichever file owes it —
+   which is usually not the file that called it.
+
+2. **Ask for those files together**, each complete, in one response.
+
+3. **Reject a partial answer.** A group repair exists so the files agree
+   afterwards; applying half of one leaves exactly the disagreement it was meant
+   to resolve.
+
+4. **Never implicate a file the plan does not own.** Generation may rewrite only
+   what it wrote.
+
+Sending more CONTEXT does not substitute. The single-file prompt already carried
+the other files' declarations, names and signatures included, and it was not
+enough — the generator was being shown the conflict and given authority over one
+side of it.
+
+A single-file error MUST remain a single-file repair. Grouping liberally sends
+the whole target every round, and a group is a claim that these files disagree
+with each other rather than that they are all broken.
 
 ---
 
@@ -591,6 +848,17 @@ and "nothing contradicted it".
 ---
 
 ## Verification Checklist
+- [ ] A transient provider failure inside a call is retried across a window measured in minutes, not seconds
+- [ ] A transient failure of the run resumes it, reusing every completed file from cache
+- [ ] A session or quota limit is never retried, and is recognised before the retryable status codes
+- [ ] A build, plan or refusal failure is returned rather than retried
+- [ ] The outer resume is bounded, and says how many attempts it made
+- [ ] An unsatisfied interface implicates the file declaring the interface and the file declaring the concrete type
+- [ ] A symbol declared twice implicates both declaring files
+- [ ] An undefined symbol implicates the file that owes it, not only the caller
+- [ ] Files implicated together are asked for in ONE response and a partial answer is rejected
+- [ ] A file the plan does not own is never implicated
+- [ ] An ordinary single-file error is repaired as a single file, not as a group
 - [ ] A file whose digest differs from the recorded digest is reported and NOT overwritten
 - [ ] A file that no longer declares its assigned symbols is regenerated even when no input changed
 - [ ] A file whose blueprints are unchanged and whose obligations are met is kept, and reported as assessed

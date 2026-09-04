@@ -389,26 +389,71 @@ Every secret operation is logged:
 
 ### SecretDeclaration
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| key | string | yes | Secret key (UPPER_SNAKE_CASE) |
-| description | string | yes | Purpose of this secret |
-| required | bool | yes | Whether agent cannot start without it |
-| rotation | string | yes | `manual`, `scheduled`, `automatic` |
-| rotation_schedule | string | no | Cron expression (when rotation = scheduled) |
-| rotation_handler | string | no | Handler function name (when rotation ≠ manual) |
+```yaml
+types:
+  SecretDeclaration:
+    fields:
+      key:
+        type: string
+        required: true
+        description: "Secret key (UPPER_SNAKE_CASE)"
+      description:
+        type: string
+        required: true
+        description: "Purpose of this secret"
+      required:
+        type: bool
+        required: true
+        description: "Whether agent cannot start without it"
+      rotation:
+        type: string
+        required: true
+        description: "`manual`, `scheduled`, `automatic`"
+      rotation_schedule:
+        type: string
+        required: false
+        description: "Cron expression (when rotation = scheduled)"
+      rotation_handler:
+        type: string
+        required: false
+        description: "Handler function name (when rotation ≠ manual)"
+```
 
 ### SecretMetadata
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| key | string | yes | Secret key |
-| created_at | string | yes | ISO 8601 creation timestamp |
-| created_by | string | yes | Identity of creator |
-| last_rotated | string | no | Last rotation timestamp |
-| rotation_schedule | string | no | Cron expression |
-| expires_at | string | no | Expiration timestamp (null = no expiry) |
-| description | string | yes | Purpose |
+```yaml
+types:
+  SecretMetadata:
+    fields:
+      key:
+        type: string
+        required: true
+        description: "Secret key"
+      created_at:
+        type: string
+        required: true
+        description: "ISO 8601 creation timestamp"
+      created_by:
+        type: string
+        required: true
+        description: "Identity of creator"
+      last_rotated:
+        type: string
+        required: false
+        description: "Last rotation timestamp"
+      rotation_schedule:
+        type: string
+        required: false
+        description: "Cron expression"
+      expires_at:
+        type: string
+        required: false
+        description: "Expiration timestamp (null = no expiry)"
+      description:
+        type: string
+        required: true
+        description: "Purpose"
+```
 
 ---
 

@@ -349,6 +349,38 @@ pub trait Agent: Send + Sync {
   - Channel requests: 64 KB (`1 << 16`)
 - Apply `tokio::time::timeout` on all outbound HTTP requests
 
+### The HTTP Surface
+
+**Every symbol is spelled from the endpoint's `Operation`.** The architecture
+blueprint's `## Endpoints` table declares the operation — `Register`, `Health`,
+`AdminOverview` — and this is how that one name becomes Rust:
+
+| Symbol | Spelling | Example |
+|---|---|---|
+| Path constant | `pub const PATH_<OPERATION>` in `weblisk-core` | `PATH_REGISTER` |
+| Handler | `handle_<operation>` in snake_case | `handle_register` |
+| Request type | `<Operation>Request` | `RegisterRequest` |
+| Response type | `<Operation>Response` | `RegisterResponse` |
+
+No other spelling is permitted, and no symbol may be named from the path or the
+purpose. See [`schemas/common`](../schemas/common.md#declared-names). A path
+literal MUST NOT appear at a registration site, in a client, or in a test.
+
+**One route table per component.** A component declares its routes as data —
+method, path, handler — and one function turns that table into the router,
+whether that is a `match` over `(method, path)` on bare hyper or an
+`axum::Router` built from the same list. Routing MUST NOT be spread across the
+modules that define the handlers.
+
+**Method and path are matched together.** A path present with a different method
+answers `405` with an `Allow` header; an unmatched path answers `404`. Both MUST
+be a structured `ErrorResponse` carrying a registered error code — hyper's
+default is an empty body, which tells a client nothing the protocol promised.
+
+**Path parameters are extracted once.** A single helper reads a parameter from a
+matched pattern; handlers MUST NOT re-split `uri.path()` themselves, because two
+splitters disagree about a trailing slash long before anybody notices.
+
 ### Error Handling
 
 - Use `thiserror` for defining error enums in `weblisk-core`
@@ -835,6 +867,10 @@ opt-level = 3
 ## Verification Checklist
 
 - [ ] Cargo workspace contains `weblisk-core` library crate, `server` binary crate, and one or more `agents/<name>` binary crates — all listed in root `Cargo.toml` `[workspace]` members
+- [ ] Every routed path is a `pub const PATH_<OPERATION>` in `weblisk-core`; no path literal appears at a registration site, in a client, or in a test
+- [ ] Each component declares its routes as one table and builds its router from it in one function; no module registers routes beside its handlers
+- [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` with a registered error code
+- [ ] Path parameters are read through one helper; no handler splits `uri.path()` itself
 - [ ] All protocol types (`AgentManifest`, `TaskRequest`, `TaskResponse`, `HealthStatus`, `ErrorResponse`) are defined in `weblisk-core` with `#[derive(Serialize, Deserialize)]` and shared across all binary crates
 - [ ] `http_body_util::Limited` is applied on all request body reads: 1 MB for registration/messages, 10 MB for tasks, 64 KB for channels
 - [ ] All shared state is wrapped in `Arc<tokio::sync::RwLock<T>>` or `Arc<tokio::sync::Mutex<T>>` — no raw `Mutex` or unprotected shared mutable state

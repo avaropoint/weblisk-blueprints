@@ -9,7 +9,7 @@ commands, dependency management, and platform-specific constraints.
 
 ## Frontmatter
 
-```yaml
+```markdown
 <!-- blueprint
 type: platform
 name: <platform-name>
@@ -162,7 +162,44 @@ Language-specific implementation rules:
 
 ### Logging
 - <Structured logging approach for this language>
+
+### The HTTP Surface
+- <A table mapping the endpoint's Operation to each symbol's spelling>
+- <Where the routed paths are declared>
+- <How a path and method reach a handler>
+- <How a wrong method and an unmatched path answer>
 ```
+
+The mapping table is **required** and MUST be exhaustive for the kinds of
+symbol this platform generates — path constant, handler, request type and
+response type at minimum:
+
+| Symbol | Spelling | Example |
+|---|---|---|
+| Path constant | `Path<Operation>` | `PathRegister` |
+| Handler | `handle<Operation>` | `handleRegister` |
+
+An architecture blueprint declares an endpoint's `Operation`; this table is how
+that one declared name becomes an identifier in this language, and it is the
+ONLY place a platform may decide spelling. "Follow the language's conventions"
+is not a rule two generations apply identically — casing, prefix and suffix MUST
+be written down. A platform blueprint MUST NOT introduce a name the declaring
+blueprint did not state. See [Declared Names](common.md#declared-names).
+
+`### The HTTP Surface` states how the endpoints an architecture blueprint
+declares become routes in this language. It is required for the same reason
+the type mapping is: the architecture states `POST /v1/register`, and without
+a stated convention each generation invents its own arrangement.
+
+That is not a style preference. A generated component whose HTTP surface is
+arranged differently on each build changes the symbols every other file depends
+on, so files that were correct become non-compliant and are rebuilt — the churn
+described in [`architecture/generation`](../architecture/generation.md) under
+"A rebuild input MUST NOT be something the build changes". The convention MUST
+be specific enough that two builds of the same blueprints produce the same
+arrangement, and MUST NOT constrain how patterns are *spelled* — a named
+constant is better than a repeated literal, and a platform blueprint exists to
+make the artifact good, not to make a checker's job easy.
 
 ### Type Mapping (`## Type Mapping`)
 

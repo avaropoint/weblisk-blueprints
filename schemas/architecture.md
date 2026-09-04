@@ -11,7 +11,7 @@ build on.
 
 ## Frontmatter
 
-```yaml
+```markdown
 <!-- blueprint
 type: architecture
 name: <component-name>
@@ -49,7 +49,7 @@ Architecture blueprints do NOT use: `kind`, `port`, `extends`, `depends_on`.
 | 4 | Dependencies | `## Dependencies` | **Yes** | Dependency contracts |
 | 5 | Architecture | `## Architecture` | **Yes** | Component diagram and responsibilities |
 | 6 | Responsibilities | `## Responsibilities` | **Yes** | What this component owns and does NOT own |
-| 7 | Endpoints | `## Endpoints` | Conditional | HTTP surface as a table. **Required if the component serves any** — see below |
+| 7 | Endpoints | `## Endpoints` | Conditional | HTTP surface as a table, with a required `Operation` column. **Required if the component serves any** — see below |
 | 8 | Interfaces | `## Interfaces` | **Yes** | Public API surface (methods, endpoints, events) |
 | 9 | Data Flow | `## Data Flow` | **Yes** | How data moves through this component |
 | 10 | Types | `## Types` | Conditional | Data structures in YAML (if component defines types) |
@@ -123,10 +123,10 @@ component that serves HTTP.
 ```markdown
 ## Endpoints
 
-| Method | Path | Auth | Purpose |
-|--------|------|------|---------|
-| POST | /v1/register | no* | Agent registration (identity-verified) |
-| GET | /v1/health | no | Component health |
+| Method | Path | Operation | Auth | Purpose |
+|--------|------|-----------|------|---------|
+| POST | /v1/register | Register | no* | Agent registration (identity-verified) |
+| GET | /v1/health | Health | no | Component health |
 ```
 
 **The table form is load-bearing, not cosmetic.** Generation reads a component's
@@ -138,6 +138,55 @@ complete-looking with an endpoint missing.
 
 Declare endpoints here, and describe them in `## Interfaces` alongside methods
 and events if the component's consumers need more than the table carries.
+
+#### The Operation column
+
+**Required.** `Operation` is the endpoint's name — the identifier every
+generated artifact derives its symbols from, per
+[Declared Names](common.md#declared-names).
+
+It MUST be `PascalCase`, MUST be unique within the component, and MUST NOT
+restate the method or the path. Two rows differing only by method are two
+operations and take two names: `POST /v1/register` is `Register` and `DELETE
+/v1/register` is `Deregister`.
+
+Without it, a generator has only the path and the prose to work from, and it
+will name the same endpoint differently on different runs — `handleRegister`,
+then `handleAgentRegister`, then `registerHandler` — making every file that
+called the previous name stale. That is not hypothetical: it is why this column
+exists.
+
+The platform blueprint states how the operation is spelled in its language; see
+`schemas/platform.md`, "The HTTP Surface". The architecture blueprint MUST NOT
+name a handler, a constant or a function — those are translations, and
+[Platform Neutrality](common.md#platform-neutrality) forbids them here.
+
+#### A declared endpoint MUST be specified in a required blueprint
+
+If another blueprint documents an endpoint this component serves, the component
+MUST list that blueprint in its `requires:`. Declaring the row is not enough:
+the row says the endpoint exists, and the other blueprint says how it behaves.
+
+`architecture/orchestrator` declared ten `/v1/admin/operators/*` endpoints and
+did not require `architecture/admin`, which specifies the registration flow. The
+orchestrator was therefore generated having never been shown that flow. It chose
+a signature payload — sensibly, and differently from the client — and the first
+real connection failed with `operator signature verification failed`, with
+neither side wrong about anything it had been told.
+
+A blueprint that documents paths and has **no `## Endpoints` section of its own**
+is specifying a surface for another component to serve. One that has an
+`## Endpoints` section is a peer stating what *it* serves: every component
+serves `/v1/health`, and two components sharing a path is not one specifying the
+other.
+
+#### Operations declared outside the endpoint table
+
+A component that declares operations in any other form — a store contract's
+operations list, a method table, an event topic table — is declaring names under
+the same rule. Those names are binding, the generated artifact MUST use them
+exactly, and a component MUST NOT invent a parallel vocabulary for the same
+thing.
 
 ### Interfaces (`## Interfaces`)
 

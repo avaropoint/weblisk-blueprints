@@ -288,35 +288,95 @@ Plaintext passwords MUST NEVER be stored or logged.
 
 ### User
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| id | string | yes | Unique user ID (UUID) |
-| email | string | yes | User's email address |
-| name | string | yes | Display name |
-| password_hash | string | yes | Hashed password (never returned in API) |
-| created | int64 | yes | Account creation timestamp |
+```yaml
+types:
+  User:
+    fields:
+      id:
+        type: string
+        required: true
+        description: "Unique user ID (UUID)"
+      email:
+        type: string
+        required: true
+        description: "User's email address"
+      name:
+        type: string
+        required: true
+        description: "Display name"
+      password_hash:
+        type: string
+        required: true
+        description: "Hashed password (never returned in API)"
+      created:
+        type: int64
+        required: true
+        description: "Account creation timestamp"
+```
 
 ### Session
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| session_id | string | yes | Random session identifier |
-| user_id | string | yes | Associated user ID |
-| csrf_token | string | yes | CSRF protection token |
-| created_at | int64 | yes | Creation timestamp |
-| expires_at | int64 | yes | Expiration timestamp |
-| ip_address | string | no | Client IP at creation |
-| user_agent | string | no | Client User-Agent at creation |
+```yaml
+types:
+  Session:
+    fields:
+      session_id:
+        type: string
+        required: true
+        description: "Random session identifier"
+      user_id:
+        type: string
+        required: true
+        description: "Associated user ID"
+      csrf_token:
+        type: string
+        required: true
+        description: "CSRF protection token"
+      created_at:
+        type: int64
+        required: true
+        description: "Creation timestamp"
+      expires_at:
+        type: int64
+        required: true
+        description: "Expiration timestamp"
+      ip_address:
+        type: string
+        required: false
+        description: "Client IP at creation"
+      user_agent:
+        type: string
+        required: false
+        description: "Client User-Agent at creation"
+```
 
 ### AuthConfig
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| session_duration | int | yes | Session lifetime in seconds |
-| cookie_name | string | yes | Session cookie name |
-| csrf_header | string | yes | CSRF token header name |
-| max_sessions_per_user | int | yes | Max concurrent sessions |
-| password_min_length | int | yes | Minimum password length |
+```yaml
+types:
+  AuthConfig:
+    fields:
+      session_duration:
+        type: int
+        required: true
+        description: "Session lifetime in seconds"
+      cookie_name:
+        type: string
+        required: true
+        description: "Session cookie name"
+      csrf_header:
+        type: string
+        required: true
+        description: "CSRF token header name"
+      max_sessions_per_user:
+        type: int
+        required: true
+        description: "Max concurrent sessions"
+      password_min_length:
+        type: int
+        required: true
+        description: "Minimum password length"
+```
 
 ## Implementation Notes
 

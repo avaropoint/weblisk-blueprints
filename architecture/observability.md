@@ -173,13 +173,26 @@ All components emit JSON logs to stdout, one object per line.
 
 ### Required Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| ts | string | ISO 8601 timestamp with milliseconds |
-| level | string | `debug`, `info`, `warn`, `error` |
-| msg | string | Human-readable message |
-| component | string | Name of the emitting component |
-| component_type | string | `orchestrator`, `domain`, `agent` |
+```yaml
+types:
+  Owns:
+    fields:
+      ts:
+        type: string
+        description: "ISO 8601 timestamp with milliseconds"
+      level:
+        type: string
+        description: "`debug`, `info`, `warn`, `error`"
+      msg:
+        type: string
+        description: "Human-readable message"
+      component:
+        type: string
+        description: "Name of the emitting component"
+      component_type:
+        type: string
+        description: "`orchestrator`, `domain`, `agent`"
+```
 
 ### Contextual Fields
 

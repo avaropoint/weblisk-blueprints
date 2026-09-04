@@ -191,14 +191,35 @@ No body required. Health checks are lightweight probes.
 
 ### Response Fields
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| name | string | yes | Agent or domain name |
-| version | string | yes | Current semver version |
-| state | string | yes | `online`, `degraded`, `offline` |
-| uptime_seconds | int | yes | Seconds since last start |
-| checks | object | no | Sub-component health checks |
-| metrics_snapshot | object | no | Key metric values at response time |
+```yaml
+types:
+  Response:
+    fields:
+      name:
+        type: string
+        required: true
+        description: "Agent or domain name"
+      version:
+        type: string
+        required: true
+        description: "Current semver version"
+      state:
+        type: string
+        required: true
+        description: "`online`, `degraded`, `offline`"
+      uptime_seconds:
+        type: int
+        required: true
+        description: "Seconds since last start"
+      checks:
+        type: object
+        required: false
+        description: "Sub-component health checks"
+      metrics_snapshot:
+        type: object
+        required: false
+        description: "Key metric values at response time"
+```
 
 ### Sub-Component Checks
 

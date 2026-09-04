@@ -200,16 +200,16 @@ converts an unexplained change from an alarm into a recorded fact.
 
 ## Endpoints
 
-| Method | Path | Auth | Purpose |
-|--------|------|------|---------|
-| GET | /v1/content | yes | List entries beneath a path, cursor-paginated |
-| GET | /v1/content/entry | yes | Read one entry's bytes and identity |
-| PUT | /v1/content/entry | yes | Write one entry; `if_match` required |
-| DELETE | /v1/content/entry | yes | Remove one entry and retire its identity |
-| GET | /v1/content/stat | yes | Identity and metadata without transferring bytes |
-| GET | /v1/content/repositories | yes | Repositories in scope, with custody and ceiling |
-| POST | /v1/content/reconcile | yes | Detect out-of-band change (shared custody only) |
-| GET | /v1/health | no | Content service health. Served with or without an orchestrator |
+| Method | Path | Operation | Auth | Purpose |
+|--------|------|-----------|------|---------|
+| GET | /v1/content | List | yes | List entries beneath a path, cursor-paginated |
+| GET | /v1/content/entry | Read | yes | Read one entry's bytes and identity |
+| PUT | /v1/content/entry | Write | yes | Write one entry; `if_match` required |
+| DELETE | /v1/content/entry | Remove | yes | Remove one entry and retire its identity |
+| GET | /v1/content/stat | Stat | yes | Identity and metadata without transferring bytes |
+| GET | /v1/content/repositories | Repositories | yes | Repositories in scope, with custody and ceiling |
+| POST | /v1/content/reconcile | Reconcile | yes | Detect out-of-band change (shared custody only) |
+| GET | /v1/health | Health | no | Content service health. Served with or without an orchestrator |
 
 ---
 

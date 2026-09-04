@@ -2,7 +2,7 @@
 type: architecture
 name: orchestrator
 version: 1.0.0
-requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability]
+requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin]
 platform: any
 tier: free
 -->
@@ -91,6 +91,25 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
+  # The orchestrator serves the operator surface, so it is answerable for the
+  # flows architecture/admin specifies. Bound at behaviour granularity because
+  # what it must get right is a sequence and a signing input, not a field list:
+  # the orchestrator was generated WITHOUT this contract, chose its own
+  # registration signature payload, and refused every client that chose the
+  # other one.
+  - blueprint: architecture/admin
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      behaviors:
+        - name: operator-registration
+        - name: registration-signing-input
+        - name: first-operator-auto-approval
+        - name: operator-token-issuance
+        - name: operator-roles
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
 ```
 
 ---
@@ -118,16 +137,22 @@ See [Lifecycle](lifecycle.md) for the continuous optimization loop.
 
 ### Protocol endpoints
 
-| Method | Path | Auth | Purpose |
-|--------|------|------|---------|
-| POST | /v1/register | no* | Agent registration (identity-verified) |
-| DELETE | /v1/register | yes | Agent deregistration |
-| GET | /v1/services | yes | Service directory (routing table + namespaces) |
-| POST | /v1/channel | yes | Request direct agent-to-agent channel |
-| GET | /v1/health | no | Orchestrator and hub health |
-| GET | /v1/audit | yes | Query audit log |
+| Method | Path | Operation | Auth | Purpose |
+|--------|------|-----------|------|---------|
+| POST | /v1/register | Register | no* | Agent registration (identity-verified) |
+| DELETE | /v1/register | Deregister | yes | Agent deregistration |
+| GET | /v1/services | Services | yes | Service directory (routing table + namespaces) |
+| POST | /v1/channel | Channel | yes | Request direct agent-to-agent channel |
+| POST | /v1/rotate-key | RotateKey | yes | Rotate an agent's ML-DSA-65 key pair. Dual-signed with the current and the new key, which proves possession of both; the caller's existing token still authenticates the request |
+| GET | /v1/health | Health | no | Orchestrator and hub health |
+| GET | /v1/audit | Audit | yes | Query audit log |
 
-\* Registration uses ML-DSA-65 identity verification instead of tokens.
+\* Registration uses ML-DSA-65 identity verification instead of tokens — there is
+no token to present before an agent is registered. Key rotation is different: it
+is dual-signed AND token-authenticated, because the agent already holds a valid
+token when it rotates. Auth values here match
+[`protocol/types`](../protocol/types.md#protocol-paths), which is the single
+source of truth for them.
 
 ### Administrative endpoints
 
@@ -144,18 +169,18 @@ Administration is a capability like any other, which is what allows an
 administrative interface to be a service holding a grant rather than a
 privileged position in the deployment.
 
-| Method | Path | Capability | Purpose |
-|--------|------|-----------|---------|
-| POST | /v1/admin/operators/register | — | Register an operator. The first is auto-approved; every later one requires `admin:*`. Returns a token ONLY when registration also approved — see [`architecture/admin`](admin.md#the-registration-response) |
-| POST | /v1/admin/operators/token | — | Issue an operator token to a caller who signs `{name, timestamp}` with the private key matching this orchestrator's record. Unauthenticated by token, because it is what issues them |
-| GET | /v1/admin/operators | `admin:*` | List operators |
-| GET | /v1/admin/operators/{name} | `admin:read` | Operator detail |
-| DELETE | /v1/admin/operators/{name} | `admin:*` | Remove an operator |
-| PUT | /v1/admin/operators/{name}/role | `admin:*` | Change an operator's role |
-| GET | /v1/admin/agents | `admin:read` | Agents with status, type and metrics |
-| GET | /v1/admin/agents/{name} | `admin:read` | Agent detail — manifest, metrics, recent tasks |
-| POST | /v1/admin/agents/{name}/deregister | `admin:*` | Force-deregister an agent |
-| GET | /v1/admin/overview | `admin:read` | Summary of the state this orchestrator holds |
+| Method | Path | Operation | Capability | Purpose |
+|--------|------|-----------|-----------|---------|
+| POST | /v1/admin/operators/register | OperatorRegister | — | Register an operator. The first is auto-approved; every later one requires `admin:*`. Returns a token ONLY when registration also approved — see [`architecture/admin`](admin.md#the-registration-response) |
+| POST | /v1/admin/operators/token | OperatorToken | — | Issue an operator token to a caller who signs `{name, timestamp}` with the private key matching this orchestrator's record. Unauthenticated by token, because it is what issues them |
+| GET | /v1/admin/operators | OperatorList | `admin:*` | List operators |
+| GET | /v1/admin/operators/{name} | OperatorGet | `admin:read` | Operator detail |
+| DELETE | /v1/admin/operators/{name} | OperatorDelete | `admin:*` | Remove an operator |
+| PUT | /v1/admin/operators/{name}/role | OperatorRole | `admin:*` | Change an operator's role |
+| GET | /v1/admin/agents | AdminAgentList | `admin:read` | Agents with status, type and metrics |
+| GET | /v1/admin/agents/{name} | AdminAgentGet | `admin:read` | Agent detail — manifest, metrics, recent tasks |
+| POST | /v1/admin/agents/{name}/deregister | AdminAgentDeregister | `admin:*` | Force-deregister an agent |
+| GET | /v1/admin/overview | AdminOverview | `admin:read` | Summary of the state this orchestrator holds |
 
 `/v1/admin/overview` reports what the orchestrator knows — agent counts,
 namespace count, audit depth, health. Figures owned by components that are not
@@ -472,15 +497,46 @@ and [protocol/types.md](../protocol/types.md) for type definitions.
 
 An entry in the orchestrator's internal agent registry.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| AgentID | string | `agent_id` | yes | Assigned agent identifier |
-| Manifest | AgentManifest | `manifest` | yes | Agent's declared manifest |
-| Token | string | `token` | yes | Issued WLT token |
-| Status | string | `status` | yes | `"registered"`, `"active"`, `"offline"` |
-| RegisteredAt | int64 | `registered_at` | yes | Unix epoch of registration |
-| PublicKey | string | `public_key` | yes | Agent's ML-DSA-65 public key (base64url) |
-| Namespaces | []string | `namespaces` | yes | Owned publish namespaces |
+```yaml
+types:
+  AgentEntry:
+    fields:
+      agent_id:
+        name: AgentID
+        type: string
+        required: true
+        description: "Assigned agent identifier"
+      manifest:
+        name: Manifest
+        type: AgentManifest
+        required: true
+        description: "Agent's declared manifest"
+      token:
+        name: Token
+        type: string
+        required: true
+        description: "Issued WLT token"
+      status:
+        name: Status
+        type: string
+        required: true
+        description: "`\"registered\"`, `\"active\"`, `\"offline\"`"
+      registered_at:
+        name: RegisteredAt
+        type: int64
+        required: true
+        description: "Unix epoch of registration"
+      public_key:
+        name: PublicKey
+        type: string
+        required: true
+        description: "Agent's ML-DSA-65 public key (base64url)"
+      namespaces:
+        name: Namespaces
+        type: "[]string"
+        required: true
+        description: "Owned publish namespaces"
+```
 
 ---
 

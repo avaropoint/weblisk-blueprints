@@ -122,14 +122,29 @@ interface:
 
 ### CacheStats
 
-| Field | Type | Description |
-|-------|------|-------------|
-| hits | int64 | Total cache hits since startup |
-| misses | int64 | Total cache misses since startup |
-| evictions | int64 | Total evictions (TTL + capacity) |
-| size | int | Current number of entries |
-| max_size | int | Configured maximum entries |
-| memory_bytes | int64 | Estimated memory consumption |
+```yaml
+types:
+  CacheStats:
+    fields:
+      hits:
+        type: int64
+        description: "Total cache hits since startup"
+      misses:
+        type: int64
+        description: "Total cache misses since startup"
+      evictions:
+        type: int64
+        description: "Total evictions (TTL + capacity)"
+      size:
+        type: int
+        description: "Current number of entries"
+      max_size:
+        type: int
+        description: "Configured maximum entries"
+      memory_bytes:
+        type: int64
+        description: "Estimated memory consumption"
+```
 
 ## Cache Namespaces
 

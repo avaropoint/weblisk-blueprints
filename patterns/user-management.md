@@ -219,31 +219,112 @@ config:
 
 ### User Record
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| ID | string | `id` | yes | UUID, auto-generated |
-| Email | string | `email` | yes | Unique, validated format |
-| Name | string | `name` | yes | Display name |
-| PasswordHash | string | — | yes | Never returned in API responses |
-| Role | string | `role` | yes | User role (from config.roles) |
-| EmailVerified | bool | `email_verified` | yes | Whether email is confirmed |
-| AvatarURL | string | `avatar_url` | no | Profile image URL |
-| Metadata | map | `metadata` | no | Application-specific key/value data |
-| OAuthLinks | []OAuthLink | `oauth_links` | no | Linked OAuth providers |
-| Status | string | `status` | yes | `active`, `suspended`, `deleted` |
-| LoginAttempts | int | — | no | Failed login counter (internal) |
-| LockedUntil | int64 | — | no | Lockout expiry (internal) |
-| CreatedAt | int64 | `created_at` | yes | Unix epoch seconds |
-| UpdatedAt | int64 | `updated_at` | yes | Unix epoch seconds |
+```yaml
+types:
+  Endpoints:
+    fields:
+      id:
+        name: ID
+        type: string
+        required: true
+        description: "UUID, auto-generated"
+      email:
+        name: Email
+        type: string
+        required: true
+        description: "Unique, validated format"
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "Display name"
+      password_hash:
+        name: PasswordHash
+        serialised: false
+        type: string
+        required: true
+        description: "Never returned in API responses"
+      role:
+        name: Role
+        type: string
+        required: true
+        description: "User role (from config.roles)"
+      email_verified:
+        name: EmailVerified
+        type: bool
+        required: true
+        description: "Whether email is confirmed"
+      avatar_url:
+        name: AvatarURL
+        type: string
+        required: false
+        description: "Profile image URL"
+      metadata:
+        name: Metadata
+        type: map
+        required: false
+        description: "Application-specific key/value data"
+      oauth_links:
+        name: OAuthLinks
+        type: "[]OAuthLink"
+        required: false
+        description: "Linked OAuth providers"
+      status:
+        name: Status
+        type: string
+        required: true
+        description: "`active`, `suspended`, `deleted`"
+      login_attempts:
+        name: LoginAttempts
+        serialised: false
+        type: int
+        required: false
+        description: "Failed login counter (internal)"
+      locked_until:
+        name: LockedUntil
+        serialised: false
+        type: int64
+        required: false
+        description: "Lockout expiry (internal)"
+      created_at:
+        name: CreatedAt
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+      updated_at:
+        name: UpdatedAt
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+```
 
 ### OAuthLink
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Provider | string | `provider` | yes | `github`, `google`, etc. |
-| ProviderID | string | `provider_id` | yes | User ID from the OAuth provider |
-| Email | string | `email` | no | Email from OAuth (may differ from primary) |
-| LinkedAt | int64 | `linked_at` | yes | Unix epoch seconds |
+```yaml
+types:
+  OAuthLink:
+    fields:
+      provider:
+        name: Provider
+        type: string
+        required: true
+        description: "`github`, `google`, etc."
+      provider_id:
+        name: ProviderID
+        type: string
+        required: true
+        description: "User ID from the OAuth provider"
+      email:
+        name: Email
+        type: string
+        required: false
+        description: "Email from OAuth (may differ from primary)"
+      linked_at:
+        name: LinkedAt
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+```
 
 ---
 

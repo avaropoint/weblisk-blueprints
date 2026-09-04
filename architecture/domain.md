@@ -246,13 +246,36 @@ structure with domain-specific fields:
 
 ### Domain-Specific Manifest Fields
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Type | string | `type` | yes | MUST be `"domain"` |
-| RequiredAgents | []string | `required_agents` | yes | Agent names this domain dispatches to |
-| Workflows | []string | `workflows` | yes | Workflow names this domain supports |
-| Publishes | []string | `publishes` | yes | Event namespaces (e.g., `["seo"]`) |
-| Subscriptions | []Subscription | `subscriptions` | yes | Event patterns to receive |
+```yaml
+types:
+  Owns:
+    fields:
+      type:
+        name: Type
+        type: string
+        required: true
+        description: "MUST be `\"domain\"`"
+      required_agents:
+        name: RequiredAgents
+        type: "[]string"
+        required: true
+        description: "Agent names this domain dispatches to"
+      workflows:
+        name: Workflows
+        type: "[]string"
+        required: true
+        description: "Workflow names this domain supports"
+      publishes:
+        name: Publishes
+        type: "[]string"
+        required: true
+        description: "Event namespaces (e.g., `[\"seo\"]`)"
+      subscriptions:
+        name: Subscriptions
+        type: "[]Subscription"
+        required: true
+        description: "Event patterns to receive"
+```
 
 The `type` field distinguishes domains from work agents (`"agent"`) and
 infrastructure agents (`"infrastructure"`). The orchestrator uses this
@@ -726,24 +749,62 @@ Orchestrator: 9800.
 A workflow definition owned by a domain controller. Specifies the
 business process as a set of phases that the Workflow Agent executes.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Name | string | `name` | yes | Workflow identifier (unique within domain) |
-| Description | string | `description` | no | Human-readable purpose |
-| Trigger | string | `trigger` | yes | Action name that initiates this workflow |
-| Phases | []WorkflowPhase | `phases` | yes | Ordered list of execution phases |
-| OnError | string | `on_error` | no | Default phase error strategy: `fail`, `skip`, `retry` (default: `fail`) |
+```yaml
+types:
+  DomainWorkflow:
+    fields:
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "Workflow identifier (unique within domain)"
+      description:
+        name: Description
+        type: string
+        required: false
+        description: "Human-readable purpose"
+      trigger:
+        name: Trigger
+        type: string
+        required: true
+        description: "Action name that initiates this workflow"
+      phases:
+        name: Phases
+        type: "[]WorkflowPhase"
+        required: true
+        description: "Ordered list of execution phases"
+      on_error:
+        name: OnError
+        type: string
+        required: false
+        description: "Default phase error strategy: `fail`, `skip`, `retry` (default: `fail`)"
+```
 
 ### DomainManifest
 
 Extended manifest fields specific to domain controllers. These fields
 augment the base `AgentManifest` when `type` is `"domain"`.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| RequiredAgents | []string | `required_agents` | yes | Work agents this domain depends on |
-| Workflows | []string | `workflows` | yes | Workflow names this domain supports |
-| EntityTypes | []string | `entity_types` | no | Entity types this domain manages |
+```yaml
+types:
+  DomainManifest:
+    fields:
+      required_agents:
+        name: RequiredAgents
+        type: "[]string"
+        required: true
+        description: "Work agents this domain depends on"
+      workflows:
+        name: Workflows
+        type: "[]string"
+        required: true
+        description: "Workflow names this domain supports"
+      entity_types:
+        name: EntityTypes
+        type: "[]string"
+        required: false
+        description: "Entity types this domain manages"
+```
 
 ---
 

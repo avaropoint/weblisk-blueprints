@@ -282,23 +282,47 @@ All errors MUST follow this shape:
 
 ### BlueprintModel
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| fields | map[string]string | yes | Field definitions (name → type + modifiers) |
+```yaml
+types:
+  BlueprintModel:
+    fields:
+      fields:
+        type: "map[string]string"
+        required: true
+        description: "Field definitions (name → type + modifiers)"
+```
 
 ### PaginatedResponse
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| data | []object | yes | Array of resources |
-| pagination | PaginationMeta | yes | Cursor and has_more flag |
+```yaml
+types:
+  PaginatedResponse:
+    fields:
+      data:
+        type: "[]object"
+        required: true
+        description: "Array of resources"
+      pagination:
+        type: PaginationMeta
+        required: true
+        description: "Cursor and has_more flag"
+```
 
 ### PaginationMeta
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| next_cursor | string | no | Opaque cursor for next page |
-| has_more | boolean | yes | Whether more results exist |
+```yaml
+types:
+  PaginationMeta:
+    fields:
+      next_cursor:
+        type: string
+        required: false
+        description: "Opaque cursor for next page"
+      has_more:
+        type: boolean
+        required: true
+        description: "Whether more results exist"
+```
 
 ### ErrorResponse (API Pattern)
 
@@ -307,13 +331,31 @@ Error shape for generated REST API endpoints. This extends the protocol
 attribute for validation errors. Implementations SHOULD include `category`
 and `retryable` from the protocol type when applicable.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| error | string | yes | Human-readable message |
-| code | string | yes | Machine-readable error code |
-| field | string | no | Field that caused the error (validation errors) |
-| category | string | no | `"permanent"` or `"transient"` (per protocol ErrorResponse) |
-| retryable | boolean | no | Whether the caller SHOULD retry |
+```yaml
+types:
+  ErrorResponse:
+    fields:
+      error:
+        type: string
+        required: true
+        description: "Human-readable message"
+      code:
+        type: string
+        required: true
+        description: "Machine-readable error code"
+      field:
+        type: string
+        required: false
+        description: "Field that caused the error (validation errors)"
+      category:
+        type: string
+        required: false
+        description: "`\"permanent\"` or `\"transient\"` (per protocol ErrorResponse)"
+      retryable:
+        type: boolean
+        required: false
+        description: "Whether the caller SHOULD retry"
+```
 
 ## Implementation Notes
 

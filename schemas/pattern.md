@@ -9,7 +9,7 @@ field. Patterns are the framework's composition mechanism.
 
 ## Frontmatter
 
-```yaml
+```markdown
 <!-- blueprint
 type: pattern
 name: <pattern-name>

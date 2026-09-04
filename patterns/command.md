@@ -472,33 +472,99 @@ external command execution is not permitted (e.g., Cloudflare Workers).
 
 ### CommandDeclaration
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| key | string | yes | Unique command identifier within agent |
-| binary | string | yes | Executable name or path |
-| allowed_args | string[] | yes | Argument patterns |
-| max_timeout | int | yes | Maximum seconds |
-| description | string | yes | Purpose |
-| sensitive_output | bool | no | Whether output contains secrets |
-| remote | bool | no | Whether command executes remotely |
+```yaml
+types:
+  CommandDeclaration:
+    fields:
+      key:
+        type: string
+        required: true
+        description: "Unique command identifier within agent"
+      binary:
+        type: string
+        required: true
+        description: "Executable name or path"
+      allowed_args:
+        type: string[]
+        required: true
+        description: "Argument patterns"
+      max_timeout:
+        type: int
+        required: true
+        description: "Maximum seconds"
+      description:
+        type: string
+        required: true
+        description: "Purpose"
+      sensitive_output:
+        type: bool
+        required: false
+        description: "Whether output contains secrets"
+      remote:
+        type: bool
+        required: false
+        description: "Whether command executes remotely"
+```
 
 ### CommandResult
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| command_key | string | yes | Command identifier |
-| binary | string | yes | Executed binary |
-| args | string[] | yes | Actual arguments |
-| exit_code | int | yes | Process exit code |
-| stdout | string | no | Captured stdout (absent if streaming or sensitive) |
-| stderr | string | no | Captured stderr |
-| duration_ms | int | yes | Execution duration |
-| timed_out | bool | yes | Whether command was killed by timeout |
-| started_at | string | yes | ISO 8601 start timestamp |
-| completed_at | string | yes | ISO 8601 completion timestamp |
-| remote | bool | yes | Whether executed remotely |
-| stdout_truncated | bool | no | Whether stdout was truncated |
-| stderr_truncated | bool | no | Whether stderr was truncated |
+```yaml
+types:
+  CommandResult:
+    fields:
+      command_key:
+        type: string
+        required: true
+        description: "Command identifier"
+      binary:
+        type: string
+        required: true
+        description: "Executed binary"
+      args:
+        type: string[]
+        required: true
+        description: "Actual arguments"
+      exit_code:
+        type: int
+        required: true
+        description: "Process exit code"
+      stdout:
+        type: string
+        required: false
+        description: "Captured stdout (absent if streaming or sensitive)"
+      stderr:
+        type: string
+        required: false
+        description: "Captured stderr"
+      duration_ms:
+        type: int
+        required: true
+        description: "Execution duration"
+      timed_out:
+        type: bool
+        required: true
+        description: "Whether command was killed by timeout"
+      started_at:
+        type: string
+        required: true
+        description: "ISO 8601 start timestamp"
+      completed_at:
+        type: string
+        required: true
+        description: "ISO 8601 completion timestamp"
+      remote:
+        type: bool
+        required: true
+        description: "Whether executed remotely"
+      stdout_truncated:
+        type: bool
+        required: false
+        description: "Whether stdout was truncated"
+      stderr_truncated:
+        type: bool
+        required: false
+        description: "Whether stderr was truncated"
+```
 
 ---
 

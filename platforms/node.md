@@ -639,6 +639,38 @@ export function createStorage(dbPath: string) {
 - Task handlers return structured `{ task_id, status, output | error }`
 - Use `process.on('unhandledRejection', ...)` as a safety net
 
+### The HTTP Surface
+
+**Every symbol is spelled from the endpoint's `Operation`.** The architecture
+blueprint's `## Endpoints` table declares the operation — `Register`, `Health`,
+`AdminOverview` — and this is how that one name becomes TypeScript:
+
+| Symbol | Spelling | Example |
+|---|---|---|
+| Path constant | `PATH_<OPERATION>` in SCREAMING_SNAKE, in `src/protocol/paths.ts` | `PATH_REGISTER` |
+| Handler | `handle<Operation>` | `handleRegister` |
+| Request type | `<Operation>Request` | `RegisterRequest` |
+| Response type | `<Operation>Response` | `RegisterResponse` |
+
+No other spelling is permitted, and no symbol may be named from the path or the
+purpose. See [`schemas/common`](../schemas/common.md#declared-names). A path
+literal MUST NOT appear at a registration site, in a client, or in a test.
+
+**One registration function per component.** A single `registerRoutes(app)`
+declares every route; registration MUST NOT be spread across the modules that
+define the handlers. The component's HTTP surface is then readable without
+running it, and adding an endpoint changes one list.
+
+**Method and path are matched by Fastify, not inside the handler.** Use
+`app.post(PATH_REGISTER, handler)` with a schema, and read path parameters from
+`request.params`. A handler that branches on `request.method` is two handlers
+sharing a name.
+
+**A wrong method and an unmatched path answer in the protocol's own shape.**
+Fastify's `setNotFoundHandler` and a 405 for a known path with an unregistered
+method MUST both write a structured `ErrorResponse` carrying a registered error
+code, not the framework's default body.
+
 ### Logging
 
 - Structured JSON logging via pino with `component` and `component_type` base fields
@@ -716,7 +748,7 @@ describe("<component>", () => {
     expect(result.status).toBe("success");
   });
 });
-
+```
 
 ### Integration Tests
 
@@ -832,6 +864,10 @@ the npm ecosystem.
 ## Verification Checklist
 
 - [ ] Project uses Node.js 20+ with ES modules (`"type": "module"` in package.json) and TypeScript compiled to JavaScript for production
+- [ ] Every routed path is an exported `PATH_<OPERATION>` constant in one module; no path literal appears at a registration site, in a client, or in a test
+- [ ] Every route is declared in one `registerRoutes(app)` function; no module registers its own routes alongside its handlers
+- [ ] Routes are registered with Fastify's method-specific helpers and read parameters from `request.params`; no handler branches on `request.method`
+- [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` with a registered error code
 - [ ] ML-DSA-65 keys are generated and verified via `@noble/post-quantum` (FIPS 204); private keys stored with mode 0o600
 - [ ] SQLite is configured with `pragma journal_mode = WAL` and `pragma foreign_keys = ON`
 - [ ] Structured logging uses pino with JSON output in production; log entries include `component` and `component_type` base fields

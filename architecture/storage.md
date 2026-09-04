@@ -129,6 +129,22 @@ The storage interface is defined as a set of typed store operations
 per data domain. Each store section below declares its full API
 surface. Summary of stores:
 
+**Every operation name in this table is a declared name and is binding.** An
+implementation MUST provide the operation under exactly the name written here.
+It MUST NOT shorten it, drop the noun, add a qualifier, or substitute a
+synonym: `GetAgent` is not `Get`, `AppendObservation` is not `Add`, and
+`ClaimNamespace` is not `Claim`. See
+[`schemas/common`](../schemas/common.md#declared-names).
+
+The noun is part of the name deliberately. A store is not the only thing in the
+package that holds it, and an operation called `Get` tells a reader nothing
+about what it returns — but the reason it is *required* is narrower than
+readability: these names are what every calling file is written against, so an
+implementation that renames one makes every caller wrong, and a regeneration
+that renames one makes every caller stale. One measured orchestrator build
+regenerated ten compliant files because a plan had used `Get`, `Put` and `List`
+where this table says `GetAgent`, `PutAgent` and `ListAgents`.
+
 | Store | Owner | Operations |
 |-------|-------|------------|
 | Agent Registry | Orchestrator | PutAgent, GetAgent, DeleteAgent, ListAgents |
@@ -311,14 +327,35 @@ without changing the store interface.
 
 ### AgentEntry (internal)
 
-| Field | Type | Description |
-|-------|------|-------------|
-| Manifest | AgentManifest | Full manifest from registration |
-| AgentID | string | Assigned ID (32 hex chars) |
-| Token | string | Current auth token |
-| RegisteredAt | int64 | Unix epoch seconds |
-| LastSeen | int64 | Last health check or request timestamp |
-| Status | string | `online`, `offline`, `degraded` |
+```yaml
+types:
+  AgentEntry:
+    fields:
+      manifest:
+        name: Manifest
+        type: AgentManifest
+        description: "Full manifest from registration"
+      agent_id:
+        name: AgentID
+        type: string
+        description: "Assigned ID (32 hex chars)"
+      token:
+        name: Token
+        type: string
+        description: "Current auth token"
+      registered_at:
+        name: RegisteredAt
+        type: int64
+        description: "Unix epoch seconds"
+      last_seen:
+        name: LastSeen
+        type: int64
+        description: "Last health check or request timestamp"
+      status:
+        name: Status
+        type: string
+        description: "`online`, `offline`, `degraded`"
+```
 
 ---
 
@@ -348,15 +385,39 @@ without changing the store interface.
 
 ### ObsFilter
 
-| Field | Type | Description |
-|-------|------|-------------|
-| AgentName | string | Filter by agent (empty = all) |
-| Target | string | Filter by target path/URL (empty = all) |
-| StrategyID | string | Filter by strategy (empty = all) |
-| Since | int64 | Unix epoch — observations after this time |
-| Until | int64 | Unix epoch — observations before this time |
-| Cursor | string | Pagination cursor (opaque) |
-| Limit | int | Max results per page (default: 100) |
+```yaml
+types:
+  ObsFilter:
+    fields:
+      agent_name:
+        name: AgentName
+        type: string
+        description: "Filter by agent (empty = all)"
+      target:
+        name: Target
+        type: string
+        description: "Filter by target path/URL (empty = all)"
+      strategy_id:
+        name: StrategyID
+        type: string
+        description: "Filter by strategy (empty = all)"
+      since:
+        name: Since
+        type: int64
+        description: "Unix epoch — observations after this time"
+      until:
+        name: Until
+        type: int64
+        description: "Unix epoch — observations before this time"
+      cursor:
+        name: Cursor
+        type: string
+        description: "Pagination cursor (opaque)"
+      limit:
+        name: Limit
+        type: int
+        description: "Max results per page (default: 100)"
+```
 
 ---
 
@@ -374,14 +435,35 @@ without changing the store interface.
 
 ### RecFilter
 
-| Field | Type | Description |
-|-------|------|-------------|
-| Status | string | `pending`, `accepted`, `rejected`, `applied` (empty = all) |
-| AgentName | string | Filter by recommending agent |
-| StrategyID | string | Filter by strategy |
-| Priority | string | Filter by priority level |
-| Cursor | string | Pagination cursor |
-| Limit | int | Max results (default: 100) |
+```yaml
+types:
+  RecFilter:
+    fields:
+      status:
+        name: Status
+        type: string
+        description: "`pending`, `accepted`, `rejected`, `applied` (empty = all)"
+      agent_name:
+        name: AgentName
+        type: string
+        description: "Filter by recommending agent"
+      strategy_id:
+        name: StrategyID
+        type: string
+        description: "Filter by strategy"
+      priority:
+        name: Priority
+        type: string
+        description: "Filter by priority level"
+      cursor:
+        name: Cursor
+        type: string
+        description: "Pagination cursor"
+      limit:
+        name: Limit
+        type: int
+        description: "Max results (default: 100)"
+```
 
 ---
 
@@ -409,12 +491,27 @@ without changing the store interface.
 
 ### MetricsUpdate
 
-| Field | Type | Description |
-|-------|------|-------------|
-| AddObservations | int | Increment observation count |
-| AddFindings | int | Increment finding count |
-| AddRecommendations | int | Increment recommendation count |
-| FeedbackSignal | string | `positive`, `negative`, `neutral` (for rate recalculation) |
+```yaml
+types:
+  MetricsUpdate:
+    fields:
+      add_observations:
+        name: AddObservations
+        type: int
+        description: "Increment observation count"
+      add_findings:
+        name: AddFindings
+        type: int
+        description: "Increment finding count"
+      add_recommendations:
+        name: AddRecommendations
+        type: int
+        description: "Increment recommendation count"
+      feedback_signal:
+        name: FeedbackSignal
+        type: string
+        description: "`positive`, `negative`, `neutral` (for rate recalculation)"
+```
 
 ---
 
@@ -458,14 +555,35 @@ without changing the store interface.
 
 ### TaskFilter
 
-| Field | Type | Description |
-|-------|------|-------------|
-| Status | string | `queued`, `dispatched`, `running`, `completed`, `failed`, `cancelled` (empty = all) |
-| AgentName | string | Filter by assigned agent |
-| Priority | string | `critical`, `high`, `normal`, `low` (empty = all) |
-| Since | int64 | Tasks created after this time |
-| Cursor | string | Pagination cursor |
-| Limit | int | Max results (default: 100) |
+```yaml
+types:
+  TaskFilter:
+    fields:
+      status:
+        name: Status
+        type: string
+        description: "`queued`, `dispatched`, `running`, `completed`, `failed`, `cancelled` (empty = all)"
+      agent_name:
+        name: AgentName
+        type: string
+        description: "Filter by assigned agent"
+      priority:
+        name: Priority
+        type: string
+        description: "`critical`, `high`, `normal`, `low` (empty = all)"
+      since:
+        name: Since
+        type: int64
+        description: "Tasks created after this time"
+      cursor:
+        name: Cursor
+        type: string
+        description: "Pagination cursor"
+      limit:
+        name: Limit
+        type: int
+        description: "Max results (default: 100)"
+```
 
 ---
 
@@ -502,13 +620,31 @@ the preceding entry, forming a tamper-evident append-only log:
 
 ### AuditFilter
 
-| Field | Type | Description |
-|-------|------|-------------|
-| Actor | string | Filter by actor (empty = all) |
-| Action | string | Filter by action type (empty = all) |
-| Since | int64 | After this time |
-| Cursor | string | Pagination cursor |
-| Limit | int | Max results (default: 100) |
+```yaml
+types:
+  AuditFilter:
+    fields:
+      actor:
+        name: Actor
+        type: string
+        description: "Filter by actor (empty = all)"
+      action:
+        name: Action
+        type: string
+        description: "Filter by action type (empty = all)"
+      since:
+        name: Since
+        type: int64
+        description: "After this time"
+      cursor:
+        name: Cursor
+        type: string
+        description: "Pagination cursor"
+      limit:
+        name: Limit
+        type: int
+        description: "Max results (default: 100)"
+```
 
 ---
 
@@ -582,39 +718,111 @@ serve.
 
 ### UserRecord
 
-| Field | Type | Description |
-|-------|------|-------------|
-| UserID | string | Unique user identifier (32 hex chars) |
-| Email | string | User email address (unique) |
-| DisplayName | string | Human-readable name |
-| Roles | []string | Assigned role names |
-| Groups | []string | Group memberships |
-| EmailVerified | bool | Whether email has been verified |
-| MFAEnabled | bool | Whether MFA is configured |
-| Status | string | `active`, `inactive`, `locked` |
-| CreatedAt | int64 | Unix epoch seconds |
-| LastLoginAt | int64 | Unix epoch seconds (0 if never) |
+```yaml
+types:
+  UserRecord:
+    fields:
+      user_id:
+        name: UserID
+        type: string
+        description: "Unique user identifier (32 hex chars)"
+      email:
+        name: Email
+        type: string
+        description: "User email address (unique)"
+      display_name:
+        name: DisplayName
+        type: string
+        description: "Human-readable name"
+      roles:
+        name: Roles
+        type: "[]string"
+        description: "Assigned role names"
+      groups:
+        name: Groups
+        type: "[]string"
+        description: "Group memberships"
+      email_verified:
+        name: EmailVerified
+        type: bool
+        description: "Whether email has been verified"
+      mfa_enabled:
+        name: MFAEnabled
+        type: bool
+        description: "Whether MFA is configured"
+      status:
+        name: Status
+        type: string
+        description: "`active`, `inactive`, `locked`"
+      created_at:
+        name: CreatedAt
+        type: int64
+        description: "Unix epoch seconds"
+      last_login_at:
+        name: LastLoginAt
+        type: int64
+        description: "Unix epoch seconds (0 if never)"
+```
 
 ### UserUpdate
 
-| Field | Type | Description |
-|-------|------|-------------|
-| DisplayName | *string | New display name (nil = no change) |
-| Roles | *[]string | Replace roles (nil = no change) |
-| Groups | *[]string | Replace groups (nil = no change) |
-| EmailVerified | *bool | Set verification status (nil = no change) |
-| MFAEnabled | *bool | Set MFA status (nil = no change) |
-| Status | *string | Change status (nil = no change) |
+```yaml
+types:
+  UserUpdate:
+    fields:
+      display_name:
+        name: DisplayName
+        type: "*string"
+        description: "New display name (nil = no change)"
+      roles:
+        name: Roles
+        type: "*[]string"
+        description: "Replace roles (nil = no change)"
+      groups:
+        name: Groups
+        type: "*[]string"
+        description: "Replace groups (nil = no change)"
+      email_verified:
+        name: EmailVerified
+        type: "*bool"
+        description: "Set verification status (nil = no change)"
+      mfa_enabled:
+        name: MFAEnabled
+        type: "*bool"
+        description: "Set MFA status (nil = no change)"
+      status:
+        name: Status
+        type: "*string"
+        description: "Change status (nil = no change)"
+```
 
 ### UserFilter
 
-| Field | Type | Description |
-|-------|------|-------------|
-| Status | string | `active`, `inactive`, `locked` (empty = all) |
-| Role | string | Filter by role membership |
-| Group | string | Filter by group membership |
-| Cursor | string | Pagination cursor |
-| Limit | int | Max results (default: 100) |
+```yaml
+types:
+  UserFilter:
+    fields:
+      status:
+        name: Status
+        type: string
+        description: "`active`, `inactive`, `locked` (empty = all)"
+      role:
+        name: Role
+        type: string
+        description: "Filter by role membership"
+      group:
+        name: Group
+        type: string
+        description: "Filter by group membership"
+      cursor:
+        name: Cursor
+        type: string
+        description: "Pagination cursor"
+      limit:
+        name: Limit
+        type: int
+        description: "Max results (default: 100)"
+```
 
 **Credential storage:** Passwords MUST be hashed with Argon2id
 (recommended) or bcrypt (minimum cost 12). Raw passwords are NEVER
@@ -639,23 +847,59 @@ comparison against the stored hash.
 
 ### SessionRecord
 
-| Field | Type | Description |
-|-------|------|-------------|
-| SessionID | string | Unique session identifier (32 hex chars) |
-| UserID | string | Owning user |
-| ClientFingerprint | string | Client binding hash (see client.md) |
-| Roles | []string | Cached roles at session creation |
-| CreatedAt | int64 | Unix epoch seconds |
-| ExpiresAt | int64 | Unix epoch seconds |
-| LastActivityAt | int64 | Unix epoch seconds — updated on each request |
-| IPAddress | string | Client IP at session creation |
+```yaml
+types:
+  SessionRecord:
+    fields:
+      session_id:
+        name: SessionID
+        type: string
+        description: "Unique session identifier (32 hex chars)"
+      user_id:
+        name: UserID
+        type: string
+        description: "Owning user"
+      client_fingerprint:
+        name: ClientFingerprint
+        type: string
+        description: "Client binding hash (see client.md)"
+      roles:
+        name: Roles
+        type: "[]string"
+        description: "Cached roles at session creation"
+      created_at:
+        name: CreatedAt
+        type: int64
+        description: "Unix epoch seconds"
+      expires_at:
+        name: ExpiresAt
+        type: int64
+        description: "Unix epoch seconds"
+      last_activity_at:
+        name: LastActivityAt
+        type: int64
+        description: "Unix epoch seconds — updated on each request"
+      ip_address:
+        name: IPAddress
+        type: string
+        description: "Client IP at session creation"
+```
 
 ### SessionUpdate
 
-| Field | Type | Description |
-|-------|------|-------------|
-| LastActivityAt | *int64 | Update last activity timestamp |
-| ExpiresAt | *int64 | Extend or shorten session expiry |
+```yaml
+types:
+  SessionUpdate:
+    fields:
+      last_activity_at:
+        name: LastActivityAt
+        type: "*int64"
+        description: "Update last activity timestamp"
+      expires_at:
+        name: ExpiresAt
+        type: "*int64"
+        description: "Extend or shorten session expiry"
+```
 
 ---
 
@@ -690,6 +934,7 @@ comparison against the stored hash.
 ## Verification Checklist
 
 - [ ] A component implements exactly the stores its own blueprint owns, and none belonging to another component
+- [ ] Every store operation exists under exactly the name in the store summary table — not shortened, requalified or renamed
 - [ ] Stores record; they do not enforce request-path policy. `ClaimNamespace` accepts `system` from the orchestrator, and `protocol/spec`'s registration flow is what refuses it from an agent
 - [ ] A freshly started orchestrator owns the `system` namespace and reports `namespaces: ok`
 - [ ] All stores survive process restart

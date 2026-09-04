@@ -317,27 +317,63 @@ See types defined in:
 
 ### WebhookAgentConfig
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| inbound | InboundConfig | yes | Inbound webhook settings |
-| outbound | OutboundConfig | yes | Outbound webhook settings |
+```yaml
+types:
+  WebhookAgentConfig:
+    fields:
+      inbound:
+        type: InboundConfig
+        required: true
+        description: "Inbound webhook settings"
+      outbound:
+        type: OutboundConfig
+        required: true
+        description: "Outbound webhook settings"
+```
 
 ### InboundConfig
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| max_payload_size | int | yes | Max inbound body size in bytes |
-| log_retention | int | yes | Log retention in seconds |
+```yaml
+types:
+  InboundConfig:
+    fields:
+      max_payload_size:
+        type: int
+        required: true
+        description: "Max inbound body size in bytes"
+      log_retention:
+        type: int
+        required: true
+        description: "Log retention in seconds"
+```
 
 ### OutboundConfig
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| signing_algorithm | string | yes | HMAC algorithm for signing |
-| max_retries | int | yes | Max delivery attempts |
-| retry_backoff | string | yes | Backoff strategy |
-| timeout | int | yes | Per-delivery timeout in seconds |
-| max_payload_size | int | yes | Max outbound payload in bytes |
+```yaml
+types:
+  OutboundConfig:
+    fields:
+      signing_algorithm:
+        type: string
+        required: true
+        description: "HMAC algorithm for signing"
+      max_retries:
+        type: int
+        required: true
+        description: "Max delivery attempts"
+      retry_backoff:
+        type: string
+        required: true
+        description: "Backoff strategy"
+      timeout:
+        type: int
+        required: true
+        description: "Per-delivery timeout in seconds"
+      max_payload_size:
+        type: int
+        required: true
+        description: "Max outbound payload in bytes"
+```
 
 ---
 
