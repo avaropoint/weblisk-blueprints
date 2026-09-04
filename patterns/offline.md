@@ -368,51 +368,147 @@ contracts:
 The top-level container for every sync request and response.
 Both push and pull use this structure.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| envelope_id | string | yes | Unique ID for this envelope (UUID v7) |
-| direction | string | yes | `push` or `pull` |
-| client_id | string | yes | Originating client identifier |
-| batch | DeltaBatch | yes | The delta changes |
-| cursor | SyncCursor | yes | Position marker (before for push, after for pull) |
-| conflict_strategy | ConflictStrategy | yes | Declared resolution strategy |
-| compression | string | no | Wire encoding (`none`, `gzip`, `zstd`) |
-| priority | string | no | Transfer hint (`low`, `normal`, `high`) |
-| timestamp | int64 | yes | Envelope creation time (Unix ms) |
-| revocations | []RevocationDirective | no | Revocation directives included in pull responses |
-| metadata | object | no | Arbitrary key-value pairs for tracing |
+```yaml
+types:
+  SyncEnvelope:
+    fields:
+      envelope_id:
+        type: string
+        required: true
+        description: "Unique ID for this envelope (UUID v7)"
+      direction:
+        type: string
+        required: true
+        description: "`push` or `pull`"
+      client_id:
+        type: string
+        required: true
+        description: "Originating client identifier"
+      batch:
+        type: DeltaBatch
+        required: true
+        description: "The delta changes"
+      cursor:
+        type: SyncCursor
+        required: true
+        description: "Position marker (before for push, after for pull)"
+      conflict_strategy:
+        type: ConflictStrategy
+        required: true
+        description: "Declared resolution strategy"
+      compression:
+        type: string
+        required: false
+        description: "Wire encoding (`none`, `gzip`, `zstd`)"
+      priority:
+        type: string
+        required: false
+        description: "Transfer hint (`low`, `normal`, `high`)"
+      timestamp:
+        type: int64
+        required: true
+        description: "Envelope creation time (Unix ms)"
+      revocations:
+        type: "[]RevocationDirective"
+        required: false
+        description: "Revocation directives included in pull responses"
+      metadata:
+        type: object
+        required: false
+        description: "Arbitrary key-value pairs for tracing"
+```
 
 ### DeltaBatch
 
 An ordered list of change records within a single envelope.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| batch_id | string | yes | Unique batch ID for idempotency checks |
-| records | []ChangeRecord | yes | Ordered change records |
-| record_count | int | yes | Number of records (redundant for validation) |
-| total_bytes | int | no | Uncompressed payload size in bytes |
-| page | int | no | Page number when batch is paginated |
-| has_more | boolean | no | Whether additional pages remain |
+```yaml
+types:
+  DeltaBatch:
+    fields:
+      batch_id:
+        type: string
+        required: true
+        description: "Unique batch ID for idempotency checks"
+      records:
+        type: "[]ChangeRecord"
+        required: true
+        description: "Ordered change records"
+      record_count:
+        type: int
+        required: true
+        description: "Number of records (redundant for validation)"
+      total_bytes:
+        type: int
+        required: false
+        description: "Uncompressed payload size in bytes"
+      page:
+        type: int
+        required: false
+        description: "Page number when batch is paginated"
+      has_more:
+        type: boolean
+        required: false
+        description: "Whether additional pages remain"
+```
 
 ### ChangeRecord
 
 A single field-level change. Represents one mutation to one entity.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| record_id | string | yes | Unique change record ID |
-| entity | string | yes | Entity/table name |
-| entity_id | string | yes | Primary key of the affected record |
-| field | string | no | Specific field changed (null for whole-record ops) |
-| old_value | any | no | Previous value (null for inserts) |
-| new_value | any | no | New value (null for deletes) |
-| operation | string | yes | `insert`, `update`, `delete` |
-| version | string | yes | Version vector or sequence number |
-| timestamp | int64 | yes | When the change was made (Unix ms) |
-| source | string | yes | `client` or `server` |
-| scope | string | no | Scope classification of this record |
-| checksum | string | no | SHA-256 of the serialised record for integrity |
+```yaml
+types:
+  ChangeRecord:
+    fields:
+      record_id:
+        type: string
+        required: true
+        description: "Unique change record ID"
+      entity:
+        type: string
+        required: true
+        description: "Entity/table name"
+      entity_id:
+        type: string
+        required: true
+        description: "Primary key of the affected record"
+      field:
+        type: string
+        required: false
+        description: "Specific field changed (null for whole-record ops)"
+      old_value:
+        type: any
+        required: false
+        description: "Previous value (null for inserts)"
+      new_value:
+        type: any
+        required: false
+        description: "New value (null for deletes)"
+      operation:
+        type: string
+        required: true
+        description: "`insert`, `update`, `delete`"
+      version:
+        type: string
+        required: true
+        description: "Version vector or sequence number"
+      timestamp:
+        type: int64
+        required: true
+        description: "When the change was made (Unix ms)"
+      source:
+        type: string
+        required: true
+        description: "`client` or `server`"
+      scope:
+        type: string
+        required: false
+        description: "Scope classification of this record"
+      checksum:
+        type: string
+        required: false
+        description: "SHA-256 of the serialised record for integrity"
+```
 
 ### ConflictStrategy
 
@@ -430,30 +526,78 @@ Enumeration of supported conflict resolution policies.
 
 The recorded outcome of a conflict resolution.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| conflict_id | string | yes | Unique conflict ID |
-| entity | string | yes | Entity/table name |
-| entity_id | string | yes | Record primary key |
-| strategy | ConflictStrategy | yes | Strategy that was applied |
-| winner | string | yes | `client`, `server`, or `merged` |
-| client_version | object | yes | Client's version of the record |
-| server_version | object | yes | Server's version of the record |
-| merged_result | object | no | Merged output (when strategy is `merge`) |
-| resolved_by | string | yes | `auto` or operator ID for manual resolution |
-| resolved_at | int64 | yes | Resolution timestamp (Unix ms) |
+```yaml
+types:
+  ConflictResolution:
+    fields:
+      conflict_id:
+        type: string
+        required: true
+        description: "Unique conflict ID"
+      entity:
+        type: string
+        required: true
+        description: "Entity/table name"
+      entity_id:
+        type: string
+        required: true
+        description: "Record primary key"
+      strategy:
+        type: ConflictStrategy
+        required: true
+        description: "Strategy that was applied"
+      winner:
+        type: string
+        required: true
+        description: "`client`, `server`, or `merged`"
+      client_version:
+        type: object
+        required: true
+        description: "Client's version of the record"
+      server_version:
+        type: object
+        required: true
+        description: "Server's version of the record"
+      merged_result:
+        type: object
+        required: false
+        description: "Merged output (when strategy is `merge`)"
+      resolved_by:
+        type: string
+        required: true
+        description: "`auto` or operator ID for manual resolution"
+      resolved_at:
+        type: int64
+        required: true
+        description: "Resolution timestamp (Unix ms)"
+```
 
 ### SyncCursor
 
 Opaque position marker for incremental sync. Clients MUST treat
 cursors as opaque strings — internal structure is implementation-defined.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| value | string | yes | Opaque cursor value |
-| type | string | yes | `sequence` or `vector-clock` |
-| issued_at | int64 | yes | When the cursor was issued |
-| expires_at | int64 | no | Cursor expiry (after which a full re-sync is required) |
+```yaml
+types:
+  SyncCursor:
+    fields:
+      value:
+        type: string
+        required: true
+        description: "Opaque cursor value"
+      type:
+        type: string
+        required: true
+        description: "`sequence` or `vector-clock`"
+      issued_at:
+        type: int64
+        required: true
+        description: "When the cursor was issued"
+      expires_at:
+        type: int64
+        required: false
+        description: "Cursor expiry (after which a full re-sync is required)"
+```
 
 ### SyncStatus
 
@@ -472,34 +616,94 @@ Enumeration of sync operation lifecycle states.
 
 A queued change on the client awaiting connectivity.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| queue_id | string | yes | Unique queue entry ID |
-| change | ChangeRecord | yes | The queued change record |
-| queued_at | int64 | yes | When the entry was queued (Unix ms) |
-| priority | string | no | `low`, `normal`, `high` — affects flush order |
-| retry_count | int | no | Number of failed push attempts for this entry |
-| last_error | string | no | Last error message if a push attempt failed |
-| status | string | yes | `pending`, `flushing`, `flushed`, `failed` |
+```yaml
+types:
+  OfflineQueueEntry:
+    fields:
+      queue_id:
+        type: string
+        required: true
+        description: "Unique queue entry ID"
+      change:
+        type: ChangeRecord
+        required: true
+        description: "The queued change record"
+      queued_at:
+        type: int64
+        required: true
+        description: "When the entry was queued (Unix ms)"
+      priority:
+        type: string
+        required: false
+        description: "`low`, `normal`, `high` — affects flush order"
+      retry_count:
+        type: int
+        required: false
+        description: "Number of failed push attempts for this entry"
+      last_error:
+        type: string
+        required: false
+        description: "Last error message if a push attempt failed"
+      status:
+        type: string
+        required: true
+        description: "`pending`, `flushing`, `flushed`, `failed`"
+```
 
 ### OfflineDataRecord
 
 A record persisted on the client device. Wraps the application data
 with scope, encryption, and TTL metadata that the client MUST enforce.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| record_id | string | yes | Unique offline record ID |
-| entity | string | yes | Entity/table name |
-| entity_id | string | yes | Primary key of the source record |
-| data | object | yes | The persisted application data (encrypted if required) |
-| scope | string | yes | Scope classification at time of storage |
-| encryption | string | yes | Encryption applied: `none`, `aes-256-gcm`, `hardware-backed` |
-| stored_at | int64 | yes | When the record was stored on the device (Unix ms) |
-| ttl | int | yes | Maximum retention in seconds (from stored_at) |
-| expires_at | int64 | yes | Absolute expiry timestamp (stored_at + ttl, Unix ms) |
-| sync_version | string | yes | Version at which this record was synced |
-| revoked | bool | yes | Whether a revocation directive has been received for this record |
+```yaml
+types:
+  OfflineDataRecord:
+    fields:
+      record_id:
+        type: string
+        required: true
+        description: "Unique offline record ID"
+      entity:
+        type: string
+        required: true
+        description: "Entity/table name"
+      entity_id:
+        type: string
+        required: true
+        description: "Primary key of the source record"
+      data:
+        type: object
+        required: true
+        description: "The persisted application data (encrypted if required)"
+      scope:
+        type: string
+        required: true
+        description: "Scope classification at time of storage"
+      encryption:
+        type: string
+        required: true
+        description: "Encryption applied: `none`, `aes-256-gcm`, `hardware-backed`"
+      stored_at:
+        type: int64
+        required: true
+        description: "When the record was stored on the device (Unix ms)"
+      ttl:
+        type: int
+        required: true
+        description: "Maximum retention in seconds (from stored_at)"
+      expires_at:
+        type: int64
+        required: true
+        description: "Absolute expiry timestamp (stored_at + ttl, Unix ms)"
+      sync_version:
+        type: string
+        required: true
+        description: "Version at which this record was synced"
+      revoked:
+        type: bool
+        required: true
+        description: "Whether a revocation directive has been received for this record"
+```
 
 ### RevocationDirective
 
@@ -507,18 +711,51 @@ A server-issued instruction to purge or reclassify data held in
 offline stores. Included in pull responses when consent, scope, or
 erasure state changes server-side.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| directive_id | string | yes | Unique directive ID |
-| type | string | yes | `purge` (delete), `reclassify` (change scope/encryption), `re-encrypt` (upgrade encryption) |
-| entity | string | no | Target entity (null = all entities for this subject) |
-| entity_id | string | no | Target record (null = all records for this entity) |
-| subject_id | string | no | Privacy subject (for consent-driven revocations) |
-| reason | string | yes | `consent-withdrawn`, `scope-upgraded`, `erasure-request`, `policy-change` |
-| new_scope | string | no | New scope level (for `reclassify` type) |
-| new_encryption | string | no | New encryption requirement (for `re-encrypt` type) |
-| deadline | int64 | yes | Unix timestamp by which client MUST complete the directive |
-| issued_at | int64 | yes | When the directive was issued |
+```yaml
+types:
+  RevocationDirective:
+    fields:
+      directive_id:
+        type: string
+        required: true
+        description: "Unique directive ID"
+      type:
+        type: string
+        required: true
+        description: "`purge` (delete), `reclassify` (change scope/encryption), `re-encrypt` (upgrade encryption)"
+      entity:
+        type: string
+        required: false
+        description: "Target entity (null = all entities for this subject)"
+      entity_id:
+        type: string
+        required: false
+        description: "Target record (null = all records for this entity)"
+      subject_id:
+        type: string
+        required: false
+        description: "Privacy subject (for consent-driven revocations)"
+      reason:
+        type: string
+        required: true
+        description: "`consent-withdrawn`, `scope-upgraded`, `erasure-request`, `policy-change`"
+      new_scope:
+        type: string
+        required: false
+        description: "New scope level (for `reclassify` type)"
+      new_encryption:
+        type: string
+        required: false
+        description: "New encryption requirement (for `re-encrypt` type)"
+      deadline:
+        type: int64
+        required: true
+        description: "Unix timestamp by which client MUST complete the directive"
+      issued_at:
+        type: int64
+        required: true
+        description: "When the directive was issued"
+```
 
 ---
 

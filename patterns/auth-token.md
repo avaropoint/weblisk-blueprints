@@ -309,37 +309,103 @@ Insufficient scopes → 403 Forbidden (not 401).
 
 ### TokenPair
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| access_token | string | yes | Signed JWT |
-| refresh_token | string | yes | Opaque refresh token |
-| token_type | string | yes | Always "Bearer" |
-| expires_in | int | yes | Access token lifetime in seconds |
-| scopes | []string | yes | Granted scopes |
+```yaml
+types:
+  TokenPair:
+    fields:
+      access_token:
+        type: string
+        required: true
+        description: "Signed JWT"
+      refresh_token:
+        type: string
+        required: true
+        description: "Opaque refresh token"
+      token_type:
+        type: string
+        required: true
+        description: "Always \"Bearer\""
+      expires_in:
+        type: int
+        required: true
+        description: "Access token lifetime in seconds"
+      scopes:
+        type: "[]string"
+        required: true
+        description: "Granted scopes"
+```
 
 ### RefreshToken (server-side)
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| token_hash | string | yes | SHA-256 hash of the token |
-| user_id | string | yes | Associated user ID |
-| scopes | []string | yes | Granted scopes |
-| created_at | int64 | yes | Creation timestamp |
-| expires_at | int64 | yes | Expiration timestamp |
-| revoked | boolean | yes | Whether token has been revoked |
+```yaml
+types:
+  RefreshToken:
+    fields:
+      token_hash:
+        type: string
+        required: true
+        description: "SHA-256 hash of the token"
+      user_id:
+        type: string
+        required: true
+        description: "Associated user ID"
+      scopes:
+        type: "[]string"
+        required: true
+        description: "Granted scopes"
+      created_at:
+        type: int64
+        required: true
+        description: "Creation timestamp"
+      expires_at:
+        type: int64
+        required: true
+        description: "Expiration timestamp"
+      revoked:
+        type: boolean
+        required: true
+        description: "Whether token has been revoked"
+```
 
 ### APIKey (server-side)
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| key_hash | string | yes | SHA-256 hash of the full key |
-| key_prefix | string | yes | First 8 chars for display |
-| name | string | yes | Human-readable label |
-| user_id | string | yes | Owner user ID |
-| scopes | []string | yes | Granted scopes |
-| created_at | int64 | yes | Creation timestamp |
-| expires_at | int64 | yes | Expiration timestamp |
-| revoked | boolean | yes | Whether key has been revoked |
+```yaml
+types:
+  APIKey:
+    fields:
+      key_hash:
+        type: string
+        required: true
+        description: "SHA-256 hash of the full key"
+      key_prefix:
+        type: string
+        required: true
+        description: "First 8 chars for display"
+      name:
+        type: string
+        required: true
+        description: "Human-readable label"
+      user_id:
+        type: string
+        required: true
+        description: "Owner user ID"
+      scopes:
+        type: "[]string"
+        required: true
+        description: "Granted scopes"
+      created_at:
+        type: int64
+        required: true
+        description: "Creation timestamp"
+      expires_at:
+        type: int64
+        required: true
+        description: "Expiration timestamp"
+      revoked:
+        type: boolean
+        required: true
+        description: "Whether key has been revoked"
+```
 
 ## Implementation Notes
 

@@ -402,6 +402,87 @@ channel-based semaphore and `WaitGroup` dispatch patterns.
 - Include `component`, `trace_id`, and `timestamp` in all log entries
 - Use `log/slog` (Go 1.21+) or `fmt.Fprintf(os.Stderr, ...)` for minimal logging
 
+### The HTTP Surface
+
+An architecture blueprint declares endpoints as protocol facts — `POST
+/v1/register`, `GET /v1/health`. This is how they become routes, and it is
+stated so that two builds of the same blueprints produce the same arrangement.
+
+**Every symbol is spelled from the endpoint's `Operation`.** The architecture
+blueprint's `## Endpoints` table declares the operation — `Register`, `Health`,
+`AdminOverview` — and this is how that one name becomes Go:
+
+| Symbol | Spelling | Example |
+|---|---|---|
+| Path constant | `Path<Operation>`, exported, in `internal/protocol` | `PathRegister` |
+| Handler | `handle<Operation>`, unexported method on the server | `handleRegister` |
+| Request type | `<Operation>Request` | `RegisterRequest` |
+| Response type | `<Operation>Response` | `RegisterResponse` |
+
+No other spelling is permitted, and no symbol may be named from the path or the
+purpose. This table is the whole of the mapping so that two generations of the
+same blueprint produce the same symbols; see
+[`schemas/common`](../schemas/common.md#declared-names).
+
+A path literal MUST NOT appear at a registration site, in a client, or in a
+test: every reader of a path reaches the same constant, so a path can be
+corrected in one place and a typo cannot diverge two components silently.
+
+**One route table per component, in one function.** A component declares its
+routes as data — pattern, methods, handler — and a single `Routes()` function
+turns that table into a `*http.ServeMux`. Registration MUST NOT be scattered
+across the files that define the handlers. The table is the component's HTTP
+surface written down, so what a component serves can be read without executing
+it, and adding an endpoint changes one list rather than one file per endpoint.
+
+**Method and path are matched by the mux, not inside the handler.** Go 1.22
+patterns carry the method — `mux.HandleFunc("POST "+protocol.PathRegister, h)`
+— and path parameters are read with `r.PathValue("name")`. A handler that
+switches on `r.Method` to decide what it is doing is two handlers sharing a
+name.
+
+**A wrong method and an unmatched path are both answered by the root handler.**
+`mux.HandleFunc("/", ...)` is registered once, and it decides between `405` with
+an `Allow` header and `404` by matching the request path against the route
+table. Both MUST write the structured `ErrorResponse` with a registered error
+code: `net/http`'s defaults answer plain text, and a client that receives
+`404 page not found` where the protocol promises JSON has to special-case the
+framework we happen to use.
+
+Because the root handler does the matching, it needs a segment comparison that
+understands the table's wildcards — `/v1/admin/operators/{name}` matches
+`/v1/admin/operators/alice` — and it MUST collect the methods the table declares
+for a matched pattern to fill the `Allow` header.
+
+> **A method-less pattern MUST NOT be registered.** Registering the bare path
+> alongside `METHOD /path` to catch a wrong method is the obvious arrangement
+> and it does not start:
+>
+> ```
+> panic: pattern "/v1/admin/operators/register" conflicts with pattern
+> "GET /v1/admin/operators/{name}": /v1/admin/operators/register matches more
+> methods than GET /v1/admin/operators/{name}, but has a more specific path
+> pattern
+> ```
+>
+> `net/http`'s precedence rule is that one pattern must be strictly more
+> specific than the other. A method-less literal is more specific in its PATH
+> and less specific in its METHODS than a wildcard sibling under the same
+> prefix, so neither dominates — and the conflict is a **startup panic**, not a
+> registration error. A generated hub built exactly this way compiled, passed
+> conformance, reported "started", and died before it bound the port.
+>
+> This is precisely what a platform blueprint is for: the requirement ("a wrong
+> method answers 405") is the protocol's, and the arrangement that satisfies it
+> is this language's business.
+
+The **spelling** of a pattern is deliberately unconstrained. Constants,
+concatenation and a derived prefix are all correct Go, and a platform blueprint
+exists to make the artifact good — not to make it convenient for a tool to
+read. Tooling that inspects the surface is required to resolve these; see
+[`architecture/testing`](../architecture/testing.md), "A check that cannot read
+the artifact MUST say so".
+
 See [Go-Specific Requirements](#go-specific-requirements) for full
 conventions including package organization and configuration.
 
@@ -648,6 +729,12 @@ component. See `schemas/common.md` for what a group heading means.
 - [ ] When `WL_DEV=1`, storage falls back to in-memory maps and prints warning: `"[dev] using in-memory storage — data will not survive restart"`
 - [ ] Functions return errors — HTTP handlers write error JSON responses and do not panic; registration failures are fatal
 - [ ] Configuration loads from environment variables (`WL_*`), command-line flags (`--port`, `--orch`), and `.env` file from working directory
+- [ ] Every routed path is an exported `Path<Operation>` constant in `internal/protocol`; no path literal appears at a registration site, in a client, or in a test
+- [ ] Each component declares its routes as one table and registers them in one `Routes()` function; no registration happens in the file that defines a handler
+- [ ] Routes are registered with Go 1.22 method-and-pattern syntax, and path parameters are read with `r.PathValue`; no handler switches on `r.Method` to choose its behaviour
+- [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` carrying a registered error code
+- [ ] 405 and 404 are decided by the single `"/"` handler matching the route table; no method-less pattern is registered anywhere — `net/http` panics at startup when one sits beside a wildcard sibling
+- [ ] The process binds its port and answers `GET /v1/health` when started with no terminal attached
 
 ### Domain Controllers
 - [ ] Domain controllers use `sync.WaitGroup` + goroutines for parallel phase execution and a per-agent semaphore respecting `max_concurrent`

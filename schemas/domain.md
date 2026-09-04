@@ -16,7 +16,7 @@ sections.
 
 ## Frontmatter
 
-```yaml
+```markdown
 <!-- blueprint
 type: domain
 kind: domain
@@ -186,15 +186,39 @@ aggregation:
 
 #### Phase Specification
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | yes | Phase identifier (unique within workflow) |
-| `agent` | string | yes | Agent to dispatch to (must be in Required Agents) |
-| `action` | string | yes | Action to invoke on the agent |
-| `input` | object | yes | Input fields — may reference `$task.payload`, `$<phase>.output`, or literals |
-| `output` | string | yes | Variable name for phase results |
-| `on_error` | enum | yes | `fail` (abort workflow), `skip` (continue), `retry` (with backoff) |
-| `timeout` | integer | no | Phase timeout in seconds (default: agent's default timeout) |
+```yaml
+types:
+  Workflows:
+    fields:
+      name:
+        type: string
+        required: true
+        description: "Phase identifier (unique within workflow)"
+      agent:
+        type: string
+        required: true
+        description: "Agent to dispatch to (must be in Required Agents)"
+      action:
+        type: string
+        required: true
+        description: "Action to invoke on the agent"
+      input:
+        type: object
+        required: true
+        description: "Input fields — may reference `$task.payload`, `$<phase>.output`, or literals"
+      output:
+        type: string
+        required: true
+        description: "Variable name for phase results"
+      on_error:
+        type: enum
+        required: true
+        description: "`fail` (abort workflow), `skip` (continue), `retry` (with backoff)"
+      timeout:
+        type: integer
+        required: false
+        description: "Phase timeout in seconds (default: agent's default timeout)"
+```
 
 #### Reference Expressions
 

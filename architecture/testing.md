@@ -642,3 +642,76 @@ weblisk test conformance --verbose
 - [ ] Mock agent can respond to execute and message
 - [ ] Test keys are deterministic and reproducible
 - [ ] Tests run against HTTP endpoints only (black-box)
+
+### A check that cannot read the artifact MUST say so
+
+A conformance check reports on generated code it did not write. When it cannot
+parse what it is looking at, the honest result is "I could not tell", and it
+MUST NOT be reported as an absence in the artifact.
+
+The route check accepted only a string literal as a mux pattern. Real generated
+code registers from a table of named constants:
+
+```go
+{pattern: protocol.PathAdminOverview, methods: ...},
+{pattern: agents + "/{name}", methods: ...},
+```
+
+It found no literals, recorded no routes, and refuted twenty-one correct
+assertions with `no handler is registered for: GET /v1/health` — about a hub
+that registers `/v1/health` correctly. Resolving constants, local aliases and
+concatenation took the same artifact from **0 routes found to 17**, the complete
+surface.
+
+So a structural check MUST:
+
+- Resolve the expressions real code is written in — named constants, qualified
+  constants, local aliases and concatenation — not only literals.
+- Record what it could not resolve, and report that as a limit of the check
+  rather than as a finding about the artifact.
+- Never invent a route, symbol or field from an expression it could not
+  evaluate. A partial resolution is not an answer.
+
+This is `patterns/scope`'s rule about confident zeroes, applied to tooling: a
+check that reports absence when it means illegibility teaches an operator to
+ignore its output, which costs more than the check was worth.
+
+### A result that is not acted on is not a check
+
+Conformance ran the generated component, found that it panicked at startup,
+printed the stack trace, attempted two rounds of repair, reported
+`the component does not run` — and the build **exited 0**.
+
+The results were printed and discarded. Everything reading the exit status — a
+script, a CI job, a control plane, an operator — was told a hub had been built,
+and the hub did not start.
+
+So a build MUST fail when:
+
+- the component does not run, or
+- any conformance test **failed**.
+
+An **unrun** test MUST NOT fail the build. "We have not verified this" and "this
+is wrong" are different facts, and conflating them makes the unrun count a
+reason to reject a correct build — while still reporting unrun tests as what
+they are, which is never passes.
+
+The failure MUST be reported **last**, after the checklist and the model's own
+verdicts. Returning at the point of detection hides the two reports where the
+cause usually is.
+
+A check whose result is discarded is indistinguishable from no check, except
+that it costs time and looks like diligence.
+
+### Level 0: it starts
+
+Before any assertion about behaviour, the component MUST be started with **no
+terminal attached** and MUST answer its health endpoint. Two separate faults
+were caught only by doing this by hand:
+
+- a mux pattern conflict that compiles, passes every structural check, and
+  panics when the routes are registered
+- a service that prompts for a key passphrase and dies on EOF
+
+Neither is visible in source review, and both make every other level
+unrunnable.

@@ -214,21 +214,21 @@ contract_schema:
         description: HTTP endpoints consumed
         fields:
           path:           { type: string, description: "Route path" }
-          methods:        { type: string[], description: "HTTP methods used" }
+          methods:        { type: "string[]", description: "HTTP methods used" }
           request_type:   { type: string, optional: true, description: "Request body type name" }
-          response_fields: { type: string[], description: "Response fields consumed" }
+          response_fields: { type: "string[]", description: "Response fields consumed" }
 
       types:
         description: Type definitions consumed
         fields:
           name:           { type: string, description: "Type name from dependency" }
-          fields_used:    { type: string[], description: "Specific fields consumed" }
+          fields_used:    { type: "string[]", description: "Specific fields consumed" }
 
       events:
         description: Event topics subscribed to from this dependency
         fields:
           topic:          { type: string, description: "Event topic name" }
-          fields_used:    { type: string[], description: "Payload fields consumed" }
+          fields_used:    { type: "string[]", description: "Payload fields consumed" }
 
       config:
         description: Configuration keys referenced
@@ -240,7 +240,7 @@ contract_schema:
         description: Pattern behaviors inherited
         fields:
           behavior:       { type: string, description: "Specific behavior name" }
-          parameters:     { type: string[], description: "Parameters this agent configures" }
+          parameters:     { type: "string[]", description: "Parameters this agent configures" }
 
   on_change:
     description: >
@@ -972,7 +972,7 @@ events:
       agent:              { type: string }
       change_id:          { type: string }
       impact:             { type: string, enum: [none, compatible, breaking, removed, out_of_range] }
-      affected_bindings:  { type: object[], description: "List of bindings affected" }
+      affected_bindings:  { type: "object[]", description: "List of bindings affected" }
       recommended_action: { type: string }
       deadline:           { type: int64, description: "Reconciliation deadline timestamp" }
     when: Per agent after impact assessment
@@ -992,7 +992,7 @@ events:
       agent:              { type: string }
       change_id:          { type: string }
       result:             { type: string, enum: [no_impact, validated, adopted, reconciled, version_bump_initiated, halted, degraded, failed] }
-      changes_applied:    { type: string[], optional: true }
+      changes_applied:    { type: "string[]", optional: true }
       requires_operator:  { type: bool, default: false }
       error:              { type: string, optional: true }
       rollback_applied:   { type: bool, default: false }
@@ -1021,7 +1021,7 @@ events:
     payload:
       change_id:       { type: string }
       reason:          { type: string }
-      failed_agents:   { type: string[] }
+      failed_agents:   { type: "string[]" }
     when: Ecosystem-wide rollback triggered
 
   # Blue-green versioning
@@ -1057,7 +1057,7 @@ events:
       agent:        { type: string }
       new_version:  { type: string }
       pass_rate:    { type: float }
-      failures:     { type: object[] }
+      failures:     { type: "object[]" }
     when: Shadow validation fails threshold
 
   - topic: system.agent.version.cutover
@@ -1133,19 +1133,19 @@ types:
   EndpointBinding:
     fields:
       path:             { type: string }
-      methods:          { type: string[] }
+      methods:          { type: "string[]" }
       request_type:     { type: string, optional: true }
-      response_fields:  { type: string[] }
+      response_fields:  { type: "string[]" }
 
   TypeBinding:
     fields:
       name:             { type: string }
-      fields_used:      { type: string[] }
+      fields_used:      { type: "string[]" }
 
   EventBinding:
     fields:
       topic:            { type: string }
-      fields_used:      { type: string[] }
+      fields_used:      { type: "string[]" }
 
   ConfigBinding:
     fields:
@@ -1155,7 +1155,7 @@ types:
   PatternBinding:
     fields:
       behavior:         { type: string }
-      parameters:       { type: string[] }
+      parameters:       { type: "string[]" }
 
   OnChangePolicy:
     fields:

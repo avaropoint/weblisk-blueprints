@@ -497,12 +497,27 @@ references the contract and carries scope metadata:
 
 ### Envelope Fields
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `contract` | string | yes | Contract name from declaration |
-| `version` | string | yes | Schema version of this payload |
-| `scope` | string | yes | Effective scope of this exchange |
-| `payload` | object | yes | The actual data conforming to the schema |
+```yaml
+types:
+  Terms:
+    fields:
+      contract:
+        type: string
+        required: true
+        description: "Contract name from declaration"
+      version:
+        type: string
+        required: true
+        description: "Schema version of this payload"
+      scope:
+        type: string
+        required: true
+        description: "Effective scope of this exchange"
+      payload:
+        type: object
+        required: true
+        description: "The actual data conforming to the schema"
+```
 
 ### Scope in Envelope
 
@@ -927,14 +942,35 @@ contracts:
 
 ### Declaration Fields
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `resource` | string | yes | Resource path, table name, or namespace pattern the agent accesses |
-| `operations` | []enum | yes | Operations the agent performs: read, create, modify, delete, destroy, list, query |
-| `scope` | enum | yes | Maximum scope level of data in this resource |
-| `description` | string | no | Human-readable purpose of this access |
-| `row_scope` | string | no | Scoping constraint on row access (e.g., "own" for agent's own records, "tenant" for tenant-scoped) |
-| `columns` | []string | no | Specific columns accessed (if applicable). Omit for full-resource access within declared scope |
+```yaml
+types:
+  Declaration:
+    fields:
+      resource:
+        type: string
+        required: true
+        description: "Resource path, table name, or namespace pattern the agent accesses"
+      operations:
+        type: "[]enum"
+        required: true
+        description: "Operations the agent performs: read, create, modify, delete, destroy, list, query"
+      scope:
+        type: enum
+        required: true
+        description: "Maximum scope level of data in this resource"
+      description:
+        type: string
+        required: false
+        description: "Human-readable purpose of this access"
+      row_scope:
+        type: string
+        required: false
+        description: "Scoping constraint on row access (e.g., \"own\" for agent's own records, \"tenant\" for tenant-scoped)"
+      columns:
+        type: "[]string"
+        required: false
+        description: "Specific columns accessed (if applicable). Omit for full-resource access within declared scope"
+```
 
 ### Enforcement
 

@@ -224,30 +224,72 @@ They serve three purposes:
 #### Field Specifications
 
 **endpoints:**
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `path` | string | yes | HTTP path (must start with `/v1/`) |
-| `methods` | list | yes | HTTP methods: `GET`, `POST`, `PUT`, `DELETE`, `PATCH` |
-| `request_type` | string | conditional | Type name for request body (required for POST/PUT/PATCH) |
-| `response_fields` | list | yes | Fields consumed from the response |
+```yaml
+types:
+  Bindings:
+    fields:
+      path:
+        type: string
+        required: true
+        description: "HTTP path (must start with `/v1/`)"
+      methods:
+        type: list
+        required: true
+        description: "HTTP methods: `GET`, `POST`, `PUT`, `DELETE`, `PATCH`"
+      request_type:
+        type: string
+        required: false
+        description: "Type name for request body (required for POST/PUT/PATCH)"
+      response_fields:
+        type: list
+        required: true
+        description: "Fields consumed from the response"
+```
 
 **types:**
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | yes | Type name as declared in the dependency's Types section |
-| `fields_used` | list | yes | Specific fields consumed from the type. `[*]` for all fields. |
+```yaml
+types:
+  Bindings:
+    fields:
+      name:
+        type: string
+        required: true
+        description: "Type name as declared in the dependency's Types section"
+      fields_used:
+        type: list
+        required: true
+        description: "Specific fields consumed from the type. `[*]` for all fields."
+```
 
 **patterns:**
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `behavior` | string | yes | Named behavior from the dependency |
-| `parameters` | list | yes | Parameters used from the behavior |
+```yaml
+types:
+  Bindings:
+    fields:
+      behavior:
+        type: string
+        required: true
+        description: "Named behavior from the dependency"
+      parameters:
+        type: list
+        required: true
+        description: "Parameters used from the behavior"
+```
 
 **events:**
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `topic` | string | yes | Event topic in `namespace.event.name` format |
-| `fields_used` | list | yes | Fields consumed from the event payload |
+```yaml
+types:
+  Bindings:
+    fields:
+      topic:
+        type: string
+        required: true
+        description: "Event topic in `namespace.event.name` format"
+      fields_used:
+        type: list
+        required: true
+        description: "Fields consumed from the event payload"
+```
 
 ### fields_used
 
@@ -326,6 +368,29 @@ Blueprints that define data structures MUST declare them in a `## Types`
 section using YAML format. Types are the single source of truth — storage
 tables, action inputs, event payloads, and API responses all reference
 these definitions.
+
+### What is a type, and what is not
+
+A `types:` block declares a TYPE — something a `fields_used` binding may
+reference, carried between components or persisted by one. Those are declared
+in the YAML form above, one form, parsed by a parser.
+
+A field TABLE remains correct for two things that are not types:
+
+- **A document's own fields.** `standards/global`'s `### Top-Level` describes
+  what a global blueprint may declare. It is a schema, and nothing binds
+  `TopLevel.name`.
+- **Configuration options.** `standards/code`'s `| Field | Values | Effect |`
+  tables list the settings a standard accepts.
+
+The distinction is not cosmetic. Rendering either as a `types:` block would
+claim they are types that a binding may reference, and the field-binding check
+would then have opinions about fields no component consumes.
+
+Fifty-one type tables in `protocol/types` and fifty more across the corpus were
+converted to the YAML form on 2026-09-03, verified by comparing the extracted
+field set before and after each file and refusing any file where it differed.
+Nine tables remain, and all nine are one of the two cases above.
 
 ### Structure
 
@@ -445,15 +510,39 @@ config:
 
 ### Field Specifications
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `type` | string | yes | Scalar type from the Types scalar types table |
-| `default` | any | yes | Default value. Must satisfy all constraints. |
-| `min` | number | no | Minimum value (numeric) or minimum length (string) |
-| `max` | number | no | Maximum value (numeric) or maximum length (string) |
-| `enum` | list | no | Allowed values |
-| `unit` | string | no | Unit of measurement |
-| `description` | string | yes | What this parameter controls |
+```yaml
+types:
+  Structure:
+    fields:
+      type:
+        type: string
+        required: true
+        description: "Scalar type from the Types scalar types table"
+      default:
+        type: any
+        required: true
+        description: "Default value. Must satisfy all constraints."
+      min:
+        type: number
+        required: false
+        description: "Minimum value (numeric) or minimum length (string)"
+      max:
+        type: number
+        required: false
+        description: "Maximum value (numeric) or maximum length (string)"
+      enum:
+        type: list
+        required: false
+        description: "Allowed values"
+      unit:
+        type: string
+        required: false
+        description: "Unit of measurement"
+      description:
+        type: string
+        required: true
+        description: "What this parameter controls"
+```
 
 ### Naming Convention
 
@@ -597,6 +686,85 @@ does not apply" from "this is unmet".
 7. A `###` group addressed to one component MUST begin with that component's name;
    an assertion belonging to no single component MUST NOT sit in such a group
 8. An assertion conditional on a choice MUST be written `IF <premise>: <obligation>`
+
+---
+
+## Declared Names
+
+A generator turns a blueprint into code, and code is made of names. Every name
+it writes comes from somewhere: either a blueprint declared it, or the generator
+invented it. **Only the first is repeatable.**
+
+### A blueprint MUST name what it declares
+
+Anything a component is required to provide — a type, an endpoint, a store
+operation, an event topic, an error code, a configuration parameter — MUST be
+declared with an explicit identifier. It MUST NOT be left to be inferred from a
+description, a path, a heading or a sentence.
+
+Prose is for the reader. A name is for the contract.
+
+```markdown
+| Method | Path              | Operation | Auth | Purpose                    |
+|--------|-------------------|-----------|------|----------------------------|
+| POST   | /v1/register      | Register  | no   | Agent registration         |
+```
+
+`Register` is the declared name. `POST /v1/register` is the wire fact and
+`Agent registration` is the description; neither is an identifier, and a
+generator that derives one from either will derive a different one next time.
+
+### A declared name is binding
+
+Where a blueprint declares a name, every artifact generated from it MUST use
+that name. A generator MUST NOT substitute a synonym, expand an abbreviation,
+add a qualifier or drop one.
+
+This is not a style rule — it is what makes a rebuild incremental. The symbols
+one file declares are what every other file depends on, so a name changed
+between two generations of the same blueprint makes every dependent file stale
+and rebuilds work that was correct. One measured orchestrator build regenerated
+ten compliant files for exactly this reason.
+
+### The declaring blueprint owns the name
+
+A name is declared once, in the blueprint that specifies the thing:
+
+| What | Declared in | Read as |
+|---|---|---|
+| A type | the `## Types` section of its blueprint | the type's `name` |
+| An endpoint | the `## Endpoints` table of the component that serves it | the `Operation` column |
+| A store operation | the store contract's operations list | the operation as written |
+| An event topic | the topic table of the blueprint that publishes it | the topic string |
+| An error code | the central code registry | the code as written |
+| A configuration parameter | the `## Configuration` section | the parameter's key |
+
+A blueprint that consumes one of these refers to it; it does not restate it. Two
+statements of a name are two names as soon as one of them is edited.
+
+### A platform blueprint spells a name; it does not choose one
+
+`platforms/` blueprints MUST state how a declared name is rendered in their
+language, and MUST NOT introduce a different name.
+
+`Register` becomes `PathRegister` and `handleRegister` in Go, `PATH_REGISTER` in
+JavaScript and Rust. The operation is `Register` in all of them, so a change to
+the blueprint reaches every platform, and a reader of any generated artifact can
+find the line of the blueprint it came from.
+
+A platform blueprint MUST state this mapping explicitly — casing, prefix and
+suffix per kind of symbol — because "follow the language's conventions" is not a
+rule two generations will apply identically.
+
+### What this rules out
+
+A generator MUST NOT hold a naming convention of its own. If a name cannot be
+found in a blueprint, that is a gap **in the blueprint**, and it MUST be
+reported as one rather than filled in.
+
+A pipeline that names things when the specification does not has quietly become
+the specification, and nothing it produces can be traced back to a document
+anybody agreed to.
 
 ---
 

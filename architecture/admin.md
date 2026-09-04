@@ -365,6 +365,68 @@ acceptable for single-host deployments.
 
 ---
 
+## Contracts
+
+The operator flows are declared as behaviours, because what an implementation
+must get right about them is a **sequence and a signing input**, not a field
+list. A component that serves the operator surface binds these — see
+`architecture/orchestrator`, which serves them and until now bound nothing from
+this blueprint at all.
+
+```yaml
+contracts:
+  behaviors:
+    - name: operator-registration
+      description: Establish an operator record from a signed request
+      required: true
+      rules:
+        - The request MUST carry name, public_key, role, timestamp and signature
+        - The signature MUST be verified against the SUBMITTED public key before any record is written
+        - A name already held MUST be refused with 409 and the existing record left untouched
+        - The timestamp MUST be inside the replay window, and the message MUST be refused on replay
+        - Registration MUST be audited whether it succeeds or is refused
+
+    - name: registration-signing-input
+      description: What an operator signs when registering
+      required: true
+      rules:
+        - The signed payload MUST be canonicalize({name, public_key, role, timestamp}) per RFC 8785
+        - It MUST NOT be the {name, timestamp} challenge the token request uses
+        - The public key MUST be inside the signature, so a key cannot be substituted in flight
+        - The role MUST be inside the signature, because it is a privilege claim
+        - The timestamp sent MUST be the timestamp signed — a second clock read produces a signature over a payload the server never sees
+
+    - name: first-operator-auto-approval
+      description: How the first operator of a hub is admitted
+      required: true
+      rules:
+        - A hub with no operators MUST approve its first registration and issue a token
+        - Every later registration MUST require an existing admin and MUST NOT return a token
+        - A refusal for want of an admin MUST be distinguishable from a refusal for a bad signature
+        - The response MUST state which case occurred, so a caller does not wait for an approval nobody needs to give
+
+    - name: operator-token-issuance
+      description: Issue a short-lived operator token
+      required: true
+      rules:
+        - The endpoint MUST require no bearer token — it is what issues them
+        - The signed payload MUST be canonicalize({name, timestamp})
+        - The signature MUST be verified against the STORED public key for that operator
+        - Role and capabilities MUST come from the stored record, never from the request
+        - An unknown or unapproved operator MUST be refused and audited
+
+    - name: operator-roles
+      description: The role names and what each may do
+      required: true
+      rules:
+        - The role names are exactly viewer, auditor and admin
+        - Capabilities MUST be derived from the role, never stored per operator
+        - The last active admin MUST NOT be removable or demotable
+        - A role change MUST be audited with the previous and new role
+```
+
+---
+
 ## Operator Identity
 
 Operators are human users who manage the Weblisk deployment. They
@@ -402,9 +464,35 @@ defined:
      "name": "alice",
      "public_key": "<ML-DSA-65 public key (base64url)>",
      "role": "admin",
-     "signature": "<signed registration payload>"
+     "signature": "<sign(canonicalize({name, public_key, role, timestamp}))>"
    }
 4. Orchestrator verifies signature
+
+#### The registration signing input
+
+The signature is over `canonicalize({name, public_key, role, timestamp})` —
+**the whole payload**, not the `{name, timestamp}` challenge the token request
+uses. RFC 8785 (JCS), as `protocol/spec` specifies for every signed payload.
+
+This MUST be stated exactly, and it was not: this step read
+`"<signed registration payload>"` while the token request two sections below
+read `"<sign(canonicalize({name, timestamp}))>"`. A generated orchestrator
+signed and verified the four-field form; a client signed the two-field form;
+the registration was refused with `operator signature verification failed` and
+neither side was wrong about anything it had been told.
+
+The four-field form is the correct one and the reason is not symmetry. The
+signature must **bind the public key to the name**. Over `{name, timestamp}`
+alone the key is unsigned data in a signed request, so anyone able to reach the
+endpoint could submit their own public key under any name — and at a hub with no
+operators yet, the first such registration is auto-approved as its bootstrap
+admin. `role` is included for the same reason: it is a privilege claim and it
+must not be substitutable in flight.
+
+The timestamp MUST be the one sent in the payload. A client that reads the clock
+once to sign and again to build the request produces a signature over a payload
+the orchestrator never sees, and it verifies only when both reads land in the
+same second — which is a fault that passes locally and fails under load.
 5. If this is the FIRST operator → auto-approve (bootstrap)
 6. If not first → requires approval from existing admin
 7. Orchestrator issues operator token with admin capabilities
@@ -860,15 +948,39 @@ The orchestrator stores operator records alongside agent records:
 
 ### Operator Record
 
-| Field | Type | Description |
-|-------|------|-------------|
-| Name | string | Operator identifier |
-| PublicKey | string | base64url-encoded ML-DSA-65 public key |
-| Role | string | `admin`, `operator`, `viewer`, `auditor` |
-| Token | string | Current auth token |
-| RegisteredAt | int64 | Unix epoch seconds |
-| LastSeen | int64 | Last authenticated request |
-| Status | string | `active`, `suspended` |
+```yaml
+types:
+  Architecture:
+    fields:
+      name:
+        name: Name
+        type: string
+        description: "Operator identifier"
+      public_key:
+        name: PublicKey
+        type: string
+        description: "base64url-encoded ML-DSA-65 public key"
+      role:
+        name: Role
+        type: string
+        description: "`admin`, `operator`, `viewer`, `auditor`"
+      token:
+        name: Token
+        type: string
+        description: "Current auth token"
+      registered_at:
+        name: RegisteredAt
+        type: int64
+        description: "Unix epoch seconds"
+      last_seen:
+        name: LastSeen
+        type: int64
+        description: "Last authenticated request"
+      status:
+        name: Status
+        type: string
+        description: "`active`, `suspended`"
+```
 
 ---
 
@@ -892,6 +1004,87 @@ This is secure because:
 - The first operator MUST have physical/network access to the machine
 - All subsequent operators require explicit admin approval
 - The bootstrap event is permanently recorded in the audit log
+
+### Bootstrapping and connecting are different acts
+
+They were conflated once, and the conflation is worth naming because it reads
+as a small thing and is not.
+
+**Bootstrap** creates a hub: generate it, build it, start it, and establish its
+first operator. It needs the tenant's filesystem, because it is producing the
+tenant. It is necessarily local to wherever that tenant is being built.
+
+**Connect** presents a credential to a hub that is already running. It needs an
+ADDRESS and an operator identity, and nothing else — no workspace selected, no
+project directory on the caller's machine, no run state some tool happened to
+record. A hub on another host, in a container, or started by something other
+than the tool now connecting to it MUST be reachable on exactly the same terms
+as one in the next directory.
+
+A console that required a local project directory in order to connect made
+"connect" mean "connect to a hub I built here". That inverts the relationship
+the whole architecture rests on: a console is a CLIENT of a hub, over the hub's
+own services, and a client that needs the server's filesystem is not a client.
+
+Connecting therefore has three outcomes, and they MUST be told apart:
+
+| Outcome | When | What it means |
+|---|---|---|
+| **connected** | a token was issued | proceed |
+| **pending approval** | the hub knows this operator, or refuses to register a new one unauthenticated, and will not issue a token | **not a failure.** The first operator of a hub is auto-approved; every later one requires an existing admin. Somebody joining an established hub waits, and the report MUST name who can act |
+| **unreachable** | nothing answered, or the hub does not serve the token endpoint | a fault, and the report MUST distinguish "no hub there" from "a hub that cannot issue tokens" |
+
+The last row matters. A hub that predates
+`POST /v1/admin/operators/token` answers `404` or `405`, and reporting that as
+"pending approval" tells somebody to wait for an approval that is never coming.
+An implementation MUST NOT collapse a missing endpoint into an authorisation
+state.
+
+**Asking for a token before attempting registration is required, not an
+optimisation.** A hub that already knows the operator needs no registration —
+and registering first against a hub with NO operators would silently make the
+caller's identity the bootstrap admin of a tenant somebody else runs.
+
+### Bootstrap without a shell
+
+Step 2 above tells a person to run two commands. A console provisioning a
+tenant on behalf of a signed-in user has no shell to run them in, and
+[`protocol/identity`](../protocol/identity.md) already names this case: *"a
+runtime without [a terminal] cannot, and a specification that says prompt has
+excluded it."*
+
+The same steps MAY therefore be driven by one gated action instead of a person.
+Nothing about the trust model changes: the first operator is still
+auto-approved, every later one still requires an existing admin, and the
+bootstrap is still recorded in the audit log. What changes is who types.
+
+Four rules govern it, and each exists because its absence is a disclosure:
+
+1. **The passphrase MUST NOT be a command-line argument.** `argv` is readable by
+   every process on the machine — `ps` shows it, `/proc/<pid>/cmdline` shows it,
+   and a shell usually records it. It arrives on a channel that does not echo,
+   persist or log it; a password field over TLS is such a channel, and stdin is
+   how it reaches the process.
+
+2. **The operator key location MUST be parameterisable.** One machine may serve
+   several operator identities, and a console with more than one signed-in
+   account cannot share a single key file: the second account would use the
+   first account's identity or overwrite it. An identity belongs to a subject,
+   not to a machine and not to a tenant.
+
+3. **Provisioning MUST reuse an existing identity rather than replace one.** A
+   subject holds one identity and a separate credential attested by each hub, so
+   minting a new key while provisioning a second tenant would silently orphan
+   the grant every earlier tenant recorded. A passphrase that does not open an
+   existing identity is an error, not a reason to generate another.
+
+4. **Provisioning MUST be re-runnable.** A console retrying after a network
+   error must not be told the tenant is broken by the step that already
+   succeeded. Already-registered is reported as already-registered, and the
+   action proceeds to obtain a token.
+
+A token is the only thing that persists. The passphrase is discarded with the
+process, per [`protocol/identity`](../protocol/identity.md) rule 4.
 
 ---
 
@@ -973,6 +1166,16 @@ Admin endpoints SHOULD be rate-limited:
   X-Gateway-* headers from the admin gateway.
 
 ## Verification Checklist
+- [ ] Connecting to a hub requires only its address and an operator identity — no local project directory and no recorded run state
+- [ ] A token is requested BEFORE any registration is attempted
+- [ ] A hub that refuses to register a new operator unauthenticated is reported as pending approval, naming who can act, and not as a failure
+- [ ] A hub that does not serve the token endpoint is reported as such, never as pending approval
+- [ ] Connecting is idempotent: running it against a hub that already knows the operator issues a token and changes nothing else
+- [ ] A passphrase supplied as a command-line argument is REFUSED, and the refusal names stdin as the alternative
+- [ ] The operator key location is parameterisable, so two signed-in accounts on one machine hold separate identities
+- [ ] Provisioning against an existing identity reuses it; a passphrase that does not open it is an error and no new key is generated
+- [ ] Provisioning is re-runnable: an already-registered operator proceeds to obtain a token rather than failing
+- [ ] The passphrase is never written to disk; only the token is
 - [ ] `POST /v1/admin/operators/token` issues a token to an approved operator who signs `{name, timestamp}` with their private key
 - [ ] The signature is verified against the public key in the orchestrator's OWN operator record, never a directory
 - [ ] A token request outside the 300-second replay window is refused

@@ -186,12 +186,27 @@ config:
 
 **Request:** `multipart/form-data`
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| file | binary | yes | The file data |
-| visibility | string | no | `public` (default) or `private` |
-| purpose | string | no | `avatar`, `content`, `document`, `attachment` |
-| alt_text | string | no | Alt text for images (accessibility) |
+```yaml
+types:
+  Endpoints:
+    fields:
+      file:
+        type: binary
+        required: true
+        description: "The file data"
+      visibility:
+        type: string
+        required: false
+        description: "`public` (default) or `private`"
+      purpose:
+        type: string
+        required: false
+        description: "`avatar`, `content`, `document`, `attachment`"
+      alt_text:
+        type: string
+        required: false
+        description: "Alt text for images (accessibility)"
+```
 
 **Processing pipeline:**
 
@@ -459,20 +474,47 @@ the CDN will naturally stop serving them when the origin returns 404.
 
 ### Database Schema
 
-| Field | Type | Description |
-|-------|------|-------------|
-| id | string | UUID |
-| owner_id | string | User who uploaded |
-| filename | string | Sanitized original filename |
-| storage_key | string | Storage path |
-| mime_type | string | Detected MIME type |
-| size | int64 | File size in bytes |
-| visibility | string | `public` or `private` |
-| purpose | string | `avatar`, `content`, `document`, `attachment` |
-| alt_text | string | Image alt text |
-| variants | json | Map of variant names to storage keys |
-| created_at | int64 | Unix epoch seconds |
-| deleted_at | int64 | Soft delete timestamp |
+```yaml
+types:
+  Endpoints:
+    fields:
+      id:
+        type: string
+        description: "UUID"
+      owner_id:
+        type: string
+        description: "User who uploaded"
+      filename:
+        type: string
+        description: "Sanitized original filename"
+      storage_key:
+        type: string
+        description: "Storage path"
+      mime_type:
+        type: string
+        description: "Detected MIME type"
+      size:
+        type: int64
+        description: "File size in bytes"
+      visibility:
+        type: string
+        description: "`public` or `private`"
+      purpose:
+        type: string
+        description: "`avatar`, `content`, `document`, `attachment`"
+      alt_text:
+        type: string
+        description: "Image alt text"
+      variants:
+        type: json
+        description: "Map of variant names to storage keys"
+      created_at:
+        type: int64
+        description: "Unix epoch seconds"
+      deleted_at:
+        type: int64
+        description: "Soft delete timestamp"
+```
 
 ### File Storage Interface
 

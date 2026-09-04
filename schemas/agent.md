@@ -11,7 +11,7 @@ conform to this schema in addition to the rules in [common.md](common.md).
 
 Agent blueprints require all common fields plus agent-specific fields.
 
-```yaml
+```markdown
 <!-- blueprint
 type: agent
 kind: infrastructure|work|domain

@@ -512,32 +512,102 @@ concurrently, triggered by:
 
 Applied by domain controllers during the Execute phase.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Path | string | `path` | yes | Target resource (file path, URL, config key) |
-| Action | string | `action` | yes | `modify`, `create`, `delete` |
-| Original | string | `original` | no | Content before change (for modify/delete) |
-| Modified | string | `modified` | no | Content after change (for modify/create) |
-| Diffs | []string | `diffs` | no | Unified diff hunks |
-| RecommendationID | string | `recommendation_id` | yes | Recommendation that triggered this change |
-| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+```yaml
+types:
+  ProposedChange:
+    fields:
+      path:
+        name: Path
+        type: string
+        required: true
+        description: "Target resource (file path, URL, config key)"
+      action:
+        name: Action
+        type: string
+        required: true
+        description: "`modify`, `create`, `delete`"
+      original:
+        name: Original
+        type: string
+        required: false
+        description: "Content before change (for modify/delete)"
+      modified:
+        name: Modified
+        type: string
+        required: false
+        description: "Content after change (for modify/create)"
+      diffs:
+        name: Diffs
+        type: "[]string"
+        required: false
+        description: "Unified diff hunks"
+      recommendation_id:
+        name: RecommendationID
+        type: string
+        required: true
+        description: "Recommendation that triggered this change"
+      timestamp:
+        name: Timestamp
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+```
 
 ### AgentMetrics
 
 Running performance metrics per agent, updated incrementally from
 feedback signals.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| AgentName | string | `agent_name` | yes | Agent these metrics apply to |
-| TotalObservations | int | `total_observations` | yes | Cumulative observation count |
-| TotalFindings | int | `total_findings` | yes | Cumulative finding count |
-| TotalRecommendations | int | `total_recommendations` | yes | Cumulative recommendation count |
-| AdoptionRate | float64 | `adoption_rate` | yes | accepted / (accepted + rejected) |
-| Accuracy | float64 | `accuracy` | yes | positive_feedback / total_feedback |
-| ImpactScore | float64 | `impact_score` | yes | avg(actual_change / estimated_impact) |
-| FalsePositiveRate | float64 | `false_positive_rate` | yes | rejected_as_wrong / total_recommendations |
-| LastUpdated | int64 | `last_updated` | yes | Unix epoch seconds |
+```yaml
+types:
+  AgentMetrics:
+    fields:
+      agent_name:
+        name: AgentName
+        type: string
+        required: true
+        description: "Agent these metrics apply to"
+      total_observations:
+        name: TotalObservations
+        type: int
+        required: true
+        description: "Cumulative observation count"
+      total_findings:
+        name: TotalFindings
+        type: int
+        required: true
+        description: "Cumulative finding count"
+      total_recommendations:
+        name: TotalRecommendations
+        type: int
+        required: true
+        description: "Cumulative recommendation count"
+      adoption_rate:
+        name: AdoptionRate
+        type: float64
+        required: true
+        description: "accepted / (accepted + rejected)"
+      accuracy:
+        name: Accuracy
+        type: float64
+        required: true
+        description: "positive_feedback / total_feedback"
+      impact_score:
+        name: ImpactScore
+        type: float64
+        required: true
+        description: "avg(actual_change / estimated_impact)"
+      false_positive_rate:
+        name: FalsePositiveRate
+        type: float64
+        required: true
+        description: "rejected_as_wrong / total_recommendations"
+      last_updated:
+        name: LastUpdated
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+```
 
 ---
 

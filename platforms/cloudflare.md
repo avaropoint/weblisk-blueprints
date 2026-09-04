@@ -186,6 +186,40 @@ export default {
 }
 ```
 
+### The HTTP Surface
+
+The chain of `if (path === '/v1/health')` above is how the surface is most often
+written and is not the convention. It states each path twice — once in the
+comparison and once wherever a client builds the URL — and every generation
+arranges the chain differently, so a rebuild changes symbols nothing asked it to
+change.
+
+**Every symbol is spelled from the endpoint's `Operation`.** The architecture
+blueprint's `## Endpoints` table declares the operation — `Register`, `Health`,
+`AdminOverview` — and this is how that one name becomes JavaScript:
+
+| Symbol | Spelling | Example |
+|---|---|---|
+| Path constant | `PATH_<OPERATION>` in SCREAMING_SNAKE, in `src/protocol/paths.js` | `PATH_REGISTER` |
+| Handler | `handle<Operation>` | `handleRegister` |
+| Request schema | `<operation>Request` | `registerRequest` |
+| Response schema | `<operation>Response` | `registerResponse` |
+
+No other spelling is permitted, and no symbol may be named from the path or the
+purpose. See [`schemas/common`](../schemas/common.md#declared-names). A path
+literal MUST NOT appear in a comparison, a client, or a test.
+
+**One route table, one dispatcher.** The Worker declares its routes as an array
+of `{ method, path, handler }` and a single `routes()` function matches the
+incoming request against it. `fetch` looks up and delegates; it MUST NOT
+contain the routing decisions.
+
+**Method and path are matched together.** A path present with a different method
+answers `405` with an `Allow` header; an unmatched path answers `404`. Both MUST
+be a structured `ErrorResponse` with a registered error code — a Worker that
+returns the runtime's default text where the protocol promises JSON forces every
+client to special-case it.
+
 ### LLM Integration
 - Use Cloudflare Workers AI binding for built-in models
 - Or use fetch() to external APIs (OpenAI, Anthropic)
@@ -507,6 +541,9 @@ describe("health endpoint", () => {
 ## Verification Checklist
 
 - [ ] ML-DSA-65 operations use @noble/post-quantum for signing; keys exported as raw ArrayBuffer and hex-encoded for protocol
+- [ ] Every routed path is an exported `PATH_<OPERATION>` constant in one module; no path literal appears in a comparison, a client, or a test
+- [ ] Routes are declared as one `{ method, path, handler }` table and dispatched by a single function; `fetch` delegates rather than deciding
+- [ ] A known path with a wrong method answers 405 with an `Allow` header, and an unmatched path answers 404, both as a structured `ErrorResponse`
 - [ ] Agent registry is stored in a Durable Object for strong consistency; KV is used for the service directory cache (eventually consistent)
 - [ ] Durable Object alarm handles channel TTL cleanup
 - [ ] Queryable data (observations, audit logs, workflow executions) is stored in D1; entity context uses KV for fast edge reads

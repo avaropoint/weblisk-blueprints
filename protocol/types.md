@@ -50,14 +50,41 @@ category and retry information are available.
 
 ### ErrorResponse
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Error | string | `error` | yes | Human-readable error message |
-| Code | string | `code` | no | Machine-readable error code (e.g., `AGENT_UNREACHABLE`, `INVALID_INPUT`) |
-| Category | string | `category` | no | `"transient"`, `"permanent"`, or `"partial"` |
-| Retryable | bool | `retryable` | no | Whether the caller SHOULD retry this request |
-| RetryAfter | int | `retry_after` | no | Seconds to wait before retrying (present when `retryable` is true) |
-| Detail | map | `detail` | no | Additional structured context (varies by error) |
+```yaml
+types:
+  ErrorResponse:
+    fields:
+      error:
+        name: Error
+        type: string
+        required: true
+        description: "Human-readable error message"
+      code:
+        name: Code
+        type: string
+        required: false
+        description: "Machine-readable error code (e.g., `AGENT_UNREACHABLE`, `INVALID_INPUT`)"
+      category:
+        name: Category
+        type: string
+        required: false
+        description: "`\"transient\"`, `\"permanent\"`, or `\"partial\"`"
+      retryable:
+        name: Retryable
+        type: bool
+        required: false
+        description: "Whether the caller SHOULD retry this request"
+      retry_after:
+        name: RetryAfter
+        type: int
+        required: false
+        description: "Seconds to wait before retrying (present when `retryable` is true)"
+      detail:
+        name: Detail
+        type: map
+        required: false
+        description: "Additional structured context (varies by error)"
+```
 
 **Categories:**
 - `transient` — Temporary failure; retry is safe. Examples: network timeout, agent overloaded, upstream 503.
@@ -183,34 +210,116 @@ originating subsystem.
 Describes an agent's identity, capabilities, and interface contract.
 Returned by `POST /v1/describe` and sent during registration.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Name | string | `name` | yes | Agent identifier (lowercase, no spaces) |
-| Type | string | `type` | no | `"domain"` (domain controller), `"agent"` (work agent, default), or `"infrastructure"` (system-level: task, workflow, lifecycle) |
-| Version | string | `version` | yes | Semver version of the agent |
-| ProtocolVersion | string | `protocol_version` | no | Protocol version this agent implements (default: `"1"`) |
-| Description | string | `description` | yes | Human-readable purpose |
-| URL | string | `url` | yes | Agent's HTTP base URL |
-| PublicKey | string | `public_key` | yes | Base64url-encoded ML-DSA-65 public key (1952 bytes) |
-| Capabilities | []Capability | `capabilities` | yes | What this agent can do |
-| Inputs | []IOSpec | `inputs` | no | Expected input parameters |
-| Outputs | []IOSpec | `outputs` | no | What this agent produces |
-| Collaborators | []string | `collaborators` | no | Agent names this agent works with |
-| Approval | string | `approval` | no | `"required"` or `"auto"` (default: `"required"`) |
-| RequiredAgents | []string | `required_agents` | no | Agents this domain needs (domain type only) |
-| Workflows | []string | `workflows` | no | Workflow names supported (domain type only) |
-| MaxConcurrent | int | `max_concurrent` | no | Max concurrent executions (default: 1 — serial execution; 0 means unlimited) |
-| Publishes | []string | `publishes` | no | Namespace patterns this agent may publish to (e.g., `["workflow.*"]`). The orchestrator enforces exclusive ownership — no two agents may claim the same namespace. See [spec.md — Namespace Control](spec.md#namespace-control). |
-| Subscriptions | []Subscription | `subscriptions` | no | Event subscription declarations. Each entry specifies a topic pattern, optional consumer group, scope, and concurrency limit. See [spec.md — Event Scoping](spec.md#event-scoping). |
+```yaml
+types:
+  AgentManifest:
+    fields:
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "Agent identifier (lowercase, no spaces)"
+      type:
+        name: Type
+        type: string
+        required: false
+        description: "`\"domain\"` (domain controller), `\"agent\"` (work agent, default), or `\"infrastructure\"` (system-level: task, workflow, lifecycle)"
+      version:
+        name: Version
+        type: string
+        required: true
+        description: "Semver version of the agent"
+      protocol_version:
+        name: ProtocolVersion
+        type: string
+        required: false
+        description: "Protocol version this agent implements (default: `\"1\"`)"
+      description:
+        name: Description
+        type: string
+        required: true
+        description: "Human-readable purpose"
+      url:
+        name: URL
+        type: string
+        required: true
+        description: "Agent's HTTP base URL"
+      public_key:
+        name: PublicKey
+        type: string
+        required: true
+        description: "Base64url-encoded ML-DSA-65 public key (1952 bytes)"
+      capabilities:
+        name: Capabilities
+        type: "[]Capability"
+        required: true
+        description: "What this agent can do"
+      inputs:
+        name: Inputs
+        type: "[]IOSpec"
+        required: false
+        description: "Expected input parameters"
+      outputs:
+        name: Outputs
+        type: "[]IOSpec"
+        required: false
+        description: "What this agent produces"
+      collaborators:
+        name: Collaborators
+        type: "[]string"
+        required: false
+        description: "Agent names this agent works with"
+      approval:
+        name: Approval
+        type: string
+        required: false
+        description: "`\"required\"` or `\"auto\"` (default: `\"required\"`)"
+      required_agents:
+        name: RequiredAgents
+        type: "[]string"
+        required: false
+        description: "Agents this domain needs (domain type only)"
+      workflows:
+        name: Workflows
+        type: "[]string"
+        required: false
+        description: "Workflow names supported (domain type only)"
+      max_concurrent:
+        name: MaxConcurrent
+        type: int
+        required: false
+        description: "Max concurrent executions (default: 1 — serial execution; 0 means unlimited)"
+      publishes:
+        name: Publishes
+        type: "[]string"
+        required: false
+        description: "Namespace patterns this agent may publish to (e.g., `[\"workflow.*\"]`). The orchestrator enforces exclusive ownership — no two agents may claim the same namespace. See [spec.md — Namespace Control](spec.md#namespace-control)."
+      subscriptions:
+        name: Subscriptions
+        type: "[]Subscription"
+        required: false
+        description: "Event subscription declarations. Each entry specifies a topic pattern, optional consumer group, scope, and concurrency limit. See [spec.md — Event Scoping](spec.md#event-scoping)."
+```
 
 ### Capability
 
 A single thing an agent can do, with optional resource scoping.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Name | string | `name` | yes | Capability identifier (e.g., `file:read`) |
-| Resources | []string | `resources` | no | Glob patterns scoping the capability |
+```yaml
+types:
+  Capability:
+    fields:
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "Capability identifier (e.g., `file:read`)"
+      resources:
+        name: Resources
+        type: "[]string"
+        required: false
+        description: "Glob patterns scoping the capability"
+```
 
 **Standard capabilities:**
 - `file:read` — read files (resources: glob patterns)
@@ -268,11 +377,26 @@ glob — resource scoping stays in `resources`, as for every other capability.
 
 Describes an input or output parameter.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Name | string | `name` | yes | Parameter name |
-| Type | string | `type` | yes | Data type: `file_list`, `json`, `text` |
-| Description | string | `description` | yes | Human-readable description |
+```yaml
+types:
+  IOSpec:
+    fields:
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "Parameter name"
+      type:
+        name: Type
+        type: string
+        required: true
+        description: "Data type: `file_list`, `json`, `text`"
+      description:
+        name: Description
+        type: string
+        required: true
+        description: "Human-readable description"
+```
 
 ---
 
@@ -290,30 +414,96 @@ specification that consumes these types.
 Declared in domain blueprint files. Describes a multi-phase process
 that a domain controller can execute.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Name | string | `name` | yes | Workflow identifier (lowercase, hyphens) |
-| Description | string | `description` | yes | What this workflow does |
-| Trigger | string | `trigger` | yes | Task action that invokes this workflow |
-| Phases | []WorkflowPhase | `phases` | yes | Ordered execution steps |
+```yaml
+types:
+  WorkflowDefinition:
+    fields:
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "Workflow identifier (lowercase, hyphens)"
+      description:
+        name: Description
+        type: string
+        required: true
+        description: "What this workflow does"
+      trigger:
+        name: Trigger
+        type: string
+        required: true
+        description: "Task action that invokes this workflow"
+      phases:
+        name: Phases
+        type: "[]WorkflowPhase"
+        required: true
+        description: "Ordered execution steps"
+```
 
 ### WorkflowPhase
 
 A single step in a workflow. Each phase dispatches to one agent.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Name | string | `name` | yes | Phase identifier (unique within workflow) |
-| Agent | string | `agent` | yes | Target agent name |
-| Action | string | `action` | yes | `HandleMessage` action to invoke |
-| Input | map | `input` | no | Input mapping — reference expressions resolve at runtime (see [Reference Expression Syntax](../architecture/domain.md#reference-expression-syntax)) |
-| Output | string | `output` | no | Key name under which this phase's result is stored |
-| DependsOn | []string | `depends_on` | no | Phase names that must complete first. Phases without dependencies MAY run in parallel |
-| Timeout | int | `timeout` | no | Phase timeout in seconds (default: 300) |
-| Approval | string | `approval` | no | `"required"` or `"auto"` (default: `"auto"`) |
-| OnError | string | `on_error` | no | `"fail"` (default), `"skip"`, or `"retry"` |
-| MaxRetries | int | `max_retries` | no | Retry count when `on_error` = `"retry"` (default: 0) |
-| Condition | string | `condition` | no | Expression evaluated at runtime; phase is skipped if false |
+```yaml
+types:
+  WorkflowPhase:
+    fields:
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "Phase identifier (unique within workflow)"
+      agent:
+        name: Agent
+        type: string
+        required: true
+        description: "Target agent name"
+      action:
+        name: Action
+        type: string
+        required: true
+        description: "`HandleMessage` action to invoke"
+      input:
+        name: Input
+        type: map
+        required: false
+        description: "Input mapping — reference expressions resolve at runtime (see [Reference Expression Syntax](../architecture/domain.md#reference-expression-syntax))"
+      output:
+        name: Output
+        type: string
+        required: false
+        description: "Key name under which this phase's result is stored"
+      depends_on:
+        name: DependsOn
+        type: "[]string"
+        required: false
+        description: "Phase names that must complete first. Phases without dependencies MAY run in parallel"
+      timeout:
+        name: Timeout
+        type: int
+        required: false
+        description: "Phase timeout in seconds (default: 300)"
+      approval:
+        name: Approval
+        type: string
+        required: false
+        description: "`\"required\"` or `\"auto\"` (default: `\"auto\"`)"
+      on_error:
+        name: OnError
+        type: string
+        required: false
+        description: "`\"fail\"` (default), `\"skip\"`, or `\"retry\"`"
+      max_retries:
+        name: MaxRetries
+        type: int
+        required: false
+        description: "Retry count when `on_error` = `\"retry\"` (default: 0)"
+      condition:
+        name: Condition
+        type: string
+        required: false
+        description: "Expression evaluated at runtime; phase is skipped if false"
+```
 
 **Input reference syntax:** See [Reference Expression Syntax](../architecture/domain.md#reference-expression-syntax) for the full grammar, including nested access, array indexing (`[0]`), array expansion (`[*]`), and resolution rules.
 
@@ -321,31 +511,101 @@ A single step in a workflow. Each phase dispatches to one agent.
 
 Runtime state of a workflow in progress or completed.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| ID | string | `id` | yes | Unique execution identifier |
-| WorkflowName | string | `workflow_name` | yes | Which workflow is executing |
-| DomainName | string | `domain_name` | yes | Executing domain controller |
-| TaskID | string | `task_id` | yes | Originating task ID |
-| Status | string | `status` | yes | `pending`, `running`, `completed`, `failed` |
-| Phases | []PhaseResult | `phases` | yes | Results per phase |
-| StartedAt | int64 | `started_at` | yes | Unix epoch seconds |
-| CompletedAt | int64 | `completed_at` | no | Unix epoch seconds |
+```yaml
+types:
+  WorkflowExecution:
+    fields:
+      id:
+        name: ID
+        type: string
+        required: true
+        description: "Unique execution identifier"
+      workflow_name:
+        name: WorkflowName
+        type: string
+        required: true
+        description: "Which workflow is executing"
+      domain_name:
+        name: DomainName
+        type: string
+        required: true
+        description: "Executing domain controller"
+      task_id:
+        name: TaskID
+        type: string
+        required: true
+        description: "Originating task ID"
+      status:
+        name: Status
+        type: string
+        required: true
+        description: "`pending`, `running`, `completed`, `failed`"
+      phases:
+        name: Phases
+        type: "[]PhaseResult"
+        required: true
+        description: "Results per phase"
+      started_at:
+        name: StartedAt
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+      completed_at:
+        name: CompletedAt
+        type: int64
+        required: false
+        description: "Unix epoch seconds"
+```
 
 ### PhaseResult
 
 Tracks the outcome of a single workflow phase.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| PhaseName | string | `phase_name` | yes | Phase identifier |
-| AgentName | string | `agent_name` | yes | Agent that executed this phase |
-| Status | string | `status` | yes | `pending`, `running`, `completed`, `failed`, `skipped` |
-| Output | map | `output` | no | Phase output data (referenced by subsequent phases) |
-| StartedAt | int64 | `started_at` | no | Unix epoch seconds |
-| CompletedAt | int64 | `completed_at` | no | Unix epoch seconds |
-| Error | string | `error` | no | Error message if failed |
-| Retries | int | `retries` | no | Number of retry attempts |
+```yaml
+types:
+  PhaseResult:
+    fields:
+      phase_name:
+        name: PhaseName
+        type: string
+        required: true
+        description: "Phase identifier"
+      agent_name:
+        name: AgentName
+        type: string
+        required: true
+        description: "Agent that executed this phase"
+      status:
+        name: Status
+        type: string
+        required: true
+        description: "`pending`, `running`, `completed`, `failed`, `skipped`"
+      output:
+        name: Output
+        type: map
+        required: false
+        description: "Phase output data (referenced by subsequent phases)"
+      started_at:
+        name: StartedAt
+        type: int64
+        required: false
+        description: "Unix epoch seconds"
+      completed_at:
+        name: CompletedAt
+        type: int64
+        required: false
+        description: "Unix epoch seconds"
+      error:
+        name: Error
+        type: string
+        required: false
+        description: "Error message if failed"
+      retries:
+        name: Retries
+        type: int
+        required: false
+        description: "Number of retry attempts"
+```
 
 ---
 
@@ -357,29 +617,99 @@ each into prioritized tasks assigned to domain agents.
 
 ### Strategy
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| ID | string | `id` | yes | Unique hex identifier |
-| Name | string | `name` | yes | Strategy name |
-| Objective | string | `objective` | yes | What this strategy aims to achieve |
-| Targets | []StrategyTarget | `targets` | yes | Measurable goals |
-| Priority | int | `priority` | yes | 1 = highest priority |
-| Status | string | `status` | yes | `active`, `paused`, `completed` |
-| CreatedAt | int64 | `created_at` | yes | Unix epoch seconds |
-| UpdatedAt | int64 | `updated_at` | yes | Unix epoch seconds |
-| Metadata | map | `metadata` | no | Arbitrary key-value data |
+```yaml
+types:
+  Strategy:
+    fields:
+      id:
+        name: ID
+        type: string
+        required: true
+        description: "Unique hex identifier"
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "Strategy name"
+      objective:
+        name: Objective
+        type: string
+        required: true
+        description: "What this strategy aims to achieve"
+      targets:
+        name: Targets
+        type: "[]StrategyTarget"
+        required: true
+        description: "Measurable goals"
+      priority:
+        name: Priority
+        type: int
+        required: true
+        description: "1 = highest priority"
+      status:
+        name: Status
+        type: string
+        required: true
+        description: "`active`, `paused`, `completed`"
+      created_at:
+        name: CreatedAt
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+      updated_at:
+        name: UpdatedAt
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+      metadata:
+        name: Metadata
+        type: map
+        required: false
+        description: "Arbitrary key-value data"
+```
 
 ### StrategyTarget
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Metric | string | `metric` | yes | What is being measured |
-| Current | float64 | `current` | yes | Current value |
-| Goal | float64 | `goal` | yes | Target value |
-| Deadline | string | `deadline` | yes | ISO 8601 date (human-facing planning horizon, not a protocol timestamp) |
-| Unit | string | `unit` | yes | Unit of measurement |
-| Progress | float64 | `progress` | yes | 0.0 to 1.0 |
-| MeasurementWindow | int | `measurement_window` | no | Evaluation window in seconds (default: 86400) |
+```yaml
+types:
+  StrategyTarget:
+    fields:
+      metric:
+        name: Metric
+        type: string
+        required: true
+        description: "What is being measured"
+      current:
+        name: Current
+        type: float64
+        required: true
+        description: "Current value"
+      goal:
+        name: Goal
+        type: float64
+        required: true
+        description: "Target value"
+      deadline:
+        name: Deadline
+        type: string
+        required: true
+        description: "ISO 8601 date (human-facing planning horizon, not a protocol timestamp)"
+      unit:
+        name: Unit
+        type: string
+        required: true
+        description: "Unit of measurement"
+      progress:
+        name: Progress
+        type: float64
+        required: true
+        description: "0.0 to 1.0"
+      measurement_window:
+        name: MeasurementWindow
+        type: int
+        required: false
+        description: "Evaluation window in seconds (default: 86400)"
+```
 
 ---
 
@@ -390,45 +720,145 @@ This grounds every agent's decisions in business reality.
 
 ### EntityContext
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Name | string | `name` | yes | Entity name |
-| Type | string | `type` | yes | `company`, `person`, `project`, `site` |
-| Industry | string | `industry` | yes | Industry/sector |
-| Description | string | `description` | yes | What the entity does |
-| Positioning | string | `positioning` | yes | Market positioning statement |
-| Audiences | []Audience | `audiences` | no | Target audiences |
-| Competitors | []Competitor | `competitors` | no | Known competitors |
-| Keywords | []string | `keywords` | no | Core keywords/topics |
-| Tone | string | `tone` | no | Brand voice (e.g., `professional`, `casual`) |
-| Geography | string | `geography` | no | Primary geography |
-| Assets | []Asset | `assets` | no | Known digital assets |
-| Metadata | map | `metadata` | no | Arbitrary key-value data |
+```yaml
+types:
+  EntityContext:
+    fields:
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "Entity name"
+      type:
+        name: Type
+        type: string
+        required: true
+        description: "`company`, `person`, `project`, `site`"
+      industry:
+        name: Industry
+        type: string
+        required: true
+        description: "Industry/sector"
+      description:
+        name: Description
+        type: string
+        required: true
+        description: "What the entity does"
+      positioning:
+        name: Positioning
+        type: string
+        required: true
+        description: "Market positioning statement"
+      audiences:
+        name: Audiences
+        type: "[]Audience"
+        required: false
+        description: "Target audiences"
+      competitors:
+        name: Competitors
+        type: "[]Competitor"
+        required: false
+        description: "Known competitors"
+      keywords:
+        name: Keywords
+        type: "[]string"
+        required: false
+        description: "Core keywords/topics"
+      tone:
+        name: Tone
+        type: string
+        required: false
+        description: "Brand voice (e.g., `professional`, `casual`)"
+      geography:
+        name: Geography
+        type: string
+        required: false
+        description: "Primary geography"
+      assets:
+        name: Assets
+        type: "[]Asset"
+        required: false
+        description: "Known digital assets"
+      metadata:
+        name: Metadata
+        type: map
+        required: false
+        description: "Arbitrary key-value data"
+```
 
 ### Audience
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Name | string | `name` | yes | Audience segment name |
-| Description | string | `description` | yes | Who they are |
-| PainPoints | []string | `pain_points` | no | Their challenges |
-| Keywords | []string | `keywords` | no | Terms they search for |
+```yaml
+types:
+  Audience:
+    fields:
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "Audience segment name"
+      description:
+        name: Description
+        type: string
+        required: true
+        description: "Who they are"
+      pain_points:
+        name: PainPoints
+        type: "[]string"
+        required: false
+        description: "Their challenges"
+      keywords:
+        name: Keywords
+        type: "[]string"
+        required: false
+        description: "Terms they search for"
+```
 
 ### Competitor
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Name | string | `name` | yes | Competitor name |
-| URL | string | `url` | no | Competitor URL |
-| Notes | string | `notes` | no | Competitive notes |
+```yaml
+types:
+  Competitor:
+    fields:
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "Competitor name"
+      url:
+        name: URL
+        type: string
+        required: false
+        description: "Competitor URL"
+      notes:
+        name: Notes
+        type: string
+        required: false
+        description: "Competitive notes"
+```
 
 ### Asset
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Path | string | `path` | yes | File path or URL |
-| Type | string | `type` | yes | Asset type |
-| Purpose | string | `purpose` | no | What this asset is for |
+```yaml
+types:
+  Asset:
+    fields:
+      path:
+        name: Path
+        type: string
+        required: true
+        description: "File path or URL"
+      type:
+        name: Type
+        type: string
+        required: true
+        description: "Asset type"
+      purpose:
+        name: Purpose
+        type: string
+        required: false
+        description: "What this asset is for"
+```
 
 ---
 
@@ -439,67 +869,214 @@ This grounds every agent's decisions in business reality.
 Sent to an agent's `POST /v1/execute` endpoint by the Task Agent,
 or dispatched as part of a workflow phase.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| ID | string | `id` | yes | Unique task identifier |
-| From | string | `from` | yes | Who initiated (`user` or agent name) |
-| Action | string | `action` | yes | What to do (`execute`, custom actions) |
-| Payload | map | `payload` | yes | Task-specific data |
-| Context | TaskContext | `context` | yes | Runtime context |
-| StrategyID | string | `strategy_id` | no | Associated strategy |
-| Token | string | `token` | yes | Auth token |
-| Signature | string | `signature` | no | ML-DSA-65 signature of payload (3309 bytes, base64url-encoded) |
-| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+```yaml
+types:
+  TaskRequest:
+    fields:
+      id:
+        name: ID
+        type: string
+        required: true
+        description: "Unique task identifier"
+      from:
+        name: From
+        type: string
+        required: true
+        description: "Who initiated (`user` or agent name)"
+      action:
+        name: Action
+        type: string
+        required: true
+        description: "What to do (`execute`, custom actions)"
+      payload:
+        name: Payload
+        type: map
+        required: true
+        description: "Task-specific data"
+      context:
+        name: Context
+        type: TaskContext
+        required: true
+        description: "Runtime context"
+      strategy_id:
+        name: StrategyID
+        type: string
+        required: false
+        description: "Associated strategy"
+      token:
+        name: Token
+        type: string
+        required: true
+        description: "Auth token"
+      signature:
+        name: Signature
+        type: string
+        required: false
+        description: "ML-DSA-65 signature of payload (3309 bytes, base64url-encoded)"
+      timestamp:
+        name: Timestamp
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+```
 
 ### TaskContext
 
 Runtime context provided with every task execution.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| WorkspaceRoot | string | `workspace_root` | yes | Absolute path to project root |
-| Services | []ServiceEntry | `services` | yes | Current service directory |
-| Entity | EntityContext | `entity` | no | Entity being optimized |
-| Config | map | `config` | no | Additional configuration |
-| TraceID | string | `trace_id` | no | Correlation ID for distributed tracing (propagated through all downstream calls) |
+```yaml
+types:
+  TaskContext:
+    fields:
+      workspace_root:
+        name: WorkspaceRoot
+        type: string
+        required: true
+        description: "Absolute path to project root"
+      services:
+        name: Services
+        type: "[]ServiceEntry"
+        required: true
+        description: "Current service directory"
+      entity:
+        name: Entity
+        type: EntityContext
+        required: false
+        description: "Entity being optimized"
+      config:
+        name: Config
+        type: map
+        required: false
+        description: "Additional configuration"
+      trace_id:
+        name: TraceID
+        type: string
+        required: false
+        description: "Correlation ID for distributed tracing (propagated through all downstream calls)"
+```
 
 ### TaskResult
 
 Returned by an agent after task execution.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| TaskID | string | `task_id` | yes | Matches request ID |
-| AgentName | string | `agent_name` | yes | Which agent produced this |
-| Status | string | `status` | yes | `success`, `failed`, `pending_approval` |
-| Summary | string | `summary` | yes | Human-readable summary |
-| Changes | []ProposedChange | `changes` | no | File modifications |
-| Observations | []Observation | `observations` | no | Measurements taken |
-| Recommendations | []Recommendation | `recommendations` | no | Suggested actions |
-| Metrics | map | `metrics` | no | Execution metrics |
-| Signature | string | `signature` | no | ML-DSA-65 signature (3309 bytes, base64url-encoded) |
-| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+```yaml
+types:
+  TaskResult:
+    fields:
+      task_id:
+        name: TaskID
+        type: string
+        required: true
+        description: "Matches request ID"
+      agent_name:
+        name: AgentName
+        type: string
+        required: true
+        description: "Which agent produced this"
+      status:
+        name: Status
+        type: string
+        required: true
+        description: "`success`, `failed`, `pending_approval`"
+      summary:
+        name: Summary
+        type: string
+        required: true
+        description: "Human-readable summary"
+      changes:
+        name: Changes
+        type: "[]ProposedChange"
+        required: false
+        description: "File modifications"
+      observations:
+        name: Observations
+        type: "[]Observation"
+        required: false
+        description: "Measurements taken"
+      recommendations:
+        name: Recommendations
+        type: "[]Recommendation"
+        required: false
+        description: "Suggested actions"
+      metrics:
+        name: Metrics
+        type: map
+        required: false
+        description: "Execution metrics"
+      signature:
+        name: Signature
+        type: string
+        required: false
+        description: "ML-DSA-65 signature (3309 bytes, base64url-encoded)"
+      timestamp:
+        name: Timestamp
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+```
 
 ### ProposedChange
 
 A file modification proposed by an agent.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Path | string | `path` | yes | Relative file path |
-| Action | string | `action` | yes | `create`, `modify`, `delete` |
-| Original | string | `original` | no | Original file content |
-| Modified | string | `modified` | no | Modified file content |
-| Diffs | []ChangeDiff | `diffs` | no | Element-level changes |
+```yaml
+types:
+  ProposedChange:
+    fields:
+      path:
+        name: Path
+        type: string
+        required: true
+        description: "Relative file path"
+      action:
+        name: Action
+        type: string
+        required: true
+        description: "`create`, `modify`, `delete`"
+      original:
+        name: Original
+        type: string
+        required: false
+        description: "Original file content"
+      modified:
+        name: Modified
+        type: string
+        required: false
+        description: "Modified file content"
+      diffs:
+        name: Diffs
+        type: "[]ChangeDiff"
+        required: false
+        description: "Element-level changes"
+```
 
 ### ChangeDiff
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Element | string | `element` | yes | What changed (e.g., `title`) |
-| Before | string | `before` | yes | Previous value |
-| After | string | `after` | yes | New value |
-| Reason | string | `reason` | yes | Why this change was made |
+```yaml
+types:
+  ChangeDiff:
+    fields:
+      element:
+        name: Element
+        type: string
+        required: true
+        description: "What changed (e.g., `title`)"
+      before:
+        name: Before
+        type: string
+        required: true
+        description: "Previous value"
+      after:
+        name: After
+        type: string
+        required: true
+        description: "New value"
+      reason:
+        name: Reason
+        type: string
+        required: true
+        description: "Why this change was made"
+```
 
 ---
 
@@ -509,29 +1086,99 @@ Structured measurements captured every time an agent runs.
 
 ### Observation
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| ID | string | `id` | yes | Unique identifier |
-| AgentName | string | `agent_name` | yes | Which agent observed |
-| Target | string | `target` | yes | What was observed (file path, URL) |
-| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
-| Measurements | map[string]float64 | `measurements` | yes | Numeric measurements |
-| Findings | []Finding | `findings` | no | Issues discovered |
-| ContentHash | string | `content_hash` | no | Hash of observed content |
-| StrategyID | string | `strategy_id` | no | Associated strategy |
+```yaml
+types:
+  Observation:
+    fields:
+      id:
+        name: ID
+        type: string
+        required: true
+        description: "Unique identifier"
+      agent_name:
+        name: AgentName
+        type: string
+        required: true
+        description: "Which agent observed"
+      target:
+        name: Target
+        type: string
+        required: true
+        description: "What was observed (file path, URL)"
+      timestamp:
+        name: Timestamp
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+      measurements:
+        name: Measurements
+        type: "map[string]float64"
+        required: true
+        description: "Numeric measurements"
+      findings:
+        name: Findings
+        type: "[]Finding"
+        required: false
+        description: "Issues discovered"
+      content_hash:
+        name: ContentHash
+        type: string
+        required: false
+        description: "Hash of observed content"
+      strategy_id:
+        name: StrategyID
+        type: string
+        required: false
+        description: "Associated strategy"
+```
 
 ### Finding
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| RuleID | string | `rule_id` | yes | Which rule triggered |
-| Severity | string | `severity` | yes | `critical`, `warning`, `info` |
-| Element | string | `element` | yes | What element is affected |
-| Current | string | `current` | yes | Current value |
-| Expected | string | `expected` | yes | Expected value |
-| Message | string | `message` | yes | Human-readable description |
-| Fixable | bool | `fixable` | yes | Whether auto-fix is available |
-| Fix | string | `fix` | no | Suggested fix value |
+```yaml
+types:
+  Finding:
+    fields:
+      rule_id:
+        name: RuleID
+        type: string
+        required: true
+        description: "Which rule triggered"
+      severity:
+        name: Severity
+        type: string
+        required: true
+        description: "`critical`, `warning`, `info`"
+      element:
+        name: Element
+        type: string
+        required: true
+        description: "What element is affected"
+      current:
+        name: Current
+        type: string
+        required: true
+        description: "Current value"
+      expected:
+        name: Expected
+        type: string
+        required: true
+        description: "Expected value"
+      message:
+        name: Message
+        type: string
+        required: true
+        description: "Human-readable description"
+      fixable:
+        name: Fixable
+        type: bool
+        required: true
+        description: "Whether auto-fix is available"
+      fix:
+        name: Fix
+        type: string
+        required: false
+        description: "Suggested fix value"
+```
 
 ---
 
@@ -539,23 +1186,86 @@ Structured measurements captured every time an agent runs.
 
 ### Recommendation
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| ID | string | `id` | yes | Unique identifier |
-| ObservationID | string | `observation_id` | yes | Source observation |
-| AgentName | string | `agent_name` | yes | Recommending agent |
-| StrategyID | string | `strategy_id` | no | Associated strategy |
-| Target | string | `target` | yes | Target file/resource |
-| Action | string | `action` | yes | What to do |
-| Element | string | `element` | yes | Target element |
-| Current | string | `current` | yes | Current value |
-| Proposed | string | `proposed` | yes | Proposed value |
-| Reason | string | `reason` | yes | Justification |
-| Priority | string | `priority` | yes | `critical`, `high`, `medium`, `low` |
-| Impact | float64 | `impact` | yes | Estimated impact score |
-| Status | string | `status` | yes | `pending`, `accepted`, `rejected`, `applied` |
-| CreatedAt | int64 | `created_at` | yes | Unix epoch seconds |
-| ResolvedAt | int64 | `resolved_at` | no | Unix epoch seconds |
+```yaml
+types:
+  Recommendation:
+    fields:
+      id:
+        name: ID
+        type: string
+        required: true
+        description: "Unique identifier"
+      observation_id:
+        name: ObservationID
+        type: string
+        required: true
+        description: "Source observation"
+      agent_name:
+        name: AgentName
+        type: string
+        required: true
+        description: "Recommending agent"
+      strategy_id:
+        name: StrategyID
+        type: string
+        required: false
+        description: "Associated strategy"
+      target:
+        name: Target
+        type: string
+        required: true
+        description: "Target file/resource"
+      action:
+        name: Action
+        type: string
+        required: true
+        description: "What to do"
+      element:
+        name: Element
+        type: string
+        required: true
+        description: "Target element"
+      current:
+        name: Current
+        type: string
+        required: true
+        description: "Current value"
+      proposed:
+        name: Proposed
+        type: string
+        required: true
+        description: "Proposed value"
+      reason:
+        name: Reason
+        type: string
+        required: true
+        description: Justification
+      priority:
+        name: Priority
+        type: string
+        required: true
+        description: "`critical`, `high`, `medium`, `low`"
+      impact:
+        name: Impact
+        type: float64
+        required: true
+        description: "Estimated impact score"
+      status:
+        name: Status
+        type: string
+        required: true
+        description: "`pending`, `accepted`, `rejected`, `applied`"
+      created_at:
+        name: CreatedAt
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+      resolved_at:
+        name: ResolvedAt
+        type: int64
+        required: false
+        description: "Unix epoch seconds"
+```
 
 ---
 
@@ -566,29 +1276,82 @@ Structured measurements captured every time an agent runs.
 Submitted by a user or external system to approve or reject one or
 more pending recommendations or workflow phases.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| RecommendationIDs | []string | `recommendation_ids` | yes | IDs of recommendations to resolve |
-| Decision | string | `decision` | yes | `"accept"` or `"reject"` |
-| Reason | string | `reason` | no | Human-provided justification (required for rejections) |
-| Token | string | `token` | yes | Auth token |
-| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+```yaml
+types:
+  ApprovalRequest:
+    fields:
+      recommendation_ids:
+        name: RecommendationIDs
+        type: "[]string"
+        required: true
+        description: "IDs of recommendations to resolve"
+      decision:
+        name: Decision
+        type: string
+        required: true
+        description: "`\"accept\"` or `\"reject\"`"
+      reason:
+        name: Reason
+        type: string
+        required: false
+        description: "Human-provided justification (required for rejections)"
+      token:
+        name: Token
+        type: string
+        required: true
+        description: "Auth token"
+      timestamp:
+        name: Timestamp
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+```
 
 ### ApprovalResponse
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Updated | int | `updated` | yes | Count of recommendations updated |
-| Results | []ApprovalResult | `results` | yes | Per-recommendation outcome |
+```yaml
+types:
+  ApprovalResponse:
+    fields:
+      updated:
+        name: Updated
+        type: int
+        required: true
+        description: "Count of recommendations updated"
+      results:
+        name: Results
+        type: "[]ApprovalResult"
+        required: true
+        description: "Per-recommendation outcome"
+```
 
 ### ApprovalResult
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| RecommendationID | string | `recommendation_id` | yes | Which recommendation |
-| PreviousStatus | string | `previous_status` | yes | Status before this action |
-| NewStatus | string | `new_status` | yes | Status after this action |
-| Error | string | `error` | no | Error if this one failed (e.g., already resolved) |
+```yaml
+types:
+  ApprovalResult:
+    fields:
+      recommendation_id:
+        name: RecommendationID
+        type: string
+        required: true
+        description: "Which recommendation"
+      previous_status:
+        name: PreviousStatus
+        type: string
+        required: true
+        description: "Status before this action"
+      new_status:
+        name: NewStatus
+        type: string
+        required: true
+        description: "Status after this action"
+      error:
+        name: Error
+        type: string
+        required: false
+        description: "Error if this one failed (e.g., already resolved)"
+```
 
 ---
 
@@ -596,17 +1359,56 @@ more pending recommendations or workflow phases.
 
 ### Feedback
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| ID | string | `id` | yes | Unique identifier |
-| RecommendationID | string | `recommendation_id` | yes | Which recommendation |
-| Type | string | `type` | yes | `metric`, `user`, `automated` |
-| Signal | string | `signal` | yes | `positive`, `negative`, `neutral` |
-| Detail | string | `detail` | yes | What happened |
-| MetricBefore | float64 | `metric_before` | no | Metric value before |
-| MetricAfter | float64 | `metric_after` | no | Metric value after |
-| MetricName | string | `metric_name` | no | Which metric |
-| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+```yaml
+types:
+  Feedback:
+    fields:
+      id:
+        name: ID
+        type: string
+        required: true
+        description: "Unique identifier"
+      recommendation_id:
+        name: RecommendationID
+        type: string
+        required: true
+        description: "Which recommendation"
+      type:
+        name: Type
+        type: string
+        required: true
+        description: "`metric`, `user`, `automated`"
+      signal:
+        name: Signal
+        type: string
+        required: true
+        description: "`positive`, `negative`, `neutral`"
+      detail:
+        name: Detail
+        type: string
+        required: true
+        description: "What happened"
+      metric_before:
+        name: MetricBefore
+        type: float64
+        required: false
+        description: "Metric value before"
+      metric_after:
+        name: MetricAfter
+        type: float64
+        required: false
+        description: "Metric value after"
+      metric_name:
+        name: MetricName
+        type: string
+        required: false
+        description: "Which metric"
+      timestamp:
+        name: Timestamp
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+```
 
 ---
 
@@ -614,16 +1416,51 @@ more pending recommendations or workflow phases.
 
 ### AgentMetrics
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| AgentName | string | `agent_name` | yes | Agent identifier |
-| TotalObservations | int | `total_observations` | yes | Cumulative count |
-| TotalFindings | int | `total_findings` | yes | Cumulative count |
-| TotalRecommendations | int | `total_recommendations` | yes | Cumulative count |
-| AdoptionRate | float64 | `adoption_rate` | yes | % of accepted recommendations |
-| Accuracy | float64 | `accuracy` | yes | % of correct findings |
-| ImpactScore | float64 | `impact_score` | yes | Cumulative impact |
-| FalsePositiveRate | float64 | `false_positive_rate` | yes | % of false positives |
+```yaml
+types:
+  AgentMetrics:
+    fields:
+      agent_name:
+        name: AgentName
+        type: string
+        required: true
+        description: "Agent identifier"
+      total_observations:
+        name: TotalObservations
+        type: int
+        required: true
+        description: "Cumulative count"
+      total_findings:
+        name: TotalFindings
+        type: int
+        required: true
+        description: "Cumulative count"
+      total_recommendations:
+        name: TotalRecommendations
+        type: int
+        required: true
+        description: "Cumulative count"
+      adoption_rate:
+        name: AdoptionRate
+        type: float64
+        required: true
+        description: "% of accepted recommendations"
+      accuracy:
+        name: Accuracy
+        type: float64
+        required: true
+        description: "% of correct findings"
+      impact_score:
+        name: ImpactScore
+        type: float64
+        required: true
+        description: "Cumulative impact"
+      false_positive_rate:
+        name: FalsePositiveRate
+        type: float64
+        required: true
+        description: "% of false positives"
+```
 
 ---
 
@@ -633,18 +1470,61 @@ more pending recommendations or workflow phases.
 
 Direct agent-to-agent or orchestrator-to-agent message.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| ID | string | `id` | yes | Message identifier |
-| From | string | `from` | yes | Sender agent name |
-| To | string | `to` | yes | Recipient agent name |
-| Type | string | `type` | yes | `request` or `response` |
-| Action | string | `action` | yes | Message action name |
-| Payload | map | `payload` | yes | Message data |
-| Token | string | `token` | no | Auth or channel token |
-| Signature | string | `signature` | no | ML-DSA-65 signature (3309 bytes, base64url-encoded) |
-| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
-| TraceID | string | `trace_id` | no | Correlation ID (propagated from TaskContext) |
+```yaml
+types:
+  AgentMessage:
+    fields:
+      id:
+        name: ID
+        type: string
+        required: true
+        description: "Message identifier"
+      from:
+        name: From
+        type: string
+        required: true
+        description: "Sender agent name"
+      to:
+        name: To
+        type: string
+        required: true
+        description: "Recipient agent name"
+      type:
+        name: Type
+        type: string
+        required: true
+        description: "`request` or `response`"
+      action:
+        name: Action
+        type: string
+        required: true
+        description: "Message action name"
+      payload:
+        name: Payload
+        type: map
+        required: true
+        description: "Message data"
+      token:
+        name: Token
+        type: string
+        required: false
+        description: "Auth or channel token"
+      signature:
+        name: Signature
+        type: string
+        required: false
+        description: "ML-DSA-65 signature (3309 bytes, base64url-encoded)"
+      timestamp:
+        name: Timestamp
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+      trace_id:
+        name: TraceID
+        type: string
+        required: false
+        description: "Correlation ID (propagated from TaskContext)"
+```
 
 **Signature covers:** `canonicalize({from, to, action, payload})` per
 [RFC 8785 (JCS)](https://www.rfc-editor.org/rfc/rfc8785)
@@ -655,23 +1535,69 @@ Direct agent-to-agent or orchestrator-to-agent message.
 
 ### ServiceEntry
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Name | string | `name` | yes | Agent name |
-| URL | string | `url` | yes | Agent base URL |
-| PublicKey | string | `public_key` | yes | Base64url-encoded ML-DSA-65 public key (1952 bytes) |
-| Capabilities | []string | `capabilities` | yes | Capability names |
-| Status | string | `status` | yes | `online`, `offline`, `degraded` |
+```yaml
+types:
+  ServiceEntry:
+    fields:
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "Agent name"
+      url:
+        name: URL
+        type: string
+        required: true
+        description: "Agent base URL"
+      public_key:
+        name: PublicKey
+        type: string
+        required: true
+        description: "Base64url-encoded ML-DSA-65 public key (1952 bytes)"
+      capabilities:
+        name: Capabilities
+        type: "[]string"
+        required: true
+        description: "Capability names"
+      status:
+        name: Status
+        type: string
+        required: true
+        description: "`online`, `offline`, `degraded`"
+```
 
 ### ServiceDirectory
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Services | []ServiceEntry | `services` | yes | All registered agents |
-| RoutingTable | map[string][]RouteEntry | `routing_table` | yes | Topic pattern → list of subscriber routes. Used by the framework to resolve event delivery targets locally. |
-| Namespaces | map[string]string | `namespaces` | yes | Namespace → owning agent name. Used to validate publish rights. |
-| UpdatedAt | int64 | `updated_at` | yes | Unix epoch seconds |
-| Signature | string | `signature` | no | Orchestrator signature |
+```yaml
+types:
+  ServiceDirectory:
+    fields:
+      services:
+        name: Services
+        type: "[]ServiceEntry"
+        required: true
+        description: "All registered agents"
+      routing_table:
+        name: RoutingTable
+        type: "map[string][]RouteEntry"
+        required: true
+        description: "Topic pattern → list of subscriber routes. Used by the framework to resolve event delivery targets locally."
+      namespaces:
+        name: Namespaces
+        type: "map[string]string"
+        required: true
+        description: "Namespace → owning agent name. Used to validate publish rights."
+      updated_at:
+        name: UpdatedAt
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+      signature:
+        name: Signature
+        type: string
+        required: false
+        description: "Orchestrator signature"
+```
 
 ---
 
@@ -679,31 +1605,92 @@ Direct agent-to-agent or orchestrator-to-agent message.
 
 ### RegisterRequest
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Manifest | AgentManifest | `manifest` | yes | Agent's full manifest |
-| Signature | string | `signature` | yes | ML-DSA-65 signature of JSON(manifest) (3309 bytes, base64url-encoded) |
-| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+```yaml
+types:
+  RegisterRequest:
+    fields:
+      manifest:
+        name: Manifest
+        type: AgentManifest
+        required: true
+        description: "Agent's full manifest"
+      signature:
+        name: Signature
+        type: string
+        required: true
+        description: "ML-DSA-65 signature of JSON(manifest) (3309 bytes, base64url-encoded)"
+      timestamp:
+        name: Timestamp
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+```
 
 ### RegisterResponse
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| AgentID | string | `agent_id` | yes | Assigned unique identifier |
-| Token | string | `token` | yes | Auth token (WLT format) |
-| ExpiresAt | int64 | `expires_at` | yes | Token expiry (Unix epoch) |
-| Services | ServiceDirectory | `services` | yes | Current service directory |
-| Orchestrator | OrchestratorInfo | `orchestrator` | yes | Orchestrator info |
-| ProtocolVersion | string | `protocol_version` | yes | Negotiated protocol version (e.g., `"1"`) |
+```yaml
+types:
+  RegisterResponse:
+    fields:
+      agent_id:
+        name: AgentID
+        type: string
+        required: true
+        description: "Assigned unique identifier"
+      token:
+        name: Token
+        type: string
+        required: true
+        description: "Auth token (WLT format)"
+      expires_at:
+        name: ExpiresAt
+        type: int64
+        required: true
+        description: "Token expiry (Unix epoch)"
+      services:
+        name: Services
+        type: ServiceDirectory
+        required: true
+        description: "Current service directory"
+      orchestrator:
+        name: Orchestrator
+        type: OrchestratorInfo
+        required: true
+        description: "Orchestrator info"
+      protocol_version:
+        name: ProtocolVersion
+        type: string
+        required: true
+        description: "Negotiated protocol version (e.g., `\"1\"`)"
+```
 
 ### OrchestratorInfo
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| URL | string | `url` | yes | Orchestrator base URL |
-| PublicKey | string | `public_key` | yes | Base64url-encoded ML-DSA-65 public key (1952 bytes) |
-| Version | string | `version` | yes | Orchestrator software version |
-| SupportedVersions | []string | `supported_versions` | yes | Protocol versions this orchestrator supports (e.g., `["1"]`) |
+```yaml
+types:
+  OrchestratorInfo:
+    fields:
+      url:
+        name: URL
+        type: string
+        required: true
+        description: "Orchestrator base URL"
+      public_key:
+        name: PublicKey
+        type: string
+        required: true
+        description: "Base64url-encoded ML-DSA-65 public key (1952 bytes)"
+      version:
+        name: Version
+        type: string
+        required: true
+        description: "Orchestrator software version"
+      supported_versions:
+        name: SupportedVersions
+        type: "[]string"
+        required: true
+        description: "Protocol versions this orchestrator supports (e.g., `[\"1\"]`)"
+```
 
 **Version negotiation:** On registration, the orchestrator reads the
 agent's `manifest.protocol_version` (default `"1"` if omitted). If the
@@ -718,40 +1705,129 @@ orchestrator rejects with 400 and error code `UNSUPPORTED_VERSION`.
 
 ### ChannelRequest
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| FromAgent | string | `from_agent` | yes | Requesting agent name |
-| ToAgent | string | `to_agent` | yes | Target agent name |
-| Purpose | string | `purpose` | yes | Why the channel is needed |
-| Token | string | `token` | yes | Requestor's auth token |
-| Signature | string | `signature` | yes | ML-DSA-65 signature over `canonicalize({from_agent, to_agent, purpose})` (3309 bytes, base64url-encoded) |
+```yaml
+types:
+  ChannelRequest:
+    fields:
+      from_agent:
+        name: FromAgent
+        type: string
+        required: true
+        description: "Requesting agent name"
+      to_agent:
+        name: ToAgent
+        type: string
+        required: true
+        description: "Target agent name"
+      purpose:
+        name: Purpose
+        type: string
+        required: true
+        description: "Why the channel is needed"
+      token:
+        name: Token
+        type: string
+        required: true
+        description: "Requestor's auth token"
+      signature:
+        name: Signature
+        type: string
+        required: true
+        description: "ML-DSA-65 signature over `canonicalize({from_agent, to_agent, purpose})` (3309 bytes, base64url-encoded)"
+```
 
 ### ChannelGrant
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| ChannelID | string | `channel_id` | yes | Unique channel identifier |
-| FromAgent | string | `from_agent` | yes | Requesting agent |
-| ToAgent | string | `to_agent` | yes | Target agent |
-| TargetURL | string | `target_url` | yes | Target agent's URL |
-| TargetPubKey | string | `target_pub_key` | yes | Target's public key |
-| ChannelToken | string | `channel_token` | yes | Scoped channel token |
-| ExpiresAt | int64 | `expires_at` | yes | Expiry (Unix epoch) |
-| Signature | string | `signature` | yes | Orchestrator signature |
+```yaml
+types:
+  ChannelGrant:
+    fields:
+      channel_id:
+        name: ChannelID
+        type: string
+        required: true
+        description: "Unique channel identifier"
+      from_agent:
+        name: FromAgent
+        type: string
+        required: true
+        description: "Requesting agent"
+      to_agent:
+        name: ToAgent
+        type: string
+        required: true
+        description: "Target agent"
+      target_url:
+        name: TargetURL
+        type: string
+        required: true
+        description: "Target agent's URL"
+      target_pub_key:
+        name: TargetPubKey
+        type: string
+        required: true
+        description: "Target's public key"
+      channel_token:
+        name: ChannelToken
+        type: string
+        required: true
+        description: "Scoped channel token"
+      expires_at:
+        name: ExpiresAt
+        type: int64
+        required: true
+        description: "Expiry (Unix epoch)"
+      signature:
+        name: Signature
+        type: string
+        required: true
+        description: "Orchestrator signature"
+```
 
 ### ChannelEntry
 
 Stored record of an active channel in the orchestrator's channel registry.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| ChannelID | string | `channel_id` | yes | Unique channel identifier |
-| FromAgent | string | `from_agent` | yes | Requesting agent name |
-| ToAgent | string | `to_agent` | yes | Target agent name |
-| Purpose | string | `purpose` | yes | Why the channel was created |
-| Token | string | `token` | yes | Scoped channel token |
-| CreatedAt | int64 | `created_at` | yes | Unix epoch of creation |
-| ExpiresAt | int64 | `expires_at` | yes | Unix epoch of expiry |
+```yaml
+types:
+  ChannelEntry:
+    fields:
+      channel_id:
+        name: ChannelID
+        type: string
+        required: true
+        description: "Unique channel identifier"
+      from_agent:
+        name: FromAgent
+        type: string
+        required: true
+        description: "Requesting agent name"
+      to_agent:
+        name: ToAgent
+        type: string
+        required: true
+        description: "Target agent name"
+      purpose:
+        name: Purpose
+        type: string
+        required: true
+        description: "Why the channel was created"
+      token:
+        name: Token
+        type: string
+        required: true
+        description: "Scoped channel token"
+      created_at:
+        name: CreatedAt
+        type: int64
+        required: true
+        description: "Unix epoch of creation"
+      expires_at:
+        name: ExpiresAt
+        type: int64
+        required: true
+        description: "Unix epoch of expiry"
+```
 
 ---
 
@@ -759,15 +1835,46 @@ Stored record of an active channel in the orchestrator's channel registry.
 
 ### HealthStatus
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Name | string | `name` | yes | Component name |
-| Status | string | `status` | yes | `healthy`, `degraded`, `unhealthy` |
-| Version | string | `version` | yes | Component version |
-| Uptime | int64 | `uptime` | yes | Seconds since start |
-| Checks | map | `checks` | no | Per-subsystem health: subsystem name → `ok`, `degraded` or `failed`. A component that names a failing subsystem says WHERE it is unwell; one that reports only `status` says that it is |
-| Metrics | map | `metrics` | no | Component-specific metrics |
-| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+```yaml
+types:
+  HealthStatus:
+    fields:
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "Component name"
+      status:
+        name: Status
+        type: string
+        required: true
+        description: "`healthy`, `degraded`, `unhealthy`"
+      version:
+        name: Version
+        type: string
+        required: true
+        description: "Component version"
+      uptime:
+        name: Uptime
+        type: int64
+        required: true
+        description: "Seconds since start"
+      checks:
+        name: Checks
+        type: map
+        required: false
+        description: "Per-subsystem health: subsystem name → `ok`, `degraded` or `failed`. A component that names a failing subsystem says WHERE it is unwell; one that reports only `status` says that it is"
+      metrics:
+        name: Metrics
+        type: map
+        required: false
+        description: "Component-specific metrics"
+      timestamp:
+        name: Timestamp
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+```
 
 The component's own name is `name` and its age is `uptime`. Neither is
 `component` nor `uptime_seconds`: those were bound by
@@ -783,16 +1890,51 @@ blueprint binds the names in it.**
 
 ### AuditEntry
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| ID | string | `id` | yes | Unique identifier |
-| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
-| Actor | string | `actor` | yes | Who performed the action |
-| Action | string | `action` | yes | Action type (see below) |
-| Target | string | `target` | yes | Affected resource |
-| Detail | string | `detail` | yes | Human-readable description |
-| Status | string | `status` | yes | `ok`, `denied`, `failed` |
-| PreviousHash | string | `previous_hash` | yes | SHA-256 hex digest of the previous entry's canonical JSON bytes; `"0000...0000"` (64 zeros) for the first entry — see [storage.md — Hash Chain Integrity](../architecture/storage.md#hash-chain-integrity) |
+```yaml
+types:
+  AuditEntry:
+    fields:
+      id:
+        name: ID
+        type: string
+        required: true
+        description: "Unique identifier"
+      timestamp:
+        name: Timestamp
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+      actor:
+        name: Actor
+        type: string
+        required: true
+        description: "Who performed the action"
+      action:
+        name: Action
+        type: string
+        required: true
+        description: "Action type (see below)"
+      target:
+        name: Target
+        type: string
+        required: true
+        description: "Affected resource"
+      detail:
+        name: Detail
+        type: string
+        required: true
+        description: "Human-readable description"
+      status:
+        name: Status
+        type: string
+        required: true
+        description: "`ok`, `denied`, `failed`"
+      previous_hash:
+        name: PreviousHash
+        type: string
+        required: true
+        description: "SHA-256 hex digest of the previous entry's canonical JSON bytes; `\"0000...0000\"` (64 zeros) for the first entry — see [storage.md — Hash Chain Integrity](../architecture/storage.md#hash-chain-integrity)"
+```
 
 **Action types:** `register`, `deregister`, `channel`, `message`,
 `event`, `namespace_grant`, `namespace_release`
@@ -811,56 +1953,168 @@ for the delivery protocol and
 
 The standard wrapper for all events delivered via `POST /v1/event`.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| EventID | string | `event_id` | yes | Globally unique event identifier (UUID v7 recommended — time-sortable) |
-| Topic | string | `topic` | yes | Dot-separated topic name (e.g., `workflow.completed`) |
-| Source | string | `source` | yes | Name of the publishing agent |
-| Scope | string | `scope` | yes | Target agent name, or `"*"` for global delivery |
-| CorrelationID | string | `correlation_id` | no | Links all events in a single execution chain (e.g., one workflow run) |
-| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
-| TraceID | string | `trace_id` | yes | Distributed trace context (propagated through all downstream operations) |
-| Version | string | `version` | yes | Schema version of the payload |
-| Payload | map | `payload` | yes | Event-specific data, typed per topic |
-| Token | string | `token` | no | Auth token for delivery verification |
+```yaml
+types:
+  EventEnvelope:
+    fields:
+      event_id:
+        name: EventID
+        type: string
+        required: true
+        description: "Globally unique event identifier (UUID v7 recommended — time-sortable)"
+      topic:
+        name: Topic
+        type: string
+        required: true
+        description: "Dot-separated topic name (e.g., `workflow.completed`)"
+      source:
+        name: Source
+        type: string
+        required: true
+        description: "Name of the publishing agent"
+      scope:
+        name: Scope
+        type: string
+        required: true
+        description: "Target agent name, or `\"*\"` for global delivery"
+      correlation_id:
+        name: CorrelationID
+        type: string
+        required: false
+        description: "Links all events in a single execution chain (e.g., one workflow run)"
+      timestamp:
+        name: Timestamp
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+      trace_id:
+        name: TraceID
+        type: string
+        required: true
+        description: "Distributed trace context (propagated through all downstream operations)"
+      version:
+        name: Version
+        type: string
+        required: true
+        description: "Schema version of the payload"
+      payload:
+        name: Payload
+        type: map
+        required: true
+        description: "Event-specific data, typed per topic"
+      token:
+        name: Token
+        type: string
+        required: false
+        description: "Auth token for delivery verification"
+```
 
 ### Subscription
 
 Declared in the agent manifest. Each entry registers interest in a
 topic pattern with scope and concurrency controls.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Pattern | string | `pattern` | yes | Topic or wildcard pattern (supports `*` for single segment, `#` for multi-segment) |
-| Group | string | `group` | no | Consumer group name. Events are load-balanced within a group. Defaults to agent name. |
-| Scope | string | `scope` | no | `"self"` (default), `"*"` (requires `event:observe`), or a specific agent name |
-| MaxConcurrent | int | `max_concurrent` | no | Max parallel event processing for this subscription (default: 1) |
+```yaml
+types:
+  Subscription:
+    fields:
+      pattern:
+        name: Pattern
+        type: string
+        required: true
+        description: "Topic or wildcard pattern (supports `*` for single segment, `#` for multi-segment)"
+      group:
+        name: Group
+        type: string
+        required: false
+        description: "Consumer group name. Events are load-balanced within a group. Defaults to agent name."
+      scope:
+        name: Scope
+        type: string
+        required: false
+        description: "`\"self\"` (default), `\"*\"` (requires `event:observe`), or a specific agent name"
+      max_concurrent:
+        name: MaxConcurrent
+        type: int
+        required: false
+        description: "Max parallel event processing for this subscription (default: 1)"
+```
 
 ### RouteEntry
 
 A single entry in the routing table. Represents one subscriber for a
 topic pattern.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Agent | string | `agent` | yes | Subscriber agent name |
-| URL | string | `url` | yes | Subscriber's event endpoint (agent URL + `/v1/event`) |
-| Group | string | `group` | no | Consumer group name |
-| Scope | string | `scope` | yes | Scope filter for this subscriber |
+```yaml
+types:
+  RouteEntry:
+    fields:
+      agent:
+        name: Agent
+        type: string
+        required: true
+        description: "Subscriber agent name"
+      url:
+        name: URL
+        type: string
+        required: true
+        description: "Subscriber's event endpoint (agent URL + `/v1/event`)"
+      group:
+        name: Group
+        type: string
+        required: false
+        description: "Consumer group name"
+      scope:
+        name: Scope
+        type: string
+        required: true
+        description: "Scope filter for this subscriber"
+```
 
 ### DeadLetterEntry
 
 An event that could not be delivered after all retry attempts.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| OriginalEvent | EventEnvelope | `original_event` | yes | The event that failed delivery |
-| FailureReason | string | `failure_reason` | yes | Error category (`HANDLER_ERROR`, `UNREACHABLE`, `TIMEOUT`, `REJECTED`) |
-| LastError | string | `last_error` | yes | Last error message from delivery attempt |
-| Attempts | int | `attempts` | yes | Total delivery attempts |
-| FirstAttempt | int64 | `first_attempt` | yes | Unix epoch seconds of first attempt |
-| LastAttempt | int64 | `last_attempt` | yes | Unix epoch seconds of final attempt |
-| Subscriber | string | `subscriber` | yes | Name of the subscriber that could not receive |
+```yaml
+types:
+  DeadLetterEntry:
+    fields:
+      original_event:
+        name: OriginalEvent
+        type: EventEnvelope
+        required: true
+        description: "The event that failed delivery"
+      failure_reason:
+        name: FailureReason
+        type: string
+        required: true
+        description: "Error category (`HANDLER_ERROR`, `UNREACHABLE`, `TIMEOUT`, `REJECTED`)"
+      last_error:
+        name: LastError
+        type: string
+        required: true
+        description: "Last error message from delivery attempt"
+      attempts:
+        name: Attempts
+        type: int
+        required: true
+        description: "Total delivery attempts"
+      first_attempt:
+        name: FirstAttempt
+        type: int64
+        required: true
+        description: "Unix epoch seconds of first attempt"
+      last_attempt:
+        name: LastAttempt
+        type: int64
+        required: true
+        description: "Unix epoch seconds of final attempt"
+      subscriber:
+        name: Subscriber
+        type: string
+        required: true
+        description: "Name of the subscriber that could not receive"
+```
 
 ---
 
@@ -921,13 +2175,36 @@ operation, message, or data field.
 Attached to any resource, field, message, or operation to declare
 its scope level.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Target | string | `target` | yes | What is being scoped (field path, resource ID, operation name) |
-| Level | string | `level` | yes | ScopeLevel value |
-| DeclaredBy | string | `declared_by` | yes | Agent or system that declared the scope |
-| Timestamp | int64 | `timestamp` | yes | When the scope was declared |
-| Justification | string | `justification` | no | Why this scope level was chosen |
+```yaml
+types:
+  ScopeDeclaration:
+    fields:
+      target:
+        name: Target
+        type: string
+        required: true
+        description: "What is being scoped (field path, resource ID, operation name)"
+      level:
+        name: Level
+        type: string
+        required: true
+        description: "ScopeLevel value"
+      declared_by:
+        name: DeclaredBy
+        type: string
+        required: true
+        description: "Agent or system that declared the scope"
+      timestamp:
+        name: Timestamp
+        type: int64
+        required: true
+        description: "When the scope was declared"
+      justification:
+        name: Justification
+        type: string
+        required: false
+        description: "Why this scope level was chosen"
+```
 
 ---
 
@@ -937,22 +2214,56 @@ its scope level.
 
 A single declarative rule within a policy definition.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Rule | string | `rule` | yes | Rule type (e.g., `scope_required`, `rate_limit`, `capability_required`) |
-| Params | map | `params` | yes | Rule-specific parameters |
+```yaml
+types:
+  PolicyRule:
+    fields:
+      rule:
+        name: Rule
+        type: string
+        required: true
+        description: "Rule type (e.g., `scope_required`, `rate_limit`, `capability_required`)"
+      params:
+        name: Params
+        type: map
+        required: true
+        description: "Rule-specific parameters"
+```
 
 ### PolicyDecision
 
 Result of evaluating a policy against an operation context.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| PolicyName | string | `policy_name` | yes | Which policy was evaluated |
-| Decision | DecisionResult | `decision` | yes | Policy evaluation result — uses the canonical `DecisionResult` enum |
-| RuleMatched | string | `rule_matched` | no | Which rule triggered the decision |
-| Reason | string | `reason` | no | Human-readable explanation |
-| Timestamp | int64 | `timestamp` | yes | When the decision was made |
+```yaml
+types:
+  PolicyDecision:
+    fields:
+      policy_name:
+        name: PolicyName
+        type: string
+        required: true
+        description: "Which policy was evaluated"
+      decision:
+        name: Decision
+        type: DecisionResult
+        required: true
+        description: "Policy evaluation result — uses the canonical `DecisionResult` enum"
+      rule_matched:
+        name: RuleMatched
+        type: string
+        required: false
+        description: "Which rule triggered the decision"
+      reason:
+        name: Reason
+        type: string
+        required: false
+        description: "Human-readable explanation"
+      timestamp:
+        name: Timestamp
+        type: int64
+        required: true
+        description: "When the decision was made"
+```
 
 ---
 
@@ -963,29 +2274,91 @@ Result of evaluating a policy against an operation context.
 Pre-flight declaration of what an operation intends to do,
 evaluated before the operation executes.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| ID | string | `id` | yes | Unique intent identifier |
-| Agent | string | `agent` | yes | Agent requesting the operation |
-| Operation | string | `operation` | yes | Operation class: `read`, `list`, `query`, `create`, `modify`, `delete`, `destroy` |
-| Resource | string | `resource` | yes | Target resource identifier |
-| ResourceClass | string | `resource_class` | yes | `ephemeral`, `application`, `system`, `critical` |
-| Scope | string | `scope` | yes | ScopeLevel of the target resource |
-| Environment | string | `environment` | yes | `development`, `staging`, `production` |
-| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+```yaml
+types:
+  OperationIntent:
+    fields:
+      id:
+        name: ID
+        type: string
+        required: true
+        description: "Unique intent identifier"
+      agent:
+        name: Agent
+        type: string
+        required: true
+        description: "Agent requesting the operation"
+      operation:
+        name: Operation
+        type: string
+        required: true
+        description: "Operation class: `read`, `list`, `query`, `create`, `modify`, `delete`, `destroy`"
+      resource:
+        name: Resource
+        type: string
+        required: true
+        description: "Target resource identifier"
+      resource_class:
+        name: ResourceClass
+        type: string
+        required: true
+        description: "`ephemeral`, `application`, `system`, `critical`"
+      scope:
+        name: Scope
+        type: string
+        required: true
+        description: "ScopeLevel of the target resource"
+      environment:
+        name: Environment
+        type: string
+        required: true
+        description: "`development`, `staging`, `production`"
+      timestamp:
+        name: Timestamp
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+```
 
 ### IntentDecision
 
 Response to an OperationIntent — whether the operation may proceed.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| IntentID | string | `intent_id` | yes | Which intent this decides |
-| Decision | DecisionResult | `decision` | yes | Canonical decision outcome (see Decision Taxonomy) |
-| Authority | string | `authority` | yes | Who/what made the decision |
-| Conditions | []string | `conditions` | no | Conditions attached to approval |
-| Reason | string | `reason` | no | Explanation |
-| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+```yaml
+types:
+  IntentDecision:
+    fields:
+      intent_id:
+        name: IntentID
+        type: string
+        required: true
+        description: "Which intent this decides"
+      decision:
+        name: Decision
+        type: DecisionResult
+        required: true
+        description: "Canonical decision outcome (see Decision Taxonomy)"
+      authority:
+        name: Authority
+        type: string
+        required: true
+        description: "Who/what made the decision"
+      conditions:
+        name: Conditions
+        type: "[]string"
+        required: false
+        description: "Conditions attached to approval"
+      reason:
+        name: Reason
+        type: string
+        required: false
+        description: Explanation
+      timestamp:
+        name: Timestamp
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+```
 
 ---
 
@@ -1054,16 +2427,51 @@ events, and safety classifications.
 
 Result of boundary inspection by the enforcement layer.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| ID | string | `id` | yes | Unique decision identifier |
-| Boundary | string | `boundary` | yes | `message`, `storage`, `external`, `response` |
-| Agent | string | `agent` | yes | Agent whose operation was inspected |
-| Action | string | `action` | yes | DecisionResult value |
-| Violations | []string | `violations` | no | Policy/scope/privacy violations detected |
-| PrivacyActions | []string | `privacy_actions` | no | Privacy actions applied (masking, minimization) |
-| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
-| TraceID | string | `trace_id` | yes | Correlation with distributed trace |
+```yaml
+types:
+  EnforcementDecision:
+    fields:
+      id:
+        name: ID
+        type: string
+        required: true
+        description: "Unique decision identifier"
+      boundary:
+        name: Boundary
+        type: string
+        required: true
+        description: "`message`, `storage`, `external`, `response`"
+      agent:
+        name: Agent
+        type: string
+        required: true
+        description: "Agent whose operation was inspected"
+      action:
+        name: Action
+        type: string
+        required: true
+        description: "DecisionResult value"
+      violations:
+        name: Violations
+        type: "[]string"
+        required: false
+        description: "Policy/scope/privacy violations detected"
+      privacy_actions:
+        name: PrivacyActions
+        type: "[]string"
+        required: false
+        description: "Privacy actions applied (masking, minimization)"
+      timestamp:
+        name: Timestamp
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+      trace_id:
+        name: TraceID
+        type: string
+        required: true
+        description: "Correlation with distributed trace"
+```
 
 ---
 
@@ -1074,13 +2482,36 @@ Result of boundary inspection by the enforcement layer.
 Defined in [protocol/identity.md](identity.md#key-rotation). Included
 here for completeness — identity.md is the authoritative source.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| AgentID | string | `agent_id` | yes | Agent ID (32 hex chars) |
-| NewPublicKey | string | `new_public_key` | yes | New ML-DSA-65 public key (base64url-encoded, 1952 bytes) |
-| CurrentSignature | string | `current_signature` | yes | Agent manifest signed with current private key (base64url-encoded, 3309 bytes) |
-| NewSignature | string | `new_signature` | yes | Same manifest signed with new private key (base64url-encoded, 3309 bytes) |
-| Timestamp | int64 | `timestamp` | yes | Unix epoch seconds |
+```yaml
+types:
+  KeyRotationRequest:
+    fields:
+      agent_id:
+        name: AgentID
+        type: string
+        required: true
+        description: "Agent ID (32 hex chars)"
+      new_public_key:
+        name: NewPublicKey
+        type: string
+        required: true
+        description: "New ML-DSA-65 public key (base64url-encoded, 1952 bytes)"
+      current_signature:
+        name: CurrentSignature
+        type: string
+        required: true
+        description: "Agent manifest signed with current private key (base64url-encoded, 3309 bytes)"
+      new_signature:
+        name: NewSignature
+        type: string
+        required: true
+        description: "Same manifest signed with new private key (base64url-encoded, 3309 bytes)"
+      timestamp:
+        name: Timestamp
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+```
 
 ---
 
@@ -1091,28 +2522,86 @@ here for completeness — identity.md is the authoritative source.
 Structured log entry emitted by agents. See [patterns/logging](../patterns/logging.md)
 for the full logging specification.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Timestamp | int64 | `ts` | yes | Unix epoch seconds (consistent with all protocol timestamps) |
-| Level | string | `level` | yes | `debug`, `info`, `warn`, `error`, `fatal` |
-| LogType | string | `log_type` | yes | `app`, `access`, `audit`, `security` |
-| Message | string | `msg` | yes | Human-readable log message |
-| Component | string | `component` | yes | Agent or subsystem name |
-| ComponentType | string | `component_type` | yes | `agent`, `orchestrator`, `gateway` |
-| TraceID | string | `trace_id` | no | Distributed trace correlation |
-| SpanID | string | `span_id` | no | Span within trace |
-| Error | string | `error` | no | Error message (when level is error/fatal) |
+```yaml
+types:
+  LogEntry:
+    fields:
+      ts:
+        name: Timestamp
+        type: int64
+        required: true
+        description: "Unix epoch seconds (consistent with all protocol timestamps)"
+      level:
+        name: Level
+        type: string
+        required: true
+        description: "`debug`, `info`, `warn`, `error`, `fatal`"
+      log_type:
+        name: LogType
+        type: string
+        required: true
+        description: "`app`, `access`, `audit`, `security`"
+      msg:
+        name: Message
+        type: string
+        required: true
+        description: "Human-readable log message"
+      component:
+        name: Component
+        type: string
+        required: true
+        description: "Agent or subsystem name"
+      component_type:
+        name: ComponentType
+        type: string
+        required: true
+        description: "`agent`, `orchestrator`, `gateway`"
+      trace_id:
+        name: TraceID
+        type: string
+        required: false
+        description: "Distributed trace correlation"
+      span_id:
+        name: SpanID
+        type: string
+        required: false
+        description: "Span within trace"
+      error:
+        name: Error
+        type: string
+        required: false
+        description: "Error message (when level is error/fatal)"
+```
 
 ### TraceContext
 
 Distributed trace propagation context (W3C Trace Context compatible).
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| TraceID | string | `trace_id` | yes | 32-char hex trace identifier |
-| SpanID | string | `span_id` | yes | 16-char hex span identifier |
-| ParentSpanID | string | `parent_span_id` | no | Parent span for nesting |
-| Sampled | bool | `sampled` | no | Whether this trace is sampled (default: true) |
+```yaml
+types:
+  TraceContext:
+    fields:
+      trace_id:
+        name: TraceID
+        type: string
+        required: true
+        description: "32-char hex trace identifier"
+      span_id:
+        name: SpanID
+        type: string
+        required: true
+        description: "16-char hex span identifier"
+      parent_span_id:
+        name: ParentSpanID
+        type: string
+        required: false
+        description: "Parent span for nesting"
+      sampled:
+        name: Sampled
+        type: bool
+        required: false
+        description: "Whether this trace is sampled (default: true)"
+```
 
 ---
 

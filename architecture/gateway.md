@@ -745,34 +745,91 @@ domain before streaming events. Connection timeout: 5 minutes
 
 Local routing configuration mapping external paths to internal agents.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Routes | []Route | `routes` | yes | Ordered list of route rules |
-| UpdatedAt | int64 | `updated_at` | yes | Unix epoch of last route table refresh |
+```yaml
+types:
+  RouteTable:
+    fields:
+      routes:
+        name: Routes
+        type: "[]Route"
+        required: true
+        description: "Ordered list of route rules"
+      updated_at:
+        name: UpdatedAt
+        type: int64
+        required: true
+        description: "Unix epoch of last route table refresh"
+```
 
 ### Route
 
 A single routing rule mapping an external path to an internal agent.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| Path | string | `path` | yes | External URL path pattern (e.g., `/api/seo/*`) |
-| Agent | string | `agent` | yes | Target agent name |
-| Domain | string | `domain` | no | Domain controller name (for domain-scoped routes) |
-| Methods | []string | `methods` | no | Allowed HTTP methods (default: all) |
-| RateLimit | string | `rate_limit` | no | Rate limit policy name to apply |
+```yaml
+types:
+  Route:
+    fields:
+      path:
+        name: Path
+        type: string
+        required: true
+        description: "External URL path pattern (e.g., `/api/seo/*`)"
+      agent:
+        name: Agent
+        type: string
+        required: true
+        description: "Target agent name"
+      domain:
+        name: Domain
+        type: string
+        required: false
+        description: "Domain controller name (for domain-scoped routes)"
+      methods:
+        name: Methods
+        type: "[]string"
+        required: false
+        description: "Allowed HTTP methods (default: all)"
+      rate_limit:
+        name: RateLimit
+        type: string
+        required: false
+        description: "Rate limit policy name to apply"
+```
 
 ### GatewayConfig
 
 Top-level gateway configuration.
 
-| Field | Type | JSON Key | Required | Description |
-|-------|------|----------|----------|-------------|
-| TLS | TLSConfig | `tls` | yes | TLS termination settings |
-| Session | SessionConfig | `session` | yes | Session cookie configuration |
-| CSRF | CSRFConfig | `csrf` | yes | CSRF protection settings |
-| RateLimits | map[string]RateLimitConfig | `rate_limits` | yes | Named rate limit policies |
-| Client | ClientConfig | `client` | no | Client-facing behavior settings |
+```yaml
+types:
+  GatewayConfig:
+    fields:
+      tls:
+        name: TLS
+        type: TLSConfig
+        required: true
+        description: "TLS termination settings"
+      session:
+        name: Session
+        type: SessionConfig
+        required: true
+        description: "Session cookie configuration"
+      csrf:
+        name: CSRF
+        type: CSRFConfig
+        required: true
+        description: "CSRF protection settings"
+      rate_limits:
+        name: RateLimits
+        type: "map[string]RateLimitConfig"
+        required: true
+        description: "Named rate limit policies"
+      client:
+        name: Client
+        type: ClientConfig
+        required: false
+        description: "Client-facing behavior settings"
+```
 
 ---
 

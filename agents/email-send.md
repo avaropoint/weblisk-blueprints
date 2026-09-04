@@ -359,57 +359,171 @@ increments the version number.
 
 ### EmailRequest
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| to | string | yes | Recipient email address |
-| cc | []string | no | CC recipients |
-| bcc | []string | no | BCC recipients |
-| subject | string | yes | Email subject line |
-| template | string | no | Template name (mutually exclusive with body) |
-| variables | object | no | Template variables |
-| body | string | no | Raw HTML or text body (mutually exclusive with template) |
-| content_type | string | no | "html" or "text" (default "html") |
-| reply_to | string | no | Reply-to address |
+```yaml
+types:
+  EmailRequest:
+    fields:
+      to:
+        type: string
+        required: true
+        description: "Recipient email address"
+      cc:
+        type: "[]string"
+        required: false
+        description: "CC recipients"
+      bcc:
+        type: "[]string"
+        required: false
+        description: "BCC recipients"
+      subject:
+        type: string
+        required: true
+        description: "Email subject line"
+      template:
+        type: string
+        required: false
+        description: "Template name (mutually exclusive with body)"
+      variables:
+        type: object
+        required: false
+        description: "Template variables"
+      body:
+        type: string
+        required: false
+        description: "Raw HTML or text body (mutually exclusive with template)"
+      content_type:
+        type: string
+        required: false
+        description: "\"html\" or \"text\" (default \"html\")"
+      reply_to:
+        type: string
+        required: false
+        description: "Reply-to address"
+```
 
 ### EmailQueueEntry
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| email_id | string | yes | Unique email ID |
-| to | string | yes | Recipient |
-| subject | string | yes | Rendered subject |
-| body | string | yes | Rendered body |
-| content_type | string | yes | html or text |
-| status | string | yes | pending, sending, delivered, failed |
-| attempts | int | yes | Send attempt count |
-| max_retries | int | yes | Max attempts allowed |
-| next_retry | int64 | no | Next retry timestamp |
-| provider_id | string | no | Provider's message ID |
-| error | string | no | Last error message |
-| created_at | int64 | yes | Queue entry creation time |
-| sent_at | int64 | no | Successful delivery time |
+```yaml
+types:
+  EmailQueueEntry:
+    fields:
+      email_id:
+        type: string
+        required: true
+        description: "Unique email ID"
+      to:
+        type: string
+        required: true
+        description: "Recipient"
+      subject:
+        type: string
+        required: true
+        description: "Rendered subject"
+      body:
+        type: string
+        required: true
+        description: "Rendered body"
+      content_type:
+        type: string
+        required: true
+        description: "html or text"
+      status:
+        type: string
+        required: true
+        description: "pending, sending, delivered, failed"
+      attempts:
+        type: int
+        required: true
+        description: "Send attempt count"
+      max_retries:
+        type: int
+        required: true
+        description: "Max attempts allowed"
+      next_retry:
+        type: int64
+        required: false
+        description: "Next retry timestamp"
+      provider_id:
+        type: string
+        required: false
+        description: "Provider's message ID"
+      error:
+        type: string
+        required: false
+        description: "Last error message"
+      created_at:
+        type: int64
+        required: true
+        description: "Queue entry creation time"
+      sent_at:
+        type: int64
+        required: false
+        description: "Successful delivery time"
+```
 
 ### EmailTemplate
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| name | string | yes | Template identifier |
-| subject | string | yes | Subject line (with variables) |
-| body | string | yes | HTML or text body (with variables) |
-| content_type | string | yes | html or text |
-| version | int | yes | Template version |
-| updated_at | int64 | yes | Last update timestamp |
+```yaml
+types:
+  EmailTemplate:
+    fields:
+      name:
+        type: string
+        required: true
+        description: "Template identifier"
+      subject:
+        type: string
+        required: true
+        description: "Subject line (with variables)"
+      body:
+        type: string
+        required: true
+        description: "HTML or text body (with variables)"
+      content_type:
+        type: string
+        required: true
+        description: "html or text"
+      version:
+        type: int
+        required: true
+        description: "Template version"
+      updated_at:
+        type: int64
+        required: true
+        description: "Last update timestamp"
+```
 
 ### EmailConfig
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| provider | string | yes | smtp, sendgrid, ses, mailgun |
-| from_address | string | yes | Sender email address |
-| from_name | string | yes | Sender display name |
-| queue_batch_size | int | yes | Emails per processing cycle |
-| max_retries | int | yes | Max delivery attempts |
-| rate_limit | int | yes | Max sends per minute |
+```yaml
+types:
+  EmailConfig:
+    fields:
+      provider:
+        type: string
+        required: true
+        description: "smtp, sendgrid, ses, mailgun"
+      from_address:
+        type: string
+        required: true
+        description: "Sender email address"
+      from_name:
+        type: string
+        required: true
+        description: "Sender display name"
+      queue_batch_size:
+        type: int
+        required: true
+        description: "Emails per processing cycle"
+      max_retries:
+        type: int
+        required: true
+        description: "Max delivery attempts"
+      rate_limit:
+        type: int
+        required: true
+        description: "Max sends per minute"
+```
 
 ---
 

@@ -277,32 +277,83 @@ Exceeding limits SHOULD result in an `error` frame, not disconnection.
 
 ### Channel
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| name | string | yes | Channel identifier |
-| description | string | no | Human-readable description |
-| max_members | int | yes | Maximum concurrent connections |
-| history_limit | int | yes | Max stored messages |
-| auth | string | yes | Auth mode: `none` or `token` |
-| members | []string | no | Currently connected user IDs |
+```yaml
+types:
+  Channel:
+    fields:
+      name:
+        type: string
+        required: true
+        description: "Channel identifier"
+      description:
+        type: string
+        required: false
+        description: "Human-readable description"
+      max_members:
+        type: int
+        required: true
+        description: "Maximum concurrent connections"
+      history_limit:
+        type: int
+        required: true
+        description: "Max stored messages"
+      auth:
+        type: string
+        required: true
+        description: "Auth mode: `none` or `token`"
+      members:
+        type: "[]string"
+        required: false
+        description: "Currently connected user IDs"
+```
 
 ### ChatMessage
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| id | string | yes | Unique message ID (hex) |
-| channel | string | yes | Channel name |
-| from | string | yes | Sender identifier |
-| content | string | yes | Message body |
-| timestamp | int64 | yes | Unix epoch seconds |
-| metadata | object | no | Arbitrary key-value data |
+```yaml
+types:
+  ChatMessage:
+    fields:
+      id:
+        type: string
+        required: true
+        description: "Unique message ID (hex)"
+      channel:
+        type: string
+        required: true
+        description: "Channel name"
+      from:
+        type: string
+        required: true
+        description: "Sender identifier"
+      content:
+        type: string
+        required: true
+        description: "Message body"
+      timestamp:
+        type: int64
+        required: true
+        description: "Unix epoch seconds"
+      metadata:
+        type: object
+        required: false
+        description: "Arbitrary key-value data"
+```
 
 ### WebSocketFrame
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| type | string | yes | Frame type identifier |
-| (varies) | – | – | Additional fields per frame type |
+```yaml
+types:
+  WebSocketFrame:
+    fields:
+      type:
+        type: string
+        required: true
+        description: "Frame type identifier"
+      (varies):
+        type: "–"
+        required: false
+        description: "Additional fields per frame type"
+```
 
 ## Implementation Notes
 

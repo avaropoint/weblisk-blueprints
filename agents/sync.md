@@ -242,32 +242,83 @@ Returns current sync state and statistics.
 
 ### ChangeRecord
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| table | string | yes | Target table/collection name |
-| id | string | yes | Record ID |
-| version | string | yes | Version vector or timestamp |
-| timestamp | int64 | yes | When the change was made |
-| data | object | no | Record data (null if deleted) |
-| deleted | boolean | no | Whether this is a deletion |
+```yaml
+types:
+  ChangeRecord:
+    fields:
+      table:
+        type: string
+        required: true
+        description: "Target table/collection name"
+      id:
+        type: string
+        required: true
+        description: "Record ID"
+      version:
+        type: string
+        required: true
+        description: "Version vector or timestamp"
+      timestamp:
+        type: int64
+        required: true
+        description: "When the change was made"
+      data:
+        type: object
+        required: false
+        description: "Record data (null if deleted)"
+      deleted:
+        type: boolean
+        required: false
+        description: "Whether this is a deletion"
+```
 
 ### SyncResult
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| applied | []ChangeRecord | yes | Records successfully written |
-| conflicts | []ConflictRecord | no | Unresolved conflicts |
-| server_changes | []ChangeRecord | yes | Server changes client needs |
-| new_version | string | yes | New sync checkpoint |
+```yaml
+types:
+  SyncResult:
+    fields:
+      applied:
+        type: "[]ChangeRecord"
+        required: true
+        description: "Records successfully written"
+      conflicts:
+        type: "[]ConflictRecord"
+        required: false
+        description: "Unresolved conflicts"
+      server_changes:
+        type: "[]ChangeRecord"
+        required: true
+        description: "Server changes client needs"
+      new_version:
+        type: string
+        required: true
+        description: "New sync checkpoint"
+```
 
 ### ConflictRecord
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| table | string | yes | Table name |
-| id | string | yes | Record ID |
-| client_version | object | yes | Client's version of the record |
-| server_version | object | yes | Server's version of the record |
+```yaml
+types:
+  ConflictRecord:
+    fields:
+      table:
+        type: string
+        required: true
+        description: "Table name"
+      id:
+        type: string
+        required: true
+        description: "Record ID"
+      client_version:
+        type: object
+        required: true
+        description: "Client's version of the record"
+      server_version:
+        type: object
+        required: true
+        description: "Server's version of the record"
+```
 
 ---
 

@@ -411,54 +411,147 @@ sensitive data). Store only metadata.
 
 ### WebhookSource
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| path | string | yes | URL path for this source |
-| signature | SignatureConfig | no | Signature verification config |
-| events | []string | no | Allowed event types (empty = all) |
-| event_field | string | no | Where to extract event type from |
+```yaml
+types:
+  WebhookSource:
+    fields:
+      path:
+        type: string
+        required: true
+        description: "URL path for this source"
+      signature:
+        type: SignatureConfig
+        required: false
+        description: "Signature verification config"
+      events:
+        type: "[]string"
+        required: false
+        description: "Allowed event types (empty = all)"
+      event_field:
+        type: string
+        required: false
+        description: "Where to extract event type from"
+```
 
 ### SignatureConfig
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| header | string | yes | HTTP header containing the signature |
-| algorithm | string | yes | `hmac-sha256`, `hmac-sha1`, `none` |
-| secret_env | string | yes | Environment variable with the secret |
+```yaml
+types:
+  SignatureConfig:
+    fields:
+      header:
+        type: string
+        required: true
+        description: "HTTP header containing the signature"
+      algorithm:
+        type: string
+        required: true
+        description: "`hmac-sha256`, `hmac-sha1`, `none`"
+      secret_env:
+        type: string
+        required: true
+        description: "Environment variable with the secret"
+```
 
 ### Subscriber
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| id | string | yes | Unique subscriber ID |
-| url | string | yes | Delivery endpoint URL (HTTPS) |
-| events | []string | yes | Subscribed event types |
-| secret_hash | string | yes | SHA-256 hash of subscriber secret |
-| created | int64 | yes | Registration timestamp |
-| active | boolean | yes | Whether subscriber is active |
+```yaml
+types:
+  Subscriber:
+    fields:
+      id:
+        type: string
+        required: true
+        description: "Unique subscriber ID"
+      url:
+        type: string
+        required: true
+        description: "Delivery endpoint URL (HTTPS)"
+      events:
+        type: "[]string"
+        required: true
+        description: "Subscribed event types"
+      secret_hash:
+        type: string
+        required: true
+        description: "SHA-256 hash of subscriber secret"
+      created:
+        type: int64
+        required: true
+        description: "Registration timestamp"
+      active:
+        type: boolean
+        required: true
+        description: "Whether subscriber is active"
+```
 
 ### WebhookDelivery
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| id | string | yes | Unique delivery ID |
-| direction | string | yes | `inbound` or `outbound` |
-| source | string | yes | Source name (inbound) or subscriber ID (outbound) |
-| event | string | no | Event type |
-| attempt | int | yes | Attempt number (1-based) |
-| timestamp | int64 | yes | Attempt timestamp |
-| status | string | yes | `pending`, `success`, `rejected`, `filtered`, `failed` |
-| response_code | int | no | HTTP status code |
-| duration_ms | int | no | Round-trip time in milliseconds |
+```yaml
+types:
+  WebhookDelivery:
+    fields:
+      id:
+        type: string
+        required: true
+        description: "Unique delivery ID"
+      direction:
+        type: string
+        required: true
+        description: "`inbound` or `outbound`"
+      source:
+        type: string
+        required: true
+        description: "Source name (inbound) or subscriber ID (outbound)"
+      event:
+        type: string
+        required: false
+        description: "Event type"
+      attempt:
+        type: int
+        required: true
+        description: "Attempt number (1-based)"
+      timestamp:
+        type: int64
+        required: true
+        description: "Attempt timestamp"
+      status:
+        type: string
+        required: true
+        description: "`pending`, `success`, `rejected`, `filtered`, `failed`"
+      response_code:
+        type: int
+        required: false
+        description: "HTTP status code"
+      duration_ms:
+        type: int
+        required: false
+        description: "Round-trip time in milliseconds"
+```
 
 ### WebhookPayload
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| id | string | yes | Delivery ID |
-| event | string | yes | Event type |
-| timestamp | int64 | yes | Event timestamp |
-| data | object | yes | Event-specific data |
+```yaml
+types:
+  WebhookPayload:
+    fields:
+      id:
+        type: string
+        required: true
+        description: "Delivery ID"
+      event:
+        type: string
+        required: true
+        description: "Event type"
+      timestamp:
+        type: int64
+        required: true
+        description: "Event timestamp"
+      data:
+        type: object
+        required: true
+        description: "Event-specific data"
+```
 
 ---
 
