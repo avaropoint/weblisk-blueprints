@@ -59,35 +59,35 @@ tier: free|pro
 Domain controllers follow the agent section order with additional
 domain-specific sections inserted.
 
-| # | Section | Heading | Required | Description |
-|---|---------|---------|----------|-------------|
-| 1 | Frontmatter | `<!-- blueprint -->` | **Yes** | YAML metadata |
-| 2 | Title | `# Name` | **Yes** | Level-1 heading + summary |
-| 3 | Overview | `## Overview` | **Yes** | Scope description |
-| 4 | Dependencies | `## Dependencies` | **Yes** | Full YAML dependency contracts |
-| 5 | Domain Manifest | `## Domain Manifest` | **Yes** | JSON manifest with capabilities, inputs, outputs, required agents |
-| 6 | Required Agents | `## Required Agents` | **Yes** | Table of agents this domain dispatches to |
-| 7 | Workflows | `## Workflows` | **Yes** | Workflow definitions with phases |
-| 8 | Configuration | `## Configuration` | **Yes** | Runtime parameters in YAML |
-| 9 | Types | `## Types` | **Yes** | Data structures in YAML |
-| 10 | Storage | `## Storage` | **Yes** | Domain controllers always persist data |
-| 11 | State Machine | `## State Machine` | **Yes** | Domain and workflow state transitions |
-| 12 | Lifecycle | `## Lifecycle` | **Yes** | Startup, shutdown, health, self-update |
-| 13 | Triggers | `## Triggers` | **Yes** | Events, schedules, messages |
-| 14 | Actions | `## Actions` | **Yes** | Message handlers |
-| 15 | Aggregation | `## Aggregation` | **Yes** | How results from agents are combined |
-| 16 | Scoring | `## Scoring` | Conditional | Required if domain produces scored reports |
-| 17 | Feedback Loop | `## Feedback Loop` | **Yes** | Continuous improvement cycle |
-| 18 | Collaboration | `## Collaboration` | **Yes** | Events, messages, agent coordination |
-| 19 | Manual Overrides | `## Manual Overrides` | **Yes** | Override policy, audit |
-| 20 | Constraints | `## Constraints` | **Yes** | Boundaries, forbidden actions, limits |
-| 21 | Error Handling | `## Error Handling` | **Yes** | Permanent and transient errors |
-| 22 | Observability | `## Observability` | **Yes** | Logs, metrics, alerts |
-| 23 | Security | `## Security` | **Yes** | Permissions, data sensitivity, access control |
-| 24 | Test Fixtures | `## Test Fixtures` | **Yes** | Happy path, errors, edge cases |
-| 25 | Scaling | `## Scaling` | **Yes** | Horizontal model, coordination |
-| 26 | Implementation Notes | `## Implementation Notes` | **Yes** | Practical guidance |
-| 27 | Verification Checklist | `## Verification Checklist` | **Yes** | Testable assertions (min 10) |
+| # | Section | Heading | Form | Required | Description |
+|---|---|---|---|---|---|
+| 1 | Frontmatter | `<!-- blueprint -->` | narrative | **Yes** | YAML metadata |
+| 2 | Title | `# Name` | narrative | **Yes** | Level-1 heading + summary |
+| 3 | Overview | `## Overview` | narrative | **Yes** | Scope description |
+| 4 | Dependencies | `## Dependencies` | narrative | **Yes** | Full YAML dependency contracts |
+| 5 | Domain Manifest | `## Domain Manifest` | narrative | **Yes** | JSON manifest with capabilities, inputs, outputs, required agents |
+| 6 | Required Agents | `## Required Agents` | narrative | **Yes** | Table of agents this domain dispatches to |
+| 7 | Workflows | `## Workflows` | narrative | **Yes** | Workflow definitions with phases |
+| 8 | Configuration | `## Configuration` | narrative | **Yes** | Runtime parameters in YAML |
+| 9 | Types | `## Types` | narrative | **Yes** | Data structures in YAML |
+| 10 | Storage | `## Storage` | narrative | **Yes** | Domain controllers always persist data |
+| 11 | State Machine | `## State Machine` | narrative | **Yes** | Domain and workflow state transitions |
+| 12 | Lifecycle | `## Lifecycle` | narrative | **Yes** | Startup, shutdown, health, self-update |
+| 13 | Triggers | `## Triggers` | narrative | **Yes** | Events, schedules, messages |
+| 14 | Actions | `## Actions` | narrative | **Yes** | Message handlers |
+| 15 | Aggregation | `## Aggregation` | narrative | **Yes** | How results from agents are combined |
+| 16 | Scoring | `## Scoring` | narrative | Conditional | Required if domain produces scored reports |
+| 17 | Feedback Loop | `## Feedback Loop` | narrative | **Yes** | Continuous improvement cycle |
+| 18 | Collaboration | `## Collaboration` | narrative | **Yes** | Events, messages, agent coordination |
+| 19 | Manual Overrides | `## Manual Overrides` | narrative | **Yes** | Override policy, audit |
+| 20 | Constraints | `## Constraints` | narrative | **Yes** | Boundaries, forbidden actions, limits |
+| 21 | Error Handling | `## Error Handling` | narrative | **Yes** | Permanent and transient errors |
+| 22 | Observability | `## Observability` | narrative | **Yes** | Logs, metrics, alerts |
+| 23 | Security | `## Security` | narrative | **Yes** | Permissions, data sensitivity, access control |
+| 24 | Test Fixtures | `## Test Fixtures` | narrative | **Yes** | Happy path, errors, edge cases |
+| 25 | Scaling | `## Scaling` | narrative | **Yes** | Horizontal model, coordination |
+| 26 | Implementation Notes | `## Implementation Notes` | narrative | **Yes** | Practical guidance |
+| 27 | Verification Checklist | `## Verification Checklist` | narrative | **Yes** | Testable assertions (min 10) |
 
 ---
 

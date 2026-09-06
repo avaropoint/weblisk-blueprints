@@ -75,10 +75,8 @@ platform. It does not restate what the primitives are, what standard defines the
 or what parameters they take — those live in the blueprint that requires them, and
 a copy here would be a second normative statement free to drift from the first.
 
-A slot marked **UNFILLED** is a stated gap, not a detail. Generation for this
-platform MUST NOT proceed as though an unfilled slot were satisfied; the module or
-mechanism has to be named — and verified to exist — when the implementation is
-commissioned.
+A slot marked **UNFILLED** is a stated gap, not a detail — see
+[`schemas/platform`](../schemas/platform.md#an-unfilled-slot-is-a-stated-gap).
 
 | Primitive required by | Provided in Rust by | Status |
 |---|---|---|
@@ -363,8 +361,12 @@ blueprint's `## Endpoints` table declares the operation — `Register`, `Health`
 | Response type | `<Operation>Response` | `RegisterResponse` |
 
 No other spelling is permitted, and no symbol may be named from the path or the
-purpose. See [`schemas/common`](../schemas/common.md#declared-names). A path
-literal MUST NOT appear at a registration site, in a client, or in a test.
+purpose. See [`schemas/common`](../schemas/common.md#declared-names).
+
+The four neutral rules — no path literal, one route table, method matched by
+the router, and 405/404 as a structured `ErrorResponse` — are stated once in
+[`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys).
+What follows is only how Rust satisfies them.
 
 **One route table per component.** A component declares its routes as data —
 method, path, handler — and one function turns that table into the router,
@@ -372,10 +374,8 @@ whether that is a `match` over `(method, path)` on bare hyper or an
 `axum::Router` built from the same list. Routing MUST NOT be spread across the
 modules that define the handlers.
 
-**Method and path are matched together.** A path present with a different method
-answers `405` with an `Allow` header; an unmatched path answers `404`. Both MUST
-be a structured `ErrorResponse` carrying a registered error code — hyper's
-default is an empty body, which tells a client nothing the protocol promised.
+**Rule 4 is answered by the fallback arm** of the `match`, or by
+`axum::Router::fallback`. hyper's own default is an empty body.
 
 **Path parameters are extracted once.** A single helper reads a parameter from a
 matched pattern; handlers MUST NOT re-split `uri.path()` themselves, because two

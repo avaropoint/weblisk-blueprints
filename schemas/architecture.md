@@ -41,22 +41,23 @@ Architecture blueprints do NOT use: `kind`, `port`, `extends`, `depends_on`.
 
 ## Required Section Order
 
-| # | Section | Heading | Required | Description |
-|---|---------|---------|----------|-------------|
-| 1 | Frontmatter | `<!-- blueprint -->` | **Yes** | YAML metadata |
-| 2 | Title | `# Name` | **Yes** | Level-1 heading + summary |
-| 3 | Overview | `## Overview` | **Yes** | Scope description |
-| 4 | Dependencies | `## Dependencies` | **Yes** | Dependency contracts |
-| 5 | Architecture | `## Architecture` | **Yes** | Component diagram and responsibilities |
-| 6 | Responsibilities | `## Responsibilities` | **Yes** | What this component owns and does NOT own |
-| 7 | Endpoints | `## Endpoints` | Conditional | HTTP surface as a table, with a required `Operation` column. **Required if the component serves any** — see below |
-| 8 | Interfaces | `## Interfaces` | **Yes** | Public API surface (methods, endpoints, events) |
-| 9 | Data Flow | `## Data Flow` | **Yes** | How data moves through this component |
-| 10 | Types | `## Types` | Conditional | Data structures in YAML (if component defines types) |
-| 11 | Configuration | `## Configuration` | Optional | Component-level configuration |
-| 12 | Security | `## Security` | **Yes** | Security posture, trust model, and boundaries |
-| 13 | Implementation Notes | `## Implementation Notes` | **Yes** | Practical guidance |
-| 14 | Verification Checklist | `## Verification Checklist` | **Yes** | Testable assertions (min 5) |
+| # | Section | Heading | Form | Required | Description |
+|---|---|---|---|---|---|
+| 1 | Frontmatter | `<!-- blueprint -->` | narrative | **Yes** | YAML metadata |
+| 2 | Title | `# Name` | narrative | **Yes** | Level-1 heading + summary |
+| 3 | Overview | `## Overview` | narrative | **Yes** | Scope description |
+| 4 | Declaration | `## Declaration` | yaml:declaration | Conditional | Everything machine-read, in one block. **Required once migrated** — see `CONTRACT_BLOCK_PLAN.md` |
+| 4 | Dependencies | `## Dependencies` | yaml:requires | Conditional | Dependency contracts. **Required unless a `## Declaration` supersedes it** |
+| 5 | Architecture | `## Architecture` | narrative | **Yes** | Component diagram and responsibilities |
+| 6 | Responsibilities | `## Responsibilities` | narrative | **Yes** | What this component owns and does NOT own |
+| 7 | Endpoints | `## Endpoints` | table | Conditional | HTTP surface as a table, with a required `Operation` column. **Required if the component serves any** — see below |
+| 8 | Interfaces | `## Interfaces` | narrative | **Yes** | Public API surface (methods, endpoints, events) |
+| 9 | Data Flow | `## Data Flow` | narrative | **Yes** | How data moves through this component |
+| 10 | Types | `## Types` | yaml:types | Conditional | Data structures in YAML (if component defines types) |
+| 11 | Configuration | `## Configuration` | structured | Optional | Component-level configuration |
+| 12 | Security | `## Security` | yaml:security | **Yes** | Security posture, trust model, and boundaries |
+| 13 | Implementation Notes | `## Implementation Notes` | narrative | **Yes** | Practical guidance |
+| 14 | Verification Checklist | `## Verification Checklist` | narrative | **Yes** | Testable assertions (min 5) |
 
 ### Optional Sections
 
@@ -138,6 +139,25 @@ complete-looking with an endpoint missing.
 
 Declare endpoints here, and describe them in `## Interfaces` alongside methods
 and events if the component's consumers need more than the table carries.
+
+#### `## Declaration` supersedes `## Dependencies`
+
+A blueprint carries one or the other, never both.
+
+Both is two statements of the same dependencies, and the second is free to
+drift from the first. It is not a harmless overlap: a declaration is GENERATED
+from the section it replaces, so it reproduces that section's faults exactly —
+`architecture/orchestrator`'s declaration inherited a `ChannelEntry` binding
+sourced from `architecture/storage`, which does not declare it. Fixing one copy
+leaves the other wrong, and tooling reads both.
+
+**Remove the superseded section in the same edit that adds the declaration.** A
+migration that leaves both has added a surface rather than removed one, which is
+the opposite of the point.
+
+`## Endpoints` is NOT superseded. It stays as the human-readable HTTP surface,
+alongside the declaration's machine-readable `serves:`; they must agree, and
+that agreement is checked.
 
 #### The Operation column
 

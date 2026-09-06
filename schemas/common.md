@@ -62,6 +62,24 @@ may add additional required fields.
 | `status` | enum | no | `active` | Lifecycle status: `active`, `deprecated`, `end-of-life` |
 | `superseded_by` | string | no | — | Blueprint reference (`type/name`) that replaces this one. Required when `status` is `deprecated`. |
 | `end_of_life` | date | no | — | ISO 8601 date after which the blueprint is unsupported. Required when `status` is `end-of-life`. |
+| `adoption` | enum | no | `required` | `required` — every deployment serves this blueprint's surface. `opt-in` — only a deployment that explicitly configures it does. |
+
+#### `adoption`
+
+A blueprint that declares endpoints is normally stating a surface some component
+MUST serve, and an endpoint no component serves is a gap. Some surfaces are not
+like that: **federation exists only for communicating with other hubs, and a
+deployment that does not federate serves none of it.** That is a correct
+deployment, not an unfinished one.
+
+`adoption: opt-in` says so. It MUST be declared rather than inferred — a
+tool that treats an unserved endpoint as a gap needs to know which surfaces are
+deliberately unadopted, and the alternative is a hard-coded exemption list in
+the tooling, which is the specification moving out of the blueprints.
+
+`opt-in` does NOT weaken the contract. A deployment that adopts the surface owes
+every assertion in it. The field says whether the surface is reached, never how
+completely it must be implemented once it is.
 
 ### Type-Specific Fields
 
@@ -103,6 +121,24 @@ Blueprint trust is mutual and revocable from either direction:
 - **Publisher revocation**: A publisher can revoke a published blueprint by transitioning it to `end-of-life` with an immediate date. The marketplace MUST remove revoked blueprints from discovery. Existing consumers retain their cached copy but receive a compliance warning.
 - **Consumer revocation**: A consumer can stop trusting a blueprint by removing it from their `requires` and `extends` declarations. No notification to the publisher is required.
 - **Marketplace revocation**: A marketplace can revoke a blueprint if compliance validation fails, the publisher violates marketplace terms, or a security vulnerability is reported. Marketplace revocation is independent of publisher intent.
+
+### The mechanism is not the blueprint's to choose
+
+A `## Storage` section declares **what is stored and how it is recorded** —
+tables, the type each row is, the indexes the component's own queries need,
+relationships and retention.
+
+It declares no engine, driver or file format. That rule belongs to
+[`architecture/storage`](../architecture/storage.md), Design Principle 6 — "the
+blueprint names a contract, never a product" — and is stated there, not here.
+
+Recorded in this schema because the schema is what broke it. This construct
+carried `engine: sqlite`, `schemas/agent` listed an `engine` declaration among
+an agent's required storage fields, and six agent blueprints duly chose SQLite —
+each one complying with a schema that required what the architecture forbids.
+
+A schema that contradicts the blueprint it governs is worse than a blueprint
+that drifts, because every document written from it inherits the fault.
 
 ### Validation Rules
 
@@ -571,8 +607,6 @@ section using YAML format. Storage tables MUST reference types from the
 
 ```yaml
 storage:
-  engine: sqlite
-
   tables:
     table_name:
       source_type: TypeName
@@ -686,6 +720,131 @@ does not apply" from "this is unmet".
 7. A `###` group addressed to one component MUST begin with that component's name;
    an assertion belonging to no single component MUST NOT sit in such a group
 8. An assertion conditional on a choice MUST be written `IF <premise>: <obligation>`
+
+---
+
+## Section Form
+
+Every section is one of three **forms**, and the form is declared by the schema
+that governs the blueprint — not chosen by whoever writes the section.
+
+| Form | Written as | Chosen when | Read by |
+|---|---|---|---|
+| `narrative` | prose | there is nothing to enumerate | a person |
+| `table` | a markdown table with named columns | uniform rows of one shape | column name |
+| `yaml:<root>` | a fenced `yaml` block with that root key | nested or heterogeneous structure | a parser |
+| `yaml` | a fenced `yaml` block, root key unpinned | the structure is fixed but its root name is not | a parser |
+| `structured` | a table OR a fenced `yaml` block | the SHAPE varies by component and both are machine-readable | a parser |
+
+**The choosing rule, once:** uniform rows of the same shape are a table; nested
+or heterogeneous structure is YAML; nothing to enumerate is narrative.
+
+### Why it is declared rather than inferred
+
+The corpus was already 85% consistent — `## Dependencies` is YAML in all 79
+blueprints that have it, `## Verification Checklist` is prose in all 79,
+`## Endpoints` is a table everywhere. The convention existed; it was simply
+never written down, so nineteen sections drifted to prose in blueprints whose
+own type documents them as structured.
+
+Prose is the only form that cannot be checked. A table with a wrong column name
+fails; a YAML block with a wrong key fails; a paragraph that omits half the
+contract reads exactly like one that does not. So **structure MUST NOT be
+prose**, and the schema says which sections are structure.
+
+Declaring the form also stops a validator guessing. One that inferred the
+required construct from the first fenced block in a schema's own prose
+mis-associated `## Verification Checklist` with a `requires:` block and reported
+fifteen faults that were not faults. A `Form` column removes the inference.
+
+### The Form column
+
+Each schema's **Required Section Order** table carries a `Form` column. It is
+the whole declaration:
+
+```markdown
+| # | Section | Heading | Form | Required | Description |
+|---|---------|---------|------|----------|-------------|
+| 3 | Overview | `## Overview` | narrative | **Yes** | Scope description |
+| 7 | Endpoints | `## Endpoints` | table | Conditional | HTTP surface |
+| 12 | Security | `## Security` | yaml:security | **Yes** | Trust model and boundaries |
+```
+
+A section with no `Form` is `narrative`, so a schema that has not been updated
+imposes nothing new.
+
+`structured` is for a section whose content legitimately differs in shape
+between components. `## Configuration` is the case: the orchestrator's is a flat
+list of settings, which the choosing rule makes a table, while the gateway's is
+a nested policy tree, which the same rule makes YAML. Both are correct, and
+forcing either into the other's form would make a readable document worse.
+
+It is NOT a way to avoid deciding. The guarantee `structured` still gives is the
+one that matters: **the section is machine-readable and is not prose.** A form
+is only `structured` when the choosing rule genuinely produces different answers
+for different components — not when nobody has looked.
+
+`yaml` without a root is for the case where the shape is fixed and the KEY is
+not: an architecture blueprint's `## Configuration` is rooted at the
+component's own name — `content:`, `gateway:`, `data_security:` — so pinning it
+to any one literal would make every other component wrong. The requirement is
+that the section is parseable, not that every component chose the same word.
+
+### A form is per blueprint TYPE, not per section name
+
+`## Security` is `yaml:security` for an architecture blueprint and `narrative`
+for a platform one, because a platform states input validation and cryptography
+choices in prose while a component states a trust model a tool compares. The
+same heading legitimately takes different forms in different schemas.
+
+Measuring form corpus-wide rather than per type reported four platform
+blueprints as drifting when each was following its own schema exactly.
+
+---
+
+## Writing a Verification Checklist
+
+The `## Verification Checklist` is **prose, in every blueprint**, and stays that
+way. It is the one surface that has never drifted — a checkbox list in all 87
+blueprints that carry one — and it is what a person reads to know what a
+component owes.
+
+Two rules, and the first is not cosmetic.
+
+### An identifier MUST be backticked
+
+Type names, field names, paths, constants, commands and error codes are written
+in backticks:
+
+```markdown
+- [ ] `RegisterResponse` includes `agent_id`, `token` and `expires_at`
+- [ ] `POST /v1/register` verifies the ML-DSA-65 signature
+```
+
+**An unbackticked identifier silently disables the check that would have
+verified it.** The structural checker reads JSON keys from backticked spans
+only, so
+
+    `RegisterResponse` includes `agent_id`, `token`     → keys found, check runs
+    RegisterResponse includes agent_id, token           → no keys, check SKIPPED
+
+and the second reports nothing at all — not a failure, an absence. 35 of the 59
+route-bearing assertions in this corpus are unbackticked, which is a measurable
+part of why 95 of 132 assertions were graded by opinion rather than verified.
+
+Routes survive either form; keys do not. Backtick everything and the question
+does not arise.
+
+### An assertion states one thing, testably
+
+An assertion is a claim about the artifact that a person could check by looking.
+"The component is secure" is not one. "`GET /v1/services` answers 401 without a
+token" is.
+
+Where the claim can be checked mechanically, declare the check — in the
+blueprint's `declaration:` block, NOT in the sentence. See
+[Section Form](#section-form); the checklist stays prose and the machine-
+readable part stays in the declaration.
 
 ---
 

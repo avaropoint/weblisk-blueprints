@@ -25,6 +25,20 @@ unreachable.
 
 ---
 
+## Overview
+
+The application gateway is the **security boundary between end-user browsers
+and the agent network**. It terminates TLS, resolves sessions, evaluates policy,
+limits rate, and mediates each request to the component that serves it.
+
+It replaces a conventional web server with an edge agent that holds its own
+ML-DSA-65 identity and is subject to the same protocol as everything else it
+fronts. It serves users; it is not the administrative surface, which is a
+separate listener with a separate threat profile — see
+[`architecture/admin`](admin.md#separate-access-points-shared-services).
+
+---
+
 ## Dependencies
 
 ```yaml
@@ -937,6 +951,110 @@ The gateway's request lifecycle is fully documented in the
 
 ---
 
+## The Route Map
+
+Request mediation above is described as a step. It is a **declared map**, and it
+is the gateway's most consequential piece of data: it decides what a caller can
+reach and which version answers.
+
+### Two things that must not be one thing
+
+| | Owned by | Versioned | Changes when |
+|---|---|---|---|
+| **External route** | the tenant | no | the tenant chooses to publish a different URL |
+| **Internal target** | the serving component | yes | a new version of that surface is deployed |
+
+`/login` is a route. `/api/v1/auth/login` is a target. A caller requests the
+route and never learns the target.
+
+That separation is what makes a version change invisible to a browser. A cache
+keyed on `/login` stays warm across a version shift; a bookmark keeps working; a
+client written a year ago keeps working. Putting the version in the route makes
+every one of those a breaking change for a decision the caller had no part in.
+
+### The two internal namespaces
+
+| Prefix | Surface | Version means |
+|---|---|---|
+| `/v1/...` | the **wire protocol** — register, services, channel, health, audit | `protocol_version`, fixed by [`protocol/spec`](../protocol/spec.md#the-path-prefix-is-the-protocol-version) |
+| `/api/v{n}/...` | the **tenant's application** — auth, users, files, chat | the application API major, chosen by the tenant |
+
+They are separate namespaces because they are separate contracts with separate
+owners. A tenant that ships a breaking change to its own API moves to
+`/api/v2` without touching the protocol, and an orchestrator that moves to
+protocol 2 does not force every tenant to renumber its application.
+
+Both were `/v1` by habit, which made one prefix mean two version axes.
+
+### The map is declared, not inferred
+
+A gateway MUST declare its map, and every entry MUST carry:
+
+| Field | Purpose |
+|---|---|
+| `route` | the external path, as a caller requests it |
+| `methods` | which methods this route accepts |
+| `target` | the internal versioned path |
+| `component` | which component serves the target |
+| `operation` | the declared name, per [`schemas/common`](../schemas/common.md#declared-names) |
+
+```yaml
+routes:
+  - route: /login
+    methods: [POST]
+    target: /api/v1/auth/login
+    component: gateway
+    operation: Login
+  - route: /chat
+    methods: [POST]
+    target: /api/v1/ai/chat
+    component: assistant
+    operation: Chat
+```
+
+A route the map does not contain MUST answer `404`. There is no fall-through to
+a target derived from the request path — a gateway that constructs an internal
+target from what a caller sent has made the caller the router.
+
+### Which version answered MUST be observable
+
+A deployment serving two versions at once cannot be operated if a response does
+not say which one produced it.
+
+- Every response MUST carry the resolved target and its version in a header —
+  `X-Weblisk-Target: /api/v1/ai/chat`. It is the gateway's own header and is
+  NOT stripped by response sanitization, which removes `X-Gateway-*` and
+  `X-Agent-*`.
+- Every request log entry and span MUST record `route`, `target` and
+  `component`, so a trace answers "which version served this" without
+  inference.
+- `GET /v1/health` MUST report the application API versions the map currently
+  targets, so an operator can see the split without reading configuration.
+
+Without this, a version rollout is a change whose effect cannot be attributed:
+two versions are live, some fraction of traffic reaches each, and every
+measurement is an average over an unknown mixture.
+
+### Shifting traffic between versions
+
+Changing which version serves a route is **an edit to the map**, and that is the
+whole mechanism:
+
+- **Roll forward** — repoint a route's `target` from `/api/v1/...` to
+  `/api/v2/...`. The route is unchanged, so no caller is affected.
+- **Roll back** — repoint it back. The previous target is still registered and
+  still serving; nothing is rebuilt.
+- **Split** — a route MAY list more than one target with a weight, so a
+  fraction of traffic reaches the new version. The response header is what
+  makes the split measurable rather than merely configured.
+
+See [`patterns/versioning`](../patterns/versioning.md#concurrent-version-serving)
+for what must be true of two versions running side by side. That pattern's
+zero-downtime transition is a different mechanism — one component reloading in
+place — and it does not put two versions in service at once.
+
+---
+
 ## Verification Checklist
 
 - [ ] Gateway registers with orchestrator as an infrastructure agent with its own ML-DSA-65 identity
@@ -952,3 +1070,8 @@ The gateway's request lifecycle is fully documented in the
 - [ ] Requests to /v1/admin/* return 404 (platform admin routes are never served by the application gateway)
 - [ ] Agent failover returns 503 with Retry-After when agent is offline; session remains valid without re-authentication
 - [ ] Session store encryption uses AES-256-GCM with key derived from gateway's signing private key via HKDF
+- [ ] Every served route appears in the declared route map with a route, methods, target, component and operation; a route absent from the map answers 404 and no internal target is derived from the request path
+- [ ] The external route carries no version and the internal target does; repointing a route's target changes no URL a caller uses
+- [ ] Every response carries `X-Weblisk-Target` naming the resolved internal path, and it survives response sanitization
+- [ ] Every request log entry and span records route, target and component, so a trace names which version served it
+- [ ] `GET /v1/health` reports the application API versions the map currently targets

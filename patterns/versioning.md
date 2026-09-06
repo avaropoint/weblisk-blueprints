@@ -332,6 +332,21 @@ How a running agent transitions to a new blueprint version:
 8. Log: lifecycle.version_updated with {from, to, duration_ms}
 ```
 
+### Zero-downtime transition is not blue/green
+
+The sequence above is **one component reloading in place**: it enters
+`transitioning`, migrates, adopts the new schema, and returns to `active`. At
+every instant exactly one version is in service.
+
+That is not the same as running two versions side by side and shifting traffic
+between them, and conflating the two costs the ability to roll back: an
+in-place transition has already replaced the thing you would roll back to, so
+recovery means migrating backwards. Rollback below is that backwards migration,
+and it is strictly worse than not having moved.
+
+Use in-place transition when a change is compatible and the old version has no
+remaining callers. Use concurrent serving, below, when either is untrue.
+
 ### Transition States
 
 ```
@@ -341,6 +356,55 @@ active → transitioning → active (rollback on failure)
 
 The agent MUST NOT enter "degraded" or "unavailable" during version
 transition. All in-flight requests complete normally.
+
+---
+
+## Concurrent Version Serving
+
+Two versions of a surface in service at the same time, with traffic decided
+externally rather than by either version. This is what makes a change reversible
+without migrating anything backwards.
+
+It was specified nowhere. The pattern had in-place transition and rollback, and
+rollback of an in-place transition is a second migration under worse conditions
+than the first.
+
+### What must be true
+
+- **Both versions MUST be registered and healthy.** Neither is a standby; both
+  are serving, and both report their own version from their own health
+  endpoint.
+- **Neither version MAY assume it is the only one.** A version that migrates
+  shared state into a shape the other cannot read has ended concurrency
+  without announcing it.
+- **Shared state MUST be declared.** A component serving two versions states in
+  its own blueprint which stores are shared between them and which are not. An
+  undeclared shared store is the fault that turns a reversible change into an
+  irreversible one.
+- **Traffic MUST be decided by the route map**, not by either version inspecting
+  the request. See
+  [`architecture/gateway`](../architecture/gateway.md#the-route-map): the
+  external route is unchanged and the target is repointed.
+- **Which version answered MUST be observable** on every response and in every
+  trace. Two versions live with no way to attribute a response is a rollout
+  whose effect cannot be measured.
+
+### Reversing it
+
+Repoint the route map. No migration runs, no schema is rewritten, and the
+previous version has been serving throughout — so recovery is the same
+operation as the rollout, in the other direction.
+
+A version MAY be retired only when the map sends it no traffic and its
+retirement has been announced. Retiring a version the map still targets is an
+outage, not a cleanup.
+
+### When it does not apply
+
+A **wire protocol** major bump is concurrent serving at two prefixes —
+`/v1` and `/v2` — and [`protocol/spec`](../protocol/spec.md#the-path-prefix-is-the-protocol-version)
+states what that requires. The prefix is the version there, because a protocol
+client composes its own paths and has no gateway mediating for it.
 
 ---
 

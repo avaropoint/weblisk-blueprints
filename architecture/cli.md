@@ -443,6 +443,33 @@ the operator is using in another window is a diagnosis nobody can act on.
 The provider that generated a hub, and the blueprint version it generated from,
 are part of that hub's provenance and MUST be recorded.
 
+**Recorded, not printed.** It was printed, so a generated hub carried no
+statement of what governed it and the question had to be reconstructed from a
+terminal scrollback. Provenance MUST be written into the artifact's own state —
+alongside the record of which files were generated — and MUST carry the time,
+each blueprint source with its revision, and the model the provider reported
+using.
+
+**A revision MUST say when the corpus was not clean.** A tenant was generated
+from a working tree with thousands of uncommitted lines and the run recorded
+`@79a5280` — a commit the content did not come from. An auditor who checks that
+commit out gets a different corpus and cannot reproduce the artifact, which is
+the one thing a provenance record exists to make possible.
+
+Uncommitted tracked changes and untracked files both count: a blueprint nobody
+has added yet still reached the model. The revision MUST carry a `-dirty`
+suffix in that case, and the run MUST say so where it prints the source, before
+generating rather than after.
+
+A revision that is wrong is worse than a revision that is absent, because it is
+acted on.
+
+**The model MUST be recorded as the provider reported it, not as configured.**
+An unset model means "the tool's default", and a tool's default is not a
+constant — so the only trustworthy answer comes from the response. Where the
+provider said nothing, the field is empty: "the provider did not say" and
+"nobody asked" are different facts.
+
 #### Generated output is untrusted
 
 A model's response is data, not instruction, and **the file paths inside it are
@@ -1787,6 +1814,8 @@ Every command that calls the orchestrator:
   stdin for piping: `weblisk approvals list --json | jq -r '.[] | select(.priority == "critical") | .id' | weblisk approvals accept --stdin`
 
 ## Verification Checklist
+- [ ] Provenance is written into the tenant's own state — time, each blueprint source with its revision, and the model the provider reported — not only printed
+- [ ] A blueprint source with uncommitted or untracked changes records a `-dirty` revision, and the run says so before generating
 
 ### Project & Development
 - [ ] `weblisk new` scaffolds a project from weblisk-templates with correct name replacement

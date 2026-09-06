@@ -224,6 +224,39 @@ different threat profiles:
 | Domain | `app.example.com` | `admin.example.com` (or `admin.internal:9443`) |
 | TLS cert | Public CA certificate | Private CA or separate public cert |
 
+#### Separate access points, shared services
+
+The table above is about **attack surface**, and only about attack surface. It
+is not two authentication systems, and it MUST NOT become two.
+
+This blueprint requires [`architecture/gateway`](gateway.md), which requires
+`patterns/auth-session`, `patterns/auth-token` and
+`patterns/user-management`. OIDC, password verification, credential storage,
+session issuance and token minting are specified once and used by both. An
+implementation MUST NOT write a second one of any of them for the admin path.
+
+What is separate is the **exposure**: a distinct listener, a distinct domain, a
+distinct certificate, no shared cookie domain and no shared session state. That
+separation exists so that capability reachable by an operator is not reachable
+from a public surface at all — not authorised-and-refused, but absent. A
+compromise of the application gateway reaches user data; it does not reach a
+listener that is not bound to the public internet.
+
+Stated because the two halves pull in opposite directions and a reader who sees
+only one half does the wrong thing with it. Read as "these are different
+systems", an implementation duplicates the auth stack and the two copies drift
+on the thing that matters most. Read as "these are the same system", an
+implementation serves both from one listener and the separation that motivated
+the whole design is gone.
+
+**Authorization is also not duplicated, and is also not shared.** The
+application gateway evaluates ABAC over a tenant's users and a tenant's
+resources. This gateway evaluates operator capabilities over the platform.
+Different subjects, different resources, deliberately non-overlapping: a grant
+held in a tenant MUST NOT project onto platform administration. Two models
+because there are two authorization domains, not because there are two
+implementations of one.
+
 ### Architecture
 
 ```
@@ -1166,6 +1199,9 @@ Admin endpoints SHOULD be rate-limited:
   X-Gateway-* headers from the admin gateway.
 
 ## Verification Checklist
+- [ ] Authentication services — OIDC, password verification, credential storage, session issuance, token minting — are used from `patterns/auth-*` and `patterns/user-management` and are not reimplemented for the admin path
+- [ ] The admin listener, domain, certificate, cookie domain and session store are all distinct from the application gateway's; nothing is shared between them
+- [ ] A grant held within a tenant confers no platform administrative capability
 - [ ] Connecting to a hub requires only its address and an operator identity — no local project directory and no recorded run state
 - [ ] A token is requested BEFORE any registration is attempted
 - [ ] A hub that refuses to register a new operator unauthenticated is reported as pending approval, naming who can act, and not as a failure

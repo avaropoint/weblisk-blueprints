@@ -97,8 +97,6 @@ extends:
   - pattern: patterns/storage
     version: ">=1.0.0 <2.0.0"
     bindings:
-      patterns:
-        - behavior: sqlite-engine
           parameters: [engine, tables, indexes, relationships, constraints]
     on_change:
       compatible: validate-and-adopt
@@ -533,8 +531,6 @@ Storage tables reference the Types section.
 
 ```yaml
 storage:
-  engine: sqlite
-
   tables:
     email_queue:
       source_type: EmailQueueEntry

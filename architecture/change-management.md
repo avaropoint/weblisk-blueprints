@@ -325,9 +325,9 @@ requires:
   - blueprint: architecture/storage
     version: ">=1.0.0 <2.0.0"
     bindings:
-      patterns:
-        - behavior: sqlite-engine
-          parameters: [engine, tables, indexes, relationships, constraints]
+      behaviors:
+        - name: durable-records
+        - name: backup-restore
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -1370,8 +1370,6 @@ The orchestrator maintains change management state:
 
 ```yaml
 storage:
-  engine: sqlite
-
   tables:
     change_records:
       source_type: ChangeRecord

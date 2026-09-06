@@ -115,8 +115,6 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       patterns:
-        - behavior: sqlite-engine
-          parameters: [engine, tables, indexes, relationships, constraints]
         - behavior: backup-restore
           parameters: [frequency, format, path]
     on_change:
@@ -443,7 +441,6 @@ here — the `source_type` key links each table to its type definition.
 
 ```yaml
 storage:
-  engine: sqlite
 
   tables:
     cron_tasks:

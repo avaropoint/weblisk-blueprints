@@ -23,6 +23,19 @@ WHAT workflows exist and WHY they run.
 
 ---
 
+## Overview
+
+The workflow agent owns the **execution engine for multi-phase work**. It
+receives `workflow.trigger`, resolves the DAG from the source domain, dispatches
+each phase as a `task.submit`, tracks execution state and publishes
+`workflow.completed` back to the invoker.
+
+It knows HOW to execute a workflow; it does not know what any workflow means.
+The definition belongs to the domain that declares it, so a new workflow is a
+domain change and never a change to this agent.
+
+---
+
 ## Dependencies
 
 ```yaml

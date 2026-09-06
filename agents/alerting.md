@@ -113,8 +113,6 @@ extends:
   - pattern: patterns/storage
     version: ">=1.0.0 <2.0.0"
     bindings:
-      patterns:
-        - behavior: sqlite-engine
           parameters: [engine, tables, indexes, relationships, constraints]
     on_change:
       compatible: validate-and-adopt
@@ -358,6 +356,30 @@ The alert event is delivered to the agent's `/task` endpoint.
 | high | Degraded service or failed workflow | Workflow failed, agent degraded, high error rate |
 | medium | Notable event requiring attention | Approval backlog, federation peer disconnect |
 | low | Informational | Agent registered, strategy completed, routine audit |
+
+---
+
+## Endpoints
+
+Beyond the six every agent serves, this agent publishes an administrative
+surface and accepts governance directives. `architecture/admin` states that the
+admin API is an aggregate — each provider specifies and serves its own — so
+these are declared here, where the component that serves them is specified.
+
+`Operation` is the declared name every generated symbol is spelled from; see
+[`schemas/common`](../schemas/common.md#declared-names) and the platform
+blueprint's mapping table.
+
+| Method | Path | Operation | Auth | Purpose |
+|--------|------|-----------|------|---------|
+| POST | /v1/governance | Governance | yes | Accept a governance directive |
+| GET | /v1/admin/alerts | AlertList | `admin:read` | List alerts, filtered and cursor-paginated |
+| GET | /v1/admin/alerts/{id} | AlertGet | `admin:read` | One alert's detail |
+| GET | /v1/admin/alerts/stats | AlertStats | `admin:read` | Alert counts over a period |
+
+The path parameter is spelled `{id}` here and `:id` in the Query API section
+below; `{id}` is the form `schemas/architecture` uses and is the one a
+generator reads.
 
 ---
 

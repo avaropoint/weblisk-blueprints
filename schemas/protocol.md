@@ -40,20 +40,20 @@ These are agent/domain-specific fields.
 
 ## Required Section Order
 
-| # | Section | Heading | Required | Description |
-|---|---------|---------|----------|-------------|
-| 1 | Frontmatter | `<!-- blueprint -->` | **Yes** | YAML metadata |
-| 2 | Title | `# Name` | **Yes** | Level-1 heading + summary |
-| 3 | Overview | `## Overview` | **Yes** | Scope description |
-| 4 | Dependencies | `## Dependencies` | **Yes** | Dependency contracts |
-| 5 | Conventions | `## Conventions` | **Yes** | Wire-level conventions (paths, content types, encoding) |
-| 6 | Endpoints | `## Endpoints` | Conditional | Required for protocols that define HTTP endpoints |
-| 7 | Types | `## Types` | **Yes** | All data structures in YAML |
-| 8 | Authentication | `## Authentication` | Conditional | Required for protocols that define auth |
-| 9 | Error Handling | `## Error Handling` | **Yes** | Error response format and codes |
-| 10 | Security | `## Security` | **Yes** | Transport security, signing, verification |
-| 11 | Implementation Notes | `## Implementation Notes` | **Yes** | Practical guidance |
-| 12 | Verification Checklist | `## Verification Checklist` | **Yes** | Testable assertions (min 5) |
+| # | Section | Heading | Form | Required | Description |
+|---|---|---|---|---|---|
+| 1 | Frontmatter | `<!-- blueprint -->` | narrative | **Yes** | YAML metadata |
+| 2 | Title | `# Name` | narrative | **Yes** | Level-1 heading + summary |
+| 3 | Overview | `## Overview` | narrative | **Yes** | Scope description |
+| 4 | Dependencies | `## Dependencies` | yaml:requires | **Yes** | Dependency contracts |
+| 5 | Conventions | `## Conventions` | narrative | **Yes** | Wire-level conventions (paths, content types, encoding) |
+| 6 | Endpoints | `## Endpoints` | narrative | Conditional | Required for protocols that define HTTP endpoints |
+| 7 | Types | `## Types` | yaml:types | **Yes** | All data structures in YAML |
+| 8 | Authentication | `## Authentication` | yaml:authentication | Conditional | Required for protocols that define auth |
+| 9 | Error Handling | `## Error Handling` | yaml:error_codes | **Yes** | Error response format and codes |
+| 10 | Security | `## Security` | yaml:security | **Yes** | Transport security, signing, verification |
+| 11 | Implementation Notes | `## Implementation Notes` | narrative | **Yes** | Practical guidance |
+| 12 | Verification Checklist | `## Verification Checklist` | narrative | **Yes** | Testable assertions (min 5) |
 
 ### Optional Sections
 

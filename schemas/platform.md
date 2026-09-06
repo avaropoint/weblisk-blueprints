@@ -44,21 +44,21 @@ describes itself — `name: go` implies `platform: go`.
 
 ## Required Section Order
 
-| # | Section | Heading | Required | Description |
-|---|---------|---------|----------|-------------|
-| 1 | Frontmatter | `<!-- blueprint -->` | **Yes** | YAML metadata |
-| 2 | Title | `# Name` | **Yes** | Level-1 heading + summary |
-| 3 | Overview | `## Overview` | **Yes** | Scope description, why this platform fits Weblisk |
-| 4 | Dependencies | `## Dependencies` | **Yes** | Dependency contracts |
-| 5 | Project Structure | `## Project Structure` | **Yes** | Directory layout for orchestrator and agents |
-| 6 | Runtime Requirements | `## Runtime Requirements` | **Yes** | Language version, dependencies, build tools |
-| 7 | Build and Run | `## Build and Run` | **Yes** | Build commands, run commands, environment setup |
-| 8 | Platform-Specific Conventions | `## Platform-Specific Conventions` | **Yes** | Language idioms, concurrency model, IO patterns |
-| 9 | Type Mapping | `## Type Mapping` | **Yes** | How schema types map to language types |
-| 10 | Security | `## Security` | **Yes** | Platform-specific security practices |
-| 11 | Testing | `## Testing` | **Yes** | Test framework, test structure, CI guidance |
-| 12 | Implementation Notes | `## Implementation Notes` | **Yes** | Practical guidance |
-| 13 | Verification Checklist | `## Verification Checklist` | **Yes** | Testable assertions (min 5) |
+| # | Section | Heading | Form | Required | Description |
+|---|---|---|---|---|---|
+| 1 | Frontmatter | `<!-- blueprint -->` | narrative | **Yes** | YAML metadata |
+| 2 | Title | `# Name` | narrative | **Yes** | Level-1 heading + summary |
+| 3 | Overview | `## Overview` | narrative | **Yes** | Scope description, why this platform fits Weblisk |
+| 4 | Dependencies | `## Dependencies` | yaml:requires | **Yes** | Dependency contracts |
+| 5 | Project Structure | `## Project Structure` | narrative | **Yes** | Directory layout for orchestrator and agents |
+| 6 | Runtime Requirements | `## Runtime Requirements` | yaml:runtime | **Yes** | Language version, dependencies, build tools |
+| 7 | Build and Run | `## Build and Run` | table | **Yes** | Build commands, run commands, environment setup |
+| 8 | Platform-Specific Conventions | `## Platform-Specific Conventions` | table | **Yes** | Language idioms, concurrency model, IO patterns |
+| 9 | Type Mapping | `## Type Mapping` | table | **Yes** | How schema types map to language types |
+| 10 | Security | `## Security` | narrative | **Yes** | Platform-specific security practices |
+| 11 | Testing | `## Testing` | narrative | **Yes** | Test framework, test structure, CI guidance |
+| 12 | Implementation Notes | `## Implementation Notes` | narrative | **Yes** | Practical guidance |
+| 13 | Verification Checklist | `## Verification Checklist` | narrative | **Yes** | Testable assertions (min 5) |
 
 ### Optional Sections
 
@@ -185,6 +185,48 @@ ONLY place a platform may decide spelling. "Follow the language's conventions"
 is not a rule two generations apply identically — casing, prefix and suffix MUST
 be written down. A platform blueprint MUST NOT introduce a name the declaring
 blueprint did not state. See [Declared Names](common.md#declared-names).
+
+#### An UNFILLED slot is a stated gap
+
+A platform blueprint maps a neutral requirement to a concrete module or
+mechanism. Where it has none, the slot is marked **UNFILLED**.
+
+Generation for that platform MUST NOT proceed as though an unfilled slot were
+satisfied. The module or mechanism has to be named — and verified to exist —
+when the implementation is commissioned.
+
+Stated here because three platform blueprints each stated it, in the same words,
+in their own Dependencies preamble. A platform blueprint MUST NOT restate it.
+
+#### The rules every platform's HTTP surface obeys
+
+These are platform-NEUTRAL and are stated here once. A platform blueprint MUST
+NOT restate them; it states only how its language satisfies them, and any
+hazard particular to its own router.
+
+They were restated. The same two sentences appeared in three and four platform
+blueprints respectively — because each was written by translating the same
+requirement again — and four copies of a rule are four things to keep in step.
+
+1. **A path literal MUST NOT appear at a registration site, in a client, or in
+   a test.** Every reader of a path reaches the same declared constant, so a
+   path is corrected in one place and a typo cannot diverge two components
+   silently.
+2. **One route table per component, in one place.** Registration MUST NOT be
+   scattered across the files that define the handlers: the table is the
+   component's HTTP surface written down, readable without executing it.
+3. **Method and path are matched together by the router**, not inside the
+   handler. A handler that branches on the method is two handlers sharing a
+   name.
+4. **A known path with a wrong method answers `405` with an `Allow` header; an
+   unmatched path answers `404`.** Both MUST be the structured `ErrorResponse`
+   with a registered error code — a framework default answers plain text where
+   the protocol promised JSON, and every client then special-cases the
+   framework we happen to use.
+
+A platform blueprint's `### The HTTP Surface` therefore contains its spelling
+table, the arrangement its language uses to satisfy 1–4, and nothing else that
+is true of all of them.
 
 `### The HTTP Surface` states how the endpoints an architecture blueprint
 declares become routes in this language. It is required for the same reason

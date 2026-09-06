@@ -171,10 +171,8 @@ platform. It does not restate what the primitives are, what standard defines the
 or what parameters they take — those live in the blueprint that requires them, and
 a copy here would be a second normative statement free to drift from the first.
 
-A slot marked **UNFILLED** is a stated gap, not a detail. Generation for this
-platform MUST NOT proceed as though an unfilled slot were satisfied; the module or
-mechanism has to be named — and verified to exist — when the implementation is
-commissioned.
+A slot marked **UNFILLED** is a stated gap, not a detail — see
+[`schemas/platform`](../schemas/platform.md#an-unfilled-slot-is-a-stated-gap).
 
 | Primitive required by | Provided in Node.js by | Status |
 |---|---|---|
@@ -653,8 +651,12 @@ blueprint's `## Endpoints` table declares the operation — `Register`, `Health`
 | Response type | `<Operation>Response` | `RegisterResponse` |
 
 No other spelling is permitted, and no symbol may be named from the path or the
-purpose. See [`schemas/common`](../schemas/common.md#declared-names). A path
-literal MUST NOT appear at a registration site, in a client, or in a test.
+purpose. See [`schemas/common`](../schemas/common.md#declared-names).
+
+The four neutral rules — no path literal, one route table, method matched by
+the router, and 405/404 as a structured `ErrorResponse` — are stated once in
+[`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys).
+What follows is only how Node satisfies them.
 
 **One registration function per component.** A single `registerRoutes(app)`
 declares every route; registration MUST NOT be spread across the modules that
@@ -666,10 +668,8 @@ running it, and adding an endpoint changes one list.
 `request.params`. A handler that branches on `request.method` is two handlers
 sharing a name.
 
-**A wrong method and an unmatched path answer in the protocol's own shape.**
-Fastify's `setNotFoundHandler` and a 405 for a known path with an unregistered
-method MUST both write a structured `ErrorResponse` carrying a registered error
-code, not the framework's default body.
+**Rule 4 is answered by `setNotFoundHandler`**, plus a 405 for a known path
+whose method is unregistered.
 
 ### Logging
 

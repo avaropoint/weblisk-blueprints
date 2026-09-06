@@ -504,6 +504,40 @@ Stated because the split is invisible in a single implementation: a component
 that holds `/register` and an origin, and a base that happens to be mounted at
 `/v1`, works until it meets an orchestrator that is not.
 
+### The path prefix IS the protocol version
+
+`/v1` in a protocol path is `protocol_version`. The same major number, in the
+URL rather than the body.
+
+Stated because it was not, and every reader had to infer it. The Conventions
+above say all paths are prefixed with `/v1`; the version disambiguation below
+says `protocol_version` is a bare major number, `"1"`. Nothing said they are
+the same number, so nothing said what happens when it is not `1`.
+
+**A wire protocol major bump MUST change the prefix.** Protocol 2 is served at
+`/v2/...`. A client that composes `origin + /v1/register` is asking for
+protocol 1 and MUST be answered by protocol 1 or refused — never by protocol 2
+at the same path, which is how a client discovers a breaking change by
+misreading a response.
+
+**Both MAY be served at once, and that is the only supported way to move.** An
+orchestrator serving `/v1` and `/v2` concurrently:
+
+- MUST answer each prefix with that version's contract, including its
+  `protocol_version` field — `GET /v1/health` reports `"1"` and `GET /v2/health`
+  reports `"2"`, from the same process
+- MUST NOT share state whose shape differs between the two, and MUST state in
+  its own blueprint which stores are shared
+- MUST report both in the service directory, so a client can see what is
+  available rather than probing
+- MAY stop serving the older prefix only after announcing it; removal is a
+  breaking change to every client still using it
+
+This is the protocol surface only. A tenant's own application surface versions
+independently — see
+[`architecture/gateway`](../architecture/gateway.md#the-route-map), which owns
+the mapping between what a caller requests and what serves it.
+
 ### Signing input
 
 The bytes a signature covers are `canonicalize(manifest)` where the manifest is
