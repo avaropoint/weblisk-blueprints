@@ -24,6 +24,19 @@ full lifecycle specification.
 
 ---
 
+## Overview
+
+The lifecycle agent owns a tenant's **continuous optimisation loop**. It holds
+strategies, entity context, observations, recommendations, approvals, feedback
+and per-agent metrics, and it subscribes globally — `scope: "*"` — so it sees
+workflow completions across the whole hub rather than one domain's.
+
+It observes and proposes; it does not act. A recommendation becomes a change
+only through the approval path, which is why this agent may watch everything
+without being able to alter anything on its own.
+
+---
+
 ## Dependencies
 
 ```yaml

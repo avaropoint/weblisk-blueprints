@@ -16,6 +16,19 @@ only the custom logic (Execute + HandleMessage).
 
 ---
 
+## Overview
+
+The blueprint every agent is built on, regardless of language or platform. It
+specifies the protocol endpoints an agent serves, how it registers with the
+orchestrator, how it sends and receives messages, and how it starts and stops.
+
+An agent author implements two things — `Execute` and `HandleMessage` — and
+inherits the rest. That split is the point: the framework owns everything that
+must be identical across agents for them to interoperate, and the author owns
+only what makes this agent different.
+
+---
+
 ## Dependencies
 
 ```yaml

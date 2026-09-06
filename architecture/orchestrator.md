@@ -20,97 +20,273 @@ register like any other agent.
 
 ---
 
-## Dependencies
+## Overview
+
+The orchestrator is a tenant's **trust anchor and directory**. It admits agents,
+verifies who they are, records which namespaces they own, tells every agent what
+else exists, brokers direct channels between them, and keeps the audit trail of
+all of it.
+
+It is deliberately small. It does not execute work, hold application data, serve
+browsers or authenticate end users — those belong to agents, to storage, and to
+the gateway. What it owns is the answer to one question: **who is here, what may
+they do, and who says so.**
+
+Exactly one runs per tenant. Everything else in a tenant registers with it, and
+a tenant with no orchestrator has no way to know what it contains.
+
+---
+
+## Declaration
+
+Everything a generator or validator reads about this component that was
+previously scattered across headings, tables and YAML blocks in three different
+shapes. The rest of this document is prose for a person.
+
+Named `declaration` rather than `contract`: "contract" already means four
+distinct things in this corpus — data contracts (`patterns/contract`), behaviour
+contracts (`## Contracts`, in 43 blueprints), `contract_schema` in
+change-management, and dependency contracts. A fifth meaning would be the
+ambiguity this block exists to remove.
+
+The `## Verification Checklist` stays in prose, here and in every blueprint. It
+is the one surface that was never scattered.
+
+See [`CONTRACT_BLOCK_PLAN.md`](../CONTRACT_BLOCK_PLAN.md) for why, and for what
+this replaces.
 
 ```yaml
-requires:
-  - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: SigningKeyPair
-          fields_used: [public_key, private_key]
-        - name: SignatureVerification
-          fields_used: [verify_signature, check_replay]
-        - name: WLToken
-          fields_used: [sub, iss, iat, exp, cap]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: RegisterRequest
-          fields_used: [manifest, signature, timestamp]
-        - name: RegisterResponse
-          fields_used: [agent_id, token, expires_at, services]
-        - name: ServiceDirectory
-          fields_used: [services, routing_table, namespaces]
-        - name: ChannelRequest
-          fields_used: [from_agent, to_agent, purpose]
-        - name: ChannelGrant
-          fields_used: [channel_id, channel_token, target_url, target_pub_key]
-        - name: AgentManifest
-          fields_used: [name, type, version, url, public_key, capabilities, publishes, subscriptions]
-        - name: AuditEntry
-          fields_used: [id, timestamp, actor, action, target, detail, status]
-        - name: Capability
-          fields_used: [name, resources]
-        - name: Operator
-          fields_used: [name, public_key, role, status, created_at]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/storage
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        # The four stores this component owns, and nothing else.
-        # architecture/storage documents fourteen; the other ten belong to the
-        # Lifecycle, Workflow and Task agents and to the Gateway.
-        - name: AgentEntry
-          fields_used: [manifest, agent_id, status, registered_at, last_seen]
-        - name: ChannelEntry
-          fields_used: [channel_id, from_agent, to_agent, expires_at]
-        - name: AuditFilter
-          fields_used: [actor, action, since, cursor, limit]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/observability
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: HealthStatus
-          fields_used: [status, name, version, uptime]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  # The orchestrator serves the operator surface, so it is answerable for the
-  # flows architecture/admin specifies. Bound at behaviour granularity because
-  # what it must get right is a sequence and a signing input, not a field list:
-  # the orchestrator was generated WITHOUT this contract, chose its own
-  # registration signature payload, and refused every client that chose the
-  # other one.
-  - blueprint: architecture/admin
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      behaviors:
-        - name: operator-registration
-        - name: registration-signing-input
-        - name: first-operator-auto-approval
-        - name: operator-token-issuance
-        - name: operator-roles
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
+declaration:
+  requires:
+    - blueprint: protocol/identity
+      version: ">=1.0.0 <2.0.0"
+      bindings:
+        types:
+          - name: SigningKeyPair
+            fields_used: [public_key, private_key]
+          - name: SignatureVerification
+            fields_used: [verify_signature, check_replay]
+          - name: WLToken
+            fields_used: [sub, iss, iat, exp, cap]
+      on_change:
+        compatible: validate-and-adopt
+        breaking: version-bump
+        removed: halt-immediately
+    - blueprint: protocol/types
+      version: ">=1.0.0 <2.0.0"
+      bindings:
+        types:
+          - name: RegisterRequest
+            fields_used: [manifest, signature, timestamp]
+          - name: RegisterResponse
+            fields_used: [agent_id, token, expires_at, services]
+          - name: ServiceDirectory
+            fields_used: [services, routing_table, namespaces]
+          - name: ChannelRequest
+            fields_used: [from_agent, to_agent, purpose]
+          - name: ChannelGrant
+            fields_used: [channel_id, channel_token, target_url, target_pub_key]
+          - name: AgentManifest
+            fields_used: [name, type, version, url, public_key, capabilities, publishes, subscriptions]
+          - name: AuditEntry
+            fields_used: [id, timestamp, actor, action, target, detail, status]
+          - name: ChannelEntry
+            fields_used: [channel_id, from_agent, to_agent, expires_at]
+          - name: Capability
+            fields_used: [name, resources]
+          - name: Operator
+            fields_used: [name, public_key, role, status, created_at]
+      on_change:
+        compatible: validate-and-adopt
+        breaking: version-bump
+        removed: halt-immediately
+    - blueprint: architecture/storage
+      version: ">=1.0.0 <2.0.0"
+      bindings:
+        types:
+          - name: AgentEntry
+            fields_used: [manifest, agent_id, status, registered_at, last_seen]
+          - name: AuditFilter
+            fields_used: [actor, action, since, cursor, limit]
+      on_change:
+        compatible: validate-and-adopt
+        breaking: version-bump
+        removed: halt-immediately
+    - blueprint: architecture/observability
+      version: ">=1.0.0 <2.0.0"
+      bindings:
+        types:
+          - name: HealthStatus
+            fields_used: [status, name, version, uptime]
+      on_change:
+        compatible: validate-and-adopt
+        breaking: version-bump
+        removed: halt-immediately
+    - blueprint: architecture/admin
+      version: ">=1.0.0 <2.0.0"
+      bindings:
+        behaviors:
+          - name: operator-registration
+          - name: registration-signing-input
+          - name: first-operator-auto-approval
+          - name: operator-token-issuance
+          - name: operator-roles
+      on_change:
+        compatible: validate-and-adopt
+        breaking: version-bump
+        removed: halt-immediately
+  serves:
+    - method: POST
+      path: "/v1/register"
+      operation: Register
+      auth: "identity"
+    - method: DELETE
+      path: "/v1/register"
+      operation: Deregister
+      auth: "token"
+    - method: GET
+      path: "/v1/services"
+      operation: Services
+      auth: "token"
+    - method: POST
+      path: "/v1/channel"
+      operation: Channel
+      auth: "token"
+    - method: POST
+      path: "/v1/rotate-key"
+      operation: RotateKey
+      auth: "token"
+    - method: GET
+      path: "/v1/health"
+      operation: Health
+      auth: "identity"
+    - method: GET
+      path: "/v1/audit"
+      operation: Audit
+      auth: "token"
+    - method: POST
+      path: "/v1/admin/operators/register"
+      operation: OperatorRegister
+      auth: "none"
+    - method: POST
+      path: "/v1/admin/operators/token"
+      operation: OperatorToken
+      auth: "none"
+    - method: GET
+      path: "/v1/admin/operators"
+      operation: OperatorList
+      auth: "admin:*"
+    - method: GET
+      path: "/v1/admin/operators/{name}"
+      operation: OperatorGet
+      auth: "admin:read"
+    - method: DELETE
+      path: "/v1/admin/operators/{name}"
+      operation: OperatorDelete
+      auth: "admin:*"
+    - method: PUT
+      path: "/v1/admin/operators/{name}/role"
+      operation: OperatorRole
+      auth: "admin:*"
+    - method: GET
+      path: "/v1/admin/agents"
+      operation: AdminAgentList
+      auth: "admin:read"
+    - method: GET
+      path: "/v1/admin/agents/{name}"
+      operation: AdminAgentGet
+      auth: "admin:read"
+    - method: POST
+      path: "/v1/admin/agents/{name}/deregister"
+      operation: AdminAgentDeregister
+      auth: "admin:*"
+    - method: GET
+      path: "/v1/admin/overview"
+      operation: AdminOverview
+      auth: "admin:read"
+  checks:
+    - check: no-path-literals
+      subject: route registration
+      why: Every routed path is a Path<Operation> constant, so a path is corrected in one place
+    - check: no-method-less-pattern
+      subject: route registration
+      why: net/http panics at startup when a method-less pattern sits beside a wildcard sibling
+    - check: endpoint-routed
+      endpoint: POST /v1/register
+    - check: endpoint-routed
+      endpoint: POST /v1/admin/operators/token
+    - check: endpoint-routed
+      endpoint: GET /v1/health
+    - check: type-has-keys
+      type: RegisterResponse
+      keys: [agent_id, token, expires_at, services, orchestrator, protocol_version]
+    - check: type-has-keys
+      type: ChannelGrant
+      keys: [channel_id, channel_token, target_url, target_pub_key, expires_at]
+    - check: error-codes-registered
+      subject: the central error registry
+      why: Every status lookup for an unregistered code falls through to 500
+    - check: starts-unattended
+      subject: the built binary
+      why: A hub that prompts for a passphrase dies on EOF and never binds its port
 ```
+
+---
+
+## Architecture
+
+```
+                        ┌─────────────────────────────┐
+   agents ──register──▶ │        Orchestrator         │
+          ──services──▶ │                             │
+          ──channel───▶ │  ┌───────────────────────┐  │
+                        │  │ Auth middleware       │  │  every endpoint except
+   operators ─token───▶ │  │  token → capabilities │  │  /v1/health and
+             ─admin ──▶ │  └───────────┬───────────┘  │  the two that issue
+                        │              │              │  credentials
+                        │  ┌───────────▼───────────┐  │
+                        │  │ Registry              │  │  agents, namespaces,
+                        │  │  identity · ownership │  │  routing table
+                        │  └───────────┬───────────┘  │
+                        │  ┌───────────▼───────────┐  │
+                        │  │ Publisher             │  │  system.* events,
+                        │  │  topic → subscribers  │  │  directory broadcast
+                        │  └───────────┬───────────┘  │
+                        │  ┌───────────▼───────────┐  │
+                        │  │ Audit log (chained)   │  │
+                        │  └───────────────────────┘  │
+                        └──────────────┬──────────────┘
+                                       │
+                              ┌────────▼────────┐
+                              │ Storage         │   architecture/storage
+                              │  the stores it  │   — only the stores this
+                              │  owns, and no   │     component owns
+                              │  others         │
+                              └─────────────────┘
+```
+
+**Auth middleware** resolves a token to capabilities and refuses a request the
+endpoint's declared capability does not permit. It sits in front of everything
+except `GET /v1/health`, `POST /v1/register` — where the manifest signature is
+the credential — and `POST /v1/admin/operators/token`, which is what issues
+tokens and therefore cannot require one.
+
+**Registry** holds agent records, namespace ownership and the routing table. It
+records; it does not decide policy. Whether a claim is permitted is the
+registration flow's decision, so that the orchestrator can claim `system.*`
+through the same store that refuses it to an agent.
+
+**Publisher** resolves a topic to subscribers by pattern and scope, delivers by
+`POST /v1/event` with backoff, and dead-letters on exhaustion. Delivery is
+fire-and-forget: a failure is logged and never blocks the operation that
+emitted the event.
+
+**Audit log** chains each entry to the digest of the previous one.
+
+The orchestrator owns exactly the stores `architecture/storage` assigns it —
+agent registry, audit log, channels and namespace registry — and implements no
+others. An orchestrator that grew an agent's persistence layer would put a
+component's data behind the trust anchor's identity.
 
 ---
 
@@ -187,6 +363,64 @@ namespace count, audit depth, health. Figures owned by components that are not
 deployed MUST be reported **unavailable**, never zero. An empty workflow list and
 an absent workflow engine are different facts, and a console that renders them
 identically tells an operator the system is quiet when it is simply not there.
+
+---
+
+## Interfaces
+
+What other components consume, beyond the HTTP surface declared above.
+
+**Consumed by every agent** — registration, the service directory, and channel
+brokering. An agent needs no other interface to participate: it registers, is
+told what exists, and reaches its peers directly.
+
+**Consumed by the administrative surface** — operator records, agent detail and
+the audit trail. `architecture/admin` composes these behind one operator console
+and adds none of its own state.
+
+**Published as events** — the `system.*` namespace, which the orchestrator owns
+exclusively. An agent learns that another registered, deregistered or rotated a
+key by subscribing, never by polling.
+
+**Not offered:** no query interface over another component's data, no execution
+interface, and no interface that returns a credential belonging to somebody
+else.
+
+---
+
+## Data Flow
+
+```
+REGISTRATION          agent → POST /v1/register
+                        → verify signature over the manifest as received
+                        → check replay window
+                        → refuse reserved namespaces, refuse conflicts
+                        → store agent, claim namespaces, build routes
+                        → audit, mint token
+                        → publish system.agent.registered
+                        → broadcast the directory to every agent
+
+DISCOVERY             agent → GET /v1/services
+                        → auth middleware resolves token to capabilities
+                        → directory filtered to what the caller may see
+                        → routing table and namespace ownership returned
+
+CHANNEL               agent → POST /v1/channel
+                        → verify from_agent matches the token subject
+                        → require agent:message
+                        → mint a scoped channel token
+                        → audit, return the grant
+                        → the two agents then talk DIRECTLY, not through here
+
+EVENT                 orchestrator → POST /v1/event on each subscriber
+                        → topic matched against the routing table
+                        → scope filtered per subscription
+                        → delivered with backoff, dead-lettered on exhaustion
+                        → failure is logged, never blocking the emitter
+```
+
+Every path that changes state writes an audit entry chained to the previous
+one, and no path returns data the caller's capabilities do not permit.
 
 ---
 
@@ -540,6 +774,68 @@ types:
 
 ---
 
+## Security
+
+```yaml
+security:
+  trust_model:
+    description: |
+      The orchestrator is the tenant's trust anchor. It decides which agents
+      exist, what capabilities they hold and which namespaces they own, so a
+      compromise here is not a data exposure — it is control of the tenant.
+      It trusts nothing it has not verified: an agent is a signature over a
+      manifest, an operator is a signature over a payload, and a caller is a
+      token it issued. It holds no user credentials and no user sessions;
+      those belong to the application gateway, which is a separate listener
+      with a separate threat profile.
+
+  boundaries:
+    - boundary: Agent → Orchestrator. Identity is established by ML-DSA-65
+        signature over the manifest before any record is written; see
+        protocol/identity
+    - boundary: Operator → Orchestrator. Registration and token issuance are
+        signed and verified per architecture/admin; the orchestrator never
+        authenticates an end user
+    - boundary: Orchestrator → Agent. Events reach the URL a verified manifest
+        declared, never a URL supplied in a request
+    - boundary: Orchestrator → Storage. Only the stores architecture/storage
+        assigns to this component; an agent's data stays behind that agent's
+        identity
+    - boundary: Signing key → everything. The private key is the tenant's most
+        sensitive material and never leaves the process that loaded it
+
+  enforcement:
+    - rule: An unverified identity establishes nothing
+      mechanism: Signature verification over the manifest canonicalized as
+        received, then the replay window, both per protocol/identity — before
+        any record is written
+    - rule: The system namespace is not claimable by an agent
+      mechanism: The registration flow refuses a match with 403
+        NAMESPACE_RESERVED. The store records claims and decides nothing, so
+        the orchestrator can hold the namespace through the store that refuses
+        it to others
+    - rule: A capability is never taken from a request
+      mechanism: Role and capabilities are read from the stored record when a
+        token is minted; the request body supplies neither
+    - rule: Administration is a capability, not a position
+      mechanism: Every admin endpoint states which admin capability it
+        requires and the auth middleware checks the token for it, so an
+        administrative interface is a service holding a grant
+    - rule: A deletion from the audit log is detectable
+      mechanism: Each entry carries the digest of the previous one
+    - rule: The orchestrator serves no user-facing surface
+      mechanism: Every declared endpoint is the protocol's or administrative;
+        architecture/gateway is what browsers reach
+```
+
+**What a compromise reaches.** An agent's key reaches that agent's namespaces
+and capabilities, and no other agent's key. An operator's key reaches the
+capabilities of that operator's role. The orchestrator's signing key reaches
+every token it has issued and the ability to issue more — but not the data
+agents hold, which is theirs.
+
+---
+
 ## Implementation Notes
 
 - The orchestrator is the single entry point for agent registration; it must be the first component started
@@ -556,22 +852,22 @@ types:
 - [ ] `POST /v1/admin/operators/token` requires no bearer token — it is the endpoint that issues them
 - [ ] An operator token carries the role and capabilities from the orchestrator's own record, never from the request
 
-- [ ] POST /v1/register verifies ML-DSA-65 signature and replay protection
-- [ ] POST /v1/register enforces exclusive namespace ownership (409 on conflict)
-- [ ] POST /v1/register rejects reserved namespace claims (403)
-- [ ] POST /v1/register validates subscription scopes (event:observe for "*")
-- [ ] POST /v1/register returns RegisterResponse with agent ID, token, and service directory
-- [ ] DELETE /v1/register releases owned namespaces and routing table entries
-- [ ] Service directory includes routing_table and namespaces map
+- [ ] `POST /v1/register` verifies ML-DSA-65 signature and replay protection
+- [ ] `POST /v1/register` enforces exclusive namespace ownership (409 on conflict)
+- [ ] `POST /v1/register` rejects reserved namespace claims (403)
+- [ ] `POST /v1/register` validates subscription scopes (event:observe for "*")
+- [ ] `POST /v1/register` returns `RegisterResponse` with agent ID, token, and service directory
+- [ ] `DELETE /v1/register` releases owned namespaces and routing table entries
+- [ ] Service directory includes `routing_table` and namespaces map
 - [ ] Service directory broadcast to ALL agents after every registration/deregistration
-- [ ] POST /v1/channel verifies from_agent matches token.sub
-- [ ] POST /v1/channel requires agent:message capability (403 if missing)
+- [ ] `POST /v1/channel` verifies `from_agent` matches token.sub
+- [ ] `POST /v1/channel` requires agent:message capability (403 if missing)
 - [ ] Channel tokens expire after configured TTL
 - [ ] Auth middleware rejects unauthenticated requests on protected endpoints
-- [ ] GET /v1/health returns 200 without auth with agent/domain/channel/namespace counts
+- [ ] `GET /v1/health` returns 200 without auth with agent/domain/channel/namespace counts
 - [ ] system.agent.registered event published after successful registration
 - [ ] system.agent.deregistered event published after deregistration
-- [ ] Every operation creates an AuditEntry logged to stderr and persisted to JSONL
+- [ ] Every operation creates an `AuditEntry` logged to stderr and persisted to JSONL
 - [ ] Domain dependency status recalculated on registration/deregistration
 - [ ] Orchestrator does NOT handle tasks, strategies, context, observations, or approvals
 - [ ] Administrative endpoints are gated on `admin:` capabilities carried in the caller's token, not on a separate role model

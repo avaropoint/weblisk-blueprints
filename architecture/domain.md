@@ -22,6 +22,20 @@ pure business logic — no embedded execution engine.
 
 ---
 
+## Overview
+
+A domain controller is a tenant's **business intelligence layer** for one
+function. It owns that function's workflow definitions, entity context and
+business rules, and when something happens it publishes a `workflow.trigger`
+rather than executing anything itself.
+
+The separation is deliberate: a domain knows WHAT should happen and under which
+conditions; the workflow and task agents know HOW to run it. So a change to a
+business rule is a change to one domain, and it reaches production without
+touching the execution engine.
+
+---
+
 ## Dependencies
 
 ```yaml

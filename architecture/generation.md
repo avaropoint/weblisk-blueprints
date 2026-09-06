@@ -553,6 +553,48 @@ choice; content is not.
 | 8 | **The blueprints themselves** | The specification being implemented |
 | 9 | **The tenant's existing state** — module path, the packages already present with their exported names, and which component owns which file | A component is almost never the first thing in a tenant. Without this a generator re-declares what it could import, and names the module something the tenant is not |
 
+| 10 | **How a blueprint is read** — which sections bind, which are illustrative, and how each is parsed | A generator that sends a specification without saying how it is structured has asked the model to infer the document's own rules from the document. It infers differently each time |
+
+### How a blueprint is read
+
+A blueprint is not prose with some structure in it. Every section has a
+**form**, declared by the schema that governs its type — see
+[`schemas/common`](../schemas/common.md#section-form) — and a generator MUST
+convey what each form means:
+
+| Form | What it is | How it binds |
+|---|---|---|
+| `yaml:<root>` / `yaml` | the contract, in a fenced block | **Every key is required output.** The prose around it explains; the block specifies |
+| `table` | uniform rows, columns named in the header | **Every row is required output.** Columns are read by NAME — a column's position carries no meaning |
+| `narrative` | prose | context, EXCEPT as below |
+
+And the rule that catches what the forms do not:
+
+> **A sentence containing MUST, MUST NOT or SHALL is binding wherever it
+> appears** — including inside a narrative section, a note, or a parenthesis.
+
+That rule exists because the machine-readable parts are extracted and elevated
+into the prompt — types as bindings, endpoints as obligations, the Verification
+Checklist as acceptance criteria — while a normative sentence in a body
+paragraph reaches the model only as one line in seventy thousand tokens of
+context. "The audit log MUST be chained" is not in any table. It is still the
+specification.
+
+A generator MUST also convey what is NOT binding, or a model treats an
+illustration as a requirement:
+
+- A fenced block with **no root key** in a section whose form is `yaml:<root>`
+  is an example. The block carrying the declared root is the contract.
+- A path, name or value inside a narrative example is illustrative unless a
+  table or a `yaml` block also declares it.
+- A section a blueprint marks Optional is not required by its absence.
+
+**Where two statements disagree, the more specific document wins**: a
+component's own blueprint over a pattern it adopts, a pattern over the schema's
+example. If neither is more specific, that is a corpus fault and MUST be
+reported rather than resolved by the model — see "A name MUST come from the
+blueprint that declares it".
+
 Element 9 is a statement of FACT, not of policy — what exists, not what is
 allowed. That distinction is why it belongs in a prompt at all: the blueprints
 cannot know what a given tenant contains, and everything else in this table is

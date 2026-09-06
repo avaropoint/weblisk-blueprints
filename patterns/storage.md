@@ -334,11 +334,12 @@ indexes:
 
 ## Storage Configuration
 
-Agents declare their storage requirements:
+Agents declare their storage REQUIREMENTS. They do not choose an engine —
+[`architecture/storage`](../architecture/storage.md) Design Principle 6 states
+why, and the tenant's platform supplies the default.
 
 ```yaml
 storage:
-  engine: sqlite | postgres | memory
   tables:
     - type: <TypeName>
       retention: <duration>          # optional — auto-purge after duration

@@ -424,9 +424,10 @@ purpose. This table is the whole of the mapping so that two generations of the
 same blueprint produce the same symbols; see
 [`schemas/common`](../schemas/common.md#declared-names).
 
-A path literal MUST NOT appear at a registration site, in a client, or in a
-test: every reader of a path reaches the same constant, so a path can be
-corrected in one place and a typo cannot diverge two components silently.
+The four neutral rules — no path literal, one route table, method matched by
+the router, and 405/404 as a structured `ErrorResponse` — are stated once in
+[`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys).
+What follows is only how Go satisfies them.
 
 **One route table per component, in one function.** A component declares its
 routes as data — pattern, methods, handler — and a single `Routes()` function
@@ -441,13 +442,9 @@ patterns carry the method — `mux.HandleFunc("POST "+protocol.PathRegister, h)`
 switches on `r.Method` to decide what it is doing is two handlers sharing a
 name.
 
-**A wrong method and an unmatched path are both answered by the root handler.**
-`mux.HandleFunc("/", ...)` is registered once, and it decides between `405` with
-an `Allow` header and `404` by matching the request path against the route
-table. Both MUST write the structured `ErrorResponse` with a registered error
-code: `net/http`'s defaults answer plain text, and a client that receives
-`404 page not found` where the protocol promises JSON has to special-case the
-framework we happen to use.
+**Rule 4 is answered by the root handler.** `mux.HandleFunc("/", ...)` is
+registered once and decides between `405` and `404` by matching the request
+path against the route table.
 
 Because the root handler does the matching, it needs a segment comparison that
 understands the table's wildcards — `/v1/admin/operators/{name}` matches
@@ -603,6 +600,71 @@ a dependency level. Use a semaphore per target agent to respect
 
 ---
 
+## Evaluating a Declared Check in Go
+
+A blueprint's `declaration.checks:` names an expectation. The name is
+platform-neutral; **how it is evaluated is this platform's**, exactly as a
+declared name is neutral and its spelling is this platform's.
+
+| Check | Evaluated in Go by |
+|---|---|
+| `no-path-literals` | Walking the AST for a string literal beginning `/v` passed to `HandleFunc`, `Handle`, or assigned to a `pattern` field. A path reaches a route only through a `protocol.Path*` constant |
+| `no-method-less-pattern` | Every `HandleFunc` first argument resolves to a string beginning with a method name, or is exactly `"/"`. A bare path beside a wildcard sibling is a startup panic, not an error |
+| `endpoint-routed` | Resolving the route table's patterns — constants, local aliases and concatenation — and matching the declared `endpoint`. A pattern the resolver cannot read is reported as unread, never as absent |
+| `type-has-keys` | Parsing the named struct and comparing its `json:` tags against the declared `keys`. The tag is authority, not the field name |
+| `error-codes-registered` | Every SCREAMING_SNAKE string literal used as a code appears as a key of the central registry map. Environment variable names are excluded — they are found in `os.Getenv` calls, not guessed at by shape |
+| `starts-unattended` | Running the built binary with no terminal attached and requiring an answer on the health endpoint. It catches a mux conflict and a passphrase prompt, and neither is visible in source review |
+
+A check this platform cannot evaluate is reported as **unevaluated**, never as
+passed. "We did not check this" and "this is correct" are different facts, and a
+platform that conflates them makes every check it does run worth less.
+
+---
+
+## Reading a Blueprint into Go
+
+[`architecture/generation`](../architecture/generation.md#how-a-blueprint-is-read)
+says which parts of a blueprint bind. This says what each becomes in Go, so the
+step between "this is the contract" and "this is the code" is not a judgement
+made afresh on every file.
+
+| Blueprint form | Becomes | Rule |
+|---|---|---|
+| `yaml:types` — a type with fields | a `struct` in the package the plan assigns | One exported field per declared field, with a `json:` tag carrying the declared key exactly. A field the block does not declare is not added |
+| `yaml:types` — a named string enum | a `type X string` and one `const` per value | The constant's value is the declared string; the constant's name is the value in PascalCase |
+| `table` — an endpoints table | a route-table entry and a handler | Path constant, handler, request and response types all spelled from the `Operation` column per the mapping above |
+| `table` — any other | whatever the section specifies | Read by column NAME. A table that gains a column moves nothing |
+| `yaml:security` — `enforcement` | a check on the path it names | Each `rule` is a refusal that must be reachable; the `mechanism` says where it lives |
+| `yaml:contracts` — `behaviors` | the behaviour's rules, enforced | Each `rules` entry is an assertion the component owes, whether or not the Verification Checklist repeats it |
+| `narrative` | nothing, EXCEPT a MUST sentence | A MUST anywhere is binding. It is often the only statement of a rule that no table carries |
+
+### What this rules out
+
+- **A field invented because Go convention suggests it.** `CreatedAt` is not
+  added to a type whose block does not declare it. The wire shape is the
+  contract, and a struct with an extra serialised field produces a payload the
+  other end rejects.
+- **A JSON tag derived from the Go field name.** The declared key is authority;
+  `agent_id` does not become `agentId` because that is idiomatic elsewhere.
+- **An `omitempty` nobody declared.** It changes the wire shape: a required
+  field with a zero value disappears from the payload.
+- **A type placed in a package the plan did not name**, however natural the
+  grouping looks.
+
+### Where the Go type is not obvious
+
+The Primitive Mapping table above binds the protocol's primitives. Beyond it:
+
+| Declared | Go |
+|---|---|
+| an integer field with no stated width | `int64` — timestamps and counts cross the wire and must not narrow by platform |
+| an optional scalar | a pointer, so absent and zero are distinguishable |
+| a map with declared value shape | `map[string]T`, never `map[string]any` |
+| a duration | `time.Duration`, parsed from the declared unit at the boundary |
+| an opaque cursor | `string`, never decoded — the blueprint says implementations may use offsets, timestamps or encoded keys, so nothing may depend on its content |
+
+---
+
 ## Type Mapping
 
 | Schema Type | Go Type | Notes |
@@ -735,6 +797,9 @@ component. See `schemas/common.md` for what a group heading means.
 - [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` carrying a registered error code
 - [ ] 405 and 404 are decided by the single `"/"` handler matching the route table; no method-less pattern is registered anywhere — `net/http` panics at startup when one sits beside a wildcard sibling
 - [ ] The process binds its port and answers `GET /v1/health` when started with no terminal attached
+- [ ] Every struct field carries a `json:` tag matching the declared key exactly; no field is added that its type block does not declare, and no `omitempty` appears that the blueprint did not state
+- [ ] An integer field with no stated width is `int64`; an optional scalar is a pointer; a declared map is typed on its value shape and never `map[string]any`
+- [ ] A cursor is carried as an opaque string and never decoded
 
 ### Domain Controllers
 - [ ] Domain controllers use `sync.WaitGroup` + goroutines for parallel phase execution and a per-agent semaphore respecting `max_concurrent`

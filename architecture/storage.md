@@ -24,6 +24,19 @@ map this interface to concrete backends.
 
 ---
 
+## Overview
+
+The abstract storage contract for every piece of persistent data in a tenant.
+It defines WHAT must be stored, which component owns each store, and the
+operations each store provides — by name, exactly.
+
+It defines no implementation. Whether a store is a JSONL file, SQLite or a
+managed service is the platform blueprint's answer, and every backend owes the
+same operations under the same names. That is what lets a component be
+generated once and run against any of them.
+
+---
+
 ## Dependencies
 
 ```yaml
@@ -176,6 +189,65 @@ where this table says `GetAgent`, `PutAgent` and `ListAgents`.
 8. Workflow Agent records execution state to enable resumption after restart
 9. Task Agent records task lifecycle (queued → dispatched → running → completed/failed)
 10. Orchestrator appends audit entries for every registration, deregistration, and channel operation
+
+---
+
+## Contracts
+
+What a store owes, regardless of what provides it. These are the behaviours a
+component binds when it declares a dependency on this blueprint — see
+[`schemas/common`](../schemas/common.md#declared-names).
+
+Stated because they were not. Eight blueprints bound behaviours from this
+document — `sqlite-engine`, `backup-restore`, `durable-records` — and it
+declared none, so every one of those bindings resolved to nothing while reading
+as a stated dependency.
+
+```yaml
+contracts:
+  behaviors:
+    - name: durable-records
+      description: A write survives the process that made it
+      required: true
+      rules:
+        - A write MUST be readable after a restart of the component that made it
+        - A write MUST be atomic — a reader never observes a partial record
+        - The mechanism is the platform's; see Design Principle 6
+
+    - name: cursor-pagination
+      description: Every list and query is resumable
+      required: true
+      rules:
+        - Every list and query operation MUST accept a cursor and a limit
+        - A cursor MUST be opaque — implementations may use offsets, timestamps
+          or encoded keys, so no caller may decode one
+        - A cursor MUST remain valid across a restart or be refused explicitly,
+          never silently reinterpreted
+
+    - name: concurrent-access
+      description: Operations are safe under concurrent use
+      required: true
+      rules:
+        - Every operation MUST be safe for concurrent access
+        - A reader MUST NOT block a reader
+        - A component MUST NOT rely on operation ordering between callers
+
+    - name: retention
+      description: Data that has a lifetime is removed when it ends
+      required: false
+      rules:
+        - A store with a declared retention MUST remove or archive expired records
+        - Retention MUST be enforced by the store, not by each caller remembering
+        - Removal MUST be recorded where the store is audited
+
+    - name: backup-restore
+      description: A store can be captured and returned to a known state
+      required: false
+      rules:
+        - A backup MUST capture a consistent point, not a smear across writes
+        - A restore MUST return the store to exactly the captured state
+        - The format is the platform's; the guarantee is not
+```
 
 ---
 

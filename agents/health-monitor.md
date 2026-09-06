@@ -120,8 +120,6 @@ extends:
   - pattern: patterns/storage
     version: ">=1.0.0 <2.0.0"
     bindings:
-      patterns:
-        - behavior: sqlite-engine
           parameters: [engine, tables, indexes]
     on_change:
       compatible: validate-and-adopt
@@ -320,8 +318,6 @@ types:
 
 ```yaml
 storage:
-  engine: sqlite
-
   tables:
     health_snapshots:
       source_type: HealthSnapshot

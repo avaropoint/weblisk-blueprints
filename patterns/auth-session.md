@@ -182,8 +182,9 @@ Response (201 Created):
 
 Validation:
 - `email` MUST be a valid email format and unique
-- `password` MUST meet minimum length (default 8)
-- Passwords MUST be hashed with bcrypt (cost ≥ 12) or argon2id
+- `password` MUST satisfy the requirements in
+  [`patterns/user-management`](user-management.md#password-requirements), which
+  owns credential storage
 
 ### Login (POST /auth/login)
 
@@ -278,9 +279,14 @@ evicted.
 
 ### Password Storage
 
-Passwords MUST be hashed before storage. Acceptable algorithms:
-- **bcrypt** with cost ≥ 12
-- **argon2id** with recommended parameters
+Owned by [`patterns/user-management`](user-management.md#password-requirements),
+which specifies the algorithms, their parameters and the handling rules.
+
+This pattern owns **sessions** — issuing, validating, renewing and revoking
+them. It does not own credentials, and it stated the hashing rule twice: once
+here and once in its registration validation, while user-management stated it a
+third time. Three copies of one requirement are three things to keep in step,
+and the first to be updated alone is the one an implementation follows.
 
 Plaintext passwords MUST NEVER be stored or logged.
 

@@ -69,10 +69,8 @@ platform. It does not restate what the primitives are, what standard defines the
 or what parameters they take — those live in the blueprint that requires them, and
 a copy here would be a second normative statement free to drift from the first.
 
-A slot marked **UNFILLED** is a stated gap, not a detail. Generation for this
-platform MUST NOT proceed as though an unfilled slot were satisfied; the module or
-mechanism has to be named — and verified to exist — when the implementation is
-commissioned.
+A slot marked **UNFILLED** is a stated gap, not a detail — see
+[`schemas/platform`](../schemas/platform.md#an-unfilled-slot-is-a-stated-gap).
 
 | Primitive required by | Provided on Workers by | Status |
 |---|---|---|
@@ -206,19 +204,21 @@ blueprint's `## Endpoints` table declares the operation — `Register`, `Health`
 | Response schema | `<operation>Response` | `registerResponse` |
 
 No other spelling is permitted, and no symbol may be named from the path or the
-purpose. See [`schemas/common`](../schemas/common.md#declared-names). A path
-literal MUST NOT appear in a comparison, a client, or a test.
+purpose. See [`schemas/common`](../schemas/common.md#declared-names).
+
+The four neutral rules — no path literal, one route table, method matched by
+the router, and 405/404 as a structured `ErrorResponse` — are stated once in
+[`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys).
+What follows is only how a Worker satisfies them.
 
 **One route table, one dispatcher.** The Worker declares its routes as an array
 of `{ method, path, handler }` and a single `routes()` function matches the
 incoming request against it. `fetch` looks up and delegates; it MUST NOT
 contain the routing decisions.
 
-**Method and path are matched together.** A path present with a different method
-answers `405` with an `Allow` header; an unmatched path answers `404`. Both MUST
-be a structured `ErrorResponse` with a registered error code — a Worker that
-returns the runtime's default text where the protocol promises JSON forces every
-client to special-case it.
+**Rule 4 is answered by the dispatcher.** When no `{method, path}` entry
+matches, it distinguishes "this path exists under another method" from "no such
+path" by consulting the same table.
 
 ### LLM Integration
 - Use Cloudflare Workers AI binding for built-in models

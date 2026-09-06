@@ -41,19 +41,19 @@ Patterns are extended by others — they do not extend other patterns
 
 ## Required Section Order
 
-| # | Section | Heading | Required | Description |
-|---|---------|---------|----------|-------------|
-| 1 | Frontmatter | `<!-- blueprint -->` | **Yes** | YAML metadata |
-| 2 | Title | `# Name` | **Yes** | Level-1 heading + summary |
-| 3 | Overview | `## Overview` | **Yes** | Scope description |
-| 4 | Dependencies | `## Dependencies` | **Yes** | Dependency contracts |
-| 5 | Design Principles | `## Design Principles` | **Yes** | Core design decisions (numbered list) |
-| 6 | Contracts | `## Contracts` | **Yes** | Behaviors that extenders inherit |
-| 7 | Types | `## Types` | Conditional | Data structures in YAML (if pattern defines types) |
-| 8 | Configuration | `## Configuration` | Optional | Default config extenders may override |
-| 9 | Error Handling | `## Error Handling` | Optional | Error patterns extenders inherit |
-| 10 | Implementation Notes | `## Implementation Notes` | **Yes** | Practical guidance |
-| 11 | Verification Checklist | `## Verification Checklist` | **Yes** | Testable assertions (min 5) |
+| # | Section | Heading | Form | Required | Description |
+|---|---|---|---|---|---|
+| 1 | Frontmatter | `<!-- blueprint -->` | narrative | **Yes** | YAML metadata |
+| 2 | Title | `# Name` | narrative | **Yes** | Level-1 heading + summary |
+| 3 | Overview | `## Overview` | narrative | **Yes** | Scope description |
+| 4 | Dependencies | `## Dependencies` | yaml:requires | **Yes** | Dependency contracts |
+| 5 | Design Principles | `## Design Principles` | narrative | **Yes** | Core design decisions (numbered list) |
+| 6 | Contracts | `## Contracts` | yaml:contracts | **Yes** | Behaviors that extenders inherit |
+| 7 | Types | `## Types` | yaml:types | Conditional | Data structures in YAML (if pattern defines types) |
+| 8 | Configuration | `## Configuration` | structured | Optional | Default config extenders may override |
+| 9 | Error Handling | `## Error Handling` | table | Optional | Error patterns extenders inherit |
+| 10 | Implementation Notes | `## Implementation Notes` | narrative | **Yes** | Practical guidance |
+| 11 | Verification Checklist | `## Verification Checklist` | narrative | **Yes** | Testable assertions (min 5) |
 
 ### Optional Sections
 

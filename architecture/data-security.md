@@ -34,6 +34,20 @@ security only.
 
 ---
 
+## Overview
+
+How the framework secures data **as it moves** between agents, orchestrators,
+gateways and federated peers: encrypted channels, verified identity at every
+hop, and the boundaries a payload may not cross.
+
+It specifies TRANSPORT and BOUNDARY security — what the framework provides by
+default. What a tenant's data *means*, who may see it and how long it is kept
+are classification and policy questions answered by `patterns/scope` and the
+enforcement layer. Confusing the two produces a deployment that encrypts
+everything and authorises nothing.
+
+---
+
 ## Dependencies
 
 ```yaml

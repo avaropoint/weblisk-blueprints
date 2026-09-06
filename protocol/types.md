@@ -1888,6 +1888,81 @@ blueprint binds the names in it.**
 
 ## Audit
 
+### Operator
+
+A person or service admitted to administer this tenant. Declared here because
+`architecture/orchestrator` binds it and `architecture/admin` specifies its
+lifecycle — and until now no blueprint defined it, so every implementation
+inferred its shape from the `fields_used` list of whoever bound it.
+
+```yaml
+types:
+  Operator:
+    fields:
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "Unique within the tenant. Lowercase letters, digits, dash and underscore, starting with a letter"
+      public_key:
+        name: PublicKey
+        type: string
+        required: true
+        description: "Base64url-encoded ML-DSA-65 public key. The credential — an operator holds no password"
+      role:
+        name: Role
+        type: OperatorRole
+        required: true
+        description: "Determines capabilities. Capabilities are derived from the role and never stored per operator"
+      status:
+        name: Status
+        type: OperatorStatus
+        required: true
+        description: "Whether this operator may obtain a token"
+      created_at:
+        name: CreatedAt
+        type: int64
+        required: true
+        description: "Unix epoch seconds when the record was written"
+      last_seen:
+        name: LastSeen
+        type: int64
+        required: false
+        description: "Unix epoch seconds of the most recent token issued to this operator"
+```
+
+### OperatorRole
+
+```yaml
+types:
+  OperatorRole:
+    kind: enum
+    base: string
+    values:
+      - value: viewer
+        description: "Read the administrative surface"
+      - value: auditor
+        description: "Viewer, plus the full audit trail"
+      - value: admin
+        description: "Every administrative capability, including admitting and removing operators"
+```
+
+### OperatorStatus
+
+```yaml
+types:
+  OperatorStatus:
+    kind: enum
+    base: string
+    values:
+      - value: pending
+        description: "Registered and awaiting an existing admin. No token is issued"
+      - value: approved
+        description: "May obtain a token"
+      - value: revoked
+        description: "Retained for the audit trail. No token is issued, and the name is not reusable"
+```
+
 ### AuditEntry
 
 ```yaml

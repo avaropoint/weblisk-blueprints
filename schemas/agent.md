@@ -51,30 +51,31 @@ Agent blueprints MUST include these sections in this exact order.
 Sections marked Optional may be omitted but if present must appear
 at the listed position.
 
-| # | Section | Heading | Required | Description |
-|---|---------|---------|----------|-------------|
-| 1 | Frontmatter | `<!-- blueprint -->` | **Yes** | YAML metadata in HTML comment |
-| 2 | Title | `# Name` | **Yes** | Level-1 heading + summary paragraph |
-| 3 | Overview | `## Overview` | **Yes** | 2–5 sentence scope description |
-| 4 | Dependencies | `## Dependencies` | **Yes** | Full YAML dependency contracts |
-| 5 | Configuration | `## Configuration` | **Yes** | Runtime parameters in YAML |
-| 6 | Types | `## Types` | **Yes** | Data structures in YAML |
-| 7 | Storage | `## Storage` | Conditional | Required if agent persists data |
-| 8 | State Machine | `## State Machine` | **Yes** | Agent and entity state transitions |
-| 9 | Lifecycle | `## Lifecycle` | **Yes** | Startup, shutdown, health, self-update |
-| 10 | Triggers | `## Triggers` | **Yes** | Events, schedules, messages that activate the agent |
-| 11 | Actions | `## Actions` | **Yes** | Message handlers with full specs |
-| 12 | Execute Workflow | `## Execute Workflow` | **Yes** | Core processing loop |
-| 13 | Collaboration | `## Collaboration` | **Yes** | Events published/subscribed, direct messages |
-| 14 | Manual Overrides | `## Manual Overrides` | **Yes** | Override policy, levels, audit |
-| 15 | Constraints | `## Constraints` | **Yes** | Blast radius, forbidden actions, resource limits |
-| 16 | Error Handling | `## Error Handling` | **Yes** | Permanent and transient errors |
-| 17 | Observability | `## Observability` | **Yes** | Logs, metrics, alerts |
-| 18 | Security | `## Security` | **Yes** | Permissions, data sensitivity, access control |
-| 19 | Test Fixtures | `## Test Fixtures` | **Yes** | Happy path, error cases, edge cases |
-| 20 | Scaling | `## Scaling` | **Yes** | Horizontal model, coordination, blue-green |
-| 21 | Implementation Notes | `## Implementation Notes` | **Yes** | Practical guidance |
-| 22 | Verification Checklist | `## Verification Checklist` | **Yes** | Testable assertions (min 10) |
+| # | Section | Heading | Form | Required | Description |
+|---|---|---|---|---|---|
+| 1 | Frontmatter | `<!-- blueprint -->` | narrative | **Yes** | YAML metadata in HTML comment |
+| 2 | Title | `# Name` | narrative | **Yes** | Level-1 heading + summary paragraph |
+| 3 | Overview | `## Overview` | narrative | **Yes** | 2–5 sentence scope description |
+| 4 | Dependencies | `## Dependencies` | yaml:requires | **Yes** | Full YAML dependency contracts |
+| 5 | Configuration | `## Configuration` | yaml:config | **Yes** | Runtime parameters in YAML |
+| 6 | Types | `## Types` | yaml:types | **Yes** | Data structures in YAML |
+| 7 | Storage | `## Storage` | yaml:storage | Conditional | Required if agent persists data |
+| 8 | Endpoints | `## Endpoints` | table | Conditional | HTTP surface beyond the six protocol endpoints. **Required if the agent serves any** — same shape and rules as `schemas/architecture.md` |
+| 9 | State Machine | `## State Machine` | yaml:state_machine | **Yes** | Agent and entity state transitions |
+| 10 | Lifecycle | `## Lifecycle` | yaml:health | **Yes** | Startup, shutdown, health, self-update |
+| 11 | Triggers | `## Triggers` | yaml:triggers | **Yes** | Events, schedules, messages that activate the agent |
+| 12 | Actions | `## Actions` | narrative | **Yes** | Message handlers with full specs |
+| 13 | Execute Workflow | `## Execute Workflow` | narrative | **Yes** | Core processing loop |
+| 14 | Collaboration | `## Collaboration` | yaml:events_published | **Yes** | Events published/subscribed, direct messages |
+| 15 | Manual Overrides | `## Manual Overrides` | yaml:override_policy | **Yes** | Override policy, levels, audit |
+| 16 | Constraints | `## Constraints` | yaml:constraints | **Yes** | Blast radius, forbidden actions, resource limits |
+| 17 | Error Handling | `## Error Handling` | yaml:errors | **Yes** | Permanent and transient errors |
+| 18 | Observability | `## Observability` | table | **Yes** | Logs, metrics, alerts |
+| 19 | Security | `## Security` | yaml:security | **Yes** | Permissions, data sensitivity, access control |
+| 20 | Test Fixtures | `## Test Fixtures` | yaml:tests | **Yes** | Happy path, error cases, edge cases |
+| 21 | Scaling | `## Scaling` | yaml:scaling | **Yes** | Horizontal model, coordination, blue-green |
+| 22 | Implementation Notes | `## Implementation Notes` | narrative | **Yes** | Practical guidance |
+| 23 | Verification Checklist | `## Verification Checklist` | narrative | **Yes** | Testable assertions (min 10) |
 
 ### Optional Sections
 
@@ -121,6 +122,26 @@ config:
 
 See [common.md](common.md) Configuration Section for full specification.
 
+### Endpoints (`## Endpoints`)
+
+**Required if the agent serves HTTP beyond the six protocol endpoints** that
+`architecture/agent` gives every agent (`/v1/describe`, `/v1/execute`,
+`/v1/health`, `/v1/message`, `/v1/services`, `/v1/event`). Those six are the
+protocol's and are not restated here.
+
+Same table, same required `Operation` column, and the same rules — defined once
+in [`schemas/architecture.md`](architecture.md#endpoints-endpoints). A serving
+component is a serving component: an agent that publishes an administrative
+surface declares it exactly as a component in `architecture/` does, or the two
+schemas disagree about the same question and tooling has to know which kind of
+file it is reading.
+
+`agents/alerting` declared `/v1/admin/alerts` in a table under another heading,
+so nothing read it as served — and the endpoint appeared to be specified by
+nobody. `architecture/admin` says the admin API is an aggregate and each
+provider serves its own, so the agent IS the serving component and must say so
+where it can be found.
+
 ### Types (`## Types`)
 
 All data structures the agent defines. See [common.md](common.md) Types Section
@@ -138,7 +159,6 @@ Required if the agent persists any data. See [common.md](common.md) Storage Sect
 for the complete structure.
 
 Must include:
-- `engine` declaration
 - `tables` with `source_type` references to Types section
 - `indexes` for every query pattern used in Actions and Execute Workflow
 - `relationships` between tables
@@ -802,7 +822,6 @@ types:
 
 ```yaml
 storage:
-  engine: sqlite
 
   tables:
     # table_name:

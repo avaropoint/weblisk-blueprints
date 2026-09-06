@@ -25,6 +25,19 @@ Agent blueprint.
 
 ---
 
+## Overview
+
+The continuous optimisation loop: **strategy, observation, recommendation,
+execution, measurement**, and back to strategy.
+
+This document specifies the cycle. The [lifecycle agent](../agents/lifecycle.md)
+implements it. The distinction matters because the loop is what makes a
+deployment improve rather than merely run — and a tenant may adopt the cycle
+without adopting every stage, provided it states which stages it runs and what
+it does with the output of the ones it does not.
+
+---
+
 ## Dependencies
 
 ```yaml

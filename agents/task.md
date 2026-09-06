@@ -24,6 +24,18 @@ enforcement, and dead-letter tracking for failed dispatches.
 
 ---
 
+## Overview
+
+The task agent is a tenant's **single dispatch point for agent execution**. It
+receives `task.submit`, sends the work to the target agent's `POST /v1/execute`,
+tracks completion, and publishes `task.complete` or `task.failed` back to
+whoever asked.
+
+Everything that runs work runs it through here. That is what makes execution
+countable, retryable and auditable in one place instead of in every caller.
+
+---
+
 ## Dependencies
 
 ```yaml

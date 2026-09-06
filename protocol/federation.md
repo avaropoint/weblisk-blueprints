@@ -5,6 +5,7 @@ version: 1.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/hub]
 platform: any
 tier: free
+adoption: opt-in
 -->
 
 # Weblisk Federation Protocol
@@ -16,6 +17,12 @@ mesh where multiple orchestrators discover, trust, and delegate work
 to each other while enforcing strict data sovereignty boundaries.
 
 ## Overview
+
+**Federation is opt-in.** It exists only for communicating with other hubs.
+A deployment that does not federate serves none of this surface and is
+complete without it — see the `adoption` field in
+[`schemas/common`](../schemas/common.md#adoption). Once a deployment does
+federate, every assertion here applies to it.
 
 Federation enables businesses to expose specific agent capabilities to
 partners, customers, and the wider hub network — without exposing
