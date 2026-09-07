@@ -1943,9 +1943,19 @@ types:
         description: "Read the administrative surface"
       - value: auditor
         description: "Viewer, plus the full audit trail"
+      - value: operator
+        description: "Day-to-day operations — read, act on the approval queue, manage strategies. Cannot admit, remove or re-role operators"
       - value: admin
         description: "Every administrative capability, including admitting and removing operators"
 ```
+
+`operator` was missing from this enum while `architecture/admin` named it in
+both its roles table and the role column of every `operator+` endpoint. A
+generated orchestrator follows the enum, so it produced three roles — and
+`admin:approve` and `admin:strategy`, defined immediately above, ended up
+granted to no role at all. The capability list and the enum have to be read
+together: a capability no value of this enum carries is unreachable, and
+nothing reports that.
 
 ### OperatorStatus
 

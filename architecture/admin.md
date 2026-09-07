@@ -438,6 +438,17 @@ contracts:
         - A refusal for want of an admin MUST be distinguishable from a refusal for a bad signature
         - The response MUST state which case occurred, so a caller does not wait for an approval nobody needs to give
 
+    - name: operator-approval
+      description: How an operator after the first is admitted
+      required: true
+      rules:
+        - The route `POST /v1/admin/operators/{name}/approve` MUST exist — without it a registration that is not the first can never be completed by anybody
+        - It MUST require the `admin` role, because it grants authority
+        - The list at `GET /v1/admin/operators` MUST report every operator including `pending` ones, so an admin can see who is waiting
+        - Approving an operator already `approved` MUST succeed and change nothing, so a retried approval is not an error
+        - Approval MUST NOT return a token — the approved operator obtains their own from `POST /v1/admin/operators/token`
+        - Approval MUST be audited with the name of the operator who granted it
+
     - name: operator-token-issuance
       description: Issue a short-lived operator token
       required: true
@@ -452,8 +463,10 @@ contracts:
       description: The role names and what each may do
       required: true
       rules:
-        - The role names are exactly viewer, auditor and admin
+        - The role names are exactly `viewer`, `auditor`, `operator` and `admin`
         - Capabilities MUST be derived from the role, never stored per operator
+        - The `operator` role MUST carry `admin:read`, `admin:approve` and `admin:strategy` — it is the role every `operator+` endpoint in this document is gated on
+        - Every capability this document names MUST be carried by some role; a capability no role holds is a constant, not a permission
         - The last active admin MUST NOT be removable or demotable
         - A role change MUST be audited with the previous and new role
 ```
@@ -594,6 +607,52 @@ against what it had been told, and the deployment could not be administered.
 **A client MUST NOT infer a token from a successful registration.** It reads
 `status`, and calls the token endpoint when none was issued.
 
+### Admitting the operators after the first
+
+The registration flow above ends a second operator at `status: "pending"`, and
+says an existing admin must approve them. For a long time nothing said **how**,
+and so nothing did: the capability `admin:approve` existed, the status
+`approved` existed, and there was no route, no command and no screen that moved
+an operator from one to the other. Every generated orchestrator was therefore a
+deployment exactly one person could ever administer, and it reported no fault
+at any point — registration succeeded, and the operator was told to wait for
+something nobody could do.
+
+```
+POST /v1/admin/operators/alice/approve
+Authorization: Bearer <admin token>
+```
+
+The orchestrator MUST:
+
+1. Require the `admin` role. Approval grants authority, so it is not an
+   `operator` action, and `admin:approve` is not the capability that carries it
+   — that one is for the recommendation queue.
+2. Look up the operator by name and refuse an unknown one with `404`.
+3. If the operator is already `approved`, succeed and change nothing. Approval
+   is a state, not an event, and a retried call MUST NOT fail.
+4. Otherwise set status to `approved` and record who approved it.
+5. Return the operator record, **and no token**:
+
+```
+200 { "operator": {...}, "status": "approved", "approved_by": "lloyd", "approved_at": ... }
+```
+
+The approved operator obtains their own token by signing the challenge at
+`POST /v1/admin/operators/token`, as any operator does. Handing a token back
+here would issue a credential to whoever ran the approval rather than to its
+subject.
+
+**Refusal is `DELETE /v1/admin/operators/:name`**, which already exists. There
+is no separate reject verb, because a rejected registration and a removed
+operator leave the deployment in the same state, and two routes to one state
+drift.
+
+`GET /v1/admin/operators` MUST list `pending` operators alongside approved
+ones. An admin who cannot see who is waiting cannot approve them, and a list
+that quietly filters to approved operators makes a waiting colleague look like
+a failed registration.
+
 ### Operator Roles
 
 | Role | Capabilities | Description |
@@ -602,6 +661,22 @@ against what it had been told, and the deployment could not be administered.
 | **operator** | `admin:read`, `admin:approve`, `admin:strategy` | Day-to-day operations — view everything, approve recommendations, manage strategies |
 | **viewer** | `admin:read` | Read-only — view dashboards, logs, status. Cannot modify anything |
 | **auditor** | `admin:read`, `admin:audit` | Read-only plus full audit log access with export capability |
+
+`operator` sits between `auditor` and `admin` deliberately: it is the role that
+does the day-to-day work — approving recommendations and managing strategies —
+without the authority to admit, remove or re-role other operators. Every
+endpoint above marked `operator+` means this role.
+
+This table once disagreed with the `operator-roles` behaviour block, which
+listed three roles and omitted `operator`. A generated orchestrator resolved the
+contradiction the defensible way — it followed the contract block, wrote down
+that it had, and produced a three-value enum. The result was that
+`admin:approve` and `admin:strategy` were declared as constants and granted to
+**no role whatsoever**, so every `operator+` route was reachable only by a full
+admin, and the middle tier of the permission model existed on paper only.
+Nothing failed; the deployment simply had one fewer role than it was designed
+to have. Contradicting yourself in a specification does not produce an error —
+it produces confident, well-commented, wrong code.
 
 ### Operator Token
 
@@ -668,6 +743,7 @@ operator the system is quiet when it is simply not there.
 | `/v1/admin/operators` | GET | admin | List all operators |
 | `/v1/admin/operators/:name` | GET | viewer+ | Get operator details |
 | `/v1/admin/operators/:name` | DELETE | admin | Remove an operator |
+| `/v1/admin/operators/:name/approve` | POST | admin | Admit a registered operator (see *Admitting the operators after the first*) |
 | `/v1/admin/operators/:name/role` | PUT | admin | Change operator role |
 
 ### System Overview
@@ -1227,7 +1303,7 @@ Admin endpoints SHOULD be rate-limited:
 - [ ] Role hierarchy admin > operator > auditor > viewer is enforced server-side on every /v1/admin/* endpoint
 - [ ] Destructive actions (deregister agent, revoke federation, delete operator) require 4-eyes approval and X-Confirm HMAC
 - [ ] Application gateway returns 404 for any request to /v1/admin/* paths
-- [ ] GET /v1/admin/overview returns agent counts, domain status, workflow stats, approval counts, and health score — with any figure whose provider is not deployed reported as unavailable rather than zero
+- [ ] `GET /v1/admin/overview` returns agent counts, domain status, workflow stats, approval counts, and health score — with any figure whose provider is not deployed reported as unavailable rather than zero
 - [ ] Each admin endpoint group is served by the component that owns its state; the admin service composes them and owns none of them
 - [ ] An admin endpoint whose provider is not deployed reports itself unavailable and never returns an empty result
 - [ ] All admin API responses include Cache-Control: no-store header
