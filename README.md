@@ -166,6 +166,17 @@ schemas/            Blueprint schema governance
   platform.md         Platform blueprint schema
   protocol.md         Protocol blueprint schema
 
+skills/             Guides for a coding agent — not specifications
+  README.md           Skills point at blueprints and CLI verbs; they do not restate them
+  blueprints/         How to read a blueprint
+  tenants/            `weblisk tenant`
+  hubs/               `weblisk server`
+  agents/             `weblisk agent`
+  domains/            `weblisk domain`
+  gateways/           `weblisk gateway`
+  operators/          `weblisk operator`
+  go/                 `--platform go`
+
 standards/          Project standards (best practices for blueprint-driven development)
   README.md           Overview — what standards are, how to use them
   project-structure.md  How to organize a blueprint-driven project
