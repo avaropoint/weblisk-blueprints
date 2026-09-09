@@ -204,6 +204,22 @@ declaration:
       path: "/v1/admin/overview"
       operation: AdminOverview
       auth: "admin:read"
+    - method: GET
+      path: "/v1/admin/model"
+      operation: AdminModelGet
+      auth: "admin:read"
+    - method: PUT
+      path: "/v1/admin/model"
+      operation: AdminModelPut
+      auth: "admin:*"
+    - method: GET
+      path: "/v1/admin/model/providers"
+      operation: AdminModelProviders
+      auth: "admin:read"
+    - method: POST
+      path: "/v1/admin/complete"
+      operation: AdminComplete
+      auth: "admin:read"
   checks:
     - check: no-path-literals
       subject: route registration
@@ -357,6 +373,10 @@ privileged position in the deployment.
 | GET | /v1/admin/agents/{name} | AdminAgentGet | `admin:read` | Agent detail — manifest, metrics, recent tasks |
 | POST | /v1/admin/agents/{name}/deregister | AdminAgentDeregister | `admin:*` | Force-deregister an agent |
 | GET | /v1/admin/overview | AdminOverview | `admin:read` | Summary of the state this orchestrator holds |
+| GET | /v1/admin/model | AdminModelGet | `admin:read` | This tenant's model backend — Studio is a client of it |
+| PUT | /v1/admin/model | AdminModelPut | `admin:*` | Set this tenant's model backend |
+| GET | /v1/admin/model/providers | AdminModelProviders | `admin:read` | Discovery on **this hub's host** |
+| POST | /v1/admin/complete | AdminComplete | `admin:read` | Run a completion under this tenant's model policy |
 
 `/v1/admin/overview` reports what the orchestrator knows — agent counts,
 namespace count, audit depth, health. Figures owned by components that are not
