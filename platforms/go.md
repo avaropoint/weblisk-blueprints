@@ -86,7 +86,7 @@ its code.
   agents/<name>/agent.yaml    # the blueprints this tenant adopted
   domains/<name>/domain.yaml
 
-  go.mod                      # module <tenant>; go 1.22
+  go.mod                      # module <tenant>; go 1.27
   go.sum
 
   cmd/                        # one directory per BINARY
@@ -366,7 +366,7 @@ go test -race -count=1 ./...
 ```
 module weblisk-server
 
-go 1.22
+go 1.27
 ```
 
 No `require` statements needed — stdlib only.
