@@ -131,16 +131,22 @@ agents/<name>/
 ---
 
 Prepare: `npm install`
-Build: `npx wrangler deploy --dry-run`
+Build: `none`
 Run: `npx wrangler dev --port 9800`
 
-A Worker is served from source, so there is no compilation — but the build
-command MUST NOT be empty. `--dry-run` bundles the Worker and resolves every
-binding in `wrangler.toml` without deploying it, which is this platform's
-answer to "does it compile": it fails on a syntax error, a missing module and
-a binding that was declared and does not exist. A component with no build
-command is never compiled, never repaired and never checked for conformance —
-the whole verification chain hangs off it.
+A plain JavaScript Worker has **no build step** — it is served from source, as
+the Build and Run section below has always said. `none` states that, and is
+not the same as leaving the field out: a plan that omits a build command is a
+plan nobody finished, and is refused.
+
+A TypeScript Worker does have one, and declares `npx tsc`. Which applies is a
+property of the component that was generated, not of the platform, so the plan
+answers it rather than this document.
+
+A component with no build step is also not compiled, not repaired and not
+checked for conformance — there is no binary to run. That is a real gap in
+what can be claimed about such a tenant, and the CLI says so plainly at the
+end of a build rather than reporting it as verified.
 
 The port on the Run line is an EXAMPLE. Whoever starts the component supplies
 the port, so a plan records the run command without it — and without any
