@@ -213,18 +213,22 @@ declaration:
       path: "/v1/admin/model"
       operation: AdminModelGet
       auth: "admin:read"
+      provided: platform
     - method: PUT
       path: "/v1/admin/model"
       operation: AdminModelPut
       auth: "admin:*"
+      provided: platform
     - method: GET
       path: "/v1/admin/model/providers"
       operation: AdminModelProviders
       auth: "admin:read"
+      provided: platform
     - method: POST
       path: "/v1/admin/complete"
       operation: AdminComplete
       auth: "admin:read"
+      provided: platform
   checks:
     - check: no-path-literals
       subject: route registration
@@ -379,10 +383,24 @@ privileged position in the deployment.
 | GET | /v1/admin/agents/{name} | AdminAgentGet | `admin:read` | Agent detail — manifest, metrics, recent tasks |
 | POST | /v1/admin/agents/{name}/deregister | AdminAgentDeregister | `admin:*` | Force-deregister an agent |
 | GET | /v1/admin/overview | AdminOverview | `admin:read` | Summary of the state this orchestrator holds |
-| GET | /v1/admin/model | AdminModelGet | `admin:read` | This tenant's model backend — Studio is a client of it |
-| PUT | /v1/admin/model | AdminModelPut | `admin:*` | Set this tenant's model backend |
-| GET | /v1/admin/model/providers | AdminModelProviders | `admin:read` | Discovery on **this hub's host** |
-| POST | /v1/admin/complete | AdminComplete | `admin:read` | Run a completion under this tenant's model policy |
+| GET | /v1/admin/model | AdminModelGet | `admin:read` | This tenant's model backend — Studio is a client of it (platform-provided) |
+| PUT | /v1/admin/model | AdminModelPut | `admin:*` | Set this tenant's model backend (platform-provided) |
+| GET | /v1/admin/model/providers | AdminModelProviders | `admin:read` | Discovery on **this hub's host** (platform-provided) |
+| POST | /v1/admin/complete | AdminComplete | `admin:read` | Run a completion under this tenant's model policy (platform-provided) |
+
+The four model routes are marked `provided: platform` in the declaration. The
+hub serves them and a client may rely on them; they are NOT generated. The CLI
+installs them after generation, and they intercept their own paths ahead of the
+generated router.
+
+They are the CLI's surface rather than the tenant's: they read the model
+backend this workstation is configured with, discover which provider binaries
+are on its PATH, and run a completion through them. A generated component
+cannot implement that without reproducing the CLI's provider catalogue, and
+this document specifies no behaviour for them precisely because it is not the
+tenant's to specify. Asking a model for them produced four handlers against an
+unspecified contract, all of them shadowed the moment the gateway was
+installed.
 
 `/v1/admin/overview` reports what the orchestrator knows — agent counts,
 namespace count, audit depth, health. Figures owned by components that are not
