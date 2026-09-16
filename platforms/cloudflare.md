@@ -130,6 +130,24 @@ agents/<name>/
 
 ---
 
+Prepare: `npm install`
+Build: `npx wrangler deploy --dry-run`
+Run: `npx wrangler dev --port 9800`
+
+A Worker is served from source, so there is no compilation — but the build
+command MUST NOT be empty. `--dry-run` bundles the Worker and resolves every
+binding in `wrangler.toml` without deploying it, which is this platform's
+answer to "does it compile": it fails on a syntax error, a missing module and
+a binding that was declared and does not exist. A component with no build
+command is never compiled, never repaired and never checked for conformance —
+the whole verification chain hangs off it.
+
+The port on the Run line is an EXAMPLE. Whoever starts the component supplies
+the port, so a plan records the run command without it — and without any
+`--orch` flag, for the same reason. The run command must be a plain command,
+not a shell line: the process it starts IS the component, so that stopping it
+shuts the component down in an orderly way rather than killing a wrapper.
+
 ## Runtime Requirements
 
 ```yaml
