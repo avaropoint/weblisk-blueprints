@@ -33,12 +33,28 @@ Named after the CLI verb they serve, not after a model.
 | [domains](domains/SKILL.md) | `weblisk domain` | `architecture/domain.md` |
 | [gateways](gateways/SKILL.md) | `weblisk gateway` | `architecture/gateway.md` |
 | [operators](operators/SKILL.md) | `weblisk operator` | `architecture/admin.md`, `protocol/identity.md` |
+| [changes](changes/SKILL.md) | `weblisk component`, `weblisk test` | `architecture/generation.md`, `architecture/testing.md` |
 | [go](go/SKILL.md) | `--platform go` | `platforms/go.md` |
+| [node](node/SKILL.md) | `--platform node` | `platforms/node.md` |
+| [rust](rust/SKILL.md) | `--platform rust` | `platforms/rust.md` |
+| [cloudflare](cloudflare/SKILL.md) | `--platform cloudflare` | `platforms/cloudflare.md` |
 
 The CLI installs the skills for the verb it is running, plus `blueprints`, plus
-the platform skill when one exists. Content is the same for every model. The
-CLI writes `.agents/skills/` (vendor-neutral) and the generating tool's native
-path (`.claude/skills/` or `.grok/skills/`).
+the skill for the platform it is generating for. Every platform the corpus
+specifies has one, and a platform with a blueprint and no skill is a failure
+rather than a quiet omission. Content is the same for every model. The CLI
+writes `.agents/skills/` (vendor-neutral) and the generating tool's native path
+(`.claude/skills/` or `.grok/skills/`).
+
+A tenant is changed far more often than it is created, so `changes` rides with
+`tenant` as well as with the verbs that change one — skills travel with the
+tenant, and every tenant is eventually rebuilt.
+
+**These files are embedded into the CLI** at `internal/dispatch/skills/`, so a
+tenant can be generated without this corpus present. That is two copies of one
+file. `TestTheEmbeddedSkillsMatchTheBlueprintCorpus` fails when they differ, and
+reports rather than skips when this repository is not checked out beside the
+CLI. Author here; copy the file over.
 
 ## Authoring
 
