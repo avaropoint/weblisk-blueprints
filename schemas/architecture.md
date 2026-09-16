@@ -181,6 +181,33 @@ The platform blueprint states how the operation is spelled in its language; see
 name a handler, a constant or a function — those are translations, and
 [Platform Neutrality](common.md#platform-neutrality) forbids them here.
 
+#### `provided: platform` — declared, and not generated
+
+**Optional.** An endpoint whose implementation the platform supplies rather
+than the model.
+
+The component serves it and a client may rely on it, so it stays in the
+declaration and in the endpoint table: removing it would make the blueprint
+understate what the hub exposes. What the marker changes is who writes it — a
+generator is not asked for it, and no generated file is expected to satisfy it.
+
+Use it only where the endpoint is genuinely not the tenant's to implement. The
+case it exists for is the orchestrator's model routes: they read the model
+backend the operator's workstation is configured with, discover which provider
+binaries are on its PATH, and run completions through them. A generated
+component cannot implement that without reproducing the CLI's provider
+catalogue, and a blueprint MUST NOT specify behaviour it does not own — which
+is why those rows carry a purpose and nothing else.
+
+Marking an endpoint `provided: platform` while ALSO specifying its behaviour is
+a contradiction: either the behaviour is the component's, in which case the
+component implements it, or it is not, in which case this blueprint should not
+be describing it.
+
+Without the marker a generator is asked for an endpoint the tooling installs
+anyway, and produces a handler that is shadowed at runtime and reached by
+nothing — two implementations of one operation, with only one of them wired.
+
 #### A declared endpoint MUST be specified in a required blueprint
 
 If another blueprint documents an endpoint this component serves, the component
