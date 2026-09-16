@@ -129,6 +129,7 @@ declaration:
           - name: operator-registration
           - name: registration-signing-input
           - name: first-operator-auto-approval
+          - name: operator-approval
           - name: operator-token-issuance
           - name: operator-roles
       on_change:
@@ -183,6 +184,10 @@ declaration:
     - method: DELETE
       path: "/v1/admin/operators/{name}"
       operation: OperatorDelete
+      auth: "admin:*"
+    - method: POST
+      path: "/v1/admin/operators/{name}/approve"
+      operation: OperatorApprove
       auth: "admin:*"
     - method: PUT
       path: "/v1/admin/operators/{name}/role"
@@ -368,6 +373,7 @@ privileged position in the deployment.
 | GET | /v1/admin/operators | OperatorList | `admin:*` | List operators |
 | GET | /v1/admin/operators/{name} | OperatorGet | `admin:read` | Operator detail |
 | DELETE | /v1/admin/operators/{name} | OperatorDelete | `admin:*` | Remove an operator |
+| POST | /v1/admin/operators/{name}/approve | OperatorApprove | `admin:*` | Admit a registered operator |
 | PUT | /v1/admin/operators/{name}/role | OperatorRole | `admin:*` | Change an operator's role |
 | GET | /v1/admin/agents | AdminAgentList | `admin:read` | Agents with status, type and metrics |
 | GET | /v1/admin/agents/{name} | AdminAgentGet | `admin:read` | Agent detail — manifest, metrics, recent tasks |
