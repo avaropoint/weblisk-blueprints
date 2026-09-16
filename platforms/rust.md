@@ -174,6 +174,12 @@ server/
 Build: `cargo build --release -p server`
 Run: `./target/release/server --port 9800`
 
+The port on the Run line is an EXAMPLE. Whoever starts the component supplies
+the port, so a plan records the run command without it — and without any
+`--orch` flag, for the same reason. The run command must be a plain command,
+not a shell line: the process it starts IS the component, so that stopping it
+shuts the component down in an orderly way rather than killing a wrapper.
+
 ### Agent
 
 ```
