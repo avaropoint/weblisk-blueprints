@@ -534,7 +534,7 @@ d7a8fbb307d7809469ca9abcb0082e4f  patterns/secrets.md
 1. CLI computes current SHA-256 of each blueprint file
 2. Compares against manifest from last generation
 3. If blueprints changed: logs diff summary, proceeds with new generation
-4. If `--verify-only`: reports changes without generating (for CI pipelines)
+4. If `--verify-only`: reports changes without generating (for CI pipelines) — NOT IMPLEMENTED; the flag is refused
 
 ### Signed Commits (Recommended)
 
@@ -544,15 +544,32 @@ commit signatures before generation:
 
 ```bash
 $ weblisk server init --platform go --verify-signatures
-Verifying blueprint commit signatures...
-✓ All 14 blueprint files from signed commits
-Generating server implementation...
+--verify-signatures is not implemented
+  It printed a success line without checking anything, which is worse than absent.
 ```
 
-| Flag | Description |
-|------|-------------|
-| `--verify-signatures` | Require all blueprint files to be from signed Git commits |
-| `--allowed-signers <file>` | Path to allowed signers file (SSH) or keyring (GPG) |
+| Flag | Description | Status |
+|------|-------------|--------|
+| `--verify-signatures` | Require all blueprint files to be from signed Git commits | refused — see below |
+| `--allowed-signers <file>` | Path to allowed signers file (SSH) or keyring (GPG) | inert without the above |
+
+> **Not implemented.** The CLI refuses `--verify-signatures`, `--verify-only`
+> and `--encrypt-keys` rather than accepting them. All three were parsed,
+> discarded, and followed by a line claiming the work had been done —
+> `--verify-signatures` printed "✓ Blueprint signatures verified" after
+> ignoring its own result, `--verify-only` printed "✓ No breaking changes
+> detected" without reading a blueprint, and the banner said "Keys:
+> encrypted at rest" while `--encrypt-keys` reached nothing.
+>
+> The signatures flag is why this is a refusal and not a TODO: of 86
+> blueprint commits 50 carry an SSH signature and none is verifiable,
+> because no allowed_signers file exists and `gpg.ssh.allowedSignersFile`
+> is unset at every scope. Git reports an uncheckable SSH signature as
+> "N", which is indistinguishable from unsigned. A governance product
+> cannot ship a control that reports success without performing it.
+>
+> The requirement below stands. What is removed is the claim that it is
+> already met.
 
 ---
 
@@ -881,6 +898,7 @@ data_security:
 - [ ] Security-ignore annotations require a reason and are logged in audit trail
 - [ ] Blueprint manifest (.weblisk/blueprint-manifest.sha256) records SHA-256 of every blueprint used in generation
 - [ ] `weblisk server init --verify-signatures` validates blueprint files are from signed commits before generation
+      — NOT MET. The flag is refused rather than reporting a verification it did not perform.
 - [ ] Agents at scope >= confidential implement storage integrity verification: record-level checksums, write provenance, and version chain integrity
 - [ ] Storage integrity anomalies (checksum mismatch, missing provenance, broken version chain, orphaned records) are detectable and reported
 - [ ] Write provenance records are append-only and cross-referenceable with enforcement audit trail

@@ -507,16 +507,33 @@ needs blueprints and a platform specification, and nothing in `.weblisk/secrets/
 $ weblisk server init --platform go
 $ weblisk server init --platform cloudflare
 $ weblisk server init --platform node
-$ weblisk server init --platform go --verify-signatures
 ```
 
-| Flag | Description |
-|------|-------------|
-| `--platform <p>` | Target platform: `go`, `cloudflare`, `node`, `rust` (default: `go`) |
-| `--verify-signatures` | Require all blueprint files to be from signed Git commits |
-| `--allowed-signers <file>` | Path to allowed signers file (SSH) or keyring (GPG) |
-| `--encrypt-keys` | Encrypt generated service keys at rest |
-| `--verify-only` | Report blueprint changes without generating (for CI) |
+| Flag | Description | Status |
+|------|-------------|--------|
+| `--platform <p>` | Target platform: `go`, `cloudflare`, `node`, `rust` (default: `go`) | implemented |
+| `--verify-signatures` | Require all blueprint files to be from signed Git commits | refused — see below |
+| `--allowed-signers <file>` | Path to allowed signers file (SSH) or keyring (GPG) | inert without the above |
+| `--encrypt-keys` | Encrypt generated service keys at rest | refused — see below |
+| `--verify-only` | Report blueprint changes without generating (for CI) | refused — see below |
+
+> **Not implemented.** The CLI refuses `--verify-signatures`, `--verify-only`
+> and `--encrypt-keys` rather than accepting them. All three were parsed,
+> discarded, and followed by a line claiming the work had been done —
+> `--verify-signatures` printed "✓ Blueprint signatures verified" after
+> ignoring its own result, `--verify-only` printed "✓ No breaking changes
+> detected" without reading a blueprint, and the banner said "Keys:
+> encrypted at rest" while `--encrypt-keys` reached nothing.
+>
+> The signatures flag is why this is a refusal and not a TODO: of 86
+> blueprint commits 50 carry an SSH signature and none is verifiable,
+> because no allowed_signers file exists and `gpg.ssh.allowedSignersFile`
+> is unset at every scope. Git reports an uncheckable SSH signature as
+> "N", which is indistinguishable from unsigned. A governance product
+> cannot ship a control that reports success without performing it.
+>
+> The requirement below stands. What is removed is the claim that it is
+> already met.
 
 ### `weblisk server start`
 
@@ -1894,6 +1911,8 @@ Every command that calls the orchestrator:
 - [ ] `weblisk deps audit <package>` audits a specific dependency (license, activity, CVEs)
 - [ ] `weblisk validate --deps` runs lockfile integrity as part of validation
 - [ ] `weblisk server init --verify-signatures` validates signed commits before generation
+      — NOT MET. The flag is refused; blueprint commits are not consistently signed and
+      no allowed-signers file is configured, so there is nothing to verify against yet.
 - [ ] `weblisk policy validate` checks gateway policy file for syntax and semantic errors
 - [ ] `weblisk policy test` runs policy assertions from policies_test.yaml
 
