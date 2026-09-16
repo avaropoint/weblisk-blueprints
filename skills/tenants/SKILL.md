@@ -27,11 +27,11 @@ weblisk tenant create "Acme Corp" --provider grok --platform go --dir ./acme --p
 ```
 
 `--provider` pins a backend (`weblisk providers` lists what this machine
-has). `--platform` is `go` — this command builds, starts and probes what it
-generates, and Go is the only platform it can start, so it refuses the
-others up front rather than after a generation that runs for over an hour.
-To generate for another platform, use `weblisk server init --platform <p>`.
-`--dir` and `--port` place it. `--resume` continues a partial generation.
+has). `--platform` is `go|cloudflare|node|rust` and chooses which platform
+blueprint and skills the tenant is built from — each specifies its own
+layout, build and run commands, and only the chosen one is built. `go` is
+the fallback when none is given. `--dir` and `--port` place it. `--resume`
+continues a partial generation.
 
 ## Then
 
