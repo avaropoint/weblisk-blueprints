@@ -74,9 +74,25 @@ The locations to search, in addition to `PATH`:
 | Location | Why |
 |---|---|
 | `$WL_CLI` | an explicit path, honoured exactly as given and never second-guessed |
+| `~/.weblisk/bin` | where a published CLI installs itself — see below |
 | `$GOBIN`, `$(go env GOPATH)/bin` | where `go build -o` and `go install` put it |
 | `~/.local/bin` | the convention for a user-scoped install |
 | `/opt/homebrew/bin`, `/usr/local/bin` | Homebrew on Apple silicon and Intel |
+
+`~/.weblisk/bin` is where a build from source SHOULD install, and where a
+published binary SHOULD land.
+
+`~/.weblisk` is already this product's own directory: it holds the blueprint
+cache, the operator identity, and a console's per-account identities. The CLI
+belongs beside them, and for a reason that outlives convenience — a CLI
+downloaded from a CDN cannot install to `$(go env GOPATH)/bin`, because a
+machine that never had Go has no GOPATH and no `go` to ask. Making the Go
+toolchain's output directory the primary home ties distribution to a build
+system most consumers will not have.
+
+The Go locations remain in the search order, because `go install` is how a
+contributor gets one and silently not finding that build would be worse than
+finding it.
 
 A refusal MUST name every location searched. "Not installed" without the list
 cannot be acted on; "looked on PATH and in these five places" can.
