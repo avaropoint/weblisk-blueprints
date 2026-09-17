@@ -135,7 +135,7 @@ contracts:
 
 ```dockerfile
 # Build stage
-FROM golang:1.22-alpine AS build
+FROM golang:1.27-alpine AS build
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
@@ -326,7 +326,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.27'
 
       - name: Lint
         run: |
@@ -526,7 +526,7 @@ weblisk deploy rollback --env production --version 1.1.0
   keys — these are injected at runtime
 - Build images in CI, not on developer machines — ensures
   reproducibility
-- Pin base image versions (e.g., `golang:1.22-alpine`, not
+- Pin base image versions (e.g., `golang:1.27-alpine`, not
   `golang:latest`)
 - Run container security scanning (Trivy, Snyk) in CI before push
 - Database migrations run as part of server startup, not as a
@@ -546,6 +546,6 @@ weblisk deploy rollback --env production --version 1.1.0
 - [ ] Automatic rollback triggers when error rate exceeds 5% during the 5-minute post-deploy monitoring window
 - [ ] Database migrations run on server startup before accepting traffic; failed migration aborts startup
 - [ ] Zero-downtime migrations are additive only — column removal uses a two-phase (or three-release) approach
-- [ ] Base images are pinned to specific versions (e.g., `golang:1.22-alpine`, not `golang:latest`)
+- [ ] Base images are pinned to specific versions (e.g., `golang:1.27-alpine`, not `golang:latest`)
 - [ ] Container security scanning (Trivy or equivalent) runs in CI before image push
 - [ ] Health endpoint returns 200 for healthy and 503 for unhealthy; Kubernetes probes (liveness, readiness, startup) are configured
