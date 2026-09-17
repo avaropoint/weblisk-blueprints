@@ -5,7 +5,7 @@ controller, one work agent, and the infrastructure to support them.
 
 ## Prerequisites
 
-- Go 1.22+, Node.js 20+, or a Cloudflare Workers account
+- Go 1.27+, Node.js 20+, or a Cloudflare Workers account
 - [weblisk-cli](https://github.com/avaropoint/weblisk-cli) installed
 - A terminal
 

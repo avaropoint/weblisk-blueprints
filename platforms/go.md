@@ -204,7 +204,7 @@ out and built.
 ```yaml
 runtime:
   language: Go
-  version: ">=1.22"
+  version: ">=1.27"
   dependencies:
     required:
       - github.com/cloudflare/circl   # signature algorithm; not in the stdlib
@@ -218,7 +218,7 @@ runtime:
         purpose: CGo SQLite driver (faster, requires CGo)
   build_tools:
     - name: go
-      version: ">=1.22"
+      version: ">=1.27"
       purpose: Go compiler and toolchain
 ```
 
@@ -406,7 +406,7 @@ channel-based semaphore and `WaitGroup` dispatch patterns.
 
 - Structured JSON logging to stdout
 - Include `component`, `trace_id`, and `timestamp` in all log entries
-- Use `log/slog` (Go 1.21+) or `fmt.Fprintf(os.Stderr, ...)` for minimal logging
+- Use `log/slog`, or `fmt.Fprintf(os.Stderr, ...)` for minimal logging
 
 ### The HTTP Surface
 
@@ -442,8 +442,8 @@ across the files that define the handlers. The table is the component's HTTP
 surface written down, so what a component serves can be read without executing
 it, and adding an endpoint changes one list rather than one file per endpoint.
 
-**Method and path are matched by the mux, not inside the handler.** Go 1.22
-patterns carry the method — `mux.HandleFunc("POST "+protocol.PathRegister, h)`
+**Method and path are matched by the mux, not inside the handler.** A pattern
+carries its method — `mux.HandleFunc("POST "+protocol.PathRegister, h)`
 — and path parameters are read with `r.PathValue("name")`. A handler that
 switches on `r.Method` to decide what it is doing is two handlers sharing a
 name.
@@ -799,7 +799,7 @@ component. See `schemas/common.md` for what a group heading means.
 - [ ] Configuration loads from environment variables (`WL_*`), command-line flags (`--port`, `--orch`), and `.env` file from working directory
 - [ ] Every routed path is an exported `Path<Operation>` constant in `internal/protocol`; no path literal appears at a registration site, in a client, or in a test
 - [ ] Each component declares its routes as one table and registers them in one `Routes()` function; no registration happens in the file that defines a handler
-- [ ] Routes are registered with Go 1.22 method-and-pattern syntax, and path parameters are read with `r.PathValue`; no handler switches on `r.Method` to choose its behaviour
+- [ ] Routes are registered with Go's method-and-pattern syntax, and path parameters are read with `r.PathValue`; no handler switches on `r.Method` to choose its behaviour
 - [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` carrying a registered error code
 - [ ] 405 and 404 are decided by the single `"/"` handler matching the route table; no method-less pattern is registered anywhere — `net/http` panics at startup when one sits beside a wildcard sibling
 - [ ] The process binds its port and answers `GET /v1/health` when started with no terminal attached
