@@ -1175,11 +1175,25 @@ Four rules govern it, and each exists because its absence is a disclosure:
    persist or log it; a password field over TLS is such a channel, and stdin is
    how it reaches the process.
 
-2. **The operator key location MUST be parameterisable.** One machine may serve
-   several operator identities, and a console with more than one signed-in
-   account cannot share a single key file: the second account would use the
-   first account's identity or overwrite it. An identity belongs to a subject,
-   not to a machine and not to a tenant.
+2. **The operator key location MUST be parameterisable, and MUST be derived
+   from the subject by ONE mechanism.** One machine may serve several operator
+   identities, and a console with more than one signed-in account cannot share a
+   single key file: the second account would use the first account's identity or
+   overwrite it. An identity belongs to a subject, not to a machine and not to a
+   tenant.
+
+   Parameterising it is not enough on its own. A location is a path, and if
+   every caller works out its own path from a subject then the rule exists in as
+   many places as there are callers — a console derived one privately, and
+   anything else driving the CLI had to reproduce it by hand. The CLI MUST
+   accept the SUBJECT and resolve the location itself, and MUST be able to
+   report where a given subject's identity lives, so a caller can ask instead of
+   deriving. An explicit path remains accepted and outranks the derivation,
+   because an operator who gives one means it.
+
+   The subject MUST NOT appear verbatim in the path: an account id may be an
+   email, and an email in a directory name is a disclosure to anything that can
+   list the parent.
 
 3. **Provisioning MUST reuse an existing identity rather than replace one.** A
    subject holds one identity and a separate credential attested by each hub, so
