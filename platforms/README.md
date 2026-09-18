@@ -24,6 +24,22 @@ that specifies it.
 
 Blueprints are implementation-agnostic. Platforms make them concrete.
 
+## A platform is not a provider
+
+A **platform** is a language and runtime a component is generated *for* — Go,
+Node, Rust, Cloudflare Workers. It answers *what does this code look like, and
+where does it execute.*
+
+A **provider** is a service an organisation uses and applies policy to —
+Microsoft 365, Google Workspace, AWS, Cloudflare. It answers *whose service is
+this, and does its configuration satisfy our policy.* Providers are a kind, in
+[`schemas/kinds.md`](../schemas/kinds.md); platforms are not.
+
+**One vendor can be both**, and Cloudflare is the clearest case: a platform when
+you generate Workers for it, a provider when you govern the account. Two
+relationships with one company, asking two different questions — which is why
+they are two words rather than one.
+
 ## Platform Blueprints
 
 | Platform | Runtime | Key Characteristics |

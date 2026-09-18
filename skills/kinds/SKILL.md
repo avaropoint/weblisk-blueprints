@@ -79,6 +79,28 @@ platform asserts something an author never said**. Unqualified means a blueprint
 as before; a prefix is a qualifier only when it names a declared kind, so a URL
 is left whole.
 
+## platform, provider, integration — three things, three words
+
+One word was doing two jobs; this is the ambiguity the taxonomy exists to remove.
+
+| | Answers | Examples |
+|---|---|---|
+| **platform** | what is this written in, and where does it execute? | Go, Node, Rust, Cloudflare Workers |
+| **provider** | whose service is this, and does its configuration satisfy our policy? | Microsoft 365, Google Workspace, AWS, Cloudflare |
+| **integration** | what data crosses this boundary, under what contract? | the connection to any of them |
+
+**`platform` is NOT a kind.** It is the language-and-runtime binding a component
+is generated for — `platforms/go.md`, `--platform cloudflare`. Nothing in
+`schemas/kinds.md` declares it.
+
+**One vendor may be both.** Cloudflare is a platform when you build Workers for
+it and a provider when you govern the account. Two relationships with one
+company, two questions — which is why they need two words.
+
+**Display labels are not identifiers.** A view may head a column "Platforms"
+over provider nodes if that is what its readers call them. The identifier is what
+tools join on and must mean one thing.
+
 ## Adding a sort of thing
 
 1. Declare it in `schemas/kinds.md` with its identity rule, origin and

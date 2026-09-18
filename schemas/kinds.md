@@ -63,7 +63,7 @@ Closed. Each names a real behaviour and the code that honours it.
 | `agent-executable` | an agent may **perform** it — it carries steps, roles and required inputs |
 | `traces-to-code` | its clauses are traced to the code implementing them |
 | `generates-code` | the generation pipeline reads it and produces an implementation |
-| `applies-to-platform` | it configures a system we do not own |
+| `configures-provider` | it configures a service we do not own |
 | `proves` | terminal evidence — the end of a chain, not a link in it |
 
 **`counts-as-coverage` and `opens-gap` are separate on purpose.** A guideline has
@@ -100,8 +100,10 @@ Not capabilities — values a kind declares.
 | `code` | — | source + path | derived | code | versioned, has-custody, chain-member |
 | `evidence` | — | source + path | authored, observed | runtime | versioned, has-custody, chain-member, proves |
 | `control` | — | **framework + control id** | **published** | — | **is-criterion** |
-| `platform` | — | durable system id | observed | runtime | chain-member, applies-to-platform |
+| `provider` | — | durable provider id | observed | runtime | chain-member, configures-provider |
 | `integration` | — | durable connection id | observed | — | *(none)* |
+| `data-subject` | — | subject name | derived | — | *(none)* |
+| `partner` | — | durable party id | observed | — | *(none)* |
 | `component` | — | tenant + component name | derived | runtime | versioned, chain-member |
 | `obligation` | — | source + path + clause | authored | procedure | versioned, has-custody, chain-member, opens-gap, agent-executable |
 | `register` | — | declared register id | authored | runtime | versioned, has-custody, chain-member, proves |
@@ -137,6 +139,33 @@ governs nothing, and saying so explicitly is what stops an ordinary consumption
 reading as an ungoverned platform.
 
 ---
+## Platform, provider, integration: three things that are not each other
+
+One word was doing two jobs, which is the ambiguity this schema exists to
+remove.
+
+| | Answers | Examples |
+|---|---|---|
+| **platform** | what is this written in, and where does it execute? | Go, Node, Rust, Cloudflare Workers |
+| **provider** | whose service is this, and does its configuration satisfy our policy? | Microsoft 365, Google Workspace, AWS, Cloudflare |
+| **integration** | what data crosses this boundary, under what contract? | the connection to any of them |
+
+**`platform` is NOT a kind.** It is the language-and-runtime binding a component
+is generated for — `platforms/go.md`, `platforms/cloudflare.md`, the `--platform`
+flag. It answers what code looks like, not what an organisation governs, and
+nothing in this file declares it.
+
+**One vendor may be both.** Cloudflare is a *platform* when you build Workers for
+it and a *provider* when you govern the account; AWS likewise. That is two
+relationships with one company, asking two different questions — which is
+precisely why they need two words.
+
+**Display labels are not identifiers.** A view may show a column headed
+"Platforms" over provider nodes if that is what its readers call them. The kind
+identifier is what tools join on, and it has to mean one thing.
+
+---
+
 ## Evidence chain layers
 
 The chain runs from why, through what and how, to what is actually running. A
@@ -251,9 +280,11 @@ relation.
 | `requires`, `extends`, `depends_on`, `supersedes` | blueprint | blueprint | declared |
 | `implemented_by` | specification | `code` | implementation |
 | `generated_from` | `code` | blueprint | generation |
-| `applies_to` | `code` | `platform` | platform configuration |
-| `reached_through` | `platform` | `integration` | integration |
-| `enforced_by` | policy, standard, procedure | `platform`, `component` | platform |
+| `applies_to` | `code` | `provider` | provider configuration |
+| `reached_through` | `provider` | `integration` | integration |
+| `exchanges_with` | `integration` | `partner` | data flow |
+| `carries` | `integration` | `data-subject` | data flow |
+| `enforced_by` | policy, standard, procedure | `provider`, `component` | provider |
 | `deployed_as` | blueprint | `component` | composition |
 | `discharges` | `evidence` | `obligation` | programme |
 | `contains` | any | itself, unanchored | **synthesised, never stored** |
