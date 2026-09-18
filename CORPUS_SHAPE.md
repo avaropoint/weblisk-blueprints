@@ -177,11 +177,17 @@ opposite conclusion from the same sentence.
 
 Ordered cheapest and safest first. Each step stands alone.
 
-**1 — `languages/`, and `intl/` reserved.** `platforms/{go,rust}.md` move;
-`node.md` splits, its JS/TS conventions becoming `languages/typescript.md` and
-its runtime parts staying. `cloudflare.md` stops restating them. Corpus only —
-no Studio impact, and the CLI keeps working while `--platform` still resolves,
-because the *files* move but the flag's meaning is unchanged until step 3.
+**1 — `languages/`, and `intl/` reserved.** In two halves, for the reason below.
+
+**1a.** The corpus gains `languages/`, and every consumer learns to resolve a
+platform binding from **either** family. Nothing moves yet, so nothing breaks
+whichever corpus a reader has. **Pushed.**
+
+**1b.** `platforms/{go,rust}.md` move to `languages/`. `node.md` splits, its
+JS/TS conventions becoming `languages/typescript.md` and its runtime parts
+staying; `cloudflare.md` stops restating them.
+
+Attempted as one step and reverted — see the prerequisite below.
 
 **2 — `frameworks/`, with `frameworks/weblisk`.** `standards/`'s framework files
 move. `standards/code.md` and `standards/project-structure.md` split between
@@ -207,6 +213,42 @@ forms, so `weblisk programme <id> init` can bootstrap an operating programme fro
 the specification, the standards it conforms to, and the tenant's knowledge. This
 is the step that makes the collection worth having; the five before it are moving
 furniture so that this one is possible.
+
+## A prerequisite discovered by attempting step 1
+
+**Moving a file in this corpus does not take effect until the move is pushed.**
+
+Blueprints resolve **a local `blueprints/` directory → `WL_BLUEPRINT_SOURCES` →
+the shared cache at `~/.weblisk/blueprints`**, and that cache is a **git clone of
+the remote**. Running the CLI from its own repository, there is no local
+`blueprints/`, so every resolution goes to the cache — which carries whatever was
+last pushed.
+
+Attempted here: `platforms/{go,rust}.md` moved to `languages/`, the CLI updated
+to resolve both families. Six tests failed, and the reason was not the code:
+`languages/go.md` is not in the graph, because the cache had never heard of it.
+This repository is currently **three commits ahead of origin**, so the corpus a
+build reads is three commits behind the corpus being edited.
+
+That is the fault already recorded as *blueprints never reached builds*, arriving
+from a new direction. It has two consequences for this plan:
+
+1. **Any family move must be pushed before it is real.** Editing and testing
+   locally proves nothing about what a build will read.
+2. **A move needs a transition**, or it is a flag day. Either both locations
+   resolve for a release, or the corpus and every consumer move together in one
+   push — which across two repositories they cannot.
+
+**Recommended:** each family move is split in two — first the corpus gains the
+new location and the consumers learn to resolve *either*; that is pushed; only
+then does the old location go. The step-1 attempt bundled both halves and could
+not have worked whichever order it was done in.
+
+**Also learned, and separable from the move:** `PlatformBlueprint`'s
+`default: return "platforms/go.md"` means `--platform pyhton` builds a Go tenant
+silently. Removing it is a change to the command's surface — it decides what
+`--platform Go` and `--platform wasm` do, and there are tests stating the current
+behaviour deliberately. It belongs in its own change, not bundled into a move.
 
 ## Risks
 
