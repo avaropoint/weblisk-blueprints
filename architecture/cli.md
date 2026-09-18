@@ -822,8 +822,9 @@ Flags:
 | Flag | Purpose |
 |---|---|
 | `--orch <url>` | the hub's address. Required |
-| `--name <name>` | the operator. Defaults to the stored identity's name |
-| `--keys-dir <path>` | which identity to use. One machine may serve several |
+| `--name <name>` | the operator, as the hub will record them. Defaults to the stored identity's name |
+| `--identity <label>` | which identity signs, by label. The CLI resolves where it lives — see `architecture/admin` rule 2 |
+| `--keys-dir <path>` | which identity signs, by location. Outranks `--identity` |
 | `--json` | machine-readable result, for a console driving this |
 
 **The passphrase arrives on stdin and never in argv.** A passphrase in a

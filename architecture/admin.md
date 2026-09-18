@@ -1183,15 +1183,23 @@ Four rules govern it, and each exists because its absence is a disclosure:
    tenant.
 
    Parameterising it is not enough on its own. A location is a path, and if
-   every caller works out its own path from a subject then the rule exists in as
-   many places as there are callers — a console derived one privately, and
-   anything else driving the CLI had to reproduce it by hand. The CLI MUST
-   accept the SUBJECT and resolve the location itself, and MUST be able to
-   report where a given subject's identity lives, so a caller can ask instead of
-   deriving. An explicit path remains accepted and outranks the derivation,
-   because an operator who gives one means it.
+   every caller works out its own path then the rule exists in as many places as
+   there are callers — a console derived one privately, and anything else
+   driving the CLI had to reproduce it by hand. The CLI MUST accept an identity
+   by label and resolve the location itself, and MUST be able to report where a
+   given identity lives, so a caller can ask instead of deriving. An explicit
+   path remains accepted and outranks the label, because an operator who gives
+   one means it.
 
-   The subject MUST NOT appear verbatim in the path: an account id may be an
+   That label is NOT the operator's name, and the two MUST NOT be collapsed
+   into one argument. The name is hub-facing — recorded in the orchestrator's
+   audit log and shown to other operators — while the label selects which key on
+   this machine signs. A console signs in an account whose id may be an email
+   and registers it on a hub under a chosen display name; merging them forces
+   one to become the other. `architecture/cli` names the first `--name` and the
+   explicit path `--keys-dir`.
+
+   The label MUST NOT appear verbatim in the path: an account id may be an
    email, and an email in a directory name is a disclosure to anything that can
    list the parent.
 
