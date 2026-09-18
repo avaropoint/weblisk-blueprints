@@ -65,6 +65,20 @@ This applies to:
 | [architecture.md](architecture.md) | System architecture components | `architecture/` directory |
 | [platform.md](platform.md) | Platform implementation bindings | `platforms/` directory |
 | [standard.md](standard.md) | Project-level blueprint standards | `standards/` directory |
+| [kinds.md](kinds.md) | What sorts of thing the platform can talk about, what each drives, and which relations join them | Every tool that classifies, relates or scores content |
+
+### kinds.md is different from the others
+
+The schemas above describe **how a blueprint is written**. `kinds.md` describes
+**what sorts of thing exist** — content, criteria, systems, executions — and what
+each may be used for.
+
+It is read at runtime by tools rather than checked against a document, and it is
+**data, not code**: kinds are declared here and extended freely, while
+*capabilities* are a closed set because each one is a contract with an
+implementation. A tool that hard-codes a kind, a chain layer or a relation has
+moved the specification out of the blueprints — the same fault
+[common.md](common.md#adoption) names for adoption.
 
 ## Schema Hierarchy
 
