@@ -34,6 +34,7 @@ Named after the CLI verb they serve, not after a model.
 | [gateways](gateways/SKILL.md) | `weblisk gateway` | `architecture/gateway.md` |
 | [operators](operators/SKILL.md) | `weblisk operator` | `architecture/admin.md`, `protocol/identity.md` |
 | [changes](changes/SKILL.md) | `weblisk component`, `weblisk test` | `architecture/generation.md`, `architecture/testing.md` |
+| [kinds](kinds/SKILL.md) | (every tool that classifies or relates) | `schemas/kinds.md` |
 | [go](go/SKILL.md) | `--platform go` | `platforms/go.md` |
 | [node](node/SKILL.md) | `--platform node` | `platforms/node.md` |
 | [rust](rust/SKILL.md) | `--platform rust` | `platforms/rust.md` |
