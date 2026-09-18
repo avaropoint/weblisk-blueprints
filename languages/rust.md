@@ -3,11 +3,11 @@ type: platform
 name: rust
 version: 1.0.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
-platform: rust
+language: rust
 tier: free
 -->
 
-# Platform: Rust Implementation
+# Language: Rust
 
 Guidance for generating Weblisk orchestrator and agent implementations
 in Rust, running as local processes. Rust is the high-performance

@@ -3,15 +3,19 @@ type: platform
 name: go
 version: 1.0.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
-platform: go
+language: go
 tier: free
 -->
 
-# Platform: Go Implementation
+# Language: Go
 
-Guidance for generating Weblisk orchestrator and agent implementations
-in Go, running as local processes. This is the default platform and
-the reference implementation for all Weblisk blueprints.
+What is essential when building in Go: dependency policy, project layout,
+error handling, concurrency, and the primitives the standard library does and
+does not supply.
+
+It applies to **anything a blueprint specifies** — an orchestrator, an agent, a
+content service, a CLI that drives a provider — and says nothing about what is
+being built or where it runs. Go is this framework's reference language.
 
 Go is the ideal fit for Weblisk because it needs **almost nothing beyond
 its own standard library** — no framework, no router, no middleware
