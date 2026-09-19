@@ -1,21 +1,30 @@
-# Standard Schema
+# Framework Schema
 
-Schema governing project-level blueprint standards — the documents in
-`standards/` that define how developers structure their YAML blueprints
-(pages, components, islands, connections, assets, theme, code, global).
+Schema governing **framework blueprints** — the documents in `frameworks/<name>/`
+that define what building *with* a framework requires: its component model, its
+routing, its theming, and the conventions its generated output follows.
 
-Standards are distinct from framework schemas: schemas enforce compliance
-for framework-internal blueprints (agents, protocol, patterns); standards
-provide guidance and structure for developer-authored project blueprints.
+`frameworks/weblisk/` is the first, and it was previously `standards/`. Those
+documents — pages, components, islands, connections, assets, theme, code,
+global — are not general project standards; they are **one framework's own
+concepts**, the kind Astro and Next each define differently. Under the old name
+the framework axis existed without being called one, and `standards` meant
+something else entirely to the people this corpus serves: ISO 27001, SOC 2,
+NIST. See [`../CORPUS_SHAPE.md`](../CORPUS_SHAPE.md).
+
+Framework blueprints are distinct from the schemas beside this one: those
+enforce compliance for framework-INTERNAL blueprints (agents, protocol,
+patterns); a framework blueprint provides guidance and structure for the
+project blueprints a developer authors when building with that framework.
 
 ---
 
 ## Scope
 
-This schema governs the `standards/` directory. It does NOT govern the
-project-level YAML files themselves — those are validated against the
-standard they declare (`extends: standards/pages`, etc.). This schema
-governs the standard definitions.
+This schema governs the `frameworks/<name>/` directories. It does NOT govern
+the project-level YAML files themselves — those are validated against the
+framework blueprint they declare (`extends: frameworks/weblisk/pages`, etc.).
+This schema governs the framework blueprint definitions.
 
 ---
 
@@ -176,7 +185,7 @@ Project blueprints reference standards via the `extends:` field:
 
 ```yaml
 type: page
-extends: standards/pages
+extends: frameworks/weblisk/pages
 ```
 
 This tells the generation pipeline and validators which standard
@@ -185,7 +194,7 @@ what sections are expected, and what conventions apply.
 
 ### Validation
 
-When a project blueprint declares `extends: standards/<name>`:
+When a project blueprint declares `extends: frameworks/<framework>/<name>`:
 1. The standard must exist in the repository
 2. Required fields from the standard must be present
 3. Field types must match the standard's declarations

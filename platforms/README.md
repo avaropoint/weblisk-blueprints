@@ -12,8 +12,8 @@ patterns, and deployment considerations.
 agent, a domain controller or an administrative service is laid out, named,
 built and run in one language.
 
-**Client output is `standards/`** — the HTML, CSS and JavaScript a browser
-receives. Those conventions are different in kind: `standards/code.md` declares
+**Client output is a framework's concern** — the HTML, CSS and JavaScript a
+browser receives, in `frameworks/<name>/`. Those conventions are different in kind: `frameworks/weblisk/code.md` declares
 `file_naming: kebab-case`, which is right for a stylesheet and wrong for Go.
 
 A platform blueprint's job is translation. The specification blueprints state

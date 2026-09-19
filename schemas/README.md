@@ -64,7 +64,7 @@ This applies to:
 | [pattern.md](pattern.md) | Cross-cutting patterns | `patterns/` directory |
 | [architecture.md](architecture.md) | System architecture components | `architecture/` directory |
 | [platform.md](platform.md) | Platform implementation bindings | `platforms/` directory |
-| [standard.md](standard.md) | Project-level blueprint standards | `standards/` directory |
+| [framework.md](framework.md) | Framework blueprints — what building *with* a framework requires | `frameworks/<name>/` directories |
 | [kinds.md](kinds.md) | What sorts of thing the platform can talk about, what each drives, and which relations join them | Every tool that classifies, relates or scores content |
 
 ### kinds.md is different from the others
@@ -91,8 +91,9 @@ common.md (inherited by all)
 ├── protocol.md (type: protocol)
 ├── pattern.md (type: pattern)
 ├── architecture.md (type: architecture)
-├── platform.md (type: platform)
-└── standard.md (standards/ — project-level blueprint types)
+├── platform.md (type: platform — platforms/ and languages/)
+├── framework.md (frameworks/<name>/ — building WITH a framework)
+└── kinds.md (what sorts of thing exist — read at runtime, not checked against a document)
 ```
 
 Every type-specific schema inherits all rules from `common.md`. Type-specific

@@ -15,14 +15,16 @@ Neither says what you are building.
 | **platform** | what does it run on, and what does that offer? | [`platforms/`](../platforms/README.md) |
 | **framework** | what is it built *with*? | here |
 
-## Status
+## What is here
 
-**In progress.** `frameworks/weblisk` — the Weblisk client framework — is
-currently described by [`standards/`](../standards/README.md), whose files
-(`islands`, `components`, `pages`, `theme`) are that framework's own concepts
-rather than general project standards. Moving them here makes the axis honestly
-named and makes a third-party framework such as Astro an obvious peer rather
-than a special case.
+| | |
+|---|---|
+| [weblisk](weblisk/README.md) | the Weblisk client framework — pages, components, islands, theme |
 
-See [`../CORPUS_SHAPE.md`](../CORPUS_SHAPE.md) for the sequence and what it
-touches.
+A third-party framework — Astro, Next — would sit beside it as a peer, declaring
+the same kinds of thing for its own model.
+
+`frameworks/weblisk` was previously `standards/`: its files are one framework's
+own concepts rather than general project standards, and the word `standards` is
+needed for what it means to the people this framework serves — ISO 27001, SOC 2,
+NIST. See [`../CORPUS_SHAPE.md`](../CORPUS_SHAPE.md).
