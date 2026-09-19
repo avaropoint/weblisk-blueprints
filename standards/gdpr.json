@@ -1,0 +1,777 @@
+{
+  "id": "gdpr",
+  "name": "GDPR",
+  "version": "2016/679",
+  "description": "General Data Protection Regulation — protection of natural persons with regard to processing of personal data",
+  "authority": "European Parliament and Council of the EU",
+  "scope": "Any organization processing personal data of EU/EEA individuals",
+  "families": [
+    {
+      "id": "PRIN",
+      "name": "Principles of Processing",
+      "description": "Articles 5-11 — Lawfulness, fairness, purpose limitation, data minimization, accuracy, storage limitation, integrity, accountability",
+      "controls": [
+        {
+          "id": "Art.5(1)(a)",
+          "name": "Lawfulness, Fairness, Transparency",
+          "description": "Personal data shall be processed lawfully, fairly, and in a transparent manner",
+          "family": "PRIN",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "lawfulness",
+            "fairness",
+            "transparency",
+            "legal-basis"
+          ]
+        },
+        {
+          "id": "Art.5(1)(b)",
+          "name": "Purpose Limitation",
+          "description": "Personal data collected for specified, explicit, and legitimate purposes only",
+          "family": "PRIN",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "purpose-limitation",
+            "specified-purpose",
+            "compatible-purpose"
+          ]
+        },
+        {
+          "id": "Art.5(1)(c)",
+          "name": "Data Minimization",
+          "description": "Personal data shall be adequate, relevant, and limited to what is necessary",
+          "family": "PRIN",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-minimization",
+            "necessity",
+            "proportionality"
+          ]
+        },
+        {
+          "id": "Art.5(1)(d)",
+          "name": "Accuracy",
+          "description": "Personal data shall be accurate and, where necessary, kept up to date",
+          "family": "PRIN",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "accuracy",
+            "data-quality",
+            "rectification"
+          ]
+        },
+        {
+          "id": "Art.5(1)(e)",
+          "name": "Storage Limitation",
+          "description": "Personal data kept in identifiable form no longer than necessary",
+          "family": "PRIN",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "storage-limitation",
+            "retention-period",
+            "data-deletion"
+          ]
+        },
+        {
+          "id": "Art.5(1)(f)",
+          "name": "Integrity and Confidentiality",
+          "description": "Appropriate security of personal data including protection against unauthorized processing",
+          "family": "PRIN",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection",
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "integrity",
+            "confidentiality",
+            "security-of-processing"
+          ]
+        },
+        {
+          "id": "Art.5(2)",
+          "name": "Accountability",
+          "description": "The controller shall be responsible for, and able to demonstrate, compliance",
+          "family": "PRIN",
+          "framework": "gdpr",
+          "domains": [
+            "governance",
+            "compliance_audit"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "accountability",
+            "demonstrate-compliance",
+            "documentation"
+          ]
+        },
+        {
+          "id": "Art.6",
+          "name": "Lawful Basis for Processing",
+          "description": "Processing is lawful only if at least one legal basis applies (consent, contract, legal obligation, vital interests, public task, legitimate interests)",
+          "family": "PRIN",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "legal-basis",
+            "consent",
+            "legitimate-interests",
+            "contract",
+            "legal-obligation"
+          ]
+        },
+        {
+          "id": "Art.7",
+          "name": "Conditions for Consent",
+          "description": "Consent must be freely given, specific, informed, unambiguous, and withdrawable",
+          "family": "PRIN",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "consent",
+            "consent-management",
+            "withdraw-consent",
+            "opt-in"
+          ]
+        },
+        {
+          "id": "Art.9",
+          "name": "Special Categories of Data",
+          "description": "Processing of special categories (race, health, biometric, etc.) prohibited unless exceptions apply",
+          "family": "PRIN",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "special-categories",
+            "sensitive-data",
+            "health-data",
+            "biometric"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RIGHTS",
+      "name": "Data Subject Rights",
+      "description": "Articles 12-23 — Transparency, access, rectification, erasure, portability, objection",
+      "controls": [
+        {
+          "id": "Art.12",
+          "name": "Transparent Communication",
+          "description": "Controller shall provide information in concise, transparent, intelligible, and easily accessible form",
+          "family": "RIGHTS",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "transparency",
+            "privacy-notice",
+            "clear-language"
+          ]
+        },
+        {
+          "id": "Art.13",
+          "name": "Information at Collection",
+          "description": "Information to be provided when personal data is collected from the data subject",
+          "family": "RIGHTS",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "collection-notice",
+            "privacy-notice",
+            "data-collection"
+          ]
+        },
+        {
+          "id": "Art.14",
+          "name": "Information from Other Sources",
+          "description": "Information to be provided when data not obtained from the data subject",
+          "family": "RIGHTS",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "indirect-collection",
+            "third-party-data",
+            "data-source"
+          ]
+        },
+        {
+          "id": "Art.15",
+          "name": "Right of Access",
+          "description": "Data subject has the right to obtain confirmation and access to personal data",
+          "family": "RIGHTS",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "SAR",
+            "subject-access-request",
+            "right-of-access",
+            "DSAR"
+          ]
+        },
+        {
+          "id": "Art.16",
+          "name": "Right to Rectification",
+          "description": "Data subject has the right to have inaccurate data corrected without undue delay",
+          "family": "RIGHTS",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "rectification",
+            "correction",
+            "data-accuracy"
+          ]
+        },
+        {
+          "id": "Art.17",
+          "name": "Right to Erasure",
+          "description": "Data subject has the right to erasure ('right to be forgotten')",
+          "family": "RIGHTS",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "erasure",
+            "right-to-be-forgotten",
+            "deletion",
+            "RTBF"
+          ]
+        },
+        {
+          "id": "Art.18",
+          "name": "Right to Restriction",
+          "description": "Data subject has the right to restrict processing in certain circumstances",
+          "family": "RIGHTS",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "restriction",
+            "processing-restriction",
+            "hold"
+          ]
+        },
+        {
+          "id": "Art.20",
+          "name": "Right to Data Portability",
+          "description": "Data subject has the right to receive data in a structured, machine-readable format",
+          "family": "RIGHTS",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "portability",
+            "data-export",
+            "machine-readable",
+            "JSON",
+            "CSV"
+          ]
+        },
+        {
+          "id": "Art.21",
+          "name": "Right to Object",
+          "description": "Data subject has the right to object to processing based on legitimate interests",
+          "family": "RIGHTS",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "object",
+            "opt-out",
+            "direct-marketing"
+          ]
+        },
+        {
+          "id": "Art.22",
+          "name": "Automated Decision-Making",
+          "description": "Right not to be subject to decisions based solely on automated processing including profiling",
+          "family": "RIGHTS",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "automated-decision",
+            "profiling",
+            "human-intervention",
+            "AI-decisions"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CTRL",
+      "name": "Controller and Processor Obligations",
+      "description": "Articles 24-43 — Data protection by design, DPIA, DPO, records, processor requirements",
+      "controls": [
+        {
+          "id": "Art.24",
+          "name": "Responsibility of Controller",
+          "description": "Controller shall implement appropriate measures to demonstrate processing compliance",
+          "family": "CTRL",
+          "framework": "gdpr",
+          "domains": [
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "controller-responsibility",
+            "compliance-measures",
+            "organizational-measures"
+          ]
+        },
+        {
+          "id": "Art.25",
+          "name": "Data Protection by Design and Default",
+          "description": "Implement technical and organizational measures for data protection by design",
+          "family": "CTRL",
+          "framework": "gdpr",
+          "domains": [
+            "secure_development",
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "privacy-by-design",
+            "privacy-by-default",
+            "DPbD",
+            "data-protection-by-design"
+          ]
+        },
+        {
+          "id": "Art.26",
+          "name": "Joint Controllers",
+          "description": "Where two or more controllers jointly determine purposes, they shall determine respective responsibilities",
+          "family": "CTRL",
+          "framework": "gdpr",
+          "domains": [
+            "governance"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "joint-controllers",
+            "shared-responsibility",
+            "joint-arrangement"
+          ]
+        },
+        {
+          "id": "Art.28",
+          "name": "Processor Requirements",
+          "description": "Processing by a processor shall be governed by a contract binding the processor",
+          "family": "CTRL",
+          "framework": "gdpr",
+          "domains": [
+            "vendor_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "DPA",
+            "data-processing-agreement",
+            "processor-contract",
+            "sub-processor"
+          ]
+        },
+        {
+          "id": "Art.30",
+          "name": "Records of Processing Activities",
+          "description": "Controller and processor shall maintain a record of processing activities (RoPA)",
+          "family": "CTRL",
+          "framework": "gdpr",
+          "domains": [
+            "governance",
+            "compliance_audit"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "RoPA",
+            "processing-register",
+            "Article-30-record"
+          ]
+        },
+        {
+          "id": "Art.32",
+          "name": "Security of Processing",
+          "description": "Implement appropriate technical and organizational measures to ensure security",
+          "family": "CTRL",
+          "framework": "gdpr",
+          "domains": [
+            "encryption",
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security-of-processing",
+            "pseudonymization",
+            "encryption",
+            "resilience"
+          ]
+        },
+        {
+          "id": "Art.35",
+          "name": "Data Protection Impact Assessment",
+          "description": "Controller shall carry out DPIA when processing is likely to result in high risk",
+          "family": "CTRL",
+          "framework": "gdpr",
+          "domains": [
+            "risk_management",
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "DPIA",
+            "impact-assessment",
+            "high-risk-processing",
+            "PIA"
+          ]
+        },
+        {
+          "id": "Art.37",
+          "name": "Data Protection Officer",
+          "description": "Controller and processor shall designate a DPO where required",
+          "family": "CTRL",
+          "framework": "gdpr",
+          "domains": [
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "DPO",
+            "data-protection-officer",
+            "designation"
+          ]
+        },
+        {
+          "id": "Art.42",
+          "name": "Certification",
+          "description": "Member states, supervisory authorities, and the Board shall encourage certification mechanisms",
+          "family": "CTRL",
+          "framework": "gdpr",
+          "domains": [
+            "compliance_audit"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "certification",
+            "seal",
+            "data-protection-certification"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "XFER",
+      "name": "International Transfers",
+      "description": "Articles 44-49 — Transfers of personal data to third countries or international organizations",
+      "controls": [
+        {
+          "id": "Art.44",
+          "name": "General Principle for Transfers",
+          "description": "Transfers to third countries only if conditions of Chapter V are met",
+          "family": "XFER",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-transfer",
+            "third-country",
+            "cross-border"
+          ]
+        },
+        {
+          "id": "Art.45",
+          "name": "Adequacy Decisions",
+          "description": "Transfers based on European Commission adequacy decision",
+          "family": "XFER",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "adequacy-decision",
+            "EU-adequate",
+            "safe-country"
+          ]
+        },
+        {
+          "id": "Art.46",
+          "name": "Appropriate Safeguards",
+          "description": "Transfers subject to appropriate safeguards (SCCs, BCRs, etc.)",
+          "family": "XFER",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "SCC",
+            "BCR",
+            "standard-contractual-clauses",
+            "binding-corporate-rules"
+          ]
+        },
+        {
+          "id": "Art.49",
+          "name": "Derogations for Specific Situations",
+          "description": "Transfers based on explicit consent, contract, or other derogations",
+          "family": "XFER",
+          "framework": "gdpr",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "derogation",
+            "explicit-consent-transfer",
+            "necessary-transfer"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BREACH",
+      "name": "Data Breach Notification",
+      "description": "Articles 33-34 — Notification of personal data breaches to authorities and data subjects",
+      "controls": [
+        {
+          "id": "Art.33",
+          "name": "Notification to Supervisory Authority",
+          "description": "Controller shall notify breach to supervisory authority within 72 hours unless unlikely to result in risk",
+          "family": "BREACH",
+          "framework": "gdpr",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "breach-notification",
+            "72-hours",
+            "supervisory-authority",
+            "DPA-notification"
+          ]
+        },
+        {
+          "id": "Art.34",
+          "name": "Communication to Data Subject",
+          "description": "When breach likely results in high risk, controller shall communicate to data subject",
+          "family": "BREACH",
+          "framework": "gdpr",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-subject-notification",
+            "high-risk-breach",
+            "individual-notification"
+          ]
+        }
+      ]
+    }
+  ],
+  "category": "privacy",
+  "published_date": "2016-04-27",
+  "effective_date": "2018-05-25",
+  "transition_deadline": "",
+  "supersedes": "EU Data Protection Directive 95/46/EC",
+  "status": "active",
+  "official_url": "https://gdpr-info.eu/",
+  "changes_summary": "Replaced Directive with directly-applicable Regulation, introduced data portability, right to erasure, DPO requirement, 72-hour breach notification, extraterritorial scope"
+}

@@ -1,0 +1,1610 @@
+{
+  "id": "nist_csf_2",
+  "name": "NIST Cybersecurity Framework 2.0",
+  "version": "2.0",
+  "description": "Voluntary framework for managing cybersecurity risk across critical infrastructure and all organizations",
+  "authority": "National Institute of Standards and Technology (NIST)",
+  "scope": "All organizations (voluntary)",
+  "families": [
+    {
+      "id": "GV",
+      "name": "Govern",
+      "description": "Establish and monitor the organization's cybersecurity risk management strategy, expectations, and policy",
+      "controls": [
+        {
+          "id": "GV.OC-01",
+          "name": "Organizational Context",
+          "description": "The organizational mission is understood and informs cybersecurity risk management",
+          "family": "GV",
+          "framework": "nist_csf_2",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "mission",
+            "objectives",
+            "stakeholders",
+            "organizational-context"
+          ]
+        },
+        {
+          "id": "GV.OC-02",
+          "name": "Internal Stakeholders",
+          "description": "Internal stakeholders understand and enforce cybersecurity strategy",
+          "family": "GV",
+          "framework": "nist_csf_2",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "stakeholders",
+            "governance",
+            "oversight",
+            "board"
+          ]
+        },
+        {
+          "id": "GV.OC-03",
+          "name": "Legal & Regulatory",
+          "description": "Legal, regulatory, and contractual requirements are understood and managed",
+          "family": "GV",
+          "framework": "nist_csf_2",
+          "domains": [
+            "governance",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "legal",
+            "regulatory",
+            "contractual",
+            "compliance"
+          ]
+        },
+        {
+          "id": "GV.OC-04",
+          "name": "Critical Objectives",
+          "description": "Critical objectives, capabilities, and services are understood",
+          "family": "GV",
+          "framework": "nist_csf_2",
+          "domains": [
+            "governance",
+            "asset_management"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "critical-services",
+            "dependencies",
+            "objectives"
+          ]
+        },
+        {
+          "id": "GV.OC-05",
+          "name": "Risk Appetite",
+          "description": "Outcomes, priorities, and resource allocation inform risk management",
+          "family": "GV",
+          "framework": "nist_csf_2",
+          "domains": [
+            "risk_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "risk-appetite",
+            "risk-tolerance",
+            "priorities"
+          ]
+        },
+        {
+          "id": "GV.RM-01",
+          "name": "Risk Management Strategy",
+          "description": "Risk management objectives are established and agreed upon",
+          "family": "GV",
+          "framework": "nist_csf_2",
+          "domains": [
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "risk-strategy",
+            "risk-management",
+            "risk-framework"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L2-08"
+          ]
+        },
+        {
+          "id": "GV.RM-02",
+          "name": "Risk Appetite Statement",
+          "description": "Risk appetite and tolerance statements are established and communicated",
+          "family": "GV",
+          "framework": "nist_csf_2",
+          "domains": [
+            "risk_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "risk-appetite",
+            "risk-tolerance",
+            "risk-threshold"
+          ]
+        },
+        {
+          "id": "GV.RM-03",
+          "name": "Risk Management Integration",
+          "description": "Cybersecurity risk management is integrated into enterprise risk management",
+          "family": "GV",
+          "framework": "nist_csf_2",
+          "domains": [
+            "risk_management",
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "enterprise-risk",
+            "integration",
+            "risk-program"
+          ]
+        },
+        {
+          "id": "GV.RM-04",
+          "name": "Strategic Direction",
+          "description": "Strategic direction for risk responses is established",
+          "family": "GV",
+          "framework": "nist_csf_2",
+          "domains": [
+            "risk_management"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "risk-response",
+            "strategic",
+            "risk-acceptance"
+          ]
+        },
+        {
+          "id": "GV.RR-01",
+          "name": "Organizational Leadership",
+          "description": "Organizational leadership takes accountability for cybersecurity risk",
+          "family": "GV",
+          "framework": "nist_csf_2",
+          "domains": [
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "leadership",
+            "accountability",
+            "responsibility",
+            "CISO"
+          ]
+        },
+        {
+          "id": "GV.RR-02",
+          "name": "Roles & Responsibilities",
+          "description": "Cybersecurity roles, responsibilities, and authorities are established",
+          "family": "GV",
+          "framework": "nist_csf_2",
+          "domains": [
+            "governance",
+            "hr_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "roles",
+            "responsibilities",
+            "authority",
+            "RACI"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-15"
+          ]
+        },
+        {
+          "id": "GV.RR-03",
+          "name": "Adequate Resources",
+          "description": "Adequate resources are allocated for cybersecurity",
+          "family": "GV",
+          "framework": "nist_csf_2",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "budget",
+            "resources",
+            "staffing",
+            "funding"
+          ]
+        },
+        {
+          "id": "GV.RR-04",
+          "name": "Workforce Competency",
+          "description": "Cybersecurity is included in HR practices",
+          "family": "GV",
+          "framework": "nist_csf_2",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "training",
+            "awareness",
+            "competency",
+            "workforce"
+          ]
+        },
+        {
+          "id": "GV.PO-01",
+          "name": "Cybersecurity Policy",
+          "description": "A policy based on organizational context is established",
+          "family": "GV",
+          "framework": "nist_csf_2",
+          "domains": [
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "policy",
+            "information-security-policy",
+            "cybersecurity-policy"
+          ]
+        },
+        {
+          "id": "GV.PO-02",
+          "name": "Policy Review",
+          "description": "Policy is reviewed, updated, and communicated",
+          "family": "GV",
+          "framework": "nist_csf_2",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "policy-review",
+            "policy-update",
+            "communication"
+          ]
+        },
+        {
+          "id": "GV.SC-01",
+          "name": "Supply Chain Risk Management",
+          "description": "A cybersecurity supply chain risk management program is established",
+          "family": "GV",
+          "framework": "nist_csf_2",
+          "domains": [
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "supply-chain",
+            "vendor",
+            "third-party",
+            "SCRM"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-16"
+          ]
+        },
+        {
+          "id": "GV.SC-02",
+          "name": "Supplier Requirements",
+          "description": "Cybersecurity requirements are established for suppliers",
+          "family": "GV",
+          "framework": "nist_csf_2",
+          "domains": [
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "supplier-requirements",
+            "vendor-assessment",
+            "SLA"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ID",
+      "name": "Identify",
+      "description": "Understand the organization's current cybersecurity risks",
+      "controls": [
+        {
+          "id": "ID.AM-01",
+          "name": "Asset Inventory (Hardware)",
+          "description": "Inventories of hardware managed by the organization are maintained",
+          "family": "ID",
+          "framework": "nist_csf_2",
+          "domains": [
+            "asset_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "hardware-inventory",
+            "asset-inventory",
+            "CMDB"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-14"
+          ]
+        },
+        {
+          "id": "ID.AM-02",
+          "name": "Asset Inventory (Software)",
+          "description": "Inventories of software, services, and systems are maintained",
+          "family": "ID",
+          "framework": "nist_csf_2",
+          "domains": [
+            "asset_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "software-inventory",
+            "service-catalog",
+            "SBOM"
+          ]
+        },
+        {
+          "id": "ID.AM-03",
+          "name": "Data Inventory",
+          "description": "Representations of authorized network communication and data flows are maintained",
+          "family": "ID",
+          "framework": "nist_csf_2",
+          "domains": [
+            "asset_management",
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-flow",
+            "network-diagram",
+            "data-inventory",
+            "data-map"
+          ]
+        },
+        {
+          "id": "ID.AM-04",
+          "name": "External Services",
+          "description": "Inventories of services provided by suppliers are maintained",
+          "family": "ID",
+          "framework": "nist_csf_2",
+          "domains": [
+            "asset_management",
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "supplier-inventory",
+            "SaaS",
+            "external-services"
+          ]
+        },
+        {
+          "id": "ID.AM-05",
+          "name": "Asset Prioritization",
+          "description": "Assets are prioritized based on classification, criticality, and business value",
+          "family": "ID",
+          "framework": "nist_csf_2",
+          "domains": [
+            "asset_management",
+            "risk_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "asset-classification",
+            "criticality",
+            "business-value"
+          ]
+        },
+        {
+          "id": "ID.RA-01",
+          "name": "Vulnerability Identification",
+          "description": "Vulnerabilities in assets are identified, validated, and recorded",
+          "family": "ID",
+          "framework": "nist_csf_2",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "vulnerability-scanning",
+            "CVE",
+            "vulnerability-assessment"
+          ]
+        },
+        {
+          "id": "ID.RA-02",
+          "name": "Threat Intelligence",
+          "description": "Cyber threat intelligence is received from information sharing forums and sources",
+          "family": "ID",
+          "framework": "nist_csf_2",
+          "domains": [
+            "vulnerability_management",
+            "risk_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "threat-intelligence",
+            "threat-feeds",
+            "ISAC",
+            "indicators-of-compromise"
+          ]
+        },
+        {
+          "id": "ID.RA-03",
+          "name": "Threat Identification",
+          "description": "Internal and external threats are identified and recorded",
+          "family": "ID",
+          "framework": "nist_csf_2",
+          "domains": [
+            "risk_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "threat-modeling",
+            "threat-assessment",
+            "attack-surface"
+          ]
+        },
+        {
+          "id": "ID.RA-04",
+          "name": "Impact Analysis",
+          "description": "Potential impacts and likelihoods of threats exploiting vulnerabilities are identified",
+          "family": "ID",
+          "framework": "nist_csf_2",
+          "domains": [
+            "risk_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "impact-analysis",
+            "likelihood",
+            "risk-assessment",
+            "BIA"
+          ]
+        },
+        {
+          "id": "ID.RA-05",
+          "name": "Risk Determination",
+          "description": "Risks are determined by aggregating threat, vulnerability, likelihood, and impact",
+          "family": "ID",
+          "framework": "nist_csf_2",
+          "domains": [
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "risk-register",
+            "risk-score",
+            "risk-determination"
+          ]
+        },
+        {
+          "id": "ID.RA-06",
+          "name": "Risk Response",
+          "description": "Risk responses are chosen, prioritized, planned, and tracked",
+          "family": "ID",
+          "framework": "nist_csf_2",
+          "domains": [
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "risk-treatment",
+            "risk-response",
+            "risk-mitigation",
+            "risk-acceptance"
+          ]
+        },
+        {
+          "id": "ID.IM-01",
+          "name": "Improvements from Assessments",
+          "description": "Improvements are identified from evaluations, tests, and exercises",
+          "family": "ID",
+          "framework": "nist_csf_2",
+          "domains": [
+            "compliance_audit",
+            "governance"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "assessment",
+            "improvement",
+            "lessons-learned",
+            "gap-analysis"
+          ]
+        },
+        {
+          "id": "ID.IM-02",
+          "name": "Improvements from Operations",
+          "description": "Improvements are identified from security operations and incident response",
+          "family": "ID",
+          "framework": "nist_csf_2",
+          "domains": [
+            "incident_response",
+            "governance"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "post-incident",
+            "operational-improvement",
+            "metrics"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PR",
+      "name": "Protect",
+      "description": "Use safeguards to prevent or reduce cybersecurity risk",
+      "controls": [
+        {
+          "id": "PR.AA-01",
+          "name": "Identity Management",
+          "description": "Identities and credentials for authorized users, services, and hardware are managed",
+          "family": "PR",
+          "framework": "nist_csf_2",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "identity",
+            "IAM",
+            "credential",
+            "provisioning",
+            "deprovisioning"
+          ]
+        },
+        {
+          "id": "PR.AA-02",
+          "name": "Access Authentication",
+          "description": "Identities are proofed and bound to credentials based on context",
+          "family": "PR",
+          "framework": "nist_csf_2",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "authentication",
+            "MFA",
+            "multi-factor",
+            "identity-proofing"
+          ]
+        },
+        {
+          "id": "PR.AA-03",
+          "name": "Access Control Enforcement",
+          "description": "Access permissions and authorizations are managed with least privilege and separation of duties",
+          "family": "PR",
+          "framework": "nist_csf_2",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "authorization",
+            "RBAC",
+            "least-privilege",
+            "separation-of-duties"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-05"
+          ]
+        },
+        {
+          "id": "PR.AA-04",
+          "name": "Access Reviews",
+          "description": "Identity assertions are verified and access rights are periodically reviewed",
+          "family": "PR",
+          "framework": "nist_csf_2",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "access-review",
+            "recertification",
+            "access-audit"
+          ]
+        },
+        {
+          "id": "PR.AA-05",
+          "name": "Network Access",
+          "description": "Access permissions, entitlements, and authorizations for network resources are defined",
+          "family": "PR",
+          "framework": "nist_csf_2",
+          "domains": [
+            "access_control",
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "network-access",
+            "segmentation",
+            "zero-trust"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-12",
+            "can_ciosc_104:CIOSC-L1-18"
+          ]
+        },
+        {
+          "id": "PR.DS-01",
+          "name": "Data-at-Rest Protection",
+          "description": "The confidentiality, integrity, and availability of data-at-rest are protected",
+          "family": "PR",
+          "framework": "nist_csf_2",
+          "domains": [
+            "data_protection",
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "encryption-at-rest",
+            "data-protection",
+            "storage-encryption"
+          ]
+        },
+        {
+          "id": "PR.DS-02",
+          "name": "Data-in-Transit Protection",
+          "description": "The confidentiality, integrity, and availability of data-in-transit are protected",
+          "family": "PR",
+          "framework": "nist_csf_2",
+          "domains": [
+            "data_protection",
+            "encryption",
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "TLS",
+            "encryption-in-transit",
+            "transport-security",
+            "HTTPS"
+          ]
+        },
+        {
+          "id": "PR.DS-10",
+          "name": "Data Integrity",
+          "description": "The confidentiality, integrity, and availability of data-in-use are protected",
+          "family": "PR",
+          "framework": "nist_csf_2",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-integrity",
+            "checksums",
+            "validation",
+            "sanitization"
+          ]
+        },
+        {
+          "id": "PR.PS-01",
+          "name": "Configuration Management",
+          "description": "Configuration management practices are established and applied",
+          "family": "PR",
+          "framework": "nist_csf_2",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "configuration",
+            "baseline",
+            "hardening",
+            "CIS-benchmark"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-04"
+          ]
+        },
+        {
+          "id": "PR.PS-02",
+          "name": "Software Maintenance",
+          "description": "Software is maintained, replaced, and removed in accordance with policy",
+          "family": "PR",
+          "framework": "nist_csf_2",
+          "domains": [
+            "configuration_management",
+            "vulnerability_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "patching",
+            "software-update",
+            "end-of-life",
+            "decommission"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-02"
+          ]
+        },
+        {
+          "id": "PR.PS-03",
+          "name": "Hardware Maintenance",
+          "description": "Hardware is maintained, replaced, and removed in accordance with policy",
+          "family": "PR",
+          "framework": "nist_csf_2",
+          "domains": [
+            "asset_management",
+            "physical_security"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "hardware-maintenance",
+            "lifecycle",
+            "disposal"
+          ]
+        },
+        {
+          "id": "PR.PS-04",
+          "name": "Log Generation",
+          "description": "Log records are generated and made available for continuous monitoring",
+          "family": "PR",
+          "framework": "nist_csf_2",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "logging",
+            "audit-log",
+            "log-generation",
+            "event-recording"
+          ]
+        },
+        {
+          "id": "PR.PS-05",
+          "name": "Installation Management",
+          "description": "Installation and execution of unauthorized software is prevented",
+          "family": "PR",
+          "framework": "nist_csf_2",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "allowlisting",
+            "software-restriction",
+            "endpoint-protection"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-03"
+          ]
+        },
+        {
+          "id": "PR.PS-06",
+          "name": "Secure Development",
+          "description": "Secure software development practices are integrated into the SDLC",
+          "family": "PR",
+          "framework": "nist_csf_2",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "SDLC",
+            "secure-development",
+            "code-review",
+            "SAST",
+            "DAST"
+          ]
+        },
+        {
+          "id": "PR.IR-01",
+          "name": "Incident Response Readiness",
+          "description": "Incident response and recovery plans are established and maintained",
+          "family": "PR",
+          "framework": "nist_csf_2",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "incident-response-plan",
+            "IRP",
+            "playbook"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-09",
+            "can_ciosc_104:CIOSC-L2-06"
+          ]
+        },
+        {
+          "id": "PR.IR-02",
+          "name": "Recovery Readiness",
+          "description": "Recovery plans are tested and maintained",
+          "family": "PR",
+          "framework": "nist_csf_2",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "disaster-recovery",
+            "BCP",
+            "recovery-testing",
+            "tabletop"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "DE",
+      "name": "Detect",
+      "description": "Find and analyze possible cybersecurity attacks and compromises",
+      "controls": [
+        {
+          "id": "DE.CM-01",
+          "name": "Network Monitoring",
+          "description": "Networks and network services are monitored for potentially adverse events",
+          "family": "DE",
+          "framework": "nist_csf_2",
+          "domains": [
+            "logging_monitoring",
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "network-monitoring",
+            "IDS",
+            "IPS",
+            "NDR",
+            "traffic-analysis"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-19"
+          ]
+        },
+        {
+          "id": "DE.CM-02",
+          "name": "Physical Environment Monitoring",
+          "description": "The physical environment is monitored for potentially adverse events",
+          "family": "DE",
+          "framework": "nist_csf_2",
+          "domains": [
+            "physical_security"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "physical-monitoring",
+            "cameras",
+            "access-logs"
+          ]
+        },
+        {
+          "id": "DE.CM-03",
+          "name": "Personnel Activity Monitoring",
+          "description": "Personnel activity and technology usage are monitored",
+          "family": "DE",
+          "framework": "nist_csf_2",
+          "domains": [
+            "logging_monitoring",
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "user-activity",
+            "UEBA",
+            "insider-threat",
+            "behavior-analytics"
+          ]
+        },
+        {
+          "id": "DE.CM-06",
+          "name": "External Service Monitoring",
+          "description": "External service provider activities and services are monitored",
+          "family": "DE",
+          "framework": "nist_csf_2",
+          "domains": [
+            "vendor_management",
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "vendor-monitoring",
+            "third-party-risk",
+            "SLA-monitoring"
+          ]
+        },
+        {
+          "id": "DE.CM-09",
+          "name": "Computing Resource Monitoring",
+          "description": "Computing hardware and software are monitored for potentially adverse events",
+          "family": "DE",
+          "framework": "nist_csf_2",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "endpoint-monitoring",
+            "EDR",
+            "SIEM",
+            "security-monitoring"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-21"
+          ]
+        },
+        {
+          "id": "DE.AE-02",
+          "name": "Event Analysis",
+          "description": "Potentially adverse events are analyzed to better understand associated activities",
+          "family": "DE",
+          "framework": "nist_csf_2",
+          "domains": [
+            "logging_monitoring",
+            "incident_response"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "event-analysis",
+            "correlation",
+            "SIEM-rules",
+            "alert-triage"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L2-04"
+          ]
+        },
+        {
+          "id": "DE.AE-03",
+          "name": "Event Correlation",
+          "description": "Information is correlated from multiple sources to achieve situational awareness",
+          "family": "DE",
+          "framework": "nist_csf_2",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "correlation",
+            "aggregation",
+            "centralized-logging",
+            "SIEM"
+          ]
+        },
+        {
+          "id": "DE.AE-06",
+          "name": "Incident Declaration",
+          "description": "Information on adverse events is provided to authorized staff and tools",
+          "family": "DE",
+          "framework": "nist_csf_2",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "incident-declaration",
+            "escalation",
+            "notification",
+            "alerting"
+          ]
+        },
+        {
+          "id": "DE.AE-07",
+          "name": "Threat Intelligence Integration",
+          "description": "Cyber threat intelligence and contextual information are integrated into analysis",
+          "family": "DE",
+          "framework": "nist_csf_2",
+          "domains": [
+            "vulnerability_management",
+            "logging_monitoring"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "CTI",
+            "threat-intel",
+            "IOC",
+            "enrichment"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RS",
+      "name": "Respond",
+      "description": "Take action regarding a detected cybersecurity incident",
+      "controls": [
+        {
+          "id": "RS.MA-01",
+          "name": "Incident Management Execution",
+          "description": "The incident response plan is executed in coordination with relevant third parties",
+          "family": "RS",
+          "framework": "nist_csf_2",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "incident-response",
+            "coordination",
+            "execution",
+            "IRT"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-01"
+          ]
+        },
+        {
+          "id": "RS.MA-02",
+          "name": "Incident Triage",
+          "description": "Incidents are triaged and validated",
+          "family": "RS",
+          "framework": "nist_csf_2",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "triage",
+            "validation",
+            "severity-classification",
+            "incident-priority"
+          ]
+        },
+        {
+          "id": "RS.MA-03",
+          "name": "Incident Categorization",
+          "description": "Incidents are categorized and prioritized",
+          "family": "RS",
+          "framework": "nist_csf_2",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "categorization",
+            "priority",
+            "incident-type"
+          ]
+        },
+        {
+          "id": "RS.MA-04",
+          "name": "Incident Escalation",
+          "description": "Incidents are escalated or elevated as needed",
+          "family": "RS",
+          "framework": "nist_csf_2",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "escalation",
+            "notification",
+            "stakeholder-communication"
+          ]
+        },
+        {
+          "id": "RS.AN-03",
+          "name": "Forensic Analysis",
+          "description": "Analysis is performed to establish what has taken place during an incident",
+          "family": "RS",
+          "framework": "nist_csf_2",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "forensics",
+            "investigation",
+            "root-cause",
+            "evidence-preservation"
+          ]
+        },
+        {
+          "id": "RS.AN-06",
+          "name": "Actions & Scope Identification",
+          "description": "Actions performed during an investigation and their impact are recorded",
+          "family": "RS",
+          "framework": "nist_csf_2",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "incident-scope",
+            "blast-radius",
+            "containment-actions"
+          ]
+        },
+        {
+          "id": "RS.CO-02",
+          "name": "Internal Reporting",
+          "description": "Internal and external stakeholders are notified of incidents",
+          "family": "RS",
+          "framework": "nist_csf_2",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "incident-reporting",
+            "notification",
+            "stakeholder-comms"
+          ]
+        },
+        {
+          "id": "RS.CO-03",
+          "name": "External Communication",
+          "description": "Information is shared with designated internal and external stakeholders",
+          "family": "RS",
+          "framework": "nist_csf_2",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "breach-notification",
+            "regulatory-reporting",
+            "public-disclosure"
+          ]
+        },
+        {
+          "id": "RS.MI-01",
+          "name": "Incident Containment",
+          "description": "Incidents are contained",
+          "family": "RS",
+          "framework": "nist_csf_2",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "containment",
+            "isolation",
+            "quarantine",
+            "network-isolation"
+          ]
+        },
+        {
+          "id": "RS.MI-02",
+          "name": "Incident Eradication",
+          "description": "Incidents are eradicated",
+          "family": "RS",
+          "framework": "nist_csf_2",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "eradication",
+            "remediation",
+            "malware-removal",
+            "patching"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RC",
+      "name": "Recover",
+      "description": "Restore assets and operations that were impacted by a cybersecurity incident",
+      "controls": [
+        {
+          "id": "RC.RP-01",
+          "name": "Recovery Execution",
+          "description": "The recovery portion of the incident response plan is executed",
+          "family": "RC",
+          "framework": "nist_csf_2",
+          "domains": [
+            "business_continuity",
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "recovery",
+            "restoration",
+            "BCP-activation",
+            "failover"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-22"
+          ]
+        },
+        {
+          "id": "RC.RP-02",
+          "name": "Recovery Verification",
+          "description": "Recovery actions are verified, tracked, and confirmed",
+          "family": "RC",
+          "framework": "nist_csf_2",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "recovery-verification",
+            "integrity-check",
+            "validation"
+          ]
+        },
+        {
+          "id": "RC.RP-03",
+          "name": "Backup Integrity",
+          "description": "The integrity of backups and other restoration assets is verified",
+          "family": "RC",
+          "framework": "nist_csf_2",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "backup-integrity",
+            "backup-testing",
+            "restoration-test"
+          ]
+        },
+        {
+          "id": "RC.RP-04",
+          "name": "Critical Functions Priority",
+          "description": "Critical mission functions and services are prioritized during recovery",
+          "family": "RC",
+          "framework": "nist_csf_2",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "RTO",
+            "RPO",
+            "priority",
+            "critical-systems"
+          ]
+        },
+        {
+          "id": "RC.RP-05",
+          "name": "Recovery Integrity Verification",
+          "description": "The integrity of restored assets is verified and systems returned to normal",
+          "family": "RC",
+          "framework": "nist_csf_2",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "post-recovery",
+            "integrity-verification",
+            "normal-operations"
+          ]
+        },
+        {
+          "id": "RC.CO-03",
+          "name": "Recovery Communication",
+          "description": "Recovery activities and progress are communicated to stakeholders",
+          "family": "RC",
+          "framework": "nist_csf_2",
+          "domains": [
+            "business_continuity",
+            "incident_response"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "status-communication",
+            "stakeholder-update",
+            "recovery-status"
+          ]
+        },
+        {
+          "id": "RC.CO-04",
+          "name": "Public Updates",
+          "description": "Public updates on incident recovery are shared as needed",
+          "family": "RC",
+          "framework": "nist_csf_2",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "public-communication",
+            "transparency",
+            "status-page"
+          ]
+        }
+      ]
+    }
+  ],
+  "category": "cybersecurity",
+  "published_date": "2024-02-26",
+  "effective_date": "2024-02-26",
+  "transition_deadline": "",
+  "supersedes": "NIST CSF 1.1 (2018)",
+  "status": "active",
+  "official_url": "https://www.nist.gov/cyberframework",
+  "changes_summary": "Added Govern function, expanded to all organizations, improved supply chain focus, enhanced implementation guidance"
+}

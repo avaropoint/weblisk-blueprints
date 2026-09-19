@@ -1,0 +1,1536 @@
+{
+  "id": "cmmc",
+  "name": "CMMC 2.0",
+  "version": "2.0",
+  "description": "Cybersecurity Maturity Model Certification for protecting CUI in the Defense Industrial Base",
+  "authority": "U.S. Department of Defense (DoD)",
+  "scope": "Defense Industrial Base contractors handling FCI/CUI (DFARS 252.204-7012)",
+  "families": [
+    {
+      "id": "AC",
+      "name": "Access Control",
+      "description": "Limit information system access to authorized users, processes, and devices",
+      "controls": [
+        {
+          "id": "AC.L1-3.1.1",
+          "name": "Authorized Access Control",
+          "description": "Limit information system access to authorized users, processes acting on behalf of authorized users, or devices",
+          "family": "AC",
+          "framework": "cmmc",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "authorized-access",
+            "access-control",
+            "system-access"
+          ]
+        },
+        {
+          "id": "AC.L1-3.1.2",
+          "name": "Transaction \u0026 Function Control",
+          "description": "Limit information system access to types of transactions and functions that authorized users are permitted to execute",
+          "family": "AC",
+          "framework": "cmmc",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "function-control",
+            "transaction-control",
+            "RBAC"
+          ]
+        },
+        {
+          "id": "AC.L2-3.1.3",
+          "name": "Control CUI Flow",
+          "description": "Control the flow of CUI in accordance with approved authorizations",
+          "family": "AC",
+          "framework": "cmmc",
+          "domains": [
+            "data_protection",
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "CUI-flow",
+            "data-flow-control",
+            "information-flow"
+          ]
+        },
+        {
+          "id": "AC.L2-3.1.4",
+          "name": "Separation of Duties",
+          "description": "Separate the duties of individuals to reduce risk of malevolent activity without collusion",
+          "family": "AC",
+          "framework": "cmmc",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "separation-of-duties",
+            "SoD",
+            "dual-control"
+          ]
+        },
+        {
+          "id": "AC.L2-3.1.5",
+          "name": "Least Privilege",
+          "description": "Employ the principle of least privilege, including for specific security functions",
+          "family": "AC",
+          "framework": "cmmc",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "least-privilege",
+            "minimum-access",
+            "privilege-reduction"
+          ]
+        },
+        {
+          "id": "AC.L2-3.1.7",
+          "name": "Privileged Functions",
+          "description": "Prevent non-privileged users from executing privileged functions and capture audit information",
+          "family": "AC",
+          "framework": "cmmc",
+          "domains": [
+            "access_control",
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "privileged-functions",
+            "elevation-control",
+            "sudo-audit"
+          ]
+        },
+        {
+          "id": "AC.L2-3.1.8",
+          "name": "Unsuccessful Login Attempts",
+          "description": "Limit unsuccessful logon attempts",
+          "family": "AC",
+          "framework": "cmmc",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "account-lockout",
+            "login-limit",
+            "brute-force-protection"
+          ]
+        },
+        {
+          "id": "AC.L2-3.1.12",
+          "name": "Remote Access Control",
+          "description": "Monitor and control remote access sessions",
+          "family": "AC",
+          "framework": "cmmc",
+          "domains": [
+            "access_control",
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "remote-access",
+            "VPN",
+            "remote-monitoring"
+          ]
+        },
+        {
+          "id": "AC.L2-3.1.13",
+          "name": "Remote Access Encryption",
+          "description": "Employ cryptographic mechanisms to protect confidentiality of remote access sessions",
+          "family": "AC",
+          "framework": "cmmc",
+          "domains": [
+            "encryption",
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "VPN-encryption",
+            "remote-encryption",
+            "tunnel-security"
+          ]
+        },
+        {
+          "id": "AC.L2-3.1.19",
+          "name": "Encrypt CUI on Mobile",
+          "description": "Encrypt CUI on mobile devices and mobile computing platforms",
+          "family": "AC",
+          "framework": "cmmc",
+          "domains": [
+            "encryption",
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "mobile-encryption",
+            "device-encryption",
+            "CUI-mobile"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "AT",
+      "name": "Awareness and Training",
+      "description": "Ensure personnel are aware of security risks and are trained in organizational policies",
+      "controls": [
+        {
+          "id": "AT.L2-3.2.1",
+          "name": "Role-Based Risk Awareness",
+          "description": "Ensure managers, systems administrators, and users are aware of security risks",
+          "family": "AT",
+          "framework": "cmmc",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "risk-awareness",
+            "security-awareness",
+            "role-based-training"
+          ]
+        },
+        {
+          "id": "AT.L2-3.2.2",
+          "name": "Role-Based Training",
+          "description": "Ensure personnel are trained to carry out their information security responsibilities",
+          "family": "AT",
+          "framework": "cmmc",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security-training",
+            "role-training",
+            "cyber-training"
+          ]
+        },
+        {
+          "id": "AT.L2-3.2.3",
+          "name": "Insider Threat Awareness",
+          "description": "Provide security awareness training on recognizing and reporting insider threats",
+          "family": "AT",
+          "framework": "cmmc",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "insider-threat",
+            "threat-awareness",
+            "reporting"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "AU",
+      "name": "Audit and Accountability",
+      "description": "Create, protect, and retain system audit records to enable monitoring and investigation",
+      "controls": [
+        {
+          "id": "AU.L2-3.3.1",
+          "name": "System Auditing",
+          "description": "Create and retain system audit logs to enable monitoring, analysis, and investigation",
+          "family": "AU",
+          "framework": "cmmc",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "audit-logging",
+            "system-audit",
+            "event-logging"
+          ]
+        },
+        {
+          "id": "AU.L2-3.3.2",
+          "name": "User Accountability",
+          "description": "Ensure actions of individual system users can be uniquely traced for accountability",
+          "family": "AU",
+          "framework": "cmmc",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "user-accountability",
+            "individual-tracing",
+            "unique-identification"
+          ]
+        },
+        {
+          "id": "AU.L2-3.3.4",
+          "name": "Audit Failure Alerting",
+          "description": "Alert in the event of an audit logging process failure",
+          "family": "AU",
+          "framework": "cmmc",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "audit-failure",
+            "logging-alert",
+            "monitoring-health"
+          ]
+        },
+        {
+          "id": "AU.L2-3.3.5",
+          "name": "Audit Correlation",
+          "description": "Correlate audit record review, analysis, and reporting for investigation and response",
+          "family": "AU",
+          "framework": "cmmc",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "log-correlation",
+            "SIEM",
+            "event-correlation"
+          ]
+        },
+        {
+          "id": "AU.L2-3.3.8",
+          "name": "Audit Protection",
+          "description": "Protect audit information and audit logging tools from unauthorized access",
+          "family": "AU",
+          "framework": "cmmc",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "log-protection",
+            "audit-integrity",
+            "immutable-logs"
+          ]
+        },
+        {
+          "id": "AU.L2-3.3.9",
+          "name": "Audit Management Limited",
+          "description": "Limit management of audit logging functionality to a subset of privileged users",
+          "family": "AU",
+          "framework": "cmmc",
+          "domains": [
+            "logging_monitoring",
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "audit-admin",
+            "log-management-access",
+            "privileged-logging"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CM",
+      "name": "Configuration Management",
+      "description": "Establish and maintain baseline configurations and inventories of organizational systems",
+      "controls": [
+        {
+          "id": "CM.L2-3.4.1",
+          "name": "System Baselining",
+          "description": "Establish and maintain baseline configurations and inventories of systems",
+          "family": "CM",
+          "framework": "cmmc",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "baseline",
+            "configuration-baseline",
+            "system-inventory"
+          ]
+        },
+        {
+          "id": "CM.L2-3.4.2",
+          "name": "Security Configuration Enforcement",
+          "description": "Establish and enforce security configuration settings for IT products",
+          "family": "CM",
+          "framework": "cmmc",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security-config",
+            "hardening",
+            "STIG",
+            "CIS-benchmark"
+          ]
+        },
+        {
+          "id": "CM.L2-3.4.3",
+          "name": "System Change Tracking",
+          "description": "Track, review, approve/disapprove, and log changes to systems",
+          "family": "CM",
+          "framework": "cmmc",
+          "domains": [
+            "change_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "change-tracking",
+            "change-approval",
+            "change-log"
+          ]
+        },
+        {
+          "id": "CM.L2-3.4.5",
+          "name": "Access Restrictions for Change",
+          "description": "Define and implement access restrictions for system changes",
+          "family": "CM",
+          "framework": "cmmc",
+          "domains": [
+            "change_management",
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "change-access",
+            "change-control",
+            "restricted-change"
+          ]
+        },
+        {
+          "id": "CM.L2-3.4.6",
+          "name": "Least Functionality",
+          "description": "Employ the principle of least functionality by configuring systems to provide only essential capabilities",
+          "family": "CM",
+          "framework": "cmmc",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "least-functionality",
+            "attack-surface-reduction",
+            "service-minimization"
+          ]
+        },
+        {
+          "id": "CM.L2-3.4.8",
+          "name": "Application Execution Policy",
+          "description": "Apply deny-by-exception or allow-by-exception policy to prevent unauthorized software use",
+          "family": "CM",
+          "framework": "cmmc",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "application-control",
+            "allowlist",
+            "blocklist",
+            "execution-policy"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "IA",
+      "name": "Identification and Authentication",
+      "description": "Identify and authenticate users, processes, and devices before granting access",
+      "controls": [
+        {
+          "id": "IA.L1-3.5.1",
+          "name": "Identification",
+          "description": "Identify information system users, processes acting on behalf of users, or devices",
+          "family": "IA",
+          "framework": "cmmc",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "user-identification",
+            "system-identification",
+            "device-identification"
+          ]
+        },
+        {
+          "id": "IA.L1-3.5.2",
+          "name": "Authentication",
+          "description": "Authenticate the identity of users, processes, or devices before allowing access",
+          "family": "IA",
+          "framework": "cmmc",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "authentication",
+            "login",
+            "credential-verification"
+          ]
+        },
+        {
+          "id": "IA.L2-3.5.3",
+          "name": "Multi-Factor Authentication",
+          "description": "Use multi-factor authentication for local and network access to privileged accounts",
+          "family": "IA",
+          "framework": "cmmc",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "MFA",
+            "multi-factor",
+            "privileged-MFA"
+          ]
+        },
+        {
+          "id": "IA.L2-3.5.4",
+          "name": "Replay-Resistant Authentication",
+          "description": "Employ replay-resistant authentication mechanisms for network access",
+          "family": "IA",
+          "framework": "cmmc",
+          "domains": [
+            "access_control",
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "replay-resistant",
+            "nonce",
+            "challenge-response"
+          ]
+        },
+        {
+          "id": "IA.L2-3.5.7",
+          "name": "Password Complexity",
+          "description": "Enforce a minimum password complexity and change requirements",
+          "family": "IA",
+          "framework": "cmmc",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "password-complexity",
+            "password-requirements",
+            "strong-passwords"
+          ]
+        },
+        {
+          "id": "IA.L2-3.5.10",
+          "name": "Cryptographic Key Store",
+          "description": "Store and transmit only cryptographically-protected passwords",
+          "family": "IA",
+          "framework": "cmmc",
+          "domains": [
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "password-hashing",
+            "credential-storage",
+            "bcrypt",
+            "encrypted-passwords"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "IR",
+      "name": "Incident Response",
+      "description": "Establish an operational incident handling capability for organizational systems",
+      "controls": [
+        {
+          "id": "IR.L2-3.6.1",
+          "name": "Incident Handling",
+          "description": "Establish an operational incident-handling capability including preparation, detection, analysis, containment, recovery, and user response",
+          "family": "IR",
+          "framework": "cmmc",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "incident-handling",
+            "IR-capability",
+            "PICERL"
+          ]
+        },
+        {
+          "id": "IR.L2-3.6.2",
+          "name": "Incident Tracking and Reporting",
+          "description": "Track, document, and report incidents to designated officials and authorities",
+          "family": "IR",
+          "framework": "cmmc",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "incident-tracking",
+            "incident-reporting",
+            "DIBNet"
+          ]
+        },
+        {
+          "id": "IR.L2-3.6.3",
+          "name": "Incident Response Testing",
+          "description": "Test the organizational incident response capability",
+          "family": "IR",
+          "framework": "cmmc",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "IR-testing",
+            "tabletop",
+            "incident-exercise"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MA",
+      "name": "Maintenance",
+      "description": "Perform maintenance on organizational systems and provide controls on maintenance tools",
+      "controls": [
+        {
+          "id": "MA.L2-3.7.1",
+          "name": "Perform Maintenance",
+          "description": "Perform maintenance on organizational systems",
+          "family": "MA",
+          "framework": "cmmc",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "system-maintenance",
+            "patching",
+            "preventive-maintenance"
+          ]
+        },
+        {
+          "id": "MA.L2-3.7.2",
+          "name": "Control Maintenance Tools",
+          "description": "Provide controls on the tools, techniques, mechanisms, and personnel used for system maintenance",
+          "family": "MA",
+          "framework": "cmmc",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "maintenance-tools",
+            "tool-control",
+            "authorized-tools"
+          ]
+        },
+        {
+          "id": "MA.L2-3.7.5",
+          "name": "Nonlocal Maintenance",
+          "description": "Require MFA for establishing nonlocal maintenance sessions and terminate upon completion",
+          "family": "MA",
+          "framework": "cmmc",
+          "domains": [
+            "access_control",
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "remote-maintenance",
+            "nonlocal-session",
+            "maintenance-MFA"
+          ]
+        },
+        {
+          "id": "MA.L2-3.7.6",
+          "name": "Maintenance Personnel",
+          "description": "Supervise maintenance activities of personnel without required access authorization",
+          "family": "MA",
+          "framework": "cmmc",
+          "domains": [
+            "physical_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "escort",
+            "supervision",
+            "maintenance-personnel"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MP",
+      "name": "Media Protection",
+      "description": "Protect information system media, both paper and digital",
+      "controls": [
+        {
+          "id": "MP.L1-3.8.3",
+          "name": "Media Disposal",
+          "description": "Sanitize or destroy information system media containing CUI before disposal or reuse",
+          "family": "MP",
+          "framework": "cmmc",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "media-sanitization",
+            "disposal",
+            "NIST-800-88"
+          ]
+        },
+        {
+          "id": "MP.L2-3.8.1",
+          "name": "Media Protection",
+          "description": "Protect information system media containing CUI both paper and digital",
+          "family": "MP",
+          "framework": "cmmc",
+          "domains": [
+            "data_protection",
+            "physical_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "media-protection",
+            "CUI-media",
+            "sensitive-media"
+          ]
+        },
+        {
+          "id": "MP.L2-3.8.2",
+          "name": "Media Access",
+          "description": "Limit access to CUI on information system media to authorized users",
+          "family": "MP",
+          "framework": "cmmc",
+          "domains": [
+            "access_control",
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "media-access",
+            "CUI-access",
+            "authorized-media-access"
+          ]
+        },
+        {
+          "id": "MP.L2-3.8.5",
+          "name": "Portable Storage Encryption",
+          "description": "Control access to media containing CUI and encrypt CUI on digital media during transport",
+          "family": "MP",
+          "framework": "cmmc",
+          "domains": [
+            "encryption",
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "portable-encryption",
+            "USB-encryption",
+            "media-transport"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PS",
+      "name": "Personnel Security",
+      "description": "Screen individuals prior to authorizing access and ensure protection during/after transfer/termination",
+      "controls": [
+        {
+          "id": "PS.L2-3.9.1",
+          "name": "Screen Individuals",
+          "description": "Screen individuals prior to authorizing access to systems containing CUI",
+          "family": "PS",
+          "framework": "cmmc",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "background-screening",
+            "personnel-screening",
+            "clearance"
+          ]
+        },
+        {
+          "id": "PS.L2-3.9.2",
+          "name": "Personnel Actions",
+          "description": "Ensure CUI is protected during and after personnel actions such as termination",
+          "family": "PS",
+          "framework": "cmmc",
+          "domains": [
+            "hr_security",
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "termination-protection",
+            "transfer-security",
+            "offboarding-CUI"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PE",
+      "name": "Physical Protection",
+      "description": "Limit physical access to organizational systems, equipment, and operating environments",
+      "controls": [
+        {
+          "id": "PE.L1-3.10.1",
+          "name": "Limit Physical Access",
+          "description": "Limit physical access to organizational systems, equipment, and operating environments",
+          "family": "PE",
+          "framework": "cmmc",
+          "domains": [
+            "physical_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "physical-access",
+            "facility-control",
+            "building-security"
+          ]
+        },
+        {
+          "id": "PE.L1-3.10.3",
+          "name": "Escort Visitors",
+          "description": "Escort visitors and monitor visitor activity",
+          "family": "PE",
+          "framework": "cmmc",
+          "domains": [
+            "physical_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "visitor-escort",
+            "visitor-monitoring",
+            "visitor-log"
+          ]
+        },
+        {
+          "id": "PE.L1-3.10.4",
+          "name": "Physical Access Logs",
+          "description": "Maintain audit logs of physical access",
+          "family": "PE",
+          "framework": "cmmc",
+          "domains": [
+            "physical_security",
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "physical-access-log",
+            "entry-log",
+            "badge-log"
+          ]
+        },
+        {
+          "id": "PE.L1-3.10.5",
+          "name": "Physical Access Devices",
+          "description": "Control and manage physical access devices (keys, locks, badges)",
+          "family": "PE",
+          "framework": "cmmc",
+          "domains": [
+            "physical_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "key-management",
+            "badge-control",
+            "lock-management"
+          ]
+        },
+        {
+          "id": "PE.L2-3.10.6",
+          "name": "Alternative Work Sites",
+          "description": "Enforce safeguarding measures for CUI at alternative work sites",
+          "family": "PE",
+          "framework": "cmmc",
+          "domains": [
+            "physical_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "remote-work",
+            "alternative-site",
+            "home-office-security"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RA",
+      "name": "Risk Assessment",
+      "description": "Periodically assess risk to organizational operations, assets, and individuals",
+      "controls": [
+        {
+          "id": "RA.L2-3.11.1",
+          "name": "Risk Assessments",
+          "description": "Periodically assess risk to organizational operations, assets, and individuals",
+          "family": "RA",
+          "framework": "cmmc",
+          "domains": [
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "risk-assessment",
+            "periodic-assessment",
+            "risk-analysis"
+          ]
+        },
+        {
+          "id": "RA.L2-3.11.2",
+          "name": "Vulnerability Scanning",
+          "description": "Scan for vulnerabilities in systems and applications periodically and when new vulnerabilities are identified",
+          "family": "RA",
+          "framework": "cmmc",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "vulnerability-scan",
+            "periodic-scan",
+            "CVE-detection"
+          ]
+        },
+        {
+          "id": "RA.L2-3.11.3",
+          "name": "Vulnerability Remediation",
+          "description": "Remediate vulnerabilities in accordance with risk assessments",
+          "family": "RA",
+          "framework": "cmmc",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "remediation",
+            "patching",
+            "risk-based-remediation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CA",
+      "name": "Security Assessment",
+      "description": "Periodically assess security controls and develop plans of action to correct deficiencies",
+      "controls": [
+        {
+          "id": "CA.L2-3.12.1",
+          "name": "Security Control Assessment",
+          "description": "Periodically assess the security controls in organizational systems to determine control effectiveness",
+          "family": "CA",
+          "framework": "cmmc",
+          "domains": [
+            "compliance_audit"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security-assessment",
+            "control-assessment",
+            "effectiveness-evaluation"
+          ]
+        },
+        {
+          "id": "CA.L2-3.12.2",
+          "name": "Plan of Action",
+          "description": "Develop and implement plans of action to correct deficiencies and reduce vulnerabilities",
+          "family": "CA",
+          "framework": "cmmc",
+          "domains": [
+            "compliance_audit",
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "POA\u0026M",
+            "plan-of-action",
+            "remediation-plan"
+          ]
+        },
+        {
+          "id": "CA.L2-3.12.3",
+          "name": "Security Control Monitoring",
+          "description": "Monitor security controls on an ongoing basis to ensure continued effectiveness",
+          "family": "CA",
+          "framework": "cmmc",
+          "domains": [
+            "compliance_audit",
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "continuous-monitoring",
+            "control-monitoring",
+            "ongoing-assessment"
+          ]
+        },
+        {
+          "id": "CA.L2-3.12.4",
+          "name": "System Security Plan",
+          "description": "Develop, document, and periodically update system security plans for organizational systems",
+          "family": "CA",
+          "framework": "cmmc",
+          "domains": [
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "SSP",
+            "security-plan",
+            "system-documentation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SC",
+      "name": "System and Communications Protection",
+      "description": "Monitor, control, and protect communications at system boundaries",
+      "controls": [
+        {
+          "id": "SC.L1-3.13.1",
+          "name": "Boundary Protection",
+          "description": "Monitor, control, and protect communications at external boundaries and key internal boundaries",
+          "family": "SC",
+          "framework": "cmmc",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "boundary-protection",
+            "firewall",
+            "perimeter-defense"
+          ]
+        },
+        {
+          "id": "SC.L1-3.13.5",
+          "name": "Public Access System Separation",
+          "description": "Implement subnetworks for publicly accessible system components separated from internal networks",
+          "family": "SC",
+          "framework": "cmmc",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "DMZ",
+            "public-system",
+            "network-separation"
+          ]
+        },
+        {
+          "id": "SC.L2-3.13.6",
+          "name": "Network Communication by Exception",
+          "description": "Deny network communications traffic by default and allow by exception",
+          "family": "SC",
+          "framework": "cmmc",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "deny-by-default",
+            "allowlist-traffic",
+            "default-deny"
+          ]
+        },
+        {
+          "id": "SC.L2-3.13.8",
+          "name": "Data in Transit Encryption",
+          "description": "Implement cryptographic mechanisms to prevent unauthorized disclosure of CUI during transmission",
+          "family": "SC",
+          "framework": "cmmc",
+          "domains": [
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "transit-encryption",
+            "TLS",
+            "CUI-encryption-transit"
+          ]
+        },
+        {
+          "id": "SC.L2-3.13.10",
+          "name": "Key Management",
+          "description": "Establish and manage cryptographic keys for required cryptography",
+          "family": "SC",
+          "framework": "cmmc",
+          "domains": [
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "key-management",
+            "KMS",
+            "key-lifecycle"
+          ]
+        },
+        {
+          "id": "SC.L2-3.13.11",
+          "name": "FIPS-Validated Cryptography",
+          "description": "Employ FIPS-validated cryptography when used to protect confidentiality of CUI",
+          "family": "SC",
+          "framework": "cmmc",
+          "domains": [
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "FIPS-140",
+            "validated-crypto",
+            "FIPS-compliant"
+          ]
+        },
+        {
+          "id": "SC.L2-3.13.16",
+          "name": "Data at Rest Encryption",
+          "description": "Protect confidentiality of CUI at rest",
+          "family": "SC",
+          "framework": "cmmc",
+          "domains": [
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "encryption-at-rest",
+            "CUI-storage",
+            "data-at-rest"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SI",
+      "name": "System and Information Integrity",
+      "description": "Identify, report, and correct system flaws in a timely manner",
+      "controls": [
+        {
+          "id": "SI.L1-3.14.1",
+          "name": "Flaw Remediation",
+          "description": "Identify, report, and correct information and system flaws in a timely manner",
+          "family": "SI",
+          "framework": "cmmc",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "flaw-remediation",
+            "patching",
+            "bug-fix"
+          ]
+        },
+        {
+          "id": "SI.L1-3.14.2",
+          "name": "Malicious Code Protection",
+          "description": "Provide protection from malicious code at appropriate locations in systems",
+          "family": "SI",
+          "framework": "cmmc",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "malware-protection",
+            "antivirus",
+            "endpoint-security"
+          ]
+        },
+        {
+          "id": "SI.L1-3.14.4",
+          "name": "Update Malicious Code Protection",
+          "description": "Update malicious code protection mechanisms when new releases are available",
+          "family": "SI",
+          "framework": "cmmc",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "signature-update",
+            "auto-update",
+            "definition-update"
+          ]
+        },
+        {
+          "id": "SI.L1-3.14.5",
+          "name": "System and File Scanning",
+          "description": "Perform periodic scans and real-time scans of files from external sources",
+          "family": "SI",
+          "framework": "cmmc",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "system-scan",
+            "file-scan",
+            "real-time-scan"
+          ]
+        },
+        {
+          "id": "SI.L2-3.14.3",
+          "name": "Security Alerts and Advisories",
+          "description": "Monitor system security alerts and advisories and take action in response",
+          "family": "SI",
+          "framework": "cmmc",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security-advisories",
+            "threat-intelligence",
+            "alert-monitoring"
+          ]
+        },
+        {
+          "id": "SI.L2-3.14.6",
+          "name": "Inbound/Outbound Traffic Monitoring",
+          "description": "Monitor organizational systems including inbound and outbound traffic to detect attacks",
+          "family": "SI",
+          "framework": "cmmc",
+          "domains": [
+            "logging_monitoring",
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "traffic-monitoring",
+            "network-monitoring",
+            "IDS-IPS"
+          ]
+        },
+        {
+          "id": "SI.L2-3.14.7",
+          "name": "Unauthorized Use Detection",
+          "description": "Identify unauthorized use of organizational systems",
+          "family": "SI",
+          "framework": "cmmc",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "unauthorized-use",
+            "anomaly-detection",
+            "behavior-monitoring"
+          ]
+        }
+      ]
+    }
+  ],
+  "category": "government",
+  "published_date": "2024-10-15",
+  "effective_date": "2024-12-16",
+  "transition_deadline": "2028-10-01",
+  "supersedes": "CMMC 1.0 (2020)",
+  "status": "active",
+  "official_url": "https://dodcio.defense.gov/cmmc/",
+  "changes_summary": "Reduced from 5 levels to 3, streamlined assessment requirements, aligned Level 2 directly to NIST SP 800-171 Rev 2, added POA\u0026M allowances"
+}

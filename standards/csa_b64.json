@@ -1,0 +1,231 @@
+{
+  "id": "csa_b64",
+  "name": "CSA B64 Series (Backflow Preventers and Cross-Connection Control)",
+  "version": "B64 series, current edition",
+  "description": "The CSA B64 series covering backflow preventers and their field testing, applied through the Ontario Building Code Part 7 and, more stringently, through municipal cross-connection control by-laws. The auditable obligations are almost entirely about certified testers and records: a backflow preventer must be tested on installation and at least annually by a certified tester, and the test report filed with the municipality. Because enforcement is municipal, requirements differ between Hamilton, Brantford and Niagara — a single company-wide assumption is a defect. Testers hold a certification that expires and must be recertified.",
+  "authority": "CSA Group / municipal cross-connection control programmes",
+  "scope": "Plumbing contractors installing, testing or maintaining backflow prevention devices",
+  "category": "operational",
+  "status": "active",
+  "official_url": "https://www.csagroup.org/store/product/CSA%20B64.10%3A22/",
+  "families": [
+    {
+      "id": "B64-SELECT",
+      "name": "Hazard Assessment and Device Selection",
+      "description": "Choosing the right device for the assessed hazard — the technical decision an inspector second-guesses.",
+      "controls": [
+        {
+          "id": "B64-01",
+          "name": "Cross-Connection Survey and Hazard Assessment",
+          "description": "Cross-connections are identified and the severity of hazard assessed (severe, moderate, minor) so device selection follows the hazard rather than habit.",
+          "family": "B64-SELECT",
+          "framework": "csa_b64",
+          "domains": [
+            "equipment_integrity",
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "cross-connection",
+            "backflow",
+            "hazard",
+            "survey",
+            "severity",
+            "potable"
+          ]
+        },
+        {
+          "id": "B64-02",
+          "name": "Device Selection and Installation",
+          "description": "The device type matches the assessed hazard and application, is installed in the correct orientation and location with required clearances, and is accessible for testing.",
+          "family": "B64-SELECT",
+          "framework": "csa_b64",
+          "domains": [
+            "equipment_integrity",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "backflow",
+            "device-selection",
+            "installation",
+            "clearance",
+            "accessibility",
+            "code-compliance",
+            "piping"
+          ],
+          "mapped_controls": [
+            "ontario_building_code:OBC-06"
+          ]
+        },
+        {
+          "id": "B64-03",
+          "name": "Municipal By-Law Variance Tracking",
+          "description": "Cross-connection control requirements are tracked per municipality served, since enforcement, submission routes and test frequency differ by jurisdiction.",
+          "family": "B64-SELECT",
+          "framework": "csa_b64",
+          "domains": [
+            "trade_regulatory",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "by-law",
+            "municipal",
+            "jurisdiction",
+            "code-compliance",
+            "hamilton",
+            "regulator",
+            "variance"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B64-TEST",
+      "name": "Testing, Certification and Records",
+      "description": "Where this standard actually bites: certified testers, calibrated gauges and filed reports.",
+      "controls": [
+        {
+          "id": "B64-04",
+          "name": "Certified Backflow Tester Currency",
+          "description": "Field testing is performed only by persons holding current backflow prevention tester certification, with expiry tracked and recertification completed before lapse.",
+          "family": "B64-TEST",
+          "framework": "csa_b64",
+          "domains": [
+            "training_competency",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "backflow",
+            "certification-currency",
+            "tester",
+            "competency",
+            "ticket",
+            "recertification",
+            "expiry"
+          ]
+        },
+        {
+          "id": "B64-05",
+          "name": "Test Gauge Calibration",
+          "description": "Differential pressure test gauges are calibrated at the required interval with certificates retained, since an uncalibrated gauge invalidates every test performed with it.",
+          "family": "B64-TEST",
+          "framework": "csa_b64",
+          "domains": [
+            "equipment_integrity",
+            "quality_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "calibration",
+            "gauge",
+            "measuring-equipment",
+            "backflow",
+            "traceable",
+            "quality",
+            "certificate"
+          ],
+          "mapped_controls": [
+            "iso_9001:7.1.5"
+          ]
+        },
+        {
+          "id": "B64-06",
+          "name": "Initial and Annual Testing",
+          "description": "Devices are tested on installation, after repair, and at least annually thereafter, with the schedule tracked so no device lapses.",
+          "family": "B64-TEST",
+          "framework": "csa_b64",
+          "domains": [
+            "equipment_integrity",
+            "quality_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "backflow",
+            "annual-test",
+            "inspection-and-test",
+            "schedule",
+            "repair",
+            "retest"
+          ]
+        },
+        {
+          "id": "B64-07",
+          "name": "Test Report Submission and Retention",
+          "description": "Test reports are completed, provided to the owner and submitted to the municipal authority where required, and retained for the required period.",
+          "family": "B64-TEST",
+          "framework": "csa_b64",
+          "domains": [
+            "records_management",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "test-report",
+            "records",
+            "record-retention",
+            "submission",
+            "municipal",
+            "backflow",
+            "handover"
+          ]
+        },
+        {
+          "id": "B64-08",
+          "name": "Failed Device Repair and Isolation",
+          "description": "A device failing a test is repaired or replaced and retested, with the potable supply protected in the interim and the failure recorded.",
+          "family": "B64-TEST",
+          "framework": "csa_b64",
+          "domains": [
+            "equipment_integrity",
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "backflow",
+            "failure",
+            "repair",
+            "retest",
+            "isolation",
+            "potable",
+            "deficiency"
+          ]
+        }
+      ]
+    }
+  ]
+}

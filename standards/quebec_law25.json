@@ -1,0 +1,185 @@
+{
+  "id": "quebec_law25",
+  "name": "Quebec Law 25 (Privacy Modernization)",
+  "version": "2024",
+  "description": "An Act to modernize legislative provisions as regards the protection of personal information (formerly Bill 64) — Quebec's private-sector privacy law, phased in 2022-2024 with obligations exceeding PIPEDA.",
+  "authority": "Commission d'acces a l'information du Quebec (CAI)",
+  "scope": "Any enterprise that collects, holds, uses, or communicates personal information of Quebec residents in the course of carrying on an enterprise",
+  "category": "privacy",
+  "status": "active",
+  "published_date": "2021-09-22",
+  "effective_date": "2024-09-22",
+  "official_url": "https://www.cai.gouv.qc.ca/protection-renseignements-personnels/",
+  "families": [
+    {
+      "id": "GA",
+      "name": "Governance & Accountability",
+      "description": "Organizational accountability for personal information protection",
+      "controls": [
+        {
+          "id": "GA-1",
+          "name": "Privacy Officer Designation",
+          "description": "Designate a person in charge of the protection of personal information (defaults to the highest-ranking person) and publish their title and contact details.",
+          "family": "GA", "framework": "quebec_law25",
+          "domains": ["governance", "data_protection"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["privacy-officer", "accountability", "designation", "contact"],
+          "mapped_controls": ["pipeda:AC-1"]
+        },
+        {
+          "id": "GA-2",
+          "name": "Governance Policies & Practices",
+          "description": "Establish and publish governance policies and practices regarding personal information, framed to the sensitivity and volume processed.",
+          "family": "GA", "framework": "quebec_law25",
+          "domains": ["governance", "data_protection"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["policy", "governance", "publication", "roles"]
+        },
+        {
+          "id": "GA-3",
+          "name": "Privacy Impact Assessment",
+          "description": "Conduct a privacy impact assessment (PIA) for any information-system acquisition/development/overhaul project and before communicating PI outside Quebec.",
+          "family": "GA", "framework": "quebec_law25",
+          "domains": ["risk_management", "data_protection", "secure_development"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["pia", "assessment", "risk", "project"]
+        },
+        {
+          "id": "GA-4",
+          "name": "Privacy by Default",
+          "description": "Ensure technological products and services offered to the public have privacy-protective settings enabled by default at the highest level of confidentiality.",
+          "family": "GA", "framework": "quebec_law25",
+          "domains": ["data_protection", "configuration_management"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": false, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["privacy-by-default", "settings", "confidentiality"]
+        }
+      ]
+    },
+    {
+      "id": "CT",
+      "name": "Consent & Transparency",
+      "description": "Lawful basis, consent, and transparency obligations",
+      "controls": [
+        {
+          "id": "CT-1",
+          "name": "Consent & Purpose Limitation",
+          "description": "Obtain manifest, free, and enlightened consent for a specific purpose; consent requests must be presented separately and in clear language.",
+          "family": "CT", "framework": "quebec_law25",
+          "domains": ["data_protection"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["consent", "purpose", "collection", "clear-language"]
+        },
+        {
+          "id": "CT-2",
+          "name": "Transparency at Collection",
+          "description": "Inform individuals at collection of the purposes, means, rights of access/rectification, and any third parties or use of technology that identifies/locates/profiles them.",
+          "family": "CT", "framework": "quebec_law25",
+          "domains": ["data_protection"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["transparency", "notice", "profiling", "disclosure"]
+        },
+        {
+          "id": "CT-3",
+          "name": "Automated Decision-Making Disclosure",
+          "description": "Where a decision is based exclusively on automated processing, inform the individual and allow them to submit observations and request review.",
+          "family": "CT", "framework": "quebec_law25",
+          "domains": ["data_protection", "governance"],
+          "priority": "medium",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["automated-decision", "profiling", "review", "ai"]
+        }
+      ]
+    },
+    {
+      "id": "IR",
+      "name": "Individual Rights",
+      "description": "Rights granted to individuals over their personal information",
+      "controls": [
+        {
+          "id": "IR-1",
+          "name": "Access & Rectification",
+          "description": "Provide access to personal information held and the ability to have inaccurate, incomplete, or equivocal information corrected.",
+          "family": "IR", "framework": "quebec_law25",
+          "domains": ["data_protection", "access_control"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["access", "rectification", "subject-request"]
+        },
+        {
+          "id": "IR-2",
+          "name": "Data Portability",
+          "description": "On request, communicate computerized personal information to the individual in a structured, commonly used technological format.",
+          "family": "IR", "framework": "quebec_law25",
+          "domains": ["data_protection"],
+          "priority": "medium",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["portability", "export", "structured-format"]
+        },
+        {
+          "id": "IR-3",
+          "name": "De-indexing & Cessation (Right to be Forgotten)",
+          "description": "Honour requests to cease dissemination and to de-index personal information where dissemination causes serious injury outweighing public interest.",
+          "family": "IR", "framework": "quebec_law25",
+          "domains": ["data_protection"],
+          "priority": "medium",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["de-indexing", "erasure", "right-to-be-forgotten", "cessation"]
+        }
+      ]
+    },
+    {
+      "id": "BS",
+      "name": "Breach, Security & Transfers",
+      "description": "Security safeguards, confidentiality incidents, retention, and cross-border transfers",
+      "controls": [
+        {
+          "id": "BS-1",
+          "name": "Security Safeguards",
+          "description": "Take security measures reasonable given the sensitivity, purpose, quantity, distribution, and medium of the personal information.",
+          "family": "BS", "framework": "quebec_law25",
+          "domains": ["data_protection", "encryption", "access_control", "network_security"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["safeguards", "security", "encryption", "reasonable"]
+        },
+        {
+          "id": "BS-2",
+          "name": "Confidentiality Incident Response",
+          "description": "Maintain a register of confidentiality incidents; where there is risk of serious injury, notify the CAI and affected individuals promptly.",
+          "family": "BS", "framework": "quebec_law25",
+          "domains": ["incident_response", "data_protection"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["breach", "incident", "notification", "cai", "register"],
+          "mapped_controls": ["gdpr:BR-1", "pipeda:SG-3"]
+        },
+        {
+          "id": "BS-3",
+          "name": "Retention & Destruction",
+          "description": "Destroy or anonymize personal information once the purpose is fulfilled, subject to retention schedules and legal obligations.",
+          "family": "BS", "framework": "quebec_law25",
+          "domains": ["data_protection"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["retention", "destruction", "anonymization", "lifecycle"]
+        },
+        {
+          "id": "BS-4",
+          "name": "Cross-Border Transfer Assessment",
+          "description": "Before communicating personal information outside Quebec, assess whether it receives adequate protection, considering the legal framework of the destination.",
+          "family": "BS", "framework": "quebec_law25",
+          "domains": ["data_protection", "vendor_management", "risk_management"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["cross-border", "transfer", "adequacy", "outside-quebec"]
+        }
+      ]
+    }
+  ]
+}

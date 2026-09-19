@@ -1,0 +1,1105 @@
+{
+  "id": "pci_dss",
+  "name": "PCI-DSS v4.0.1",
+  "version": "4.0.1",
+  "description": "Payment Card Industry Data Security Standard for organizations handling cardholder data",
+  "authority": "PCI Security Standards Council",
+  "scope": "Organizations storing, processing, or transmitting cardholder data",
+  "families": [
+    {
+      "id": "NET",
+      "name": "Build and Maintain a Secure Network",
+      "description": "Requirements 1-2: Network security controls and secure configurations",
+      "controls": [
+        {
+          "id": "1.1",
+          "name": "Network Security Controls",
+          "description": "Install and maintain network security controls (firewalls, etc.)",
+          "family": "NET",
+          "framework": "pci_dss",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "firewall",
+            "network-security",
+            "NSC",
+            "segmentation"
+          ]
+        },
+        {
+          "id": "1.2",
+          "name": "Network Security Configuration",
+          "description": "Network security controls are configured and maintained",
+          "family": "NET",
+          "framework": "pci_dss",
+          "domains": [
+            "network_security",
+            "configuration_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "firewall-rules",
+            "network-config",
+            "rule-review"
+          ]
+        },
+        {
+          "id": "1.3",
+          "name": "CDE Network Restriction",
+          "description": "Network access to and from the cardholder data environment is restricted",
+          "family": "NET",
+          "framework": "pci_dss",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "CDE",
+            "segmentation",
+            "network-isolation"
+          ]
+        },
+        {
+          "id": "1.4",
+          "name": "Trusted/Untrusted Networks",
+          "description": "Network connections between trusted and untrusted networks are controlled",
+          "family": "NET",
+          "framework": "pci_dss",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "DMZ",
+            "boundary",
+            "ingress-egress"
+          ]
+        },
+        {
+          "id": "2.1",
+          "name": "Secure Configuration Standards",
+          "description": "Apply secure configurations to all system components",
+          "family": "NET",
+          "framework": "pci_dss",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "hardening",
+            "secure-config",
+            "baseline",
+            "CIS"
+          ]
+        },
+        {
+          "id": "2.2",
+          "name": "Vendor Default Removal",
+          "description": "Vendor-supplied defaults are changed before system goes to production",
+          "family": "NET",
+          "framework": "pci_dss",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "default-credentials",
+            "default-removal",
+            "initial-config"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "DATA",
+      "name": "Protect Account Data",
+      "description": "Requirements 3-4: Protect stored data and encrypt transmissions",
+      "controls": [
+        {
+          "id": "3.1",
+          "name": "Stored Data Minimization",
+          "description": "Account data storage amount and retention time is minimized",
+          "family": "DATA",
+          "framework": "pci_dss",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-minimization",
+            "retention",
+            "purging",
+            "storage-limitation"
+          ]
+        },
+        {
+          "id": "3.2",
+          "name": "Sensitive Authentication Data",
+          "description": "Sensitive authentication data is not stored after authorization",
+          "family": "DATA",
+          "framework": "pci_dss",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "SAD",
+            "CVV",
+            "PIN",
+            "track-data"
+          ]
+        },
+        {
+          "id": "3.3",
+          "name": "PAN Display Protection",
+          "description": "The primary account number is displayed with masking when rendered",
+          "family": "DATA",
+          "framework": "pci_dss",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "masking",
+            "PAN-display",
+            "truncation"
+          ]
+        },
+        {
+          "id": "3.4",
+          "name": "PAN Render Unreadable",
+          "description": "PAN is rendered unreadable anywhere it is stored",
+          "family": "DATA",
+          "framework": "pci_dss",
+          "domains": [
+            "encryption",
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "encryption-at-rest",
+            "hashing",
+            "truncation",
+            "tokenization"
+          ]
+        },
+        {
+          "id": "3.5",
+          "name": "Cryptographic Key Protection",
+          "description": "Primary account number is secured wherever stored with proper key management",
+          "family": "DATA",
+          "framework": "pci_dss",
+          "domains": [
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "key-management",
+            "KMS",
+            "key-rotation",
+            "key-protection"
+          ]
+        },
+        {
+          "id": "4.1",
+          "name": "Transmission Encryption",
+          "description": "Strong cryptography protects cardholder data during transmission over open networks",
+          "family": "DATA",
+          "framework": "pci_dss",
+          "domains": [
+            "encryption",
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "TLS",
+            "encryption-in-transit",
+            "secure-transmission"
+          ]
+        },
+        {
+          "id": "4.2",
+          "name": "End-User Technology Security",
+          "description": "PAN is secured with strong cryptography when sent via end-user messaging",
+          "family": "DATA",
+          "framework": "pci_dss",
+          "domains": [
+            "encryption",
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "email-encryption",
+            "messaging-security",
+            "end-user-protection"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "VULN",
+      "name": "Maintain a Vulnerability Management Program",
+      "description": "Requirements 5-6: Protect against malware and develop/maintain secure systems",
+      "controls": [
+        {
+          "id": "5.1",
+          "name": "Anti-Malware",
+          "description": "Protect all systems against malware with regularly updated mechanisms",
+          "family": "VULN",
+          "framework": "pci_dss",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "antimalware",
+            "antivirus",
+            "EDR",
+            "protection"
+          ]
+        },
+        {
+          "id": "5.2",
+          "name": "Anti-Malware Management",
+          "description": "Anti-malware mechanisms and processes are active, maintained, and monitored",
+          "family": "VULN",
+          "framework": "pci_dss",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "malware-monitoring",
+            "signature-updates",
+            "scan-schedule"
+          ]
+        },
+        {
+          "id": "5.3",
+          "name": "Anti-Phishing",
+          "description": "Anti-phishing mechanisms protect against phishing attacks",
+          "family": "VULN",
+          "framework": "pci_dss",
+          "domains": [
+            "vulnerability_management",
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "anti-phishing",
+            "email-security",
+            "SPF",
+            "DKIM",
+            "DMARC"
+          ]
+        },
+        {
+          "id": "6.1",
+          "name": "Secure Development Process",
+          "description": "Establish secure development lifecycle processes",
+          "family": "VULN",
+          "framework": "pci_dss",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "SDLC",
+            "secure-development",
+            "development-standards"
+          ]
+        },
+        {
+          "id": "6.2",
+          "name": "Secure Software Development",
+          "description": "Custom software is developed securely with coding standards",
+          "family": "VULN",
+          "framework": "pci_dss",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "secure-coding",
+            "OWASP",
+            "code-review",
+            "SAST"
+          ]
+        },
+        {
+          "id": "6.3",
+          "name": "Vulnerability Identification",
+          "description": "Security vulnerabilities are identified and addressed",
+          "family": "VULN",
+          "framework": "pci_dss",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "vulnerability-scanning",
+            "patching",
+            "CVE-tracking"
+          ]
+        },
+        {
+          "id": "6.4",
+          "name": "Public-Facing Web Application Protection",
+          "description": "Public-facing web applications are protected against attacks",
+          "family": "VULN",
+          "framework": "pci_dss",
+          "domains": [
+            "secure_development",
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "WAF",
+            "web-application-security",
+            "OWASP-Top-10"
+          ]
+        },
+        {
+          "id": "6.5",
+          "name": "Change Management for Production",
+          "description": "Changes to all system components are managed securely",
+          "family": "VULN",
+          "framework": "pci_dss",
+          "domains": [
+            "change_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "change-control",
+            "production-changes",
+            "release-management"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ACCESS",
+      "name": "Implement Strong Access Control",
+      "description": "Requirements 7-9: Restrict access, identify users, restrict physical access",
+      "controls": [
+        {
+          "id": "7.1",
+          "name": "Need-to-Know Access",
+          "description": "Access to system components and data is limited to those with a need",
+          "family": "ACCESS",
+          "framework": "pci_dss",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "need-to-know",
+            "least-privilege",
+            "RBAC"
+          ]
+        },
+        {
+          "id": "7.2",
+          "name": "Access Control Systems",
+          "description": "An access control system is established that restricts based on need-to-know",
+          "family": "ACCESS",
+          "framework": "pci_dss",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "access-control-system",
+            "authorization",
+            "enforcement"
+          ]
+        },
+        {
+          "id": "7.3",
+          "name": "Access Control Review",
+          "description": "Access is managed and reviewed per policy",
+          "family": "ACCESS",
+          "framework": "pci_dss",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "access-review",
+            "recertification",
+            "quarterly-review"
+          ]
+        },
+        {
+          "id": "8.1",
+          "name": "User Identification",
+          "description": "All users are assigned a unique ID before system access",
+          "family": "ACCESS",
+          "framework": "pci_dss",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "unique-ID",
+            "individual-accountability",
+            "no-shared-accounts"
+          ]
+        },
+        {
+          "id": "8.2",
+          "name": "User Authentication",
+          "description": "User identity is verified before system access using strong methods",
+          "family": "ACCESS",
+          "framework": "pci_dss",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "authentication",
+            "MFA",
+            "strong-authentication"
+          ]
+        },
+        {
+          "id": "8.3",
+          "name": "Multi-Factor Authentication",
+          "description": "MFA is implemented for all access into the CDE",
+          "family": "ACCESS",
+          "framework": "pci_dss",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "MFA",
+            "two-factor",
+            "multi-factor",
+            "2FA"
+          ]
+        },
+        {
+          "id": "8.4",
+          "name": "MFA for Remote Access",
+          "description": "MFA is implemented for all remote network access",
+          "family": "ACCESS",
+          "framework": "pci_dss",
+          "domains": [
+            "access_control",
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "remote-MFA",
+            "VPN-MFA",
+            "remote-access-security"
+          ]
+        },
+        {
+          "id": "8.5",
+          "name": "MFA Configuration",
+          "description": "MFA systems are configured to prevent misuse",
+          "family": "ACCESS",
+          "framework": "pci_dss",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "MFA-config",
+            "replay-prevention",
+            "factor-independence"
+          ]
+        },
+        {
+          "id": "9.1",
+          "name": "Physical Access Controls",
+          "description": "Physical access controls restrict and monitor access to CDE facilities",
+          "family": "ACCESS",
+          "framework": "pci_dss",
+          "domains": [
+            "physical_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "physical-access",
+            "facility-security",
+            "datacenter"
+          ]
+        },
+        {
+          "id": "9.2",
+          "name": "Visitor Management",
+          "description": "Visitors are managed and distinguishable from personnel",
+          "family": "ACCESS",
+          "framework": "pci_dss",
+          "domains": [
+            "physical_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "visitor-log",
+            "escort",
+            "badge",
+            "visitor-management"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MON",
+      "name": "Regularly Monitor and Test Networks",
+      "description": "Requirements 10-11: Track/monitor access and test security systems",
+      "controls": [
+        {
+          "id": "10.1",
+          "name": "Audit Trail Establishment",
+          "description": "Audit trails are implemented to link all access to system components to each individual user",
+          "family": "MON",
+          "framework": "pci_dss",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "audit-trail",
+            "logging",
+            "individual-tracking"
+          ]
+        },
+        {
+          "id": "10.2",
+          "name": "Auditable Events",
+          "description": "Audit logs record user activities, exceptions, and security events",
+          "family": "MON",
+          "framework": "pci_dss",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "audit-events",
+            "event-logging",
+            "security-events"
+          ]
+        },
+        {
+          "id": "10.3",
+          "name": "Audit Log Content",
+          "description": "Audit log entries contain sufficient detail for each logged event",
+          "family": "MON",
+          "framework": "pci_dss",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "log-content",
+            "timestamp",
+            "source",
+            "event-detail"
+          ]
+        },
+        {
+          "id": "10.4",
+          "name": "Time Synchronization",
+          "description": "Audit logs use consistent time synchronization technology",
+          "family": "MON",
+          "framework": "pci_dss",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "NTP",
+            "time-sync",
+            "clock-synchronization"
+          ]
+        },
+        {
+          "id": "10.5",
+          "name": "Audit Log Protection",
+          "description": "Audit logs are secured so they cannot be altered",
+          "family": "MON",
+          "framework": "pci_dss",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "log-protection",
+            "immutable",
+            "integrity",
+            "WORM"
+          ]
+        },
+        {
+          "id": "10.6",
+          "name": "Log Review",
+          "description": "Audit logs are reviewed regularly to identify anomalies",
+          "family": "MON",
+          "framework": "pci_dss",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "log-review",
+            "daily-review",
+            "SIEM-analysis"
+          ]
+        },
+        {
+          "id": "10.7",
+          "name": "Audit Log Retention",
+          "description": "Audit log history is retained for at least 12 months",
+          "family": "MON",
+          "framework": "pci_dss",
+          "domains": [
+            "logging_monitoring",
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "log-retention",
+            "12-months",
+            "archival"
+          ]
+        },
+        {
+          "id": "11.1",
+          "name": "Wireless Detection",
+          "description": "Processes exist to detect unauthorized wireless access points",
+          "family": "MON",
+          "framework": "pci_dss",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "rogue-AP",
+            "wireless-scanning",
+            "WIDS"
+          ]
+        },
+        {
+          "id": "11.2",
+          "name": "Vulnerability Scanning",
+          "description": "Internal and external vulnerability scans are performed quarterly",
+          "family": "MON",
+          "framework": "pci_dss",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "vulnerability-scan",
+            "ASV",
+            "quarterly-scan"
+          ]
+        },
+        {
+          "id": "11.3",
+          "name": "Penetration Testing",
+          "description": "External and internal penetration testing is performed regularly",
+          "family": "MON",
+          "framework": "pci_dss",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "pen-test",
+            "penetration-testing",
+            "annual-test"
+          ]
+        },
+        {
+          "id": "11.4",
+          "name": "Intrusion Detection",
+          "description": "Intrusion-detection and/or intrusion-prevention techniques detect and alert on intrusions",
+          "family": "MON",
+          "framework": "pci_dss",
+          "domains": [
+            "logging_monitoring",
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "IDS",
+            "IPS",
+            "intrusion-detection",
+            "NIDS"
+          ]
+        },
+        {
+          "id": "11.5",
+          "name": "Change Detection",
+          "description": "File integrity monitoring is deployed to alert on unauthorized modification",
+          "family": "MON",
+          "framework": "pci_dss",
+          "domains": [
+            "logging_monitoring",
+            "configuration_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "FIM",
+            "file-integrity",
+            "change-detection",
+            "tripwire"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "POL",
+      "name": "Maintain an Information Security Policy",
+      "description": "Requirement 12: Maintain policy addressing information security for all personnel",
+      "controls": [
+        {
+          "id": "12.1",
+          "name": "Information Security Policy",
+          "description": "A comprehensive information security policy is established and maintained",
+          "family": "POL",
+          "framework": "pci_dss",
+          "domains": [
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "security-policy",
+            "ISP",
+            "policy-framework"
+          ]
+        },
+        {
+          "id": "12.2",
+          "name": "Risk Assessment Process",
+          "description": "A risk assessment process is performed at least annually",
+          "family": "POL",
+          "framework": "pci_dss",
+          "domains": [
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "annual-risk-assessment",
+            "risk-process"
+          ]
+        },
+        {
+          "id": "12.3",
+          "name": "Acceptable Use Policies",
+          "description": "Usage policies for critical technologies are defined and implemented",
+          "family": "POL",
+          "framework": "pci_dss",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "acceptable-use",
+            "technology-usage",
+            "AUP"
+          ]
+        },
+        {
+          "id": "12.4",
+          "name": "Security Responsibility",
+          "description": "Information security responsibilities are formally assigned",
+          "family": "POL",
+          "framework": "pci_dss",
+          "domains": [
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "security-responsibility",
+            "CISO",
+            "security-officer"
+          ]
+        },
+        {
+          "id": "12.5",
+          "name": "Security Program Scope",
+          "description": "Information security program scope is documented and understood",
+          "family": "POL",
+          "framework": "pci_dss",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "program-scope",
+            "CDE-scope",
+            "in-scope-systems"
+          ]
+        },
+        {
+          "id": "12.6",
+          "name": "Security Awareness",
+          "description": "A formal security awareness program is implemented",
+          "family": "POL",
+          "framework": "pci_dss",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security-awareness",
+            "training-program",
+            "annual-training"
+          ]
+        },
+        {
+          "id": "12.8",
+          "name": "Service Provider Management",
+          "description": "Service providers with access to cardholder data are managed",
+          "family": "POL",
+          "framework": "pci_dss",
+          "domains": [
+            "vendor_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "service-provider",
+            "vendor-management",
+            "due-diligence"
+          ]
+        },
+        {
+          "id": "12.10",
+          "name": "Incident Response Plan",
+          "description": "An incident response plan is implemented and ready to activate",
+          "family": "POL",
+          "framework": "pci_dss",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "IRP",
+            "incident-response-plan",
+            "response-testing"
+          ]
+        }
+      ]
+    }
+  ],
+  "category": "industry",
+  "published_date": "2024-06-11",
+  "effective_date": "2025-03-31",
+  "transition_deadline": "2025-03-31",
+  "supersedes": "PCI-DSS v3.2.1 (2018)",
+  "status": "active",
+  "official_url": "https://www.pcisecuritystandards.org/document_library/",
+  "changes_summary": "Customized approach for meeting requirements, expanded MFA requirements, enhanced e-commerce/anti-phishing controls, future-dated requirements now mandatory"
+}

@@ -1,0 +1,408 @@
+{
+  "id": "ccpa_cpra",
+  "name": "CCPA/CPRA (California Privacy)",
+  "version": "2023",
+  "description": "California Consumer Privacy Act as amended by California Privacy Rights Act — consumer data privacy rights and business obligations",
+  "authority": "California Privacy Protection Agency (CPPA)",
+  "scope": "Businesses processing California residents' personal information meeting revenue/volume thresholds",
+  "families": [
+    {
+      "id": "CR",
+      "name": "Consumer Rights",
+      "description": "Rights granted to California consumers regarding their personal information",
+      "controls": [
+        {
+          "id": "CR-1",
+          "name": "Right to Know",
+          "description": "Consumers have the right to know what personal information is collected, used, shared, or sold",
+          "family": "CR",
+          "framework": "ccpa_cpra",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "privacy-notice",
+            "data-collection",
+            "disclosure",
+            "transparency"
+          ]
+        },
+        {
+          "id": "CR-2",
+          "name": "Right to Delete",
+          "description": "Consumers can request deletion of personal information collected from them",
+          "family": "CR",
+          "framework": "ccpa_cpra",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "deletion",
+            "erasure",
+            "data-removal",
+            "retention"
+          ]
+        },
+        {
+          "id": "CR-3",
+          "name": "Right to Opt-Out of Sale/Sharing",
+          "description": "Consumers can opt out of the sale or sharing of their personal information",
+          "family": "CR",
+          "framework": "ccpa_cpra",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "opt-out",
+            "do-not-sell",
+            "consent",
+            "sharing"
+          ]
+        },
+        {
+          "id": "CR-4",
+          "name": "Right to Correct",
+          "description": "Consumers can request correction of inaccurate personal information",
+          "family": "CR",
+          "framework": "ccpa_cpra",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "correction",
+            "accuracy",
+            "amendment",
+            "update"
+          ]
+        },
+        {
+          "id": "CR-5",
+          "name": "Right to Limit Use of Sensitive Information",
+          "description": "Consumers can limit use and disclosure of sensitive personal information",
+          "family": "CR",
+          "framework": "ccpa_cpra",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "sensitive-data",
+            "limitation",
+            "purpose-limitation",
+            "consent"
+          ]
+        },
+        {
+          "id": "CR-6",
+          "name": "Right to Non-Discrimination",
+          "description": "Consumers shall not face discrimination for exercising their privacy rights",
+          "family": "CR",
+          "framework": "ccpa_cpra",
+          "domains": [
+            "data_protection",
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "non-discrimination",
+            "equal-service",
+            "pricing"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BO",
+      "name": "Business Obligations",
+      "description": "Obligations imposed on businesses regarding personal information handling",
+      "controls": [
+        {
+          "id": "BO-1",
+          "name": "Privacy Notice at Collection",
+          "description": "Businesses must provide notice at or before collection of personal information",
+          "family": "BO",
+          "framework": "ccpa_cpra",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "privacy-notice",
+            "notice-at-collection",
+            "disclosure",
+            "transparency"
+          ]
+        },
+        {
+          "id": "BO-2",
+          "name": "Service Provider Contracts",
+          "description": "Written contracts with service providers restricting use of personal information",
+          "family": "BO",
+          "framework": "ccpa_cpra",
+          "domains": [
+            "vendor_management",
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "contract",
+            "service-provider",
+            "data-processing-agreement",
+            "restrictions"
+          ]
+        },
+        {
+          "id": "BO-3",
+          "name": "Respond to Consumer Requests",
+          "description": "Businesses must respond to verifiable consumer requests within 45 days",
+          "family": "BO",
+          "framework": "ccpa_cpra",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "request-response",
+            "verification",
+            "timely-response",
+            "45-days"
+          ]
+        },
+        {
+          "id": "BO-4",
+          "name": "Training and Awareness",
+          "description": "Personnel handling consumer inquiries must be informed of CCPA requirements",
+          "family": "BO",
+          "framework": "ccpa_cpra",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "training",
+            "awareness",
+            "privacy-training",
+            "personnel"
+          ]
+        },
+        {
+          "id": "BO-5",
+          "name": "Record Keeping",
+          "description": "Maintain records of consumer requests and responses for 24 months",
+          "family": "BO",
+          "framework": "ccpa_cpra",
+          "domains": [
+            "compliance_audit",
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "record-keeping",
+            "retention",
+            "audit-trail",
+            "documentation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "DM",
+      "name": "Data Minimization \u0026 Purpose Limitation",
+      "description": "CPRA requirements for limiting collection, use, and retention of personal information",
+      "controls": [
+        {
+          "id": "DM-1",
+          "name": "Collection Limitation",
+          "description": "Collection of personal information must be limited to what is reasonably necessary",
+          "family": "DM",
+          "framework": "ccpa_cpra",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-minimization",
+            "collection-limitation",
+            "necessity",
+            "proportionality"
+          ]
+        },
+        {
+          "id": "DM-2",
+          "name": "Purpose Limitation",
+          "description": "Personal information must only be used for disclosed purposes",
+          "family": "DM",
+          "framework": "ccpa_cpra",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "purpose-limitation",
+            "disclosed-purpose",
+            "secondary-use",
+            "compatibility"
+          ]
+        },
+        {
+          "id": "DM-3",
+          "name": "Retention Limitation",
+          "description": "Personal information must not be retained longer than reasonably necessary",
+          "family": "DM",
+          "framework": "ccpa_cpra",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "retention",
+            "disposal",
+            "retention-schedule",
+            "deletion"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SEC",
+      "name": "Security Safeguards",
+      "description": "Reasonable security measures required to protect personal information",
+      "controls": [
+        {
+          "id": "SEC-1",
+          "name": "Reasonable Security",
+          "description": "Implement and maintain reasonable security procedures and practices",
+          "family": "SEC",
+          "framework": "ccpa_cpra",
+          "domains": [
+            "encryption",
+            "access_control",
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security-measures",
+            "reasonable-security",
+            "encryption",
+            "access-control"
+          ]
+        },
+        {
+          "id": "SEC-2",
+          "name": "Breach Notification",
+          "description": "Notify consumers of data breaches involving unencrypted personal information",
+          "family": "SEC",
+          "framework": "ccpa_cpra",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "breach-notification",
+            "data-breach",
+            "incident-notification",
+            "consumer-notification"
+          ]
+        },
+        {
+          "id": "SEC-3",
+          "name": "Risk Assessments",
+          "description": "Conduct regular cybersecurity audits and risk assessments for high-risk processing",
+          "family": "SEC",
+          "framework": "ccpa_cpra",
+          "domains": [
+            "risk_management",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "risk-assessment",
+            "cybersecurity-audit",
+            "high-risk",
+            "processing-assessment"
+          ]
+        }
+      ]
+    }
+  ],
+  "category": "privacy",
+  "published_date": "2022-11-03",
+  "effective_date": "2023-01-01",
+  "transition_deadline": "",
+  "supersedes": "CCPA (2020)",
+  "status": "active",
+  "official_url": "https://cppa.ca.gov/regulations/",
+  "changes_summary": "CPRA amendments added sensitive personal information category, data minimization requirements, established CPPA enforcement agency, expanded opt-out rights"
+}

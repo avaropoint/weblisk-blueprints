@@ -1,0 +1,1078 @@
+{
+  "id": "soc2",
+  "name": "SOC 2 Type II",
+  "version": "2017",
+  "description": "Trust Service Criteria for Security, Availability, Processing Integrity, Confidentiality, and Privacy",
+  "authority": "AICPA (American Institute of Certified Public Accountants)",
+  "scope": "Service organizations processing or storing customer data",
+  "families": [
+    {
+      "id": "CC",
+      "name": "Common Criteria (Security)",
+      "description": "The foundational criteria applicable to all SOC 2 engagements covering the security principle",
+      "controls": [
+        {
+          "id": "CC1.1",
+          "name": "COSO Principle 1: Integrity and Ethical Values",
+          "description": "The entity demonstrates a commitment to integrity and ethical values",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "ethics",
+            "code-of-conduct",
+            "integrity",
+            "values"
+          ]
+        },
+        {
+          "id": "CC1.2",
+          "name": "COSO Principle 2: Board Oversight",
+          "description": "The board demonstrates independence from management and exercises oversight",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "board",
+            "oversight",
+            "independence",
+            "governance"
+          ]
+        },
+        {
+          "id": "CC1.3",
+          "name": "COSO Principle 3: Management Structure",
+          "description": "Management establishes structure, reporting lines, and authority",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "organizational-structure",
+            "reporting",
+            "authority"
+          ]
+        },
+        {
+          "id": "CC1.4",
+          "name": "COSO Principle 4: Competence",
+          "description": "The entity demonstrates commitment to attract, develop, and retain competent individuals",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "hiring",
+            "competence",
+            "training",
+            "development"
+          ]
+        },
+        {
+          "id": "CC1.5",
+          "name": "COSO Principle 5: Accountability",
+          "description": "The entity holds individuals accountable for internal control responsibilities",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "accountability",
+            "performance",
+            "responsibility"
+          ]
+        },
+        {
+          "id": "CC2.1",
+          "name": "COSO Principle 13: Quality Information",
+          "description": "The entity obtains or generates relevant, quality information to support internal control",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "logging_monitoring",
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "information-quality",
+            "reporting",
+            "metrics"
+          ]
+        },
+        {
+          "id": "CC2.2",
+          "name": "COSO Principle 14: Internal Communication",
+          "description": "The entity internally communicates information to support internal control",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "internal-communication",
+            "policy-communication"
+          ]
+        },
+        {
+          "id": "CC2.3",
+          "name": "COSO Principle 15: External Communication",
+          "description": "The entity communicates with external parties regarding internal control",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "governance",
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "external-communication",
+            "disclosure",
+            "transparency"
+          ]
+        },
+        {
+          "id": "CC3.1",
+          "name": "COSO Principle 6: Risk Objectives",
+          "description": "The entity specifies objectives with sufficient clarity to enable risk identification",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "risk-objectives",
+            "risk-identification",
+            "risk-criteria"
+          ]
+        },
+        {
+          "id": "CC3.2",
+          "name": "COSO Principle 7: Risk Identification",
+          "description": "The entity identifies risks to the achievement of its objectives",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "risk-identification",
+            "risk-register",
+            "risk-assessment"
+          ]
+        },
+        {
+          "id": "CC3.3",
+          "name": "COSO Principle 8: Fraud Risk",
+          "description": "The entity considers the potential for fraud in assessing risks",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "risk_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "fraud-risk",
+            "fraud-prevention",
+            "anti-fraud"
+          ]
+        },
+        {
+          "id": "CC3.4",
+          "name": "COSO Principle 9: Change Assessment",
+          "description": "The entity identifies and assesses changes that could significantly impact controls",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "risk_management",
+            "change_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "change-risk",
+            "change-assessment",
+            "impact-analysis"
+          ]
+        },
+        {
+          "id": "CC4.1",
+          "name": "COSO Principle 16: Ongoing Monitoring",
+          "description": "The entity selects, develops, and performs ongoing and/or separate evaluations",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "compliance_audit",
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "continuous-monitoring",
+            "ongoing-evaluation",
+            "KPIs"
+          ]
+        },
+        {
+          "id": "CC4.2",
+          "name": "COSO Principle 17: Deficiency Communication",
+          "description": "The entity evaluates and communicates internal control deficiencies in a timely manner",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "deficiency",
+            "finding",
+            "remediation",
+            "corrective-action"
+          ]
+        },
+        {
+          "id": "CC5.1",
+          "name": "COSO Principle 10: Control Selection",
+          "description": "The entity selects and develops control activities to mitigate risks",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "governance",
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "control-selection",
+            "mitigation",
+            "control-design"
+          ]
+        },
+        {
+          "id": "CC5.2",
+          "name": "COSO Principle 11: Technology Controls",
+          "description": "The entity selects and develops general controls over technology",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "IT-general-controls",
+            "ITGC",
+            "technology-controls"
+          ]
+        },
+        {
+          "id": "CC5.3",
+          "name": "COSO Principle 12: Policies and Procedures",
+          "description": "The entity deploys control activities through policies and procedures",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "policies-and-procedures",
+            "documentation",
+            "implementation"
+          ]
+        },
+        {
+          "id": "CC6.1",
+          "name": "Logical Access Security",
+          "description": "The entity implements logical access security over information assets",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "access-control",
+            "IAM",
+            "authorization",
+            "authentication"
+          ]
+        },
+        {
+          "id": "CC6.2",
+          "name": "User Registration and Authorization",
+          "description": "Prior to issuing credentials, the entity registers and authorizes new users",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "user-provisioning",
+            "onboarding",
+            "access-request"
+          ]
+        },
+        {
+          "id": "CC6.3",
+          "name": "Role-Based Access",
+          "description": "The entity authorizes, modifies, or removes access based on roles",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "RBAC",
+            "role-based",
+            "access-modification",
+            "deprovisioning"
+          ]
+        },
+        {
+          "id": "CC6.4",
+          "name": "Physical Access Restriction",
+          "description": "The entity restricts physical access to facilities and assets",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "physical_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "physical-access",
+            "badge",
+            "datacenter-access"
+          ]
+        },
+        {
+          "id": "CC6.5",
+          "name": "Asset Disposal",
+          "description": "The entity disposes of, destroys, or sanitizes data and assets",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "data_protection",
+            "physical_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "disposal",
+            "sanitization",
+            "data-destruction"
+          ]
+        },
+        {
+          "id": "CC6.6",
+          "name": "Boundary Protection",
+          "description": "The entity implements logical access controls at system boundaries",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "firewall",
+            "WAF",
+            "boundary",
+            "network-security"
+          ]
+        },
+        {
+          "id": "CC6.7",
+          "name": "Data Transmission Security",
+          "description": "Data transmission between parties is protected with encryption",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "encryption",
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "TLS",
+            "encryption-in-transit",
+            "HTTPS",
+            "secure-transfer"
+          ]
+        },
+        {
+          "id": "CC6.8",
+          "name": "Vulnerability Prevention",
+          "description": "The entity implements controls to prevent or detect unauthorized software",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "malware-prevention",
+            "endpoint-protection",
+            "application-control"
+          ]
+        },
+        {
+          "id": "CC7.1",
+          "name": "Detection Monitoring",
+          "description": "To meet objectives, the entity uses detection and monitoring procedures",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "monitoring",
+            "SIEM",
+            "detection",
+            "alerting"
+          ]
+        },
+        {
+          "id": "CC7.2",
+          "name": "Anomaly Detection",
+          "description": "The entity monitors system components for anomalies indicative of malicious acts",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "anomaly-detection",
+            "behavioral-analysis",
+            "threat-detection"
+          ]
+        },
+        {
+          "id": "CC7.3",
+          "name": "Security Event Evaluation",
+          "description": "The entity evaluates events to determine whether they constitute security incidents",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "event-evaluation",
+            "triage",
+            "incident-classification"
+          ]
+        },
+        {
+          "id": "CC7.4",
+          "name": "Incident Response",
+          "description": "The entity responds to identified security incidents through defined procedures",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "incident-response",
+            "containment",
+            "eradication",
+            "playbook"
+          ]
+        },
+        {
+          "id": "CC7.5",
+          "name": "Incident Recovery",
+          "description": "The entity identifies, develops, and implements activities to recover from incidents",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "incident_response",
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "recovery",
+            "restoration",
+            "post-incident"
+          ]
+        },
+        {
+          "id": "CC8.1",
+          "name": "Infrastructure and Software Changes",
+          "description": "The entity authorizes, designs, develops, configures, and implements changes",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "change_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "change-management",
+            "change-control",
+            "SDLC",
+            "deployment"
+          ]
+        },
+        {
+          "id": "CC9.1",
+          "name": "Risk Mitigation Activities",
+          "description": "The entity identifies, selects, and develops risk mitigation activities",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "risk-mitigation",
+            "risk-treatment",
+            "compensating-controls"
+          ]
+        },
+        {
+          "id": "CC9.2",
+          "name": "Vendor Risk Management",
+          "description": "The entity assesses and manages risks associated with vendors and partners",
+          "family": "CC",
+          "framework": "soc2",
+          "domains": [
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "vendor-risk",
+            "third-party-assessment",
+            "due-diligence"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "A",
+      "name": "Availability",
+      "description": "The system is available for operation and use as committed or agreed",
+      "controls": [
+        {
+          "id": "A1.1",
+          "name": "Capacity Planning",
+          "description": "The entity maintains, monitors, and evaluates current processing capacity",
+          "family": "A",
+          "framework": "soc2",
+          "domains": [
+            "business_continuity",
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "capacity-planning",
+            "scaling",
+            "resource-monitoring"
+          ]
+        },
+        {
+          "id": "A1.2",
+          "name": "Recovery from Disruptions",
+          "description": "Environmental protections, software, data redundancy for recovery",
+          "family": "A",
+          "framework": "soc2",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "disaster-recovery",
+            "redundancy",
+            "failover",
+            "BCP"
+          ]
+        },
+        {
+          "id": "A1.3",
+          "name": "Recovery Testing",
+          "description": "The entity tests recovery plan procedures supporting system recovery",
+          "family": "A",
+          "framework": "soc2",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "DR-testing",
+            "recovery-test",
+            "tabletop",
+            "simulation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PI",
+      "name": "Processing Integrity",
+      "description": "System processing is complete, valid, accurate, timely, and authorized",
+      "controls": [
+        {
+          "id": "PI1.1",
+          "name": "Processing Completeness and Accuracy",
+          "description": "The entity implements policies and procedures to verify processing completeness",
+          "family": "PI",
+          "framework": "soc2",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-integrity",
+            "validation",
+            "completeness-check"
+          ]
+        },
+        {
+          "id": "PI1.2",
+          "name": "Input Validation",
+          "description": "System inputs are validated for completeness, accuracy, and timeliness",
+          "family": "PI",
+          "framework": "soc2",
+          "domains": [
+            "data_protection",
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "input-validation",
+            "data-validation",
+            "sanitization"
+          ]
+        },
+        {
+          "id": "PI1.3",
+          "name": "Output Completeness",
+          "description": "System outputs are complete, accurate, and distributed as intended",
+          "family": "PI",
+          "framework": "soc2",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "output-validation",
+            "reconciliation",
+            "data-quality"
+          ]
+        },
+        {
+          "id": "PI1.4",
+          "name": "Error Correction",
+          "description": "Procedures exist to enable the correction of processing errors",
+          "family": "PI",
+          "framework": "soc2",
+          "domains": [
+            "data_protection",
+            "incident_response"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "error-handling",
+            "correction",
+            "reprocessing"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C",
+      "name": "Confidentiality",
+      "description": "Information designated as confidential is protected as committed or agreed",
+      "controls": [
+        {
+          "id": "C1.1",
+          "name": "Confidential Information Identification",
+          "description": "The entity identifies confidential information and defines protections",
+          "family": "C",
+          "framework": "soc2",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-classification",
+            "confidential",
+            "sensitive-data"
+          ]
+        },
+        {
+          "id": "C1.2",
+          "name": "Confidential Information Disposal",
+          "description": "The entity disposes of confidential information according to policy",
+          "family": "C",
+          "framework": "soc2",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-disposal",
+            "secure-deletion",
+            "retention"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "P",
+      "name": "Privacy",
+      "description": "Personal information is collected, used, retained, disclosed, and disposed to meet commitments",
+      "controls": [
+        {
+          "id": "P1.1",
+          "name": "Privacy Notice",
+          "description": "The entity provides notice regarding its privacy practices",
+          "family": "P",
+          "framework": "soc2",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "privacy-notice",
+            "privacy-policy",
+            "transparency"
+          ]
+        },
+        {
+          "id": "P2.1",
+          "name": "Consent",
+          "description": "The entity communicates choices available regarding collection and use of data",
+          "family": "P",
+          "framework": "soc2",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "consent",
+            "opt-in",
+            "opt-out",
+            "choice"
+          ]
+        },
+        {
+          "id": "P3.1",
+          "name": "Collection Limitation",
+          "description": "Personal information is collected consistent with entity objectives",
+          "family": "P",
+          "framework": "soc2",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-minimization",
+            "collection-limitation",
+            "purpose-limitation"
+          ]
+        },
+        {
+          "id": "P4.1",
+          "name": "Use and Retention",
+          "description": "Personal information use and retention is limited to defined purposes",
+          "family": "P",
+          "framework": "soc2",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-retention",
+            "purpose-limitation",
+            "use-limitation"
+          ]
+        },
+        {
+          "id": "P5.1",
+          "name": "Access Rights",
+          "description": "The entity grants data subjects access to their personal information",
+          "family": "P",
+          "framework": "soc2",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-subject-access",
+            "DSAR",
+            "right-of-access"
+          ]
+        },
+        {
+          "id": "P6.1",
+          "name": "Disclosure",
+          "description": "Personal information is disclosed to third parties only as committed",
+          "family": "P",
+          "framework": "soc2",
+          "domains": [
+            "data_protection",
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-sharing",
+            "third-party-disclosure",
+            "DPA"
+          ]
+        },
+        {
+          "id": "P7.1",
+          "name": "Data Quality",
+          "description": "The entity collects and maintains accurate, complete personal information",
+          "family": "P",
+          "framework": "soc2",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-quality",
+            "accuracy",
+            "correction-right"
+          ]
+        },
+        {
+          "id": "P8.1",
+          "name": "Dispute Resolution",
+          "description": "The entity provides mechanisms for data subjects to inquire or complain",
+          "family": "P",
+          "framework": "soc2",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "complaint",
+            "dispute-resolution",
+            "privacy-contact"
+          ]
+        }
+      ]
+    }
+  ],
+  "category": "industry",
+  "published_date": "2017-03-01",
+  "effective_date": "2018-12-15",
+  "transition_deadline": "",
+  "supersedes": "SOC 2 (2016 Trust Service Principles)",
+  "status": "active",
+  "official_url": "https://www.aicpa.org/resources/landing/system-and-organization-controls-soc-suite-of-services",
+  "changes_summary": "Revised Trust Service Criteria aligned with COSO 2013 framework, updated points of focus for cloud environments"
+}

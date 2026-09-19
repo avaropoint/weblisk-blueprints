@@ -1,0 +1,126 @@
+{
+  "id": "csa_b52",
+  "name": "CSA B52 (Mechanical Refrigeration Code)",
+  "version": "B52:23",
+  "description": "The mechanical refrigeration code governing design, installation, operation and servicing of refrigeration systems, adopted in Ontario under the Technical Standards and Safety Act, 2000. It carries requirements no other code covers: machinery-room ventilation and refrigerant detection, refrigerant classification and charge limits by occupancy, relief-device discharge, and operator or mechanic certification. It also intersects environmental obligations — halocarbon handling, leak detection and recovery — which are enforced separately from the safety code. Refrigeration work was the one HVAC/R obligation with no configured framework before this catalog existed.",
+  "authority": "CSA Group, administered in Ontario by TSSA",
+  "scope": "Design, installation, alteration and servicing of mechanical refrigeration systems",
+  "category": "operational",
+  "status": "active",
+  "supersedes": "CSA B52-18",
+  "official_url": "https://www.csagroup.org/store/product/CSA%20B52%3A23/",
+  "families": [
+    {
+      "id": "B52-DESIGN",
+      "name": "System Design and Safety",
+      "description": "Occupancy classification, charge limits and the machinery room.",
+      "controls": [
+        {
+          "id": "B52-01",
+          "name": "Refrigerant Classification and Charge Limits",
+          "description": "Refrigerant safety group and occupancy classification determine permitted charge; the design charge is documented and within limit for the space served.",
+          "family": "B52-DESIGN", "framework": "csa_b52",
+          "domains": ["equipment_integrity", "health_safety"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["refrigeration", "refrigerant", "charge-limit", "occupancy", "safety-group", "a2l", "safety"]
+        },
+        {
+          "id": "B52-02",
+          "name": "Machinery Room Ventilation and Refrigerant Detection",
+          "description": "Machinery rooms meet ventilation, detection and alarm requirements, with detectors calibrated and alarms verified on a schedule.",
+          "family": "B52-DESIGN", "framework": "csa_b52",
+          "domains": ["equipment_integrity", "health_safety"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["machinery-room", "ventilation", "refrigerant", "detection", "alarm", "calibration", "safety"]
+        },
+        {
+          "id": "B52-03",
+          "name": "Pressure Relief and Discharge",
+          "description": "Relief devices are sized and set for the system and discharge to a safe location, coordinated with pressure-equipment requirements.",
+          "family": "B52-DESIGN", "framework": "csa_b52",
+          "domains": ["equipment_integrity", "health_safety"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["relief-valve", "discharge", "refrigeration", "overpressure", "safety", "set-pressure"],
+          "mapped_controls": ["csa_b51:B51-07"]
+        }
+      ]
+    },
+    {
+      "id": "B52-WORK",
+      "name": "Installation, Commissioning and Competency",
+      "description": "Who may work on refrigeration systems and what the work must produce.",
+      "controls": [
+        {
+          "id": "B52-04",
+          "name": "Mechanic Certification and Competency",
+          "description": "Refrigeration work is performed by persons holding current trade certification and refrigerant-handling certification appropriate to the system.",
+          "family": "B52-WORK", "framework": "csa_b52",
+          "domains": ["training_competency", "trade_regulatory"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["competency", "certification-currency", "ticket", "refrigeration", "ozone-depletion", "qualification"]
+        },
+        {
+          "id": "B52-05",
+          "name": "Pressure Testing, Evacuation and Charging",
+          "description": "Systems are leak-tested, evacuated and charged to procedure, with results recorded against the commissioning record.",
+          "family": "B52-WORK", "framework": "csa_b52",
+          "domains": ["equipment_integrity", "quality_management"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["refrigeration", "leak-test", "evacuation", "charging", "inspection-and-test", "commissioning"]
+        },
+        {
+          "id": "B52-06",
+          "name": "Brazing and Joining Procedures",
+          "description": "Brazed and joined refrigerant piping follows qualified procedures by qualified personnel, with hot-work controls applied.",
+          "family": "B52-WORK", "framework": "csa_b52",
+          "domains": ["equipment_integrity", "training_competency"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["brazing", "piping", "weld-procedure", "hot-work", "competency", "refrigeration"]
+        },
+        {
+          "id": "B52-07",
+          "name": "Signage, Nameplates and System Records",
+          "description": "Systems carry required identification and refrigerant data, and installation, service and charge records are maintained and provided to the owner.",
+          "family": "B52-WORK", "framework": "csa_b52",
+          "domains": ["records_management", "equipment_integrity"],
+          "priority": "medium",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["nameplate", "signage", "records", "refrigerant", "handover", "record-retention"]
+        }
+      ]
+    },
+    {
+      "id": "B52-ENV",
+      "name": "Refrigerant Environmental Handling",
+      "description": "Obligations enforced separately from the safety code, and commonly missed.",
+      "controls": [
+        {
+          "id": "B52-08",
+          "name": "Leak Detection, Repair and Reporting",
+          "description": "Refrigerant leaks are detected, repaired within the required timeframe, and reported where regulation requires, with quantities recorded.",
+          "family": "B52-ENV", "framework": "csa_b52",
+          "domains": ["environmental", "equipment_integrity"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["refrigerant", "leak", "halocarbon", "reporting", "repair", "emissions", "records"]
+        },
+        {
+          "id": "B52-09",
+          "name": "Recovery, Reclamation and Disposal",
+          "description": "Refrigerant is recovered rather than vented, tracked by quantity and type, and sent to authorized reclamation or disposal with documentation retained.",
+          "family": "B52-ENV", "framework": "csa_b52",
+          "domains": ["environmental", "records_management"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["recovery", "reclamation", "refrigerant", "waste", "disposal", "halocarbon", "records"]
+        }
+      ]
+    }
+  ]
+}

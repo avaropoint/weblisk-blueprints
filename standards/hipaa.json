@@ -1,0 +1,1045 @@
+{
+  "id": "hipaa",
+  "name": "HIPAA Security Rule",
+  "version": "2013 (Omnibus Rule)",
+  "description": "Standards for the protection of electronic protected health information (ePHI)",
+  "authority": "U.S. Department of Health and Human Services (HHS)",
+  "scope": "Covered entities and business associates handling ePHI",
+  "families": [
+    {
+      "id": "ADM",
+      "name": "Administrative Safeguards",
+      "description": "§164.308 — Administrative actions and policies to manage security measures",
+      "controls": [
+        {
+          "id": "164.308(a)(1)",
+          "name": "Security Management Process",
+          "description": "Implement policies and procedures to prevent, detect, contain, and correct security violations",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "governance",
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security-management",
+            "risk-analysis",
+            "risk-management",
+            "sanctions"
+          ]
+        },
+        {
+          "id": "164.308(a)(1)(ii)(A)",
+          "name": "Risk Analysis",
+          "description": "Conduct accurate and thorough assessment of potential risks and vulnerabilities to ePHI",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "risk-analysis",
+            "risk-assessment",
+            "vulnerability-assessment"
+          ]
+        },
+        {
+          "id": "164.308(a)(1)(ii)(B)",
+          "name": "Risk Management",
+          "description": "Implement security measures to reduce risks and vulnerabilities to reasonable level",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "risk-management",
+            "risk-mitigation",
+            "security-measures"
+          ]
+        },
+        {
+          "id": "164.308(a)(1)(ii)(C)",
+          "name": "Sanction Policy",
+          "description": "Apply appropriate sanctions against workforce members who violate security policies",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "sanctions",
+            "disciplinary",
+            "violation-consequences"
+          ]
+        },
+        {
+          "id": "164.308(a)(1)(ii)(D)",
+          "name": "Information System Activity Review",
+          "description": "Regularly review records of information system activity (audit logs, access reports)",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "log-review",
+            "audit-review",
+            "activity-monitoring"
+          ]
+        },
+        {
+          "id": "164.308(a)(2)",
+          "name": "Assigned Security Responsibility",
+          "description": "Identify the security official responsible for developing and implementing policies",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "security-officer",
+            "CISO",
+            "designated-official"
+          ]
+        },
+        {
+          "id": "164.308(a)(3)",
+          "name": "Workforce Security",
+          "description": "Implement policies to ensure workforce members have appropriate access to ePHI",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "access_control",
+            "hr_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "workforce-security",
+            "authorization",
+            "clearance",
+            "termination"
+          ]
+        },
+        {
+          "id": "164.308(a)(3)(ii)(A)",
+          "name": "Authorization and Supervision",
+          "description": "Procedures for workforce member access authorization and supervision",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "authorization",
+            "supervision",
+            "access-approval"
+          ]
+        },
+        {
+          "id": "164.308(a)(3)(ii)(B)",
+          "name": "Workforce Clearance Procedure",
+          "description": "Determine whether access is appropriate based on workforce member role",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "access_control",
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "clearance",
+            "background-check",
+            "fitness-determination"
+          ]
+        },
+        {
+          "id": "164.308(a)(3)(ii)(C)",
+          "name": "Termination Procedures",
+          "description": "Procedures for revoking access when workforce member employment ends",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "access_control",
+            "hr_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "termination",
+            "offboarding",
+            "access-revocation"
+          ]
+        },
+        {
+          "id": "164.308(a)(4)",
+          "name": "Information Access Management",
+          "description": "Implement policies for authorizing access to ePHI consistent with applicable requirements",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "access-management",
+            "access-authorization",
+            "role-based-access"
+          ]
+        },
+        {
+          "id": "164.308(a)(5)",
+          "name": "Security Awareness and Training",
+          "description": "Implement a security awareness and training program for all workforce members",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security-training",
+            "awareness",
+            "phishing-awareness"
+          ]
+        },
+        {
+          "id": "164.308(a)(5)(ii)(A)",
+          "name": "Security Reminders",
+          "description": "Periodic security updates and reminders to workforce",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "security-reminders",
+            "newsletters",
+            "awareness-communications"
+          ]
+        },
+        {
+          "id": "164.308(a)(5)(ii)(B)",
+          "name": "Malicious Software Protection",
+          "description": "Guard against, detect, and report malicious software",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "malware-protection",
+            "antivirus",
+            "endpoint-security"
+          ]
+        },
+        {
+          "id": "164.308(a)(5)(ii)(C)",
+          "name": "Login Monitoring",
+          "description": "Procedures for monitoring login attempts and reporting discrepancies",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "login-monitoring",
+            "failed-login",
+            "brute-force-detection"
+          ]
+        },
+        {
+          "id": "164.308(a)(5)(ii)(D)",
+          "name": "Password Management",
+          "description": "Procedures for creating, changing, and safeguarding passwords",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "password-management",
+            "password-policy",
+            "credential-protection"
+          ]
+        },
+        {
+          "id": "164.308(a)(6)",
+          "name": "Security Incident Procedures",
+          "description": "Implement policies and procedures to address security incidents",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "incident-procedures",
+            "incident-response",
+            "breach-notification"
+          ]
+        },
+        {
+          "id": "164.308(a)(7)",
+          "name": "Contingency Plan",
+          "description": "Establish policies and procedures for responding to emergencies affecting ePHI systems",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "contingency-plan",
+            "disaster-recovery",
+            "BCP",
+            "backup"
+          ]
+        },
+        {
+          "id": "164.308(a)(7)(ii)(A)",
+          "name": "Data Backup Plan",
+          "description": "Establish procedures to create and maintain retrievable copies of ePHI",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "backup",
+            "data-backup",
+            "retrievable-copies"
+          ]
+        },
+        {
+          "id": "164.308(a)(7)(ii)(B)",
+          "name": "Disaster Recovery Plan",
+          "description": "Establish procedures to restore data lost in emergencies",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "disaster-recovery",
+            "DRP",
+            "restoration"
+          ]
+        },
+        {
+          "id": "164.308(a)(7)(ii)(C)",
+          "name": "Emergency Mode Operation Plan",
+          "description": "Establish procedures to enable critical business processes for ePHI protection during emergency",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "emergency-mode",
+            "critical-operations",
+            "crisis-operations"
+          ]
+        },
+        {
+          "id": "164.308(a)(7)(ii)(D)",
+          "name": "Testing and Revision",
+          "description": "Implement procedures for periodic testing and revision of contingency plans",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "contingency-testing",
+            "DR-test",
+            "plan-revision"
+          ]
+        },
+        {
+          "id": "164.308(a)(8)",
+          "name": "Evaluation",
+          "description": "Perform periodic technical and nontechnical evaluation of security policies",
+          "family": "ADM",
+          "framework": "hipaa",
+          "domains": [
+            "compliance_audit"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security-evaluation",
+            "assessment",
+            "compliance-review"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PHY",
+      "name": "Physical Safeguards",
+      "description": "§164.310 — Physical measures, policies, and procedures to protect electronic information systems",
+      "controls": [
+        {
+          "id": "164.310(a)(1)",
+          "name": "Facility Access Controls",
+          "description": "Limit physical access to electronic information systems and the facilities in which they are housed",
+          "family": "PHY",
+          "framework": "hipaa",
+          "domains": [
+            "physical_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "facility-access",
+            "physical-controls",
+            "building-security"
+          ]
+        },
+        {
+          "id": "164.310(a)(2)(i)",
+          "name": "Contingency Operations",
+          "description": "Establish procedures for facility access in support of restoration of data",
+          "family": "PHY",
+          "framework": "hipaa",
+          "domains": [
+            "physical_security",
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "contingency-access",
+            "emergency-access",
+            "facility-access"
+          ]
+        },
+        {
+          "id": "164.310(a)(2)(ii)",
+          "name": "Facility Security Plan",
+          "description": "Implement policies and procedures to safeguard the facility from unauthorized access",
+          "family": "PHY",
+          "framework": "hipaa",
+          "domains": [
+            "physical_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "facility-plan",
+            "security-plan",
+            "physical-safeguards"
+          ]
+        },
+        {
+          "id": "164.310(a)(2)(iii)",
+          "name": "Access Control and Validation",
+          "description": "Implement procedures to control and validate facility access based on role",
+          "family": "PHY",
+          "framework": "hipaa",
+          "domains": [
+            "physical_security",
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "badge-access",
+            "validation",
+            "visitor-control"
+          ]
+        },
+        {
+          "id": "164.310(a)(2)(iv)",
+          "name": "Maintenance Records",
+          "description": "Document repairs and modifications to the physical components of a facility",
+          "family": "PHY",
+          "framework": "hipaa",
+          "domains": [
+            "physical_security"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "maintenance-records",
+            "facility-maintenance",
+            "repair-log"
+          ]
+        },
+        {
+          "id": "164.310(b)",
+          "name": "Workstation Use",
+          "description": "Specify proper functions, manner of use, and physical attributes of workstation locations",
+          "family": "PHY",
+          "framework": "hipaa",
+          "domains": [
+            "physical_security",
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "workstation-use",
+            "desktop-policy",
+            "screen-positioning"
+          ]
+        },
+        {
+          "id": "164.310(c)",
+          "name": "Workstation Security",
+          "description": "Implement physical safeguards for workstations accessing ePHI",
+          "family": "PHY",
+          "framework": "hipaa",
+          "domains": [
+            "physical_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "workstation-security",
+            "physical-protection",
+            "secure-location"
+          ]
+        },
+        {
+          "id": "164.310(d)(1)",
+          "name": "Device and Media Controls",
+          "description": "Implement policies governing receipt and removal of hardware and electronic media",
+          "family": "PHY",
+          "framework": "hipaa",
+          "domains": [
+            "asset_management",
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "media-controls",
+            "device-management",
+            "equipment-disposal"
+          ]
+        },
+        {
+          "id": "164.310(d)(2)(i)",
+          "name": "Disposal",
+          "description": "Implement policies for final disposition of ePHI and hardware",
+          "family": "PHY",
+          "framework": "hipaa",
+          "domains": [
+            "data_protection",
+            "physical_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "disposal",
+            "sanitization",
+            "secure-deletion",
+            "decommission"
+          ]
+        },
+        {
+          "id": "164.310(d)(2)(ii)",
+          "name": "Media Re-Use",
+          "description": "Implement procedures for removal of ePHI from media before re-use",
+          "family": "PHY",
+          "framework": "hipaa",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "media-reuse",
+            "data-wiping",
+            "overwriting"
+          ]
+        },
+        {
+          "id": "164.310(d)(2)(iii)",
+          "name": "Accountability",
+          "description": "Maintain a record of movements of hardware and electronic media",
+          "family": "PHY",
+          "framework": "hipaa",
+          "domains": [
+            "asset_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "equipment-tracking",
+            "media-tracking",
+            "chain-of-custody"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TECH",
+      "name": "Technical Safeguards",
+      "description": "§164.312 — Technology and policies to protect ePHI and control access to it",
+      "controls": [
+        {
+          "id": "164.312(a)(1)",
+          "name": "Access Control",
+          "description": "Implement technical controls to allow only authorized persons to access ePHI",
+          "family": "TECH",
+          "framework": "hipaa",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "access-control",
+            "technical-access",
+            "system-access"
+          ]
+        },
+        {
+          "id": "164.312(a)(2)(i)",
+          "name": "Unique User Identification",
+          "description": "Assign a unique name and/or number for identifying and tracking user identity",
+          "family": "TECH",
+          "framework": "hipaa",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "unique-user-ID",
+            "individual-accountability",
+            "user-identification"
+          ]
+        },
+        {
+          "id": "164.312(a)(2)(ii)",
+          "name": "Emergency Access Procedure",
+          "description": "Establish procedures for obtaining ePHI during an emergency",
+          "family": "TECH",
+          "framework": "hipaa",
+          "domains": [
+            "access_control",
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "break-glass",
+            "emergency-access",
+            "override-procedure"
+          ]
+        },
+        {
+          "id": "164.312(a)(2)(iii)",
+          "name": "Automatic Logoff",
+          "description": "Implement electronic procedures that terminate session after inactivity",
+          "family": "TECH",
+          "framework": "hipaa",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "auto-logoff",
+            "session-timeout",
+            "idle-timeout"
+          ]
+        },
+        {
+          "id": "164.312(a)(2)(iv)",
+          "name": "Encryption and Decryption",
+          "description": "Implement mechanism to encrypt and decrypt ePHI",
+          "family": "TECH",
+          "framework": "hipaa",
+          "domains": [
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "encryption-at-rest",
+            "decryption",
+            "AES",
+            "data-encryption"
+          ]
+        },
+        {
+          "id": "164.312(b)",
+          "name": "Audit Controls",
+          "description": "Implement hardware, software, and procedures to record and examine activity",
+          "family": "TECH",
+          "framework": "hipaa",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "audit-controls",
+            "audit-logging",
+            "activity-recording"
+          ]
+        },
+        {
+          "id": "164.312(c)(1)",
+          "name": "Integrity",
+          "description": "Implement policies and procedures to protect ePHI from improper alteration or destruction",
+          "family": "TECH",
+          "framework": "hipaa",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-integrity",
+            "integrity-controls",
+            "tamper-protection"
+          ]
+        },
+        {
+          "id": "164.312(c)(2)",
+          "name": "Mechanism to Authenticate ePHI",
+          "description": "Implement electronic mechanisms to corroborate that ePHI has not been altered or destroyed",
+          "family": "TECH",
+          "framework": "hipaa",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-authentication",
+            "checksums",
+            "digital-signatures",
+            "hashing"
+          ]
+        },
+        {
+          "id": "164.312(d)",
+          "name": "Person or Entity Authentication",
+          "description": "Implement procedures to verify identity of person or entity seeking access",
+          "family": "TECH",
+          "framework": "hipaa",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "entity-authentication",
+            "MFA",
+            "identity-verification"
+          ]
+        },
+        {
+          "id": "164.312(e)(1)",
+          "name": "Transmission Security",
+          "description": "Implement technical security measures to guard against unauthorized access to ePHI transmitted over networks",
+          "family": "TECH",
+          "framework": "hipaa",
+          "domains": [
+            "encryption",
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "transmission-security",
+            "TLS",
+            "encryption-in-transit"
+          ]
+        },
+        {
+          "id": "164.312(e)(2)(i)",
+          "name": "Integrity Controls for Transmission",
+          "description": "Implement security measures to ensure transmitted ePHI is not improperly modified",
+          "family": "TECH",
+          "framework": "hipaa",
+          "domains": [
+            "data_protection",
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "message-integrity",
+            "MAC",
+            "tamper-detection"
+          ]
+        },
+        {
+          "id": "164.312(e)(2)(ii)",
+          "name": "Encryption for Transmission",
+          "description": "Implement mechanism to encrypt ePHI whenever appropriate during transmission",
+          "family": "TECH",
+          "framework": "hipaa",
+          "domains": [
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "transport-encryption",
+            "TLS",
+            "VPN",
+            "end-to-end"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ORG",
+      "name": "Organizational Requirements",
+      "description": "§164.314 — Business associate contracts and arrangements",
+      "controls": [
+        {
+          "id": "164.314(a)(1)",
+          "name": "Business Associate Contracts",
+          "description": "Contract or arrangement with business associate must meet requirements",
+          "family": "ORG",
+          "framework": "hipaa",
+          "domains": [
+            "vendor_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "BAA",
+            "business-associate",
+            "vendor-contract"
+          ]
+        },
+        {
+          "id": "164.314(a)(2)(i)",
+          "name": "BA Implementation Requirements",
+          "description": "Business associate must implement security safeguards per contract",
+          "family": "ORG",
+          "framework": "hipaa",
+          "domains": [
+            "vendor_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "BA-requirements",
+            "vendor-security",
+            "subcontractor"
+          ]
+        },
+        {
+          "id": "164.314(b)(1)",
+          "name": "Group Health Plan Requirements",
+          "description": "Plan documents must require plan sponsor to implement security safeguards",
+          "family": "ORG",
+          "framework": "hipaa",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "health-plan",
+            "plan-documents",
+            "sponsor-requirements"
+          ]
+        }
+      ]
+    }
+  ],
+  "category": "government",
+  "published_date": "2013-01-25",
+  "effective_date": "2013-09-23",
+  "transition_deadline": "",
+  "supersedes": "HIPAA Security Rule (2003)",
+  "status": "active",
+  "official_url": "https://www.hhs.gov/hipaa/for-professionals/security/index.html",
+  "changes_summary": "Omnibus Rule extended requirements to business associates, strengthened breach notification, increased penalties, modified individual rights"
+}

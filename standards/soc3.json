@@ -1,0 +1,133 @@
+{
+  "id": "soc3",
+  "name": "SOC 3 (General Use Report)",
+  "version": "2017",
+  "description": "General use report on controls at a service organization — public-facing summary of SOC 2 Trust Service Criteria compliance",
+  "authority": "AICPA",
+  "scope": "Service organizations wanting public attestation of security controls",
+  "families": [
+    {
+      "id": "TS",
+      "name": "Trust Service Principles",
+      "description": "High-level attestation across Security, Availability, Processing Integrity, Confidentiality, and Privacy",
+      "controls": [
+        {
+          "id": "TS-1",
+          "name": "Security Principle",
+          "description": "System is protected against unauthorized access (physical and logical)",
+          "family": "TS",
+          "framework": "soc3",
+          "domains": [
+            "access_control",
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security",
+            "unauthorized-access",
+            "protection",
+            "logical-physical"
+          ]
+        },
+        {
+          "id": "TS-2",
+          "name": "Availability Principle",
+          "description": "System is available for operation and use as committed or agreed",
+          "family": "TS",
+          "framework": "soc3",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "availability",
+            "uptime",
+            "sla",
+            "service-continuity"
+          ]
+        },
+        {
+          "id": "TS-3",
+          "name": "Processing Integrity Principle",
+          "description": "System processing is complete, valid, accurate, timely, and authorized",
+          "family": "TS",
+          "framework": "soc3",
+          "domains": [
+            "change_management",
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "processing-integrity",
+            "accuracy",
+            "completeness",
+            "validation"
+          ]
+        },
+        {
+          "id": "TS-4",
+          "name": "Confidentiality Principle",
+          "description": "Information designated as confidential is protected as committed or agreed",
+          "family": "TS",
+          "framework": "soc3",
+          "domains": [
+            "data_protection",
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "confidentiality",
+            "classification",
+            "protection",
+            "encryption"
+          ]
+        },
+        {
+          "id": "TS-5",
+          "name": "Privacy Principle",
+          "description": "Personal information is collected, used, retained, disclosed, and disposed in conformity with commitments",
+          "family": "TS",
+          "framework": "soc3",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "privacy",
+            "personal-information",
+            "consent",
+            "data-lifecycle"
+          ]
+        }
+      ]
+    }
+  ],
+  "category": "industry",
+  "published_date": "2017-03-01",
+  "effective_date": "2018-12-15",
+  "transition_deadline": "",
+  "supersedes": "SysTrust/WebTrust reports",
+  "status": "active",
+  "official_url": "https://www.aicpa.org/resources/landing/system-and-organization-controls-soc-suite-of-services",
+  "changes_summary": "Aligned with SOC 2 Trust Service Criteria (2017), designed for general distribution without NDA requirement"
+}

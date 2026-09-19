@@ -1,0 +1,167 @@
+{
+  "id": "csa_n290_7",
+  "name": "CSA N290.7 (Cyber Security for Nuclear Facilities)",
+  "version": "N290.7:21",
+  "description": "Cyber security requirements for nuclear power plants and small reactor facilities, second edition, superseding N290.7-14. The Canadian Nuclear Safety Commission uses it as compliance verification criteria for cyber security at high-security nuclear facilities. It is built on a defensive computer security architecture: digital assets are identified and assigned to security levels (zones), with communication between zones controlled and inbound-only where required. A trade contractor is reached through the licensee's flow-down — most commonly as controls on portable media, on remote access and maintenance tools, on personnel screening, and on the handling of facility digital-system information. Confirm which requirements a specific nuclear contract actually invokes; licensees flow down selectively.",
+  "authority": "CSA Group / CNSC",
+  "scope": "Nuclear power plants and small reactor facilities in Canada, and by flow-down their suppliers, contractors and maintenance providers",
+  "category": "cybersecurity",
+  "status": "active",
+  "published_date": "2021-01-01",
+  "supersedes": "CSA N290.7-14",
+  "official_url": "https://www.csagroup.org/store/product/CSA%20N290.7%3A21/",
+  "families": [
+    {
+      "id": "N2907-PROG",
+      "name": "Cyber Security Programme and Governance",
+      "description": "The programme requirements a licensee will ask a contractor to demonstrate before granting access.",
+      "controls": [
+        {
+          "id": "N2907-01",
+          "name": "Documented Cyber Security Programme",
+          "description": "A cyber security programme is documented, resourced and assigned to an accountable individual, and is auditable by the licensee.",
+          "family": "N2907-PROG", "framework": "csa_n290_7",
+          "domains": ["governance", "compliance_audit"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["programme", "governance", "accountable", "nuclear", "audit", "cyber-security"],
+          "mapped_controls": ["iso_27001:A.5.1", "can_ciosc_104:CIOSC-L1-15"]
+        },
+        {
+          "id": "N2907-02",
+          "name": "Identification of Critical Digital Assets",
+          "description": "Digital assets whose compromise could affect safety, security or emergency preparedness functions are identified and inventoried, including contractor-owned devices brought on site.",
+          "family": "N2907-PROG", "framework": "csa_n290_7",
+          "domains": ["asset_management", "risk_management"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["critical-digital-asset", "asset", "inventory", "nuclear", "safety-function", "ot-network"],
+          "mapped_controls": ["can_ciosc_104:CIOSC-L1-14", "iso_27001:A.5.9"]
+        },
+        {
+          "id": "N2907-03",
+          "name": "Cyber Security Risk Assessment",
+          "description": "Threats to identified digital assets are assessed, including supply-chain and insider vectors, with treatment decisions recorded and reviewed.",
+          "family": "N2907-PROG", "framework": "csa_n290_7",
+          "domains": ["risk_management"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["risk", "threat", "assessment", "insider", "supply-chain", "nuclear"]
+        }
+      ]
+    },
+    {
+      "id": "N2907-ARCH",
+      "name": "Defensive Architecture and Access Control",
+      "description": "The zone model that distinguishes this standard from a general IT security framework.",
+      "controls": [
+        {
+          "id": "N2907-04",
+          "name": "Security Levels and Zone Separation",
+          "description": "Digital assets are assigned to security levels, and communication between levels is controlled — with data flow from lower to higher security levels prevented or strictly mediated.",
+          "family": "N2907-ARCH", "framework": "csa_n290_7",
+          "domains": ["network_security"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["zone", "security-level", "segmentation", "data-diode", "isolation", "boundary", "nuclear"],
+          "mapped_controls": ["can_ciosc_104:CIOSC-L2-06", "iso_27001:A.8.22"]
+        },
+        {
+          "id": "N2907-05",
+          "name": "Control of Portable Media and Mobile Devices",
+          "description": "Portable media and mobile devices are controlled at facility boundaries: scanned, authorized per use, logged, and prohibited in higher security levels unless dedicated to them.",
+          "family": "N2907-ARCH", "framework": "csa_n290_7",
+          "domains": ["data_protection", "configuration_management", "physical_security"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["removable-media", "usb", "portable", "scanning", "dedicated-device", "nuclear", "laptop"],
+          "mapped_controls": ["can_ciosc_104:CIOSC-L1-13", "iso_27001:A.7.10"]
+        },
+        {
+          "id": "N2907-06",
+          "name": "Remote Access and Maintenance Tool Control",
+          "description": "Remote access to facility systems is prohibited or tightly mediated; maintenance laptops and tools are dedicated, hardened, inspected before connection and accounted for.",
+          "family": "N2907-ARCH", "framework": "csa_n290_7",
+          "domains": ["access_control", "configuration_management"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["remote-access", "rmm", "maintenance", "dedicated-device", "hardening", "nuclear", "vendor-access"],
+          "mapped_controls": ["nist_800_171:03.07.04"]
+        },
+        {
+          "id": "N2907-07",
+          "name": "Protection of Facility Digital-System Information",
+          "description": "Information describing facility digital systems — network diagrams, configurations, credentials, vulnerability detail — is treated as sensitive, access-restricted, and returned or destroyed at contract end.",
+          "family": "N2907-ARCH", "framework": "csa_n290_7",
+          "domains": ["data_protection", "records_management"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["prescribed-information", "diagram", "configuration", "classification", "destruction", "nuclear", "drawings"],
+          "mapped_controls": ["csa_n286:N286-13", "iso_27001:A.5.12"]
+        }
+      ]
+    },
+    {
+      "id": "N2907-OPS",
+      "name": "Operational Controls",
+      "description": "Monitoring, change control, incident response, supply chain and personnel.",
+      "controls": [
+        {
+          "id": "N2907-08",
+          "name": "Monitoring and Detection",
+          "description": "Security-relevant events on in-scope digital assets are logged and monitored, with detection tuned for the operational-technology environment rather than borrowed from corporate IT.",
+          "family": "N2907-OPS", "framework": "csa_n290_7",
+          "domains": ["logging_monitoring"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["logging", "monitoring", "detection", "ot-network", "anomaly", "nuclear", "siem"],
+          "mapped_controls": ["can_ciosc_104:CIOSC-L1-19", "iso_27001:A.8.16"]
+        },
+        {
+          "id": "N2907-09",
+          "name": "Configuration and Change Management",
+          "description": "Changes to in-scope digital assets are assessed for cyber security effect before implementation, with unauthorized change detectable and baselines maintained.",
+          "family": "N2907-OPS", "framework": "csa_n290_7",
+          "domains": ["change_management", "configuration_management"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["change", "configuration", "baseline", "unauthorized-change", "nuclear", "drift"],
+          "mapped_controls": ["csa_n286:N286-10", "can_ciosc_104:CIOSC-L1-20"]
+        },
+        {
+          "id": "N2907-10",
+          "name": "Cyber Security Incident Response and Licensee Notification",
+          "description": "Cyber incidents affecting or potentially affecting facility systems are reported to the licensee within the contracted timeframe, supporting the licensee's own CNSC reporting obligations.",
+          "family": "N2907-OPS", "framework": "csa_n290_7",
+          "domains": ["incident_response"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["incident", "notification", "cnsc", "licensee", "reporting", "nuclear", "breach"],
+          "mapped_controls": ["can_ciosc_104:CIOSC-L1-01", "iso_27001:A.5.24"]
+        },
+        {
+          "id": "N2907-11",
+          "name": "Supply Chain and Third-Party Cyber Security",
+          "description": "Suppliers and subcontractors touching in-scope systems are assessed and bound to equivalent cyber security requirements, with software and firmware provenance verified.",
+          "family": "N2907-OPS", "framework": "csa_n290_7",
+          "domains": ["vendor_management", "risk_management"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["supply-chain", "vendor", "subcontractor", "provenance", "firmware", "counterfeit", "nuclear"],
+          "mapped_controls": ["nist_800_171:03.17.01", "csa_n286:N286-09"]
+        },
+        {
+          "id": "N2907-12",
+          "name": "Personnel Screening and Cyber Security Training",
+          "description": "Personnel with access to in-scope systems are screened to the licensee's requirement and trained on the facility's cyber security rules before access, with records retained.",
+          "family": "N2907-OPS", "framework": "csa_n290_7",
+          "domains": ["hr_security", "training_competency"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["screening", "clearance", "training", "competency", "personnel", "nuclear", "records"],
+          "mapped_controls": ["csa_n286:N286-14", "can_ciosc_104:CIOSC-L1-06"]
+        }
+      ]
+    }
+  ]
+}

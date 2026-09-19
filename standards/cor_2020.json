@@ -1,0 +1,548 @@
+{
+  "id": "cor_2020",
+  "name": "COR 2020 (Certificate of Recognition)",
+  "version": "2020",
+  "description": "The Certificate of Recognition national standard as administered in Ontario by the Infrastructure Health & Safety Association (IHSA) on behalf of the Canadian Federation of Construction Safety Associations. COR is an audited health and safety management system: certification requires an external audit in the certifying year and internal audits in maintenance years, and is a common prequalification condition for ICI and public-sector work. Element titles below follow the COR 2020 audit instrument; confirm element numbering and current scoring weights against the IHSA audit protocol in force before presenting a conformance claim, since IHSA revises the instrument periodically.",
+  "authority": "IHSA / CFCSA",
+  "scope": "Ontario construction and trade employers seeking or maintaining COR certification",
+  "category": "operational",
+  "status": "active",
+  "official_url": "https://www.ihsa.ca/cor",
+  "families": [
+    {
+      "id": "MGMT",
+      "name": "Management Leadership and Commitment",
+      "description": "The governance elements the auditor tests first, because everything else depends on them.",
+      "controls": [
+        {
+          "id": "COR-01",
+          "name": "Health and Safety Policy",
+          "description": "A written health and safety policy is signed by senior management, dated within the current period, posted and communicated to all workers.",
+          "family": "MGMT",
+          "framework": "cor_2020",
+          "domains": [
+            "health_safety",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "safety",
+            "policy",
+            "signed",
+            "posted",
+            "senior-management",
+            "ohsa"
+          ],
+          "mapped_controls": [
+            "isnetworld:ISN-SAFE-03",
+            "iso_45001:5.2"
+          ]
+        },
+        {
+          "id": "COR-02",
+          "name": "Management Review and Continual Improvement",
+          "description": "Senior management reviews health and safety performance at a defined interval, sets objectives, and the review is minuted with actions assigned.",
+          "family": "MGMT",
+          "framework": "cor_2020",
+          "domains": [
+            "health_safety",
+            "governance",
+            "compliance_audit"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "management-review",
+            "objectives",
+            "continual-improvement",
+            "safety",
+            "minutes"
+          ],
+          "mapped_controls": [
+            "iso_45001:9.3"
+          ]
+        },
+        {
+          "id": "COR-03",
+          "name": "Program Administration and Responsibilities",
+          "description": "Health and safety responsibilities are assigned in writing at every level from senior management to worker, and personnel can state their own duties.",
+          "family": "MGMT",
+          "framework": "cor_2020",
+          "domains": [
+            "health_safety",
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "responsibility",
+            "accountability",
+            "safety",
+            "supervisor",
+            "competent-person"
+          ],
+          "mapped_controls": [
+            "iso_45001:5.3"
+          ]
+        },
+        {
+          "id": "COR-04",
+          "name": "Applicable Legislation",
+          "description": "Current legislation is identified, available at the workplace, and personnel understand the requirements that apply to their work.",
+          "family": "MGMT",
+          "framework": "cor_2020",
+          "domains": [
+            "health_safety",
+            "trade_regulatory"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "ohsa",
+            "legislation",
+            "regulation",
+            "code-compliance",
+            "green-book"
+          ],
+          "mapped_controls": [
+            "iso_45001:6.1.3"
+          ]
+        },
+        {
+          "id": "COR-05",
+          "name": "Worker Participation and Joint Health and Safety Committee",
+          "description": "A JHSC or health and safety representative is in place as required by workforce size, meets on schedule, and minutes are posted with items tracked to closure.",
+          "family": "MGMT",
+          "framework": "cor_2020",
+          "domains": [
+            "health_safety",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "jhsc",
+            "safety",
+            "committee",
+            "worker-representation",
+            "minutes",
+            "certified-member"
+          ],
+          "mapped_controls": [
+            "construction_safety_ca:CSA-OHS-3",
+            "iso_45001:5.4"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "HAZARD",
+      "name": "Hazard Identification and Control",
+      "description": "Formal hazard assessment and the practices and procedures that come out of it.",
+      "controls": [
+        {
+          "id": "COR-06",
+          "name": "Hazard Assessment, Analysis and Control",
+          "description": "Hazards are formally assessed by task and location, ranked, and controlled per the hierarchy of controls; assessments are reviewed when conditions change.",
+          "family": "HAZARD",
+          "framework": "cor_2020",
+          "domains": [
+            "health_safety",
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "hazard",
+            "risk-assessment",
+            "hierarchy-of-controls",
+            "safety",
+            "task-analysis"
+          ],
+          "mapped_controls": [
+            "construction_safety_ca:CSA-OHS-2",
+            "iso_45001:6.1.2"
+          ]
+        },
+        {
+          "id": "COR-07",
+          "name": "Safe Work Practices",
+          "description": "Written safe work practices exist for the general hazards of the trade, are accessible to workers, and are reviewed on a defined cycle.",
+          "family": "HAZARD",
+          "framework": "cor_2020",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "safe-work-practice",
+            "safety",
+            "hazard",
+            "toolbox",
+            "swp"
+          ],
+          "mapped_controls": [
+            "isnetworld:ISN-SAFE-05"
+          ]
+        },
+        {
+          "id": "COR-08",
+          "name": "Safe Job Procedures",
+          "description": "Step-by-step procedures exist for critical and high-risk tasks — confined space, work at heights, hot work, energized work, lockout — and are used on site.",
+          "family": "HAZARD",
+          "framework": "cor_2020",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "safe-job-procedure",
+            "confined-space",
+            "lockout",
+            "hot-work",
+            "fall-protection",
+            "arc-flash"
+          ],
+          "mapped_controls": [
+            "iso_45001:8.1.2"
+          ]
+        },
+        {
+          "id": "COR-09",
+          "name": "Company Rules",
+          "description": "Health and safety rules are documented, communicated, enforced consistently, and progressive discipline is applied and recorded.",
+          "family": "HAZARD",
+          "framework": "cor_2020",
+          "domains": [
+            "health_safety",
+            "hr_security"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "rules",
+            "safety",
+            "enforcement",
+            "discipline",
+            "compliance"
+          ]
+        },
+        {
+          "id": "COR-10",
+          "name": "Personal Protective Equipment",
+          "description": "Required PPE is identified per hazard, provided, worn, inspected and maintained, with fit testing where applicable.",
+          "family": "HAZARD",
+          "framework": "cor_2020",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "ppe",
+            "safety",
+            "fit-test",
+            "respirator",
+            "hard-hat",
+            "hi-vis"
+          ],
+          "mapped_controls": [
+            "construction_safety_ca:CSA-PPE-1",
+            "isnetworld:ISN-SAFE-08"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OPS",
+      "name": "Operational Control",
+      "description": "Inspection, maintenance, emergency preparedness and contractor oversight.",
+      "controls": [
+        {
+          "id": "COR-11",
+          "name": "Workplace Inspections",
+          "description": "Planned inspections are conducted on a defined frequency by trained personnel, findings are recorded with corrective actions, and actions are verified closed.",
+          "family": "OPS",
+          "framework": "cor_2020",
+          "domains": [
+            "health_safety",
+            "compliance_audit"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "inspection",
+            "safety",
+            "corrective-action",
+            "hazard",
+            "site-visit",
+            "deficiency"
+          ],
+          "mapped_controls": [
+            "isnetworld:ISN-SAFE-10"
+          ]
+        },
+        {
+          "id": "COR-12",
+          "name": "Preventive Maintenance",
+          "description": "Vehicles, tools and equipment are on a documented maintenance schedule with pre-use inspections and out-of-service tagging.",
+          "family": "OPS",
+          "framework": "cor_2020",
+          "domains": [
+            "health_safety",
+            "asset_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "preventive-maintenance",
+            "equipment",
+            "pre-use-inspection",
+            "safety",
+            "out-of-service",
+            "fleet"
+          ],
+          "mapped_controls": [
+            "isnetworld:ISN-SAFE-09"
+          ]
+        },
+        {
+          "id": "COR-13",
+          "name": "Emergency Response Planning",
+          "description": "Site-specific emergency response plans exist, are communicated, and are exercised; muster points and rescue arrangements are defined for high-risk work.",
+          "family": "OPS",
+          "framework": "cor_2020",
+          "domains": [
+            "health_safety",
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "emergency",
+            "evacuation",
+            "rescue",
+            "safety",
+            "drill",
+            "muster"
+          ],
+          "mapped_controls": [
+            "isnetworld:ISN-SAFE-11",
+            "iso_45001:8.2"
+          ]
+        },
+        {
+          "id": "COR-14",
+          "name": "First Aid",
+          "description": "First aid provision meets the regulated requirement for workforce size and location, with certified attendants, stocked kits and a treatment log.",
+          "family": "OPS",
+          "framework": "cor_2020",
+          "domains": [
+            "health_safety",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "first-aid",
+            "safety",
+            "certified",
+            "treatment-log",
+            "wsib"
+          ]
+        },
+        {
+          "id": "COR-15",
+          "name": "Contractor and Subcontractor Management",
+          "description": "Subcontractors are prequalified on health and safety, their performance is monitored on site, and insurance and WSIB clearance are current.",
+          "family": "OPS",
+          "framework": "cor_2020",
+          "domains": [
+            "health_safety",
+            "vendor_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "subcontractor",
+            "prequalification",
+            "safety",
+            "wsib-clearance",
+            "insurance",
+            "vendor"
+          ],
+          "mapped_controls": [
+            "isnetworld:ISN-SAFE-12",
+            "iso_45001:8.1.4"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PERF",
+      "name": "Training, Investigation and Performance",
+      "description": "The elements that produce the records an auditor samples.",
+      "controls": [
+        {
+          "id": "COR-16",
+          "name": "Training and Communication",
+          "description": "Workers receive orientation and task-specific training before starting work; certifications are tracked for currency and expiry is acted on in advance.",
+          "family": "PERF",
+          "framework": "cor_2020",
+          "domains": [
+            "training_competency",
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "orientation",
+            "competency",
+            "certification-currency",
+            "whmis",
+            "safety",
+            "ticket",
+            "refresher"
+          ],
+          "mapped_controls": [
+            "construction_safety_ca:CSA-TR-1",
+            "isnetworld:ISN-SAFE-04",
+            "iso_45001:7.2"
+          ]
+        },
+        {
+          "id": "COR-17",
+          "name": "Incident Reporting and Investigation",
+          "description": "Injuries, near-misses and critical injuries are reported within statutory timeframes, investigated for root cause, and corrective actions tracked to closure.",
+          "family": "PERF",
+          "framework": "cor_2020",
+          "domains": [
+            "health_safety",
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "near-miss",
+            "investigation",
+            "root-cause",
+            "safety",
+            "critical-injury",
+            "corrective-action",
+            "notification"
+          ],
+          "mapped_controls": [
+            "construction_safety_ca:CSA-SITE-3",
+            "iso_45001:10.2"
+          ]
+        },
+        {
+          "id": "COR-18",
+          "name": "Statistics and Records",
+          "description": "Health and safety statistics are compiled and trended, and records are retained for the statutory period and retrievable on request.",
+          "family": "PERF",
+          "framework": "cor_2020",
+          "domains": [
+            "records_management",
+            "health_safety"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "statistics",
+            "records",
+            "record-retention",
+            "trending",
+            "safety",
+            "lost-time",
+            "frequency-rate"
+          ],
+          "mapped_controls": [
+            "isnetworld:ISN-SAFE-01"
+          ]
+        },
+        {
+          "id": "COR-19",
+          "name": "Return to Work and Disability Management",
+          "description": "A return-to-work programme provides modified duties, is coordinated with WSIB, and outcomes are documented per claim.",
+          "family": "PERF",
+          "framework": "cor_2020",
+          "domains": [
+            "health_safety",
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "return-to-work",
+            "wsib",
+            "modified-duties",
+            "claim",
+            "disability",
+            "safety"
+          ]
+        }
+      ]
+    }
+  ]
+}
