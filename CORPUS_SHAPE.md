@@ -183,11 +183,10 @@ Ordered cheapest and safest first. Each step stands alone.
 platform binding from **either** family. Nothing moves yet, so nothing breaks
 whichever corpus a reader has. **Pushed.**
 
-**1b.** `platforms/{go,rust}.md` move to `languages/`. `node.md` splits, its
-JS/TS conventions becoming `languages/typescript.md` and its runtime parts
-staying; `cloudflare.md` stops restating them.
+**1b.** `platforms/{go,rust}.md` move to `languages/`. **Done.**
 
-Attempted as one step and reverted — see the prerequisite below.
+~~`node.md` splits, its JS/TS conventions becoming `languages/typescript.md`~~ —
+**refuted, see below.**
 
 **2 — `frameworks/`, with `frameworks/weblisk`.** `standards/`'s framework files
 move. `standards/code.md` and `standards/project-structure.md` split between
@@ -213,6 +212,54 @@ forms, so `weblisk programme <id> init` can bootstrap an operating programme fro
 the specification, the standards it conforms to, and the tenant's knowledge. This
 is the step that makes the collection worth having; the five before it are moving
 furniture so that this one is possible.
+
+## Refuted: there is no JavaScript blueprint to extract
+
+The plan said `platforms/node.md` was mostly JavaScript conventions and that
+`cloudflare.md` restated twelve of the same sections, so a shared
+`languages/typescript.md` would remove the duplication. **That was measured
+wrong.**
+
+The twelve shared *headings* are shared because `schemas/platform.md` requires
+them. Every platform blueprint answers the same questions — that is the schema
+working, not duplication. The content under them is different and correctly so:
+
+| | node.md | cloudflare.md |
+|---|---|---|
+| Primitive Mapping | "Provided in Node.js by" — `node:crypto`, `node:fs` | "Provided on Workers by" — Web Crypto, KV |
+| Storage | flat-file JSONL via `node:fs`; every SQLite option is third-party | Workers KV, Durable Objects, R2 |
+| Conventions | single-threaded event loop, `node:worker_threads` | V8 isolates |
+
+Measured: **31 identical substantial lines out of 731**, about 4%, and those are
+the schema's own explanation of what a Primitive Mapping is — repeated for a
+reader's benefit, already linking to `schemas/platform.md`, and not language
+conventions at all.
+
+**So the split was counting headings and calling them content.** There is no
+JavaScript material sitting inside node.md waiting to be lifted out: it is Node
+guidance throughout, and Cloudflare guidance throughout, for two different
+runtimes that execute the same language.
+
+**What that means for the model:** Go and Rust moved to `languages/` because
+they are languages whose runtime is implicit — there is no separate platform to
+name. Node and Cloudflare stay in `platforms/` because they are runtimes. The
+four files were misfiled in one direction only, and that is now corrected.
+
+A `languages/typescript.md` remains *possible* — conventions true of TypeScript
+wherever it runs: module style, naming, error idioms, what the type system is
+for. But it would be **written**, not extracted, and nothing currently needs it.
+Writing one to justify a directory would be worse than leaving the directory with
+two files in it.
+
+**A blocker found on the way, which still stands if that blueprint is ever
+written.** A platform or language binding's `requires:` are skipped
+(`isPlatformBlueprint(r) { continue }` in the CLI), because a binding's
+requirements describe every component type rather than the one being built. So a
+platform blueprint cannot pull in a language blueprint by declaring it —
+`GenerationRoots` would have to return both bindings, and the platform would have
+to declare which language it runs.
+
+---
 
 ## A prerequisite discovered by attempting step 1
 
