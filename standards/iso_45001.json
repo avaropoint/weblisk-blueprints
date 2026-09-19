@@ -1,0 +1,294 @@
+{
+  "id": "iso_45001",
+  "name": "ISO 45001 (Occupational Health and Safety Management Systems)",
+  "version": "2018",
+  "description": "Requirements for an occupational health and safety management system, on the Annex SL structure (clauses 4 to 10). It shares its architecture with ISO 9001:2015 and ISO 27001:2022, so a single management-review, internal-audit and corrective-action process can serve all three. Its distinguishing requirements against COR are clause 5.4 (consultation and participation of workers, including non-managerial workers) and clause 8.1.4 (procurement, contractors and outsourcing) — both are where an auditor probes whether the system is real.",
+  "authority": "International Organization for Standardization (ISO)",
+  "scope": "Any organization seeking to manage occupational health and safety risks systematically",
+  "category": "operational",
+  "status": "active",
+  "published_date": "2018-03-12",
+  "official_url": "https://www.iso.org/standard/63787.html",
+  "families": [
+    {
+      "id": "45001-4",
+      "name": "Clause 4 — Context of the Organization",
+      "description": "Scope of the OH&S management system and the workers it covers.",
+      "controls": [
+        {
+          "id": "4.2",
+          "name": "Needs and Expectations of Workers and Other Interested Parties",
+          "description": "Workers, unions, regulators, clients and other interested parties are identified along with their relevant requirements.",
+          "family": "45001-4", "framework": "iso_45001",
+          "domains": ["health_safety", "governance"],
+          "priority": "medium",
+          "requires_policy": true, "requires_procedure": false, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["safety", "interested-parties", "union", "worker", "regulator"]
+        },
+        {
+          "id": "4.3",
+          "name": "Scope of the OH&S Management System",
+          "description": "The boundaries of the system are documented and include all activities, workers and workplaces under the organization's control or influence.",
+          "family": "45001-4", "framework": "iso_45001",
+          "domains": ["health_safety", "governance"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": false, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["safety", "scope", "workplace", "worker", "boundary"]
+        }
+      ]
+    },
+    {
+      "id": "45001-5",
+      "name": "Clause 5 — Leadership and Worker Participation",
+      "description": "The clause that separates ISO 45001 from a paper safety programme.",
+      "controls": [
+        {
+          "id": "5.1",
+          "name": "Leadership and Commitment",
+          "description": "Top management takes overall responsibility for preventing work-related injury and ill health, provides safe workplaces, and protects workers from reprisal when reporting.",
+          "family": "45001-5", "framework": "iso_45001",
+          "domains": ["health_safety", "governance"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": false, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["safety", "leadership", "top-management", "accountability", "reprisal", "reporting-culture"]
+        },
+        {
+          "id": "5.2",
+          "name": "OH&S Policy",
+          "description": "A policy commits to safe and healthy working conditions, hazard elimination, worker consultation and legal compliance, and is communicated to workers.",
+          "family": "45001-5", "framework": "iso_45001",
+          "domains": ["health_safety", "governance"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": false, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["safety", "policy", "commitment", "communicated", "ohsa"],
+          "mapped_controls": ["cor_2020:COR-01"]
+        },
+        {
+          "id": "5.3",
+          "name": "Organizational Roles, Responsibilities and Authorities",
+          "description": "Responsibility and authority for the OH&S system are assigned at all levels, communicated and maintained as documented information.",
+          "family": "45001-5", "framework": "iso_45001",
+          "domains": ["health_safety", "governance"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["safety", "responsibility", "authority", "supervisor", "competent-person"],
+          "mapped_controls": ["cor_2020:COR-03"]
+        },
+        {
+          "id": "5.4",
+          "name": "Consultation and Participation of Workers",
+          "description": "Non-managerial workers are consulted and participate in hazard identification, incident investigation and OH&S planning, with barriers to participation identified and removed.",
+          "family": "45001-5", "framework": "iso_45001",
+          "domains": ["health_safety", "governance"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["jhsc", "safety", "worker-participation", "consultation", "committee", "union"],
+          "mapped_controls": ["cor_2020:COR-05"]
+        }
+      ]
+    },
+    {
+      "id": "45001-6",
+      "name": "Clause 6 — Planning",
+      "description": "Hazard identification, legal requirements and OH&S objectives.",
+      "controls": [
+        {
+          "id": "6.1.2",
+          "name": "Hazard Identification and Assessment of Risks",
+          "description": "Hazards are identified proactively and on an ongoing basis, accounting for routine and non-routine activities, emergencies, human factors and changes; risks are assessed with a documented methodology.",
+          "family": "45001-6", "framework": "iso_45001",
+          "domains": ["health_safety", "risk_management"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["hazard", "risk-assessment", "safety", "non-routine", "human-factors", "task-analysis"],
+          "mapped_controls": ["cor_2020:COR-06"]
+        },
+        {
+          "id": "6.1.3",
+          "name": "Determination of Legal and Other Requirements",
+          "description": "Applicable legal requirements are identified, kept current, and their implications for the organization are communicated to workers.",
+          "family": "45001-6", "framework": "iso_45001",
+          "domains": ["health_safety", "trade_regulatory"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["ohsa", "legislation", "code-compliance", "regulator", "licence", "code-edition"],
+          "mapped_controls": ["cor_2020:COR-04"]
+        },
+        {
+          "id": "6.1.4",
+          "name": "Planning Action (Hierarchy of Controls)",
+          "description": "Actions to address hazards and risks apply the hierarchy of controls — eliminate, substitute, engineer, administrate, then PPE — with the choice justified.",
+          "family": "45001-6", "framework": "iso_45001",
+          "domains": ["health_safety"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["hierarchy-of-controls", "safety", "elimination", "substitution", "ppe", "engineering-control"]
+        },
+        {
+          "id": "6.2",
+          "name": "OH&S Objectives and Planning to Achieve Them",
+          "description": "Measurable OH&S objectives are set, resourced, assigned and monitored, and are consistent with the policy.",
+          "family": "45001-6", "framework": "iso_45001",
+          "domains": ["health_safety"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["safety", "objective", "measurable", "target", "leading-indicator"]
+        }
+      ]
+    },
+    {
+      "id": "45001-7",
+      "name": "Clause 7 — Support",
+      "description": "Competence, awareness, communication and documented information.",
+      "controls": [
+        {
+          "id": "7.2",
+          "name": "Competence",
+          "description": "Workers are competent to identify hazards and perform their work safely, with competence based on training, education or experience and retained as evidence.",
+          "family": "45001-7", "framework": "iso_45001",
+          "domains": ["training_competency", "health_safety"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["competency", "qualification", "ticket", "certification-currency", "safety", "refresher", "whmis"],
+          "mapped_controls": ["cor_2020:COR-16"]
+        },
+        {
+          "id": "7.3",
+          "name": "Awareness",
+          "description": "Workers are aware of the OH&S policy, the hazards relevant to them, incidents and outcomes, and their right to remove themselves from imminent danger.",
+          "family": "45001-7", "framework": "iso_45001",
+          "domains": ["health_safety", "hr_security"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["awareness", "safety", "work-refusal", "hazard", "toolbox", "training"]
+        },
+        {
+          "id": "7.5",
+          "name": "Documented Information",
+          "description": "OH&S documented information is controlled, current, available where needed, and retained for the statutory period.",
+          "family": "45001-7", "framework": "iso_45001",
+          "domains": ["records_management", "health_safety"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["document-control", "records", "record-retention", "version", "safety", "statutory-record"]
+        }
+      ]
+    },
+    {
+      "id": "45001-8",
+      "name": "Clause 8 — Operation",
+      "description": "Operational control, management of change, contractors and emergency preparedness.",
+      "controls": [
+        {
+          "id": "8.1.2",
+          "name": "Eliminating Hazards and Reducing OH&S Risks",
+          "description": "Operational controls are established and maintained to eliminate hazards or reduce risk, applied per the hierarchy of controls.",
+          "family": "45001-8", "framework": "iso_45001",
+          "domains": ["health_safety"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["safety", "operational-control", "hazard", "lockout", "confined-space", "fall-protection", "arc-flash"],
+          "mapped_controls": ["cor_2020:COR-08"]
+        },
+        {
+          "id": "8.1.3",
+          "name": "Management of Change",
+          "description": "Changes to processes, equipment, personnel or legal requirements are assessed for OH&S consequence before implementation.",
+          "family": "45001-8", "framework": "iso_45001",
+          "domains": ["health_safety", "change_management"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["change", "safety", "management-of-change", "temporary", "assessment"]
+        },
+        {
+          "id": "8.1.4",
+          "name": "Procurement, Contractors and Outsourcing",
+          "description": "Procurement controls ensure conformity; contractor OH&S criteria are applied and coordinated, and outsourced functions remain controlled.",
+          "family": "45001-8", "framework": "iso_45001",
+          "domains": ["vendor_management", "health_safety"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["contractor", "subcontractor", "procurement", "vendor", "safety", "prequalification", "coordination"],
+          "mapped_controls": ["cor_2020:COR-15"]
+        },
+        {
+          "id": "8.2",
+          "name": "Emergency Preparedness and Response",
+          "description": "Emergency situations are identified and planned for, response is tested periodically, and plans are communicated to workers and relevant contractors and visitors.",
+          "family": "45001-8", "framework": "iso_45001",
+          "domains": ["health_safety", "business_continuity"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["emergency", "rescue", "drill", "evacuation", "safety", "first-aid"],
+          "mapped_controls": ["cor_2020:COR-13"]
+        }
+      ]
+    },
+    {
+      "id": "45001-9",
+      "name": "Clause 9 — Performance Evaluation",
+      "description": "Monitoring, compliance evaluation, internal audit and management review.",
+      "controls": [
+        {
+          "id": "9.1.2",
+          "name": "Evaluation of Compliance with Legal Requirements",
+          "description": "Compliance with applicable legal and other requirements is evaluated at a defined frequency, with results and actions retained.",
+          "family": "45001-9", "framework": "iso_45001",
+          "domains": ["compliance_audit", "trade_regulatory", "health_safety"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["compliance", "ohsa", "legislation", "evaluation", "licence", "safety"]
+        },
+        {
+          "id": "9.2",
+          "name": "Internal Audit",
+          "description": "Internal audits assess conformity of the OH&S system on a planned programme, conducted objectively and reported to management and workers.",
+          "family": "45001-9", "framework": "iso_45001",
+          "domains": ["compliance_audit", "health_safety"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["internal-audit", "safety", "audit-programme", "finding", "objectivity"]
+        },
+        {
+          "id": "9.3",
+          "name": "Management Review",
+          "description": "Top management reviews the OH&S system at planned intervals against defined inputs including incident trends, participation and compliance status.",
+          "family": "45001-9", "framework": "iso_45001",
+          "domains": ["health_safety", "governance"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["management-review", "safety", "minutes", "trend", "continual-improvement"],
+          "mapped_controls": ["cor_2020:COR-02"]
+        }
+      ]
+    },
+    {
+      "id": "45001-10",
+      "name": "Clause 10 — Improvement",
+      "description": "Incident investigation, corrective action and continual improvement.",
+      "controls": [
+        {
+          "id": "10.2",
+          "name": "Incident, Nonconformity and Corrective Action",
+          "description": "Incidents and nonconformities are reported, investigated for root cause including system causes, corrective action taken, and effectiveness reviewed.",
+          "family": "45001-10", "framework": "iso_45001",
+          "domains": ["health_safety", "incident_response"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["near-miss", "investigation", "root-cause", "corrective-action", "safety", "critical-injury"],
+          "mapped_controls": ["cor_2020:COR-17"]
+        },
+        {
+          "id": "10.3",
+          "name": "Continual Improvement",
+          "description": "OH&S performance is continually improved, promoting a positive safety culture and worker participation in improvement actions.",
+          "family": "45001-10", "framework": "iso_45001",
+          "domains": ["health_safety"],
+          "priority": "medium",
+          "requires_policy": true, "requires_procedure": false, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["continual-improvement", "safety", "culture", "worker-participation"]
+        }
+      ]
+    }
+  ]
+}

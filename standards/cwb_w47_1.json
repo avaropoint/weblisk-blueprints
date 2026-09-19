@@ -1,0 +1,289 @@
+{
+  "id": "cwb_w47_1",
+  "name": "CSA W47.1 / W59 (Fusion Welding of Steel — Company Certification)",
+  "version": "W47.1:25 (eighth edition, May 2025) with W59:24",
+  "description": "CSA W47.1 certifies a company — not an individual — to perform fusion welding of steel, administered by the Canadian Welding Bureau. Certification is granted in a division (1, 2.1, 2.2 or 3) that limits what the company may weld and how much engineering oversight it requires, and it depends on holding a qualified welding engineer or supervisor, qualified procedures, qualified welders with current continuity, and passing periodic CWB audit. CSA W59:24 provides the workmanship and design requirements the welding must satisfy. W47.1:25 was published in May 2025, so a certificate issued against the seventh edition warrants a currency check.",
+  "authority": "Canadian Welding Bureau (CWB) / CSA Group",
+  "scope": "Companies performing fusion welding of steel, including fabrication shops and field welding",
+  "category": "operational",
+  "status": "active",
+  "published_date": "2025-05-01",
+  "supersedes": "CSA W47.1:19",
+  "official_url": "https://www.cwbgroup.org/certification",
+  "families": [
+    {
+      "id": "W47-CERT",
+      "name": "Company Certification and Oversight",
+      "description": "The certificate, its division limits, and the qualified people it depends on.",
+      "controls": [
+        {
+          "id": "W47-01",
+          "name": "Current Certification and Division Scope",
+          "description": "A current W47.1 certificate is held, and work accepted stays within the certified division and material scope; the certificate edition and expiry are tracked.",
+          "family": "W47-CERT",
+          "framework": "cwb_w47_1",
+          "domains": [
+            "trade_regulatory",
+            "equipment_integrity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "cwb",
+            "certification-currency",
+            "division",
+            "welding",
+            "licence",
+            "scope",
+            "expiry"
+          ]
+        },
+        {
+          "id": "W47-02",
+          "name": "Qualified Welding Procedure Specifications",
+          "description": "Welding procedure specifications are qualified and CWB-accepted for the joints, materials, positions and processes used, are current, and are available at the point of work.",
+          "family": "W47-CERT",
+          "framework": "cwb_w47_1",
+          "domains": [
+            "equipment_integrity",
+            "quality_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "weld-procedure",
+            "wps",
+            "welding",
+            "qualification",
+            "position",
+            "process",
+            "quality"
+          ],
+          "mapped_controls": [
+            "csa_b51:B51-04",
+            "csa_n286:N286-06"
+          ]
+        },
+        {
+          "id": "W47-03",
+          "name": "Welding Engineer or Supervisor of Record",
+          "description": "A qualified welding engineer or supervisor as required by the certified division is on record, currently qualified, with a succession arrangement so the certificate is not exposed to one departure.",
+          "family": "W47-CERT",
+          "framework": "cwb_w47_1",
+          "domains": [
+            "training_competency",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "welding-engineer",
+            "supervisor",
+            "competency",
+            "qualification",
+            "cwb",
+            "succession"
+          ]
+        },
+        {
+          "id": "W47-04",
+          "name": "CWB Audit and Corrective Action",
+          "description": "Periodic CWB audits are passed, findings are corrected within the required period, and audit correspondence is retained.",
+          "family": "W47-CERT",
+          "framework": "cwb_w47_1",
+          "domains": [
+            "compliance_audit",
+            "quality_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "cwb",
+            "audit",
+            "finding",
+            "corrective-action",
+            "quality",
+            "records"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W47-WELDER",
+      "name": "Welder Qualification and Continuity",
+      "description": "The individual-level records a CWB auditor and a client inspector both sample.",
+      "controls": [
+        {
+          "id": "W47-05",
+          "name": "Welder Qualification to Procedure",
+          "description": "Welders are qualified for the procedures, positions and processes they perform, with qualification test records retained and identification traceable to their welds.",
+          "family": "W47-WELDER",
+          "framework": "cwb_w47_1",
+          "domains": [
+            "training_competency",
+            "equipment_integrity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "welder-qualification",
+            "welding",
+            "competency",
+            "ticket",
+            "traceability",
+            "stamp",
+            "position"
+          ]
+        },
+        {
+          "id": "W47-06",
+          "name": "Continuity of Qualification",
+          "description": "Welder qualification continuity is tracked against the required interval, and a welder whose continuity has lapsed is requalified before performing certified work.",
+          "family": "W47-WELDER",
+          "framework": "cwb_w47_1",
+          "domains": [
+            "training_competency",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "continuity",
+            "certification-currency",
+            "welding",
+            "requalification",
+            "records",
+            "competency",
+            "lapse"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "W59-WORK",
+      "name": "Workmanship and Inspection (CSA W59)",
+      "description": "Executing and verifying the weld to the workmanship standard.",
+      "controls": [
+        {
+          "id": "W59-01",
+          "name": "Consumable Control and Storage",
+          "description": "Welding consumables are the specified classification, controlled by lot, and stored and conditioned per manufacturer requirement.",
+          "family": "W59-WORK",
+          "framework": "cwb_w47_1",
+          "domains": [
+            "equipment_integrity",
+            "quality_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "consumable",
+            "electrode",
+            "storage",
+            "welding",
+            "traceability",
+            "quality",
+            "oven"
+          ]
+        },
+        {
+          "id": "W59-02",
+          "name": "Visual Inspection and Acceptance Criteria",
+          "description": "Welds are visually inspected against W59 acceptance criteria by qualified inspection personnel, with results recorded.",
+          "family": "W59-WORK",
+          "framework": "cwb_w47_1",
+          "domains": [
+            "quality_management",
+            "equipment_integrity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "visual-inspection",
+            "acceptance-criteria",
+            "welding",
+            "inspection-and-test",
+            "quality",
+            "cwb-inspector"
+          ]
+        },
+        {
+          "id": "W59-03",
+          "name": "Non-Destructive Examination",
+          "description": "Where NDE is specified, it is performed by certified personnel to a written procedure and results are recorded and retained.",
+          "family": "W59-WORK",
+          "framework": "cwb_w47_1",
+          "domains": [
+            "quality_management",
+            "equipment_integrity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "nde",
+            "radiography",
+            "ultrasonic",
+            "welding",
+            "inspection-and-test",
+            "certification-currency",
+            "records"
+          ]
+        },
+        {
+          "id": "W59-04",
+          "name": "Weld Repair and Nonconformance",
+          "description": "Rejected welds are repaired to a qualified repair procedure and re-inspected, with the nonconformance and disposition recorded.",
+          "family": "W59-WORK",
+          "framework": "cwb_w47_1",
+          "domains": [
+            "quality_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "nonconformance",
+            "rework",
+            "repair",
+            "welding",
+            "corrective-action",
+            "quality",
+            "reinspection"
+          ],
+          "mapped_controls": [
+            "iso_9001:8.7"
+          ]
+        }
+      ]
+    }
+  ]
+}

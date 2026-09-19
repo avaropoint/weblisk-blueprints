@@ -1,0 +1,2126 @@
+{
+  "id": "iso_27001",
+  "name": "ISO/IEC 27001:2022",
+  "version": "2022",
+  "description": "Information security, cybersecurity and privacy protection — Information security management systems",
+  "authority": "ISO/IEC",
+  "scope": "Any organization (certification available)",
+  "families": [
+    {
+      "id": "ORG",
+      "name": "Organizational Controls",
+      "description": "37 controls covering policies, roles, threat intelligence, classification, identity, and supplier management",
+      "controls": [
+        {
+          "id": "A.5.1",
+          "name": "Policies for Information Security",
+          "description": "Information security policy and topic-specific policies shall be defined, approved, published, and communicated",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "information-security-policy",
+            "policy-framework",
+            "policy-approval"
+          ],
+          "mapped_controls": [
+            "csa_n290_7:N2907-01"
+          ]
+        },
+        {
+          "id": "A.5.2",
+          "name": "Information Security Roles",
+          "description": "Information security roles and responsibilities shall be defined and allocated",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "roles",
+            "responsibilities",
+            "CISO",
+            "security-team"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-15"
+          ]
+        },
+        {
+          "id": "A.5.3",
+          "name": "Segregation of Duties",
+          "description": "Conflicting duties and areas of responsibility shall be segregated",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "segregation-of-duties",
+            "SoD",
+            "conflict-of-interest"
+          ]
+        },
+        {
+          "id": "A.5.4",
+          "name": "Management Responsibilities",
+          "description": "Management shall require personnel to apply information security in accordance with policy",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "management-commitment",
+            "oversight",
+            "enforcement"
+          ]
+        },
+        {
+          "id": "A.5.5",
+          "name": "Contact with Authorities",
+          "description": "Establish contacts with relevant authorities",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "incident_response",
+            "governance"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "authority-contact",
+            "law-enforcement",
+            "regulatory-contact"
+          ]
+        },
+        {
+          "id": "A.5.6",
+          "name": "Contact with Special Interest Groups",
+          "description": "Maintain contacts with specialist security forums and associations",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "governance"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "ISAC",
+            "security-community",
+            "threat-sharing"
+          ]
+        },
+        {
+          "id": "A.5.7",
+          "name": "Threat Intelligence",
+          "description": "Collect and analyze information about threats to information security",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "vulnerability_management",
+            "risk_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "threat-intelligence",
+            "CTI",
+            "threat-feeds"
+          ]
+        },
+        {
+          "id": "A.5.8",
+          "name": "Information Security in Project Management",
+          "description": "Integrate information security into project management",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "secure_development",
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "security-by-design",
+            "project-security",
+            "SDLC"
+          ]
+        },
+        {
+          "id": "A.5.9",
+          "name": "Inventory of Information Assets",
+          "description": "An inventory of information and associated assets shall be developed and maintained",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "asset_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "asset-inventory",
+            "asset-register",
+            "CMDB"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-14",
+            "csa_n290_7:N2907-02",
+            "isnetworld:ISN-CYBER-04"
+          ]
+        },
+        {
+          "id": "A.5.10",
+          "name": "Acceptable Use of Assets",
+          "description": "Rules for acceptable use of information and assets shall be identified and documented",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "asset_management",
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "acceptable-use",
+            "AUP",
+            "usage-policy"
+          ]
+        },
+        {
+          "id": "A.5.11",
+          "name": "Return of Assets",
+          "description": "Personnel shall return organizational assets on change or termination",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "asset_management",
+            "hr_security"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "asset-return",
+            "offboarding",
+            "termination"
+          ]
+        },
+        {
+          "id": "A.5.12",
+          "name": "Classification of Information",
+          "description": "Information shall be classified according to information security needs",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-classification",
+            "sensitivity-level",
+            "labeling"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-17",
+            "csa_n286:N286-13",
+            "csa_n290_7:N2907-07",
+            "isnetworld:ISN-CYBER-04"
+          ]
+        },
+        {
+          "id": "A.5.13",
+          "name": "Labelling of Information",
+          "description": "Appropriate set of procedures for labelling shall be developed",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "labelling",
+            "tagging",
+            "classification-marking"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L2-02"
+          ]
+        },
+        {
+          "id": "A.5.14",
+          "name": "Information Transfer",
+          "description": "Rules, procedures, and agreements for information transfer shall be in place",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "data_protection",
+            "encryption"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-transfer",
+            "information-exchange",
+            "secure-transfer"
+          ]
+        },
+        {
+          "id": "A.5.15",
+          "name": "Access Control",
+          "description": "Rules to control physical and logical access shall be established",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "access-control-policy",
+            "authorization-rules"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-12",
+            "isnetworld:ISN-CYBER-03"
+          ]
+        },
+        {
+          "id": "A.5.16",
+          "name": "Identity Management",
+          "description": "Full lifecycle of identities shall be managed",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "identity-lifecycle",
+            "provisioning",
+            "deprovisioning"
+          ],
+          "mapped_controls": [
+            "nist_800_171:03.01.01"
+          ]
+        },
+        {
+          "id": "A.5.17",
+          "name": "Authentication Information",
+          "description": "Allocation and management of authentication information shall be controlled",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "access_control",
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "password-policy",
+            "credential-management",
+            "MFA"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-05",
+            "isnetworld:ISN-CYBER-03",
+            "nist_800_171:03.05.03"
+          ]
+        },
+        {
+          "id": "A.5.18",
+          "name": "Access Rights",
+          "description": "Access rights shall be provisioned, reviewed, modified, and removed",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "access-review",
+            "access-provisioning",
+            "RBAC"
+          ]
+        },
+        {
+          "id": "A.5.19",
+          "name": "Supplier Relationships",
+          "description": "Processes for managing information security risks from suppliers shall be defined",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "supplier-management",
+            "vendor-risk",
+            "third-party"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-16"
+          ]
+        },
+        {
+          "id": "A.5.20",
+          "name": "ICT Supply Chain",
+          "description": "Address information security within supplier agreements",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "supply-chain",
+            "ICT-supply",
+            "vendor-agreement"
+          ],
+          "mapped_controls": [
+            "nist_800_171:03.16.01"
+          ]
+        },
+        {
+          "id": "A.5.21",
+          "name": "Managing Supplier Services",
+          "description": "Monitor, review, and manage changes to supplier services",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "supplier-monitoring",
+            "SLA-review",
+            "vendor-performance"
+          ],
+          "mapped_controls": [
+            "nist_800_171:03.17.01"
+          ]
+        },
+        {
+          "id": "A.5.22",
+          "name": "Cloud Service Management",
+          "description": "Processes for acquisition, use, management, and exit of cloud services shall be established",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "vendor_management",
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "cloud-security",
+            "cloud-governance",
+            "CSP-management"
+          ]
+        },
+        {
+          "id": "A.5.23",
+          "name": "Information Security for Cloud",
+          "description": "Information security requirements for cloud services shall be established",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "vendor_management",
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "cloud-security-requirements",
+            "shared-responsibility"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-10"
+          ]
+        },
+        {
+          "id": "A.5.24",
+          "name": "Incident Management Planning",
+          "description": "Plan and prepare for managing information security incidents",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "incident-plan",
+            "IRP",
+            "incident-preparation"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-01",
+            "csa_n290_7:N2907-10",
+            "isnetworld:ISN-CYBER-07",
+            "nist_800_171:03.06.01"
+          ]
+        },
+        {
+          "id": "A.5.25",
+          "name": "Assessment of Security Events",
+          "description": "Assess information security events and decide classification",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "event-assessment",
+            "incident-classification",
+            "triage"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L2-04",
+            "isnetworld:ISN-CYBER-07"
+          ]
+        },
+        {
+          "id": "A.5.26",
+          "name": "Response to Security Incidents",
+          "description": "Respond to information security incidents according to documented procedures",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "incident-response",
+            "containment",
+            "handling"
+          ]
+        },
+        {
+          "id": "A.5.27",
+          "name": "Learning from Incidents",
+          "description": "Knowledge gained from incidents shall be used to strengthen controls",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "incident_response",
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "lessons-learned",
+            "post-incident-review",
+            "improvement"
+          ]
+        },
+        {
+          "id": "A.5.28",
+          "name": "Collection of Evidence",
+          "description": "Procedures for identification, collection, and preservation of evidence",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "evidence-collection",
+            "forensics",
+            "chain-of-custody"
+          ]
+        },
+        {
+          "id": "A.5.29",
+          "name": "Information Security During Disruption",
+          "description": "Plan how to maintain information security during disruption",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "BCP",
+            "continuity",
+            "disruption-planning"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-22",
+            "isnetworld:ISN-CYBER-08"
+          ]
+        },
+        {
+          "id": "A.5.30",
+          "name": "ICT Readiness for Continuity",
+          "description": "Plan, implement, maintain and test ICT readiness for business continuity",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "DRP",
+            "DR-testing",
+            "IT-continuity",
+            "RTO",
+            "RPO"
+          ]
+        },
+        {
+          "id": "A.5.31",
+          "name": "Legal & Regulatory Requirements",
+          "description": "Identify and comply with legal, regulatory, and contractual requirements",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "compliance_audit"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "legal-compliance",
+            "regulatory",
+            "contractual-obligations"
+          ],
+          "mapped_controls": [
+            "isnetworld:ISN-CYBER-09"
+          ]
+        },
+        {
+          "id": "A.5.32",
+          "name": "Intellectual Property",
+          "description": "Implement procedures to protect intellectual property rights",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "compliance_audit",
+            "data_protection"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "IP-protection",
+            "copyright",
+            "license-management"
+          ]
+        },
+        {
+          "id": "A.5.33",
+          "name": "Protection of Records",
+          "description": "Records shall be protected from loss, destruction, falsification",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "records-management",
+            "retention",
+            "integrity-protection"
+          ]
+        },
+        {
+          "id": "A.5.34",
+          "name": "Privacy and PII",
+          "description": "Identify and meet requirements for privacy and PII protection",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "privacy",
+            "PII",
+            "personal-data",
+            "GDPR",
+            "data-protection"
+          ],
+          "mapped_controls": [
+            "isnetworld:ISN-CYBER-09"
+          ]
+        },
+        {
+          "id": "A.5.35",
+          "name": "Independent Review",
+          "description": "Organization's approach to managing information security shall be independently reviewed",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "independent-audit",
+            "external-review",
+            "assessment"
+          ]
+        },
+        {
+          "id": "A.5.36",
+          "name": "Compliance with Policies",
+          "description": "Compliance with policies, rules, and standards shall be regularly reviewed",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "policy-compliance",
+            "self-assessment",
+            "compliance-monitoring"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L2-08",
+            "isnetworld:ISN-CYBER-09"
+          ]
+        },
+        {
+          "id": "A.5.37",
+          "name": "Documented Operating Procedures",
+          "description": "Operating procedures shall be documented and available",
+          "family": "ORG",
+          "framework": "iso_27001",
+          "domains": [
+            "governance",
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "operating-procedures",
+            "SOP",
+            "documentation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PEO",
+      "name": "People Controls",
+      "description": "8 controls covering screening, employment terms, awareness, disciplinary, and remote working",
+      "controls": [
+        {
+          "id": "A.6.1",
+          "name": "Screening",
+          "description": "Background verification checks on candidates shall be carried out",
+          "family": "PEO",
+          "framework": "iso_27001",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "background-check",
+            "screening",
+            "vetting"
+          ],
+          "mapped_controls": [
+            "isnetworld:ISN-CYBER-02"
+          ]
+        },
+        {
+          "id": "A.6.2",
+          "name": "Terms of Employment",
+          "description": "Employment agreements shall state information security responsibilities",
+          "family": "PEO",
+          "framework": "iso_27001",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "employment-contract",
+            "NDA",
+            "confidentiality-agreement"
+          ]
+        },
+        {
+          "id": "A.6.3",
+          "name": "Security Awareness & Training",
+          "description": "Personnel shall receive appropriate security awareness education and training",
+          "family": "PEO",
+          "framework": "iso_27001",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security-training",
+            "awareness-program",
+            "phishing-simulation"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-06",
+            "isnetworld:ISN-CYBER-02",
+            "nist_800_171:03.02.01"
+          ]
+        },
+        {
+          "id": "A.6.4",
+          "name": "Disciplinary Process",
+          "description": "A disciplinary process shall be established for information security violations",
+          "family": "PEO",
+          "framework": "iso_27001",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "disciplinary",
+            "violation",
+            "sanctions"
+          ]
+        },
+        {
+          "id": "A.6.5",
+          "name": "Responsibilities After Termination",
+          "description": "Responsibilities that remain valid after termination shall be defined and enforced",
+          "family": "PEO",
+          "framework": "iso_27001",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "termination",
+            "offboarding",
+            "exit-procedure"
+          ],
+          "mapped_controls": [
+            "isnetworld:ISN-CYBER-02",
+            "nist_800_171:03.09.02"
+          ]
+        },
+        {
+          "id": "A.6.6",
+          "name": "Confidentiality Agreements",
+          "description": "Confidentiality or non-disclosure agreements shall be identified and documented",
+          "family": "PEO",
+          "framework": "iso_27001",
+          "domains": [
+            "hr_security",
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "NDA",
+            "confidentiality",
+            "non-disclosure"
+          ]
+        },
+        {
+          "id": "A.6.7",
+          "name": "Remote Working",
+          "description": "Security measures shall be implemented when personnel work remotely",
+          "family": "PEO",
+          "framework": "iso_27001",
+          "domains": [
+            "access_control",
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "remote-work",
+            "WFH",
+            "telecommuting",
+            "VPN"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-08"
+          ]
+        },
+        {
+          "id": "A.6.8",
+          "name": "Information Security Event Reporting",
+          "description": "Personnel shall report observed information security events",
+          "family": "PEO",
+          "framework": "iso_27001",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "incident-reporting",
+            "security-event",
+            "reporting-channel"
+          ],
+          "mapped_controls": [
+            "isnetworld:ISN-CYBER-07"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PHY",
+      "name": "Physical Controls",
+      "description": "14 controls covering perimeters, entry, offices, monitoring, equipment, and secure areas",
+      "controls": [
+        {
+          "id": "A.7.1",
+          "name": "Physical Security Perimeters",
+          "description": "Security perimeters shall be defined and used to protect areas with information",
+          "family": "PHY",
+          "framework": "iso_27001",
+          "domains": [
+            "physical_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "perimeter",
+            "physical-boundary",
+            "secure-area"
+          ],
+          "mapped_controls": [
+            "isnetworld:ISN-CYBER-01"
+          ]
+        },
+        {
+          "id": "A.7.2",
+          "name": "Physical Entry",
+          "description": "Secure areas shall be protected by appropriate entry controls",
+          "family": "PHY",
+          "framework": "iso_27001",
+          "domains": [
+            "physical_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "access-card",
+            "entry-control",
+            "badge",
+            "biometric"
+          ],
+          "mapped_controls": [
+            "isnetworld:ISN-CYBER-01",
+            "nist_800_171:03.10.01"
+          ]
+        },
+        {
+          "id": "A.7.3",
+          "name": "Securing Offices and Rooms",
+          "description": "Physical security for offices, rooms, and facilities shall be designed and implemented",
+          "family": "PHY",
+          "framework": "iso_27001",
+          "domains": [
+            "physical_security"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "office-security",
+            "clean-desk",
+            "locked-area"
+          ]
+        },
+        {
+          "id": "A.7.4",
+          "name": "Physical Security Monitoring",
+          "description": "Premises shall be continuously monitored for unauthorized physical access",
+          "family": "PHY",
+          "framework": "iso_27001",
+          "domains": [
+            "physical_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "CCTV",
+            "surveillance",
+            "physical-monitoring"
+          ]
+        },
+        {
+          "id": "A.7.5",
+          "name": "Protection Against Physical Threats",
+          "description": "Protection against physical and environmental threats shall be designed and implemented",
+          "family": "PHY",
+          "framework": "iso_27001",
+          "domains": [
+            "physical_security",
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "environmental-protection",
+            "fire-suppression",
+            "flood-protection"
+          ]
+        },
+        {
+          "id": "A.7.6",
+          "name": "Working in Secure Areas",
+          "description": "Security measures for working in secure areas shall be designed and implemented",
+          "family": "PHY",
+          "framework": "iso_27001",
+          "domains": [
+            "physical_security"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "secure-area",
+            "restricted-zone",
+            "visitor-escort"
+          ]
+        },
+        {
+          "id": "A.7.7",
+          "name": "Clear Desk and Screen",
+          "description": "Clear desk for papers and clear screen for information processing facilities",
+          "family": "PHY",
+          "framework": "iso_27001",
+          "domains": [
+            "physical_security",
+            "data_protection"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "clean-desk",
+            "screen-lock",
+            "clear-screen"
+          ]
+        },
+        {
+          "id": "A.7.8",
+          "name": "Equipment Siting",
+          "description": "Equipment shall be sited and protected to reduce environmental risks",
+          "family": "PHY",
+          "framework": "iso_27001",
+          "domains": [
+            "physical_security"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "equipment-placement",
+            "datacenter",
+            "rack-security"
+          ]
+        },
+        {
+          "id": "A.7.9",
+          "name": "Security of Assets Off-Premises",
+          "description": "Off-site assets shall be protected",
+          "family": "PHY",
+          "framework": "iso_27001",
+          "domains": [
+            "physical_security",
+            "asset_management"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "off-site",
+            "mobile-device",
+            "equipment-transport"
+          ]
+        },
+        {
+          "id": "A.7.10",
+          "name": "Storage Media",
+          "description": "Storage media shall be managed through lifecycle consistently with classification",
+          "family": "PHY",
+          "framework": "iso_27001",
+          "domains": [
+            "physical_security",
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "media-handling",
+            "secure-disposal",
+            "degaussing",
+            "shredding"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-13",
+            "csa_n290_7:N2907-05"
+          ]
+        },
+        {
+          "id": "A.7.11",
+          "name": "Supporting Utilities",
+          "description": "Facilities shall be protected from power failures and other disruptions",
+          "family": "PHY",
+          "framework": "iso_27001",
+          "domains": [
+            "physical_security",
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "UPS",
+            "power-protection",
+            "redundant-power",
+            "generator"
+          ]
+        },
+        {
+          "id": "A.7.12",
+          "name": "Cabling Security",
+          "description": "Cables carrying data shall be protected from interception and damage",
+          "family": "PHY",
+          "framework": "iso_27001",
+          "domains": [
+            "physical_security",
+            "network_security"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "cabling",
+            "fiber-optic",
+            "cable-protection"
+          ]
+        },
+        {
+          "id": "A.7.13",
+          "name": "Equipment Maintenance",
+          "description": "Equipment shall be maintained correctly to ensure continued availability and integrity",
+          "family": "PHY",
+          "framework": "iso_27001",
+          "domains": [
+            "physical_security",
+            "asset_management"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "maintenance",
+            "preventive-maintenance",
+            "equipment-servicing"
+          ]
+        },
+        {
+          "id": "A.7.14",
+          "name": "Secure Disposal of Equipment",
+          "description": "Items of equipment containing storage media shall be securely disposed",
+          "family": "PHY",
+          "framework": "iso_27001",
+          "domains": [
+            "physical_security",
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "secure-disposal",
+            "sanitization",
+            "NIST-800-88",
+            "data-destruction"
+          ],
+          "mapped_controls": [
+            "nist_800_171:03.08.03"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TECH",
+      "name": "Technological Controls",
+      "description": "34 controls covering endpoints, access rights, authentication, capacity, malware, vulnerability, logging, network, web, and secure coding",
+      "controls": [
+        {
+          "id": "A.8.1",
+          "name": "User Endpoint Devices",
+          "description": "Information stored on, processed by, or accessible via endpoint devices shall be protected",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "access_control",
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "endpoint",
+            "MDM",
+            "device-management",
+            "BYOD"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-08"
+          ]
+        },
+        {
+          "id": "A.8.2",
+          "name": "Privileged Access Rights",
+          "description": "Allocation and use of privileged access rights shall be restricted and managed",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "privileged-access",
+            "PAM",
+            "admin-rights",
+            "sudo"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-18",
+            "isnetworld:ISN-CYBER-03"
+          ]
+        },
+        {
+          "id": "A.8.3",
+          "name": "Information Access Restriction",
+          "description": "Access to information and application functions shall be restricted per policy",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "information-access",
+            "data-access",
+            "need-to-know"
+          ]
+        },
+        {
+          "id": "A.8.4",
+          "name": "Access to Source Code",
+          "description": "Read and write access to source code and development tools shall be managed",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "access_control",
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "source-code-access",
+            "repository-access",
+            "code-protection"
+          ]
+        },
+        {
+          "id": "A.8.5",
+          "name": "Secure Authentication",
+          "description": "Secure authentication technologies and procedures shall be established",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "authentication",
+            "MFA",
+            "SSO",
+            "FIDO2",
+            "passwordless"
+          ]
+        },
+        {
+          "id": "A.8.6",
+          "name": "Capacity Management",
+          "description": "Use of resources shall be monitored and adjusted per capacity requirements",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "capacity-planning",
+            "resource-monitoring",
+            "scaling"
+          ]
+        },
+        {
+          "id": "A.8.7",
+          "name": "Protection Against Malware",
+          "description": "Protection against malware shall be implemented and supported by awareness",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "antimalware",
+            "EDR",
+            "antivirus",
+            "malware-protection"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-03",
+            "can_ciosc_104:CIOSC-L1-21",
+            "isnetworld:ISN-CYBER-05"
+          ]
+        },
+        {
+          "id": "A.8.8",
+          "name": "Technical Vulnerability Management",
+          "description": "Information about technical vulnerabilities shall be obtained and evaluated",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "vulnerability-management",
+            "patching",
+            "CVE",
+            "scanning"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-02",
+            "can_ciosc_104:CIOSC-L2-05",
+            "isnetworld:ISN-CYBER-06",
+            "nist_800_171:03.14.01"
+          ]
+        },
+        {
+          "id": "A.8.9",
+          "name": "Configuration Management",
+          "description": "Configurations including security configurations shall be established and managed",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "configuration-management",
+            "baseline",
+            "hardening",
+            "drift-detection"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-04",
+            "isnetworld:ISN-CYBER-06",
+            "nist_800_171:03.04.01"
+          ]
+        },
+        {
+          "id": "A.8.10",
+          "name": "Information Deletion",
+          "description": "Information stored in systems shall be deleted when no longer required",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-deletion",
+            "retention",
+            "right-to-erasure",
+            "purging"
+          ]
+        },
+        {
+          "id": "A.8.11",
+          "name": "Data Masking",
+          "description": "Data masking shall be used in accordance with applicable policies",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-masking",
+            "tokenization",
+            "anonymization",
+            "pseudonymization"
+          ]
+        },
+        {
+          "id": "A.8.12",
+          "name": "Data Leakage Prevention",
+          "description": "Data leakage prevention measures shall be applied to systems and networks",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "data_protection",
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "DLP",
+            "data-loss-prevention",
+            "exfiltration-prevention"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L2-01"
+          ]
+        },
+        {
+          "id": "A.8.13",
+          "name": "Information Backup",
+          "description": "Backup copies shall be maintained and regularly tested",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "backup",
+            "backup-testing",
+            "restore",
+            "3-2-1-rule"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-07",
+            "isnetworld:ISN-CYBER-08"
+          ]
+        },
+        {
+          "id": "A.8.14",
+          "name": "Redundancy of Information Processing",
+          "description": "Sufficient redundancy shall be implemented to meet availability requirements",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "redundancy",
+            "high-availability",
+            "failover",
+            "clustering"
+          ]
+        },
+        {
+          "id": "A.8.15",
+          "name": "Logging",
+          "description": "Logs that record activities, exceptions, faults, and events shall be produced and protected",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "logging",
+            "audit-log",
+            "event-recording",
+            "log-management"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-19",
+            "can_ciosc_104:CIOSC-L2-03",
+            "isnetworld:ISN-CYBER-05",
+            "nist_800_171:03.03.01"
+          ]
+        },
+        {
+          "id": "A.8.16",
+          "name": "Monitoring Activities",
+          "description": "Networks, systems, and applications shall be monitored for anomalous behaviour",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "monitoring",
+            "SIEM",
+            "anomaly-detection",
+            "alerting"
+          ],
+          "mapped_controls": [
+            "csa_n290_7:N2907-08"
+          ]
+        },
+        {
+          "id": "A.8.17",
+          "name": "Clock Synchronization",
+          "description": "Clocks of information processing systems shall be synchronized to approved sources",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "NTP",
+            "time-sync",
+            "clock-synchronization"
+          ]
+        },
+        {
+          "id": "A.8.18",
+          "name": "Use of Privileged Utility Programs",
+          "description": "Use of utility programs capable of overriding controls shall be restricted",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "access_control",
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "utility-programs",
+            "privileged-tools",
+            "admin-utilities"
+          ]
+        },
+        {
+          "id": "A.8.19",
+          "name": "Software Installation on Operational Systems",
+          "description": "Procedures shall be implemented to control installation of software",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "configuration_management",
+            "change_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "software-installation",
+            "change-control",
+            "approved-software"
+          ]
+        },
+        {
+          "id": "A.8.20",
+          "name": "Networks Security",
+          "description": "Networks and network devices shall be secured, managed, and controlled",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "network-security",
+            "firewall",
+            "segmentation",
+            "ACL"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-09",
+            "isnetworld:ISN-CYBER-05"
+          ]
+        },
+        {
+          "id": "A.8.21",
+          "name": "Security of Network Services",
+          "description": "Security mechanisms and service levels of network services shall be identified",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "network-services",
+            "SLA",
+            "network-monitoring"
+          ]
+        },
+        {
+          "id": "A.8.22",
+          "name": "Segregation of Networks",
+          "description": "Groups of information services, users, and systems shall be segregated",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "network-segmentation",
+            "VLAN",
+            "microsegmentation",
+            "zero-trust"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L2-06",
+            "csa_n290_7:N2907-04",
+            "nist_800_171:03.13.01"
+          ]
+        },
+        {
+          "id": "A.8.23",
+          "name": "Web Filtering",
+          "description": "Access to external websites shall be managed to reduce exposure to malicious content",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "web-filtering",
+            "URL-filtering",
+            "proxy",
+            "content-filter"
+          ]
+        },
+        {
+          "id": "A.8.24",
+          "name": "Use of Cryptography",
+          "description": "Rules for effective use of cryptography shall be defined and implemented",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "cryptography",
+            "encryption",
+            "TLS",
+            "AES",
+            "key-management"
+          ],
+          "mapped_controls": [
+            "nist_800_171:03.13.08"
+          ]
+        },
+        {
+          "id": "A.8.25",
+          "name": "Secure Development Life Cycle",
+          "description": "Rules for secure development shall be established and applied",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "SDLC",
+            "secure-development",
+            "security-requirements"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L2-07"
+          ]
+        },
+        {
+          "id": "A.8.26",
+          "name": "Application Security Requirements",
+          "description": "Requirements for development or acquisition shall include security",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security-requirements",
+            "threat-modeling",
+            "secure-design"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-11"
+          ]
+        },
+        {
+          "id": "A.8.27",
+          "name": "Secure System Architecture",
+          "description": "Principles for engineering secure systems shall be established and applied",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "secure-architecture",
+            "defense-in-depth",
+            "security-patterns"
+          ]
+        },
+        {
+          "id": "A.8.28",
+          "name": "Secure Coding",
+          "description": "Secure coding principles shall be applied to software development",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "secure-coding",
+            "OWASP",
+            "code-review",
+            "SAST"
+          ]
+        },
+        {
+          "id": "A.8.29",
+          "name": "Security Testing",
+          "description": "Security testing processes shall be defined and implemented in development",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "secure_development",
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security-testing",
+            "DAST",
+            "pen-testing",
+            "IAST"
+          ]
+        },
+        {
+          "id": "A.8.30",
+          "name": "Outsourced Development",
+          "description": "Organization shall direct, monitor, and review outsourced development",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "secure_development",
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "outsourced-development",
+            "vendor-code",
+            "third-party-dev"
+          ]
+        },
+        {
+          "id": "A.8.31",
+          "name": "Separation of Environments",
+          "description": "Development, testing, and production environments shall be separated",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "secure_development",
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "environment-separation",
+            "dev-test-prod",
+            "isolation"
+          ]
+        },
+        {
+          "id": "A.8.32",
+          "name": "Change Management",
+          "description": "Changes to information processing facilities shall be subject to change management",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "change_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "change-management",
+            "change-control",
+            "approval-process"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-20",
+            "isnetworld:ISN-CYBER-06"
+          ]
+        },
+        {
+          "id": "A.8.33",
+          "name": "Test Information",
+          "description": "Test information shall be appropriately selected, protected, and managed",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "data_protection",
+            "secure_development"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "test-data",
+            "data-masking",
+            "synthetic-data"
+          ]
+        },
+        {
+          "id": "A.8.34",
+          "name": "Audit System Protection",
+          "description": "Audit tests and activities involving operational systems shall be planned",
+          "family": "TECH",
+          "framework": "iso_27001",
+          "domains": [
+            "compliance_audit"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "audit-protection",
+            "audit-planning",
+            "system-impact"
+          ]
+        }
+      ]
+    }
+  ],
+  "category": "cybersecurity",
+  "published_date": "2022-10-25",
+  "effective_date": "2022-10-25",
+  "transition_deadline": "2025-10-31",
+  "supersedes": "ISO/IEC 27001:2013",
+  "status": "active",
+  "official_url": "https://www.iso.org/standard/27001",
+  "changes_summary": "Restructured Annex A from 14 domains to 4 themes (Organizational, People, Physical, Technological), reduced from 114 to 93 controls, added 11 new controls"
+}

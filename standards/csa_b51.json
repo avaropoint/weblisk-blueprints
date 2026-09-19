@@ -1,0 +1,261 @@
+{
+  "id": "csa_b51",
+  "name": "CSA B51 (Boiler, Pressure Vessel and Pressure Piping Code)",
+  "version": "B51:24 (nineteenth edition)",
+  "description": "Construction, registration and inspection requirements for boilers, pressure vessels and pressure piping, adopted in Ontario under the Technical Standards and Safety Act, 2000 and administered by TSSA. The obligations attach to the equipment rather than to a trade: HVAC/R, plumbing, combustion and the fabrication shop can all install pressure-retaining components, and the Canadian Registration Number, welding-procedure qualification and inspection chain apply the same way regardless of which team holds the torch. That is why this standard sits at scope level rather than under a single department.",
+  "authority": "CSA Group, administered in Ontario by TSSA",
+  "scope": "Design, fabrication, installation, alteration and repair of boilers, pressure vessels and pressure piping",
+  "category": "operational",
+  "status": "active",
+  "supersedes": "CSA B51:19",
+  "official_url": "https://www.csagroup.org/store/product/CSA%20B51%3A24/",
+  "families": [
+    {
+      "id": "B51-REG",
+      "name": "Registration and Authorization",
+      "description": "The paperwork that makes pressure work legal, and the most common source of a project hold.",
+      "controls": [
+        {
+          "id": "B51-01",
+          "name": "Canadian Registration Number (CRN) for Design",
+          "description": "Designs for pressure-retaining components and fittings hold a valid CRN for the province of installation before fabrication or installation proceeds.",
+          "family": "B51-REG",
+          "framework": "csa_b51",
+          "domains": [
+            "equipment_integrity",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "crn",
+            "registration-number",
+            "pressure-vessel",
+            "design-registration",
+            "tssa",
+            "boiler"
+          ]
+        },
+        {
+          "id": "B51-02",
+          "name": "Quality Control Programme and Certificate of Authorization",
+          "description": "Where fabrication, alteration or repair is performed, a certificate of authorization and an accepted quality control programme are held and kept current, with the manual controlled.",
+          "family": "B51-REG",
+          "framework": "csa_b51",
+          "domains": [
+            "equipment_integrity",
+            "quality_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "certificate-of-authorization",
+            "quality",
+            "qc-programme",
+            "pressure-vessel",
+            "asme",
+            "audit"
+          ]
+        },
+        {
+          "id": "B51-03",
+          "name": "Installation Permits and Regulator Notification",
+          "description": "Installation, alteration and repair of registered equipment is notified to the authority having jurisdiction and permitted as required, with references recorded per job.",
+          "family": "B51-REG",
+          "framework": "csa_b51",
+          "domains": [
+            "trade_regulatory",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "permit",
+            "notification",
+            "tssa",
+            "inspection-authority",
+            "records",
+            "alteration"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B51-TECH",
+      "name": "Fabrication, Welding and Inspection",
+      "description": "Technical integrity of the pressure boundary.",
+      "controls": [
+        {
+          "id": "B51-04",
+          "name": "Qualified Welding Procedures and Welders",
+          "description": "Welding on pressure-retaining components follows procedures qualified for the application, performed by welders qualified to those procedures with current continuity records.",
+          "family": "B51-TECH",
+          "framework": "csa_b51",
+          "domains": [
+            "equipment_integrity",
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "welding",
+            "weld-procedure",
+            "wps",
+            "welder-qualification",
+            "competency",
+            "brazing",
+            "continuity"
+          ],
+          "mapped_controls": [
+            "cwb_w47_1:W47-02"
+          ]
+        },
+        {
+          "id": "B51-05",
+          "name": "Material Traceability",
+          "description": "Pressure-retaining materials are traceable to mill certification and correctly identified through fabrication.",
+          "family": "B51-TECH",
+          "framework": "csa_b51",
+          "domains": [
+            "equipment_integrity",
+            "quality_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "traceability",
+            "mill-certificate",
+            "material",
+            "quality",
+            "heat-number",
+            "records"
+          ]
+        },
+        {
+          "id": "B51-06",
+          "name": "Pressure Testing and Examination",
+          "description": "Required non-destructive examination and pressure testing is performed by qualified personnel to the code requirement, witnessed where required, and results recorded.",
+          "family": "B51-TECH",
+          "framework": "csa_b51",
+          "domains": [
+            "equipment_integrity",
+            "quality_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "pressure-vessel",
+            "hydrostatic",
+            "nde",
+            "inspection-and-test",
+            "witness",
+            "quality",
+            "piping"
+          ]
+        },
+        {
+          "id": "B51-07",
+          "name": "Overpressure Protection",
+          "description": "Relief devices are sized, selected, set and verified for the protected system, and their capacity is documented.",
+          "family": "B51-TECH",
+          "framework": "csa_b51",
+          "domains": [
+            "equipment_integrity",
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "relief-valve",
+            "overpressure",
+            "pressure-vessel",
+            "safety",
+            "set-pressure",
+            "capacity"
+          ],
+          "mapped_controls": [
+            "csa_b52:B52-03"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B51-RECORD",
+      "name": "Records and Handover",
+      "description": "The documentation the owner and the inspector both rely on for the life of the equipment.",
+      "controls": [
+        {
+          "id": "B51-08",
+          "name": "Data Reports and Equipment Records",
+          "description": "Manufacturer's data reports, CRN references, test records and as-built documentation are compiled and handed to the owner, and retained by Lancaster for the required period.",
+          "family": "B51-RECORD",
+          "framework": "csa_b51",
+          "domains": [
+            "records_management",
+            "equipment_integrity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "data-report",
+            "records",
+            "record-retention",
+            "as-built",
+            "handover",
+            "crn",
+            "pressure-vessel"
+          ]
+        },
+        {
+          "id": "B51-09",
+          "name": "Alteration and Repair Control",
+          "description": "Alterations and repairs to registered equipment are engineered, authorized and re-registered where required, rather than treated as maintenance.",
+          "family": "B51-RECORD",
+          "framework": "csa_b51",
+          "domains": [
+            "change_management",
+            "equipment_integrity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "alteration",
+            "repair",
+            "change",
+            "re-registration",
+            "pressure-vessel",
+            "engineering",
+            "authorization"
+          ]
+        }
+      ]
+    }
+  ]
+}

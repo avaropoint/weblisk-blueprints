@@ -1,0 +1,146 @@
+{
+  "id": "osfi_b13",
+  "name": "OSFI B-13 (Technology & Cyber Risk)",
+  "version": "2024",
+  "description": "OSFI Guideline B-13 — Technology and Cyber Risk Management expectations for federally regulated financial institutions, structured around governance, technology operations & resilience, and cyber security.",
+  "authority": "Office of the Superintendent of Financial Institutions (OSFI), Canada",
+  "scope": "Federally regulated financial institutions (banks, insurers, trust and loan companies) in Canada",
+  "category": "industry",
+  "status": "active",
+  "published_date": "2022-07-13",
+  "effective_date": "2024-01-01",
+  "official_url": "https://www.osfi-bsif.gc.ca/en/guidance/guidance-library/technology-cyber-risk-management-guideline-b-13",
+  "families": [
+    {
+      "id": "GRM",
+      "name": "Governance & Risk Management",
+      "description": "Accountability, strategy, and risk management for technology and cyber",
+      "controls": [
+        {
+          "id": "GRM-1",
+          "name": "Technology & Cyber Governance",
+          "description": "Establish clear accountability, a board-approved technology and cyber risk strategy, and defined roles for senior management oversight.",
+          "family": "GRM", "framework": "osfi_b13",
+          "domains": ["governance", "risk_management"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["governance", "board", "strategy", "accountability"]
+        },
+        {
+          "id": "GRM-2",
+          "name": "Technology & Cyber Risk Management Framework",
+          "description": "Maintain a risk management framework (RMF) with risk appetite, taxonomy, identification, assessment, and reporting for technology and cyber risks.",
+          "family": "GRM", "framework": "osfi_b13",
+          "domains": ["risk_management"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["rmf", "risk-appetite", "taxonomy", "reporting"]
+        },
+        {
+          "id": "GRM-3",
+          "name": "Third-Party Technology Risk",
+          "description": "Assess and manage risks from third-party technology and cloud service providers, including concentration and subcontractor risk, aligned with Guideline B-10.",
+          "family": "GRM", "framework": "osfi_b13",
+          "domains": ["vendor_management", "risk_management"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["third-party", "cloud", "concentration", "b-10"]
+        }
+      ]
+    },
+    {
+      "id": "TOR",
+      "name": "Technology Operations & Resilience",
+      "description": "Asset management, change, and operational resilience",
+      "controls": [
+        {
+          "id": "TOR-1",
+          "name": "Technology Asset Management",
+          "description": "Maintain a current inventory of technology assets, mapped to business services, with defined ownership and lifecycle management.",
+          "family": "TOR", "framework": "osfi_b13",
+          "domains": ["asset_management", "configuration_management"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["asset-inventory", "cmdb", "lifecycle", "ownership"]
+        },
+        {
+          "id": "TOR-2",
+          "name": "Change & Release Management",
+          "description": "Manage technology changes through a controlled process with testing, approval, and rollback to avoid disruption to critical operations.",
+          "family": "TOR", "framework": "osfi_b13",
+          "domains": ["change_management"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["change-management", "release", "rollback", "testing"]
+        },
+        {
+          "id": "TOR-3",
+          "name": "Disaster Recovery & Resilience",
+          "description": "Establish recovery objectives (RTO/RPO), tested backups, and disaster recovery for critical systems to meet operational resilience expectations.",
+          "family": "TOR", "framework": "osfi_b13",
+          "domains": ["business_continuity"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["disaster-recovery", "rto", "rpo", "resilience", "backup"]
+        },
+        {
+          "id": "TOR-4",
+          "name": "Technology Operations Monitoring",
+          "description": "Monitor the technology environment for availability, capacity, and performance of systems supporting critical business services.",
+          "family": "TOR", "framework": "osfi_b13",
+          "domains": ["logging_monitoring"],
+          "priority": "medium",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["monitoring", "availability", "capacity", "performance"]
+        }
+      ]
+    },
+    {
+      "id": "CS",
+      "name": "Cyber Security",
+      "description": "Cyber defence, identity, and incident response",
+      "controls": [
+        {
+          "id": "CS-1",
+          "name": "Cyber Defence & Secure Configuration",
+          "description": "Implement layered cyber defences: secure baseline configurations, vulnerability and patch management, and network segmentation.",
+          "family": "CS", "framework": "osfi_b13",
+          "domains": ["network_security", "vulnerability_management", "configuration_management"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["defence-in-depth", "patching", "hardening", "segmentation"]
+        },
+        {
+          "id": "CS-2",
+          "name": "Identity & Access Management",
+          "description": "Enforce strong authentication (including MFA), least privilege, and privileged access management across systems.",
+          "family": "CS", "framework": "osfi_b13",
+          "domains": ["access_control", "encryption"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["iam", "mfa", "least-privilege", "pam"]
+        },
+        {
+          "id": "CS-3",
+          "name": "Cyber Incident & OSFI Reporting",
+          "description": "Detect, respond to, and recover from cyber incidents, and report technology/cyber incidents to OSFI within the required timeframe.",
+          "family": "CS", "framework": "osfi_b13",
+          "domains": ["incident_response"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["incident", "osfi-reporting", "detection", "recovery"]
+        },
+        {
+          "id": "CS-4",
+          "name": "Data Security & Cryptography",
+          "description": "Protect the confidentiality and integrity of data through encryption in transit and at rest and sound key management.",
+          "family": "CS", "framework": "osfi_b13",
+          "domains": ["encryption", "data_protection"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["encryption", "key-management", "data-integrity"]
+        }
+      ]
+    }
+  ]
+}

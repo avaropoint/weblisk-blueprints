@@ -1,0 +1,401 @@
+{
+  "id": "csa_n286",
+  "name": "CSA N286 (Management System Requirements for Nuclear Facilities)",
+  "version": "N286:23",
+  "description": "Management system requirements for the lifecycle of nuclear facilities, applied through a graded approach proportionate to safety significance. For a trade contractor working at a nuclear generating station the standard reaches it through the licensee's flow-down: the licensee holds the N286 management system and imposes its requirements on suppliers by contract and by supplier qualification. The requirements a contractor is normally held to are procurement and supplier control, special-process qualification (welding, NDE), configuration and change control, document and records control, inspection and test, nonconformance and corrective action, and demonstrable training and competency. Confirm the edition the client contract specifies, since licensees transition on their own schedules.",
+  "authority": "CSA Group / CNSC licence conditions",
+  "scope": "Nuclear facility licensees and, by flow-down, their suppliers and contractors",
+  "category": "operational",
+  "status": "active",
+  "supersedes": "CSA N286-12",
+  "official_url": "https://www.csagroup.org/store/product/CSA%20N286%3A23/",
+  "families": [
+    {
+      "id": "N286-MS",
+      "name": "Management System and Graded Approach",
+      "description": "The programme requirements a licensee verifies before and during supplier engagement.",
+      "controls": [
+        {
+          "id": "N286-01",
+          "name": "Documented Management System with Graded Application",
+          "description": "A documented management system covers the work performed, with requirements applied proportionate to the safety significance of the item or service — the graded approach — and the grading rationale recorded.",
+          "family": "N286-MS",
+          "framework": "csa_n286",
+          "domains": [
+            "quality_management",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "quality",
+            "management-system",
+            "graded-approach",
+            "safety-significance",
+            "nuclear",
+            "programme"
+          ]
+        },
+        {
+          "id": "N286-02",
+          "name": "Organization, Responsibility and Authority",
+          "description": "Responsibilities and authorities for nuclear work are defined, including the authority to stop work on a quality or safety concern.",
+          "family": "N286-MS",
+          "framework": "csa_n286",
+          "domains": [
+            "quality_management",
+            "governance",
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "responsibility",
+            "authority",
+            "stop-work",
+            "quality",
+            "nuclear",
+            "safety"
+          ]
+        },
+        {
+          "id": "N286-03",
+          "name": "Safety Culture and Reporting Without Reprisal",
+          "description": "A questioning attitude is promoted and personnel can raise nuclear safety concerns without fear of reprisal, with the route to do so known.",
+          "family": "N286-MS",
+          "framework": "csa_n286",
+          "domains": [
+            "health_safety",
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "safety",
+            "safety-culture",
+            "reprisal",
+            "questioning-attitude",
+            "nuclear",
+            "reporting"
+          ]
+        },
+        {
+          "id": "N286-04",
+          "name": "Independent Assessment and Self-Assessment",
+          "description": "Work and processes are assessed independently of the personnel performing them, with findings tracked to closure.",
+          "family": "N286-MS",
+          "framework": "csa_n286",
+          "domains": [
+            "compliance_audit",
+            "quality_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "independent-audit",
+            "self-assessment",
+            "internal-audit",
+            "quality",
+            "finding",
+            "nuclear"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "N286-WORK",
+      "name": "Work Control and Special Processes",
+      "description": "Executing nuclear work: procedures, qualified processes and inspection.",
+      "controls": [
+        {
+          "id": "N286-05",
+          "name": "Work Planning and Procedural Control",
+          "description": "Work affecting quality is performed to approved written procedures with acceptance criteria, and deviation requires documented authorization.",
+          "family": "N286-WORK",
+          "framework": "csa_n286",
+          "domains": [
+            "quality_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "quality",
+            "procedure",
+            "acceptance-criteria",
+            "work-package",
+            "nuclear",
+            "deviation"
+          ]
+        },
+        {
+          "id": "N286-06",
+          "name": "Special Process Qualification",
+          "description": "Special processes — welding, brazing, heat treatment, non-destructive examination, coating — are performed to qualified procedures by qualified personnel, with qualification records current.",
+          "family": "N286-WORK",
+          "framework": "csa_n286",
+          "domains": [
+            "equipment_integrity",
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "welding",
+            "weld-procedure",
+            "brazing",
+            "nde",
+            "qualification",
+            "competency",
+            "nuclear"
+          ],
+          "mapped_controls": [
+            "cwb_w47_1:W47-02"
+          ]
+        },
+        {
+          "id": "N286-07",
+          "name": "Inspection, Test and Acceptance",
+          "description": "Inspection and test activities are planned with hold points, performed by qualified personnel independent of the work, and results recorded against acceptance criteria.",
+          "family": "N286-WORK",
+          "framework": "csa_n286",
+          "domains": [
+            "quality_management",
+            "equipment_integrity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "inspection-and-test",
+            "hold-point",
+            "quality",
+            "acceptance",
+            "witness",
+            "nuclear"
+          ],
+          "mapped_controls": [
+            "iso_9001:8.6"
+          ]
+        },
+        {
+          "id": "N286-08",
+          "name": "Calibration and Measurement Control",
+          "description": "Measuring and test equipment used on nuclear work is calibrated to traceable standards, with status identified and out-of-calibration findings assessed for impact on completed work.",
+          "family": "N286-WORK",
+          "framework": "csa_n286",
+          "domains": [
+            "quality_management",
+            "equipment_integrity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "calibration",
+            "traceable",
+            "measuring-equipment",
+            "quality",
+            "impact-assessment"
+          ],
+          "mapped_controls": [
+            "iso_9001:7.1.5"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "N286-SUPPORT",
+      "name": "Procurement, Configuration and Records",
+      "description": "Supply chain, change control, records and the handling of client information.",
+      "controls": [
+        {
+          "id": "N286-09",
+          "name": "Procurement and Supplier Control",
+          "description": "Procurement documents state technical and quality requirements including nuclear-specific ones; suppliers are evaluated and items verified on receipt, with commercial-grade dedication where applied.",
+          "family": "N286-SUPPORT",
+          "framework": "csa_n286",
+          "domains": [
+            "vendor_management",
+            "quality_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "procurement",
+            "supplier",
+            "vendor",
+            "quality",
+            "receipt-inspection",
+            "counterfeit",
+            "nuclear"
+          ],
+          "mapped_controls": [
+            "csa_n290_7:N2907-11",
+            "iso_9001:8.4"
+          ]
+        },
+        {
+          "id": "N286-10",
+          "name": "Configuration and Change Control",
+          "description": "The configuration of items and their design basis is controlled; changes are assessed for effect on safety and design basis before implementation and reflected in as-built records.",
+          "family": "N286-SUPPORT",
+          "framework": "csa_n286",
+          "domains": [
+            "change_management",
+            "quality_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "configuration",
+            "change",
+            "design-basis",
+            "as-built",
+            "quality",
+            "nuclear"
+          ],
+          "mapped_controls": [
+            "csa_n290_7:N2907-09"
+          ]
+        },
+        {
+          "id": "N286-11",
+          "name": "Document and Records Control",
+          "description": "Documents are controlled to current revision at point of use, and records are legible, identifiable, retrievable and retained for the period the licensee requires — often the facility lifetime.",
+          "family": "N286-SUPPORT",
+          "framework": "csa_n286",
+          "domains": [
+            "records_management",
+            "quality_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "document-control",
+            "records",
+            "record-retention",
+            "revision",
+            "retrievable",
+            "lifetime",
+            "quality"
+          ]
+        },
+        {
+          "id": "N286-12",
+          "name": "Nonconformance and Corrective Action",
+          "description": "Nonconforming items and conditions adverse to quality are identified, segregated, dispositioned by authorized personnel, and cause-analysed with corrective action verified effective.",
+          "family": "N286-SUPPORT",
+          "framework": "csa_n286",
+          "domains": [
+            "quality_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "nonconformance",
+            "corrective-action",
+            "root-cause",
+            "disposition",
+            "quality",
+            "capa"
+          ],
+          "mapped_controls": [
+            "iso_9001:10.2",
+            "iso_9001:8.7"
+          ]
+        },
+        {
+          "id": "N286-13",
+          "name": "Protection of Client Nuclear Information",
+          "description": "Licensee-designated information — site drawings, system detail, security and access arrangements — is handled to the classification and handling regime the licensee imposes, including return or destruction at contract end.",
+          "family": "N286-SUPPORT",
+          "framework": "csa_n286",
+          "domains": [
+            "data_protection",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "prescribed-information",
+            "classification",
+            "handling",
+            "drawings",
+            "destruction",
+            "nuclear",
+            "privacy"
+          ],
+          "mapped_controls": [
+            "csa_n290_7:N2907-07",
+            "iso_27001:A.5.12"
+          ]
+        },
+        {
+          "id": "N286-14",
+          "name": "Training and Qualification of Personnel",
+          "description": "Personnel performing nuclear work hold current site qualification, security clearance and task competency, with records available to the licensee on request.",
+          "family": "N286-SUPPORT",
+          "framework": "csa_n286",
+          "domains": [
+            "training_competency",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "competency",
+            "qualification",
+            "clearance",
+            "certification-currency",
+            "records",
+            "nuclear",
+            "ticket"
+          ],
+          "mapped_controls": [
+            "csa_n290_7:N2907-12"
+          ]
+        }
+      ]
+    }
+  ]
+}

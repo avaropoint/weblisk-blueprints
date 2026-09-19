@@ -1,0 +1,291 @@
+{
+  "id": "pipeda",
+  "name": "PIPEDA (Canada)",
+  "version": "2019",
+  "description": "Personal Information Protection and Electronic Documents Act — Canada's federal private-sector privacy law. Controls follow the ten Fair Information Principles in Schedule 1. Representative starter catalog; refine to your organization's obligations.",
+  "authority": "Office of the Privacy Commissioner of Canada (OPC)",
+  "scope": "Canadian private-sector organizations that collect, use, or disclose personal information in the course of commercial activity",
+  "category": "privacy",
+  "official_url": "https://www.priv.gc.ca/en/privacy-topics/privacy-laws-in-canada/the-personal-information-protection-and-electronic-documents-act-pipeda/",
+  "status": "active",
+  "families": [
+    {
+      "id": "FIP",
+      "name": "Fair Information Principles",
+      "description": "The ten principles in Schedule 1 of PIPEDA that govern the handling of personal information.",
+      "controls": [
+        {
+          "id": "PIPEDA-1",
+          "name": "Accountability",
+          "description": "The organization is responsible for personal information under its control and designates an individual (e.g. a Privacy Officer) accountable for compliance.",
+          "family": "FIP",
+          "framework": "pipeda",
+          "domains": [
+            "data_protection",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "privacy officer",
+            "accountability",
+            "data controller",
+            "responsibility"
+          ],
+          "mapped_controls": [
+            "GDPR-ACC-1"
+          ]
+        },
+        {
+          "id": "PIPEDA-2",
+          "name": "Identifying Purposes",
+          "description": "The purposes for collecting personal information are identified at or before the time of collection.",
+          "family": "FIP",
+          "framework": "pipeda",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "purpose",
+            "collection notice",
+            "purpose specification"
+          ]
+        },
+        {
+          "id": "PIPEDA-3",
+          "name": "Consent",
+          "description": "The knowledge and consent of the individual are required for the collection, use, or disclosure of personal information, except where inappropriate.",
+          "family": "FIP",
+          "framework": "pipeda",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "consent",
+            "opt-in",
+            "withdrawal of consent"
+          ],
+          "mapped_controls": [
+            "GDPR-LB-1"
+          ]
+        },
+        {
+          "id": "PIPEDA-4",
+          "name": "Limiting Collection",
+          "description": "Collection of personal information is limited to what is necessary for the identified purposes and collected by fair and lawful means.",
+          "family": "FIP",
+          "framework": "pipeda",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data minimization",
+            "limiting collection",
+            "necessity"
+          ]
+        },
+        {
+          "id": "PIPEDA-5",
+          "name": "Limiting Use, Disclosure, and Retention",
+          "description": "Personal information is used or disclosed only for the purposes for which it was collected, and retained only as long as necessary.",
+          "family": "FIP",
+          "framework": "pipeda",
+          "domains": [
+            "data_protection",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "retention",
+            "disposal",
+            "use limitation",
+            "disclosure"
+          ]
+        },
+        {
+          "id": "PIPEDA-6",
+          "name": "Accuracy",
+          "description": "Personal information is as accurate, complete, and up-to-date as necessary for the purposes for which it is used.",
+          "family": "FIP",
+          "framework": "pipeda",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "accuracy",
+            "data quality",
+            "correction"
+          ]
+        },
+        {
+          "id": "PIPEDA-7",
+          "name": "Safeguards",
+          "description": "Personal information is protected by security safeguards appropriate to its sensitivity (physical, organizational, and technological).",
+          "family": "FIP",
+          "framework": "pipeda",
+          "domains": [
+            "data_protection",
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "safeguards",
+            "encryption",
+            "access control",
+            "security"
+          ],
+          "mapped_controls": [
+            "GDPR-SEC-1"
+          ]
+        },
+        {
+          "id": "PIPEDA-8",
+          "name": "Openness",
+          "description": "The organization makes its policies and practices relating to the management of personal information readily available.",
+          "family": "FIP",
+          "framework": "pipeda",
+          "domains": [
+            "data_protection",
+            "governance"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "openness",
+            "privacy policy",
+            "transparency"
+          ]
+        },
+        {
+          "id": "PIPEDA-9",
+          "name": "Individual Access",
+          "description": "Upon request, an individual is informed of the existence, use, and disclosure of their personal information and is given access to it.",
+          "family": "FIP",
+          "framework": "pipeda",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "access request",
+            "data subject rights",
+            "DSAR"
+          ],
+          "mapped_controls": [
+            "GDPR-DSR-1"
+          ]
+        },
+        {
+          "id": "PIPEDA-10",
+          "name": "Challenging Compliance",
+          "description": "An individual can address a challenge concerning compliance with the above principles to the designated accountable individual.",
+          "family": "FIP",
+          "framework": "pipeda",
+          "domains": [
+            "data_protection",
+            "governance",
+            "incident_response"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "complaints",
+            "challenging compliance",
+            "grievance"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BREACH",
+      "name": "Breach of Security Safeguards",
+      "description": "Mandatory breach reporting and record-keeping obligations under PIPEDA.",
+      "controls": [
+        {
+          "id": "PIPEDA-BR-1",
+          "name": "Breach Reporting to OPC",
+          "description": "Report breaches of security safeguards involving personal information that pose a real risk of significant harm to the Privacy Commissioner.",
+          "family": "BREACH",
+          "framework": "pipeda",
+          "domains": [
+            "data_protection",
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "breach notification",
+            "real risk of significant harm",
+            "RROSH"
+          ]
+        },
+        {
+          "id": "PIPEDA-BR-2",
+          "name": "Breach Record-Keeping",
+          "description": "Maintain records of every breach of security safeguards involving personal information.",
+          "family": "BREACH",
+          "framework": "pipeda",
+          "domains": [
+            "data_protection",
+            "incident_response",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "breach register",
+            "record keeping",
+            "breach log"
+          ]
+        }
+      ]
+    }
+  ]
+}

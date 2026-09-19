@@ -1,0 +1,99 @@
+{
+  "id": "esa_oesc",
+  "name": "ESA / Ontario Electrical Safety Code (CSA C22.1)",
+  "version": "OESC 29th edition (CSA C22.1:24 + Ontario Amendments)",
+  "description": "The Ontario Electrical Safety Code, 29th edition — CSA C22.1:24 Canadian Electrical Code Part I with Ontario Amendments dated November 2024, effective 1 May 2025 — together with the Electrical Safety Authority licensing and notification regime under the Electricity Act, 1998 and O. Reg. 570/05. Two distinct obligation sets travel together and are audited together: the technical code governing installations, and the contractor licensing, notification and inspection regime governing who may perform them and how the work is verified. The 1 May 2025 edition change is recent enough that documents, specifications and estimating templates written against the 28th edition are now out of date.",
+  "authority": "Electrical Safety Authority (ESA) / CSA Group",
+  "scope": "Electrical contractors and master electricians performing electrical installations in Ontario",
+  "category": "operational",
+  "status": "active",
+  "effective_date": "2025-05-01",
+  "supersedes": "OESC 28th edition (CSA C22.1:21)",
+  "official_url": "https://esasafe.com/electrical-contractors/ontario-electrical-safety-code/",
+  "families": [
+    {
+      "id": "OESC-LIC",
+      "name": "Licensing and Authorization",
+      "description": "Who is permitted to perform and certify electrical work.",
+      "controls": [
+        {
+          "id": "OESC-01",
+          "name": "Electrical Contractor Licence (ECRA/ESA)",
+          "description": "A current Electrical Contractor Registration Agency licence is held, its number is displayed as required, and renewal is tracked ahead of expiry.",
+          "family": "OESC-LIC", "framework": "esa_oesc",
+          "domains": ["trade_regulatory"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["licence", "ecra", "esa", "contractor-licence", "renewal", "regulator"]
+        },
+        {
+          "id": "OESC-02",
+          "name": "Master Electrician of Record",
+          "description": "A designated Master Electrician is on record for the licence, currently certified, and a named successor arrangement exists so the licence is not exposed to a single departure.",
+          "family": "OESC-LIC", "framework": "esa_oesc",
+          "domains": ["trade_regulatory", "training_competency"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["master-electrician", "licence", "certification-currency", "competency", "succession"]
+        },
+        {
+          "id": "OESC-03",
+          "name": "Certificate of Qualification and Apprenticeship Ratios",
+          "description": "Electricians hold a valid Certificate of Qualification for the compulsory trade, apprentices are registered, and journeyperson-to-apprentice ratios are respected on site.",
+          "family": "OESC-LIC", "framework": "esa_oesc",
+          "domains": ["training_competency", "trade_regulatory"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["certificate-of-qualification", "apprentice", "journeyperson", "ticket", "competency", "skilled-trades", "ratio"]
+        }
+      ]
+    },
+    {
+      "id": "OESC-WORK",
+      "name": "Notification, Inspection and Code Compliance",
+      "description": "The mechanics of getting work legally verified.",
+      "controls": [
+        {
+          "id": "OESC-04",
+          "name": "Notification of Work to ESA",
+          "description": "Notification is filed for work requiring it, before the required stage, and the notification number is recorded against the job.",
+          "family": "OESC-WORK", "framework": "esa_oesc",
+          "domains": ["trade_regulatory", "records_management"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["notification", "esa", "permit", "inspection-authority", "records", "job-number"]
+        },
+        {
+          "id": "OESC-05",
+          "name": "Inspection and Certificate of Acceptance",
+          "description": "Work is presented for inspection, defects are corrected and re-inspected, and the Certificate of Acceptance is obtained and filed with the project record.",
+          "family": "OESC-WORK", "framework": "esa_oesc",
+          "domains": ["trade_regulatory", "quality_management"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["inspection-authority", "certificate-of-acceptance", "defect", "deficiency", "records", "handover"]
+        },
+        {
+          "id": "OESC-06",
+          "name": "Current Code Edition in Use",
+          "description": "The edition in force is identified and used in design, estimating and installation, and the transition from a superseded edition is recorded including any grandfathered work.",
+          "family": "OESC-WORK", "framework": "esa_oesc",
+          "domains": ["trade_regulatory", "records_management"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["code-edition", "code-compliance", "c22.1", "29th-edition", "transition", "grandfathering"]
+        },
+        {
+          "id": "OESC-07",
+          "name": "Contract-Specified Edition Conflict",
+          "description": "Where a contract or client specification names a superseded code edition, the conflict is recorded and resolved with the client rather than silently resolved in the field.",
+          "family": "OESC-WORK", "framework": "esa_oesc",
+          "domains": ["trade_regulatory", "quality_management"],
+          "priority": "medium",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["code-edition", "contract", "specification", "conflict", "code-compliance", "records"]
+        }
+      ]
+    }
+  ]
+}

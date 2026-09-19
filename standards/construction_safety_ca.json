@@ -1,0 +1,304 @@
+{
+  "id": "construction_safety_ca",
+  "name": "Construction Safety (Canada)",
+  "version": "2024",
+  "description": "Industry occupational health & safety standard for construction, aligned with CSA Z1000 OHS management principles and common Canadian provincial OH&S construction requirements. Representative starter catalog; align to the applicable provincial OH&S regulation (e.g. Ontario O. Reg. 213/91, Alberta OHS Code) for your jurisdiction.",
+  "authority": "CSA Group / provincial OH&S regulators",
+  "scope": "Construction employers, general contractors, and trades operating on Canadian job sites",
+  "category": "industry",
+  "status": "active",
+  "families": [
+    {
+      "id": "OHSMS",
+      "name": "OHS Management System",
+      "description": "Governance of the health & safety program (aligned with CSA Z1000).",
+      "controls": [
+        {
+          "id": "CSA-OHS-1",
+          "name": "Health & Safety Policy",
+          "description": "A documented, signed occupational health & safety policy is established, communicated, and reviewed.",
+          "family": "OHSMS",
+          "framework": "construction_safety_ca",
+          "domains": [
+            "health_safety",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "ohs policy",
+            "safety policy",
+            "health and safety program"
+          ]
+        },
+        {
+          "id": "CSA-OHS-2",
+          "name": "Hazard Identification & Risk Assessment",
+          "description": "Workplace hazards are systematically identified and assessed, with controls applied per the hierarchy of controls.",
+          "family": "OHSMS",
+          "framework": "construction_safety_ca",
+          "domains": [
+            "health_safety",
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "hazard assessment",
+            "risk assessment",
+            "job hazard analysis",
+            "hierarchy of controls"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-06"
+          ]
+        },
+        {
+          "id": "CSA-OHS-3",
+          "name": "Joint Health & Safety Committee",
+          "description": "A functioning joint health & safety committee or safety representative is in place as required by jurisdiction and workforce size.",
+          "family": "OHSMS",
+          "framework": "construction_safety_ca",
+          "domains": [
+            "health_safety",
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "JHSC",
+            "safety committee",
+            "worker representation"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-05"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TRAIN",
+      "name": "Training & Competency",
+      "description": "Worker orientation, training, and competency verification.",
+      "controls": [
+        {
+          "id": "CSA-TR-1",
+          "name": "Site Orientation & Safety Training",
+          "description": "All workers receive site-specific safety orientation and role-appropriate training before starting work.",
+          "family": "TRAIN",
+          "framework": "construction_safety_ca",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "orientation",
+            "safety training",
+            "competency",
+            "WHMIS training"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-16"
+          ]
+        },
+        {
+          "id": "CSA-TR-2",
+          "name": "WHMIS / Hazardous Materials",
+          "description": "Workers are trained on WHMIS 2015; SDS are accessible and hazardous products are labelled and stored correctly.",
+          "family": "TRAIN",
+          "framework": "construction_safety_ca",
+          "domains": [
+            "health_safety",
+            "environmental",
+            "training_competency"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "WHMIS",
+            "SDS",
+            "hazardous materials",
+            "labelling"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FALL",
+      "name": "Fall Protection",
+      "description": "Protection from falls, a leading cause of construction fatalities.",
+      "controls": [
+        {
+          "id": "CSA-FP-1",
+          "name": "Fall Protection Program",
+          "description": "A fall protection plan is in place for work at heights above the regulated threshold, with appropriate systems (guardrails, travel restraint, fall arrest).",
+          "family": "FALL",
+          "framework": "construction_safety_ca",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "fall protection",
+            "work at heights",
+            "fall arrest",
+            "guardrail",
+            "travel restraint"
+          ]
+        },
+        {
+          "id": "CSA-FP-2",
+          "name": "Equipment Inspection",
+          "description": "Fall protection equipment is inspected before use and on a documented schedule; defective equipment is removed from service.",
+          "family": "FALL",
+          "framework": "construction_safety_ca",
+          "domains": [
+            "health_safety",
+            "equipment_integrity"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "harness inspection",
+            "equipment inspection",
+            "pre-use check"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PPE",
+      "name": "Personal Protective Equipment",
+      "description": "Provision, use, and maintenance of PPE.",
+      "controls": [
+        {
+          "id": "CSA-PPE-1",
+          "name": "PPE Provision & Use",
+          "description": "Required PPE (head, eye, foot, hearing, high-visibility, respiratory) is provided, worn, and maintained appropriate to the hazard.",
+          "family": "PPE",
+          "framework": "construction_safety_ca",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "PPE",
+            "hard hat",
+            "hi-vis",
+            "respirator",
+            "hearing protection"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-10"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SITE",
+      "name": "Site Hazard Controls",
+      "description": "High-risk construction activities with prescriptive controls.",
+      "controls": [
+        {
+          "id": "CSA-SITE-1",
+          "name": "Excavation & Trenching",
+          "description": "Excavations are protected against collapse (shoring, sloping, or trench boxes) and inspected by a competent person.",
+          "family": "SITE",
+          "framework": "construction_safety_ca",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "excavation",
+            "trenching",
+            "shoring",
+            "cave-in",
+            "competent person"
+          ]
+        },
+        {
+          "id": "CSA-SITE-2",
+          "name": "Equipment & Machinery Safety",
+          "description": "Powered equipment and machinery are inspected, guarded, and operated only by trained/certified personnel; lockout-tagout applies to servicing.",
+          "family": "SITE",
+          "framework": "construction_safety_ca",
+          "domains": [
+            "health_safety",
+            "equipment_integrity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "machine guarding",
+            "lockout tagout",
+            "LOTO",
+            "equipment certification",
+            "operator training"
+          ]
+        },
+        {
+          "id": "CSA-SITE-3",
+          "name": "Incident Reporting & Investigation",
+          "description": "Injuries, near-misses, and critical incidents are reported, investigated, and reported to the regulator as required; corrective actions are tracked.",
+          "family": "SITE",
+          "framework": "construction_safety_ca",
+          "domains": [
+            "health_safety",
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "incident reporting",
+            "near miss",
+            "investigation",
+            "corrective action",
+            "regulator notification"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-17"
+          ]
+        }
+      ]
+    }
+  ]
+}

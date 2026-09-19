@@ -1,0 +1,213 @@
+{
+  "id": "essential_eight",
+  "name": "ASD Essential Eight",
+  "version": "2023",
+  "description": "Australian Signals Directorate Essential Eight Maturity Model — eight prioritized mitigation strategies to protect against cyber threats",
+  "authority": "Australian Signals Directorate (ASD)",
+  "scope": "Australian government entities and organizations seeking baseline cybersecurity maturity",
+  "families": [
+    {
+      "id": "PM",
+      "name": "Prevent Malware Delivery and Execution",
+      "description": "Strategies to prevent malware from being delivered to or executing on systems",
+      "controls": [
+        {
+          "id": "E8-PM-1",
+          "name": "Application Control",
+          "description": "Only approved/trusted programs are permitted to execute on systems",
+          "family": "PM",
+          "framework": "essential_eight",
+          "domains": [
+            "configuration_management",
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "application-whitelisting",
+            "execution-control",
+            "approved-software",
+            "application-control"
+          ]
+        },
+        {
+          "id": "E8-PM-2",
+          "name": "Patch Applications",
+          "description": "Security vulnerabilities in applications are patched within defined timeframes",
+          "family": "PM",
+          "framework": "essential_eight",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "patching",
+            "vulnerability",
+            "update",
+            "application-patch",
+            "remediation"
+          ]
+        },
+        {
+          "id": "E8-PM-3",
+          "name": "Configure Microsoft Office Macro Settings",
+          "description": "Microsoft Office macros are restricted based on business requirements",
+          "family": "PM",
+          "framework": "essential_eight",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "macro",
+            "office-settings",
+            "macro-restriction",
+            "configuration"
+          ]
+        },
+        {
+          "id": "E8-PM-4",
+          "name": "User Application Hardening",
+          "description": "Web browsers and applications are hardened to reduce attack surface",
+          "family": "PM",
+          "framework": "essential_eight",
+          "domains": [
+            "configuration_management",
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "hardening",
+            "browser-security",
+            "attack-surface",
+            "configuration-hardening"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "LE",
+      "name": "Limit Extent of Incidents",
+      "description": "Strategies to limit the impact of cybersecurity incidents",
+      "controls": [
+        {
+          "id": "E8-LE-1",
+          "name": "Restrict Administrative Privileges",
+          "description": "Administrative privileges are restricted and actively managed",
+          "family": "LE",
+          "framework": "essential_eight",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "admin-privilege",
+            "least-privilege",
+            "privilege-management",
+            "administrative-access"
+          ]
+        },
+        {
+          "id": "E8-LE-2",
+          "name": "Patch Operating Systems",
+          "description": "Security vulnerabilities in operating systems are patched within defined timeframes",
+          "family": "LE",
+          "framework": "essential_eight",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "os-patching",
+            "operating-system",
+            "system-update",
+            "vulnerability-patch"
+          ]
+        },
+        {
+          "id": "E8-LE-3",
+          "name": "Multi-Factor Authentication",
+          "description": "MFA is implemented for all privileged access and remote access",
+          "family": "LE",
+          "framework": "essential_eight",
+          "domains": [
+            "access_control",
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "mfa",
+            "multi-factor",
+            "authentication",
+            "two-factor",
+            "2fa"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RD",
+      "name": "Recover Data and System Availability",
+      "description": "Strategies to recover data and ensure system availability after incidents",
+      "controls": [
+        {
+          "id": "E8-RD-1",
+          "name": "Regular Backups",
+          "description": "Backups of important data, software, and configuration settings are performed and retained",
+          "family": "RD",
+          "framework": "essential_eight",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "backup",
+            "data-recovery",
+            "backup-retention",
+            "restore-testing",
+            "disaster-recovery"
+          ]
+        }
+      ]
+    }
+  ],
+  "category": "government",
+  "published_date": "2023-11-27",
+  "effective_date": "2023-11-27",
+  "transition_deadline": "",
+  "supersedes": "Essential Eight (2022)",
+  "status": "active",
+  "official_url": "https://www.cyber.gov.au/resources-business-and-government/essential-cyber-security/essential-eight",
+  "changes_summary": "Updated maturity level definitions, clarified patching timeframes, expanded MFA requirements, refined application control guidance"
+}

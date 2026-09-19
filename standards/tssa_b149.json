@@ -1,0 +1,107 @@
+{
+  "id": "tssa_b149",
+  "name": "TSSA / CSA B149 (Fuels Safety)",
+  "version": "B149.1:25, B149.2:25, B149.3 current edition",
+  "description": "Ontario's fuels safety regime: CSA B149.1:25 Natural gas and propane installation code (with 2026 Ontario amendments), CSA B149.2:25 Propane storage and handling code, and CSA B149.3 Field approval of fuel-related accessories, administered by the Technical Standards and Safety Authority under the Technical Standards and Safety Act, 2000. Two obligation sets travel together: the installation codes governing the work, and the TSSA certificate and contractor registration regime governing who may perform it. Gas technician certification classes are task-limiting — a G3 may not perform G2 work — so competency records are the control an inspector checks first.",
+  "authority": "Technical Standards and Safety Authority (TSSA) / CSA Group",
+  "scope": "Contractors and certified persons installing, servicing or altering fuel-burning appliances and gas piping in Ontario",
+  "category": "operational",
+  "status": "active",
+  "official_url": "https://www.tssa.org/en/fuels/",
+  "families": [
+    {
+      "id": "B149-AUTH",
+      "name": "Registration and Certification",
+      "description": "Authorization to perform fuels work, and the class limits on each certificate.",
+      "controls": [
+        {
+          "id": "B149-01",
+          "name": "TSSA Contractor Registration",
+          "description": "Current TSSA contractor registration is held for each applicable category, with renewal tracked ahead of expiry and the certificate available on site.",
+          "family": "B149-AUTH", "framework": "tssa_b149",
+          "domains": ["trade_regulatory"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["tssa", "licence", "registration", "renewal", "regulator", "certificate"]
+        },
+        {
+          "id": "B149-02",
+          "name": "Gas Technician Certification and Class Limits",
+          "description": "Personnel hold current certification of the correct class for the work performed, and work is assigned within class limits with the assignment recorded.",
+          "family": "B149-AUTH", "framework": "tssa_b149",
+          "domains": ["training_competency", "trade_regulatory"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["gas-technician", "certification-currency", "competency", "ticket", "class", "qualification", "tssa"]
+        },
+        {
+          "id": "B149-03",
+          "name": "Certificate Currency Monitoring",
+          "description": "Certificate expiry dates are tracked centrally with advance notice, so no worker performs fuels work on a lapsed certificate.",
+          "family": "B149-AUTH", "framework": "tssa_b149",
+          "domains": ["training_competency", "records_management"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["certification-currency", "expiry", "records", "competency", "refresher", "tracking"]
+        }
+      ]
+    },
+    {
+      "id": "B149-WORK",
+      "name": "Installation, Commissioning and Reporting",
+      "description": "The work itself and the records it must produce.",
+      "controls": [
+        {
+          "id": "B149-04",
+          "name": "Installation to the Code Edition in Force",
+          "description": "Installations comply with the B149 edition in force including Ontario amendments, and the edition applied is identified in the job record.",
+          "family": "B149-WORK", "framework": "tssa_b149",
+          "domains": ["trade_regulatory", "quality_management"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["code-edition", "code-compliance", "b149", "ontario-amendment", "installation", "records"]
+        },
+        {
+          "id": "B149-05",
+          "name": "Commissioning, Combustion Testing and Documentation",
+          "description": "Appliances are commissioned with combustion analysis, safety-device verification and venting confirmation, and results are recorded and provided to the client.",
+          "family": "B149-WORK", "framework": "tssa_b149",
+          "domains": ["quality_management", "equipment_integrity"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["commissioning", "combustion", "emissions", "venting", "safety-device", "inspection-and-test", "handover"]
+        },
+        {
+          "id": "B149-06",
+          "name": "Unsafe Condition Reporting and Red-Tagging",
+          "description": "Unsafe conditions found in the field are made safe, tagged, reported to the required parties within the statutory timeframe, and recorded.",
+          "family": "B149-WORK", "framework": "tssa_b149",
+          "domains": ["health_safety", "trade_regulatory"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["unsafe-condition", "red-tag", "notification", "tssa", "safety", "hazard", "reporting"]
+        },
+        {
+          "id": "B149-07",
+          "name": "Propane Storage and Handling",
+          "description": "Where propane is stored, transported or handled, B149.2 requirements for siting, cylinder handling, transport and emergency response are met.",
+          "family": "B149-WORK", "framework": "tssa_b149",
+          "domains": ["health_safety", "environmental"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["propane", "cylinder", "storage", "transport", "safety", "emergency", "tdg"]
+        },
+        {
+          "id": "B149-08",
+          "name": "Field Approval of Non-Certified Accessories",
+          "description": "Fuel-related accessories or assemblies without recognized certification are field-approved under B149.3 before being placed in service, with the approval recorded.",
+          "family": "B149-WORK", "framework": "tssa_b149",
+          "domains": ["trade_regulatory", "equipment_integrity"],
+          "priority": "medium",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["field-approval", "b149.3", "certification", "accessory", "inspection-authority", "records"]
+        }
+      ]
+    }
+  ]
+}

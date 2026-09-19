@@ -181,17 +181,20 @@ Ordered cheapest and safest first. Each step stands alone.
 
 **1a.** The corpus gains `languages/`, and every consumer learns to resolve a
 platform binding from **either** family. Nothing moves yet, so nothing breaks
-whichever corpus a reader has. **Pushed.**
+whichever corpus a reader has. **DONE.**
 
 **1b.** `platforms/{go,rust}.md` move to `languages/`. **Done.**
 
 ~~`node.md` splits, its JS/TS conventions becoming `languages/typescript.md`~~ —
 **refuted, see below.**
 
-**2 — `frameworks/`, with `frameworks/weblisk`.** `standards/`'s framework files
-move. `standards/code.md` and `standards/project-structure.md` split between
-`languages/` and `frameworks/weblisk/`. Touches `schemas/standard.md` and
-`validate_corpus.go`, which asserts `standards/` holds nine files.
+**2 — `frameworks/`, with `frameworks/weblisk`. DONE.** All nine moved;
+`schemas/standard.md` became `schemas/framework.md`; `standards/` is reserved.
+
+`code.md` and `project-structure.md` went to `frameworks/weblisk/` whole rather
+than splitting: `code.md` is *client* code conventions — the HTML, CSS and
+JavaScript a browser receives — which is the framework's output, not a language's
+rules.
 
 **3 — `--language` and `--platform` as separate flags.** CLI. `PlatformBlueprint`
 is a hard-coded switch whose `default:` silently returns Go, so an unknown
@@ -199,9 +202,21 @@ platform is built as Go today; it becomes a declared lookup. `platform` threads
 through roughly eight dispatch files. **Coordinate — this repository's consumer
 is under active work.**
 
-**4 — `standards/` repurposed to industry standards.** The name frees up only
-after step 2. Studio holds 38 framework definitions today; what moves is their
-*declaration*, not a customer's adoption of them.
+**4 — `standards/` repurposed to industry standards. DONE.** 37 authored
+standards moved from Studio's Go packages — 167 families, 951 controls — with
+`schemas/standard.md` written from the data rather than ahead of it. Studio keeps
+an embedded copy so a fresh install needs no network call, guarded against drift,
+which is the fourth use of that pattern after skills, the kind declaration and
+the fabric.
+
+`weblisk_framework.json` stayed: it is generated from `schemas/`, and copying a
+derived artifact into the corpus would create a second copy free to drift from
+what derived it.
+
+Found on arrival and left alone: four mappings in `pipeda.json` cite GDPR
+controls that do not exist — GDPR's identifiers are article citations, so these
+are a naming scheme it never used rather than a missing prefix. Repairing them is
+a compliance judgement, not a formatting fix.
 
 **5 — `programmes/`.** Studio's `packs/` and the substance of
 PROGRAM_ARCHITECTURE and PROGRAM_CONSTRUCTION, plus `schemas/programme.md` for

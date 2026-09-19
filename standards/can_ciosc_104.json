@@ -1,0 +1,889 @@
+{
+  "id": "can_ciosc_104",
+  "name": "CAN/CIOSC 104 (Baseline Cyber Security Controls for Small and Medium Organizations)",
+  "version": "2021 Rev 1 (2024)",
+  "description": "National Standard of Canada specifying baseline cyber security controls for organizations with fewer than 500 employees. Published by the CIO Strategy Council and accredited by the Standards Council of Canada; it is the control basis of the CyberSecure Canada certification programme run by ISED with the Communications Security Establishment. Level 1 defines 22 baseline controls; Level 2 adds up to 33 further controls for organizations with greater risk exposure. CIS publishes an official mapping between CIS Controls v8.1 and this standard, so an organization already targeting CIS IG2 satisfies most of it.",
+  "authority": "CIO Strategy Council / Standards Council of Canada (SCC)",
+  "scope": "Canadian organizations with fewer than 500 employees; the basis of CyberSecure Canada certification",
+  "category": "cybersecurity",
+  "status": "active",
+  "published_date": "2021-03-01",
+  "official_url": "https://ciostrategycouncil.com/standards/",
+  "changes_summary": "Rev 1 (2024) clarified control wording and strengthened the cloud and outsourced-services control; the 22-control Level 1 structure is unchanged.",
+  "families": [
+    {
+      "id": "L1-GOV",
+      "name": "Level 1 — Governance and Organizational",
+      "description": "Accountability, planning and the organizational preconditions for every other control.",
+      "controls": [
+        {
+          "id": "CIOSC-L1-01",
+          "name": "Develop an Incident Response Plan",
+          "description": "A documented incident response plan exists, names who acts, and is exercised so the organization can respond rather than improvise.",
+          "family": "L1-GOV",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "incident_response",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "incident",
+            "response",
+            "plan",
+            "breach",
+            "escalation",
+            "tabletop"
+          ],
+          "mapped_controls": [
+            "cis_controls:17.1",
+            "csa_n290_7:N2907-10",
+            "iso_27001:A.5.24",
+            "nist_csf_2:RS.MA-01"
+          ]
+        },
+        {
+          "id": "CIOSC-L1-15",
+          "name": "Designate a Person Responsible for Cyber Security",
+          "description": "One named individual is accountable for cyber security, with authority and time allocated to the role; accountability is not diffused across the organization.",
+          "family": "L1-GOV",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "governance",
+            "responsibility",
+            "accountable",
+            "oversight",
+            "designated"
+          ],
+          "mapped_controls": [
+            "csa_n290_7:N2907-01",
+            "iso_27001:A.5.2",
+            "nist_csf_2:GV.RR-02"
+          ]
+        },
+        {
+          "id": "CIOSC-L1-16",
+          "name": "Assess and Manage Third-Party and Supply-Chain Risk",
+          "description": "Suppliers and outsourced providers with access to organizational or client data are assessed before engagement and monitored thereafter.",
+          "family": "L1-GOV",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "vendor_management",
+            "risk_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "vendor",
+            "third-party",
+            "supplier",
+            "supply-chain",
+            "due-diligence",
+            "contract"
+          ],
+          "mapped_controls": [
+            "cis_controls:15.1",
+            "iso_27001:A.5.19",
+            "nist_csf_2:GV.SC-01"
+          ]
+        },
+        {
+          "id": "CIOSC-L1-20",
+          "name": "Manage Change to IT Systems",
+          "description": "Changes to systems holding organizational or client data are requested, assessed, approved and recorded, so a change can be tied to an authorization after the fact.",
+          "family": "L1-GOV",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "change_management"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "change",
+            "approval",
+            "rollback",
+            "release",
+            "authorization"
+          ],
+          "mapped_controls": [
+            "cis_controls:4.2",
+            "csa_n290_7:N2907-09",
+            "iso_27001:A.8.32"
+          ]
+        },
+        {
+          "id": "CIOSC-L1-22",
+          "name": "Business Continuity and Recovery Capability",
+          "description": "The organization can continue or resume operations after a disruption, with recovery objectives stated and the plan tested rather than assumed.",
+          "family": "L1-GOV",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "continuity",
+            "disaster-recovery",
+            "rto",
+            "rpo",
+            "resilience",
+            "failover"
+          ],
+          "mapped_controls": [
+            "cis_controls:11.1",
+            "iso_27001:A.5.29",
+            "nist_csf_2:RC.RP-01"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "L1-PEOPLE",
+      "name": "Level 1 — People",
+      "description": "The workforce control. Named separately because it is the control small organizations most often leave undone.",
+      "controls": [
+        {
+          "id": "CIOSC-L1-06",
+          "name": "Provide Employee Awareness Training",
+          "description": "All personnel receive cyber security awareness training on hire and periodically thereafter, with completion recorded per person.",
+          "family": "L1-PEOPLE",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "awareness",
+            "training",
+            "phishing-simulation",
+            "onboarding",
+            "personnel"
+          ],
+          "mapped_controls": [
+            "cis_controls:14.1",
+            "csa_n290_7:N2907-12",
+            "iso_27001:A.6.3",
+            "nist_csf_2:PR.AT-01"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "L1-TECH",
+      "name": "Level 1 — Technical Baseline",
+      "description": "The prescriptive technical controls that make up the bulk of Level 1.",
+      "controls": [
+        {
+          "id": "CIOSC-L1-02",
+          "name": "Automatically Patch Operating Systems and Applications",
+          "description": "Security patches for operating systems and applications are applied automatically where possible, and within a stated target where not.",
+          "family": "L1-TECH",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "vulnerability_management",
+            "configuration_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "patch",
+            "update",
+            "vulnerability",
+            "remediation",
+            "cve",
+            "automatic"
+          ],
+          "mapped_controls": [
+            "cis_controls:7.3",
+            "iso_27001:A.8.8",
+            "nist_csf_2:PR.PS-02"
+          ]
+        },
+        {
+          "id": "CIOSC-L1-03",
+          "name": "Enable Security Software",
+          "description": "Anti-malware and endpoint protection is installed, enabled and actively reporting on every device, not merely licensed.",
+          "family": "L1-TECH",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "configuration_management",
+            "asset_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "anti-malware",
+            "endpoint",
+            "antivirus",
+            "edr",
+            "protection"
+          ],
+          "mapped_controls": [
+            "cis_controls:10.1",
+            "iso_27001:A.8.7",
+            "nist_csf_2:PR.PS-05"
+          ]
+        },
+        {
+          "id": "CIOSC-L1-04",
+          "name": "Securely Configure Devices",
+          "description": "Devices are deployed from a hardened baseline with default credentials removed and unnecessary services disabled; drift from the baseline is detectable.",
+          "family": "L1-TECH",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "hardening",
+            "baseline",
+            "configuration",
+            "default-password",
+            "cis-benchmark",
+            "drift"
+          ],
+          "mapped_controls": [
+            "cis_controls:4.1",
+            "iso_27001:A.8.9",
+            "nist_csf_2:PR.PS-01"
+          ]
+        },
+        {
+          "id": "CIOSC-L1-05",
+          "name": "Use Strong User Authentication",
+          "description": "Multi-factor authentication is enforced for all accounts capable of reaching organizational data, with privileged accounts reported separately.",
+          "family": "L1-TECH",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "mfa",
+            "authentication",
+            "password",
+            "credential",
+            "passphrase",
+            "two-factor"
+          ],
+          "mapped_controls": [
+            "cis_controls:6.3",
+            "iso_27001:A.5.17",
+            "nist_csf_2:PR.AA-03"
+          ]
+        },
+        {
+          "id": "CIOSC-L1-07",
+          "name": "Backup and Encrypt Data",
+          "description": "Data is backed up on a defined schedule, the backup is encrypted and held separately from the source, and restoration has been tested.",
+          "family": "L1-TECH",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "business_continuity",
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "backup",
+            "restore",
+            "encryption",
+            "offsite",
+            "immutable",
+            "recovery-test"
+          ],
+          "mapped_controls": [
+            "cis_controls:11.2",
+            "iso_27001:A.8.13",
+            "nist_csf_2:PR.DS-11"
+          ]
+        },
+        {
+          "id": "CIOSC-L1-08",
+          "name": "Secure Mobility",
+          "description": "Mobile devices and remote working arrangements are controlled: device encryption, screen lock, remote wipe capability and a defined position on personal devices.",
+          "family": "L1-TECH",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "configuration_management",
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "mobile",
+            "remote-work",
+            "byod",
+            "remote-wipe",
+            "device-encryption",
+            "tablet"
+          ],
+          "mapped_controls": [
+            "cis_controls:4.11",
+            "iso_27001:A.6.7",
+            "iso_27001:A.8.1"
+          ]
+        },
+        {
+          "id": "CIOSC-L1-09",
+          "name": "Establish Basic Perimeter Defences",
+          "description": "Network and email perimeter controls are in place: firewall, DNS filtering, spam and malware filtering, and email authentication records.",
+          "family": "L1-TECH",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "firewall",
+            "perimeter",
+            "dns-filtering",
+            "spf",
+            "dkim",
+            "dmarc",
+            "email-security"
+          ],
+          "mapped_controls": [
+            "cis_controls:9.2",
+            "iso_27001:A.8.20",
+            "nist_csf_2:PR.IR-01"
+          ]
+        },
+        {
+          "id": "CIOSC-L1-10",
+          "name": "Secure Cloud and Outsourced IT Services",
+          "description": "Cloud and managed services are configured to a documented security baseline, with the division of responsibility between provider and organization stated.",
+          "family": "L1-TECH",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "configuration_management",
+            "vendor_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "cloud",
+            "saas",
+            "tenant",
+            "shared-responsibility",
+            "managed-service",
+            "baseline"
+          ],
+          "mapped_controls": [
+            "cis_controls:15.4",
+            "iso_27001:A.5.23",
+            "nist_csf_2:GV.SC-07"
+          ]
+        },
+        {
+          "id": "CIOSC-L1-11",
+          "name": "Secure Websites",
+          "description": "Public-facing websites are maintained, patched and served over TLS, with responsibility for their security assigned whether hosted internally or by an agency.",
+          "family": "L1-TECH",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "network_security",
+            "vendor_management"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "website",
+            "tls",
+            "certificate",
+            "cms",
+            "hosting",
+            "public-facing"
+          ],
+          "mapped_controls": [
+            "cis_controls:16.1",
+            "iso_27001:A.8.26"
+          ]
+        },
+        {
+          "id": "CIOSC-L1-12",
+          "name": "Implement Access Control and Authorization",
+          "description": "Access is granted on least privilege, reviewed periodically, and removed promptly when a person changes role or leaves.",
+          "family": "L1-TECH",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "access",
+            "least-privilege",
+            "authorization",
+            "access-review",
+            "joiner-leaver",
+            "permission"
+          ],
+          "mapped_controls": [
+            "cis_controls:6.1",
+            "iso_27001:A.5.15",
+            "nist_csf_2:PR.AA-05"
+          ]
+        },
+        {
+          "id": "CIOSC-L1-13",
+          "name": "Secure Portable Media",
+          "description": "Removable media is controlled or blocked, and where permitted is encrypted and accounted for.",
+          "family": "L1-TECH",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "data_protection",
+            "configuration_management"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "removable-media",
+            "usb",
+            "portable",
+            "media-encryption",
+            "device-control"
+          ],
+          "mapped_controls": [
+            "cis_controls:10.3",
+            "csa_n290_7:N2907-05",
+            "iso_27001:A.7.10"
+          ]
+        },
+        {
+          "id": "CIOSC-L1-14",
+          "name": "Maintain an Inventory of IT Assets",
+          "description": "Hardware, software and cloud services are inventoried with an owner, and the inventory is reconciled against what protection tooling actually sees.",
+          "family": "L1-TECH",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "asset_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "asset",
+            "inventory",
+            "cmdb",
+            "ownership",
+            "reconciliation",
+            "unauthorized-asset"
+          ],
+          "mapped_controls": [
+            "cis_controls:1.1",
+            "csa_n290_7:N2907-02",
+            "iso_27001:A.5.9",
+            "nist_csf_2:ID.AM-01"
+          ]
+        },
+        {
+          "id": "CIOSC-L1-17",
+          "name": "Classify and Protect Sensitive Data",
+          "description": "Data is classified and handling rules are applied to each class, so that sensitive information is treated differently from routine information in practice.",
+          "family": "L1-TECH",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "classification",
+            "sensitive",
+            "labelling",
+            "handling",
+            "confidential",
+            "restricted"
+          ],
+          "mapped_controls": [
+            "cis_controls:3.7",
+            "iso_27001:A.5.12",
+            "nist_csf_2:ID.AM-07"
+          ]
+        },
+        {
+          "id": "CIOSC-L1-18",
+          "name": "Control Administrative Privilege",
+          "description": "Administrative accounts are inventoried, separated from daily-use accounts, individually attributable and reviewed.",
+          "family": "L1-TECH",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "administrative",
+            "privileged",
+            "admin-account",
+            "separation",
+            "break-glass",
+            "elevation"
+          ],
+          "mapped_controls": [
+            "cis_controls:5.4",
+            "iso_27001:A.8.2",
+            "nist_csf_2:PR.AA-05"
+          ]
+        },
+        {
+          "id": "CIOSC-L1-19",
+          "name": "Log and Monitor Security Events",
+          "description": "Security-relevant events are logged, retained for a defined period, and reviewed — with the review itself recorded.",
+          "family": "L1-TECH",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "logging",
+            "monitoring",
+            "audit-log",
+            "retention",
+            "review",
+            "siem",
+            "alerting"
+          ],
+          "mapped_controls": [
+            "cis_controls:8.2",
+            "csa_n290_7:N2907-08",
+            "iso_27001:A.8.15",
+            "nist_csf_2:DE.CM-01"
+          ]
+        },
+        {
+          "id": "CIOSC-L1-21",
+          "name": "Protect Against Malware and Phishing",
+          "description": "Layered malware and phishing defences are in place across endpoint and email, with blocked and released items both tracked.",
+          "family": "L1-TECH",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "network_security",
+            "configuration_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "malware",
+            "phishing",
+            "quarantine",
+            "email-security",
+            "attachment",
+            "impersonation"
+          ],
+          "mapped_controls": [
+            "cis_controls:9.6",
+            "iso_27001:A.8.7",
+            "nist_csf_2:DE.CM-09"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "L2",
+      "name": "Level 2 — Enhanced Controls (selected)",
+      "description": "Representative Level 2 controls, for organizations whose risk exposure exceeds the Level 1 baseline. Not the complete Level 2 set; these are the ones a client audit of a contractor holding customer data most commonly reaches for.",
+      "controls": [
+        {
+          "id": "CIOSC-L2-01",
+          "name": "Data Loss Prevention",
+          "description": "Automated detection and control of sensitive data leaving the organization, with detectors covering the jurisdiction's own identifiers rather than defaults alone.",
+          "family": "L2",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "dlp",
+            "data-loss",
+            "exfiltration",
+            "detector",
+            "sin",
+            "sensitive-information-type"
+          ],
+          "mapped_controls": [
+            "cis_controls:3.13",
+            "iso_27001:A.8.12"
+          ]
+        },
+        {
+          "id": "CIOSC-L2-02",
+          "name": "Sensitive Data Discovery",
+          "description": "Automated discovery locates sensitive data across repositories, so the organization knows where regulated and client data actually resides rather than where policy says it should.",
+          "family": "L2",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "data_protection",
+            "asset_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "discovery",
+            "data-mapping",
+            "scanning",
+            "repository",
+            "shadow-data"
+          ],
+          "mapped_controls": [
+            "cis_controls:3.1",
+            "iso_27001:A.5.13"
+          ]
+        },
+        {
+          "id": "CIOSC-L2-03",
+          "name": "Centralized Log Retention Independent of Source",
+          "description": "Logs are aggregated and retained independently of the originating platform's licence-dependent retention window.",
+          "family": "L2",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "log-aggregation",
+            "central-logging",
+            "retention",
+            "immutable",
+            "tamper-evident"
+          ],
+          "mapped_controls": [
+            "cis_controls:8.9",
+            "iso_27001:A.8.15"
+          ]
+        },
+        {
+          "id": "CIOSC-L2-04",
+          "name": "Managed Detection and Response",
+          "description": "Detection is monitored with defined response targets, whether in-house or via a managed provider, and time-to-action is measured.",
+          "family": "L2",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "incident_response",
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "mdr",
+            "soc",
+            "detection",
+            "triage",
+            "time-to-closure",
+            "managed-response"
+          ],
+          "mapped_controls": [
+            "cis_controls:17.4",
+            "iso_27001:A.5.25",
+            "nist_csf_2:DE.AE-02"
+          ]
+        },
+        {
+          "id": "CIOSC-L2-05",
+          "name": "Vulnerability Assessment and Penetration Testing",
+          "description": "Independent technical assessment is performed periodically and findings are tracked to closure.",
+          "family": "L2",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "vulnerability_management",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "penetration-test",
+            "vulnerability-assessment",
+            "external-scan",
+            "finding",
+            "independent"
+          ],
+          "mapped_controls": [
+            "cis_controls:18.3",
+            "iso_27001:A.8.8"
+          ]
+        },
+        {
+          "id": "CIOSC-L2-06",
+          "name": "Network Segmentation",
+          "description": "Networks are segmented so that a compromise in one zone does not reach another, with operational technology separated from corporate IT.",
+          "family": "L2",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "segmentation",
+            "vlan",
+            "zone",
+            "ot-network",
+            "isolation",
+            "lateral-movement"
+          ],
+          "mapped_controls": [
+            "cis_controls:12.2",
+            "csa_n290_7:N2907-04",
+            "iso_27001:A.8.22",
+            "nist_csf_2:PR.IR-01"
+          ]
+        },
+        {
+          "id": "CIOSC-L2-07",
+          "name": "Secure Software Development and Acquisition",
+          "description": "Where software is developed or materially configured in-house, security requirements are defined, code is reviewed and dependencies are tracked.",
+          "family": "L2",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "secure_development",
+            "change_management"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "sdlc",
+            "code-review",
+            "dependency",
+            "secure-development",
+            "acquisition"
+          ],
+          "mapped_controls": [
+            "cis_controls:16.11",
+            "iso_27001:A.8.25"
+          ]
+        },
+        {
+          "id": "CIOSC-L2-08",
+          "name": "Documented Gap and Exception Position",
+          "description": "Known deficiencies are recorded with an owner, a due date and an accepted-risk decision where remediation is deferred.",
+          "family": "L2",
+          "framework": "can_ciosc_104",
+          "domains": [
+            "risk_management",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "gap",
+            "exception",
+            "accepted-risk",
+            "risk-register",
+            "owner",
+            "due-date"
+          ],
+          "mapped_controls": [
+            "iso_27001:A.5.36",
+            "nist_csf_2:GV.RM-01"
+          ]
+        }
+      ]
+    }
+  ]
+}

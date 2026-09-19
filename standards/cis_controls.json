@@ -1,0 +1,2121 @@
+{
+  "id": "cis_controls",
+  "name": "CIS Controls v8.1",
+  "version": "8.1",
+  "description": "Prioritized set of actions to protect organizations from known cyber attack vectors",
+  "authority": "Center for Internet Security (CIS)",
+  "scope": "Any organization — Implementation Groups IG1 (basic) through IG3 (advanced)",
+  "families": [
+    {
+      "id": "CIS-1",
+      "name": "Inventory and Control of Enterprise Assets",
+      "description": "Actively manage all enterprise assets connected to the infrastructure",
+      "controls": [
+        {
+          "id": "1.1",
+          "name": "Establish Asset Inventory",
+          "description": "Establish and maintain a detailed enterprise asset inventory",
+          "family": "CIS-1",
+          "framework": "cis_controls",
+          "domains": [
+            "asset_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "asset-inventory",
+            "CMDB",
+            "discovery"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-14"
+          ]
+        },
+        {
+          "id": "1.2",
+          "name": "Address Unauthorized Assets",
+          "description": "Ensure unauthorized assets are either removed, denied access, or quarantined",
+          "family": "CIS-1",
+          "framework": "cis_controls",
+          "domains": [
+            "asset_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "unauthorized-assets",
+            "rogue-devices",
+            "NAC"
+          ]
+        },
+        {
+          "id": "1.3",
+          "name": "Portable End-User Devices",
+          "description": "Utilize an active discovery tool to identify portable end-user devices",
+          "family": "CIS-1",
+          "framework": "cis_controls",
+          "domains": [
+            "asset_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "portable-devices",
+            "laptop-tracking",
+            "mobile-inventory"
+          ]
+        },
+        {
+          "id": "1.4",
+          "name": "Use DHCP Logging",
+          "description": "Use DHCP logging to update the enterprise asset inventory",
+          "family": "CIS-1",
+          "framework": "cis_controls",
+          "domains": [
+            "asset_management",
+            "logging_monitoring"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "DHCP",
+            "network-discovery",
+            "IP-tracking"
+          ]
+        },
+        {
+          "id": "1.5",
+          "name": "Passive Asset Discovery",
+          "description": "Use a passive discovery tool to identify assets on the network",
+          "family": "CIS-1",
+          "framework": "cis_controls",
+          "domains": [
+            "asset_management"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "passive-discovery",
+            "network-tap",
+            "traffic-analysis"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CIS-2",
+      "name": "Inventory and Control of Software Assets",
+      "description": "Actively manage all software on the network to ensure only authorized software is installed",
+      "controls": [
+        {
+          "id": "2.1",
+          "name": "Establish Software Inventory",
+          "description": "Establish and maintain a detailed inventory of all licensed software",
+          "family": "CIS-2",
+          "framework": "cis_controls",
+          "domains": [
+            "asset_management",
+            "configuration_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "software-inventory",
+            "application-catalog",
+            "license-management"
+          ]
+        },
+        {
+          "id": "2.2",
+          "name": "Authorized Software Only",
+          "description": "Ensure only currently supported software is used on enterprise assets",
+          "family": "CIS-2",
+          "framework": "cis_controls",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "approved-software",
+            "allowlist",
+            "supported-software"
+          ]
+        },
+        {
+          "id": "2.3",
+          "name": "Address Unauthorized Software",
+          "description": "Ensure unauthorized software is removed or its installation is prevented",
+          "family": "CIS-2",
+          "framework": "cis_controls",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "unauthorized-software",
+            "blocklist",
+            "application-control"
+          ]
+        },
+        {
+          "id": "2.5",
+          "name": "Allowlist Authorized Software",
+          "description": "Use application allowlisting to control software execution",
+          "family": "CIS-2",
+          "framework": "cis_controls",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "allowlist",
+            "application-whitelisting",
+            "execution-control"
+          ]
+        },
+        {
+          "id": "2.7",
+          "name": "Allowlist Authorized Libraries",
+          "description": "Use allowlisting for authorized libraries and scripts",
+          "family": "CIS-2",
+          "framework": "cis_controls",
+          "domains": [
+            "configuration_management",
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "library-control",
+            "script-control",
+            "dependency-management"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CIS-3",
+      "name": "Data Protection",
+      "description": "Develop processes and technical controls to identify, classify, handle, retain, and dispose of data",
+      "controls": [
+        {
+          "id": "3.1",
+          "name": "Establish Data Management Process",
+          "description": "Establish and maintain a data management process including classification",
+          "family": "CIS-3",
+          "framework": "cis_controls",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "data-management",
+            "classification",
+            "data-governance"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L2-02"
+          ]
+        },
+        {
+          "id": "3.2",
+          "name": "Establish Data Inventory",
+          "description": "Establish and maintain a data inventory based on data classification",
+          "family": "CIS-3",
+          "framework": "cis_controls",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-inventory",
+            "data-catalog",
+            "data-mapping"
+          ]
+        },
+        {
+          "id": "3.3",
+          "name": "Data Retention",
+          "description": "Establish and maintain a data retention process with minimum/maximum retention",
+          "family": "CIS-3",
+          "framework": "cis_controls",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-retention",
+            "retention-schedule",
+            "disposal"
+          ]
+        },
+        {
+          "id": "3.4",
+          "name": "Enforce Data Retention",
+          "description": "Retain data according to established retention process and securely dispose of data",
+          "family": "CIS-3",
+          "framework": "cis_controls",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "retention-enforcement",
+            "secure-disposal",
+            "data-purging"
+          ]
+        },
+        {
+          "id": "3.6",
+          "name": "Encrypt Data on End-User Devices",
+          "description": "Encrypt data on end-user devices containing sensitive data",
+          "family": "CIS-3",
+          "framework": "cis_controls",
+          "domains": [
+            "encryption",
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "disk-encryption",
+            "BitLocker",
+            "FileVault",
+            "device-encryption"
+          ]
+        },
+        {
+          "id": "3.10",
+          "name": "Encrypt Sensitive Data in Transit",
+          "description": "Encrypt sensitive data in transit using TLS",
+          "family": "CIS-3",
+          "framework": "cis_controls",
+          "domains": [
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "TLS",
+            "encryption-in-transit",
+            "HTTPS",
+            "transport-security"
+          ]
+        },
+        {
+          "id": "3.11",
+          "name": "Encrypt Sensitive Data at Rest",
+          "description": "Encrypt sensitive data at rest on servers and databases",
+          "family": "CIS-3",
+          "framework": "cis_controls",
+          "domains": [
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "encryption-at-rest",
+            "database-encryption",
+            "storage-encryption"
+          ]
+        },
+        {
+          "id": "3.12",
+          "name": "Segment Data Processing",
+          "description": "Segment data based on sensitivity on separate networks or processing environments",
+          "family": "CIS-3",
+          "framework": "cis_controls",
+          "domains": [
+            "network_security",
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-segmentation",
+            "network-isolation",
+            "environment-separation"
+          ]
+        },
+        {
+          "id": "3.14",
+          "name": "Log Sensitive Data Access",
+          "description": "Log access to sensitive data including modification and disposal",
+          "family": "CIS-3",
+          "framework": "cis_controls",
+          "domains": [
+            "logging_monitoring",
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-access-logging",
+            "DLP-logging",
+            "sensitive-access"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CIS-4",
+      "name": "Secure Configuration of Enterprise Assets and Software",
+      "description": "Establish and maintain secure configuration of enterprise assets and software",
+      "controls": [
+        {
+          "id": "4.1",
+          "name": "Establish Secure Configuration Process",
+          "description": "Establish and maintain a secure configuration process for enterprise assets",
+          "family": "CIS-4",
+          "framework": "cis_controls",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "hardening",
+            "secure-baseline",
+            "CIS-benchmarks"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-04"
+          ]
+        },
+        {
+          "id": "4.2",
+          "name": "Establish Network Configuration Process",
+          "description": "Establish and maintain a secure configuration process for network infrastructure",
+          "family": "CIS-4",
+          "framework": "cis_controls",
+          "domains": [
+            "configuration_management",
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "network-hardening",
+            "router-config",
+            "switch-config"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-20"
+          ]
+        },
+        {
+          "id": "4.7",
+          "name": "Manage Default Accounts",
+          "description": "Manage default accounts on enterprise assets and software",
+          "family": "CIS-4",
+          "framework": "cis_controls",
+          "domains": [
+            "access_control",
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "default-accounts",
+            "default-credentials",
+            "account-management"
+          ]
+        },
+        {
+          "id": "4.8",
+          "name": "Uninstall or Disable Unnecessary Services",
+          "description": "Uninstall or disable unnecessary services on enterprise assets",
+          "family": "CIS-4",
+          "framework": "cis_controls",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "service-reduction",
+            "attack-surface",
+            "unnecessary-services"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CIS-5",
+      "name": "Account Management",
+      "description": "Use processes and tools to assign and manage credentials for user accounts",
+      "controls": [
+        {
+          "id": "5.1",
+          "name": "Establish Account Inventory",
+          "description": "Establish and maintain an inventory of all accounts",
+          "family": "CIS-5",
+          "framework": "cis_controls",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "account-inventory",
+            "user-directory",
+            "account-register"
+          ]
+        },
+        {
+          "id": "5.2",
+          "name": "Use Unique Passwords",
+          "description": "Use unique passwords for all enterprise assets where MFA is not supported",
+          "family": "CIS-5",
+          "framework": "cis_controls",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "unique-passwords",
+            "password-policy",
+            "credential-management"
+          ]
+        },
+        {
+          "id": "5.3",
+          "name": "Disable Dormant Accounts",
+          "description": "Delete or disable dormant accounts after a period of inactivity",
+          "family": "CIS-5",
+          "framework": "cis_controls",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "dormant-accounts",
+            "inactive-accounts",
+            "account-cleanup"
+          ]
+        },
+        {
+          "id": "5.4",
+          "name": "Restrict Admin Privileges",
+          "description": "Restrict administrator privileges to dedicated administrator accounts",
+          "family": "CIS-5",
+          "framework": "cis_controls",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "admin-separation",
+            "privileged-accounts",
+            "least-privilege"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-18"
+          ]
+        },
+        {
+          "id": "5.6",
+          "name": "Centralize Account Management",
+          "description": "Centralize account management through a directory or identity service",
+          "family": "CIS-5",
+          "framework": "cis_controls",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "centralized-IAM",
+            "directory-service",
+            "SSO",
+            "IdP"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CIS-6",
+      "name": "Access Control Management",
+      "description": "Use processes and tools to create, assign, manage, and revoke access credentials",
+      "controls": [
+        {
+          "id": "6.1",
+          "name": "Establish Access Granting Process",
+          "description": "Establish and follow a process for granting access to enterprise assets",
+          "family": "CIS-6",
+          "framework": "cis_controls",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "access-granting",
+            "provisioning",
+            "access-request"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-12"
+          ]
+        },
+        {
+          "id": "6.2",
+          "name": "Establish Access Revoking Process",
+          "description": "Establish and follow a process for revoking access to enterprise assets",
+          "family": "CIS-6",
+          "framework": "cis_controls",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "access-revoking",
+            "deprovisioning",
+            "offboarding"
+          ]
+        },
+        {
+          "id": "6.3",
+          "name": "Require MFA for External Applications",
+          "description": "Require MFA for externally-exposed applications",
+          "family": "CIS-6",
+          "framework": "cis_controls",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "MFA",
+            "multi-factor",
+            "external-access"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-05"
+          ]
+        },
+        {
+          "id": "6.4",
+          "name": "Require MFA for Remote Access",
+          "description": "Require MFA for remote network access",
+          "family": "CIS-6",
+          "framework": "cis_controls",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "MFA-remote",
+            "VPN-MFA",
+            "remote-access"
+          ]
+        },
+        {
+          "id": "6.5",
+          "name": "Require MFA for Admin Access",
+          "description": "Require MFA for all administrative access accounts",
+          "family": "CIS-6",
+          "framework": "cis_controls",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "admin-MFA",
+            "privileged-MFA",
+            "PAM-MFA"
+          ]
+        },
+        {
+          "id": "6.8",
+          "name": "Define and Maintain Role-Based Access",
+          "description": "Define and maintain role-based access control with least privilege",
+          "family": "CIS-6",
+          "framework": "cis_controls",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "RBAC",
+            "role-based-access",
+            "least-privilege"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CIS-7",
+      "name": "Continuous Vulnerability Management",
+      "description": "Develop a plan to continuously assess and track vulnerabilities on enterprise assets",
+      "controls": [
+        {
+          "id": "7.1",
+          "name": "Establish Vulnerability Management Process",
+          "description": "Establish and maintain a documented vulnerability management process",
+          "family": "CIS-7",
+          "framework": "cis_controls",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "vulnerability-process",
+            "VM-program",
+            "scanning"
+          ]
+        },
+        {
+          "id": "7.2",
+          "name": "Establish Remediation Process",
+          "description": "Establish and maintain a risk-based remediation strategy with prioritized timeframes",
+          "family": "CIS-7",
+          "framework": "cis_controls",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "remediation",
+            "patching-SLA",
+            "risk-based-prioritization"
+          ]
+        },
+        {
+          "id": "7.3",
+          "name": "Perform Automated OS Patch Management",
+          "description": "Perform automated operating system patch management monthly or more",
+          "family": "CIS-7",
+          "framework": "cis_controls",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "OS-patching",
+            "automated-patching",
+            "WSUS",
+            "patch-management"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-02"
+          ]
+        },
+        {
+          "id": "7.4",
+          "name": "Perform Automated Application Patch Management",
+          "description": "Perform automated application patch management monthly or more",
+          "family": "CIS-7",
+          "framework": "cis_controls",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "app-patching",
+            "third-party-patching",
+            "dependency-updates"
+          ]
+        },
+        {
+          "id": "7.5",
+          "name": "Internal Vulnerability Scanning",
+          "description": "Perform automated vulnerability scans of internal assets quarterly or more",
+          "family": "CIS-7",
+          "framework": "cis_controls",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "internal-scan",
+            "vulnerability-scanner",
+            "authenticated-scan"
+          ]
+        },
+        {
+          "id": "7.6",
+          "name": "External Vulnerability Scanning",
+          "description": "Perform automated vulnerability scans of externally-exposed assets",
+          "family": "CIS-7",
+          "framework": "cis_controls",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "external-scan",
+            "perimeter-scan",
+            "ASV-scan"
+          ]
+        },
+        {
+          "id": "7.7",
+          "name": "Remediate Detected Vulnerabilities",
+          "description": "Remediate detected vulnerabilities in software through patching or other methods",
+          "family": "CIS-7",
+          "framework": "cis_controls",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "remediation",
+            "patching",
+            "mitigation",
+            "compensating-control"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CIS-8",
+      "name": "Audit Log Management",
+      "description": "Collect, alert, review, and retain audit logs of events that could detect or recover from attack",
+      "controls": [
+        {
+          "id": "8.1",
+          "name": "Establish Audit Log Management Process",
+          "description": "Establish and maintain an audit log management process",
+          "family": "CIS-8",
+          "framework": "cis_controls",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "log-management",
+            "logging-policy",
+            "audit-process"
+          ]
+        },
+        {
+          "id": "8.2",
+          "name": "Collect Audit Logs",
+          "description": "Collect audit logs from enterprise assets covering all required events",
+          "family": "CIS-8",
+          "framework": "cis_controls",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "log-collection",
+            "centralized-logging",
+            "log-aggregation"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-19"
+          ]
+        },
+        {
+          "id": "8.5",
+          "name": "Collect DNS Query Logs",
+          "description": "Collect DNS query audit logs on enterprise assets",
+          "family": "CIS-8",
+          "framework": "cis_controls",
+          "domains": [
+            "logging_monitoring",
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "DNS-logging",
+            "DNS-query",
+            "DNS-monitoring"
+          ]
+        },
+        {
+          "id": "8.9",
+          "name": "Centralize Audit Logs",
+          "description": "Centralize audit logs to a log management system for analysis",
+          "family": "CIS-8",
+          "framework": "cis_controls",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "SIEM",
+            "centralized-logs",
+            "log-aggregation"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L2-03"
+          ]
+        },
+        {
+          "id": "8.11",
+          "name": "Conduct Audit Log Reviews",
+          "description": "Conduct reviews of audit logs to detect anomalies or events",
+          "family": "CIS-8",
+          "framework": "cis_controls",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "log-review",
+            "log-analysis",
+            "anomaly-detection"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CIS-9",
+      "name": "Email and Web Browser Protections",
+      "description": "Improve protections and detections of threats from email and web vectors",
+      "controls": [
+        {
+          "id": "9.1",
+          "name": "Ensure Only Supported Browsers and Email Clients",
+          "description": "Ensure only fully supported browsers and email clients are allowed",
+          "family": "CIS-9",
+          "framework": "cis_controls",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "supported-browsers",
+            "browser-management",
+            "email-clients"
+          ]
+        },
+        {
+          "id": "9.2",
+          "name": "Use DNS Filtering",
+          "description": "Use DNS filtering services to block access to known malicious domains",
+          "family": "CIS-9",
+          "framework": "cis_controls",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "DNS-filtering",
+            "DNS-sinkhole",
+            "malicious-domain-blocking"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-09"
+          ]
+        },
+        {
+          "id": "9.6",
+          "name": "Block Unnecessary File Types",
+          "description": "Block unnecessary file types from email gateway and web downloads",
+          "family": "CIS-9",
+          "framework": "cis_controls",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "file-type-blocking",
+            "email-filtering",
+            "attachment-control"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-21"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CIS-10",
+      "name": "Malware Defenses",
+      "description": "Prevent or control the installation, spread, and execution of malicious applications",
+      "controls": [
+        {
+          "id": "10.1",
+          "name": "Deploy Anti-Malware Software",
+          "description": "Deploy and maintain anti-malware software on all enterprise assets",
+          "family": "CIS-10",
+          "framework": "cis_controls",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "anti-malware",
+            "antivirus",
+            "EDR",
+            "endpoint-protection"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-03"
+          ]
+        },
+        {
+          "id": "10.2",
+          "name": "Configure Anti-Malware Auto-Updates",
+          "description": "Configure automatic updates for anti-malware signature files",
+          "family": "CIS-10",
+          "framework": "cis_controls",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "signature-updates",
+            "auto-update",
+            "definition-files"
+          ]
+        },
+        {
+          "id": "10.4",
+          "name": "Configure Anti-Malware Scanning",
+          "description": "Configure anti-malware software to automatically scan removable media",
+          "family": "CIS-10",
+          "framework": "cis_controls",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "media-scanning",
+            "USB-scanning",
+            "removable-media"
+          ]
+        },
+        {
+          "id": "10.7",
+          "name": "Use Behavior-Based Anti-Malware",
+          "description": "Use behavior-based anti-malware software",
+          "family": "CIS-10",
+          "framework": "cis_controls",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "behavioral-detection",
+            "heuristic",
+            "EDR",
+            "XDR"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CIS-11",
+      "name": "Data Recovery",
+      "description": "Establish and maintain data recovery practices for restoring enterprise assets",
+      "controls": [
+        {
+          "id": "11.1",
+          "name": "Establish Data Recovery Process",
+          "description": "Establish and maintain a data recovery process with backup scope and schedule",
+          "family": "CIS-11",
+          "framework": "cis_controls",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "backup-policy",
+            "recovery-process",
+            "backup-schedule"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-22"
+          ]
+        },
+        {
+          "id": "11.2",
+          "name": "Perform Automated Backups",
+          "description": "Perform automated backups of in-scope enterprise assets",
+          "family": "CIS-11",
+          "framework": "cis_controls",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "automated-backup",
+            "backup-automation",
+            "scheduled-backup"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-07"
+          ]
+        },
+        {
+          "id": "11.3",
+          "name": "Protect Recovery Data",
+          "description": "Protect recovery data with encryption or equivalent security controls",
+          "family": "CIS-11",
+          "framework": "cis_controls",
+          "domains": [
+            "business_continuity",
+            "encryption"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "backup-encryption",
+            "backup-security",
+            "immutable-backup"
+          ]
+        },
+        {
+          "id": "11.4",
+          "name": "Establish Isolated Recovery",
+          "description": "Establish and maintain an isolated instance of recovery data using offline or cloud methods",
+          "family": "CIS-11",
+          "framework": "cis_controls",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "isolated-backup",
+            "offline-backup",
+            "air-gapped"
+          ]
+        },
+        {
+          "id": "11.5",
+          "name": "Test Data Recovery",
+          "description": "Test backup recovery quarterly or more frequently for selected assets",
+          "family": "CIS-11",
+          "framework": "cis_controls",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "recovery-testing",
+            "restore-test",
+            "DR-drill"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CIS-12",
+      "name": "Network Infrastructure Management",
+      "description": "Establish and maintain secure network device management and architecture",
+      "controls": [
+        {
+          "id": "12.1",
+          "name": "Ensure Network Infrastructure is Up-to-Date",
+          "description": "Ensure network infrastructure is kept up-to-date with latest patches",
+          "family": "CIS-12",
+          "framework": "cis_controls",
+          "domains": [
+            "network_security",
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "network-patching",
+            "firmware-update",
+            "infrastructure-update"
+          ]
+        },
+        {
+          "id": "12.2",
+          "name": "Establish Secure Network Architecture",
+          "description": "Establish and maintain a secure network architecture",
+          "family": "CIS-12",
+          "framework": "cis_controls",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "network-architecture",
+            "segmentation",
+            "defense-in-depth"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L2-06"
+          ]
+        },
+        {
+          "id": "12.6",
+          "name": "Use Secure Network Management",
+          "description": "Use secure protocols and strong authentication for network management",
+          "family": "CIS-12",
+          "framework": "cis_controls",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "SSH",
+            "HTTPS-management",
+            "SNMPv3",
+            "secure-management"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CIS-13",
+      "name": "Network Monitoring and Defense",
+      "description": "Operate processes to establish and maintain comprehensive network monitoring and defense",
+      "controls": [
+        {
+          "id": "13.1",
+          "name": "Centralize Security Event Alerting",
+          "description": "Centralize security event alerting across enterprise assets",
+          "family": "CIS-13",
+          "framework": "cis_controls",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "SIEM",
+            "security-alerting",
+            "centralized-monitoring"
+          ]
+        },
+        {
+          "id": "13.3",
+          "name": "Deploy Network Intrusion Detection",
+          "description": "Deploy a network intrusion detection solution on network segments",
+          "family": "CIS-13",
+          "framework": "cis_controls",
+          "domains": [
+            "network_security",
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "NIDS",
+            "IDS",
+            "network-detection",
+            "NDR"
+          ]
+        },
+        {
+          "id": "13.6",
+          "name": "Collect Network Traffic Flow Logs",
+          "description": "Collect network traffic flow logs and/or network traffic",
+          "family": "CIS-13",
+          "framework": "cis_controls",
+          "domains": [
+            "logging_monitoring",
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "NetFlow",
+            "traffic-logs",
+            "flow-data",
+            "pcap"
+          ]
+        },
+        {
+          "id": "13.8",
+          "name": "Deploy Network Intrusion Prevention",
+          "description": "Deploy a network intrusion prevention solution",
+          "family": "CIS-13",
+          "framework": "cis_controls",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "IPS",
+            "intrusion-prevention",
+            "network-prevention"
+          ]
+        },
+        {
+          "id": "13.11",
+          "name": "Tune Security Event Alerting Thresholds",
+          "description": "Tune security event alerting thresholds periodically",
+          "family": "CIS-13",
+          "framework": "cis_controls",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "alert-tuning",
+            "threshold-management",
+            "false-positive-reduction"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CIS-14",
+      "name": "Security Awareness and Skills Training",
+      "description": "Establish and maintain a security awareness program to influence behavior",
+      "controls": [
+        {
+          "id": "14.1",
+          "name": "Establish Security Awareness Program",
+          "description": "Establish and maintain a security awareness program",
+          "family": "CIS-14",
+          "framework": "cis_controls",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "awareness-program",
+            "security-training",
+            "training-plan"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-06"
+          ]
+        },
+        {
+          "id": "14.2",
+          "name": "Train Workforce on Social Engineering",
+          "description": "Train workforce members to recognize social engineering attacks",
+          "family": "CIS-14",
+          "framework": "cis_controls",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "social-engineering",
+            "phishing-training",
+            "pretexting"
+          ]
+        },
+        {
+          "id": "14.3",
+          "name": "Train on Authentication Best Practices",
+          "description": "Train workforce on the importance of strong authentication",
+          "family": "CIS-14",
+          "framework": "cis_controls",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "password-training",
+            "MFA-training",
+            "authentication-awareness"
+          ]
+        },
+        {
+          "id": "14.6",
+          "name": "Train on Recognizing and Reporting Incidents",
+          "description": "Train workforce to recognize and report potential security incidents",
+          "family": "CIS-14",
+          "framework": "cis_controls",
+          "domains": [
+            "hr_security",
+            "incident_response"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "incident-reporting-training",
+            "incident-recognition"
+          ]
+        },
+        {
+          "id": "14.9",
+          "name": "Conduct Role-Specific Training",
+          "description": "Conduct role-specific security training based on job function",
+          "family": "CIS-14",
+          "framework": "cis_controls",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "role-specific-training",
+            "developer-training",
+            "admin-training"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CIS-15",
+      "name": "Service Provider Management",
+      "description": "Develop a process to evaluate service providers who hold sensitive data",
+      "controls": [
+        {
+          "id": "15.1",
+          "name": "Establish Service Provider Inventory",
+          "description": "Establish and maintain an inventory of service providers",
+          "family": "CIS-15",
+          "framework": "cis_controls",
+          "domains": [
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "vendor-inventory",
+            "service-provider-list",
+            "third-party-register"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-16"
+          ]
+        },
+        {
+          "id": "15.2",
+          "name": "Establish Service Provider Policy",
+          "description": "Establish and maintain a service provider management policy",
+          "family": "CIS-15",
+          "framework": "cis_controls",
+          "domains": [
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "vendor-policy",
+            "third-party-risk-policy"
+          ]
+        },
+        {
+          "id": "15.3",
+          "name": "Classify Service Providers",
+          "description": "Classify service providers based on sensitivity of data they handle",
+          "family": "CIS-15",
+          "framework": "cis_controls",
+          "domains": [
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "vendor-classification",
+            "risk-tiering",
+            "critical-vendors"
+          ]
+        },
+        {
+          "id": "15.4",
+          "name": "Include Security in Provider Contracts",
+          "description": "Ensure service provider contracts include security requirements",
+          "family": "CIS-15",
+          "framework": "cis_controls",
+          "domains": [
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "vendor-contract",
+            "security-requirements",
+            "SLA-security"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-10"
+          ]
+        },
+        {
+          "id": "15.7",
+          "name": "Securely Decommission Service Providers",
+          "description": "Securely decommission service providers including data return and destruction",
+          "family": "CIS-15",
+          "framework": "cis_controls",
+          "domains": [
+            "vendor_management",
+            "data_protection"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "vendor-offboarding",
+            "data-return",
+            "decommission"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CIS-16",
+      "name": "Application Software Security",
+      "description": "Manage the security life cycle of in-house developed, hosted, or acquired software",
+      "controls": [
+        {
+          "id": "16.1",
+          "name": "Establish Secure Application Development Process",
+          "description": "Establish and maintain a secure application development process",
+          "family": "CIS-16",
+          "framework": "cis_controls",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "SDLC",
+            "secure-development",
+            "AppSec-program"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-11"
+          ]
+        },
+        {
+          "id": "16.2",
+          "name": "Establish Secure Coding Practices",
+          "description": "Establish and maintain a process to accept and address software vulnerabilities",
+          "family": "CIS-16",
+          "framework": "cis_controls",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "secure-coding",
+            "vulnerability-disclosure",
+            "responsible-disclosure"
+          ]
+        },
+        {
+          "id": "16.4",
+          "name": "Establish Security Requirements for Third-Party Software",
+          "description": "Establish security requirements in development or procurement contracts",
+          "family": "CIS-16",
+          "framework": "cis_controls",
+          "domains": [
+            "secure_development",
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "security-requirements",
+            "procurement-security",
+            "third-party-software"
+          ]
+        },
+        {
+          "id": "16.6",
+          "name": "Maintain Third-Party Component Inventory",
+          "description": "Maintain an inventory of third-party components used in development",
+          "family": "CIS-16",
+          "framework": "cis_controls",
+          "domains": [
+            "secure_development",
+            "asset_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "SBOM",
+            "dependency-inventory",
+            "component-tracking"
+          ]
+        },
+        {
+          "id": "16.9",
+          "name": "Train Developers in Secure Coding",
+          "description": "Ensure developers receive application security training",
+          "family": "CIS-16",
+          "framework": "cis_controls",
+          "domains": [
+            "secure_development",
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "developer-training",
+            "secure-coding-training",
+            "AppSec-training"
+          ]
+        },
+        {
+          "id": "16.12",
+          "name": "Implement Code-Level Security Checks",
+          "description": "Implement code-level security checks in the software development pipeline",
+          "family": "CIS-16",
+          "framework": "cis_controls",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "SAST",
+            "DAST",
+            "SCA",
+            "pipeline-security"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CIS-17",
+      "name": "Incident Response Management",
+      "description": "Establish a program to develop and maintain an incident response capability",
+      "controls": [
+        {
+          "id": "17.1",
+          "name": "Designate Incident Response Personnel",
+          "description": "Designate one key person and at least one backup to manage incident response",
+          "family": "CIS-17",
+          "framework": "cis_controls",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "incident-team",
+            "IR-lead",
+            "response-personnel"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L1-01"
+          ]
+        },
+        {
+          "id": "17.2",
+          "name": "Establish Incident Reporting Process",
+          "description": "Establish and maintain contact information for reporting security incidents",
+          "family": "CIS-17",
+          "framework": "cis_controls",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "incident-reporting",
+            "reporting-channel",
+            "escalation"
+          ]
+        },
+        {
+          "id": "17.3",
+          "name": "Establish Incident Response Process",
+          "description": "Establish and maintain an enterprise process for incident response",
+          "family": "CIS-17",
+          "framework": "cis_controls",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "IR-process",
+            "incident-handling",
+            "playbooks"
+          ]
+        },
+        {
+          "id": "17.4",
+          "name": "Assign Incident Response Roles",
+          "description": "Assign key roles and responsibilities for incident response",
+          "family": "CIS-17",
+          "framework": "cis_controls",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "IR-roles",
+            "RACI",
+            "response-roles"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L2-04"
+          ]
+        },
+        {
+          "id": "17.6",
+          "name": "Define Communication Mechanisms",
+          "description": "Determine which primary and secondary communication mechanisms will be used during incidents",
+          "family": "CIS-17",
+          "framework": "cis_controls",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "crisis-communication",
+            "incident-communication",
+            "out-of-band"
+          ]
+        },
+        {
+          "id": "17.7",
+          "name": "Conduct Routine Incident Response Exercises",
+          "description": "Conduct routine incident response exercises at least annually",
+          "family": "CIS-17",
+          "framework": "cis_controls",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "tabletop-exercise",
+            "IR-drill",
+            "simulation"
+          ]
+        },
+        {
+          "id": "17.8",
+          "name": "Conduct Post-Incident Reviews",
+          "description": "Conduct post-incident reviews to improve the incident response process",
+          "family": "CIS-17",
+          "framework": "cis_controls",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "post-incident",
+            "lessons-learned",
+            "PIR",
+            "after-action"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CIS-18",
+      "name": "Penetration Testing",
+      "description": "Test the effectiveness of controls by simulating attacker objectives and actions",
+      "controls": [
+        {
+          "id": "18.1",
+          "name": "Establish Penetration Testing Program",
+          "description": "Establish and maintain a penetration testing program appropriate to size and complexity",
+          "family": "CIS-18",
+          "framework": "cis_controls",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "pen-test-program",
+            "penetration-testing",
+            "red-team"
+          ]
+        },
+        {
+          "id": "18.2",
+          "name": "Perform External Penetration Tests",
+          "description": "Perform periodic external penetration tests based on program requirements",
+          "family": "CIS-18",
+          "framework": "cis_controls",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "external-pentest",
+            "black-box",
+            "perimeter-test"
+          ]
+        },
+        {
+          "id": "18.3",
+          "name": "Remediate Penetration Test Findings",
+          "description": "Remediate penetration test findings based on prioritized remediation strategy",
+          "family": "CIS-18",
+          "framework": "cis_controls",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "pentest-remediation",
+            "finding-remediation",
+            "risk-treatment"
+          ],
+          "mapped_controls": [
+            "can_ciosc_104:CIOSC-L2-05"
+          ]
+        },
+        {
+          "id": "18.4",
+          "name": "Validate Security Measures",
+          "description": "Validate security measures after each penetration test",
+          "family": "CIS-18",
+          "framework": "cis_controls",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "validation",
+            "retest",
+            "control-verification"
+          ]
+        },
+        {
+          "id": "18.5",
+          "name": "Perform Internal Penetration Tests",
+          "description": "Perform periodic internal penetration tests",
+          "family": "CIS-18",
+          "framework": "cis_controls",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "internal-pentest",
+            "insider-threat",
+            "lateral-movement"
+          ]
+        }
+      ]
+    }
+  ],
+  "category": "cybersecurity",
+  "published_date": "2024-06-25",
+  "effective_date": "2024-06-25",
+  "transition_deadline": "",
+  "supersedes": "CIS Controls v8.0 (2021)",
+  "status": "active",
+  "official_url": "https://www.cisecurity.org/controls",
+  "changes_summary": "Added mobile device and cloud-specific safeguards, updated asset classes, refined Implementation Group assignments, improved mapping to other frameworks"
+}

@@ -1,0 +1,139 @@
+{
+  "id": "ontario_building_code",
+  "name": "Ontario Building Code (O. Reg. 332/12)",
+  "version": "2024 Building Code",
+  "description": "The Ontario Building Code made under the Building Code Act, 1992. The 2024 Building Code came into force on 1 January 2025 and has been mandatory for permit applications since 1 April 2025, revising over 1,700 provisions — the largest change to the Code to date, and a deliberate harmonisation move toward the National Construction Codes. For Lancaster the load-bearing divisions are Part 6 (heating, ventilating and air-conditioning) and Part 7 (plumbing), plus Part 3 and Part 9 requirements engaged by construction work. The practical audit exposure is documents, specifications and estimating templates still written against the pre-2025 Code.",
+  "authority": "Ontario Ministry of Municipal Affairs and Housing",
+  "scope": "Construction, renovation and change of use of buildings in Ontario, including mechanical and plumbing work",
+  "category": "operational",
+  "status": "active",
+  "effective_date": "2025-01-01",
+  "transition_deadline": "2025-04-01",
+  "supersedes": "2012 Building Code as amended (pre-2025 compilation)",
+  "official_url": "https://www.ontario.ca/laws/regulation/120332",
+  "changes_summary": "Over 1,700 provisions revised, harmonising Ontario requirements with the National Construction Codes. In force 1 January 2025; mandatory for permit applications from 1 April 2025.",
+  "families": [
+    {
+      "id": "OBC-PERMIT",
+      "name": "Permits, Edition Currency and Inspection",
+      "description": "The administrative chain that makes the work lawful.",
+      "controls": [
+        {
+          "id": "OBC-01",
+          "name": "Building Permit Obtained Before Work",
+          "description": "Permits required for the scope are obtained before work starts, and the permit reference is recorded against the project.",
+          "family": "OBC-PERMIT", "framework": "ontario_building_code",
+          "domains": ["trade_regulatory", "records_management"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["permit", "building-permit", "code-compliance", "records", "regulator", "application"]
+        },
+        {
+          "id": "OBC-02",
+          "name": "Current Code Edition Applied",
+          "description": "Design, estimating and installation reference the 2024 Building Code, and any document or template still written to the prior compilation is identified and updated.",
+          "family": "OBC-PERMIT", "framework": "ontario_building_code",
+          "domains": ["trade_regulatory", "quality_management"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["code-edition", "code-compliance", "2024-building-code", "transition", "template", "estimating"]
+        },
+        {
+          "id": "OBC-03",
+          "name": "Mandatory Inspection Stages",
+          "description": "Required inspections are called at the correct stage, deficiencies are corrected and re-inspected, and the inspection record is retained.",
+          "family": "OBC-PERMIT", "framework": "ontario_building_code",
+          "domains": ["trade_regulatory", "quality_management"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["inspection-authority", "deficiency", "reinspection", "code-compliance", "records", "stage"]
+        },
+        {
+          "id": "OBC-04",
+          "name": "Qualified Designer and Design Responsibility",
+          "description": "Where the Code requires a qualified designer or professional engineer, that qualification is held and recorded, and design responsibility is unambiguous.",
+          "family": "OBC-PERMIT", "framework": "ontario_building_code",
+          "domains": ["training_competency", "trade_regulatory"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["qualified-designer", "bcin", "engineer", "competency", "qualification", "design-responsibility"]
+        }
+      ]
+    },
+    {
+      "id": "OBC-TECH",
+      "name": "Part 6 Mechanical and Part 7 Plumbing",
+      "description": "The technical divisions Lancaster's trades work to daily.",
+      "controls": [
+        {
+          "id": "OBC-05",
+          "name": "Part 6 — HVAC Design and Installation",
+          "description": "Heating, ventilating and air-conditioning work meets Part 6 requirements for ventilation rates, equipment installation, duct systems and combustion air.",
+          "family": "OBC-TECH", "framework": "ontario_building_code",
+          "domains": ["quality_management", "equipment_integrity"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["part-6", "ventilation", "hvac", "duct", "combustion-air", "code-compliance"]
+        },
+        {
+          "id": "OBC-06",
+          "name": "Part 7 — Plumbing Systems",
+          "description": "Plumbing work meets Part 7 requirements for drainage, venting, water distribution, materials and cross-connection control.",
+          "family": "OBC-TECH", "framework": "ontario_building_code",
+          "domains": ["quality_management", "equipment_integrity"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["part-7", "plumbing", "drainage", "venting", "backflow", "piping", "code-compliance"],
+          "mapped_controls": ["csa_b64:B64-02"]
+        },
+        {
+          "id": "OBC-07",
+          "name": "Fire Separation and Penetration Sealing",
+          "description": "Penetrations of fire separations by ducts, piping and conduit are sealed with a tested and listed system appropriate to the assembly, and the installation is documented.",
+          "family": "OBC-TECH", "framework": "ontario_building_code",
+          "domains": ["quality_management", "health_safety"],
+          "priority": "critical",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["fire-separation", "firestop", "penetration", "listed-assembly", "code-compliance", "safety"]
+        },
+        {
+          "id": "OBC-08",
+          "name": "Material and Product Approval",
+          "description": "Materials and products are approved for the application under the Code, with certification or authorization evidence retained where required.",
+          "family": "OBC-TECH", "framework": "ontario_building_code",
+          "domains": ["quality_management", "trade_regulatory"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
+          "keywords": ["material", "product-approval", "certification", "listed", "code-compliance", "records"]
+        }
+      ]
+    },
+    {
+      "id": "OBC-CLOSE",
+      "name": "Occupancy and Closeout",
+      "description": "Finishing lawfully — the stage most often left incomplete in the record.",
+      "controls": [
+        {
+          "id": "OBC-09",
+          "name": "Occupancy Requirements Met",
+          "description": "Conditions for occupancy are satisfied and documented before the space is handed over or used.",
+          "family": "OBC-CLOSE", "framework": "ontario_building_code",
+          "domains": ["quality_management", "trade_regulatory"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["occupancy", "handover", "code-compliance", "records", "conditional-occupancy"]
+        },
+        {
+          "id": "OBC-10",
+          "name": "As-Built Records and Closeout Package",
+          "description": "As-built drawings, commissioning results, permits and inspection records are compiled into a closeout package, provided to the owner and retained.",
+          "family": "OBC-CLOSE", "framework": "ontario_building_code",
+          "domains": ["records_management", "quality_management"],
+          "priority": "high",
+          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
+          "keywords": ["as-built", "closeout", "records", "record-retention", "handover", "commissioning", "permit"]
+        }
+      ]
+    }
+  ]
+}

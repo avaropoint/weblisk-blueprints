@@ -1,0 +1,374 @@
+{
+  "id": "soc1",
+  "name": "SOC 1 (SSAE 18)",
+  "version": "2017",
+  "description": "Service Organization Control Report on controls relevant to user entities' internal control over financial reporting",
+  "authority": "AICPA (SSAE 18 / ISAE 3402)",
+  "scope": "Service organizations whose services affect user entity financial reporting",
+  "families": [
+    {
+      "id": "CE",
+      "name": "Control Environment",
+      "description": "Foundational environment of internal controls over financial reporting",
+      "controls": [
+        {
+          "id": "CE-1",
+          "name": "Organizational Structure and Governance",
+          "description": "Clear organizational structure with defined reporting lines and financial oversight",
+          "family": "CE",
+          "framework": "soc1",
+          "domains": [
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "governance",
+            "organizational-structure",
+            "oversight",
+            "reporting-lines"
+          ]
+        },
+        {
+          "id": "CE-2",
+          "name": "Management Philosophy and Operating Style",
+          "description": "Management demonstrates integrity and ethical values in financial operations",
+          "family": "CE",
+          "framework": "soc1",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "integrity",
+            "ethics",
+            "management",
+            "financial-operations"
+          ]
+        },
+        {
+          "id": "CE-3",
+          "name": "Human Resource Policies",
+          "description": "HR policies ensure competent personnel in roles affecting financial reporting",
+          "family": "CE",
+          "framework": "soc1",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "hr-policies",
+            "competence",
+            "training",
+            "background-checks"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "IC",
+      "name": "Information and Communication",
+      "description": "Controls ensuring relevant financial information is identified, captured, and communicated",
+      "controls": [
+        {
+          "id": "IC-1",
+          "name": "Transaction Processing Controls",
+          "description": "Controls ensure transactions are authorized, complete, and accurately processed",
+          "family": "IC",
+          "framework": "soc1",
+          "domains": [
+            "change_management",
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "transaction-processing",
+            "authorization",
+            "completeness",
+            "accuracy"
+          ]
+        },
+        {
+          "id": "IC-2",
+          "name": "Data Integrity Controls",
+          "description": "Controls maintain the integrity of financial data throughout processing",
+          "family": "IC",
+          "framework": "soc1",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data-integrity",
+            "validation",
+            "reconciliation",
+            "accuracy-controls"
+          ]
+        },
+        {
+          "id": "IC-3",
+          "name": "Output Controls",
+          "description": "Reports and outputs are complete, accurate, and distributed to authorized recipients",
+          "family": "IC",
+          "framework": "soc1",
+          "domains": [
+            "access_control",
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "output-controls",
+            "report-distribution",
+            "completeness",
+            "authorization"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RA",
+      "name": "Risk Assessment",
+      "description": "Processes for identifying and assessing risks to financial reporting objectives",
+      "controls": [
+        {
+          "id": "RA-1",
+          "name": "Financial Reporting Risk Identification",
+          "description": "Risks to achieving financial reporting objectives are identified and assessed",
+          "family": "RA",
+          "framework": "soc1",
+          "domains": [
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "risk-identification",
+            "financial-risk",
+            "risk-assessment",
+            "reporting-objectives"
+          ]
+        },
+        {
+          "id": "RA-2",
+          "name": "Change Risk Assessment",
+          "description": "Changes that could significantly affect internal controls are identified and assessed",
+          "family": "RA",
+          "framework": "soc1",
+          "domains": [
+            "risk_management",
+            "change_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "change-risk",
+            "impact-assessment",
+            "control-changes",
+            "significant-changes"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MA",
+      "name": "Monitoring Activities",
+      "description": "Ongoing evaluation of internal control performance and remediation of deficiencies",
+      "controls": [
+        {
+          "id": "MA-1",
+          "name": "Ongoing Monitoring",
+          "description": "Controls are monitored through ongoing activities and separate evaluations",
+          "family": "MA",
+          "framework": "soc1",
+          "domains": [
+            "logging_monitoring",
+            "compliance_audit"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "monitoring",
+            "continuous-monitoring",
+            "control-evaluation",
+            "performance"
+          ]
+        },
+        {
+          "id": "MA-2",
+          "name": "Deficiency Communication",
+          "description": "Internal control deficiencies are communicated to responsible parties for remediation",
+          "family": "MA",
+          "framework": "soc1",
+          "domains": [
+            "governance",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "deficiency",
+            "remediation",
+            "communication",
+            "corrective-action"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CA",
+      "name": "Control Activities",
+      "description": "Policies and procedures ensuring management directives are carried out for financial reporting",
+      "controls": [
+        {
+          "id": "CA-1",
+          "name": "Logical Access Controls",
+          "description": "Access to systems affecting financial reporting is restricted to authorized personnel",
+          "family": "CA",
+          "framework": "soc1",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "logical-access",
+            "access-control",
+            "authorization",
+            "authentication"
+          ]
+        },
+        {
+          "id": "CA-2",
+          "name": "Segregation of Duties",
+          "description": "Incompatible duties are segregated to prevent errors or fraud",
+          "family": "CA",
+          "framework": "soc1",
+          "domains": [
+            "access_control",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "segregation-of-duties",
+            "sod",
+            "separation",
+            "incompatible-functions"
+          ]
+        },
+        {
+          "id": "CA-3",
+          "name": "Physical Access Controls",
+          "description": "Physical access to facilities and equipment is restricted",
+          "family": "CA",
+          "framework": "soc1",
+          "domains": [
+            "physical_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "physical-access",
+            "facility-security",
+            "badge-access",
+            "environmental"
+          ]
+        },
+        {
+          "id": "CA-4",
+          "name": "Change Management Controls",
+          "description": "Changes to systems are authorized, tested, and approved before implementation",
+          "family": "CA",
+          "framework": "soc1",
+          "domains": [
+            "change_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "change-management",
+            "change-control",
+            "testing",
+            "approval"
+          ]
+        },
+        {
+          "id": "CA-5",
+          "name": "Backup and Recovery",
+          "description": "Data is backed up and can be restored to support continuity of financial processing",
+          "family": "CA",
+          "framework": "soc1",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "backup",
+            "recovery",
+            "restoration",
+            "continuity"
+          ]
+        }
+      ]
+    }
+  ],
+  "category": "industry",
+  "published_date": "2017-05-01",
+  "effective_date": "2017-05-01",
+  "transition_deadline": "",
+  "supersedes": "SSAE 16 (2011)",
+  "status": "active",
+  "official_url": "https://www.aicpa.org/resources/landing/system-and-organization-controls-soc-suite-of-services",
+  "changes_summary": "SSAE 18 replaced SSAE 16, added risk assessment requirements, strengthened monitoring of sub-service organizations, aligned with international ISAE 3402"
+}

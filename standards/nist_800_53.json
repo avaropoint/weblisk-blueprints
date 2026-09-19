@@ -1,0 +1,1693 @@
+{
+  "id": "nist_800_53",
+  "name": "NIST SP 800-53 Rev 5",
+  "version": "5",
+  "description": "Security and Privacy Controls for Information Systems and Organizations",
+  "authority": "National Institute of Standards and Technology (NIST)",
+  "scope": "Federal agencies (required), private sector (voluntary)",
+  "families": [
+    {
+      "id": "AC",
+      "name": "Access Control",
+      "description": "Limit system access to authorized users and devices",
+      "controls": [
+        {
+          "id": "AC-1",
+          "name": "Policy and Procedures",
+          "description": "Develop, document, disseminate access control policy and procedures",
+          "family": "AC",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "access-control-policy",
+            "procedures"
+          ]
+        },
+        {
+          "id": "AC-2",
+          "name": "Account Management",
+          "description": "Manage system accounts including creating, enabling, modifying, disabling, and removing",
+          "family": "AC",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "account-management",
+            "provisioning",
+            "deprovisioning",
+            "user-lifecycle"
+          ],
+          "mapped_controls": [
+            "itsg_33:AC-2",
+            "nist_800_171:03.01.01"
+          ]
+        },
+        {
+          "id": "AC-3",
+          "name": "Access Enforcement",
+          "description": "Enforce approved authorizations for logical access to information and system resources",
+          "family": "AC",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "access-enforcement",
+            "authorization",
+            "RBAC",
+            "ABAC"
+          ]
+        },
+        {
+          "id": "AC-4",
+          "name": "Information Flow Enforcement",
+          "description": "Enforce approved authorizations for controlling the flow of information",
+          "family": "AC",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control",
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "information-flow",
+            "data-flow-control",
+            "boundary"
+          ]
+        },
+        {
+          "id": "AC-5",
+          "name": "Separation of Duties",
+          "description": "Separate duties of individuals to prevent malicious activity",
+          "family": "AC",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "separation-of-duties",
+            "SoD",
+            "dual-control"
+          ]
+        },
+        {
+          "id": "AC-6",
+          "name": "Least Privilege",
+          "description": "Employ principle of least privilege, allowing only authorized accesses",
+          "family": "AC",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "least-privilege",
+            "minimal-access",
+            "need-to-know"
+          ]
+        },
+        {
+          "id": "AC-7",
+          "name": "Unsuccessful Logon Attempts",
+          "description": "Enforce a limit of consecutive invalid logon attempts",
+          "family": "AC",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "lockout",
+            "brute-force",
+            "login-attempts"
+          ]
+        },
+        {
+          "id": "AC-8",
+          "name": "System Use Notification",
+          "description": "Display system use notification before granting access",
+          "family": "AC",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "login-banner",
+            "use-notification",
+            "warning"
+          ]
+        },
+        {
+          "id": "AC-11",
+          "name": "Device Lock",
+          "description": "Prevent access via device lock after period of inactivity",
+          "family": "AC",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "session-lock",
+            "inactivity-timeout",
+            "screen-lock"
+          ]
+        },
+        {
+          "id": "AC-12",
+          "name": "Session Termination",
+          "description": "Automatically terminate sessions after defined conditions",
+          "family": "AC",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "session-termination",
+            "session-timeout",
+            "idle-disconnect"
+          ]
+        },
+        {
+          "id": "AC-14",
+          "name": "Permitted Actions Without ID",
+          "description": "Identify actions that can be performed without identification",
+          "family": "AC",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "anonymous-access",
+            "public-access",
+            "unauthenticated"
+          ]
+        },
+        {
+          "id": "AC-17",
+          "name": "Remote Access",
+          "description": "Establish usage restrictions and connection requirements for remote access",
+          "family": "AC",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control",
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "remote-access",
+            "VPN",
+            "SSH",
+            "remote-work"
+          ]
+        },
+        {
+          "id": "AC-18",
+          "name": "Wireless Access",
+          "description": "Establish usage restrictions for wireless access",
+          "family": "AC",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control",
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "wireless",
+            "WiFi",
+            "802.1X"
+          ]
+        },
+        {
+          "id": "AC-20",
+          "name": "Use of External Systems",
+          "description": "Establish terms and conditions for use of external systems",
+          "family": "AC",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control",
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "BYOD",
+            "external-systems",
+            "third-party-access"
+          ]
+        },
+        {
+          "id": "AC-22",
+          "name": "Publicly Accessible Content",
+          "description": "Designate and review information posted to publicly accessible systems",
+          "family": "AC",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control",
+            "data_protection"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "public-content",
+            "disclosure-review",
+            "information-release"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "AU",
+      "name": "Audit and Accountability",
+      "description": "Create, protect, and retain audit records; ensure individual accountability",
+      "controls": [
+        {
+          "id": "AU-1",
+          "name": "Policy and Procedures",
+          "description": "Develop audit and accountability policy and procedures",
+          "family": "AU",
+          "framework": "nist_800_53",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "audit-policy",
+            "logging-policy"
+          ]
+        },
+        {
+          "id": "AU-2",
+          "name": "Event Logging",
+          "description": "Identify events that the system is capable of logging",
+          "family": "AU",
+          "framework": "nist_800_53",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "event-logging",
+            "audit-events",
+            "log-categories"
+          ],
+          "mapped_controls": [
+            "itsg_33:AU-2",
+            "nist_800_171:03.03.01"
+          ]
+        },
+        {
+          "id": "AU-3",
+          "name": "Content of Audit Records",
+          "description": "Ensure audit records contain sufficient information",
+          "family": "AU",
+          "framework": "nist_800_53",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "log-content",
+            "audit-fields",
+            "structured-logging"
+          ]
+        },
+        {
+          "id": "AU-4",
+          "name": "Audit Log Storage Capacity",
+          "description": "Allocate audit log storage capacity",
+          "family": "AU",
+          "framework": "nist_800_53",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "log-storage",
+            "retention",
+            "capacity-planning"
+          ]
+        },
+        {
+          "id": "AU-5",
+          "name": "Response to Audit Failures",
+          "description": "Alert on audit logging process failures and take actions",
+          "family": "AU",
+          "framework": "nist_800_53",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "audit-failure",
+            "log-integrity",
+            "alerting"
+          ]
+        },
+        {
+          "id": "AU-6",
+          "name": "Audit Record Review",
+          "description": "Review and analyze system audit records for indications of activity",
+          "family": "AU",
+          "framework": "nist_800_53",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "log-review",
+            "audit-analysis",
+            "SIEM",
+            "correlation"
+          ]
+        },
+        {
+          "id": "AU-8",
+          "name": "Time Stamps",
+          "description": "Use internal system clocks to generate time stamps for audit records",
+          "family": "AU",
+          "framework": "nist_800_53",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "NTP",
+            "time-sync",
+            "timestamp",
+            "clock"
+          ]
+        },
+        {
+          "id": "AU-9",
+          "name": "Protection of Audit Information",
+          "description": "Protect audit information and tools from unauthorized access and modification",
+          "family": "AU",
+          "framework": "nist_800_53",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "log-protection",
+            "immutable-logs",
+            "tamper-proof"
+          ]
+        },
+        {
+          "id": "AU-11",
+          "name": "Audit Record Retention",
+          "description": "Retain audit records for defined period consistent with retention policy",
+          "family": "AU",
+          "framework": "nist_800_53",
+          "domains": [
+            "logging_monitoring",
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "log-retention",
+            "archival",
+            "retention-period"
+          ]
+        },
+        {
+          "id": "AU-12",
+          "name": "Audit Record Generation",
+          "description": "Provide audit record generation capability at system components",
+          "family": "AU",
+          "framework": "nist_800_53",
+          "domains": [
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "audit-generation",
+            "system-logging",
+            "application-logging"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CA",
+      "name": "Assessment, Authorization, and Monitoring",
+      "description": "Assess security controls, authorize systems, and monitor continuously",
+      "controls": [
+        {
+          "id": "CA-1",
+          "name": "Policy and Procedures",
+          "description": "Develop assessment, authorization, and monitoring policy",
+          "family": "CA",
+          "framework": "nist_800_53",
+          "domains": [
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "assessment-policy",
+            "authorization-policy"
+          ]
+        },
+        {
+          "id": "CA-2",
+          "name": "Control Assessments",
+          "description": "Assess security and privacy controls to determine effectiveness",
+          "family": "CA",
+          "framework": "nist_800_53",
+          "domains": [
+            "compliance_audit"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security-assessment",
+            "control-testing",
+            "audit"
+          ],
+          "mapped_controls": [
+            "nist_800_171:03.12.01"
+          ]
+        },
+        {
+          "id": "CA-5",
+          "name": "Plan of Action and Milestones",
+          "description": "Develop and update POA&M for remediation of weaknesses",
+          "family": "CA",
+          "framework": "nist_800_53",
+          "domains": [
+            "compliance_audit",
+            "risk_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "POA&M",
+            "remediation-plan",
+            "corrective-action"
+          ]
+        },
+        {
+          "id": "CA-7",
+          "name": "Continuous Monitoring",
+          "description": "Develop and implement continuous monitoring strategy",
+          "family": "CA",
+          "framework": "nist_800_53",
+          "domains": [
+            "compliance_audit",
+            "logging_monitoring"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "continuous-monitoring",
+            "ConMon",
+            "ongoing-assessment"
+          ]
+        },
+        {
+          "id": "CA-8",
+          "name": "Penetration Testing",
+          "description": "Conduct penetration testing on systems",
+          "family": "CA",
+          "framework": "nist_800_53",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "penetration-testing",
+            "pen-test",
+            "red-team"
+          ]
+        },
+        {
+          "id": "CA-9",
+          "name": "Internal System Connections",
+          "description": "Authorize and monitor internal system connections",
+          "family": "CA",
+          "framework": "nist_800_53",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "internal-connections",
+            "system-interconnection",
+            "ISA"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CM",
+      "name": "Configuration Management",
+      "description": "Establish and maintain baseline configurations and inventories of systems",
+      "controls": [
+        {
+          "id": "CM-1",
+          "name": "Policy and Procedures",
+          "description": "Develop configuration management policy and procedures",
+          "family": "CM",
+          "framework": "nist_800_53",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "configuration-policy",
+            "CM-policy"
+          ]
+        },
+        {
+          "id": "CM-2",
+          "name": "Baseline Configuration",
+          "description": "Develop, document, and maintain baseline configurations",
+          "family": "CM",
+          "framework": "nist_800_53",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "baseline",
+            "golden-image",
+            "standard-build"
+          ],
+          "mapped_controls": [
+            "nist_800_171:03.04.01"
+          ]
+        },
+        {
+          "id": "CM-3",
+          "name": "Configuration Change Control",
+          "description": "Determine and approve configuration changes with change control",
+          "family": "CM",
+          "framework": "nist_800_53",
+          "domains": [
+            "configuration_management",
+            "change_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "change-control",
+            "CAB",
+            "change-request",
+            "approval"
+          ]
+        },
+        {
+          "id": "CM-4",
+          "name": "Impact Analysis",
+          "description": "Analyze changes for potential security and privacy impact",
+          "family": "CM",
+          "framework": "nist_800_53",
+          "domains": [
+            "change_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "impact-analysis",
+            "change-impact",
+            "security-review"
+          ]
+        },
+        {
+          "id": "CM-5",
+          "name": "Access Restrictions for Change",
+          "description": "Define and enforce access restrictions associated with changes",
+          "family": "CM",
+          "framework": "nist_800_53",
+          "domains": [
+            "change_management",
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "change-access",
+            "deployment-access",
+            "release-authority"
+          ]
+        },
+        {
+          "id": "CM-6",
+          "name": "Configuration Settings",
+          "description": "Establish and document mandatory configuration settings",
+          "family": "CM",
+          "framework": "nist_800_53",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "configuration-settings",
+            "hardening",
+            "CIS-benchmark",
+            "STIG"
+          ]
+        },
+        {
+          "id": "CM-7",
+          "name": "Least Functionality",
+          "description": "Configure system to provide only mission-essential capabilities",
+          "family": "CM",
+          "framework": "nist_800_53",
+          "domains": [
+            "configuration_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "least-functionality",
+            "minimal-services",
+            "attack-surface-reduction"
+          ]
+        },
+        {
+          "id": "CM-8",
+          "name": "System Component Inventory",
+          "description": "Develop and maintain system component inventory",
+          "family": "CM",
+          "framework": "nist_800_53",
+          "domains": [
+            "asset_management",
+            "configuration_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "inventory",
+            "CMDB",
+            "component-list",
+            "SBOM"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CP",
+      "name": "Contingency Planning",
+      "description": "Establish, implement, and maintain plans for emergency response and system recovery",
+      "controls": [
+        {
+          "id": "CP-1",
+          "name": "Policy and Procedures",
+          "description": "Develop contingency planning policy and procedures",
+          "family": "CP",
+          "framework": "nist_800_53",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "contingency-policy",
+            "BCP-policy"
+          ]
+        },
+        {
+          "id": "CP-2",
+          "name": "Contingency Plan",
+          "description": "Develop, maintain, and disseminate a contingency plan",
+          "family": "CP",
+          "framework": "nist_800_53",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "contingency-plan",
+            "BCP",
+            "DRP"
+          ]
+        },
+        {
+          "id": "CP-3",
+          "name": "Contingency Training",
+          "description": "Provide contingency training to system users",
+          "family": "CP",
+          "framework": "nist_800_53",
+          "domains": [
+            "business_continuity",
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "BCP-training",
+            "DR-training",
+            "tabletop-exercise"
+          ]
+        },
+        {
+          "id": "CP-4",
+          "name": "Contingency Plan Testing",
+          "description": "Test the contingency plan to determine effectiveness",
+          "family": "CP",
+          "framework": "nist_800_53",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "DR-test",
+            "BCP-test",
+            "failover-test",
+            "exercise"
+          ]
+        },
+        {
+          "id": "CP-6",
+          "name": "Alternate Storage Site",
+          "description": "Establish alternate storage site including agreements",
+          "family": "CP",
+          "framework": "nist_800_53",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "alternate-site",
+            "off-site-storage",
+            "geographic-redundancy"
+          ]
+        },
+        {
+          "id": "CP-7",
+          "name": "Alternate Processing Site",
+          "description": "Establish alternate processing site ready for operations",
+          "family": "CP",
+          "framework": "nist_800_53",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "alternate-site",
+            "hot-site",
+            "cold-site",
+            "failover-site"
+          ]
+        },
+        {
+          "id": "CP-9",
+          "name": "System Backup",
+          "description": "Conduct backups of system-level and user-level information",
+          "family": "CP",
+          "framework": "nist_800_53",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "backup",
+            "backup-schedule",
+            "data-backup",
+            "restoration"
+          ]
+        },
+        {
+          "id": "CP-10",
+          "name": "System Recovery and Reconstitution",
+          "description": "Provide for recovery and reconstitution to known state",
+          "family": "CP",
+          "framework": "nist_800_53",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "recovery",
+            "reconstitution",
+            "system-restore"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "IA",
+      "name": "Identification and Authentication",
+      "description": "Identify and authenticate users, processes, and devices",
+      "controls": [
+        {
+          "id": "IA-1",
+          "name": "Policy and Procedures",
+          "description": "Develop identification and authentication policy and procedures",
+          "family": "IA",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "authentication-policy",
+            "identity-policy"
+          ]
+        },
+        {
+          "id": "IA-2",
+          "name": "Identification and Authentication (Org Users)",
+          "description": "Uniquely identify and authenticate organizational users",
+          "family": "IA",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "user-authentication",
+            "identity-verification",
+            "SSO"
+          ],
+          "mapped_controls": [
+            "itsg_33:IA-2",
+            "nist_800_171:03.05.03"
+          ]
+        },
+        {
+          "id": "IA-3",
+          "name": "Device Identification",
+          "description": "Uniquely identify and authenticate devices before connection",
+          "family": "IA",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control",
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "device-auth",
+            "certificate-auth",
+            "machine-identity"
+          ]
+        },
+        {
+          "id": "IA-4",
+          "name": "Identifier Management",
+          "description": "Manage system identifiers by receiving authorization",
+          "family": "IA",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "identifier-management",
+            "username-policy",
+            "naming-convention"
+          ]
+        },
+        {
+          "id": "IA-5",
+          "name": "Authenticator Management",
+          "description": "Manage system authenticators (passwords, tokens, PKI, biometrics)",
+          "family": "IA",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control",
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "password-policy",
+            "token-management",
+            "credential-lifecycle",
+            "MFA"
+          ]
+        },
+        {
+          "id": "IA-6",
+          "name": "Authentication Feedback",
+          "description": "Obscure feedback of authentication information during process",
+          "family": "IA",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "password-masking",
+            "authentication-feedback"
+          ]
+        },
+        {
+          "id": "IA-8",
+          "name": "Identification and Authentication (Non-Org Users)",
+          "description": "Identify and authenticate non-organizational users",
+          "family": "IA",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "external-authentication",
+            "customer-auth",
+            "public-access"
+          ]
+        },
+        {
+          "id": "IA-11",
+          "name": "Re-authentication",
+          "description": "Require re-authentication when defined circumstances or situations occur",
+          "family": "IA",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "re-authentication",
+            "step-up-auth",
+            "session-renewal"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "IR",
+      "name": "Incident Response",
+      "description": "Establish operational incident handling capability",
+      "controls": [
+        {
+          "id": "IR-1",
+          "name": "Policy and Procedures",
+          "description": "Develop incident response policy and procedures",
+          "family": "IR",
+          "framework": "nist_800_53",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "incident-response-policy",
+            "IRP"
+          ]
+        },
+        {
+          "id": "IR-2",
+          "name": "Incident Response Training",
+          "description": "Provide incident response training to system users",
+          "family": "IR",
+          "framework": "nist_800_53",
+          "domains": [
+            "incident_response",
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "IR-training",
+            "incident-training",
+            "tabletop"
+          ]
+        },
+        {
+          "id": "IR-3",
+          "name": "Incident Response Testing",
+          "description": "Test incident response capability",
+          "family": "IR",
+          "framework": "nist_800_53",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "IR-testing",
+            "incident-exercise",
+            "simulation"
+          ]
+        },
+        {
+          "id": "IR-4",
+          "name": "Incident Handling",
+          "description": "Implement incident handling capability for incidents",
+          "family": "IR",
+          "framework": "nist_800_53",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "incident-handling",
+            "containment",
+            "eradication",
+            "recovery"
+          ],
+          "mapped_controls": [
+            "itsg_33:IR-4",
+            "nist_800_171:03.06.01"
+          ]
+        },
+        {
+          "id": "IR-5",
+          "name": "Incident Monitoring",
+          "description": "Track and document incidents",
+          "family": "IR",
+          "framework": "nist_800_53",
+          "domains": [
+            "incident_response",
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "incident-tracking",
+            "ticket",
+            "case-management"
+          ]
+        },
+        {
+          "id": "IR-6",
+          "name": "Incident Reporting",
+          "description": "Require reporting of incidents to appropriate authorities",
+          "family": "IR",
+          "framework": "nist_800_53",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "incident-reporting",
+            "notification",
+            "breach-report"
+          ]
+        },
+        {
+          "id": "IR-7",
+          "name": "Incident Response Assistance",
+          "description": "Provide incident response support resource for users",
+          "family": "IR",
+          "framework": "nist_800_53",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "help-desk",
+            "SOC",
+            "incident-support"
+          ]
+        },
+        {
+          "id": "IR-8",
+          "name": "Incident Response Plan",
+          "description": "Develop and implement incident response plan",
+          "family": "IR",
+          "framework": "nist_800_53",
+          "domains": [
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "IRP",
+            "incident-plan",
+            "response-plan",
+            "playbook"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SC",
+      "name": "System and Communications Protection",
+      "description": "Monitor, control, and protect communications at system boundaries",
+      "controls": [
+        {
+          "id": "SC-1",
+          "name": "Policy and Procedures",
+          "description": "Develop system and communications protection policy",
+          "family": "SC",
+          "framework": "nist_800_53",
+          "domains": [
+            "network_security",
+            "encryption"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "communications-policy",
+            "network-policy"
+          ]
+        },
+        {
+          "id": "SC-5",
+          "name": "Denial-of-Service Protection",
+          "description": "Protect against denial-of-service attacks",
+          "family": "SC",
+          "framework": "nist_800_53",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "DDoS",
+            "DoS-protection",
+            "rate-limiting",
+            "CDN"
+          ]
+        },
+        {
+          "id": "SC-7",
+          "name": "Boundary Protection",
+          "description": "Monitor and control communications at system boundaries",
+          "family": "SC",
+          "framework": "nist_800_53",
+          "domains": [
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "firewall",
+            "boundary",
+            "DMZ",
+            "WAF",
+            "proxy"
+          ],
+          "mapped_controls": [
+            "itsg_33:SC-7",
+            "nist_800_171:03.13.01"
+          ]
+        },
+        {
+          "id": "SC-8",
+          "name": "Transmission Confidentiality and Integrity",
+          "description": "Protect confidentiality and integrity of transmitted information",
+          "family": "SC",
+          "framework": "nist_800_53",
+          "domains": [
+            "encryption",
+            "network_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "TLS",
+            "encryption-in-transit",
+            "HTTPS",
+            "mTLS"
+          ],
+          "mapped_controls": [
+            "nist_800_171:03.13.08"
+          ]
+        },
+        {
+          "id": "SC-12",
+          "name": "Cryptographic Key Establishment",
+          "description": "Establish and manage cryptographic keys",
+          "family": "SC",
+          "framework": "nist_800_53",
+          "domains": [
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "key-management",
+            "KMS",
+            "key-rotation",
+            "key-generation"
+          ]
+        },
+        {
+          "id": "SC-13",
+          "name": "Cryptographic Protection",
+          "description": "Determine required cryptographic protections and implement",
+          "family": "SC",
+          "framework": "nist_800_53",
+          "domains": [
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "encryption",
+            "AES",
+            "RSA",
+            "cryptographic-algorithm"
+          ],
+          "mapped_controls": [
+            "itsg_33:SC-13"
+          ]
+        },
+        {
+          "id": "SC-17",
+          "name": "Public Key Infrastructure Certificates",
+          "description": "Issue public key certificates or obtain from approved provider",
+          "family": "SC",
+          "framework": "nist_800_53",
+          "domains": [
+            "encryption"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "PKI",
+            "certificate",
+            "CA",
+            "certificate-management"
+          ]
+        },
+        {
+          "id": "SC-23",
+          "name": "Session Authenticity",
+          "description": "Protect the authenticity of communications sessions",
+          "family": "SC",
+          "framework": "nist_800_53",
+          "domains": [
+            "access_control",
+            "encryption"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "session-security",
+            "CSRF-protection",
+            "session-token"
+          ]
+        },
+        {
+          "id": "SC-28",
+          "name": "Protection of Information at Rest",
+          "description": "Protect confidentiality and integrity of information at rest",
+          "family": "SC",
+          "framework": "nist_800_53",
+          "domains": [
+            "encryption",
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "encryption-at-rest",
+            "disk-encryption",
+            "database-encryption"
+          ],
+          "mapped_controls": [
+            "nist_800_171:03.13.08"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RA",
+      "name": "Risk Assessment",
+      "description": "Assess risk to organizational operations, assets, and individuals",
+      "controls": [
+        {
+          "id": "RA-1",
+          "name": "Policy and Procedures",
+          "description": "Develop risk assessment policy and procedures",
+          "family": "RA",
+          "framework": "nist_800_53",
+          "domains": [
+            "risk_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "risk-assessment-policy",
+            "RA-policy"
+          ]
+        },
+        {
+          "id": "RA-2",
+          "name": "Security Categorization",
+          "description": "Categorize information and system in accordance with applicable policy",
+          "family": "RA",
+          "framework": "nist_800_53",
+          "domains": [
+            "risk_management",
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "FIPS-199",
+            "categorization",
+            "classification",
+            "impact-level"
+          ]
+        },
+        {
+          "id": "RA-3",
+          "name": "Risk Assessment",
+          "description": "Conduct assessment of risk to the organization",
+          "family": "RA",
+          "framework": "nist_800_53",
+          "domains": [
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "risk-assessment",
+            "risk-analysis",
+            "threat-assessment"
+          ]
+        },
+        {
+          "id": "RA-5",
+          "name": "Vulnerability Monitoring and Scanning",
+          "description": "Monitor and scan for vulnerabilities and remediate",
+          "family": "RA",
+          "framework": "nist_800_53",
+          "domains": [
+            "vulnerability_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "vulnerability-scanning",
+            "Nessus",
+            "Qualys",
+            "remediation"
+          ],
+          "mapped_controls": [
+            "nist_800_171:03.11.02"
+          ]
+        },
+        {
+          "id": "RA-7",
+          "name": "Risk Response",
+          "description": "Respond to findings from assessments, audits, and monitoring",
+          "family": "RA",
+          "framework": "nist_800_53",
+          "domains": [
+            "risk_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "risk-response",
+            "risk-treatment",
+            "remediation-plan"
+          ]
+        }
+      ]
+    }
+  ],
+  "category": "cybersecurity",
+  "published_date": "2020-09-23",
+  "effective_date": "2020-09-23",
+  "transition_deadline": "",
+  "supersedes": "NIST SP 800-53 Rev 4 (2013)",
+  "status": "active",
+  "official_url": "https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final",
+  "changes_summary": "Consolidated security and privacy controls, outcome-based language, separated control selection from baselines into SP 800-53B"
+}

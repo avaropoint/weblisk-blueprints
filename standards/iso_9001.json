@@ -1,0 +1,615 @@
+{
+  "id": "iso_9001",
+  "name": "ISO 9001 (Quality Management Systems)",
+  "version": "2015",
+  "description": "Requirements for a quality management system, structured on the Annex SL high-level structure (clauses 4 to 10) and built on the process approach, risk-based thinking and the Plan-Do-Check-Act cycle. Frequently required for ICI, institutional and public-sector prequalification. For a trade contractor the clauses that carry the most audit weight are 8.5 (production and service provision), 8.7 (nonconforming outputs), 7.1.5 (monitoring and measuring resources) and 10.2 (corrective action) — these are where inspection, test and handover records live.",
+  "authority": "International Organization for Standardization (ISO)",
+  "scope": "Any organization seeking to demonstrate consistent provision of conforming products and services",
+  "category": "operational",
+  "status": "active",
+  "published_date": "2015-09-15",
+  "official_url": "https://www.iso.org/standard/62085.html",
+  "families": [
+    {
+      "id": "9001-4",
+      "name": "Clause 4 — Context of the Organization",
+      "description": "Scope of the management system and the processes that make it up.",
+      "controls": [
+        {
+          "id": "4.1",
+          "name": "Understanding the Organization and Its Context",
+          "description": "External and internal issues relevant to the quality management system are determined, monitored and reviewed.",
+          "family": "9001-4",
+          "framework": "iso_9001",
+          "domains": [
+            "quality_management",
+            "governance"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "quality",
+            "context",
+            "external-issues",
+            "interested-parties"
+          ]
+        },
+        {
+          "id": "4.3",
+          "name": "Scope of the Quality Management System",
+          "description": "The boundaries and applicability of the QMS are documented, including any requirement determined not applicable and the justification.",
+          "family": "9001-4",
+          "framework": "iso_9001",
+          "domains": [
+            "quality_management",
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "quality",
+            "scope",
+            "applicability",
+            "exclusion",
+            "justification"
+          ]
+        },
+        {
+          "id": "4.4",
+          "name": "Quality Management System and Its Processes",
+          "description": "Required processes are determined with their inputs, outputs, sequence, criteria, responsibilities and performance indicators.",
+          "family": "9001-4",
+          "framework": "iso_9001",
+          "domains": [
+            "quality_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "quality",
+            "process",
+            "process-approach",
+            "indicator",
+            "responsibility"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "9001-5",
+      "name": "Clause 5 — Leadership",
+      "description": "Top-management accountability, quality policy and assigned responsibility.",
+      "controls": [
+        {
+          "id": "5.1",
+          "name": "Leadership and Commitment (including Customer Focus)",
+          "description": "Top management demonstrates accountability for the QMS and ensures customer and applicable statutory requirements are determined and met.",
+          "family": "9001-5",
+          "framework": "iso_9001",
+          "domains": [
+            "quality_management",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "quality",
+            "leadership",
+            "customer-focus",
+            "accountability",
+            "top-management"
+          ]
+        },
+        {
+          "id": "5.2",
+          "name": "Quality Policy",
+          "description": "A quality policy is established, documented, communicated within the organization and available to interested parties.",
+          "family": "9001-5",
+          "framework": "iso_9001",
+          "domains": [
+            "quality_management",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "quality",
+            "policy",
+            "communicated",
+            "commitment"
+          ]
+        },
+        {
+          "id": "5.3",
+          "name": "Organizational Roles, Responsibilities and Authorities",
+          "description": "Responsibilities and authorities for the QMS are assigned, communicated and understood.",
+          "family": "9001-5",
+          "framework": "iso_9001",
+          "domains": [
+            "quality_management",
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "quality",
+            "responsibility",
+            "authority",
+            "role",
+            "assigned"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "9001-6",
+      "name": "Clause 6 — Planning",
+      "description": "Risk-based thinking, quality objectives and planned change.",
+      "controls": [
+        {
+          "id": "6.1",
+          "name": "Actions to Address Risks and Opportunities",
+          "description": "Risks and opportunities affecting conformity and customer satisfaction are determined, with planned actions integrated into the QMS and their effectiveness evaluated.",
+          "family": "9001-6",
+          "framework": "iso_9001",
+          "domains": [
+            "quality_management",
+            "risk_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "quality",
+            "risk",
+            "opportunity",
+            "risk-based-thinking",
+            "mitigation"
+          ]
+        },
+        {
+          "id": "6.2",
+          "name": "Quality Objectives and Planning to Achieve Them",
+          "description": "Measurable quality objectives are set at relevant levels, with what will be done, by whom, when, and how results are evaluated.",
+          "family": "9001-6",
+          "framework": "iso_9001",
+          "domains": [
+            "quality_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "quality",
+            "objective",
+            "measurable",
+            "target",
+            "kpi"
+          ]
+        },
+        {
+          "id": "6.3",
+          "name": "Planning of Changes",
+          "description": "Changes to the QMS are carried out in a planned manner, considering consequences, resource availability and reallocation of responsibilities.",
+          "family": "9001-6",
+          "framework": "iso_9001",
+          "domains": [
+            "quality_management",
+            "change_management"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "quality",
+            "change",
+            "planned",
+            "consequence",
+            "resource"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "9001-7",
+      "name": "Clause 7 — Support",
+      "description": "Resources, competence, calibration and documented information.",
+      "controls": [
+        {
+          "id": "7.1.5",
+          "name": "Monitoring and Measuring Resources (Calibration)",
+          "description": "Measuring equipment is suitable, verified or calibrated against traceable standards at defined intervals, identified with its status, and safeguarded from adjustment.",
+          "family": "9001-7",
+          "framework": "iso_9001",
+          "domains": [
+            "quality_management",
+            "equipment_integrity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "calibration",
+            "quality",
+            "traceable",
+            "measuring-equipment",
+            "gauge",
+            "verification"
+          ],
+          "mapped_controls": [
+            "csa_b64:B64-05",
+            "csa_n286:N286-08",
+            "smacna:SMACNA-06"
+          ]
+        },
+        {
+          "id": "7.1.6",
+          "name": "Organizational Knowledge",
+          "description": "Knowledge necessary for process operation and conformity is determined, maintained and made available.",
+          "family": "9001-7",
+          "framework": "iso_9001",
+          "domains": [
+            "quality_management",
+            "records_management"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "quality",
+            "knowledge",
+            "lessons-learned",
+            "records",
+            "document-control"
+          ]
+        },
+        {
+          "id": "7.2",
+          "name": "Competence",
+          "description": "Competence is determined per role, acquired where lacking, and the basis of competence is retained as documented information.",
+          "family": "9001-7",
+          "framework": "iso_9001",
+          "domains": [
+            "training_competency",
+            "quality_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "competency",
+            "qualification",
+            "certification-currency",
+            "quality",
+            "ticket",
+            "journeyperson"
+          ]
+        },
+        {
+          "id": "7.5",
+          "name": "Documented Information",
+          "description": "Documented information is controlled: identified, reviewed and approved, version-controlled, available where needed, and protected from unintended alteration.",
+          "family": "9001-7",
+          "framework": "iso_9001",
+          "domains": [
+            "records_management",
+            "quality_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "document-control",
+            "records",
+            "version",
+            "approval",
+            "quality",
+            "record-retention"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "9001-8",
+      "name": "Clause 8 — Operation",
+      "description": "Where a contractor's quality system is actually tested: requirements review, external providers, service provision, release and nonconforming output.",
+      "controls": [
+        {
+          "id": "8.2",
+          "name": "Requirements for Products and Services",
+          "description": "Customer requirements including statutory, regulatory and contract requirements are determined and reviewed before commitment, and changes are recorded.",
+          "family": "9001-8",
+          "framework": "iso_9001",
+          "domains": [
+            "quality_management",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "quality",
+            "customer-requirement",
+            "contract-review",
+            "tender",
+            "code-compliance",
+            "scope"
+          ]
+        },
+        {
+          "id": "8.4",
+          "name": "Control of Externally Provided Processes, Products and Services",
+          "description": "Suppliers and subcontractors are evaluated and selected against criteria, controls are applied proportionate to impact, and performance is re-evaluated.",
+          "family": "9001-8",
+          "framework": "iso_9001",
+          "domains": [
+            "vendor_management",
+            "quality_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "supplier",
+            "subcontractor",
+            "vendor",
+            "evaluation",
+            "quality",
+            "due-diligence"
+          ],
+          "mapped_controls": [
+            "csa_n286:N286-09"
+          ]
+        },
+        {
+          "id": "8.5",
+          "name": "Production and Service Provision",
+          "description": "Work is carried out under controlled conditions with available specifications, suitable equipment, competent personnel, and identification and traceability of output.",
+          "family": "9001-8",
+          "framework": "iso_9001",
+          "domains": [
+            "quality_management",
+            "equipment_integrity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "quality",
+            "traceability",
+            "controlled-conditions",
+            "specification",
+            "inspection-and-test",
+            "commissioning"
+          ]
+        },
+        {
+          "id": "8.6",
+          "name": "Release of Products and Services",
+          "description": "Work is not released until planned verification is complete, with evidence of conformity and the authority who released it recorded.",
+          "family": "9001-8",
+          "framework": "iso_9001",
+          "domains": [
+            "quality_management",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "quality",
+            "release",
+            "handover",
+            "verification",
+            "sign-off",
+            "inspection-and-test",
+            "records"
+          ],
+          "mapped_controls": [
+            "csa_n286:N286-07"
+          ]
+        },
+        {
+          "id": "8.7",
+          "name": "Control of Nonconforming Outputs",
+          "description": "Nonconforming work is identified and controlled to prevent unintended use, with correction, concession or rework recorded along with the authority deciding.",
+          "family": "9001-8",
+          "framework": "iso_9001",
+          "domains": [
+            "quality_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "nonconformance",
+            "deficiency",
+            "rework",
+            "quality",
+            "concession",
+            "corrective-action"
+          ],
+          "mapped_controls": [
+            "csa_n286:N286-12",
+            "cwb_w47_1:W59-04",
+            "smacna:SMACNA-07"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "9001-9",
+      "name": "Clause 9 — Performance Evaluation",
+      "description": "Measurement, customer satisfaction, internal audit and management review.",
+      "controls": [
+        {
+          "id": "9.1",
+          "name": "Monitoring, Measurement, Analysis and Evaluation",
+          "description": "Performance and effectiveness of the QMS are monitored against defined methods and intervals, including customer satisfaction, and results are analysed.",
+          "family": "9001-9",
+          "framework": "iso_9001",
+          "domains": [
+            "quality_management",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "quality",
+            "measurement",
+            "customer-satisfaction",
+            "analysis",
+            "kpi",
+            "trending"
+          ]
+        },
+        {
+          "id": "9.2",
+          "name": "Internal Audit",
+          "description": "Internal audits are conducted on a risk-based programme by objective auditors, with results reported to management and nonconformities corrected.",
+          "family": "9001-9",
+          "framework": "iso_9001",
+          "domains": [
+            "compliance_audit",
+            "quality_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "internal-audit",
+            "quality",
+            "audit-programme",
+            "finding",
+            "nonconformance",
+            "objectivity"
+          ]
+        },
+        {
+          "id": "9.3",
+          "name": "Management Review",
+          "description": "Top management reviews the QMS at planned intervals against defined inputs, with documented decisions on improvement, change and resource need.",
+          "family": "9001-9",
+          "framework": "iso_9001",
+          "domains": [
+            "quality_management",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "management-review",
+            "quality",
+            "minutes",
+            "decision",
+            "continual-improvement"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "9001-10",
+      "name": "Clause 10 — Improvement",
+      "description": "Corrective action and continual improvement.",
+      "controls": [
+        {
+          "id": "10.2",
+          "name": "Nonconformity and Corrective Action",
+          "description": "Nonconformities are reacted to, their causes evaluated, corrective action taken and its effectiveness reviewed, with the nature of the nonconformity and results retained.",
+          "family": "9001-10",
+          "framework": "iso_9001",
+          "domains": [
+            "quality_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "corrective-action",
+            "nonconformance",
+            "root-cause",
+            "quality",
+            "effectiveness",
+            "capa"
+          ],
+          "mapped_controls": [
+            "csa_n286:N286-12"
+          ]
+        },
+        {
+          "id": "10.3",
+          "name": "Continual Improvement",
+          "description": "The suitability, adequacy and effectiveness of the QMS are continually improved, informed by analysis, evaluation and management review output.",
+          "family": "9001-10",
+          "framework": "iso_9001",
+          "domains": [
+            "quality_management"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "continual-improvement",
+            "quality",
+            "effectiveness",
+            "trend"
+          ]
+        }
+      ]
+    }
+  ]
+}
