@@ -55,6 +55,7 @@ This applies to:
 
 | Schema | Governs | Applies To |
 |--------|---------|------------|
+| [authoring.md](authoring.md) | The order of work when writing a blueprint, and which document owns each rule | Every author |
 | [common.md](common.md) | Shared rules inherited by all blueprint types | Every blueprint |
 | [compliance.md](compliance.md) | Compliance levels, validation, enforcement, security boundaries | Every blueprint |
 | [config.md](config.md) | Hub configuration file (`.weblisk/config.yaml`) | Every project |
