@@ -69,7 +69,7 @@ requires:
 
 ## Primitive Mapping
 
-This is the whole job of a platform blueprint: the protocol names the primitives
+This is the whole job of a language blueprint: the protocol names the primitives
 an implementation must use, and this table says where each one comes from on this
 platform. It does not restate what the primitives are, what standard defines them,
 or what parameters they take — those live in the blueprint that requires them, and

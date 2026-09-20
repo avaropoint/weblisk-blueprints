@@ -74,6 +74,53 @@ requires:
 
 ---
 
+## Primitive Mapping
+
+This is the whole job of a language blueprint: the protocol names the primitives
+an implementation must use, and this table says where each one comes from in Go.
+It does not restate what the primitives are, what standard defines them, or what
+parameters they take. Those live in the blueprint that requires them, and a copy
+here would be a second thing to keep right.
+
+| Primitive required by | Provided in Go by | Status |
+|---|---|---|
+| `protocol/identity` — signature algorithm | `github.com/cloudflare/circl/sign/mldsa/mldsa65` | **required** |
+| `protocol/identity` — backup signature algorithm | `github.com/cloudflare/circl/sign/slhdsa` | only if backup signing is implemented |
+| `protocol/identity` — key-derivation function | `golang.org/x/crypto/argon2` | **required** |
+| `protocol/identity` — symmetric encryption | stdlib `crypto/aes`, `crypto/cipher` | stdlib |
+| `protocol/identity` — random source | stdlib `crypto/rand` | stdlib |
+| `protocol/identity` — non-echoing passphrase channel | `golang.org/x/term` | **only if the implementation prompts** — a headless service takes an injected credential and needs no terminal |
+| `protocol/types` — canonical JSON | stdlib `encoding/json` + canonicalisation | stdlib |
+| `protocol/spec` — HTTP transport | stdlib `net/http` | stdlib |
+| `architecture/storage` — default backend | stdlib `os`, `encoding/json` | stdlib |
+| `architecture/storage` — non-default backend | a driver for the chosen engine | **only if chosen** |
+
+**The import paths above are exact.** They are the whole reason a platform
+blueprint exists: the specification names a primitive, and this document says
+what to type. A generated hub once imported
+`github.com/cloudflare/circl/sign/mldsa65` — a plausible path that does not
+exist — and `go mod tidy` refused the build with "module found, but does not
+contain package". Nothing in the source was wrong; the import was guessed
+because this table gave a module and not a package.
+
+Both required modules MUST appear in `go.mod`. Everything else Weblisk needs, Go
+already ships.
+
+Two primitives are not in the standard library and cannot be. Go has no
+post-quantum signature implementation and no memory-hard key-derivation function,
+and the alternative to a module for either is writing original cryptographic code,
+which is the worst place in a system to do it. `github.com/cloudflare/circl` and
+`golang.org/x/crypto` are both maintained under public cryptographic review;
+`golang.org/x/crypto` is maintained by the Go project itself.
+
+Beyond those two: no framework, no router, no middleware stack, no logging
+library, no database engine, and no package manager at runtime.
+
+See [Go-Specific Requirements](#go-specific-requirements) for
+detailed stdlib package usage and conventions.
+
+---
+
 ## Project Structure
 
 ### One module, one definition of everything
@@ -226,52 +273,6 @@ runtime:
       purpose: Go compiler and toolchain
 ```
 
-### Primitive Mapping
-
-This is the whole job of a platform blueprint: the protocol names the primitives
-an implementation must use, and this table says where each one comes from in Go.
-It does not restate what the primitives are, what standard defines them, or what
-parameters they take. Those live in the blueprint that requires them, and a copy
-here would be a second thing to keep right.
-
-| Primitive required by | Provided in Go by | Status |
-|---|---|---|
-| `protocol/identity` — signature algorithm | `github.com/cloudflare/circl/sign/mldsa/mldsa65` | **required** |
-| `protocol/identity` — backup signature algorithm | `github.com/cloudflare/circl/sign/slhdsa` | only if backup signing is implemented |
-| `protocol/identity` — key-derivation function | `golang.org/x/crypto/argon2` | **required** |
-| `protocol/identity` — symmetric encryption | stdlib `crypto/aes`, `crypto/cipher` | stdlib |
-| `protocol/identity` — random source | stdlib `crypto/rand` | stdlib |
-| `protocol/identity` — non-echoing passphrase channel | `golang.org/x/term` | **only if the implementation prompts** — a headless service takes an injected credential and needs no terminal |
-| `protocol/types` — canonical JSON | stdlib `encoding/json` + canonicalisation | stdlib |
-| `protocol/spec` — HTTP transport | stdlib `net/http` | stdlib |
-| `architecture/storage` — default backend | stdlib `os`, `encoding/json` | stdlib |
-| `architecture/storage` — non-default backend | a driver for the chosen engine | **only if chosen** |
-
-**The import paths above are exact.** They are the whole reason a platform
-blueprint exists: the specification names a primitive, and this document says
-what to type. A generated hub once imported
-`github.com/cloudflare/circl/sign/mldsa65` — a plausible path that does not
-exist — and `go mod tidy` refused the build with "module found, but does not
-contain package". Nothing in the source was wrong; the import was guessed
-because this table gave a module and not a package.
-
-Both required modules MUST appear in `go.mod`. Everything else Weblisk needs, Go
-already ships.
-
-Two primitives are not in the standard library and cannot be. Go has no
-post-quantum signature implementation and no memory-hard key-derivation function,
-and the alternative to a module for either is writing original cryptographic code,
-which is the worst place in a system to do it. `github.com/cloudflare/circl` and
-`golang.org/x/crypto` are both maintained under public cryptographic review;
-`golang.org/x/crypto` is maintained by the Go project itself.
-
-Beyond those two: no framework, no router, no middleware stack, no logging
-library, no database engine, and no package manager at runtime.
-
-See [Go-Specific Requirements](#go-specific-requirements) for
-detailed stdlib package usage and conventions.
-
----
 
 ## Go-Specific Requirements
 

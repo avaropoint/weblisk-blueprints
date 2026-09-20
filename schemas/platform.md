@@ -50,15 +50,16 @@ describes itself — `name: go` implies `platform: go`.
 | 2 | Title | `# Name` | narrative | **Yes** | Level-1 heading + summary |
 | 3 | Overview | `## Overview` | narrative | **Yes** | Scope description, why this platform fits Weblisk |
 | 4 | Dependencies | `## Dependencies` | yaml:requires | **Yes** | Dependency contracts |
-| 5 | Project Structure | `## Project Structure` | narrative | **Yes** | Directory layout for orchestrator and agents |
-| 6 | Runtime Requirements | `## Runtime Requirements` | yaml:runtime | **Yes** | Language version, dependencies, build tools |
-| 7 | Build and Run | `## Build and Run` | table | **Yes** | Build commands, run commands, environment setup |
-| 8 | Platform-Specific Conventions | `## Platform-Specific Conventions` | table | **Yes** | Language idioms, concurrency model, IO patterns |
-| 9 | Type Mapping | `## Type Mapping` | table | **Yes** | How schema types map to language types |
-| 10 | Security | `## Security` | narrative | **Yes** | Platform-specific security practices |
-| 11 | Testing | `## Testing` | narrative | **Yes** | Test framework, test structure, CI guidance |
-| 12 | Implementation Notes | `## Implementation Notes` | narrative | **Yes** | Practical guidance |
-| 13 | Verification Checklist | `## Verification Checklist` | narrative | **Yes** | Testable assertions (min 5) |
+| 5 | Primitive Mapping | `## Primitive Mapping` | table | **Yes** | Where each primitive the specification blueprints require comes from on this platform |
+| 6 | Project Structure | `## Project Structure` | narrative | **Yes** | Directory layout for orchestrator and agents |
+| 7 | Runtime Requirements | `## Runtime Requirements` | yaml:runtime | **Yes** | Language version, dependencies, build tools |
+| 8 | Build and Run | `## Build and Run` | table | **Yes** | Build commands, run commands, environment setup |
+| 9 | Platform-Specific Conventions | `## Platform-Specific Conventions` | table | **Yes** | Language idioms, concurrency model, IO patterns |
+| 10 | Type Mapping | `## Type Mapping` | table | **Yes** | How schema types map to language types |
+| 11 | Security | `## Security` | narrative | **Yes** | Platform-specific security practices |
+| 12 | Testing | `## Testing` | narrative | **Yes** | Test framework, test structure, CI guidance |
+| 13 | Implementation Notes | `## Implementation Notes` | narrative | **Yes** | Practical guidance |
+| 14 | Verification Checklist | `## Verification Checklist` | narrative | **Yes** | Testable assertions (min 5) |
 
 ### Optional Sections
 
@@ -100,6 +101,23 @@ agents/<name>/
 Build: `<build-command>`
 Run: `<run-command>`
 ```
+
+### Primitive Mapping (`## Primitive Mapping`)
+
+One row per primitive the specification blueprints require, naming what provides it
+here. `schemas/common.md` states the rule this section exists to satisfy and what an
+**UNFILLED** slot means; it is not restated.
+
+```markdown
+| Primitive required by | Provided on <platform> by | Status |
+|---|---|---|
+| `protocol/identity` — signature algorithm | <what provides it> | runtime |
+| `architecture/storage` — default backend | <what provides it> | runtime |
+```
+
+A platform blueprint spells the name its runtime uses. It does not restate what the
+primitive is, which standard defines it, or what parameters it takes — those belong to
+the blueprint that requires it.
 
 ### Runtime Requirements (`## Runtime Requirements`)
 
