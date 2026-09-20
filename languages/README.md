@@ -36,8 +36,27 @@ Rust are languages whose runtime is a binary — there is no separate platform t
 name. **Node is a runtime**, and Cloudflare Workers is another, both executing
 the same language.
 
-`platforms/node.md` is therefore still misfiled in a different way: most of its
-894 lines are JavaScript conventions, and `platforms/cloudflare.md` restates
-twelve of the same sections because there is nowhere shared to put them. The
-language content becomes `languages/typescript.md`; what stays is what is true of
-the runtime. See [`../CORPUS_SHAPE.md`](../CORPUS_SHAPE.md).
+`platforms/node.md` stays where it is. An earlier version of this page said it was
+misfiled too — mostly JavaScript conventions, with `platforms/cloudflare.md`
+restating twelve of the same sections — and that the language content should become
+`languages/typescript.md`. **Measured, that was wrong:** 31 identical substantial
+lines out of 731, about four percent, and those are the schema's own explanation of
+what a Primitive Mapping is rather than language conventions at all.
+
+The twelve shared *headings* are shared because `schemas/platform.md` requires them.
+Every platform blueprint answers the same questions; that is the schema working. The
+content under them differs and should — `node:crypto` against Web Crypto, flat-file
+JSONL against Durable Objects, a single-threaded event loop against V8 isolates.
+
+A `languages/typescript.md` remains possible — conventions true of TypeScript wherever
+it runs — but it would be **written rather than extracted**, and nothing needs it yet.
+A blueprint written to justify a directory is worse than a directory with two files in
+it.
+
+One thing would have to change first, if it is ever written: a platform blueprint
+cannot pull in a language blueprint by declaring it. A binding's `requires` are skipped
+deliberately, because a binding's requirements describe every component type rather than
+the one being built. Both bindings would have to reach generation, and the platform would
+have to declare which language it runs.
+
+See [`../CORPUS_SHAPE.md`](../CORPUS_SHAPE.md).
