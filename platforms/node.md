@@ -207,6 +207,49 @@ the port, so a plan records the run command without it — and without any
 not a shell line: the process it starts IS the component, so that stopping it
 shuts the component down in an orderly way rather than killing a wrapper.
 
+## Service Mapping
+
+Primitive Mapping says where an algorithm or format comes from. This says which
+**capabilities** the runtime already provides, so a generator does not build one
+beside it. The verdict vocabulary is [`schemas/platform.md`](../schemas/platform.md#service-mapping-service-mapping).
+
+Node gives a component a long-lived process, a filesystem and an event loop. It is a
+runtime rather than a service platform, so most capabilities here are `IMPLEMENT` —
+which is the honest answer, and the one that tells a generator to follow the
+blueprint rather than look for a binding that does not exist.
+
+| Capability | Required by | Provided in Node by | Verdict |
+|---|---|---|---|
+| Operating-system process execution | `patterns/command` | `node:child_process` | `PLATFORM` |
+| Structured log emission | `patterns/logging` | stdout, via the console interface | `PLATFORM` |
+| In-process cache | `patterns/caching` | module scope in a long-lived process | `PLATFORM` |
+| File and asset storage | `patterns/file-upload`, `architecture/content` | `node:fs` | `PLATFORM` |
+| Client TLS to third parties | `patterns/security` | `node:tls` | `PLATFORM` |
+| Scheduled execution | `patterns/scheduling`, `agents/cron` | `node:timers` in a resident process | `ADAPTER` |
+| Bidirectional realtime transport | `patterns/realtime-chat` | HTTP upgrade; the WebSocket implementation is a choice | `ADAPTER` |
+| Service-to-service invocation | `protocol/spec` | HTTP over the loopback or network interface | `ADAPTER` |
+| Strongly consistent registry | `architecture/orchestrator`, `architecture/storage` | single-process state, persisted to the filesystem | `ADAPTER` |
+| Queryable records, audit, observations | `architecture/storage`, `patterns/storage` | no managed store; SQLite is a dependency, not a runtime facility | `IMPLEMENT` |
+| Asynchronous task dispatch | `patterns/task-dispatch`, `agents/task` | — | `IMPLEMENT` |
+| Multi-phase execution with durable state | `patterns/workflow`, `agents/workflow` | — | `IMPLEMENT` |
+| Retry and backoff | `patterns/retry` | — | `IMPLEMENT` |
+| Rate limiting | `patterns/rate-limiting`, `architecture/gateway` | — | `IMPLEMENT` |
+| Vector storage and similarity search | `patterns/api-ai` | — | `IMPLEMENT` |
+| Inference and embedding generation | `patterns/api-ai` | — an external provider, per the pattern's contract | `IMPLEMENT` |
+| Secret storage | `patterns/secrets` | — no managed store; the process is given material it must not persist | `IMPLEMENT` |
+| Metrics and traces | `patterns/observability`, `architecture/observability` | — | `IMPLEMENT` |
+| Outbound email | `patterns/notification`, `agents/email-send` | — a provider, per the pattern's contract | `IMPLEMENT` |
+| Egress control over a component's outbound calls | `architecture/data-security` | — the runtime offers no interception point | `IMPLEMENT` |
+| Per-tenant code isolation | `architecture/tenancy` | separate processes, isolated by the operating system | `IMPLEMENT` |
+
+**Why this table is mostly `IMPLEMENT`, and why that is not a deficiency.** A resident
+process with a filesystem is what the framework's specification blueprints were written
+against — flat-file storage, an in-process cache and a tick loop are all satisfiable
+here. The capabilities Node does not supply are ones a self-hosted deployment either
+builds or brings a dependency for, and the blueprint that requires each one says how.
+
+---
+
 ## Runtime Requirements
 
 ```yaml

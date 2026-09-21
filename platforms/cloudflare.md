@@ -101,6 +101,65 @@ is trusted, and the plausible name does not.
 
 ---
 
+## Service Mapping
+
+Primitive Mapping says where an algorithm or format comes from. This says which
+**capabilities** the platform already provides, so a generator does not build one
+beside it. The verdict vocabulary is [`schemas/platform.md`](../schemas/platform.md#service-mapping-service-mapping).
+
+Cloudflare is unusual here: it supplies as managed services much of what a
+self-hosted runtime must implement. Most rows are `PLATFORM`, and that is the
+reason to generate for it.
+
+| Capability | Required by | Provided on Workers by | Verdict |
+|---|---|---|---|
+| Strongly consistent registry and coordination | `architecture/orchestrator`, `architecture/storage` | Durable Objects | `PLATFORM` |
+| Queryable records, audit, observations | `architecture/storage`, `patterns/storage` | D1 | `PLATFORM` |
+| Cache | `patterns/caching` | Workers KV; the Cache API for responses | `PLATFORM` |
+| Object and asset storage | `patterns/file-upload`, `architecture/content` | R2 | `PLATFORM` |
+| Image transformation | `patterns/file-upload` | Images, Media Transformations | `PLATFORM` |
+| Vector storage and similarity search | `patterns/api-ai` | Vectorize | `PLATFORM` |
+| Inference and embedding generation | `patterns/api-ai` | Workers AI | `PLATFORM` |
+| Model provider abstraction, response caching, cost attribution | `patterns/api-ai` | AI Gateway | `PLATFORM` |
+| Scheduled execution | `patterns/scheduling`, `agents/cron` | Cron Triggers; Durable Object alarms for per-entity timers | `PLATFORM` |
+| Asynchronous task dispatch | `patterns/task-dispatch`, `agents/task` | Queues | `ADAPTER` |
+| Multi-phase execution with durable state | `patterns/workflow`, `agents/workflow` | Workflows | `ADAPTER` |
+| Retry and backoff | `patterns/retry` | Queue retry policy; Workflow step retries | `PLATFORM` |
+| Rate limiting | `patterns/rate-limiting`, `architecture/gateway` | Rate Limiting binding | `PLATFORM` |
+| Bidirectional realtime transport | `patterns/realtime-chat` | Durable Objects with WebSocket Hibernation | `PLATFORM` |
+| Offline reconciliation | `patterns/offline`, `agents/sync` | D1 for server state; Queues for replay | `ADAPTER` |
+| Inbound webhook processing | `patterns/webhook`, `agents/webhook` | Queues for the asynchronous half | `ADAPTER` |
+| Outbound email | `patterns/notification`, `agents/email-send` | Email Routing and Email Workers; a provider for bulk send | `ADAPTER` |
+| Secret storage | `patterns/secrets` | Workers Secrets; Secrets Store for account-scoped material | `PLATFORM` |
+| Structured log emission | `patterns/logging` | Workers Logs; Tail Workers for collection | `PLATFORM` |
+| Metrics and traces | `patterns/observability`, `architecture/observability` | Analytics Engine; Logpush for export | `PLATFORM` |
+| Service-to-service invocation | `protocol/spec` | Service bindings | `PLATFORM` |
+| Client TLS to third parties | `patterns/security` | mTLS binding | `PLATFORM` |
+| Browser automation and page capture | `patterns/webhook` consumers, ingest | Browser Rendering | `PLATFORM` |
+| Per-tenant code isolation | `architecture/tenancy` | Workers for Platforms — dispatch namespaces, per-script bindings | `PLATFORM` |
+| Egress control over a component's outbound calls | `architecture/data-security`, `patterns/security` | Outbound Workers, for scripts in a dispatch namespace | `PLATFORM` |
+| Relational database access outside the platform | — | Hyperdrive | `PLATFORM` |
+| Runtime expression evaluation | `patterns/expression` | — no dynamic code evaluation is available | `IMPLEMENT` |
+| Operating-system process execution | `patterns/command` | — a Worker cannot spawn a process | `UNAVAILABLE` |
+
+### Three consequences worth stating
+
+**A background timer is not among them.** There is no interval loop in a Worker. Work
+that recurs is a Cron Trigger; work scheduled per entity is a Durable Object alarm. A
+component written around a tick loop does not merely perform badly here — it does not
+run.
+
+**In-process cache is not a cache.** Isolates are created and evicted at the platform's
+discretion and are not shared between colocated requests, so state held in module scope
+survives for an unknowable time. Anything that must persist between requests belongs in
+KV, a Durable Object, or D1.
+
+**`patterns/command` is unavailable, not merely awkward.** A blueprint that depends on
+spawning a process cannot be satisfied on this platform, and a component requiring it
+should refuse to generate rather than approximate it.
+
+---
+
 ## Project Structure
 
 ### Orchestrator

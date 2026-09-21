@@ -51,15 +51,16 @@ describes itself — `name: go` implies `platform: go`.
 | 3 | Overview | `## Overview` | narrative | **Yes** | Scope description, why this platform fits Weblisk |
 | 4 | Dependencies | `## Dependencies` | yaml:requires | **Yes** | Dependency contracts |
 | 5 | Primitive Mapping | `## Primitive Mapping` | table | **Yes** | Where each primitive the specification blueprints require comes from on this platform |
-| 6 | Project Structure | `## Project Structure` | narrative | **Yes** | Directory layout for orchestrator and agents |
-| 7 | Runtime Requirements | `## Runtime Requirements` | yaml:runtime | **Yes** | Language version, dependencies, build tools |
-| 8 | Build and Run | `## Build and Run` | table | **Yes** | Build commands, run commands, environment setup |
-| 9 | Platform-Specific Conventions | `## Platform-Specific Conventions` | table | **Yes** | Language idioms, concurrency model, IO patterns |
-| 10 | Type Mapping | `## Type Mapping` | table | **Yes** | How schema types map to language types |
-| 11 | Security | `## Security` | narrative | **Yes** | Platform-specific security practices |
-| 12 | Testing | `## Testing` | narrative | **Yes** | Test framework, test structure, CI guidance |
-| 13 | Implementation Notes | `## Implementation Notes` | narrative | **Yes** | Practical guidance |
-| 14 | Verification Checklist | `## Verification Checklist` | narrative | **Yes** | Testable assertions (min 5) |
+| 6 | Service Mapping | `## Service Mapping` | table | **Yes** | Which capabilities the platform provides, and which a component must implement |
+| 7 | Project Structure | `## Project Structure` | narrative | **Yes** | Directory layout for orchestrator and agents |
+| 8 | Runtime Requirements | `## Runtime Requirements` | yaml:runtime | **Yes** | Language version, dependencies, build tools |
+| 9 | Build and Run | `## Build and Run` | table | **Yes** | Build commands, run commands, environment setup |
+| 10 | Platform-Specific Conventions | `## Platform-Specific Conventions` | table | **Yes** | Language idioms, concurrency model, IO patterns |
+| 11 | Type Mapping | `## Type Mapping` | table | **Yes** | How schema types map to language types |
+| 12 | Security | `## Security` | narrative | **Yes** | Platform-specific security practices |
+| 13 | Testing | `## Testing` | narrative | **Yes** | Test framework, test structure, CI guidance |
+| 14 | Implementation Notes | `## Implementation Notes` | narrative | **Yes** | Practical guidance |
+| 15 | Verification Checklist | `## Verification Checklist` | narrative | **Yes** | Testable assertions (min 5) |
 
 ### Optional Sections
 
@@ -72,6 +73,39 @@ describes itself — `name: go` implies `platform: go`.
 ---
 
 ## Section Specifications
+
+### Service Mapping (`## Service Mapping`)
+
+Primitive Mapping answers where an *algorithm or format* comes from. This section
+answers the question one level up: **which capabilities does the platform already
+provide, and which must a component build?**
+
+A platform that ships a scheduler, a queue or a vector store and does not say so
+invites a generator to implement one. The specification blueprints cannot say —
+they are platform-neutral by rule — so a platform blueprint is the only document
+that can.
+
+One row per capability a specification blueprint requires:
+
+```markdown
+| Capability | Required by | Provided on <platform> by | Verdict |
+|---|---|---|---|
+| Scheduled execution | `patterns/scheduling`, `agents/cron` | Cron Triggers | `PLATFORM` |
+| Task dispatch | `patterns/task-dispatch` | Queues | `ADAPTER` |
+| Expression evaluation | `patterns/expression` | — | `IMPLEMENT` |
+| Process execution | `patterns/command` | — | `UNAVAILABLE` |
+```
+
+| Verdict | Meaning |
+|---|---|
+| `PLATFORM` | The platform provides the capability. A generator MUST NOT implement it |
+| `ADAPTER` | The platform provides the mechanism; the component supplies the blueprint's contract over it |
+| `IMPLEMENT` | The platform provides nothing. Build it as the blueprint specifies |
+| `UNAVAILABLE` | The capability cannot exist here. The blueprint depending on it states so, per `common.md` Platform Neutrality |
+
+A capability the platform provides and the blueprint omits is indistinguishable from
+one it does not — the same reasoning that makes an **UNFILLED** primitive a stated gap
+rather than a silent one.
 
 ### Project Structure (`## Project Structure`)
 
