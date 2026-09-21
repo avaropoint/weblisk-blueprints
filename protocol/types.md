@@ -91,26 +91,9 @@ types:
 - `permanent` — Will not succeed on retry. Examples: invalid input, capability not available, unknown action.
 - `partial` — Request partially succeeded. `detail` SHOULD include `completed` and `failed` sub-results.
 
-**Standard error codes:**
+**Standard error codes** are declared once, in [## Error Handling](#error-handling)
+below, with their HTTP status, category and retryability.
 
-| Code | HTTP | Category | Description |
-|------|------|----------|-------------|
-| `INVALID_REQUEST` | 400 | permanent | Missing or malformed fields |
-| `INVALID_SIGNATURE` | 401 | permanent | ML-DSA-65 signature verification failed |
-| `TOKEN_EXPIRED` | 401 | transient | Token past expiry — re-register to get a new one |
-| `FORBIDDEN` | 403 | permanent | Missing required capability |
-| `NOT_FOUND` | 404 | permanent | Agent or resource not in registry |
-| `RATE_LIMITED` | 429 | transient | Too many requests — respect `Retry-After` header |
-| `INTERNAL_ERROR` | 500 | transient | Unexpected server error |
-| `AGENT_UNREACHABLE` | 502 | transient | Orchestrator could not reach target agent |
-| `AGENT_TIMEOUT` | 504 | transient | Target agent did not respond within timeout |
-| `UNSUPPORTED_VERSION` | 400 | permanent | Agent requested an unsupported protocol version |
-| `NAMESPACE_CONFLICT` | 409 | permanent | Requested publish namespace already owned by another agent |
-| `NAMESPACE_RESERVED` | 403 | permanent | Requested namespace is reserved (e.g., `system.*`) |
-| `SCOPE_UNAUTHORIZED` | 403 | permanent | Subscription scope requires missing capability or collaborator relationship |
-| `EVENT_REJECTED` | 400 | permanent | Event envelope is malformed or topic is unowned |
-| `PHASE_FAILED` | 500 | varies | Workflow phase failed — check `detail.phase_name` |
-| `PARTIAL_FAILURE` | 207 | partial | Some phases succeeded, some failed |
 
 **Enforcement error codes** (produced by `architecture/enforcement`):
 
@@ -2227,6 +2210,95 @@ All paths are prefixed with `/v1`.
 
 ## Error Handling
 
+
+```yaml
+error_format:
+  type: ErrorResponse
+  required_fields: [error]
+  optional_fields: [code, category, retryable, retry_after, detail]
+
+error_codes:
+  - code: INVALID_REQUEST
+    status: 400
+    category: permanent
+    retryable: false
+    description: Missing or malformed fields
+  - code: INVALID_SIGNATURE
+    status: 401
+    category: permanent
+    retryable: false
+    description: ML-DSA-65 signature verification failed
+  - code: TOKEN_EXPIRED
+    status: 401
+    category: transient
+    retryable: true
+    description: Token past expiry — re-register to get a new one
+  - code: FORBIDDEN
+    status: 403
+    category: permanent
+    retryable: false
+    description: Missing required capability
+  - code: NOT_FOUND
+    status: 404
+    category: permanent
+    retryable: false
+    description: Agent or resource not in registry
+  - code: RATE_LIMITED
+    status: 429
+    category: transient
+    retryable: true
+    description: Too many requests — respect `Retry-After` header
+  - code: INTERNAL_ERROR
+    status: 500
+    category: transient
+    retryable: true
+    description: Unexpected server error
+  - code: AGENT_UNREACHABLE
+    status: 502
+    category: transient
+    retryable: true
+    description: Orchestrator could not reach target agent
+  - code: AGENT_TIMEOUT
+    status: 504
+    category: transient
+    retryable: true
+    description: Target agent did not respond within timeout
+  - code: UNSUPPORTED_VERSION
+    status: 400
+    category: permanent
+    retryable: false
+    description: Agent requested an unsupported protocol version
+  - code: NAMESPACE_CONFLICT
+    status: 409
+    category: permanent
+    retryable: false
+    description: Requested publish namespace already owned by another agent
+  - code: NAMESPACE_RESERVED
+    status: 403
+    category: permanent
+    retryable: false
+    description: Requested namespace is reserved (e.g., `system.*`)
+  - code: SCOPE_UNAUTHORIZED
+    status: 403
+    category: permanent
+    retryable: false
+    description: Subscription scope requires missing capability or collaborator relationship
+  - code: EVENT_REJECTED
+    status: 400
+    category: permanent
+    retryable: false
+    description: Event envelope is malformed or topic is unowned
+  - code: PHASE_FAILED
+    status: 500
+    category: varies
+    retryable: varies
+    description: Workflow phase failed — check `detail.phase_name`
+  - code: PARTIAL_FAILURE
+    status: 207
+    category: partial
+    retryable: varies
+    description: Some phases succeeded, some failed
+```
 All errors across the protocol use the `ErrorResponse` type defined in the
 Errors section above. Error categories (`transient`, `permanent`, `partial`)
 determine retry behavior. Standard error codes are enumerated in the

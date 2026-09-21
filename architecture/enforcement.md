@@ -1390,6 +1390,51 @@ complete isolation of the targeted agent across all four boundaries.
 
 ## Security
 
+
+```yaml
+security:
+  trust_model:
+    description: |
+      The enforcement layer is a privileged platform component with read access
+      to agent manifests, policy definitions, scope classifications and safety
+      intents, and write access to none of them. It consumes; it never modifies.
+
+      It is structurally invisible to agents. It is not registered as an agent,
+      does not appear in the service directory, and has no message endpoint, so
+      there is no address at which an agent could reach it. Agents interact with
+      the message bus, the storage layer and external services, and enforcement
+      proxies all three without their awareness — which is why no agent,
+      including an infrastructure agent, can disable, bypass or modify it.
+
+  boundaries:
+    - boundary: Agent → Message bus. Proxied; a message crossing is inspected
+        before delivery
+    - boundary: Agent → Storage. Proxied; an operation is evaluated before it
+        reaches a store
+    - boundary: Agent → External service. Proxied; egress is evaluated rather
+        than trusted
+    - boundary: Agent → Response. Inspected on the way back, because a violation
+        can be in what is returned as easily as in what was asked
+    - boundary: Agent → Enforcement. Absent by construction. No endpoint, no
+        directory entry, no address
+
+  enforcement:
+    - rule: No agent can disable, bypass or modify enforcement
+      mechanism: Not registered, not in the service directory, no message
+        endpoint. There is nothing to address
+    - rule: Enforcement never modifies what it reads
+      mechanism: Read-only access to manifests, policies, scope declarations and
+        safety intents
+    - rule: Every operation crossing a boundary is evaluated before it takes
+        effect, not after
+      mechanism: The four boundaries are proxied rather than observed
+    - rule: Quarantine and kill-switch are available to enforcement alone
+      mechanism: No other component holds the capability; an agent requesting one
+        is making an ordinary request that enforcement evaluates
+    - rule: A violation is recorded whether or not it was blocked
+      mechanism: ViolationRecord written at detection, so audit mode produces the
+        same evidence as enforce mode
+```
 ### Trust Model
 
 The enforcement layer is a privileged platform component. It has
