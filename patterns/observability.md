@@ -449,6 +449,33 @@ observability:
 
 ---
 
+## Types
+
+```yaml
+types:
+
+  MetricDefinition:
+    description: A metric a component declares, so a reader knows what it measures before reading it
+    fields:
+      name:
+        type: string
+        description: Metric name
+      type:
+        type: string
+        description: What kind of measurement it is
+        constraints:
+          enum: [counter, gauge, histogram]
+      description:
+        type: string
+        description: What it measures, in terms independent of how it is collected
+      labels:
+        type: array
+        items: string
+        description: Label names this metric carries. A label whose values are unbounded makes the metric unusable
+```
+
+---
+
 ## Implementation Notes
 
 - **Health checks are lightweight**: The `/v1/health` endpoint MUST

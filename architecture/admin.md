@@ -1217,6 +1217,29 @@ process, per [`protocol/identity`](../protocol/identity.md) rule 4.
 
 ---
 
+## Types
+
+```yaml
+types:
+
+  OperatorAuth:
+    description: The conditions under which an operator may authenticate to the admin surface
+    fields:
+      operator_key:
+        type: string
+        format: base64url
+        description: The operator's public key, against which a signed challenge is verified
+      mfa_required:
+        type: bool
+        description: Whether a second factor is required. The admin surface requires one without exception
+      ip_allowlist:
+        type: array
+        items: string
+        description: Networks the operator may authenticate from. An empty list means no network restriction, which is a decision rather than a default
+```
+
+---
+
 ## Security
 
 ### Auth Middleware

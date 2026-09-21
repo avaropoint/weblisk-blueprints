@@ -818,6 +818,32 @@ types:
 
 ---
 
+## Types
+
+```yaml
+types:
+
+  OrchestratorConfig:
+    description: What an orchestrator is told at start-up
+    fields:
+      port:
+        type: int
+        description: Port the orchestrator listens on
+      env:
+        type: string
+        description: Deployment environment
+        constraints:
+          enum: [development, staging, production]
+      log_level:
+        type: string
+        description: Minimum level emitted
+      storage_dsn:
+        type: string
+        description: Where the orchestrator's stores live. Carries no credential — key and secret material is supplied per protocol/identity, not through configuration
+```
+
+---
+
 ## Security
 
 ```yaml

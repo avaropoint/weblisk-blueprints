@@ -1387,6 +1387,61 @@ complete isolation of the targeted agent across all four boundaries.
 
 ---
 
+## Types
+
+```yaml
+types:
+
+  QuarantineOrder:
+    description: An instruction to stop dispatching to an agent
+    fields:
+      id:
+        type: string
+        description: Identifier for this order
+      agent:
+        type: string
+        description: The agent being quarantined
+      reason:
+        type: string
+        description: Why, in terms a human reviewing the order can act on
+      severity:
+        type: string
+        description: How severe the triggering violation was
+      source:
+        type: string
+        description: What issued the order, so an automated quarantine is distinguishable from an operator's
+
+  ViolationRecord:
+    description: A recorded attempt to cross a boundary the actor was not permitted to cross
+    fields:
+      agent:
+        type: string
+        description: The agent that attempted it
+      boundary:
+        type: string
+        description: Which boundary was crossed
+      violation_type:
+        type: string
+        description: The kind of violation
+      operation:
+        type: string
+        description: The operation attempted
+      scope_required:
+        type: string
+        description: The scope the operation needed
+      scope_actual:
+        type: string
+        description: The scope the actor held
+      severity:
+        type: string
+        description: How severe the violation was
+      detail:
+        type: map
+        description: Structured context, carrying no data the actor was not entitled to see
+```
+
+---
+
 ## Security
 
 ### Trust Model

@@ -1232,6 +1232,163 @@ protocol:
 
 ---
 
+## Types
+
+```yaml
+types:
+
+  HubManifest:
+    description: A hub's own identity and where to reach it
+    fields:
+      name:
+        type: string
+        description: The hub's name
+      public_key:
+        type: string
+        format: base64url
+        description: The hub's signing key
+      federation_url:
+        type: string
+        description: Where peers reach this hub
+
+  ProviderInfo:
+    description: A hub offering capabilities, as the registry holds it
+    fields:
+      hub_name:
+        type: string
+        description: The providing hub
+      public_key:
+        type: string
+        format: base64url
+        description: Its signing key
+      federation_url:
+        type: string
+        description: Where to reach it
+      last_seen:
+        type: string
+        format: rfc3339
+        description: When the registry last confirmed it answered
+
+  CollaboratorInfo:
+    description: A hub a collaboration is being formed with, as presented to a human deciding
+    fields:
+      hub_name:
+        type: string
+        description: The other hub
+      federation_url:
+        type: string
+        description: Where it is reached
+      contact:
+        type: string
+        description: Who to speak to. A collaboration nobody can be asked about is one nobody can consent to
+
+  MetricsInfo:
+    description: Observed behaviour of a listing, so a consumer can judge it before depending on it
+    fields:
+      listing_id:
+        type: string
+        description: The listing these metrics describe
+      uptime_30d:
+        type: float
+        description: Proportion of successful health checks over thirty days
+      error_rate_30d:
+        type: float
+        description: Proportion of invocations that failed over thirty days
+      p95_latency_30d_ms:
+        type: int
+        description: 95th-percentile response time over thirty days, in milliseconds
+      total_invocations_30d:
+        type: int64
+        description: Invocations over thirty days, which is what makes the rates above meaningful
+      behavioral_changes_90d:
+        type: int
+        description: Count of recorded behavioural changes over ninety days
+      data_freshness:
+        type: string
+        format: rfc3339
+        description: When the data behind the listing was last updated
+
+  BehavioralChange:
+    description: A recorded change in how a listing behaves, so consumers are not surprised by one
+    fields:
+      listing_id:
+        type: string
+        description: The listing that changed
+      previous_version:
+        type: string
+        description: Version before the change
+      new_version:
+        type: string
+        description: Version after it
+      level:
+        type: string
+        description: How much the change can affect a consumer
+        constraints:
+          enum: [compatible, breaking, withdrawn]
+      change_summary:
+        type: string
+        description: What changed, written for a consumer rather than the provider
+
+  SearchQuery:
+    description: A request against the capability catalogue
+    fields:
+      q:
+        type: string
+        description: Free-text terms
+      domain:
+        type: string
+        description: Restrict to one functional domain
+      action:
+        type: string
+        description: Restrict to listings offering this action
+      tier:
+        type: string
+        description: Restrict by provider tier
+      jurisdiction:
+        type: string
+        description: Restrict to providers able to operate under this jurisdiction
+      min_uptime:
+        type: float
+        description: Exclude listings below this observed uptime
+      max_latency:
+        type: int
+        description: Exclude listings above this p95 latency, in milliseconds
+      max_price:
+        type: float
+        description: Exclude listings above this price
+      sort:
+        type: string
+        description: Ordering of results
+      page:
+        type: int
+        description: Page number, from 1
+      per_page:
+        type: int
+        description: Results per page
+
+  SearchResult:
+    description: A page of catalogue results
+    fields:
+      results:
+        type: array
+        items: object
+        description: Matching listings for this page
+      total:
+        type: int
+        description: Total matches across all pages
+      page:
+        type: int
+        description: Page number returned
+      per_page:
+        type: int
+        description: Results per page
+      facets:
+        type: map
+        description: Counts per facet value, for narrowing a query without re-running it
+```
+
+---
+
 ## Implementation Notes
 
 - Hub federation is opt-in — deployments without federation operate as isolated instances
