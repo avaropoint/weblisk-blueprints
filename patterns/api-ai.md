@@ -33,10 +33,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Message
-          fields_used: [role, content, tool_call_id]
-        - name: Usage
-          fields_used: [prompt_tokens, completion_tokens, total_tokens]
+        - name: AgentManifest
+          fields_used: [name, type, version, capabilities]
         - name: ErrorResponse
           fields_used: [error, code, category, retryable]
     on_change:
@@ -45,10 +43,6 @@ requires:
       removed: halt-immediately
   - blueprint: architecture/agent
     version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: AgentManifest
-          fields_used: [name, type, version, capabilities]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

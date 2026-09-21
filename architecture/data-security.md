@@ -68,6 +68,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
+        - name: AuditEntry
+          fields_used: [id, timestamp, actor, action, target]
         - name: AgentMessage
           fields_used: [from, to, action, payload, signature]
     on_change:
@@ -110,10 +112,6 @@ requires:
       removed: halt-immediately
   - blueprint: architecture/observability
     version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: AuditEntry
-          fields_used: [id, timestamp, actor, action, target]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

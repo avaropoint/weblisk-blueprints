@@ -33,6 +33,16 @@ to operators when human judgment is required.
 
 ## Dependencies
 
+  - blueprint: patterns/alerting
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: AlertEvent
+          fields_used: [alert_id, source, type, severity, target, message, timestamp]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
 ```yaml
 requires:
   - blueprint: protocol/spec
@@ -59,8 +69,6 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: AlertEvent
-          fields_used: [alert_id, source, type, severity, target, message, timestamp]
         - name: TaskResult
           fields_used: [task_id, agent_name, status, summary, timestamp]
     on_change:

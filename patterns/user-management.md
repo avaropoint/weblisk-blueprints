@@ -42,6 +42,16 @@ identifier and the address is a coordinate.
 
 ## Dependencies
 
+  - blueprint: patterns/api-rest
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: PaginatedResponse
+          fields_used: [data, pagination]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
 ```yaml
 requires:
   - blueprint: protocol/types
@@ -52,8 +62,6 @@ requires:
           fields_used: [name, fields]
         - name: ErrorResponse
           fields_used: [code, error, detail]
-        - name: PaginatedResponse
-          fields_used: [data, pagination]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

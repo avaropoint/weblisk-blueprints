@@ -44,6 +44,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
+        - name: AgentManifest
+          fields_used: [name, type, version]
         - name: EventEnvelope
           fields_used: [trace_id, event_id, source]
         - name: LogEntry
@@ -57,10 +59,6 @@ requires:
 
   - blueprint: architecture/agent
     version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: AgentManifest
-          fields_used: [name, type, version]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

@@ -62,6 +62,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
+        - name: Strategy
+          fields_used: [id, name, status]
         - name: EventEnvelope
           fields_used: [event_id, topic, payload, source, scope]
         - name: AgentManifest
@@ -99,10 +101,6 @@ requires:
       removed: halt-immediately
   - blueprint: architecture/lifecycle
     version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: Strategy
-          fields_used: [id, name, status]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

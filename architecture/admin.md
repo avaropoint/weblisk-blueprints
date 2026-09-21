@@ -70,6 +70,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
+        - name: Strategy
+          fields_used: [id, name, targets, status, priority]
         - name: WLT
           fields_used: [sub, iss, iat, exp, cap, role, type]
         - name: AgentManifest
@@ -109,10 +111,6 @@ requires:
       removed: halt-immediately
   - blueprint: architecture/lifecycle
     version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: Strategy
-          fields_used: [id, name, targets, status, priority]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

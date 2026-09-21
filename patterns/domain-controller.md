@@ -44,6 +44,10 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
+        - name: Feedback
+          fields_used: [before, after, metric]
+        - name: Observation
+          fields_used: [target, element, value, timestamp]
         - name: IOSpec
           fields_used: [name, type, description]
         - name: TaskPayload
@@ -78,12 +82,6 @@ requires:
       removed: halt-immediately
   - blueprint: architecture/lifecycle
     version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: Observation
-          fields_used: [target, element, value, timestamp]
-        - name: Feedback
-          fields_used: [before, after, metric]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

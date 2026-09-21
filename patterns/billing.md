@@ -196,7 +196,7 @@ contracts:
       override_constraints: The refusal MUST be distinguishable from a fault, so a caller does not retry a limit as though it were an error
 
   types:
-    - name: Subscription
+    - name: BillingSubscription
       description: Local record of what a provider of record says was purchased
       inherited_by: The adopting component's subscription store
     - name: Entitlement
@@ -213,7 +213,7 @@ contracts:
 
 ```yaml
 types:
-  Subscription:
+  BillingSubscription:
     description: A cache of what the provider of record says was purchased
     fields:
       subject:

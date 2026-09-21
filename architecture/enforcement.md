@@ -103,6 +103,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
+        - name: ServiceDirectory
+          fields_used: [services, routing_table, namespaces]
         - name: AuditEntry
           fields_used: [id, timestamp, actor, action, target, detail, status]
         - name: ErrorResponse
@@ -176,10 +178,6 @@ requires:
       removed: halt-immediately
   - blueprint: architecture/orchestrator
     version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: ServiceDirectory
-          fields_used: [services, routing_table, namespaces]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
