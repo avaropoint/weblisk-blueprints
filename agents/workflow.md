@@ -1252,7 +1252,7 @@ tests:
       - Input references ($phases.A.output) resolved for B
 
   - name: Approval gate pauses execution
-    trigger: workflow.trigger with phase having approval: required
+    trigger: "workflow.trigger with phase having approval: required"
     expected:
       Phase completes, execution pauses
       workflow.approval.required published
@@ -1274,7 +1274,7 @@ tests:
       - Cycle detected before any dispatch
 
   - name: Phase fails with on_error = fail
-    trigger: task.failed for a phase with on_error: fail
+    trigger: "task.failed for a phase with on_error: fail"
     expected:
       All in-flight phases cancelled
       workflow.failed published with partial_results
@@ -1282,7 +1282,7 @@ tests:
       - task.cancel published for other in-flight phases
 
   - name: Phase fails with on_error = skip
-    trigger: task.failed for a phase with on_error: skip
+    trigger: "task.failed for a phase with on_error: skip"
     expected:
       Phase marked as skipped
       Downstream phases receive null for skipped output
@@ -1304,7 +1304,7 @@ tests:
   - name: Approval rejected fails workflow
     trigger: workflow.approval.decision with decision = reject
     expected:
-      on_error strategy applied for the gated phase
+      - on_error strategy applied for the gated phase
     validates:
       - If on_error = fail, workflow fails
       - If on_error = skip, phase skipped, execution continues
@@ -1312,16 +1312,16 @@ tests:
   - name: Workflow timeout cancels all phases
     precondition: config.workflow_timeout = 10, workflow takes 30s
     expected:
-      After 10s: all in-flight phases cancelled
-      workflow.failed with timeout reason
+      - "After 10s: all in-flight phases cancelled"
+      - workflow.failed with timeout reason
     validates:
       - task.cancel published for all dispatched phases
 
   - name: Domain re-registration invalidates definition cache
     trigger: system.agent.registered for a domain
     expected:
-      Cached definition for that domain cleared
-      Next workflow.trigger fetches fresh definition
+      - Cached definition for that domain cleared
+      - Next workflow.trigger fetches fresh definition
     validates:
       - Stale definitions not used after domain update
 ```

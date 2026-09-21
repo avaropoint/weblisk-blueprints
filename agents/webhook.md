@@ -793,7 +793,7 @@ Queue an outbound event for delivery.
    c. Record result in webhook_deliveries
 ```
 
-**Output:** `{queued: int, delivery_ids: []string}`
+**Output:** `{queued: int, delivery_ids: "list<string>"}`
 
 **Errors:** `STORAGE_ERROR` (transient)
 
@@ -807,7 +807,7 @@ Register a new outbound webhook subscriber.
 
 **Purpose:** Add a URL to receive webhook events.
 
-**Input:** `{url: string, events: []string, secret: string}`
+**Input:** `{url: string, events: "list<string>", secret: string}`
 
 **Processing:**
 

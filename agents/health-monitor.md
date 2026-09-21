@@ -1068,7 +1068,7 @@ events_subscribed:
     action: Self-update procedure
 
   - topic: health.check
-    payload: {target?: string}
+    payload: {target: string}   # target is optional
     action: On-demand health check
 
 direct_messages:

@@ -572,7 +572,7 @@ response_proxy:
         caller: string             # Identity of the party that invoked the agent
         output_contract: string    # Declared output contract name from agent manifest
         payload_scope: ScopeLevel  # Highest scope in response payload
-        payload_fields: []string   # Top-level field names in response
+        payload_fields: "list<string>"   # Top-level field names in response
         payload_size: integer      # Bytes
     output:
       decision: enum(allow, deny, quarantine)
@@ -689,7 +689,7 @@ enforcement_report:
           target: string
           scope_level: ScopeLevel
           decision: enum(allow, require_approval, deny, quarantine)
-          policies_evaluated: []string
+          policies_evaluated: "list<string>"
           triggering_policy: string | null
       total_count: integer
 
@@ -1232,7 +1232,7 @@ pattern_deviation:
     baseline_window: 24 hours rolling
     deviation: 3 standard deviations
     escalation_period: 10 minutes
-    auto_quarantine_threshold: configurable (default: 30 minutes)
+    auto_quarantine_threshold: "configurable (default: 30 minutes)"
   anti_manipulation:
     multi_window_baselines:
       - short_term: 1 hour rolling (detects sudden shifts)
@@ -1280,7 +1280,7 @@ The behavior analyzer maintains a profile for each registered agent:
 agent_profile:
   agent_name: string
   registered_at: timestamp
-  capabilities: []string          # From manifest
+  capabilities: "list<string>"          # From manifest
   operational_scope: ScopeLevel   # From manifest
   baseline:
     operation_distribution:       # Percentage by operation type
@@ -1291,7 +1291,7 @@ agent_profile:
       external: float
     average_rate: float           # Operations per minute (1h rolling)
     peak_rate: float              # Highest observed rate
-    common_targets: []string      # Most-accessed resources/agents
+    common_targets: "list<string>"      # Most-accessed resources/agents
   historical_anchor:              # Immutable snapshot from registration or last operator reset
     operation_distribution: {}    # Same structure as baseline
     captured_at: timestamp        # When anchor was established
@@ -1299,7 +1299,7 @@ agent_profile:
   current_window:
     operation_distribution: {}    # Same structure, current 5-min window
     current_rate: float
-    anomaly_flags: []string       # Active anomaly indicators
+    anomaly_flags: "list<string>"       # Active anomaly indicators
   violation_history:
     total_violations: integer
     last_violation: timestamp

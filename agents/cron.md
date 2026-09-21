@@ -1735,8 +1735,8 @@ scaling:
       (column removal, constraint tightening) execute only after
       cutover confirmation.
     consumer_groups:
-      shadow_phase: "cron@vN+1" (separate group, receives copies)
-      after_cutover: "cron" (takes over primary group)
+      shadow_phase: "cron@vN+1"   # separate group, receives copies
+      after_cutover: "cron"        # takes over the primary group
 ```
 
 ---

@@ -227,7 +227,7 @@ types:
     description: string             # Human-readable purpose
     scope: PolicyScope              # system | hub | namespace | agent
     target: PolicyTarget            # What this policy applies to
-    rules: []PolicyRule             # Ordered conditions — ALL must pass for allow
+    rules: "list<PolicyRule>"             # Ordered conditions — ALL must pass for allow
     enforcement: EnforcementMode    # enforce | audit | escalate | disabled
     priority: integer               # Evaluation order within scope (lower = first, default: 100)
     activates_at_scope: ScopeLevel  # Minimum scope level to activate (default: public)
@@ -309,8 +309,8 @@ types:
 types:
   IdentityContext:
     principal: string        # Agent name, user ID, or service account
-    roles: []string          # Assigned roles
-    capabilities: []string   # Declared capabilities from agent manifest
+    roles: "list<string>"          # Assigned roles
+    capabilities: "list<string>"   # Declared capabilities from agent manifest
     token_claims: map        # Additional WLT token claims
 
   OperationContext:
@@ -327,7 +327,7 @@ types:
     name: string             # Agent name
     type: string             # Agent type: work, hub, meta, custom
     domain: string           # Domain the agent belongs to
-    capabilities: []string   # Agent's declared capabilities
+    capabilities: "list<string>"   # Agent's declared capabilities
 ```
 
 ### PolicyDecision
@@ -341,7 +341,7 @@ types:
     result: enum(allow, audit, escalate, deny)   # Decision in order of restrictiveness
     policy_name: string             # Which policy produced this decision
     policy_scope: PolicyScope       # Precedence level of the policy
-    matched_rules: []MatchedRule    # Which rules matched and their individual results
+    matched_rules: "list<MatchedRule>"    # Which rules matched and their individual results
     enforcement: EnforcementMode    # The policy's enforcement mode
     evaluated_at: integer           # Unix epoch seconds
     duration_ms: integer            # Evaluation time in milliseconds
@@ -413,12 +413,12 @@ are available to every policy regardless of domain.
 | `scope_denied` | Entity must NOT be at or above a scope level | `max_level: ScopeLevel` |
 | `capability_required` | Agent must have a declared capability | `capability: string` |
 | `capability_denied` | Agent must NOT have a capability | `capability: string` |
-| `resource_scope` | Restrict access to resource patterns | `allowed: []glob, denied: []glob` |
-| `operation_type` | Restrict by operation classification | `allowed_operations: []string` |
+| `resource_scope` | Restrict access to resource patterns | `allowed: "list<glob>", denied: "list<glob>"` |
+| `operation_type` | Restrict by operation classification | `allowed_operations: "list<string>"` |
 | `rate_limit` | Maximum operations per time window | `max: integer, window_seconds: integer, key: string` |
-| `time_window` | Restrict to specific time periods | `allowed_hours: []string, timezone: string` |
-| `environment_match` | Only applies in specific environments | `environments: []string` |
-| `identity_match` | Only applies to specific identities/roles | `roles: []string, agents: []string` |
+| `time_window` | Restrict to specific time periods | `allowed_hours: "list<string>", timezone: string` |
+| `environment_match` | Only applies in specific environments | `environments: "list<string>"` |
+| `identity_match` | Only applies to specific identities/roles | `roles: "list<string>", agents: "list<string>"` |
 | `approval_required` | Force approval for matching operations | `authority_level: string` |
 | `custom` | Domain-defined rule with custom evaluator | `evaluator: string, params: map` |
 
@@ -610,17 +610,29 @@ Three policies apply to the same agent performing a write in production:
 
 ```yaml
 # Policy 1: System — rate limit all agents
-policy_1: { name: global-rate-limit, scope: system, enforcement: enforce, priority: 10 }
+policy_1:
+  name: global-rate-limit
+  scope: system
+  enforcement: enforce
+  priority: 10
   rules: [{ rule_type: rate_limit, params: { max: 1000, window_seconds: 3600, key: agent } }]
 
 # Policy 2: Hub — restrict writes in production
-policy_2: { name: production-write-guard, scope: hub, enforcement: escalate, priority: 50 }
+policy_2:
+  name: production-write-guard
+  scope: hub
+  enforcement: escalate
+  priority: 50
   rules:
     - { rule_type: environment_match, params: { environments: [production] } }
     - { rule_type: approval_required, params: { authority_level: hub_admin } }
 
 # Policy 3: Namespace — audit restricted data operations
-policy_3: { name: restricted-data-audit, scope: namespace, enforcement: audit, priority: 100 }
+policy_3:
+  name: restricted-data-audit
+  scope: namespace
+  enforcement: audit
+  priority: 100
   rules: [{ rule_type: scope_required, params: { min_level: restricted } }]
 ```
 

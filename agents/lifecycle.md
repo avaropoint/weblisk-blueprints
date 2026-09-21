@@ -1208,8 +1208,8 @@ tests:
           observations: [{metric: page_speed, value: 2.1}]
           recommendations: [{action: optimize_images, priority: normal}]
     expected:
-      Observation created and stored
-      Recommendation created with status: pending
+      - Observation created and stored
+      - "Recommendation created with status: pending"
     validates:
       - lifecycle.observation.recorded event published
       - lifecycle.recommendation.created event published
@@ -1218,7 +1218,7 @@ tests:
     trigger: workflow.completed
     precondition: Domain approval config = "auto", priority = normal
     expected:
-      Recommendation status: accepted (auto-approved)
+      - "Recommendation status: accepted (auto-approved)"
     validates:
       - lifecycle.recommendation.accepted event published
       - No human review required
@@ -1228,7 +1228,7 @@ tests:
     input: {name: "Improve SEO", targets: [{metric: score, target_value: 90}]}
     then: workflow.completed with observation showing score = 85
     expected:
-      Strategy target progress updated
+      - Strategy target progress updated
     validates:
       - lifecycle.strategy.updated event published
 ```
@@ -1258,7 +1258,7 @@ tests:
 
 ```yaml
   - name: Critical recommendation never auto-approved
-    trigger: workflow.completed with priority: critical recommendation
+    trigger: "workflow.completed with priority: critical recommendation"
     precondition: Domain approval = "auto"
     expected:
       Recommendation status remains pending (not auto-approved)

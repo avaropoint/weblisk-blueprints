@@ -1274,21 +1274,21 @@ tests:
       severity: critical
       target: seo-analyzer
     expected:
-      incident created with state: detected
-      correlation_hash computed
-      runbook "agent-offline" matched and started
+      - "incident created with state: detected"
+      - correlation_hash computed
+      - runbook "agent-offline" matched and started
     validates:
       - Incident record persisted to storage
       - incident.created event published
-      - State transition: detected → triaging → runbook_executing
+      - "State transition: detected → triaging → runbook_executing"
 
   - name: Runbook auto-resolves incident
     action: execute_runbook
     input: {incident_id: inc_001, runbook_name: agent-offline}
     precondition: All runbook steps succeed
     expected:
-      state: auto_resolved
-      PostIncidentReport generated
+      - "state: auto_resolved"
+      - PostIncidentReport generated
     validates:
       - All steps recorded in timeline
       - incident.resolved event published after stability timeout
@@ -1297,8 +1297,8 @@ tests:
     action: resolve
     input: {incident_id: inc_002, operator: admin@example.com, resolution: "Increased memory limit"}
     expected:
-      state: resolved
-      PostIncidentReport generated
+      - "state: resolved"
+      - PostIncidentReport generated
     validates:
       - Resolution summary stored
       - incident.resolved event published
@@ -1310,8 +1310,8 @@ tests:
   - name: Runbook step fails and escalates
     trigger: alert.fired with runbook that has failing step
     expected:
-      state: escalated
-      on_failure path followed
+      - "state: escalated"
+      - on_failure path followed
     validates:
       - Step failure recorded in timeline
       - Escalation notification sent via alerting agent
@@ -1319,8 +1319,8 @@ tests:
   - name: No matching runbook
     trigger: alert.fired with unknown alert_type
     expected:
-      state: escalated
-      no runbook execution attempted
+      - "state: escalated"
+      - no runbook execution attempted
     validates:
       - Incident created, immediately escalated
       - incident.escalated event published

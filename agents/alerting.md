@@ -695,7 +695,7 @@ Process an incoming alert event.
 7. Return delivery summary
 ```
 
-**Output:** `{alert_id: string, delivered_to: []string, throttled: bool, recipients: int}`
+**Output:** `{alert_id: string, delivered_to: "list<string>", throttled: bool, recipients: int}`
 
 **Errors:**
 
@@ -774,7 +774,7 @@ Update a routing rule.
 
 **Purpose:** Modify severity-to-channel mapping or throttle window.
 
-**Input:** `{severity: string, channels?: []string, throttle?: int}`
+**Input:** `{severity: string, channels?: "list<string>", throttle?: int}`
 
 **Processing:**
 
@@ -1573,8 +1573,8 @@ scaling:
       vN and vN+1 share the same alert_history database.
       Schema migrations are additive-only during shadow phase.
     consumer_groups:
-      shadow_phase: "alerting@vN+1" (separate group, receives copies)
-      after_cutover: "alerting" (takes over primary group)
+      shadow_phase: "alerting@vN+1"   # separate group, receives copies
+      after_cutover: "alerting"        # takes over the primary group
 ```
 
 ---
