@@ -17,10 +17,17 @@ automated analysis, debugging, and audit compliance.
 
 ## Overview
 
-Every agent emits structured JSON logs to stdout. This pattern
-standardizes what fields appear in every log line, defines specific
-log event types with required fields, and establishes the rules for
-log rotation, retention, and forwarding.
+Every component emits structured JSON log records to its platform's log sink.
+This pattern standardizes what fields appear in every record, defines specific
+log event types with required fields, and establishes the rules for retention
+and forwarding.
+
+**The envelope is the requirement; the sink is the platform's answer.** Where a
+component runs as a resident process the sink is its standard output, and the
+`output` configuration below names it. Where it does not — a runtime with no
+standard output, whose records are collected by the platform — the platform
+blueprint names what carries them. A component emits the same records either way,
+which is what makes them comparable across deployments.
 
 This pattern builds on the structured logging section of
 architecture/observability.md. Observability defines the system-wide
@@ -72,8 +79,9 @@ requires:
    the event, enabling automated filtering and alerting.
 4. **Minimal overhead** — Logging MUST NOT degrade agent performance.
    Debug-level logging is disabled by default.
-5. **No vendor lock-in** — Logs go to stdout. Collection, indexing,
-   and search are deployment concerns, not agent concerns.
+5. **No vendor lock-in** — A component emits records and nothing more.
+   Collection, indexing and search are deployment concerns, and the sink a
+   record is written to is the platform's, not the component's.
 
 ---
 
@@ -83,7 +91,7 @@ requires:
 contracts:
   behaviors:
     - name: structured-logging
-      description: Emit structured JSON log lines to stdout conforming to the standard envelope
+      description: Emit structured JSON log records to the platform's log sink, conforming to the standard envelope
       parameters:
         - name: level
           type: string
@@ -284,7 +292,7 @@ logging:
 | Log level | `info` | Minimum log level |
 | Log level overrides | `""` | Per-component level overrides (component=level pairs) |
 | Log format | `json` | Output format: `json` or `text` (dev only) |
-| Log output | `stdout` | Output target: `stdout`, `stderr`, or file path |
+| Log output | `stdout` | Output target where the platform has one: `stdout`, `stderr`, or file path. A platform without a standard output names its sink in its own blueprint |
 
 ### Text Format (Development Only)
 

@@ -20,11 +20,26 @@ and event-driven dispatch.
 ## Overview
 
 The cron agent manages scheduled work within a Weblisk server. Other
-agents register tasks with cron expressions or one-time timestamps.
-The cron agent evaluates schedules on a configurable tick interval,
-dispatches due tasks to target agents via the event bus or direct
-message, tracks execution results, and retries failed tasks according
-to their configuration.
+agents register tasks with cron expressions or one-time timestamps. On
+each **evaluation cycle** the agent determines which tasks are due,
+dispatches them to target agents via the event bus or direct message,
+tracks execution results, and retries failed tasks according to their
+configuration.
+
+**What triggers an evaluation cycle is the platform's answer, not this
+agent's.** Where a component runs as a resident process, the trigger is an
+interval timer the agent starts and stops with its own lifecycle, and
+`config.tick_interval` below is its period. Where a runtime provides
+scheduled invocation as a platform capability — and some do — that
+capability is the trigger, the agent holds no timer, and its lifecycle
+carries no loop to start. A runtime offering neither a resident process nor
+scheduled invocation cannot host this agent at all, and its platform
+blueprint says so in its `## Service Mapping`.
+
+Everything else here is unchanged by that choice. What a cycle does — due
+evaluation, concurrency limits, dispatch, result tracking, retry, and the
+locking that prevents two cycles overlapping — is this agent's contract and
+holds however a cycle is triggered.
 
 The cron agent has zero external dependencies — it runs in isolation
 and communicates exclusively through the Weblisk messaging bus and
