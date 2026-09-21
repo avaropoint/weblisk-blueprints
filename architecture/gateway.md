@@ -847,6 +847,31 @@ types:
 
 ---
 
+## Types
+
+```yaml
+types:
+
+  SessionToken:
+    description: The credential a browser session presents, and what binds it to that browser
+    fields:
+      token:
+        type: string
+        description: The opaque session credential
+      binding:
+        type: string
+        description: What the token is bound to, so a stolen token is not usable elsewhere
+      csrf_secret:
+        type: string
+        description: Secret from which per-form CSRF tokens are derived. Never transmitted to the browser
+      expiry:
+        type: string
+        format: rfc3339
+        description: When the session ends, checked on use rather than by a sweep
+```
+
+---
+
 ## Implementation Notes
 
 - The gateway MUST be the ONLY externally-reachable component for

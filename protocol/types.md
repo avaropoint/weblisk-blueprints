@@ -2690,6 +2690,99 @@ types:
 
 ---
 
+## Types
+
+```yaml
+types:
+
+  WorkflowResult:
+    description: The outcome of a completed workflow execution, as reported to its invoker
+    fields:
+      workflow_name:
+        type: string
+        description: The workflow that ran
+      status:
+        type: string
+        description: Terminal state of the execution
+        constraints:
+          enum: [completed, failed, partial, cancelled]
+      invoker:
+        type: string
+        description: The agent or principal that triggered the workflow
+      phase_results:
+        type: array
+        items: PhaseResult
+        description: One entry per phase, in execution order
+      observations:
+        type: array
+        items: Observation
+        description: Observations produced during execution
+      recommendations:
+        type: array
+        items: Recommendation
+        description: Recommendations produced during execution
+
+  TaskPayload:
+    description: The action and arguments a task carries, separated from its envelope
+    fields:
+      action:
+        type: string
+        description: The action the target agent is asked to perform
+      payload:
+        type: map
+        description: Arguments for the action, shaped by the target's declared inputs
+      trace_id:
+        type: string
+        description: Correlation identifier propagated across every hop of this task
+
+  FileRecord:
+    description: A stored file and the addresses it can be retrieved from
+    fields:
+      id:
+        type: string
+        description: Stable identifier for the stored file
+      filename:
+        type: string
+        description: Original filename as supplied, sanitised
+      mime_type:
+        type: string
+        description: Detected content type, determined from content rather than filename
+      size:
+        type: int64
+        description: Size in bytes
+      owner_id:
+        type: string
+        description: The principal the file belongs to
+      visibility:
+        type: string
+        description: Who may retrieve it
+        constraints:
+          enum: [private, scoped, public]
+      urls:
+        type: map
+        description: Retrieval addresses by variant, where variants exist
+
+  RateLimitConfig:
+    description: How a component limits request rates
+    fields:
+      algorithm:
+        type: string
+        description: The limiting algorithm in use
+        constraints:
+          enum: [token-bucket, fixed-window, sliding-window]
+      defaults:
+        type: map
+        description: Limits applied where a route declares none
+      routes:
+        type: map
+        description: Per-route overrides, keyed by route path
+      storage:
+        type: string
+        description: Where counters are held. A limiter whose counters are per-instance does not limit a distributed component
+```
+
+---
+
 ## Security
 
 ```yaml

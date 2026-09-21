@@ -1112,6 +1112,34 @@ config:
 
 ---
 
+## Types
+
+```yaml
+types:
+
+  WLS:
+    description: Weblisk Session — the claims a resolved browser session carries
+    fields:
+      sid:
+        type: string
+        description: Session identifier
+      sub:
+        type: string
+        description: The principal the session acts for
+      roles:
+        type: array
+        items: string
+        description: Roles held in this session
+      mfa:
+        type: bool
+        description: Whether a second factor was satisfied for this session
+      sec:
+        type: int
+        description: Seconds since the session was established, for re-authentication decisions
+```
+
+---
+
 ## Implementation Notes
 
 - Session token signing MUST use the gateway's ML-DSA-65 key — not a

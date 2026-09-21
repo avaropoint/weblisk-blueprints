@@ -622,6 +622,29 @@ After all mitigations, these residual risks remain:
 
 ---
 
+## Types
+
+```yaml
+types:
+
+  ThreatBoundary:
+    description: One boundary in the trust model, and what stands at it
+    fields:
+      boundary:
+        type: string
+        description: Which boundary this describes
+      mitigations:
+        type: array
+        items: string
+        description: What reduces the risk of crossing it improperly
+      controls:
+        type: array
+        items: string
+        description: What enforces the mitigations, so a mitigation with no control is visible as an intention
+```
+
+---
+
 ## Implementation Notes
 
 - This threat model MUST be reviewed and updated when new features

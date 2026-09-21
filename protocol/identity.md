@@ -597,6 +597,33 @@ types:
         input: [message_id, timestamp]
         output: bool
         description: Return true if message_id has been seen within the replay window (5 minutes)
+
+  KeyRotationAnnouncement:
+    description: A hub telling its peers that its signing key has changed, signed by both keys
+    fields:
+      hub_name:
+        type: string
+        description: The hub whose key is rotating
+      old_key:
+        type: string
+        format: base64url
+        description: The public key being retired
+      new_key:
+        type: string
+        format: base64url
+        description: The public key taking its place
+      old_signature:
+        type: string
+        format: base64url
+        description: Announcement signed with the retiring key, proving continuity of the identity
+      new_signature:
+        type: string
+        format: base64url
+        description: Announcement signed with the new key, proving possession of it
+      timestamp:
+        type: string
+        format: rfc3339
+        description: When the rotation was announced, for replay rejection
 ```
 
 ---

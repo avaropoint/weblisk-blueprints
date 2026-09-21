@@ -975,6 +975,27 @@ types:
 
 ---
 
+## Types
+
+```yaml
+types:
+
+  StoreInterface:
+    description: The three operations every store owes, whatever backend satisfies it
+    fields:
+      get:
+        type: string
+        description: Retrieve one record by identifier, or report its absence. Absence is not an error
+      put:
+        type: string
+        description: Write one record, subject to the precondition the caller supplied
+      delete:
+        type: string
+        description: Remove one record. Deleting an absent record succeeds, so a retry is safe
+```
+
+---
+
 ## Implementation Notes
 
 - **Flat-file first**: The default storage backend is JSONL files —

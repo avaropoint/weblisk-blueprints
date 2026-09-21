@@ -883,6 +883,56 @@ types:
         type: object
         description: Operation-specific configuration (e.g. hash algorithm, max_length)
         required: false
+
+  FederatedListing:
+    description: A capability offered by one hub, as another hub sees it
+    fields:
+      listing_id:
+        type: string
+        description: Identifier assigned by the providing hub
+      provider:
+        type: string
+        description: The hub offering the capability
+      capability:
+        type: string
+        description: The capability on offer
+      public_key:
+        type: string
+        format: base64url
+        description: The provider's signing key, for verifying the signature below
+      signature:
+        type: string
+        format: base64url
+        description: The provider's signature over the listing. An unsigned listing is unverifiable and MUST NOT be indexed
+
+  FederationPeer:
+    description: Another hub this one has established trust with
+    fields:
+      hub_name:
+        type: string
+        description: The peer's name
+      public_key:
+        type: string
+        format: base64url
+        description: The peer's signing key as recorded at trust establishment
+      trust_tier:
+        type: string
+        description: How far this peer is trusted, which bounds what may cross to it
+
+  PeerRequest:
+    description: A hub asking another to establish trust
+    fields:
+      manifest:
+        type: object
+        description: The requesting hub's identity and endpoints
+      capabilities:
+        type: array
+        items: string
+        description: Capabilities the requester offers the peer
+      data_contracts:
+        type: array
+        items: DataContract
+        description: The boundaries the requester proposes for data crossing between them
 ```
 
 ---

@@ -411,6 +411,28 @@ types:
         description: "Whether key has been revoked"
 ```
 
+## Types
+
+```yaml
+types:
+
+  AuthToken:
+    description: The claims a bearer credential carries
+    fields:
+      sub:
+        type: string
+        description: The principal the token acts for
+      cap:
+        type: array
+        items: string
+        description: Capabilities the token conveys. A token conveying none authenticates without authorising
+      exp:
+        type: int64
+        description: Expiry as a Unix timestamp, checked on every use
+```
+
+---
+
 ## Implementation Notes
 
 - **JWT signing**: Use HS256 (shared secret) for single-server

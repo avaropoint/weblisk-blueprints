@@ -524,6 +524,24 @@ time. The specific sealing mechanism is platform-dependent.
 
 ---
 
+## Types
+
+```yaml
+types:
+
+  SecretRef:
+    description: A reference to where a secret lives, never the secret
+    fields:
+      key:
+        type: string
+        description: Identifier for the secret in whatever store holds it
+      env_var:
+        type: string
+        description: Environment variable carrying the value, where a platform supplies secrets that way. MUST NOT be used for key material or a passphrase — protocol/identity forbids that path and states why
+```
+
+---
+
 ## Implementation Notes
 
 - The file-based store is the default and works for all deployment
