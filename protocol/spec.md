@@ -801,6 +801,26 @@ Published when an event exhausts all delivery retries. Payload:
 
 ## Authentication
 
+
+```yaml
+authentication:
+  mechanism: token
+  token_format:
+    structure: Weblisk Token — see protocol/identity, which declares it
+    signing: The signature algorithm protocol/identity names
+    verification: Verified against the orchestrator's public key
+  exempt_endpoints:
+    - GET /v1/health
+    - POST /v1/register
+  flow:
+    - step: "Read the token from the `Authorization: Bearer` header"
+    - step: Where no header is present, read the `token` field from the body — EventEnvelope and TaskRequest carry it there
+    - step: Where both are present, the header wins
+    - step: Verify the token signature against the orchestrator's public key
+    - step: Check expiry
+    - step: On failure, return 401 and no detail about why beyond that a valid token is required
+    - step: On success, pass the decoded claims to the handler
+```
 Applied to ALL orchestrator endpoints except:
 - `GET /v1/health`
 - `POST /v1/register`
@@ -902,6 +922,43 @@ ephemeral — they are for debugging and monitoring, not compliance.
 
 ## Error Handling
 
+
+```yaml
+error_format:
+  type: ErrorResponse
+  declared_by: protocol/types
+  required_fields: [error]
+  recommended_fields: [code, category, retryable]
+
+error_codes:
+  - code: INVALID_REQUEST
+    raised_by: any endpoint, on a malformed or incomplete body
+  - code: INVALID_SIGNATURE
+    raised_by: POST /v1/register, and any signed request
+  - code: TOKEN_EXPIRED
+    raised_by: any authenticated endpoint
+  - code: FORBIDDEN
+    raised_by: any endpoint requiring a capability the caller lacks
+  - code: NOT_FOUND
+    raised_by: any endpoint addressing an agent or resource not in the registry
+  - code: NAMESPACE_CONFLICT
+    raised_by: POST /v1/register, where the namespace is already owned
+  - code: NAMESPACE_RESERVED
+    raised_by: POST /v1/register, for a reserved namespace
+  - code: SCOPE_UNAUTHORIZED
+    raised_by: subscription, where the scope exceeds the caller's capability
+  - code: EVENT_REJECTED
+    raised_by: event publication, on a malformed envelope or unowned topic
+  - code: RATE_LIMITED
+    raised_by: any endpoint, with Retry-After
+  - code: AGENT_UNREACHABLE
+    raised_by: any dispatch, where the target did not accept the connection
+  - code: AGENT_TIMEOUT
+    raised_by: any dispatch, where the target did not answer in time
+```
+
+Status, category and description for each code are declared once, in
+[protocol/types](types.md). This section says which endpoints raise them.
 All errors MUST return JSON using the `ErrorResponse` format
 (see [types.md](types.md)). At minimum, the `error` field is required.
 Implementations SHOULD include `code`, `category`, and `retryable`

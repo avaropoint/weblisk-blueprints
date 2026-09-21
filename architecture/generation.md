@@ -859,7 +859,7 @@ security:
         caller writes files
     - boundary: Model response → Written artifact. Every path is validated for
         containment before anything is written
-    - boundary: Partial result → Target directory. Not crossed: nothing is
+    - boundary: Partial result → Target directory. Not crossed — nothing is
         written until every file succeeds
 
   enforcement:
