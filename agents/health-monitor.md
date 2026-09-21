@@ -817,15 +817,30 @@ informed decisions about collaboration:
 
 ## Observability
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| health_check_duration_seconds | histogram | Time to complete a probe by component type |
-| health_check_total | counter | Probes by component, target, and result |
-| health_state_changes_total | counter | State transitions by component and direction |
-| hub_health_score | gauge | Current aggregate hub health score |
-| component_latency_ms | gauge | Latest probe latency by component |
-| component_uptime_ratio | gauge | 24-hour uptime ratio by component |
-| health_alerts_fired_total | counter | Alerts dispatched by severity |
+```yaml
+metrics:
+  - name: health_check_duration_seconds
+    type: histogram
+    description: Time to complete a probe by component type
+  - name: health_check_total
+    type: counter
+    description: Probes by component, target, and result
+  - name: health_state_changes_total
+    type: counter
+    description: State transitions by component and direction
+  - name: hub_health_score
+    type: gauge
+    description: Current aggregate hub health score
+  - name: component_latency_ms
+    type: gauge
+    description: Latest probe latency by component
+  - name: component_uptime_ratio
+    type: gauge
+    description: 24-hour uptime ratio by component
+  - name: health_alerts_fired_total
+    type: counter
+    description: Alerts dispatched by severity
+```
 
 ---
 
@@ -1147,15 +1162,32 @@ constraints:
 
 ## Error Handling
 
-| Error | Handling |
-|-------|---------|
-| Probe timeout | Mark component probe as failed. Increment consecutive_failures. |
-| Probe connection refused | Mark offline. Agent likely not running. |
-| Alerting agent unavailable | Log alert locally. Retry on next sweep. Do NOT block health monitoring. |
-| Storage unavailable | Continue probing in-memory. Persist snapshots when storage recovers. |
-| All components offline | Hub state → offline. Health-monitor itself remains running. |
-| Self-check paradox | Health-monitor does NOT probe itself. Its liveness is inferred by the orchestrator receiving health reports. |
+```yaml
+errors:
+  permanent:
+    - code: INVALID_PROBE_TARGET
+      description: The component named is not in the service directory
 
+  transient:
+    - code: PROBE_TIMEOUT
+      description: A component did not answer within the probe budget
+      fallback: Mark the probe failed and increment consecutive_failures
+    - code: PROBE_UNREACHABLE
+      description: The connection was refused — the component is likely not running
+      fallback: Mark the component offline and continue the sweep
+    - code: ALERTING_UNAVAILABLE
+      description: The alerting agent did not accept an alert
+      fallback: Log the alert locally and retry on the next sweep. Health monitoring MUST NOT block on it
+    - code: STORAGE_UNAVAILABLE
+      description: Snapshots cannot be persisted
+      fallback: Continue probing in memory and persist when storage recovers
+```
+
+Two conditions in this agent are states rather than errors. Every component
+being offline sets hub state to offline while the health monitor itself keeps
+running. And the health monitor does not probe itself: its own liveness is
+inferred by the orchestrator receiving its reports, which is why a self-probe
+would answer for a component that had already stopped.
 ## Implementation Notes
 
 - The health-monitor MUST NOT depend on any other agent to function.

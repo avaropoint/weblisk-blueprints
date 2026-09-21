@@ -889,31 +889,52 @@ Phase 6 — Completion
 
 ## Storage
 
-Workflow execution records are stored in flat-file JSONL:
-
+```yaml
+storage:
+  tables:
+    executions:
+      source_type: WorkflowExecution
+      primary_key: execution_id
+      indexes:
+        - name: idx_execution_workflow
+          fields: [workflow_name]
+          type: non-unique
+        - name: idx_execution_status
+          fields: [status]
+          type: non-unique
 ```
-.weblisk/data/workflow/executions.jsonl
-```
 
-Each line is a complete `WorkflowExecution` JSON object. The Workflow
-Agent appends on state changes (started, phase complete, finished).
-
-Definition cache (in-memory, invalidated on domain re-registration):
-
-```
-cache[domain_name][workflow_name] → WorkflowDefinition
-```
-
+The agent appends on each state change — started, phase complete, finished. The
+definition cache is derived from the source domain and is held in memory,
+invalidated on domain re-registration. Which backend satisfies the store is the
+platform blueprint's answer, per `architecture/storage`.
 ## Configuration
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| Listen port | `9780` | Listen port |
-| Max concurrent | `10` | Max concurrent workflow executions |
-| Workflow timeout | `600` | Default workflow timeout (seconds) |
-| Phase timeout | `300` | Default phase timeout (seconds) |
-| Data directory | Implementation-defined | Storage directory |
-
+```yaml
+config:
+  listen_port:
+    type: int
+    default: 9780
+    description: Listen port
+  max_concurrent:
+    type: int
+    default: 10
+    description: Max concurrent workflow executions
+  workflow_timeout:
+    type: int
+    default: 600
+    unit: seconds
+    description: Default workflow timeout
+  phase_timeout:
+    type: int
+    default: 300
+    unit: seconds
+    description: Default phase timeout
+  data_dir:
+    type: string
+    default: implementation-defined
+    description: Storage directory
+```
 ---
 
 ## Collaboration
@@ -1112,14 +1133,27 @@ errors:
 
 ## Observability
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| `workflow_execution_total` | counter | By workflow name and status |
-| `workflow_execution_duration_seconds` | histogram | End-to-end duration |
-| `workflow_phase_duration_seconds` | histogram | Per-phase by agent/action |
-| `workflow_phase_total` | counter | Phase executions by status |
-| `workflow_approval_wait_seconds` | histogram | Approval gate wait time |
-| `workflow_inflight` | gauge | Currently executing workflows |
+```yaml
+metrics:
+  - name: workflow_execution_total
+    type: counter
+    description: By workflow name and status
+  - name: workflow_execution_duration_seconds
+    type: histogram
+    description: End-to-end duration
+  - name: workflow_phase_duration_seconds
+    type: histogram
+    description: Per-phase by agent/action
+  - name: workflow_phase_total
+    type: counter
+    description: Phase executions by status
+  - name: workflow_approval_wait_seconds
+    type: histogram
+    description: Approval gate wait time
+  - name: workflow_inflight
+    type: gauge
+    description: Currently executing workflows
+```
 
 ---
 

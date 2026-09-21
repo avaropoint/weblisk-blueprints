@@ -877,36 +877,64 @@ Phase 6 — Persist
 
 ## Storage
 
-All data stored in flat-file JSONL:
-
+```yaml
+storage:
+  tables:
+    strategies:
+      source_type: Strategy
+      primary_key: id
+    observations:
+      source_type: Observation
+      primary_key: id
+    recommendations:
+      source_type: Recommendation
+      primary_key: id
+    feedback:
+      source_type: Feedback
+      primary_key: id
+    agent_metrics:
+      source_type: AgentMetrics
+      primary_key: agent
+    entity_context:
+      source_type: EntityContext
+      primary_key: id
 ```
-.weblisk/data/lifecycle/
-  strategies.jsonl          # Strategy records
-  observations.jsonl        # Observation history
-  recommendations.jsonl     # Recommendation records
-  feedback.jsonl            # Feedback entries
-  agent_metrics.jsonl       # Running agent metrics
-  entity_context.json       # Current entity context (single file)
-```
 
-Retention defaults:
-- Observations: 90 days
-- Recommendations: 90 days
-- Feedback: 180 days
-- Strategies: indefinite
-- Agent metrics: indefinite (running aggregates)
-
+Retention for observations, recommendations and feedback is the corresponding
+`config` value. Which backend satisfies these stores is the platform blueprint's
+answer, per `architecture/storage`.
 ## Configuration
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| Listen port | `9782` | Listen port |
-| Max concurrent | `20` | Max concurrent event processing |
-| Data directory | Implementation-defined | Storage directory |
-| Observation retention | `7776000` | Observation retention (seconds, 90d) |
-| Recommendation retention | `7776000` | Recommendation retention (seconds, 90d) |
-| Feedback retention | `15552000` | Feedback retention (seconds, 180d) |
-
+```yaml
+config:
+  listen_port:
+    type: int
+    default: 9782
+    description: Listen port
+  max_concurrent:
+    type: int
+    default: 20
+    description: Max concurrent event processing
+  data_dir:
+    type: string
+    default: implementation-defined
+    description: Storage directory
+  observation_retention:
+    type: int
+    default: 7776000
+    unit: seconds
+    description: Observation retention (90 days)
+  recommendation_retention:
+    type: int
+    default: 7776000
+    unit: seconds
+    description: Recommendation retention (90 days)
+  feedback_retention:
+    type: int
+    default: 15552000
+    unit: seconds
+    description: Feedback retention (180 days)
+```
 ---
 
 ## Collaboration
@@ -1086,14 +1114,27 @@ errors:
 
 ## Observability
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| `lifecycle_observations_total` | counter | Observations recorded by agent |
-| `lifecycle_recommendations_total` | counter | Recommendations by status and priority |
-| `lifecycle_approvals_total` | counter | Approval decisions by outcome |
-| `lifecycle_feedback_total` | counter | Feedback entries by signal type |
-| `lifecycle_strategy_progress` | gauge | Current progress per strategy |
-| `lifecycle_agent_accuracy` | gauge | Per-agent recommendation accuracy |
+```yaml
+metrics:
+  - name: lifecycle_observations_total
+    type: counter
+    description: Observations recorded by agent
+  - name: lifecycle_recommendations_total
+    type: counter
+    description: Recommendations by status and priority
+  - name: lifecycle_approvals_total
+    type: counter
+    description: Approval decisions by outcome
+  - name: lifecycle_feedback_total
+    type: counter
+    description: Feedback entries by signal type
+  - name: lifecycle_strategy_progress
+    type: gauge
+    description: Current progress per strategy
+  - name: lifecycle_agent_accuracy
+    type: gauge
+    description: Per-agent recommendation accuracy
+```
 
 ---
 

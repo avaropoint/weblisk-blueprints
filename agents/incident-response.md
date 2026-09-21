@@ -1150,28 +1150,58 @@ constraints:
 
 ## Observability
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| incident_total | counter | Incidents by severity, state, and runbook |
-| incident_duration_seconds | histogram | Time from detection to resolution |
-| incident_active | gauge | Currently active incidents by severity |
-| runbook_execution_total | counter | Runbook executions by name and result |
-| runbook_step_duration_seconds | histogram | Time per runbook step |
-| runbook_auto_resolve_total | counter | Incidents auto-resolved without human |
-| runbook_escalation_total | counter | Incidents escalated to operators |
+```yaml
+metrics:
+  - name: incident_total
+    type: counter
+    description: Incidents by severity, state, and runbook
+  - name: incident_duration_seconds
+    type: histogram
+    description: Time from detection to resolution
+  - name: incident_active
+    type: gauge
+    description: Currently active incidents by severity
+  - name: runbook_execution_total
+    type: counter
+    description: Runbook executions by name and result
+  - name: runbook_step_duration_seconds
+    type: histogram
+    description: Time per runbook step
+  - name: runbook_auto_resolve_total
+    type: counter
+    description: Incidents auto-resolved without human
+  - name: runbook_escalation_total
+    type: counter
+    description: Incidents escalated to operators
+```
 
 ---
 
 ## Error Handling
 
-| Condition | Action |
-|-------|---------|
-| Runbook step fails | Move to on_failure path (usually escalate) |
-| Runbook timeout | Cancel remaining steps, escalate to operator |
-| Alerting agent unavailable | Queue notifications, retry when available |
-| Storage unavailable | Continue operation in-memory, persist when storage recovers |
-| Concurrent runbooks for same target | Queue second runbook, execute after first completes |
+```yaml
+errors:
+  permanent:
+    - code: RUNBOOK_NOT_FOUND
+      description: No runbook matches the incident's classification
 
+  transient:
+    - code: RUNBOOK_STEP_FAILED
+      description: A runbook step did not complete successfully
+      fallback: Follow the step's `on_failure` path, which is escalation unless the runbook names another
+    - code: RUNBOOK_TIMEOUT
+      description: The runbook exceeded its budget
+      fallback: Cancel the remaining steps and escalate to an operator
+    - code: ALERTING_UNAVAILABLE
+      description: The alerting agent did not accept a notification
+      fallback: Queue the notification and retry when it is available
+    - code: STORAGE_UNAVAILABLE
+      description: Incident records cannot be persisted
+      fallback: Continue in memory and persist when storage recovers
+    - code: RUNBOOK_ALREADY_RUNNING
+      description: A runbook is already executing against the same target
+      fallback: Queue the second runbook and execute it after the first completes
+```
 ---
 
 ## Security
