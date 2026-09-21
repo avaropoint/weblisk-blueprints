@@ -1836,6 +1836,42 @@ Every command that calls the orchestrator:
 
 ---
 
+## Security
+
+```yaml
+security:
+  trust_model:
+    description: |
+      The CLI runs with the full authority of the person invoking it, on their
+      machine, and is therefore the most dangerous component in the framework to
+      get wrong. It holds no long-lived secret of its own: it signs with an
+      identity whose private half may never be extractable, and it mints
+      short-lived credentials rather than storing them.
+  boundaries:
+    - boundary: Operator → CLI. The operator's identity authorises every
+        privileged operation; the CLI holds no standing authority
+    - boundary: CLI → Identity holder. The private half may live in hardware or a
+        vault; the CLI asks for a signature and never for the key
+    - boundary: CLI → Orchestrator. Authenticated per request with a short-lived
+        credential, over a transport the operator named
+    - boundary: CLI → Local filesystem. Confined to the project and the
+        operator's own configuration directory
+  enforcement:
+    - rule: A passphrase is never supplied on the command line or through the
+        environment
+      mechanism: Read from a non-echoing channel; protocol/identity states why
+    - rule: A key or passphrase is never written to a log, a crash report or a
+        cache
+      mechanism: Redaction at the boundary of every diagnostic path
+    - rule: An operating credential is short-lived and held in memory
+      mechanism: Minted per invocation from the identity, never persisted
+    - rule: A destructive operation requires explicit confirmation
+      mechanism: Confirmation is a distinct argument, never a default, and never
+        satisfied by a non-interactive invocation unless declared
+```
+
+---
+
 ## Implementation Notes
 
 - All commands share a common `AdminClient` that handles auth,

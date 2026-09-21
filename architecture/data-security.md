@@ -652,6 +652,46 @@ the application configures — not by the framework core.
 
 ---
 
+## Security
+
+```yaml
+security:
+  trust_model:
+    description: |
+      Data in motion is trusted only where both ends are identified and the
+      channel is authenticated. Every hop verifies the identity of its peer
+      rather than inheriting trust from the hop before it, so a compromised
+      component cannot vouch for one beyond it.
+  boundaries:
+    - boundary: Client ↔ Gateway. Transport-encrypted; the client is
+        authenticated, the gateway is identified
+    - boundary: Gateway ↔ Agent network. Both ends hold protocol identities and
+        verify each other per request
+    - boundary: Agent ↔ Agent. Only over a brokered channel, with both peer keys
+        known in advance
+    - boundary: Hub ↔ Hub. Federation, where the payload's scope and the peer's
+        trust tier jointly bound what may cross
+    - boundary: Component ↔ Store. Data at rest is the store owner's
+        responsibility; this boundary governs what reaches it
+  enforcement:
+    - rule: No hop trusts an assertion made by the hop before it about a party
+        further back
+      mechanism: Each hop verifies its peer's signature against a key it already
+        holds
+    - rule: Scope travels with a payload and is never dropped in transit
+      mechanism: Scope is carried in the envelope; a payload arriving without one
+        is treated at the most restrictive level rather than the least
+    - rule: A payload whose scope exceeds the destination's ceiling does not
+        cross
+      mechanism: Ceiling check before transmission, refusing rather than
+        downgrading
+    - rule: A replayed message is refused
+      mechanism: Message identifier and timestamp checked against the replay
+        window
+```
+
+---
+
 ## Implementation Notes
 
 - The framework provides two tiers of data security: (1) **transport

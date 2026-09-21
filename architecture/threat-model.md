@@ -645,6 +645,46 @@ types:
 
 ---
 
+## Security
+
+```yaml
+security:
+  trust_model:
+    description: |
+      The framework trusts no boundary crossing by default. Six boundaries are
+      enumerated in this document, and an attack surface exists at each one; a
+      component on either side is trusted only as far as an identity verifies and
+      a scope permits. This document's own integrity rests on being exhaustive
+      about the boundaries rather than confident about the mitigations: an
+      unlisted boundary is the one nobody defends.
+  boundaries:
+    - boundary: Browser ↔ Application gateway. Untrusted input with a session
+    - boundary: Application gateway ↔ Agent network. Both ends hold protocol
+        identities and verify per request
+    - boundary: Agents ↔ Storage. Confined to declared ownership
+    - boundary: Operator ↔ Admin gateway. A separate listener with no shared
+        state, so the application gateway's compromise does not reach it
+    - boundary: Hub ↔ Hub. Bounded jointly by trust tier and data contract
+    - boundary: Enforcement layer ↔ Everything. The layer that refuses; it is
+        itself a boundary because bypassing it defeats every rule above
+  enforcement:
+    - rule: Every boundary in this document has at least one named control, not
+        only a mitigation
+      mechanism: ThreatBoundary carries controls separately from mitigations, so
+        a mitigation with no control is visible as an intention
+    - rule: A boundary added to the architecture is added here before it ships
+      mechanism: A boundary absent from this document is undefended by
+        definition; review of any new crossing includes this file
+    - rule: A mitigation is not credited until something enforces it
+      mechanism: Controls reference the component that applies them
+    - rule: Enforcement cannot be bypassed by a component choosing not to consult
+        it
+      mechanism: architecture/enforcement is consulted in the path rather than by
+        the caller's cooperation
+```
+
+---
+
 ## Implementation Notes
 
 - This threat model MUST be reviewed and updated when new features

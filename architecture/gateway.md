@@ -872,6 +872,49 @@ types:
 
 ---
 
+## Security
+
+```yaml
+security:
+  trust_model:
+    description: |
+      The gateway is the security boundary between end-user browsers and the agent
+      network, and it trusts neither side unconditionally. A browser is untrusted
+      input with a session; the agent network is trusted only to the extent each
+      component's identity verifies. It holds its own protocol identity and is
+      subject to the same protocol as everything it fronts.
+      It is not the administrative surface. That is a separate listener with a
+      separate threat profile, sharing no session state, no authentication flow
+      and no cookie domain, so compromising this gateway does not reach it.
+  boundaries:
+    - boundary: Browser → Gateway. TLS terminates here; the session is resolved
+        and every request is untrusted until it is
+    - boundary: Gateway → Policy. Every request is evaluated before mediation,
+        and the gateway does not decide what policy decides
+    - boundary: Gateway → Agent network. The gateway holds a protocol identity
+        and authenticates per request
+    - boundary: Gateway → Admin gateway. No boundary — there is no path. They
+        share no state and no listener
+  enforcement:
+    - rule: A request reaches no agent before its session and policy are resolved
+      mechanism: Resolution and evaluation precede mediation in the request
+        lifecycle, with no bypass for any route
+    - rule: A route not declared in the route table is not served
+      mechanism: Dispatch from the declared table only; an undeclared path is a
+        refusal rather than a pass-through
+    - rule: A session credential is bound, and a bound credential presented
+        elsewhere is refused
+      mechanism: Binding verified on every request
+    - rule: A state-changing request from a browser carries a CSRF token derived
+        from the session's secret
+      mechanism: Per-form token derived server-side; the secret is never sent to
+        the browser
+    - rule: Rate limits are applied before an agent is reached, not after
+      mechanism: Limiting occurs in the request lifecycle ahead of mediation
+```
+
+---
+
 ## Implementation Notes
 
 - The gateway MUST be the ONLY externally-reachable component for

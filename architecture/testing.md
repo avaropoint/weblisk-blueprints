@@ -616,6 +616,44 @@ weblisk test conformance --test L1-03
 weblisk test conformance --verbose
 ```
 
+## Security
+
+```yaml
+security:
+  trust_model:
+    description: |
+      Conformance testing trusts only what it observed. A blueprint's claim, a
+      generator's report and an implementation's self-description are all inputs
+      to be checked rather than evidence. Its integrity rests on one property:
+      a test that cannot fail proves nothing, so a check that cannot refute its
+      own assertion is itself a fault.
+  boundaries:
+    - boundary: Implementation → Test harness. The implementation under test is
+        untrusted; its output is evidence only where the harness observed it
+    - boundary: Test fixture → Production data. No fixture reads or writes real
+        tenant data
+    - boundary: Test credential → Production authority. Credentials minted for a
+        run carry no authority beyond it
+    - boundary: Test result → Conformance claim. A claim is made only from checks
+        that ran and could have failed
+  enforcement:
+    - rule: A check that did not run is reported as unreached, never as passed
+      mechanism: Reached and unreached are distinct results; absence of a failure
+        is not a pass
+    - rule: A check derives its answer from the artifact's structure, not from a
+        substring
+      mechanism: Structural inspection of the parse tree; an artifact that does
+        not parse contributes no structure
+    - rule: A test never runs against production stores or credentials
+      mechanism: Fixtures and credentials are scoped to the run and discarded
+        with it
+    - rule: A conformance claim names the checks it rests on
+      mechanism: The result records which assertions were evaluated, so a claim
+        is auditable rather than asserted
+```
+
+---
+
 ## Implementation Notes
 
 - Tests SHOULD be runnable against any implementation regardless of

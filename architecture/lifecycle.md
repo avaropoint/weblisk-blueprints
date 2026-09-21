@@ -624,6 +624,39 @@ types:
 
 ---
 
+## Security
+
+```yaml
+security:
+  trust_model:
+    description: |
+      The optimisation loop proposes and never applies. It trusts observations it
+      recorded itself, treats a recommendation as a proposal regardless of what
+      produced it, and requires a human approval before anything it suggests
+      changes a system. A loop that could apply its own recommendations would be
+      an unsupervised agent acting on inferred intent.
+  boundaries:
+    - boundary: Observation → Recommendation. Inference happens here, and
+        everything downstream is marked as inferred rather than observed
+    - boundary: Recommendation → Approval. Crossed only by a human decision
+    - boundary: Approval → Execution. Executed as an ordinary task under the
+        approver's scope, not the loop's
+    - boundary: Feedback → Strategy. Measured outcomes update strategy; a
+        recommendation's own claim about itself does not
+  enforcement:
+    - rule: A recommendation is never applied without an approval
+      mechanism: Execution is gated on an approval record naming the
+        recommendation
+    - rule: Execution runs under the approver's scope, not the loop's
+      mechanism: Scope resolved from the approval, carried into dispatch
+    - rule: An inferred value is never presented as an observed one
+      mechanism: Provenance carried on every recommendation and finding
+    - rule: Strategy changes only on measured feedback
+      mechanism: Feedback records before and after values for a named metric
+```
+
+---
+
 ## Implementation Notes
 
 - **Observation storage**: Observations SHOULD be stored with enough

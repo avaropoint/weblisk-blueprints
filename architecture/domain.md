@@ -822,6 +822,41 @@ types:
 
 ---
 
+## Security
+
+```yaml
+security:
+  trust_model:
+    description: |
+      A domain controller holds a tenant's business rules for one function and is
+      trusted with nothing outside it. It orchestrates agents through the
+      orchestrator rather than calling them, so it cannot exceed the authority
+      those agents already have, and it owns its own stores rather than reaching
+      into another domain's.
+  boundaries:
+    - boundary: Caller → Domain controller. Authenticated, and scoped to the
+        domain the caller is entitled to
+    - boundary: Domain → Agent. Through the orchestrator's dispatch, never
+        directly, so every execution is subject to the same admission
+    - boundary: Domain → Domain. No direct path. Cross-domain work is an event or
+        a task, not a call
+    - boundary: Domain → Store. Confined to the stores this domain owns
+  enforcement:
+    - rule: A domain controller cannot dispatch to an agent the caller could not
+      mechanism: The caller's scope is carried into dispatch rather than replaced
+        by the domain's own
+    - rule: A domain does not read another domain's stores
+      mechanism: Store ownership declared per domain; bindings carry only its own
+    - rule: Business rules are data, evaluated, not code supplied by a caller
+      mechanism: Rules are loaded from the domain's own declarations; a caller
+        supplies inputs, never logic
+    - rule: A workflow phase cannot widen the scope of the workflow that invoked
+        it
+      mechanism: Scope is resolved once at invocation and propagated unchanged
+```
+
+---
+
 ## Implementation Notes
 
 - **Domain as agent**: A domain controller implements the same 6

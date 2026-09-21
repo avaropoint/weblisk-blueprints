@@ -1389,6 +1389,45 @@ types:
 
 ---
 
+## Security
+
+```yaml
+security:
+  trust_model:
+    description: |
+      A hub is self-sovereign and trusts a peer only as far as an established
+      trust tier permits. A listing is a claim until its signature verifies
+      against the provider's recorded key; observed behaviour, not a provider's
+      description, is what a consumer judges. Federation adds no authority: a
+      peer can reach only what a data contract already permitted.
+  boundaries:
+    - boundary: Peer hub → This hub. Trust is established explicitly, recorded,
+        and bounded by a tier; it is never inferred from a request
+    - boundary: Listing → Catalogue. A listing enters the index only if its
+        signature verifies against the provider's recorded key
+    - boundary: Peer request → Local agents. Mediated by a data contract, which
+        bounds fields, operations, retention and jurisdiction
+    - boundary: This hub → Peer. What leaves is bounded by the contract and the
+        payload's scope, whichever is more restrictive
+  enforcement:
+    - rule: An unsigned or unverifiable listing is not indexed
+      mechanism: Signature verified against the provider's recorded key before
+        indexing; failure excludes rather than flags
+    - rule: A peer cannot reach a capability no data contract grants it
+      mechanism: Contract evaluated per request; absence of a contract is a
+        refusal
+    - rule: A behavioural change is recorded and visible to consumers
+      mechanism: Fingerprint compared per invocation; divergence recorded against
+        the listing rather than discarded
+    - rule: Trust tier cannot be raised by the peer asserting it
+      mechanism: Tier is recorded locally at establishment and re-read per
+        request
+    - rule: Revoking a peer takes effect at its next request
+      mechanism: Revocation checked at request time, not by expiry
+```
+
+---
+
 ## Implementation Notes
 
 - Hub federation is opt-in — deployments without federation operate as isolated instances
