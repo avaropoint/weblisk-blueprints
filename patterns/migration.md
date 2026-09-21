@@ -110,7 +110,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       behaviors:
-        - name: approval-request
+        - name: approval-routing
           usage: Migration plans are submitted as approval requests after dry-run validation
         - name: multi-party-approval
           usage: Destructive migrations require multi-party consensus

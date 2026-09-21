@@ -226,6 +226,20 @@ contracts:
       overridable: true
       override_constraints: Maximum escalation count cannot exceed 3; final escalation denial cannot be overridden
 
+    - name: multi-party-approval
+      description: Require more than one distinct decider before an operation proceeds
+      parameters:
+        - name: required_approvals
+          type: int
+          required: true
+          description: How many distinct deciders must approve
+        - name: distinct_from_requester
+          type: bool
+          required: true
+          description: Whether the requester is excluded from counting toward the total
+      inherits: A request that stays pending until the required number of distinct deciders have approved
+      overridable: true
+      override_constraints: required_approvals MUST be at least 2, and a single principal MUST NOT satisfy more than one of them
     - name: emergency-override
       description: Break-glass procedure for bypassing normal approval flow in critical situations
       parameters:

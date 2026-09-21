@@ -49,6 +49,71 @@ requires:
 
 ---
 
+## Design Principles
+
+1. **One grammar, every consumer** — State machine guards, workflow conditions,
+   storage constraints, policy rules and safety classification all evaluate the
+   same language. A second dialect is a second set of semantics to get right, and
+   an expression that means one thing in a guard and another in a policy is worse
+   than no expression language at all.
+2. **Evaluation has no effects** — An expression reads and returns. It never
+   mutates state and never performs I/O. This is what makes it safe to evaluate
+   an expression that arrived as configuration.
+3. **The language is deliberately small** — It evaluates to a boolean or a
+   scalar. It has no loops, no function definition and no recursion, so
+   evaluation terminates and its cost is bounded by the expression's size.
+4. **An unresolvable path is an error, not a false** — A guard whose path does
+   not resolve has not evaluated to "no"; it has failed. Treating the two alike
+   makes a typo look like a policy decision.
+5. **Types are checked before evaluation** — A comparison between incompatible
+   types is refused rather than coerced, because silent coercion is how a guard
+   passes for the wrong reason.
+
+---
+
+## Contracts
+
+```yaml
+contracts:
+  behaviors:
+    - name: expression-evaluation
+      description: Evaluate an expression against a context and return a boolean or scalar
+      parameters:
+        - name: expression
+          type: string
+          required: true
+          description: The expression source, in the grammar this pattern declares
+        - name: context
+          type: map
+          required: true
+          description: The paths the expression may resolve against. A path outside it is unresolvable rather than empty
+      inherits: An evaluator with the grammar, operator semantics and type rules declared here
+      overridable: false
+      override_constraints: Not overridable — a consumer that alters the semantics creates a second dialect, which is what this pattern exists to prevent
+
+    - name: expression-validation
+      description: Check an expression before it is stored, rather than at the moment it is needed
+      parameters:
+        - name: expression
+          type: string
+          required: true
+          description: The expression source
+        - name: declared_paths
+          type: list
+          required: true
+          description: Paths the consumer guarantees will exist at evaluation time
+      inherits: A parse and type check, reporting the position of a fault
+      overridable: true
+      override_constraints: A consumer MAY add checks; it MUST NOT accept an expression this pattern rejects
+
+  types:
+    - name: ExpressionContext
+      description: The values an expression may resolve
+      inherited_by: The adopting component's evaluation call site
+```
+
+---
+
 ## Grammar
 
 Expressions are UTF-8 strings evaluated against a context object.

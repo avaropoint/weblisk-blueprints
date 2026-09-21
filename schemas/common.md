@@ -256,7 +256,8 @@ They serve three purposes:
 |---------|--------|-------------|
 | `endpoints` | `path`, `methods`, `request_type`, `response_fields` | HTTP endpoints consumed from the dependency |
 | `types` | `name`, `fields_used` | Type definitions referenced from the dependency |
-| `patterns` | `behavior`, `parameters` | Behavioral patterns adopted from the dependency |
+| `behaviors` | `name`, `usage` | Behaviours adopted from a dependency's `## Contracts`. The name MUST match one the dependency declares |
+| `patterns` | `behavior`, `parameters` | Older form of the row above, retained for blueprints that still use it |
 | `events` | `topic`, `fields_used` | Events published to or subscribed from via the dependency |
 
 #### Field Specifications

@@ -61,7 +61,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       behaviors:
-        - name: version-declaration
+        - name: semantic-versioning
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
