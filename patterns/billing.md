@@ -31,6 +31,11 @@ here are the same: something outside the deployment holds the truth, it tells th
 deployment about changes unreliably, and the deployment must behave correctly while
 disagreeing with it.
 
+The pattern carries a second subject for the same reason: **a budget.** Metering says
+what was spent; a budget says what may be. Where a tenant's agents acquire capabilities
+as the work requires, the customer's control is not approving each acquisition — it is
+bounding what any of them may consume, before they consume it.
+
 `adoption: opt-in`. A deployment that charges nobody serves none of this.
 
 ---
@@ -89,6 +94,21 @@ requires:
    compliance problem at once.
 7. **Quota refusals say what was exceeded.** A caller told only that it may not proceed
    cannot tell a limit from a fault, and will retry as though it were a fault.
+8. **A budget is checked before consumption, never after.** A limit discovered once the
+   spend has happened is a report. Enforcement happens at the same point in the request
+   path as entitlement, so an operation that would exceed a budget does not run.
+9. **A budget bounds an actor, not only a payer.** A limit that can only stop the tenant
+   cannot stop one misbehaving agent without stopping the business. Budgets attach to a
+   tenant, an org, a project or a single agent, and the narrowest one that applies wins.
+10. **A child budget cannot exceed its parent's remainder.** The plan is the root
+    allocation and every budget beneath it subdivides what is left, so the sum of
+    internal limits can never authorise more than was purchased.
+11. **Behaviour at the boundary is declared, not assumed.** Degrading, refusing and
+    pausing are different answers, and the right one depends on what is being bounded.
+    Degrading is the default: a hard stop on a customer-facing surface is usually worse
+    than a narrower answer.
+12. **Exhaustion is an event, not a silent condition.** A budget reached without anyone
+    being told is a budget discovered by a complaint.
 
 ---
 
@@ -199,7 +219,71 @@ contracts:
       overridable: true
       override_constraints: The refusal MUST be distinguishable from a fault, so a caller does not retry a limit as though it were an error
 
+    - name: declare_budget
+      description: Bound what a scope may consume of a measure over a period
+      parameters:
+        - name: scope
+          type: string
+          required: true
+          description: What the budget bounds — a tenant, an org, a project, or one agent
+        - name: measure
+          type: string
+          required: true
+          description: What is being bounded, from the same vocabulary metering uses
+        - name: limit
+          type: int
+          required: true
+          description: The allowance for one period
+        - name: period
+          type: string
+          required: true
+          description: The window the allowance covers, after which it resets
+        - name: on_exhaustion
+          type: string
+          required: true
+          description: What happens at the boundary — degrade, refuse, or pause
+      inherits: A declared limit, evaluated before consumption, with a stated behaviour at its edge
+      overridable: true
+      override_constraints: A budget MUST NOT exceed its parent scope's remaining allowance, and on_exhaustion MUST be declared rather than defaulted silently
+
+    - name: check_budget
+      description: Decide whether an operation may consume, before it does
+      parameters:
+        - name: actor
+          type: string
+          required: true
+          description: What is about to consume
+        - name: measure
+          type: string
+          required: true
+          description: What it would consume
+        - name: quantity
+          type: int
+          required: true
+          description: How much, estimated where it cannot be known exactly
+      inherits: A decision evaluated at the same point as entitlement, naming the budget that bound it
+      overridable: true
+      override_constraints: MUST be evaluated before the operation runs. A check performed afterwards is metering, not budgeting
+
+    - name: report_exhaustion
+      description: Make a reached budget visible to the people who can act on it
+      parameters:
+        - name: budget
+          type: string
+          required: true
+          description: Which budget was reached
+        - name: actor
+          type: string
+          required: true
+          description: What consumed the last of it
+      inherits: An event carrying the budget, the actor and the behaviour applied, routed per patterns/alerting
+      overridable: true
+      override_constraints: Exhaustion MUST emit an event even where on_exhaustion is degrade, because a silently narrowed service is the hardest failure to diagnose
+
   types:
+    - name: Budget
+      description: A declared limit on what a scope may consume
+      inherited_by: The adopting component's budget store
     - name: BillingSubscription
       description: Local record of what a provider of record says was purchased
       inherited_by: The adopting component's subscription store
@@ -275,6 +359,50 @@ types:
         required: false
         description: "Why not, when it may not — a lapsed subscription, an exceeded quota, or a plan that excludes it"
 
+  Budget:
+    description: A declared limit on what a scope may consume of one measure
+    fields:
+      scope:
+        name: Scope
+        type: string
+        required: true
+        description: "What is bounded — `tenant`, `org`, `project` or `agent`"
+      scope_id:
+        name: ScopeID
+        type: string
+        required: true
+        description: "Which tenant, org, project or agent"
+      measure:
+        name: Measure
+        type: string
+        required: true
+        description: "What is bounded, from the vocabulary metering uses"
+      limit:
+        name: Limit
+        type: int
+        required: true
+        description: "Allowance for one period"
+      period:
+        name: Period
+        type: string
+        required: true
+        description: "`hour`, `day`, `month`, or the subscription period"
+      consumed:
+        name: Consumed
+        type: int
+        required: true
+        description: "Consumed so far in the current period"
+      on_exhaustion:
+        name: OnExhaustion
+        type: string
+        required: true
+        description: "`degrade` — serve a narrower result; `refuse` — decline the operation; `pause` — hold work until the period resets or the limit is raised"
+      parent:
+        name: Parent
+        type: string
+        required: false
+        description: "The budget this subdivides. Absent means the plan is the parent"
+
   UsageRecord:
     description: A recorded consumption, inspectable by the subject
     fields:
@@ -327,6 +455,18 @@ config:
     default: 604800
     overridable: true
     description: How long a notification identifier is remembered for idempotency
+  default_on_exhaustion:
+    type: string
+    default: degrade
+    overridable: true
+    description: Behaviour where a budget declares none. Degrading is the default because a hard stop on a customer-facing surface is usually worse than a narrower answer
+  exhaustion_warning_fraction:
+    type: float
+    default: 0.8
+    overridable: true
+    min: 0.5
+    max: 0.99
+    description: Fraction of a budget at which a warning is emitted, so exhaustion is anticipated rather than discovered
   suspend_on_lapse:
     type: bool
     default: true
@@ -346,6 +486,10 @@ config:
 | Subscription lapsed, within grace | Serve normally | A warning the subject can see |
 | Subscription lapsed, past grace | Suspend | Which subscription lapsed and how to restore it |
 | Quota exceeded | Refuse this operation | The measure exceeded and when it resets |
+| Budget reached, `on_exhaustion: degrade` | Serve a narrower result | Which budget, and that the result is narrowed |
+| Budget reached, `on_exhaustion: refuse` | Decline this operation | Which budget, the actor, and when the period resets |
+| Budget reached, `on_exhaustion: pause` | Hold the work | Which budget, and that the work resumes on reset or on the limit being raised |
+| A budget declared above its parent's remainder | Refuse the declaration | Which parent, and what remains |
 | Metering write failed | Proceed with the operation; retry the write | Nothing to the caller |
 
 ---
@@ -367,6 +511,16 @@ config:
   suspension for non-payment is reasonable; automatic deletion is not.
 - **Show usage before it is charged, not after.** A subject who can see consumption
   accumulating disputes far less than one who receives a total.
+- **Estimate before an operation whose cost is not known in advance.** Inference and
+  crawling cannot be priced exactly beforehand. Check against an estimate, meter the
+  actual, and let the next check see the difference — a budget that can only be enforced
+  on known costs does not bound the expensive operations.
+- **Evaluate the narrowest applicable budget, and report which one bound the decision.**
+  An operator told only that a limit was hit cannot tell whether to raise the agent's
+  budget or the tenant's.
+- **Warn before exhausting.** The default warning fraction exists so that a budget is
+  anticipated. A limit that first announces itself by degrading service has already cost
+  something.
 - **Attribute every measure to an actor, not only to a payer.** A tenant whose agents
   acquire capabilities as the work requires will see costs it did not individually
   authorise, which is the intended behaviour. What makes that safe is not prior approval
@@ -389,3 +543,9 @@ config:
 - [ ] A quota refusal MUST be distinguishable by the caller from a transient fault
 - [ ] A subject MUST be able to retrieve the usage records they are charged from
 - [ ] Every usage record MUST name the actor that consumed the measure, not only the subject charged
+- [ ] A budget MUST be evaluated before the operation it bounds runs
+- [ ] A budget declared above its parent scope's remaining allowance MUST be refused
+- [ ] Where several budgets apply, the narrowest MUST decide, and the decision MUST name it
+- [ ] Reaching a budget MUST emit an event even where the behaviour is to degrade
+- [ ] An operation whose cost is not knowable in advance MUST be checked against an estimate and metered on its actual consumption
+- [ ] A budget bounding one agent MUST NOT stop another agent in the same tenant
