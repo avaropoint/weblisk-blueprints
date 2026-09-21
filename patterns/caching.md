@@ -15,11 +15,23 @@ to inherit the cache interface and eviction semantics described here.
 
 ## Overview
 
-Every Weblisk agent runs as an independent process with its own memory
-space. There is no shared cache server — caching is local, embedded,
-and zero-dependency. This pattern defines a standard interface so that
-agents cache consistently and tools can instrument cache behaviour
-uniformly.
+This pattern's subject is an **in-process cache**: memory a component holds
+between operations, local, embedded and zero-dependency. It defines a standard
+interface so that components cache consistently and tools can instrument cache
+behaviour uniformly.
+
+**Where a component's execution is not a resident process, this pattern does not
+apply.** A runtime that creates and discards execution contexts per request, or
+that may evict one at any moment, gives a component no memory that survives
+predictably — anything held between requests is held for an unknowable time, and
+a cache with unknowable lifetime is not a cache. Such a platform's blueprint names
+what provides caching there, in its `## Service Mapping`, and a component
+generated for it adopts that rather than this.
+
+The distinction is between the two halves of a cache: this pattern owns the
+*contract* — namespacing, eviction semantics, cache-aside correctness — and those
+hold wherever a cache lives. What it assumes is the *storage*, and that assumption
+is what does not travel.
 
 ---
 
@@ -48,7 +60,7 @@ requires:
 
 ## Design Principles
 
-1. **Local and zero-dependency** — Caching is in-process, embedded in each agent. There is no shared cache server, no distributed state, and no serialization overhead.
+1. **Local and zero-dependency** — Where this pattern applies, the cache is in-process and embedded in the component: no cache server, no distributed state, no serialization overhead. A platform offering a managed cache is a platform where this principle does not hold, and its blueprint says so.
 2. **Namespaced isolation** — Cache keys are always namespaced to prevent collisions between different data types within the same agent.
 3. **Cache-aside correctness** — The cache is never the source of truth. Agents always fall back to the primary data source on miss, and explicit invalidation takes priority over TTL.
 
