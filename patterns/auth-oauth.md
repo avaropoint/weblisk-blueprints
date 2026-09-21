@@ -179,7 +179,7 @@ contracts:
     - name: ResourceMetadata
       description: What a resource publishes so a client can authorize against it
       inherited_by: The adopting component's public metadata surface
-    - name: Grant
+    - name: DelegatedGrant
       description: A person's authorization of one client for one resource
       inherited_by: The adopting component's grant store
     - name: ResolvedCredential
@@ -212,7 +212,7 @@ types:
         required: false
         description: "Scopes a client may request"
 
-  Grant:
+  DelegatedGrant:
     description: One person's authorization of one client against one resource
     fields:
       grant_id:

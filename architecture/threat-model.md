@@ -68,6 +68,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
+        - name: AuditEntry
+          fields_used: [timestamp, actor, action, target, status]
         - name: RegisterRequest
           fields_used: [manifest, signature, timestamp]
         - name: AgentMessage
@@ -80,6 +82,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
+        - name: DataContract
+          fields_used: [fields, operations, retention, scope]
         - name: PeerRequest
           fields_used: [manifest, capabilities]
         - name: DataContract
@@ -134,8 +138,6 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: AuditEntry
-          fields_used: [timestamp, actor, action, target, status]
         - name: StructuredLog
           fields_used: [ts, level, component, trace_id]
     on_change:
@@ -159,10 +161,6 @@ requires:
       removed: halt-immediately
   - blueprint: patterns/contract
     version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: DataContract
-          fields_used: [fields, operations, retention, scope]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

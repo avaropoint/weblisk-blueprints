@@ -64,8 +64,6 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: AlertEvent
-          fields_used: [alert_id, source, type, severity, target, message, timestamp]
         - name: TaskResult
           fields_used: [task_id, agent_name, status, summary, timestamp]
         - name: AgentMessage
@@ -85,6 +83,8 @@ requires:
         - topic: alert.resolved
           fields_used: [alert_id, resolved_by, resolution, timestamp]
       types:
+        - name: AlertEvent
+          fields_used: [alert_id, source, type, severity, target, message, timestamp]
         - name: AlertEvent
           fields_used: [alert_id, severity, source, category, message, fingerprint]
         - name: AlertSeverity

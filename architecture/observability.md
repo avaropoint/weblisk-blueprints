@@ -38,6 +38,12 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
+        - name: ServiceDirectory
+          fields_used: [services]
+        - name: HealthStatus
+          fields_used: [name, status, version, uptime, checks]
+        - name: AuditEntry
+          fields_used: [timestamp, actor, action]
         - name: TaskResult
           fields_used: [task_id, status, duration_ms]
         - name: ErrorResponse
@@ -52,22 +58,12 @@ requires:
       removed: halt-immediately
   - blueprint: architecture/orchestrator
     version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: ServiceDirectory
-          fields_used: [services]
-        - name: AuditEntry
-          fields_used: [timestamp, actor, action]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
     version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: HealthStatus
-          fields_used: [name, status, version, uptime, checks]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

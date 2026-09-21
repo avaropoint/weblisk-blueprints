@@ -51,6 +51,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
+        - name: AgentManifest
+          fields_used: [name, type, capabilities]
         - name: FieldType
           fields_used: [string, int, boolean, timestamp]
         - name: ErrorResponse
@@ -61,10 +63,6 @@ requires:
       removed: halt-immediately
   - blueprint: architecture/agent
     version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: AgentManifest
-          fields_used: [name, type, capabilities]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

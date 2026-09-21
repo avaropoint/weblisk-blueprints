@@ -32,6 +32,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
+        - name: HealthStatus
+          fields_used: [status]
         - name: ErrorResponse
           fields_used: [error, code, category]
     on_change:
@@ -44,8 +46,6 @@ requires:
       types:
         - name: OrchestratorConfig
           fields_used: [port, env, log_level, storage_dsn]
-        - name: HealthStatus
-          fields_used: [status]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

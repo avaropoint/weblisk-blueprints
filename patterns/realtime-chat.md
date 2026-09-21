@@ -31,10 +31,6 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: ChatMessage
-          fields_used: [id, channel, from, content, timestamp, metadata]
-        - name: WebSocketFrame
-          fields_used: [type]
         - name: AgentManifest
           fields_used: [name, version, url]
     on_change:
