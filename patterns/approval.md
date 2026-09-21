@@ -1272,6 +1272,19 @@ through this pattern when contract policy requires sign-off.
 
 ## Error Handling
 
+
+| Code | Category | Retryable | Raised when |
+|---|---|:---:|---|
+| `APPROVAL_SELF_DENIED` | permanent | no | The requester and the decider are the same principal |
+| `APPROVAL_AUTHORITY_INSUFFICIENT` | permanent | no | The decider's authority is below the level the request requires |
+| `APPROVAL_ALREADY_DECIDED` | permanent | no | A decision has already been recorded for this request |
+| `APPROVAL_EXPIRED` | permanent | no | The request passed its deadline before a decision was recorded |
+| `APPROVAL_NOT_FOUND` | permanent | no | No request matches the identifier |
+| `APPROVAL_STORE_UNAVAILABLE` | transient | yes | The decision could not be persisted; the request stays pending |
+
+Every error uses the `ErrorResponse` shape from `protocol/types`. A pending
+request is never admitted by a timeout: expiry refuses it rather than approving
+it, which is why `APPROVAL_EXPIRED` is permanent.
 All errors use the standard `ErrorResponse` format from
 `protocol/types`:
 

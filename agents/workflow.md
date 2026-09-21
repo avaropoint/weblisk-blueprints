@@ -1254,11 +1254,11 @@ tests:
   - name: Approval gate pauses execution
     trigger: "workflow.trigger with phase having approval: required"
     expected:
-      Phase completes, execution pauses
-      workflow.approval.required published
-      After accept: execution resumes
+      - Phase completes, execution pauses
+      - workflow.approval.required published
+      - "After accept: execution resumes"
     validates:
-      - WorkflowExecution state: pending_approval
+      - "WorkflowExecution state: pending_approval"
       - Downstream phases wait for approval
 ```
 

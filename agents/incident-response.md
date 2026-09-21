@@ -1139,6 +1139,7 @@ constraints:
 ## Configuration
 
 ```yaml
+config:
   correlation_window: 300      # seconds — group related alerts
   auto_resolve_timeout: 600    # seconds — auto-close if stable after resolution
   max_runbook_duration: 300    # seconds — max time for a runbook to complete
