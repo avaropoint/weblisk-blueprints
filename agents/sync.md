@@ -1063,27 +1063,58 @@ scaling:
 
 ## Observability
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| sync_push_total | counter | Push operations by result (success/conflict/error) |
-| sync_pull_total | counter | Pull operations by result |
-| sync_records_total | counter | Records processed by operation (applied/conflicted/skipped) |
-| sync_batch_size | histogram | Records per sync batch |
-| sync_duration_seconds | histogram | Time to complete a sync operation |
-| sync_conflicts_total | counter | Conflicts detected by resolution strategy |
-| sync_connected_clients | gauge | Currently connected sync clients |
+```yaml
+metrics:
+  - name: sync_push_total
+    type: counter
+    description: Push operations by result (success/conflict/error)
+  - name: sync_pull_total
+    type: counter
+    description: Pull operations by result
+  - name: sync_records_total
+    type: counter
+    description: Records processed by operation (applied/conflicted/skipped)
+  - name: sync_batch_size
+    type: histogram
+    description: Records per sync batch
+  - name: sync_duration_seconds
+    type: histogram
+    description: Time to complete a sync operation
+  - name: sync_conflicts_total
+    type: counter
+    description: Conflicts detected by resolution strategy
+  - name: sync_connected_clients
+    type: gauge
+    description: Currently connected sync clients
+```
 
 ## Error Handling
 
-| Error | Handling |
-|-------|----------|
-| Batch exceeds max size | Reject with 400, include max_batch_size in error |
-| Storage write failure | Roll back entire batch. Return transient error. |
-| Invalid change record | Reject individual record, continue batch processing |
-| Version conflict | Apply configured resolution strategy |
-| Client disconnected | Queue server changes for next pull |
-| Real-time channel unavailable | Log warning, sync still succeeds (pull on next connect) |
+```yaml
+errors:
+  permanent:
+    - code: BATCH_TOO_LARGE
+      description: The batch exceeds the configured maximum
+    - code: INVALID_CHANGE_RECORD
+      description: A change record is malformed. The individual record is rejected and the rest of the batch continues
 
+  transient:
+    - code: STORAGE_WRITE_FAILED
+      description: A batch could not be written
+      fallback: Roll back the entire batch and return a transient error, so the client retries the batch rather than reconciling a partial one
+    - code: VERSION_CONFLICT
+      description: A change conflicts with the server's current version
+      fallback: Apply the configured resolution strategy
+    - code: CLIENT_DISCONNECTED
+      description: The client is no longer connected
+      fallback: Queue server changes for the next pull
+    - code: REALTIME_UNAVAILABLE
+      description: The real-time channel cannot deliver
+      fallback: Log a warning. The sync still succeeds and the client pulls on next connect
+```
+
+`BATCH_TOO_LARGE` includes the configured `max_batch_size` in its response, so a
+client can correct the batch rather than bisect it.
 ## Verification Checklist
 
 - [ ] Agent registers with orchestrator and receives WLT token

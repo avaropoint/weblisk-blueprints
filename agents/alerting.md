@@ -1323,15 +1323,30 @@ errors:
 
 ## Observability
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| alerting_received_total | counter | Alerts received by severity |
-| alerting_delivered_total | counter | Notifications delivered by channel and severity |
-| alerting_throttled_total | counter | Alerts throttled (deduplicated) |
-| alerting_delivery_failed_total | counter | Failed deliveries by channel |
-| alerting_delivery_duration_seconds | histogram | Time to deliver per channel |
-| alerting_active_rules | gauge | Number of active routing rules |
-| alerting_history_size | gauge | Number of alerts in history store |
+```yaml
+metrics:
+  - name: alerting_received_total
+    type: counter
+    description: Alerts received by severity
+  - name: alerting_delivered_total
+    type: counter
+    description: Notifications delivered by channel and severity
+  - name: alerting_throttled_total
+    type: counter
+    description: Alerts throttled (deduplicated)
+  - name: alerting_delivery_failed_total
+    type: counter
+    description: Failed deliveries by channel
+  - name: alerting_delivery_duration_seconds
+    type: histogram
+    description: Time to deliver per channel
+  - name: alerting_active_rules
+    type: gauge
+    description: Number of active routing rules
+  - name: alerting_history_size
+    type: gauge
+    description: Number of alerts in history store
+```
 
 ---
 

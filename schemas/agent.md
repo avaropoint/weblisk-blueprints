@@ -70,7 +70,7 @@ at the listed position.
 | 15 | Manual Overrides | `## Manual Overrides` | yaml:override_policy | **Yes** | Override policy, levels, audit |
 | 16 | Constraints | `## Constraints` | yaml:constraints | **Yes** | Blast radius, forbidden actions, resource limits |
 | 17 | Error Handling | `## Error Handling` | yaml:errors | **Yes** | Permanent and transient errors |
-| 18 | Observability | `## Observability` | table | **Yes** | Logs, metrics, alerts |
+| 18 | Observability | `## Observability` | yaml | **Yes** | Logs, metrics, alerts. Three collections — `custom_log_types`, `metrics`, `alerts` — which no single table can carry; see the Section Specification |
 | 19 | Security | `## Security` | yaml:security | **Yes** | Permissions, data sensitivity, access control |
 | 20 | Test Fixtures | `## Test Fixtures` | yaml:tests | **Yes** | Happy path, error cases, edge cases |
 | 21 | Scaling | `## Scaling` | yaml:scaling | **Yes** | Horizontal model, coordination, blue-green |

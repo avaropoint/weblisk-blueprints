@@ -779,28 +779,51 @@ Phase 6 — Persist
 
 ## Storage
 
-Task records are stored in flat-file JSONL:
-
+```yaml
+storage:
+  tables:
+    tasks:
+      source_type: TaskRecord
+      primary_key: task_id
+      indexes:
+        - name: idx_task_workflow
+          fields: [workflow_id, phase]
+          type: non-unique
+        - name: idx_task_status
+          fields: [status]
+          type: non-unique
 ```
-.weblisk/data/task/tasks.jsonl
-```
 
-Each line is a task record: `{task_id, workflow_id, phase, target_agent,
-status, submitted_at, dispatched_at, completed_at, result_summary}`.
-
-In-flight tracking and queue are in-memory (reconstructable from
-pending tasks in storage on restart).
-
+In-flight tracking and the dispatch queue are reconstructable from the `tasks`
+store and are therefore held in memory rather than persisted. Which backend
+satisfies the store is the platform blueprint's answer, per
+`architecture/storage`.
 ## Configuration
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| Listen port | `9781` | Listen port |
-| Max concurrent | `50` | Max concurrent task dispatches |
-| Default timeout | `300` | Default task timeout (seconds) |
-| Queue max | `1000` | Max queued tasks before rejecting |
-| Data directory | Implementation-defined | Storage directory |
-
+```yaml
+config:
+  listen_port:
+    type: int
+    default: 9781
+    description: Listen port
+  max_concurrent:
+    type: int
+    default: 50
+    description: Max concurrent task dispatches
+  default_timeout:
+    type: int
+    default: 300
+    unit: seconds
+    description: Default task timeout
+  queue_max:
+    type: int
+    default: 1000
+    description: Max queued tasks before rejecting
+  data_dir:
+    type: string
+    default: implementation-defined
+    description: Storage directory
+```
 ---
 
 ## Collaboration
@@ -977,14 +1000,27 @@ errors:
 
 ## Observability
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| `task_dispatch_total` | counter | By target agent, action, and status |
-| `task_dispatch_duration_seconds` | histogram | Time from submit to complete |
-| `task_queue_depth` | gauge | Current queue depth per target agent |
-| `task_inflight` | gauge | Currently dispatched tasks per agent |
-| `task_timeout_total` | counter | Timed out tasks by agent |
-| `task_retry_total` | counter | Dispatch retries by agent |
+```yaml
+metrics:
+  - name: task_dispatch_total
+    type: counter
+    description: By target agent, action, and status
+  - name: task_dispatch_duration_seconds
+    type: histogram
+    description: Time from submit to complete
+  - name: task_queue_depth
+    type: gauge
+    description: Current queue depth per target agent
+  - name: task_inflight
+    type: gauge
+    description: Currently dispatched tasks per agent
+  - name: task_timeout_total
+    type: counter
+    description: Timed out tasks by agent
+  - name: task_retry_total
+    type: counter
+    description: Dispatch retries by agent
+```
 
 ---
 
