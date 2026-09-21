@@ -162,12 +162,16 @@ contracts:
       override_constraints: Reconciliation MUST be able to run without prior notification, or a dropped notification is permanent
 
     - name: meter_usage
-      description: Record what a subject consumed
+      description: Record what a subject consumed, and what consumed it on their behalf
       parameters:
         - name: subject
           type: string
           required: true
-          description: Who consumed it
+          description: Who is charged
+        - name: actor
+          type: string
+          required: true
+          description: What consumed it — the agent, connector or surface acting for the subject. A cost with no actor can be seen and not acted on
         - name: measure
           type: string
           required: true
@@ -176,9 +180,9 @@ contracts:
           type: int
           required: true
           description: How much
-      inherits: A usage record the subject can inspect and the deployment can charge from
+      inherits: A usage record attributable to both the subject charged and the actor that spent, which the subject can inspect and the deployment can charge from
       overridable: true
-      override_constraints: A metering failure MUST NOT change whether an operation proceeds
+      override_constraints: A metering failure MUST NOT change whether an operation proceeds; `actor` MUST NOT be omitted, because stopping unexpected consumption requires knowing what to stop
 
     - name: enforce_quota
       description: Refuse an operation that exceeds what the subject's plan allows
@@ -278,7 +282,12 @@ types:
         name: Subject
         type: string
         required: true
-        description: "Who consumed it"
+        description: "Who is charged"
+      actor:
+        name: Actor
+        type: string
+        required: true
+        description: "What consumed it on the subject's behalf — the agent, connector or surface. Without it a rising cost is visible and not addressable"
       measure:
         name: Measure
         type: string
@@ -358,6 +367,12 @@ config:
   suspension for non-payment is reasonable; automatic deletion is not.
 - **Show usage before it is charged, not after.** A subject who can see consumption
   accumulating disputes far less than one who receives a total.
+- **Attribute every measure to an actor, not only to a payer.** A tenant whose agents
+  acquire capabilities as the work requires will see costs it did not individually
+  authorise, which is the intended behaviour. What makes that safe is not prior approval
+  of each one — it is that unexpected consumption is visible, attributable to the agent
+  that caused it, and stoppable. A usage record naming only the payer supports the first
+  and neither of the others.
 
 ---
 
@@ -373,3 +388,4 @@ config:
 - [ ] A quota refusal MUST name the measure exceeded and when it resets
 - [ ] A quota refusal MUST be distinguishable by the caller from a transient fault
 - [ ] A subject MUST be able to retrieve the usage records they are charged from
+- [ ] Every usage record MUST name the actor that consumed the measure, not only the subject charged
