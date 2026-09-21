@@ -180,6 +180,33 @@ requires:
 
 ---
 
+## Architecture
+
+Six boundaries, each with an attack surface. The enumeration is the component: an
+unlisted boundary is the one nobody defends.
+
+```
+   ┌─ 1 ─┐   ┌─ 2 ─┐   ┌─ 3 ─┐   ┌─ 4 ─┐   ┌─ 5 ─┐
+   Browser   Gateway   Agents    Operator  Hub
+     ↕         ↕         ↕         ↕        ↕
+   Gateway   Agents    Storage   Admin     Hub
+                                 gateway
+
+   ┌──────────────── 6 ────────────────┐
+   │ ENFORCEMENT — crossed by all five │
+   └───────────────────────────────────┘
+```
+
+**Responsibilities.** Enumerating every boundary, cataloguing the attack vectors at
+each, naming the mitigation and the control that enforces it, and stating residual
+risk where one remains.
+
+**Not responsibilities.** Implementing a control — each belongs to the component
+named. Deciding acceptable risk, which is the operator's. Replacing
+`architecture/enforcement`, which is boundary six rather than this document.
+
+---
+
 ## Responsibilities
 
 ### Owns

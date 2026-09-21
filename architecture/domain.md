@@ -133,6 +133,36 @@ requires:
 
 ---
 
+## Architecture
+
+A domain controller is a tenant's business intelligence layer for one function. It
+orchestrates through the orchestrator rather than calling agents directly.
+
+```
+   Caller (scoped)
+       │
+       ▼
+   ┌─────────────────────────────┐
+   │ DOMAIN CONTROLLER           │
+   │  workflow definitions       │
+   │  entity context             │
+   │  business rules (as data)   │
+   └────────────┬────────────────┘
+                │ task.submit, carrying the caller's scope
+                ▼
+        Orchestrator ──► Agents
+```
+
+**Responsibilities.** One function's workflow definitions, its entity context, its
+business rules as declarative data, and dispatching work through the orchestrator
+under the caller's scope.
+
+**Not responsibilities.** Executing work itself. Reaching another domain's stores —
+cross-domain work is an event or a task. Admitting agents or brokering channels,
+which is the orchestrator's.
+
+---
+
 ## Responsibilities
 
 ### Owns

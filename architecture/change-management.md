@@ -131,6 +131,29 @@ requires:
 
 ---
 
+## Architecture
+
+Change management sits between a proposal and its application, and nothing
+reaches the second without passing through it.
+
+```
+   Proposer ──► ProposedChange ──► review ──► approval ──► application
+                     │                │           │
+                     │                │           └─► audit (before, not after)
+                     │                └─► a principal distinct from the proposer
+                     └─► recorded, never applied on submission
+```
+
+**Responsibilities.** Recording a proposed change with a digest, routing it for
+review, requiring an approver distinct from the proposer, applying only the form
+that was approved, and recording every decision before the change takes effect.
+
+**Not responsibilities.** Deciding whether a change is wise — that is the
+reviewer's. Executing it, which is an ordinary task under the approver's scope.
+Versioning the blueprint that changed, which is `patterns/versioning`.
+
+---
+
 ## Responsibilities
 
 ### Owns

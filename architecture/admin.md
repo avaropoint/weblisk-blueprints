@@ -149,6 +149,38 @@ requires:
 
 ---
 
+## Architecture
+
+The admin interface is a **separate listener** from the application gateway, with
+its own TLS entry point, its own session store and its own cookie domain.
+
+```
+   Operator browser
+         │  separate listener, separate TLS
+         ▼
+   ┌──────────────────────────┐
+   │ ADMIN GATEWAY            │
+   │  identity → MFA → role   │
+   │  → change gate → audit   │
+   └───────────┬──────────────┘
+               │ reads the orchestrator's own endpoints
+               ▼
+   ┌──────────────────────────┐
+   │ ORCHESTRATOR             │
+   │ services · audit · health│
+   └──────────────────────────┘
+```
+
+**Responsibilities.** Operator identity lifecycle, multi-factor authentication
+without exception, the role hierarchy, the four-eyes change gate for destructive
+actions, and the audit trail of every operator action.
+
+**Not responsibilities.** Serving end users — that is `architecture/gateway`, which
+shares nothing with this listener. Executing tasks, which is the agents'. Deciding
+policy, which is `patterns/policy`.
+
+---
+
 ## Responsibilities
 
 ### Owns

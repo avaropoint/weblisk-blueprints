@@ -117,6 +117,36 @@ requires:
 
 ---
 
+## Architecture
+
+The abstract storage contract. One component owns each store; the backend is the
+only boundary storage does not control on both sides.
+
+```
+   Component (owner)
+        │  get · put · delete, scoped to its own stores
+        ▼
+   ┌─────────────────────────────┐
+   │ STORE                       │
+   │  ownership declared         │
+   │  precondition on write      │
+   │  cursor-based traversal     │
+   └────────────┬────────────────┘
+                │ the one boundary not controlled on both sides
+                ▼
+           Backend (named by the platform blueprint)
+```
+
+**Responsibilities.** Declaring what must be stored, which component owns each
+store, and the operations each provides by name. Preconditions on write, ordered
+traversal by cursor, and the rule that absence is not an error.
+
+**Not responsibilities.** Naming a backend — that is the platform blueprint's
+answer. Deciding who may read a record, which is `architecture/enforcement`.
+Encrypting data in motion, which is `architecture/data-security`.
+
+---
+
 ## Responsibilities
 
 ### Owns

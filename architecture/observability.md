@@ -72,6 +72,34 @@ requires:
 
 ---
 
+## Architecture
+
+Three pillars over one rule: observability reads, and never calls back into what
+it observes.
+
+```
+   Components ──emit──► ┌──────────────────────────┐
+                        │ OBSERVABILITY            │
+                        │  logs · metrics · traces │
+                        │  redaction at emission   │
+                        │  audit: append-only      │
+                        └────────────┬─────────────┘
+                                     │ scoped reads
+                                     ▼
+                                  Reader
+```
+
+**Responsibilities.** The structured record envelope, metric declarations, trace
+correlation, redaction before a record is written, and an append-only audit with a
+hash chain.
+
+**Not responsibilities.** Acting on what it observes — that is
+`architecture/lifecycle`. Deciding a record's classification, which is
+`patterns/scope`. Where records are collected and indexed, which is the platform's
+and the deployment's.
+
+---
+
 ## Responsibilities
 
 ### Owns

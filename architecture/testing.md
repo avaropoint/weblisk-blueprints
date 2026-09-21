@@ -94,6 +94,32 @@ requires:
 
 ---
 
+## Architecture
+
+Conformance testing verifies that an implementation does what its blueprints said,
+using checks that could have failed.
+
+```
+   Blueprints ──► assertions ──► ┌──────────────────────┐
+                                 │ TEST HARNESS         │
+   Implementation ──────────────►│  reached / unreached │
+                                 │  structural checks   │
+                                 └──────────┬───────────┘
+                                            ▼
+                                   Conformance result
+                              (names the checks it rests on)
+```
+
+**Responsibilities.** Deriving assertions from blueprints, running them against an
+implementation, distinguishing a check that failed from one that never ran, reading
+answers from an artifact's structure rather than its text, and producing a result
+that names what it was based on.
+
+**Not responsibilities.** Deciding what to build. Repairing an implementation, which
+is generation's. Judging whether a blueprint's assertion is the right one.
+
+---
+
 ## Responsibilities
 
 ### Owns
