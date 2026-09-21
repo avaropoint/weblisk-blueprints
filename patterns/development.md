@@ -469,6 +469,27 @@ event format from `patterns/security`.
 
 ---
 
+## Implementation Notes
+
+- **Mirror production, and fail the same way.** A development server that is
+  permissive where production is strict teaches a developer that something works.
+  Security headers, blueprint path validation and route resolution behave
+  identically; only reload and verbosity differ.
+- **Serve blueprints from the resolved corpus, not a copy.** A cached copy is a
+  second corpus, and a developer debugging against it is debugging the wrong
+  specification.
+- **Reload on change; never reload silently on failure.** A reload that fails
+  must leave the previous state serving and say so. Serving nothing, or serving a
+  half-applied change, costs more than the failed reload.
+- **Bind to the loopback interface by default.** A development server carries
+  relaxed verbosity and a developer's own credentials, and should not be
+  reachable from a network without that being an explicit choice.
+- **Do not add a route that production lacks.** A convenience endpoint in
+  development is an endpoint somebody will depend on, and its absence in
+  production becomes a defect report against the wrong component.
+
+---
+
 ## Verification Checklist
 
 Implementation MUST:

@@ -109,7 +109,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       behaviors:
-        - name: event-routing
+        - name: event-subscribing
           fields_used: [publish, subscribe]
     on_change:
       compatible: validate-and-adopt
