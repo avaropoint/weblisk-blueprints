@@ -303,45 +303,46 @@ where.
 | `destroy` | 4 | Irreversible | Unrecoverable | Permanent removal — drops tables, purges data, revokes keys |
 
 ```yaml
-OperationClass:
-  description: Safety classification of operations by their nature
-  values:
-    - name: read
-      ordinal: 0
-      side_effect: none
-      reversibility: not_applicable
-      description: No state change — queries, fetches, inspections
-    - name: list
-      ordinal: 0
-      side_effect: none
-      reversibility: not_applicable
-      description: Enumerates resources or records — no state change. Subject to result size limits.
-    - name: query
-      ordinal: 0
-      side_effect: none
-      reversibility: not_applicable
-      description: Searches or filters resources — no state change. Subject to result size limits.
-    - name: create
-      ordinal: 1
-      side_effect: additive
-      reversibility: deletable
-      description: Creates new resources without affecting existing state
-    - name: modify
-      ordinal: 2
-      side_effect: mutative
-      reversibility: restorable
-      description: Changes existing resources — previous state may be overwritten
-    - name: delete
-      ordinal: 3
-      side_effect: destructive
-      reversibility: recoverable
-      description: Removes resources — typically recoverable via backup or soft-delete
-    - name: destroy
-      ordinal: 4
-      side_effect: irreversible
-      reversibility: unrecoverable
-      description: Permanent, irreversible removal — drops tables, purges data, revokes keys
-  comparison: ordinal-based; higher ordinal = more dangerous operation
+types:
+  OperationClass:
+    description: Safety classification of operations by their nature
+    values:
+      - name: read
+        ordinal: 0
+        side_effect: none
+        reversibility: not_applicable
+        description: No state change — queries, fetches, inspections
+      - name: list
+        ordinal: 0
+        side_effect: none
+        reversibility: not_applicable
+        description: Enumerates resources or records — no state change. Subject to result size limits.
+      - name: query
+        ordinal: 0
+        side_effect: none
+        reversibility: not_applicable
+        description: Searches or filters resources — no state change. Subject to result size limits.
+      - name: create
+        ordinal: 1
+        side_effect: additive
+        reversibility: deletable
+        description: Creates new resources without affecting existing state
+      - name: modify
+        ordinal: 2
+        side_effect: mutative
+        reversibility: restorable
+        description: Changes existing resources — previous state may be overwritten
+      - name: delete
+        ordinal: 3
+        side_effect: destructive
+        reversibility: recoverable
+        description: Removes resources — typically recoverable via backup or soft-delete
+      - name: destroy
+        ordinal: 4
+        side_effect: irreversible
+        reversibility: unrecoverable
+        description: Permanent, irreversible removal — drops tables, purges data, revokes keys
+    comparison: ordinal-based; higher ordinal = more dangerous operation
 ```
 
 #### Classification Rules
@@ -380,26 +381,27 @@ on different resource classes triggers different gates.
 | `critical` | 3 | Identity, security, audit, regulatory | Encryption keys, audit logs, system tables, identity records |
 
 ```yaml
-ResourceClass:
-  description: Criticality classification of operation targets
-  values:
-    - name: ephemeral
-      ordinal: 0
-      description: Temporary, regenerable resources with minimal protection needs
-      examples: [cache_entries, temp_files, build_artifacts, session_data]
-    - name: application
-      ordinal: 1
-      description: Domain data, business logic, and user-generated content
-      examples: [cms_pages, user_profiles, product_records, uploaded_files]
-    - name: system
-      ordinal: 2
-      description: Platform configuration, infrastructure, and agent definitions
-      examples: [hub_config, routing_tables, agent_manifests, env_vars]
-    - name: critical
-      ordinal: 3
-      description: Identity, security keys, audit logs, and regulatory data
-      examples: [encryption_keys, audit_logs, system_tables, identity_records]
-  comparison: ordinal-based; higher ordinal = higher criticality
+types:
+  ResourceClass:
+    description: Criticality classification of operation targets
+    values:
+      - name: ephemeral
+        ordinal: 0
+        description: Temporary, regenerable resources with minimal protection needs
+        examples: [cache_entries, temp_files, build_artifacts, session_data]
+      - name: application
+        ordinal: 1
+        description: Domain data, business logic, and user-generated content
+        examples: [cms_pages, user_profiles, product_records, uploaded_files]
+      - name: system
+        ordinal: 2
+        description: Platform configuration, infrastructure, and agent definitions
+        examples: [hub_config, routing_tables, agent_manifests, env_vars]
+      - name: critical
+        ordinal: 3
+        description: Identity, security keys, audit logs, and regulatory data
+        examples: [encryption_keys, audit_logs, system_tables, identity_records]
+    comparison: ordinal-based; higher ordinal = higher criticality
 ```
 
 #### Resource Classification Defaults
@@ -443,57 +445,58 @@ execution is permitted.
 #### Intent Structure
 
 ```yaml
-OperationIntent:
-  description: Formal declaration of intended operation before execution
-  fields:
-    - name: id
-      type: string
-      required: true
-      description: Unique intent identifier (generated by the safety engine)
-    - name: operation
-      type: OperationClass
-      required: true
-      description: Classified operation type — read, create, modify, delete, destroy
-    - name: resource_type
-      type: string
-      required: true
-      description: Type of resource being operated on (e.g., "database_table", "file", "config")
-    - name: resource_id
-      type: string
-      required: true
-      description: Specific identifier of the target resource
-    - name: resource_class
-      type: ResourceClass
-      required: true
-      description: Criticality classification of the target resource
-    - name: scope
-      type: ScopeLevel
-      required: true
-      description: Scope classification of the target resource (from patterns/scope)
-    - name: environment
-      type: string
-      required: true
-      description: Active environment — development, staging, production
-    - name: agent
-      type: string
-      required: true
-      description: Name of the agent or component filing the intent
-    - name: justification
-      type: string
-      required: true
-      description: Human-readable reason for the operation — why is this necessary
-    - name: timestamp
-      type: int64
-      required: true
-      description: Unix epoch seconds when the intent was filed
-    - name: correlation_id
-      type: string
-      required: false
-      description: Trace ID linking this intent to a workflow or task execution
-    - name: metadata
-      type: map
-      required: false
-      description: Additional context for domain-specific safety evaluation
+types:
+  OperationIntent:
+    description: Formal declaration of intended operation before execution
+    fields:
+      - name: id
+        type: string
+        required: true
+        description: Unique intent identifier (generated by the safety engine)
+      - name: operation
+        type: OperationClass
+        required: true
+        description: Classified operation type — read, create, modify, delete, destroy
+      - name: resource_type
+        type: string
+        required: true
+        description: Type of resource being operated on (e.g., "database_table", "file", "config")
+      - name: resource_id
+        type: string
+        required: true
+        description: Specific identifier of the target resource
+      - name: resource_class
+        type: ResourceClass
+        required: true
+        description: Criticality classification of the target resource
+      - name: scope
+        type: ScopeLevel
+        required: true
+        description: Scope classification of the target resource (from patterns/scope)
+      - name: environment
+        type: string
+        required: true
+        description: Active environment — development, staging, production
+      - name: agent
+        type: string
+        required: true
+        description: Name of the agent or component filing the intent
+      - name: justification
+        type: string
+        required: true
+        description: Human-readable reason for the operation — why is this necessary
+      - name: timestamp
+        type: int64
+        required: true
+        description: Unix epoch seconds when the intent was filed
+      - name: correlation_id
+        type: string
+        required: false
+        description: Trace ID linking this intent to a workflow or task execution
+      - name: metadata
+        type: map
+        required: false
+        description: Additional context for domain-specific safety evaluation
 ```
 
 #### Intent Declaration Example
@@ -553,38 +556,39 @@ intent_evaluate(intent):
 #### Intent Decision
 
 ```yaml
-IntentDecision:
-  description: Result of evaluating an operation intent
-  fields:
-    - name: intent_id
-      type: string
-      required: true
-      description: References the evaluated intent
-    - name: result
-      type: enum(allow, require_approval, deny, escalate)
-      required: true
-      description: |
-        Gate decision:
-        - allow: operation may proceed immediately
-        - require_approval: operation paused — operator must approve
-        - deny: operation rejected — cannot proceed
-        - escalate: operation elevated to higher authority for decision
-    - name: matched_policies
-      type: "[]string"
-      required: false
-      description: Names of policies that influenced the decision
-    - name: gate
-      type: ProtectionGate
-      required: true
-      description: The resolved protection gate configuration
-    - name: decided_at
-      type: int64
-      required: true
-      description: Unix epoch seconds when the decision was made
-    - name: expires_at
-      type: int64
-      required: false
-      description: Decision validity window — intent must be acted on before expiry (default 300s)
+types:
+  IntentDecision:
+    description: Result of evaluating an operation intent
+    fields:
+      - name: intent_id
+        type: string
+        required: true
+        description: References the evaluated intent
+      - name: result
+        type: enum(allow, require_approval, deny, escalate)
+        required: true
+        description: |
+          Gate decision:
+          - allow: operation may proceed immediately
+          - require_approval: operation paused — operator must approve
+          - deny: operation rejected — cannot proceed
+          - escalate: operation elevated to higher authority for decision
+      - name: matched_policies
+        type: "[]string"
+        required: false
+        description: Names of policies that influenced the decision
+      - name: gate
+        type: ProtectionGate
+        required: true
+        description: The resolved protection gate configuration
+      - name: decided_at
+        type: int64
+        required: true
+        description: Unix epoch seconds when the decision was made
+      - name: expires_at
+        type: int64
+        required: false
+        description: Decision validity window — intent must be acted on before expiry (default 300s)
 ```
 
 ---
@@ -745,42 +749,43 @@ protection_gates:
 #### ProtectionGate Type
 
 ```yaml
-ProtectionGate:
-  description: Resolved gate for a specific operation/resource/scope/environment combination
-  fields:
-    - name: operation
-      type: OperationClass
-      required: true
-      description: Classified operation type
-    - name: resource_class
-      type: ResourceClass
-      required: true
-      description: Criticality of the target resource
-    - name: scope_level
-      type: ScopeLevel
-      required: true
-      description: Scope classification of the target resource
-    - name: environment
-      type: string
-      required: true
-      description: Active environment name
-    - name: base_action
-      type: enum(allow, audit, require_approval, deny)
-      required: true
-      description: Gate result from the base matrix before scope amplification
-    - name: required_action
-      type: enum(allow, audit, require_approval, deny)
-      required: true
-      description: Final gate result after scope amplification and policy evaluation
-    - name: admin_override
-      type: boolean
-      required: false
-      default: false
-      description: Whether an admin override was applied to permit a normally-denied operation
-    - name: override_reason
-      type: string
-      required: false
-      description: Justification for admin override — required when admin_override is true
+types:
+  ProtectionGate:
+    description: Resolved gate for a specific operation/resource/scope/environment combination
+    fields:
+      - name: operation
+        type: OperationClass
+        required: true
+        description: Classified operation type
+      - name: resource_class
+        type: ResourceClass
+        required: true
+        description: Criticality of the target resource
+      - name: scope_level
+        type: ScopeLevel
+        required: true
+        description: Scope classification of the target resource
+      - name: environment
+        type: string
+        required: true
+        description: Active environment name
+      - name: base_action
+        type: enum(allow, audit, require_approval, deny)
+        required: true
+        description: Gate result from the base matrix before scope amplification
+      - name: required_action
+        type: enum(allow, audit, require_approval, deny)
+        required: true
+        description: Final gate result after scope amplification and policy evaluation
+      - name: admin_override
+        type: boolean
+        required: false
+        default: false
+        description: Whether an admin override was applied to permit a normally-denied operation
+      - name: override_reason
+        type: string
+        required: false
+        description: Justification for admin override — required when admin_override is true
 ```
 
 #### Admin Override
@@ -885,49 +890,50 @@ When the kill switch is triggered:
 #### KillSwitchEvent Type
 
 ```yaml
-KillSwitchEvent:
-  description: Record of an agent emergency halt
-  fields:
-    - name: id
-      type: string
-      required: true
-      description: Unique kill switch event identifier
-    - name: agent
-      type: string
-      required: true
-      description: Name of the halted agent
-    - name: trigger
-      type: enum(policy_violation, rogue_detection, operator_action, system_fault)
-      required: true
-      description: What triggered the kill switch
-    - name: reason
-      type: string
-      required: true
-      description: Human-readable explanation
-    - name: in_flight_tasks
-      type: "[]string"
-      required: false
-      description: Task IDs that were in-flight at trigger time
-    - name: in_flight_timeout
-      type: int64
-      required: false
-      description: Maximum seconds to wait for in-flight tasks to complete (default 60)
-    - name: quarantine_id
-      type: string
-      required: true
-      description: ID of the resulting quarantine state
-    - name: triggered_by
-      type: string
-      required: true
-      description: Identity of the entity that triggered the kill switch (system, operator name)
-    - name: triggered_at
-      type: int64
-      required: true
-      description: Unix epoch seconds when kill switch activated
-    - name: violations
-      type: "[]SafetyViolation"
-      required: false
-      description: Violations that led to the kill switch (if trigger is policy_violation or rogue_detection)
+types:
+  KillSwitchEvent:
+    description: Record of an agent emergency halt
+    fields:
+      - name: id
+        type: string
+        required: true
+        description: Unique kill switch event identifier
+      - name: agent
+        type: string
+        required: true
+        description: Name of the halted agent
+      - name: trigger
+        type: enum(policy_violation, rogue_detection, operator_action, system_fault)
+        required: true
+        description: What triggered the kill switch
+      - name: reason
+        type: string
+        required: true
+        description: Human-readable explanation
+      - name: in_flight_tasks
+        type: "[]string"
+        required: false
+        description: Task IDs that were in-flight at trigger time
+      - name: in_flight_timeout
+        type: int64
+        required: false
+        description: Maximum seconds to wait for in-flight tasks to complete (default 60)
+      - name: quarantine_id
+        type: string
+        required: true
+        description: ID of the resulting quarantine state
+      - name: triggered_by
+        type: string
+        required: true
+        description: Identity of the entity that triggered the kill switch (system, operator name)
+      - name: triggered_at
+        type: int64
+        required: true
+        description: Unix epoch seconds when kill switch activated
+      - name: violations
+        type: "[]SafetyViolation"
+        required: false
+        description: Violations that led to the kill switch (if trigger is policy_violation or rogue_detection)
 ```
 
 ---
@@ -1027,155 +1033,158 @@ Exiting quarantine requires:
 #### QuarantineState Type
 
 ```yaml
-QuarantineState:
-  description: Current quarantine status of an isolated agent
-  fields:
-    - name: id
-      type: string
-      required: true
-      description: Unique quarantine state identifier
-    - name: agent
-      type: string
-      required: true
-      description: Name of the quarantined agent
-    - name: status
-      type: enum(quarantined, under_review, held, escalated, released, deregistered)
-      required: true
-      description: Current quarantine lifecycle state
-    - name: entered_at
-      type: int64
-      required: true
-      description: Unix epoch seconds when quarantine began
-    - name: reason
-      type: string
-      required: true
-      description: Summary of why the agent was quarantined
-    - name: violations
-      type: "[]SafetyViolation"
-      required: true
-      description: List of violations that led to quarantine
-    - name: kill_switch_id
-      type: string
-      required: false
-      description: ID of the kill switch event if quarantine was triggered by kill switch
-    - name: operator_notes
-      type: "[]string"
-      required: false
-      description: Notes added by operators during investigation
-    - name: remediation
-      type: string
-      required: false
-      description: Description of remediation actions taken
-    - name: exit_requires
-      type: "[]string"
-      required: true
-      description: List of conditions that must be met before exit (e.g., "operator_approval", "re-registration", "policy_update")
-    - name: exited_at
-      type: int64
-      required: false
-      description: Unix epoch seconds when quarantine ended (null while quarantined)
-    - name: exit_approved_by
-      type: string
-      required: false
-      description: Identity of the operator who approved quarantine exit
+types:
+  QuarantineState:
+    description: Current quarantine status of an isolated agent
+    fields:
+      - name: id
+        type: string
+        required: true
+        description: Unique quarantine state identifier
+      - name: agent
+        type: string
+        required: true
+        description: Name of the quarantined agent
+      - name: status
+        type: enum(quarantined, under_review, held, escalated, released, deregistered)
+        required: true
+        description: Current quarantine lifecycle state
+      - name: entered_at
+        type: int64
+        required: true
+        description: Unix epoch seconds when quarantine began
+      - name: reason
+        type: string
+        required: true
+        description: Summary of why the agent was quarantined
+      - name: violations
+        type: "[]SafetyViolation"
+        required: true
+        description: List of violations that led to quarantine
+      - name: kill_switch_id
+        type: string
+        required: false
+        description: ID of the kill switch event if quarantine was triggered by kill switch
+      - name: operator_notes
+        type: "[]string"
+        required: false
+        description: Notes added by operators during investigation
+      - name: remediation
+        type: string
+        required: false
+        description: Description of remediation actions taken
+      - name: exit_requires
+        type: "[]string"
+        required: true
+        description: List of conditions that must be met before exit (e.g., "operator_approval", "re-registration", "policy_update")
+      - name: exited_at
+        type: int64
+        required: false
+        description: Unix epoch seconds when quarantine ended (null while quarantined)
+      - name: exit_approved_by
+        type: string
+        required: false
+        description: Identity of the operator who approved quarantine exit
 ```
 
 #### QuarantineOrder Type
 
 ```yaml
-QuarantineOrder:
-  description: Command to initiate quarantine of an agent. Issued by the safety system or rogue detection and consumed by the enforcement layer.
-  fields:
-    - name: id
-      type: string
-      required: true
-      description: Unique order identifier
-    - name: agent
-      type: string
-      required: true
-      description: Name of the agent to quarantine
-    - name: reason
-      type: string
-      required: true
-      description: Summary of why quarantine is being ordered
-    - name: violations
-      type: "[]SafetyViolation"
-      required: true
-      description: Violations that triggered this order
-    - name: severity
-      type: enum(low, medium, high, critical)
-      required: true
-      description: Severity of the triggering condition
-    - name: source
-      type: enum(safety_gate, rogue_detection, kill_switch, operator)
-      required: true
-      description: What system issued the quarantine order
-    - name: issued_at
-      type: int64
-      required: true
-      description: Unix epoch seconds when the order was issued
-    - name: exit_requires
-      type: "[]string"
-      required: true
-      description: Conditions that must be met before the agent can exit quarantine
+types:
+  QuarantineOrder:
+    description: Command to initiate quarantine of an agent. Issued by the safety system or rogue detection and consumed by the enforcement layer.
+    fields:
+      - name: id
+        type: string
+        required: true
+        description: Unique order identifier
+      - name: agent
+        type: string
+        required: true
+        description: Name of the agent to quarantine
+      - name: reason
+        type: string
+        required: true
+        description: Summary of why quarantine is being ordered
+      - name: violations
+        type: "[]SafetyViolation"
+        required: true
+        description: Violations that triggered this order
+      - name: severity
+        type: enum(low, medium, high, critical)
+        required: true
+        description: Severity of the triggering condition
+      - name: source
+        type: enum(safety_gate, rogue_detection, kill_switch, operator)
+        required: true
+        description: What system issued the quarantine order
+      - name: issued_at
+        type: int64
+        required: true
+        description: Unix epoch seconds when the order was issued
+      - name: exit_requires
+        type: "[]string"
+        required: true
+        description: Conditions that must be met before the agent can exit quarantine
 ```
 
 #### SafetyViolation Type
 
 ```yaml
-SafetyViolation:
-  description: Record of a safety rule violation
-  fields:
-    - name: id
-      type: string
-      required: true
-      description: Unique violation identifier
-    - name: agent
-      type: string
-      required: true
-      description: Name of the violating agent
-    - name: violation_type
-      type: enum(no_intent, denied_execution, scope_bypass, policy_violation, rogue_behavior)
-      required: true
-      description: |
-        Category of violation:
-        - no_intent: operation executed without filing intent
-        - denied_execution: operation executed after receiving deny decision
-        - scope_bypass: operation bypassed scope classification checks
-        - policy_violation: operation violated an active policy
-        - rogue_behavior: agent behavior inconsistent with declared capabilities
-    - name: operation
-      type: OperationClass
-      required: true
-      description: The operation that was attempted
-    - name: resource_type
-      type: string
-      required: true
-      description: Type of resource involved
-    - name: resource_id
-      type: string
-      required: false
-      description: Specific resource identifier
-    - name: scope
-      type: ScopeLevel
-      required: true
-      description: Scope level of the resource
-    - name: severity
-      type: enum(low, medium, high, critical)
-      required: true
-      description: Severity of the violation
-    - name: reason
-      type: string
-      required: true
-      description: Human-readable explanation of the violation
-    - name: intent_id
-      type: string
-      required: false
-      description: Related intent ID if applicable
-    - name: timestamp
-      type: int64
-      required: true
-      description: Unix epoch seconds when the violation occurred
+types:
+  SafetyViolation:
+    description: Record of a safety rule violation
+    fields:
+      - name: id
+        type: string
+        required: true
+        description: Unique violation identifier
+      - name: agent
+        type: string
+        required: true
+        description: Name of the violating agent
+      - name: violation_type
+        type: enum(no_intent, denied_execution, scope_bypass, policy_violation, rogue_behavior)
+        required: true
+        description: |
+          Category of violation:
+          - no_intent: operation executed without filing intent
+          - denied_execution: operation executed after receiving deny decision
+          - scope_bypass: operation bypassed scope classification checks
+          - policy_violation: operation violated an active policy
+          - rogue_behavior: agent behavior inconsistent with declared capabilities
+      - name: operation
+        type: OperationClass
+        required: true
+        description: The operation that was attempted
+      - name: resource_type
+        type: string
+        required: true
+        description: Type of resource involved
+      - name: resource_id
+        type: string
+        required: false
+        description: Specific resource identifier
+      - name: scope
+        type: ScopeLevel
+        required: true
+        description: Scope level of the resource
+      - name: severity
+        type: enum(low, medium, high, critical)
+        required: true
+        description: Severity of the violation
+      - name: reason
+        type: string
+        required: true
+        description: Human-readable explanation of the violation
+      - name: intent_id
+        type: string
+        required: false
+        description: Related intent ID if applicable
+      - name: timestamp
+        type: int64
+        required: true
+        description: Unix epoch seconds when the violation occurred
 ```
 
 ---

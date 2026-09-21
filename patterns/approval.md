@@ -317,66 +317,67 @@ always decide what a lower level can, but not vice versa.
 | `admin` | 3 | Administrator | Critical changes, policy overrides, system-level changes | No limitations — final authority |
 
 ```yaml
-AuthorityLevel:
-  description: Approval authority tiers ordered by trust and scope
-  values:
-    - name: auto
-      ordinal: 0
-      decider: system
-      description: >
-        Automatic approval for low-risk operations that match
-        predefined rules. The system evaluates the request against
-        auto-approval criteria (scope, severity, confidence) and
-        approves without human intervention. Auto-approval is audited
-        identically to human approval.
-      constraints:
-        - Only approves operations matching explicit auto-approval rules
-        - Cannot approve operations above severity "low"
-        - Cannot approve operations with confidence below configured threshold
-        - Cannot approve cross-domain operations
-        - Cannot approve operations in production on system or critical resources
+types:
+  AuthorityLevel:
+    description: Approval authority tiers ordered by trust and scope
+    values:
+      - name: auto
+        ordinal: 0
+        decider: system
+        description: >
+          Automatic approval for low-risk operations that match
+          predefined rules. The system evaluates the request against
+          auto-approval criteria (scope, severity, confidence) and
+          approves without human intervention. Auto-approval is audited
+          identically to human approval.
+        constraints:
+          - Only approves operations matching explicit auto-approval rules
+          - Cannot approve operations above severity "low"
+          - Cannot approve operations with confidence below configured threshold
+          - Cannot approve cross-domain operations
+          - Cannot approve operations in production on system or critical resources
 
-    - name: agent
-      ordinal: 1
-      decider: domain_controller
-      description: >
-        Domain controller approval for medium-risk operations within
-        the controller's own domain. The domain controller evaluates
-        the request using domain-specific knowledge and approves or
-        rejects. Agent-level approval is limited to the controller's
-        own domain boundary.
-      constraints:
-        - Only approves operations within the agent's own domain
-        - Cannot approve cross-domain operations
-        - Cannot approve operations above severity "medium"
-        - Cannot approve operations on system or critical resources in production
+      - name: agent
+        ordinal: 1
+        decider: domain_controller
+        description: >
+          Domain controller approval for medium-risk operations within
+          the controller's own domain. The domain controller evaluates
+          the request using domain-specific knowledge and approves or
+          rejects. Agent-level approval is limited to the controller's
+          own domain boundary.
+        constraints:
+          - Only approves operations within the agent's own domain
+          - Cannot approve cross-domain operations
+          - Cannot approve operations above severity "medium"
+          - Cannot approve operations on system or critical resources in production
 
-    - name: operator
-      ordinal: 2
-      decider: human_operator
-      description: >
-        Human operator approval for high-risk and cross-domain
-        operations. Operators have visibility across domains and can
-        approve operations that domain controllers cannot. Operator
-        approval requires human judgment and is never automated.
-      constraints:
-        - Cannot approve critical-severity operations
-        - Cannot approve policy overrides
-        - Cannot approve system-level configuration changes
+      - name: operator
+        ordinal: 2
+        decider: human_operator
+        description: >
+          Human operator approval for high-risk and cross-domain
+          operations. Operators have visibility across domains and can
+          approve operations that domain controllers cannot. Operator
+          approval requires human judgment and is never automated.
+        constraints:
+          - Cannot approve critical-severity operations
+          - Cannot approve policy overrides
+          - Cannot approve system-level configuration changes
 
-    - name: admin
-      ordinal: 3
-      decider: administrator
-      description: >
-        Administrator approval for critical operations, policy
-        overrides, and system-level changes. Admin is the final
-        authority in the approval chain. Admin approval requires
-        MFA confirmation for critical-severity operations.
-      constraints:
-        - No functional limitations — final authority
-        - Critical operations require MFA confirmation
-        - All admin decisions are audited at critical scope
-  comparison: ordinal-based; higher ordinal = higher authority
+      - name: admin
+        ordinal: 3
+        decider: administrator
+        description: >
+          Administrator approval for critical operations, policy
+          overrides, and system-level changes. Admin is the final
+          authority in the approval chain. Admin approval requires
+          MFA confirmation for critical-severity operations.
+        constraints:
+          - No functional limitations — final authority
+          - Critical operations require MFA confirmation
+          - All admin decisions are audited at critical scope
+    comparison: ordinal-based; higher ordinal = higher authority
 ```
 
 ---
@@ -391,86 +392,87 @@ context needed for the authority to make an informed decision.
 ### Request Structure
 
 ```yaml
-ApprovalRequest:
-  description: Formal request for approval with full intent context
-  fields:
-    - name: id
-      type: string
-      required: true
-      description: Unique approval request identifier (generated by the approval engine)
-    - name: intent_id
-      type: string
-      required: true
-      description: >
-        Reference to the OperationIntent from patterns/safety that
-        triggered the approval requirement. The authority can inspect
-        the full intent for operation details.
-    - name: requester
-      type: string
-      required: true
-      description: >
-        Identity of the entity requesting approval — agent name,
-        domain controller name, or operator identity. Used for
-        separation-of-duties enforcement.
-    - name: operation
-      type: string
-      required: true
-      description: >
-        Human-readable summary of the operation being requested.
-        E.g., "Delete 47 expired user records from production database"
-    - name: operation_class
-      type: OperationClass
-      required: true
-      description: Safety classification of the operation (from patterns/safety)
-    - name: resource_class
-      type: ResourceClass
-      required: true
-      description: Criticality of the target resource (from patterns/safety)
-    - name: scope
-      type: ScopeLevel
-      required: true
-      description: Scope classification of the target (from patterns/scope)
-    - name: environment
-      type: string
-      required: true
-      description: Active environment — development, staging, production
-    - name: authority_required
-      type: AuthorityLevel
-      required: true
-      description: Minimum authority level required — determined by routing
-    - name: justification
-      type: string
-      required: true
-      description: >
-        Why this operation is needed. Must be substantive — single-word
-        justifications are rejected. The authority uses this to evaluate
-        the business case for the operation.
-    - name: urgency
-      type: enum(normal, urgent, emergency)
-      required: true
-      description: >
-        Request urgency. Normal requests follow standard routing and
-        timeouts. Urgent requests have shortened timeouts and priority
-        notification. Emergency requests trigger the break-glass flow.
-    - name: requested_at
-      type: int64
-      required: true
-      description: Unix epoch seconds when the request was filed
-    - name: expires_at
-      type: int64
-      required: true
-      description: >
-        Unix epoch seconds when the request expires if not decided.
-        Default is requested_at + escalation timeout. Expired requests
-        are automatically denied and emit an approval.expired event.
-    - name: correlation_id
-      type: string
-      required: false
-      description: Trace ID linking this request to a workflow or task execution
-    - name: metadata
-      type: map
-      required: false
-      description: Additional context for domain-specific approval evaluation
+types:
+  ApprovalRequest:
+    description: Formal request for approval with full intent context
+    fields:
+      - name: id
+        type: string
+        required: true
+        description: Unique approval request identifier (generated by the approval engine)
+      - name: intent_id
+        type: string
+        required: true
+        description: >
+          Reference to the OperationIntent from patterns/safety that
+          triggered the approval requirement. The authority can inspect
+          the full intent for operation details.
+      - name: requester
+        type: string
+        required: true
+        description: >
+          Identity of the entity requesting approval — agent name,
+          domain controller name, or operator identity. Used for
+          separation-of-duties enforcement.
+      - name: operation
+        type: string
+        required: true
+        description: >
+          Human-readable summary of the operation being requested.
+          E.g., "Delete 47 expired user records from production database"
+      - name: operation_class
+        type: OperationClass
+        required: true
+        description: Safety classification of the operation (from patterns/safety)
+      - name: resource_class
+        type: ResourceClass
+        required: true
+        description: Criticality of the target resource (from patterns/safety)
+      - name: scope
+        type: ScopeLevel
+        required: true
+        description: Scope classification of the target (from patterns/scope)
+      - name: environment
+        type: string
+        required: true
+        description: Active environment — development, staging, production
+      - name: authority_required
+        type: AuthorityLevel
+        required: true
+        description: Minimum authority level required — determined by routing
+      - name: justification
+        type: string
+        required: true
+        description: >
+          Why this operation is needed. Must be substantive — single-word
+          justifications are rejected. The authority uses this to evaluate
+          the business case for the operation.
+      - name: urgency
+        type: enum(normal, urgent, emergency)
+        required: true
+        description: >
+          Request urgency. Normal requests follow standard routing and
+          timeouts. Urgent requests have shortened timeouts and priority
+          notification. Emergency requests trigger the break-glass flow.
+      - name: requested_at
+        type: int64
+        required: true
+        description: Unix epoch seconds when the request was filed
+      - name: expires_at
+        type: int64
+        required: true
+        description: >
+          Unix epoch seconds when the request expires if not decided.
+          Default is requested_at + escalation timeout. Expired requests
+          are automatically denied and emit an approval.expired event.
+      - name: correlation_id
+        type: string
+        required: false
+        description: Trace ID linking this request to a workflow or task execution
+      - name: metadata
+        type: map
+        required: false
+        description: Additional context for domain-specific approval evaluation
 ```
 
 ### Request Example

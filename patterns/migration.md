@@ -670,100 +670,101 @@ The migration plan is the central artifact. It is a signed, immutable
 declaration of what will change, how, and within what bounds.
 
 ```yaml
-MigrationPlan:
-  description: >
-    Signed migration plan artifact declaring intent, steps,
-    blast radius, reversibility, and mutation contract.
-    Immutable once submitted for validation.
-  fields:
-    - name: id
-      type: string
-      required: true
-      description: Unique plan identifier (e.g., "mig-20260511-001")
-    - name: name
-      type: string
-      required: true
-      description: Human-readable migration name (e.g., "add-priority-to-tasks")
-    - name: description
-      type: text
-      required: true
-      description: What this migration does and why it is necessary
-    - name: status
-      type: enum(draft, validating, validated, validation_failed, dry_running, dry_run_complete, dry_run_failed, pending_approval, approved, rejected, executing, executed, execution_failed, verifying, verified, verification_failed, rolling_back, rolled_back, abandoned)
-      required: true
-      default: draft
-      description: Current lifecycle state — governed by migration_lifecycle state machine
-    - name: agent
-      type: string
-      required: true
-      description: Agent or component that owns this migration
-    - name: triggered_by
-      type: enum(blueprint_update, operator, dependency_change, policy_change)
-      required: true
-      description: What caused this migration to be created
-    - name: source_revision
-      type: string
-      required: false
-      description: BlueprintRevision ID that triggered this migration (if blueprint_update)
-    - name: environment
-      type: string
-      required: true
-      description: Target environment — development, staging, production
-    - name: operation_class
-      type: OperationClass
-      required: true
-      description: >
-        Safety classification of the most dangerous step in this migration.
-        A plan with any destroy step is classified as destroy. Classification
-        follows the most-dangerous-interpretation rule from patterns/safety.
-    - name: tables
-      type: "[]string"
-      required: true
-      description: All tables affected by this migration — used for scope validation
-    - name: steps
-      type: "[]MigrationStep"
-      required: true
-      description: Ordered list of migration steps using patterns/storage action format
-    - name: rollback_steps
-      type: "[]MigrationStep"
-      required: true
-      description: Ordered list of reverse steps — MUST reverse every forward step
-    - name: blast_radius
-      type: BlastRadius
-      required: true
-      description: Declared bounds on what this migration will affect
-    - name: mutation_contract
-      type: MutationContract
-      required: true
-      description: Explicit grant of mutation authority for this migration
-    - name: pre_conditions
-      type: "[]string"
-      required: false
-      description: Conditions that must be true before execution (e.g., "users table exists", "no active transactions")
-    - name: post_conditions
-      type: "[]string"
-      required: false
-      description: Conditions that must be true after execution (e.g., "all rows have priority field")
-    - name: integrity_checkpoint_id
-      type: string
-      required: false
-      description: Pre-migration integrity checkpoint — set when execution begins
-    - name: plan_hash
-      type: string
-      required: true
-      description: SHA-256 hash of the plan content (steps + rollback_steps + blast_radius) — tamper detection
-    - name: created_by
-      type: string
-      required: true
-      description: Identity of who created the plan (operator, agent, system)
-    - name: created_at
-      type: int64
-      required: true
-      description: Unix epoch seconds when the plan was created
-    - name: updated_at
-      type: int64
-      required: true
-      description: Unix epoch seconds of last status change
+types:
+  MigrationPlan:
+    description: >
+      Signed migration plan artifact declaring intent, steps,
+      blast radius, reversibility, and mutation contract.
+      Immutable once submitted for validation.
+    fields:
+      - name: id
+        type: string
+        required: true
+        description: Unique plan identifier (e.g., "mig-20260511-001")
+      - name: name
+        type: string
+        required: true
+        description: Human-readable migration name (e.g., "add-priority-to-tasks")
+      - name: description
+        type: text
+        required: true
+        description: What this migration does and why it is necessary
+      - name: status
+        type: enum(draft, validating, validated, validation_failed, dry_running, dry_run_complete, dry_run_failed, pending_approval, approved, rejected, executing, executed, execution_failed, verifying, verified, verification_failed, rolling_back, rolled_back, abandoned)
+        required: true
+        default: draft
+        description: Current lifecycle state — governed by migration_lifecycle state machine
+      - name: agent
+        type: string
+        required: true
+        description: Agent or component that owns this migration
+      - name: triggered_by
+        type: enum(blueprint_update, operator, dependency_change, policy_change)
+        required: true
+        description: What caused this migration to be created
+      - name: source_revision
+        type: string
+        required: false
+        description: BlueprintRevision ID that triggered this migration (if blueprint_update)
+      - name: environment
+        type: string
+        required: true
+        description: Target environment — development, staging, production
+      - name: operation_class
+        type: OperationClass
+        required: true
+        description: >
+          Safety classification of the most dangerous step in this migration.
+          A plan with any destroy step is classified as destroy. Classification
+          follows the most-dangerous-interpretation rule from patterns/safety.
+      - name: tables
+        type: "[]string"
+        required: true
+        description: All tables affected by this migration — used for scope validation
+      - name: steps
+        type: "[]MigrationStep"
+        required: true
+        description: Ordered list of migration steps using patterns/storage action format
+      - name: rollback_steps
+        type: "[]MigrationStep"
+        required: true
+        description: Ordered list of reverse steps — MUST reverse every forward step
+      - name: blast_radius
+        type: BlastRadius
+        required: true
+        description: Declared bounds on what this migration will affect
+      - name: mutation_contract
+        type: MutationContract
+        required: true
+        description: Explicit grant of mutation authority for this migration
+      - name: pre_conditions
+        type: "[]string"
+        required: false
+        description: Conditions that must be true before execution (e.g., "users table exists", "no active transactions")
+      - name: post_conditions
+        type: "[]string"
+        required: false
+        description: Conditions that must be true after execution (e.g., "all rows have priority field")
+      - name: integrity_checkpoint_id
+        type: string
+        required: false
+        description: Pre-migration integrity checkpoint — set when execution begins
+      - name: plan_hash
+        type: string
+        required: true
+        description: SHA-256 hash of the plan content (steps + rollback_steps + blast_radius) — tamper detection
+      - name: created_by
+        type: string
+        required: true
+        description: Identity of who created the plan (operator, agent, system)
+      - name: created_at
+        type: int64
+        required: true
+        description: Unix epoch seconds when the plan was created
+      - name: updated_at
+        type: int64
+        required: true
+        description: Unix epoch seconds of last status change
 ```
 
 ### Mutation Contract
@@ -780,93 +781,95 @@ specific set of allowed operations on specific tables with specific
 row-level constraints.
 
 ```yaml
-MutationContract:
-  description: >
-    Explicit grant of mutation authority for a migration.
-    Binds allowed operations to specific tables with row-level
-    constraints and time bounds. Verified at every execution step.
-  fields:
-    - name: id
-      type: string
-      required: true
-      description: Unique contract identifier
-    - name: plan_id
-      type: string
-      required: true
-      description: Migration plan this contract authorizes
-    - name: grants
-      type: "[]MutationGrant"
-      required: true
-      description: List of specific mutation grants — one per table/operation combination
-    - name: denied_operations
-      type: "[]string"
-      required: false
-      description: >
-        Explicit deny list — operations the agent MUST NOT perform during this
-        migration, even if the grant would allow it (e.g., "DROP TABLE",
-        "TRUNCATE", "DELETE without WHERE clause")
-    - name: time_bound
-      type: int
-      required: true
-      description: >
-        Maximum seconds the contract is valid from execution start.
-        If execution exceeds this bound, the contract expires and
-        execution is halted with automatic rollback.
-    - name: issued_by
-      type: string
-      required: true
-      description: Identity that issued the contract (system, operator)
-    - name: issued_at
-      type: int64
-      required: true
-      description: Unix epoch seconds when the contract was issued
-    - name: expires_at
-      type: int64
-      required: true
-      description: Unix epoch seconds when the contract expires — absolute deadline
-    - name: revoked
-      type: boolean
-      required: true
-      default: false
-      description: Whether the contract has been revoked (operator can revoke mid-execution)
-    - name: revoked_reason
-      type: string
-      required: false
-      description: Why the contract was revoked
+types:
+  MutationContract:
+    description: >
+      Explicit grant of mutation authority for a migration.
+      Binds allowed operations to specific tables with row-level
+      constraints and time bounds. Verified at every execution step.
+    fields:
+      - name: id
+        type: string
+        required: true
+        description: Unique contract identifier
+      - name: plan_id
+        type: string
+        required: true
+        description: Migration plan this contract authorizes
+      - name: grants
+        type: "[]MutationGrant"
+        required: true
+        description: List of specific mutation grants — one per table/operation combination
+      - name: denied_operations
+        type: "[]string"
+        required: false
+        description: >
+          Explicit deny list — operations the agent MUST NOT perform during this
+          migration, even if the grant would allow it (e.g., "DROP TABLE",
+          "TRUNCATE", "DELETE without WHERE clause")
+      - name: time_bound
+        type: int
+        required: true
+        description: >
+          Maximum seconds the contract is valid from execution start.
+          If execution exceeds this bound, the contract expires and
+          execution is halted with automatic rollback.
+      - name: issued_by
+        type: string
+        required: true
+        description: Identity that issued the contract (system, operator)
+      - name: issued_at
+        type: int64
+        required: true
+        description: Unix epoch seconds when the contract was issued
+      - name: expires_at
+        type: int64
+        required: true
+        description: Unix epoch seconds when the contract expires — absolute deadline
+      - name: revoked
+        type: boolean
+        required: true
+        default: false
+        description: Whether the contract has been revoked (operator can revoke mid-execution)
+      - name: revoked_reason
+        type: string
+        required: false
+        description: Why the contract was revoked
 ```
 
 #### Mutation Grant
 
 ```yaml
-MutationGrant:
-  description: >
-    Single grant of mutation authority over a specific table
-    with a specific operation and optional row-level constraint.
-  fields:
-    - name: table
-      type: string
-      required: true
-      description: Table name this grant applies to
-    - name: operation
-      type: enum(add_field, drop_field, alter_field, rename_field, add_index, drop_index, add_constraint, drop_constraint, add_type, drop_type, backfill, transform)
-      required: true
-      description: Specific migration action permitted — maps to patterns/storage migration actions
-    - name: row_constraint
-      type: string
-      required: false
-      description: >
-        Row-level filter for backfill/transform operations
-        (e.g., "status = 'inactive' AND created_at < 1713264000").
-        If specified, the operation MUST only affect rows matching
-        this constraint. Violation triggers automatic rollback.
-    - name: max_rows
-      type: int
-      required: false
-      description: >
-        Maximum rows this grant permits to be affected.
-        For schema operations (add_field, add_index, etc.) this is
-        not applicable. For data operations (backfill, transform),
-        exceeding this limit halts execution.
+types:
+  MutationGrant:
+    description: >
+      Single grant of mutation authority over a specific table
+      with a specific operation and optional row-level constraint.
+    fields:
+      - name: table
+        type: string
+        required: true
+        description: Table name this grant applies to
+      - name: operation
+        type: enum(add_field, drop_field, alter_field, rename_field, add_index, drop_index, add_constraint, drop_constraint, add_type, drop_type, backfill, transform)
+        required: true
+        description: Specific migration action permitted — maps to patterns/storage migration actions
+      - name: row_constraint
+        type: string
+        required: false
+        description: >
+          Row-level filter for backfill/transform operations
+          (e.g., "status = 'inactive' AND created_at < 1713264000").
+          If specified, the operation MUST only affect rows matching
+          this constraint. Violation triggers automatic rollback.
+      - name: max_rows
+        type: int
+        required: false
+        description: >
+          Maximum rows this grant permits to be affected.
+          For schema operations (add_field, add_index, etc.) this is
+          not applicable. For data operations (backfill, transform),
+          exceeding this limit halts execution.
 ```
 
 ### Blast Radius
@@ -876,50 +879,51 @@ The blast radius is a hard limit — if actual execution exceeds any
 declared dimension, the migration is automatically halted.
 
 ```yaml
-BlastRadius:
-  description: >
-    Declared bounds on migration impact. Acts as a circuit breaker —
-    exceeding any limit triggers automatic rollback.
-  fields:
-    - name: tables_affected
-      type: "[]string"
-      required: true
-      description: >
-        Exact list of tables that will be modified. If the migration
-        attempts to modify a table not in this list, execution halts.
-    - name: max_rows_affected
-      type: int
-      required: true
-      description: >
-        Maximum total rows affected across all tables. Set to 0 for
-        schema-only changes (e.g., add column with default). Set to
-        the expected count for data migrations. The system verifies
-        this limit before committing.
-    - name: max_duration_seconds
-      type: int
-      required: true
-      description: >
-        Maximum wall-clock seconds the migration may run. Migrations
-        that exceed this duration are halted and rolled back.
-    - name: data_loss_risk
-      type: enum(none, recoverable, permanent)
-      required: true
-      description: >
-        Declares whether data loss is possible:
-        - none: additive only (add column, add index)
-        - recoverable: data modified but reversible (rename, alter type with safe cast)
-        - permanent: data will be irreversibly lost (drop column, drop table, transform without backup)
-    - name: requires_backup
-      type: boolean
-      required: true
-      description: >
-        Whether a backup checkpoint must be created before execution.
-        Automatically true when data_loss_risk is "permanent".
-        Implementations define backup mechanics (platform-specific).
-    - name: estimated_duration_seconds
-      type: int
-      required: false
-      description: Expected duration — used for progress reporting, not enforcement
+types:
+  BlastRadius:
+    description: >
+      Declared bounds on migration impact. Acts as a circuit breaker —
+      exceeding any limit triggers automatic rollback.
+    fields:
+      - name: tables_affected
+        type: "[]string"
+        required: true
+        description: >
+          Exact list of tables that will be modified. If the migration
+          attempts to modify a table not in this list, execution halts.
+      - name: max_rows_affected
+        type: int
+        required: true
+        description: >
+          Maximum total rows affected across all tables. Set to 0 for
+          schema-only changes (e.g., add column with default). Set to
+          the expected count for data migrations. The system verifies
+          this limit before committing.
+      - name: max_duration_seconds
+        type: int
+        required: true
+        description: >
+          Maximum wall-clock seconds the migration may run. Migrations
+          that exceed this duration are halted and rolled back.
+      - name: data_loss_risk
+        type: enum(none, recoverable, permanent)
+        required: true
+        description: >
+          Declares whether data loss is possible:
+          - none: additive only (add column, add index)
+          - recoverable: data modified but reversible (rename, alter type with safe cast)
+          - permanent: data will be irreversibly lost (drop column, drop table, transform without backup)
+      - name: requires_backup
+        type: boolean
+        required: true
+        description: >
+          Whether a backup checkpoint must be created before execution.
+          Automatically true when data_loss_risk is "permanent".
+          Implementations define backup mechanics (platform-specific).
+      - name: estimated_duration_seconds
+        type: int
+        required: false
+        description: Expected duration — used for progress reporting, not enforcement
 ```
 
 ### Dry-Run Report
@@ -929,115 +933,117 @@ claims. It is produced by simulation execution and is a required
 input to the approval process.
 
 ```yaml
-DryRunReport:
-  description: >
-    Impact analysis from simulation execution. Documents what would
-    happen if the migration were executed for real. Required input
-    for approval decisions.
-  fields:
-    - name: id
-      type: string
-      required: true
-      description: Unique report identifier
-    - name: plan_id
-      type: string
-      required: true
-      description: Migration plan that was simulated
-    - name: target
-      type: enum(snapshot, shadow, clone)
-      required: true
-      description: >
-        How the simulation was executed:
-        - snapshot: read-only analysis — counts and schema checks without any writes
-        - shadow: copy-on-write execution — runs steps against a shadow copy
-        - clone: full database clone — runs steps against a complete copy
-    - name: steps_simulated
-      type: int
-      required: true
-      description: Number of migration steps that were simulated
-    - name: steps_succeeded
-      type: int
-      required: true
-      description: Number of steps that completed without error in simulation
-    - name: rows_that_would_be_affected
-      type: int
-      required: true
-      description: Total rows that would be modified if migration executed for real
-    - name: per_table_impact
-      type: "[]TableImpact"
-      required: true
-      description: Breakdown of impact per affected table
-    - name: schema_changes_preview
-      type: "[]string"
-      required: true
-      description: Human-readable description of each schema change that would occur
-    - name: data_samples
-      type: json
-      required: false
-      description: >
-        Sample of before/after data for transform/backfill steps.
-        Limited to configurable sample size (default 10 rows per step).
-        Sensitive fields are masked per patterns/privacy.
-    - name: pre_checksums
-      type: "[]IntegrityCheckpoint"
-      required: true
-      description: Checksums computed over affected data before simulation
-    - name: post_checksums
-      type: "[]IntegrityCheckpoint"
-      required: false
-      description: Checksums computed after simulation (for shadow/clone targets only)
-    - name: constraint_violations
-      type: "[]string"
-      required: false
-      description: Any constraint violations detected during simulation
-    - name: warnings
-      type: "[]string"
-      required: false
-      description: Non-fatal issues detected (e.g., "backfill would affect 50,000 rows — consider batching")
-    - name: errors
-      type: "[]string"
-      required: false
-      description: Fatal issues that would prevent real execution
-    - name: duration_ms
-      type: int
-      required: true
-      description: How long the simulation took — used for duration estimate in real execution
-    - name: simulated_at
-      type: int64
-      required: true
-      description: Unix epoch seconds when the simulation completed
+types:
+  DryRunReport:
+    description: >
+      Impact analysis from simulation execution. Documents what would
+      happen if the migration were executed for real. Required input
+      for approval decisions.
+    fields:
+      - name: id
+        type: string
+        required: true
+        description: Unique report identifier
+      - name: plan_id
+        type: string
+        required: true
+        description: Migration plan that was simulated
+      - name: target
+        type: enum(snapshot, shadow, clone)
+        required: true
+        description: >
+          How the simulation was executed:
+          - snapshot: read-only analysis — counts and schema checks without any writes
+          - shadow: copy-on-write execution — runs steps against a shadow copy
+          - clone: full database clone — runs steps against a complete copy
+      - name: steps_simulated
+        type: int
+        required: true
+        description: Number of migration steps that were simulated
+      - name: steps_succeeded
+        type: int
+        required: true
+        description: Number of steps that completed without error in simulation
+      - name: rows_that_would_be_affected
+        type: int
+        required: true
+        description: Total rows that would be modified if migration executed for real
+      - name: per_table_impact
+        type: "[]TableImpact"
+        required: true
+        description: Breakdown of impact per affected table
+      - name: schema_changes_preview
+        type: "[]string"
+        required: true
+        description: Human-readable description of each schema change that would occur
+      - name: data_samples
+        type: json
+        required: false
+        description: >
+          Sample of before/after data for transform/backfill steps.
+          Limited to configurable sample size (default 10 rows per step).
+          Sensitive fields are masked per patterns/privacy.
+      - name: pre_checksums
+        type: "[]IntegrityCheckpoint"
+        required: true
+        description: Checksums computed over affected data before simulation
+      - name: post_checksums
+        type: "[]IntegrityCheckpoint"
+        required: false
+        description: Checksums computed after simulation (for shadow/clone targets only)
+      - name: constraint_violations
+        type: "[]string"
+        required: false
+        description: Any constraint violations detected during simulation
+      - name: warnings
+        type: "[]string"
+        required: false
+        description: Non-fatal issues detected (e.g., "backfill would affect 50,000 rows — consider batching")
+      - name: errors
+        type: "[]string"
+        required: false
+        description: Fatal issues that would prevent real execution
+      - name: duration_ms
+        type: int
+        required: true
+        description: How long the simulation took — used for duration estimate in real execution
+      - name: simulated_at
+        type: int64
+        required: true
+        description: Unix epoch seconds when the simulation completed
 ```
 
 #### Table Impact
 
 ```yaml
-TableImpact:
-  description: Per-table impact breakdown from dry-run simulation
-  fields:
-    - name: table
-      type: string
-      required: true
-      description: Table name
-    - name: operation
-      type: string
-      required: true
-      description: Migration action applied to this table
-    - name: rows_affected
-      type: int
-      required: true
-      description: Number of rows that would be affected
-    - name: total_rows
-      type: int
-      required: true
-      description: Total rows in the table (for context)
-    - name: percentage_affected
-      type: float
-      required: true
-      description: Percentage of table rows affected
-    - name: size_change_bytes
-      type: int
-      required: false
-      description: Estimated change in storage size (positive = growth, negative = shrink)
+types:
+  TableImpact:
+    description: Per-table impact breakdown from dry-run simulation
+    fields:
+      - name: table
+        type: string
+        required: true
+        description: Table name
+      - name: operation
+        type: string
+        required: true
+        description: Migration action applied to this table
+      - name: rows_affected
+        type: int
+        required: true
+        description: Number of rows that would be affected
+      - name: total_rows
+        type: int
+        required: true
+        description: Total rows in the table (for context)
+      - name: percentage_affected
+        type: float
+        required: true
+        description: Percentage of table rows affected
+      - name: size_change_bytes
+        type: int
+        required: false
+        description: Estimated change in storage size (positive = growth, negative = shrink)
 ```
 
 ### Integrity Checkpoint
@@ -1047,46 +1053,47 @@ They are computed before and after migration execution and compared
 to verify that only declared changes occurred.
 
 ```yaml
-IntegrityCheckpoint:
-  description: >
-    Cryptographic snapshot of data state at a point in time.
-    Used for pre/post migration comparison.
-  fields:
-    - name: id
-      type: string
-      required: true
-      description: Unique checkpoint identifier
-    - name: table
-      type: string
-      required: true
-      description: Table this checkpoint covers
-    - name: row_count
-      type: int
-      required: true
-      description: Total rows in the table at checkpoint time
-    - name: checksum
-      type: string
-      required: true
-      description: >
-        SHA-256 hash computed over the table's data. The checksum
-        algorithm is: sort rows by primary key, concatenate all
-        field values as UTF-8 strings, compute SHA-256. This is
-        deterministic and reproducible.
-    - name: schema_hash
-      type: string
-      required: true
-      description: SHA-256 hash of the table's schema definition (column names, types, constraints)
-    - name: scope_filter
-      type: string
-      required: false
-      description: >
-        If only a subset of rows were checksummed (for large tables),
-        the filter expression used (e.g., "created_at > 1713264000").
-        If null, the entire table was checksummed.
-    - name: captured_at
-      type: int64
-      required: true
-      description: Unix epoch seconds when the checkpoint was captured
+types:
+  IntegrityCheckpoint:
+    description: >
+      Cryptographic snapshot of data state at a point in time.
+      Used for pre/post migration comparison.
+    fields:
+      - name: id
+        type: string
+        required: true
+        description: Unique checkpoint identifier
+      - name: table
+        type: string
+        required: true
+        description: Table this checkpoint covers
+      - name: row_count
+        type: int
+        required: true
+        description: Total rows in the table at checkpoint time
+      - name: checksum
+        type: string
+        required: true
+        description: >
+          SHA-256 hash computed over the table's data. The checksum
+          algorithm is: sort rows by primary key, concatenate all
+          field values as UTF-8 strings, compute SHA-256. This is
+          deterministic and reproducible.
+      - name: schema_hash
+        type: string
+        required: true
+        description: SHA-256 hash of the table's schema definition (column names, types, constraints)
+      - name: scope_filter
+        type: string
+        required: false
+        description: >
+          If only a subset of rows were checksummed (for large tables),
+          the filter expression used (e.g., "created_at > 1713264000").
+          If null, the entire table was checksummed.
+      - name: captured_at
+        type: int64
+        required: true
+        description: Unix epoch seconds when the checkpoint was captured
 ```
 
 ### Migration Execution
@@ -1094,102 +1101,104 @@ IntegrityCheckpoint:
 Runtime state of a migration being executed.
 
 ```yaml
-MigrationExecution:
-  description: Runtime state and progress of a migration execution
-  fields:
-    - name: id
-      type: string
-      required: true
-      description: Unique execution identifier
-    - name: plan_id
-      type: string
-      required: true
-      description: Migration plan being executed
-    - name: approval_id
-      type: string
-      required: true
-      description: Approval that authorized this execution
-    - name: contract_id
-      type: string
-      required: true
-      description: Mutation contract governing this execution
-    - name: pre_checkpoint_id
-      type: string
-      required: true
-      description: Integrity checkpoint taken before execution started
-    - name: post_checkpoint_id
-      type: string
-      required: false
-      description: Integrity checkpoint taken after execution completed (before verification)
-    - name: current_step
-      type: int
-      required: true
-      description: Index of the currently executing step (0-based)
-    - name: total_steps
-      type: int
-      required: true
-      description: Total number of steps in the migration
-    - name: rows_processed
-      type: int
-      required: true
-      default: 0
-      description: Total rows processed so far across all steps
-    - name: status
-      type: enum(running, completed, failed, rolling_back, rolled_back)
-      required: true
-      description: Execution status
-    - name: step_results
-      type: "[]StepResult"
-      required: false
-      description: Result of each completed step
-    - name: started_at
-      type: int64
-      required: true
-      description: Unix epoch seconds when execution began
-    - name: completed_at
-      type: int64
-      required: false
-      description: Unix epoch seconds when execution finished (null if still running)
-    - name: error
-      type: string
-      required: false
-      description: Error message if execution failed
+types:
+  MigrationExecution:
+    description: Runtime state and progress of a migration execution
+    fields:
+      - name: id
+        type: string
+        required: true
+        description: Unique execution identifier
+      - name: plan_id
+        type: string
+        required: true
+        description: Migration plan being executed
+      - name: approval_id
+        type: string
+        required: true
+        description: Approval that authorized this execution
+      - name: contract_id
+        type: string
+        required: true
+        description: Mutation contract governing this execution
+      - name: pre_checkpoint_id
+        type: string
+        required: true
+        description: Integrity checkpoint taken before execution started
+      - name: post_checkpoint_id
+        type: string
+        required: false
+        description: Integrity checkpoint taken after execution completed (before verification)
+      - name: current_step
+        type: int
+        required: true
+        description: Index of the currently executing step (0-based)
+      - name: total_steps
+        type: int
+        required: true
+        description: Total number of steps in the migration
+      - name: rows_processed
+        type: int
+        required: true
+        default: 0
+        description: Total rows processed so far across all steps
+      - name: status
+        type: enum(running, completed, failed, rolling_back, rolled_back)
+        required: true
+        description: Execution status
+      - name: step_results
+        type: "[]StepResult"
+        required: false
+        description: Result of each completed step
+      - name: started_at
+        type: int64
+        required: true
+        description: Unix epoch seconds when execution began
+      - name: completed_at
+        type: int64
+        required: false
+        description: Unix epoch seconds when execution finished (null if still running)
+      - name: error
+        type: string
+        required: false
+        description: Error message if execution failed
 ```
 
 #### Step Result
 
 ```yaml
-StepResult:
-  description: Result of executing a single migration step
-  fields:
-    - name: step_index
-      type: int
-      required: true
-      description: Index of this step in the plan
-    - name: action
-      type: string
-      required: true
-      description: Migration action that was executed
-    - name: table
-      type: string
-      required: true
-      description: Table affected by this step
-    - name: rows_affected
-      type: int
-      required: true
-      description: Rows affected by this step
-    - name: duration_ms
-      type: int
-      required: true
-      description: How long this step took
-    - name: success
-      type: boolean
-      required: true
-      description: Whether the step completed successfully
-    - name: error
-      type: string
-      required: false
-      description: Error message if the step failed
+types:
+  StepResult:
+    description: Result of executing a single migration step
+    fields:
+      - name: step_index
+        type: int
+        required: true
+        description: Index of this step in the plan
+      - name: action
+        type: string
+        required: true
+        description: Migration action that was executed
+      - name: table
+        type: string
+        required: true
+        description: Table affected by this step
+      - name: rows_affected
+        type: int
+        required: true
+        description: Rows affected by this step
+      - name: duration_ms
+        type: int
+        required: true
+        description: How long this step took
+      - name: success
+        type: boolean
+        required: true
+        description: Whether the step completed successfully
+      - name: error
+        type: string
+        required: false
+        description: Error message if the step failed
 ```
 
 ### Migration Intent
@@ -1199,41 +1208,42 @@ migration operations. Extends the base intent with migration-specific
 fields that the safety pipeline uses for gate evaluation.
 
 ```yaml
-MigrationIntent:
-  description: >
-    Specialized OperationIntent for migration operations. Extends
-    the base intent with blast radius, affected tables, and data
-    loss risk so the safety pipeline can make informed gate decisions.
-  extends: OperationIntent
-  additional_fields:
-    - name: plan_id
-      type: string
-      required: true
-      description: Migration plan this intent corresponds to
-    - name: tables_affected
-      type: "[]string"
-      required: true
-      description: All tables this migration will touch
-    - name: estimated_rows
-      type: int
-      required: true
-      description: Expected number of rows to be affected
-    - name: data_loss_risk
-      type: enum(none, recoverable, permanent)
-      required: true
-      description: Data loss classification from the blast radius declaration
-    - name: has_dry_run_report
-      type: boolean
-      required: true
-      description: Whether a successful dry-run report exists
-    - name: dry_run_report_id
-      type: string
-      required: false
-      description: ID of the dry-run report (if has_dry_run_report is true)
-    - name: reversibility_proof
-      type: boolean
-      required: true
-      description: Whether rollback steps exist for every forward step
+types:
+  MigrationIntent:
+    description: >
+      Specialized OperationIntent for migration operations. Extends
+      the base intent with blast radius, affected tables, and data
+      loss risk so the safety pipeline can make informed gate decisions.
+    extends: OperationIntent
+    additional_fields:
+      - name: plan_id
+        type: string
+        required: true
+        description: Migration plan this intent corresponds to
+      - name: tables_affected
+        type: "[]string"
+        required: true
+        description: All tables this migration will touch
+      - name: estimated_rows
+        type: int
+        required: true
+        description: Expected number of rows to be affected
+      - name: data_loss_risk
+        type: enum(none, recoverable, permanent)
+        required: true
+        description: Data loss classification from the blast radius declaration
+      - name: has_dry_run_report
+        type: boolean
+        required: true
+        description: Whether a successful dry-run report exists
+      - name: dry_run_report_id
+        type: string
+        required: false
+        description: ID of the dry-run report (if has_dry_run_report is true)
+      - name: reversibility_proof
+        type: boolean
+        required: true
+        description: Whether rollback steps exist for every forward step
 ```
 
 ### Migration Record
@@ -1242,92 +1252,93 @@ Immutable record in the append-only migration history. Once written,
 a migration record cannot be modified or deleted.
 
 ```yaml
-MigrationRecord:
-  description: >
-    Immutable, tamper-evident record in the migration history log.
-    Records the complete lifecycle of a migration for compliance
-    audit. Hash-chained to detect tampering.
-  fields:
-    - name: id
-      type: string
-      required: true
-      description: Unique record identifier
-    - name: plan_id
-      type: string
-      required: true
-      description: Migration plan this record documents
-    - name: plan_hash
-      type: string
-      required: true
-      description: SHA-256 of the plan at execution time — detects post-hoc plan modification
-    - name: execution_id
-      type: string
-      required: false
-      description: Execution ID (null if migration was abandoned before execution)
-    - name: outcome
-      type: enum(verified, rolled_back, abandoned)
-      required: true
-      description: Final outcome of the migration
-    - name: agent
-      type: string
-      required: true
-      description: Agent that performed the migration
-    - name: environment
-      type: string
-      required: true
-      description: Environment where the migration ran
-    - name: tables_affected
-      type: "[]string"
-      required: true
-      description: Tables that were actually modified
-    - name: rows_affected
-      type: int
-      required: true
-      description: Total rows actually affected (0 for schema-only or abandoned)
-    - name: operation_class
-      type: OperationClass
-      required: true
-      description: Safety classification
-    - name: approval_id
-      type: string
-      required: false
-      description: Approval that authorized execution (null if auto-approved or abandoned)
-    - name: approvers
-      type: "[]string"
-      required: false
-      description: Identities that approved the migration
-    - name: dry_run_report_id
-      type: string
-      required: false
-      description: Dry-run report (null if abandoned before dry run)
-    - name: pre_checkpoint
-      type: IntegrityCheckpoint
-      required: false
-      description: Pre-migration integrity state
-    - name: post_checkpoint
-      type: IntegrityCheckpoint
-      required: false
-      description: Post-migration integrity state
-    - name: rollback_reason
-      type: string
-      required: false
-      description: Why the migration was rolled back (if outcome is rolled_back)
-    - name: duration_ms
-      type: int
-      required: false
-      description: Total execution duration including verification
-    - name: previous_record_hash
-      type: string
-      required: true
-      description: SHA-256 of the previous MigrationRecord — hash chain for tamper detection
-    - name: record_hash
-      type: string
-      required: true
-      description: SHA-256 of this record (all fields except record_hash itself)
-    - name: recorded_at
-      type: int64
-      required: true
-      description: Unix epoch seconds when this record was written
+types:
+  MigrationRecord:
+    description: >
+      Immutable, tamper-evident record in the migration history log.
+      Records the complete lifecycle of a migration for compliance
+      audit. Hash-chained to detect tampering.
+    fields:
+      - name: id
+        type: string
+        required: true
+        description: Unique record identifier
+      - name: plan_id
+        type: string
+        required: true
+        description: Migration plan this record documents
+      - name: plan_hash
+        type: string
+        required: true
+        description: SHA-256 of the plan at execution time — detects post-hoc plan modification
+      - name: execution_id
+        type: string
+        required: false
+        description: Execution ID (null if migration was abandoned before execution)
+      - name: outcome
+        type: enum(verified, rolled_back, abandoned)
+        required: true
+        description: Final outcome of the migration
+      - name: agent
+        type: string
+        required: true
+        description: Agent that performed the migration
+      - name: environment
+        type: string
+        required: true
+        description: Environment where the migration ran
+      - name: tables_affected
+        type: "[]string"
+        required: true
+        description: Tables that were actually modified
+      - name: rows_affected
+        type: int
+        required: true
+        description: Total rows actually affected (0 for schema-only or abandoned)
+      - name: operation_class
+        type: OperationClass
+        required: true
+        description: Safety classification
+      - name: approval_id
+        type: string
+        required: false
+        description: Approval that authorized execution (null if auto-approved or abandoned)
+      - name: approvers
+        type: "[]string"
+        required: false
+        description: Identities that approved the migration
+      - name: dry_run_report_id
+        type: string
+        required: false
+        description: Dry-run report (null if abandoned before dry run)
+      - name: pre_checkpoint
+        type: IntegrityCheckpoint
+        required: false
+        description: Pre-migration integrity state
+      - name: post_checkpoint
+        type: IntegrityCheckpoint
+        required: false
+        description: Post-migration integrity state
+      - name: rollback_reason
+        type: string
+        required: false
+        description: Why the migration was rolled back (if outcome is rolled_back)
+      - name: duration_ms
+        type: int
+        required: false
+        description: Total execution duration including verification
+      - name: previous_record_hash
+        type: string
+        required: true
+        description: SHA-256 of the previous MigrationRecord — hash chain for tamper detection
+      - name: record_hash
+        type: string
+        required: true
+        description: SHA-256 of this record (all fields except record_hash itself)
+      - name: recorded_at
+        type: int64
+        required: true
+        description: Unix epoch seconds when this record was written
 ```
 
 ---

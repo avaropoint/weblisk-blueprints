@@ -48,7 +48,7 @@ These are agent/domain-specific fields.
 | 4 | Dependencies | `## Dependencies` | yaml:requires | **Yes** | Dependency contracts |
 | 5 | Conventions | `## Conventions` | narrative | **Yes** | Wire-level conventions (paths, content types, encoding) |
 | 6 | Endpoints | `## Endpoints` | narrative | Conditional | Required for protocols that define HTTP endpoints |
-| 7 | Types | `## Types` | yaml:types | **Yes** | All data structures in YAML |
+| 7 | Types | `## Types` | yaml:types | Conditional | Data structures in YAML. **Required only where the blueprint declares types** — a protocol that references another's registry states that and does not restate it |
 | 8 | Authentication | `## Authentication` | yaml:authentication | Conditional | Required for protocols that define auth |
 | 9 | Error Handling | `## Error Handling` | yaml:error_codes | **Yes** | Error response format and codes |
 | 10 | Security | `## Security` | yaml:security | **Yes** | Transport security, signing, verification |

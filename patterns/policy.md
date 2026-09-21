@@ -221,22 +221,23 @@ created, versioned, activated, evaluated, and archived as a single
 entity.
 
 ```yaml
-PolicyDefinition:
-  name: string                    # Unique within scope (e.g., "rate-limit-agents")
-  description: string             # Human-readable purpose
-  scope: PolicyScope              # system | hub | namespace | agent
-  target: PolicyTarget            # What this policy applies to
-  rules: []PolicyRule             # Ordered conditions — ALL must pass for allow
-  enforcement: EnforcementMode    # enforce | audit | escalate | disabled
-  priority: integer               # Evaluation order within scope (lower = first, default: 100)
-  activates_at_scope: ScopeLevel  # Minimum scope level to activate (default: public)
-  active: boolean                 # Whether currently active (default: true)
-  version: string                 # Semantic version (default: "1.0.0")
-  state: PolicyState              # Lifecycle state (draft | active | deprecated | archived)
-  created_at: integer             # Unix epoch seconds
-  updated_at: integer             # Unix epoch seconds
-  created_by: string              # Identity of the creator
-  metadata: map                   # Optional key-value pairs for domain-specific extensions
+types:
+  PolicyDefinition:
+    name: string                    # Unique within scope (e.g., "rate-limit-agents")
+    description: string             # Human-readable purpose
+    scope: PolicyScope              # system | hub | namespace | agent
+    target: PolicyTarget            # What this policy applies to
+    rules: []PolicyRule             # Ordered conditions — ALL must pass for allow
+    enforcement: EnforcementMode    # enforce | audit | escalate | disabled
+    priority: integer               # Evaluation order within scope (lower = first, default: 100)
+    activates_at_scope: ScopeLevel  # Minimum scope level to activate (default: public)
+    active: boolean                 # Whether currently active (default: true)
+    version: string                 # Semantic version (default: "1.0.0")
+    state: PolicyState              # Lifecycle state (draft | active | deprecated | archived)
+    created_at: integer             # Unix epoch seconds
+    updated_at: integer             # Unix epoch seconds
+    created_by: string              # Identity of the creator
+    metadata: map                   # Optional key-value pairs for domain-specific extensions
 ```
 
 ### PolicyScope
@@ -245,12 +246,13 @@ Enumeration of precedence levels. Higher-precedence scopes override
 lower ones. System policies are the most authoritative.
 
 ```yaml
-PolicyScope:
-  enum:
-    - system      # Platform-wide, highest precedence
-    - hub         # Hub-level, applies to all namespaces and agents in the hub
-    - namespace   # Namespace-level, applies to all agents in the namespace
-    - agent       # Agent-level, applies to a single agent only
+types:
+  PolicyScope:
+    enum:
+      - system      # Platform-wide, highest precedence
+      - hub         # Hub-level, applies to all namespaces and agents in the hub
+      - namespace   # Namespace-level, applies to all agents in the namespace
+      - agent       # Agent-level, applies to a single agent only
 ```
 
 ### PolicyTarget
@@ -259,10 +261,11 @@ Specification of what a policy applies to. A policy can target
 agents, operations, data, messages, or resources — or any combination.
 
 ```yaml
-PolicyTarget:
-  target_type: enum(agent, operation, data, message, resource, all)
-  target_filter: string           # Pattern match — agent name, operation type, resource glob, or "*"
-  target_scope: ScopeLevel        # Optional — only match targets at this scope level or above
+types:
+  PolicyTarget:
+    target_type: enum(agent, operation, data, message, resource, all)
+    target_filter: string           # Pattern match — agent name, operation type, resource glob, or "*"
+    target_scope: ScopeLevel        # Optional — only match targets at this scope level or above
 ```
 
 ### PolicyRule
@@ -272,11 +275,12 @@ in order. ALL rules must pass for the policy to produce an `allow`
 decision. If any rule fails, the policy produces a `deny`.
 
 ```yaml
-PolicyRule:
-  rule_type: RuleType             # Type of rule from the rule library
-  params: map                     # Parameters specific to the rule type
-  description: string             # Optional human-readable description
-  negate: boolean                 # If true, inverts the rule result (default: false)
+types:
+  PolicyRule:
+    rule_type: RuleType             # Type of rule from the rule library
+    params: map                     # Parameters specific to the rule type
+    description: string             # Optional human-readable description
+    negate: boolean                 # If true, inverts the rule result (default: false)
 ```
 
 ### PolicyContext
@@ -286,42 +290,44 @@ policy engine MUST populate all required fields before evaluation
 begins. Missing required fields cause a fail-closed deny.
 
 ```yaml
-PolicyContext:
-  identity: IdentityContext       # Who is performing the operation
-  scope_level: ScopeLevel         # Current scope classification (public → critical)
-  environment: EnvironmentProfile # Active environment (development, staging, production)
-  operation: OperationContext     # What operation is being performed
-  resource: ResourceContext       # What resource is being accessed
-  agent: AgentContext             # Which agent is involved
-  timestamp: integer              # Unix epoch seconds — when the evaluation occurs
-  hub_id: string                  # Hub context for hub/namespace-scoped policies
-  namespace: string               # Namespace context for namespace/agent-scoped policies
+types:
+  PolicyContext:
+    identity: IdentityContext       # Who is performing the operation
+    scope_level: ScopeLevel         # Current scope classification (public → critical)
+    environment: EnvironmentProfile # Active environment (development, staging, production)
+    operation: OperationContext     # What operation is being performed
+    resource: ResourceContext       # What resource is being accessed
+    agent: AgentContext             # Which agent is involved
+    timestamp: integer              # Unix epoch seconds — when the evaluation occurs
+    hub_id: string                  # Hub context for hub/namespace-scoped policies
+    namespace: string               # Namespace context for namespace/agent-scoped policies
 ```
 
 **Sub-contexts:**
 
 ```yaml
-IdentityContext:
-  principal: string        # Agent name, user ID, or service account
-  roles: []string          # Assigned roles
-  capabilities: []string   # Declared capabilities from agent manifest
-  token_claims: map        # Additional WLT token claims
+types:
+  IdentityContext:
+    principal: string        # Agent name, user ID, or service account
+    roles: []string          # Assigned roles
+    capabilities: []string   # Declared capabilities from agent manifest
+    token_claims: map        # Additional WLT token claims
 
-OperationContext:
-  type: OperationClass     # Classification: read, create, modify, delete, destroy (from patterns/safety)
-  action: string           # Specific action name (e.g., "apply_changes")
-  severity: string         # Operation impact: low, medium, high, critical (policy-only; distinct from alert severity)
+  OperationContext:
+    type: OperationClass     # Classification: read, create, modify, delete, destroy (from patterns/safety)
+    action: string           # Specific action name (e.g., "apply_changes")
+    severity: string         # Operation impact: low, medium, high, critical (policy-only; distinct from alert severity)
 
-ResourceContext:
-  type: string             # Resource type: file, url, api, database, message, stream
-  path: string             # Resource path or identifier
-  scope_level: ScopeLevel  # Resource's declared scope classification
+  ResourceContext:
+    type: string             # Resource type: file, url, api, database, message, stream
+    path: string             # Resource path or identifier
+    scope_level: ScopeLevel  # Resource's declared scope classification
 
-AgentContext:
-  name: string             # Agent name
-  type: string             # Agent type: work, hub, meta, custom
-  domain: string           # Domain the agent belongs to
-  capabilities: []string   # Agent's declared capabilities
+  AgentContext:
+    name: string             # Agent name
+    type: string             # Agent type: work, hub, meta, custom
+    domain: string           # Domain the agent belongs to
+    capabilities: []string   # Agent's declared capabilities
 ```
 
 ### PolicyDecision
@@ -330,20 +336,21 @@ Result of evaluating a single policy against a context. The decision
 is one of four values, ordered by restrictiveness.
 
 ```yaml
-PolicyDecision:
-  result: enum(allow, audit, escalate, deny)   # Decision in order of restrictiveness
-  policy_name: string             # Which policy produced this decision
-  policy_scope: PolicyScope       # Precedence level of the policy
-  matched_rules: []MatchedRule    # Which rules matched and their individual results
-  enforcement: EnforcementMode    # The policy's enforcement mode
-  evaluated_at: integer           # Unix epoch seconds
-  duration_ms: integer            # Evaluation time in milliseconds
-  context_summary: string         # Abbreviated context for logging
+types:
+  PolicyDecision:
+    result: enum(allow, audit, escalate, deny)   # Decision in order of restrictiveness
+    policy_name: string             # Which policy produced this decision
+    policy_scope: PolicyScope       # Precedence level of the policy
+    matched_rules: []MatchedRule    # Which rules matched and their individual results
+    enforcement: EnforcementMode    # The policy's enforcement mode
+    evaluated_at: integer           # Unix epoch seconds
+    duration_ms: integer            # Evaluation time in milliseconds
+    context_summary: string         # Abbreviated context for logging
 
-MatchedRule:
-  rule_type: RuleType             # Rule that was evaluated
-  result: boolean                 # Whether the rule passed (true) or failed (false)
-  detail: string                  # Human-readable explanation of the result
+  MatchedRule:
+    rule_type: RuleType             # Rule that was evaluated
+    result: boolean                 # Whether the rule passed (true) or failed (false)
+    detail: string                  # Human-readable explanation of the result
 ```
 
 ### PolicyPrecedence
@@ -352,12 +359,13 @@ Defines how policy scopes relate to each other. Higher-rank scopes
 are evaluated first and win ties. Lower scopes can only tighten.
 
 ```yaml
-PolicyPrecedence:
-  levels:
-    - { scope: system,    rank: 1, override_allowed: false, desc: "Platform-wide — set by operators" }
-    - { scope: hub,       rank: 2, override_allowed: false, desc: "Hub-wide — tightened by namespace" }
-    - { scope: namespace, rank: 3, override_allowed: false, desc: "Namespace-wide — tightened by agent" }
-    - { scope: agent,     rank: 4, override_allowed: false, desc: "Agent-specific — most granular" }
+types:
+  PolicyPrecedence:
+    levels:
+      - { scope: system,    rank: 1, override_allowed: false, desc: "Platform-wide — set by operators" }
+      - { scope: hub,       rank: 2, override_allowed: false, desc: "Hub-wide — tightened by namespace" }
+      - { scope: namespace, rank: 3, override_allowed: false, desc: "Namespace-wide — tightened by agent" }
+      - { scope: agent,     rank: 4, override_allowed: false, desc: "Agent-specific — most granular" }
 ```
 
 ### EnforcementMode
@@ -365,12 +373,13 @@ PolicyPrecedence:
 How the policy engine acts on a decision.
 
 ```yaml
-EnforcementMode:
-  enum:
-    - enforce     # Block the operation — return deny to caller
-    - audit       # Log the decision but allow the operation to proceed
-    - escalate    # Pause the operation and request approval from a higher authority
-    - disabled    # Policy is loaded but not evaluated — useful for staged rollout
+types:
+  EnforcementMode:
+    enum:
+      - enforce     # Block the operation — return deny to caller
+      - audit       # Log the decision but allow the operation to proceed
+      - escalate    # Pause the operation and request approval from a higher authority
+      - disabled    # Policy is loaded but not evaluated — useful for staged rollout
 ```
 
 ### PolicyState
@@ -378,12 +387,13 @@ EnforcementMode:
 Lifecycle state of a policy definition.
 
 ```yaml
-PolicyState:
-  enum:
-    - draft       # Policy is defined but not yet active — not evaluated
-    - active      # Policy is live and evaluated on every matching context
-    - deprecated  # Policy is active but scheduled for removal — emits deprecation warnings
-    - archived    # Policy is no longer evaluated — retained for audit history only
+types:
+  PolicyState:
+    enum:
+      - draft       # Policy is defined but not yet active — not evaluated
+      - active      # Policy is live and evaluated on every matching context
+      - deprecated  # Policy is active but scheduled for removal — emits deprecation warnings
+      - archived    # Policy is no longer evaluated — retained for audit history only
 ```
 
 ---

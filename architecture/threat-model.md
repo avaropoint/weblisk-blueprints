@@ -20,6 +20,16 @@ point where data crosses a boundary. This document catalogs every
 known attack vector at every boundary, the mitigation in place, and
 the residual risk.
 
+  - blueprint: patterns/safety
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: QuarantineOrder
+          fields_used: [id, agent, reason, severity, source]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
 ```
 ┌────────────────────────────────────┐
 │  BOUNDARY 1: Browser ↔ App Gateway │ ← Untrusted external clients
@@ -148,8 +158,6 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: QuarantineOrder
-          fields_used: [id, agent, reason, severity, source]
       behaviors:
         - name: boundary-enforcement
           fields_used: [message, storage, external, response]

@@ -747,27 +747,28 @@ Policy governing encryption-at-rest for agents handling sensitive data.
 Agents that opt into data-level security declare this in their config.
 
 ```yaml
-EncryptionPolicy:
-  description: Encryption-at-rest policy for agent-managed data
-  fields:
-    algorithm:
-      type: string
-      description: Symmetric encryption algorithm for data at rest
-      constraints:
-        enum: [aes-256-gcm, xchacha20-poly1305]
-        default: aes-256-gcm
-    key_derivation:
-      type: string
-      description: How the encryption key is derived from the agent's signing key
-      constraints:
-        enum: [hkdf-sha256, hkdf-sha512]
-        default: hkdf-sha256
-    classification:
-      type: string
-      description: Minimum data classification that triggers encryption
-      constraints:
-        enum: [public, internal, confidential, restricted]
-        default: confidential
+types:
+  EncryptionPolicy:
+    description: Encryption-at-rest policy for agent-managed data
+    fields:
+      algorithm:
+        type: string
+        description: Symmetric encryption algorithm for data at rest
+        constraints:
+          enum: [aes-256-gcm, xchacha20-poly1305]
+          default: aes-256-gcm
+      key_derivation:
+        type: string
+        description: How the encryption key is derived from the agent's signing key
+        constraints:
+          enum: [hkdf-sha256, hkdf-sha512]
+          default: hkdf-sha256
+      classification:
+        type: string
+        description: Minimum data classification that triggers encryption
+        constraints:
+          enum: [public, internal, confidential, restricted]
+          default: confidential
 ```
 
 ## Configuration

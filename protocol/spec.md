@@ -97,6 +97,11 @@ requires:
       removed: halt-immediately
 ```
 
+
+Every type this specification references is declared in
+[protocol/types.md](types.md) and bound above. This blueprint declares none of
+its own: a second statement of a type is a second thing to keep right.
+
 ---
 
 ## Conventions
@@ -631,26 +636,6 @@ and data contract enforcement.
 
 ---
 
-## Types
-
-All types referenced in this specification are defined in
-[protocol/types.md](types.md). This includes:
-
-- `AgentManifest` — Agent identity and capability contract
-- `TaskRequest` / `TaskResult` — Task execution protocol
-- `AgentMessage` — Direct agent-to-agent messaging
-- `EventEnvelope` — Pub/sub event delivery
-- `ErrorResponse` — Structured error format
-- `ServiceDirectory` — Service discovery and routing
-- `RegisterRequest` / `RegisterResponse` — Agent registration
-- `ChannelRequest` / `ChannelGrant` — Channel brokering
-- `Subscription` / `RouteEntry` — Event routing declarations
-- `DeadLetterEntry` — Failed event delivery
-
-See [types.md](types.md) for the complete type registry with field
-specifications, constraints, and JSON serialization keys.
-
----
 
 ## Event Scoping
 
