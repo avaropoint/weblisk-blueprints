@@ -1093,19 +1093,19 @@ tests:
       input: {url: "https://example.com"}
       priority: normal
     expected:
-      task.accepted published
-      POST /v1/execute sent to seo-analyzer
-      task.complete published on success
+      - task.accepted published
+      - POST /v1/execute sent to seo-analyzer
+      - task.complete published on success
     validates:
-      - TaskRecord created with status: dispatched
-      - TaskRecord updated to status: completed
+      - "TaskRecord created with status: dispatched"
+      - "TaskRecord updated to status: completed"
       - trace_id propagated in HTTP headers
 
   - name: Priority queue ordering
     trigger: 3 task.submit events (low, critical, high) while agent at capacity
     expected:
-      Queue order: critical, high, low
-      Critical dispatched first when capacity frees
+      - "Queue order: critical, high, low"
+      - Critical dispatched first when capacity frees
     validates:
       - Priority ordering within queue
       - FIFO within same priority level
@@ -1131,7 +1131,7 @@ tests:
       - retry_count incremented per attempt
 
   - name: Task timeout
-    trigger: task.submit with timeout: 5, agent takes 10s
+    trigger: "task.submit with timeout: 5, agent takes 10s"
     expected:
       task.timeout published after 5 seconds
     validates:
@@ -1139,7 +1139,7 @@ tests:
       - TaskRecord status: timeout
 
   - name: Agent returns 429
-    trigger: task.submit, agent returns 429 with Retry-After: 30
+    trigger: "task.submit, agent returns 429 with Retry-After: 30"
     expected:
       Task re-queued with 30s delay
     validates:

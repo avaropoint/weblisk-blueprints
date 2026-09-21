@@ -442,7 +442,7 @@ security:
     - boundary: Host operator → Tenant. Crossed only by an invitation the tenant
         owner issues and can revoke, and never by a host-held credential
     - boundary: Tenant → Tenant. Not a boundary that is guarded, but one that is
-        absent: no component holds a handle to a second tenant's state
+        absent — no component holds a handle to a second tenant's state
 
   enforcement:
     - rule: A tenant identifier supplied by a caller is never used to select
