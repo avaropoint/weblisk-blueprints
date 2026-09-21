@@ -68,6 +68,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
+        - name: EnforcementDecision
+          fields_used: [boundary, action, violations, agent]
         - name: LogEntry
           fields_used: [ts, level, component, trace_id]
         - name: AuditEntry
@@ -146,8 +148,6 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: EnforcementDecision
-          fields_used: [boundary, action, violations, agent]
         - name: QuarantineOrder
           fields_used: [id, agent, reason, severity, source]
       behaviors:
