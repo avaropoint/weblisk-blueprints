@@ -74,30 +74,78 @@ A slot marked **UNFILLED** is a stated gap, not a detail — see
 
 | Primitive required by | Provided on Workers by | Status |
 |---|---|---|
-| `protocol/identity` — signature algorithm | `@noble/post-quantum` is the candidate | **UNFILLED** — WebCrypto has no post-quantum signature scheme. The candidate is pure JavaScript, which is the property that matters on Workers, but confirm it runs within the runtime's limits before commissioning |
-| `protocol/identity` — key-derivation function | — | **UNFILLED** — WebCrypto offers PBKDF2 and HKDF, neither of which is the memory-hard function the protocol names. A pure-JavaScript or WASM implementation must be named |
+| `protocol/identity` — signature algorithm | a vendored pure-JavaScript implementation, carried as first-party source | **UNFILLED** — no implementation has been vendored and measured. WebCrypto has no post-quantum signature scheme, so one must be. See below |
+| `protocol/identity` — key-derivation function | — | **not applicable on this platform** — see below |
 | `protocol/identity` — symmetric encryption | WebCrypto `AES-GCM` | runtime |
 | `protocol/identity` — random source | `crypto.getRandomValues` | runtime |
+| `protocol/identity` — long-lived key custody | Workers Secrets, or Secrets Store for account-scoped material | runtime — see below |
 | `protocol/types` — canonical JSON | `JSON` plus canonicalisation | runtime |
 | `protocol/spec` — HTTP transport | the `fetch` handler | runtime |
-| `architecture/storage` — default backend | Durable Objects, with KV where eventual consistency is acceptable | runtime |
-| `architecture/storage` — non-default backend | not applicable | — |
+| `architecture/storage` — strongly consistent records | Durable Objects | runtime |
+| `architecture/storage` — queryable records | D1 | runtime |
+| `architecture/storage` — eventually consistent reads | Workers KV — cache only, never authoritative | runtime |
+| `architecture/storage` — object storage | R2 | runtime |
 
-The Workers runtime has no filesystem, so the flat-file default other platforms
-use is unavailable and Durable Objects are this platform's embedded equivalent —
-which is exactly the kind of answer `architecture/storage` leaves to a platform
-blueprint rather than deciding for it.
+### Storage has no single default here, and that is the answer
 
-The two unfilled cryptographic slots are the real constraint on this platform, and
-the key-derivation one is load-bearing: substituting PBKDF2 for the required
-memory-hard function would produce key files no other Weblisk hub can read. Name
-what fills each slot when commissioning, having verified it runs here, or do not
-claim conformance to `protocol/identity`.
+The Workers runtime has no filesystem, so the flat-file default other platforms use
+is unavailable. What replaces it is not one backend but three, chosen per question:
+Durable Objects where a record must be strongly consistent, D1 where it must be
+queried, R2 where it is an object.
 
-Neither slot is marked UNFILLED because nothing could fill it. They are unfilled
-because nobody has confirmed what does, and a plausible package name in a
-specification is worse than an admitted gap — the gap gets checked before the hub
-is trusted, and the plausible name does not.
+**Workers KV is a cache and never authoritative.** Anything held there MUST be
+reconstructible from a Durable Object or D1. A record whose only copy is eventually
+consistent is a record that can be read as absent immediately after it was written.
+
+### The signature slot, and why it stays UNFILLED
+
+`protocol/identity` requires a post-quantum signature algorithm. WebCrypto does not
+provide one, so an implementation must be carried. The property that matters on this
+platform is that it be pure JavaScript: there is no native module loading here.
+
+It remains **UNFILLED** because no implementation has been vendored into a generated
+component and measured against the runtime's CPU and memory limits at the rates
+provisioning and registration require. A named package that nobody has run here is a
+plausible name, and this table's whole discipline is that a plausible name is worse
+than an admitted gap — the gap gets checked before a hub is trusted.
+
+**Vendor it as first-party source rather than depending on it.** This platform's
+dependency policy is zero runtime dependencies, and a vendored, auditable
+implementation satisfies that literally rather than by exception. A dependency
+resolved at deploy time is a supply chain; a file in the component is a file in the
+component.
+
+### Key derivation is not applicable, rather than unfilled
+
+`protocol/identity` requires a memory-hard key-derivation function, and WebCrypto
+offers only PBKDF2 and HKDF. Earlier revisions of this table recorded that as a gap.
+It is not one, because **the requirement does not reach this platform.**
+
+The KDF exists to encrypt an *operator's* private key with a passphrase, for a human
+holding a key file. A component generated for this platform holds *service* keys,
+which `protocol/identity` covers through secure configuration instead — here, Workers
+Secrets. There is no passphrase to stretch, because there is no human at a component's
+start-up.
+
+Operator keys remain the CLI's and Studio's concern, on platforms that have a person
+and a filesystem. Recording this as UNFILLED implied a Worker should be doing
+something it never does.
+
+### Workers Secrets are a managed secret, not an environment variable
+
+`protocol/identity` forbids supplying a key or passphrase through an environment
+variable, and states why: environment is readable via `/proc`, container inspection,
+crash dumps and diagnostic output, and is inherited by every child process.
+
+**A V8 isolate has none of those.** There is no `/proc`, no container to inspect, no
+core dump, and no child process to inherit anything. A Workers Secret is delivered
+into the isolate by the platform, encrypted at rest, and never written to a
+filesystem — which is the *managed secret* row of that specification's custody
+preference table, not the environment-variable prohibition.
+
+This ruling is stated here because a conformance check cannot infer it. Without it,
+the guidance to use `wrangler secret put` reads as a violation of the very
+specification it satisfies.
 
 ---
 
@@ -244,9 +292,14 @@ for detailed platform API usage.
 ## Cloudflare-Specific Requirements
 
 ### Crypto
-- The signature algorithm is the one `protocol/identity` names; on Workers it has no runtime implementation, so see the Primitive Mapping table
-- ML-DSA-65 operations use @noble/post-quantum until Web Crypto adds native support
+- The signature algorithm is the one `protocol/identity` names. WebCrypto has no
+  implementation of it, so a pure-JavaScript one is vendored as first-party source —
+  see the Primitive Mapping table, which owns the status of that slot
 - Export keys as raw ArrayBuffer, convert to hex for protocol
+- Zeroisation is partial here and the blueprint says so rather than claiming it: hold
+  key material in `ArrayBuffer` or `Uint8Array` and overwrite after use, never in a
+  string. A JavaScript runtime offers no guarantee beyond that, and swap and core dumps
+  do not apply to an isolate
 
 ### State (Orchestrator)
 - Use Durable Objects for agent registry (persistent, strongly consistent)
