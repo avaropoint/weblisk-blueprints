@@ -135,6 +135,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
+        - name: WLToken
+          fields_used: [sub, iss, iat, exp, cap, role]
         - name: SigningKeyPair
           fields_used: [public_key, private_key]
     on_change:
@@ -145,8 +147,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: WLT
-          fields_used: [sub, iss, iat, exp, cap, role]
+        - name: Operator
+          fields_used: [name, public_key, role, status]
         - name: AgentManifest
           fields_used: [name, version, type, url, capabilities]
     on_change:
@@ -178,8 +180,6 @@ requires:
         - path: /v1/admin/approvals
           methods: [GET, POST]
       types:
-        - name: OperatorRecord
-          fields_used: [name, public_key, role, status]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

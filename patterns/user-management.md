@@ -58,8 +58,6 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: TypeDefinition
-          fields_used: [name, fields]
         - name: ErrorResponse
           fields_used: [code, error, detail]
     on_change:
@@ -90,8 +88,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: RouteConfig
-          fields_used: [path, auth, rate_limit]
+        - name: Route
+          fields_used: [path, rate_limit]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

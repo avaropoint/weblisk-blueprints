@@ -59,10 +59,10 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: KeyPair
-          fields_used: [public_key, algorithm]
-        - name: Token
+        - name: WLToken
           fields_used: [sub, iss, iat, exp, cap]
+        - name: SigningKeyPair
+          fields_used: [public_key, algorithm]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

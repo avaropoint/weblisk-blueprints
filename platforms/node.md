@@ -39,6 +39,16 @@ minus the type annotations.
 
 ## Project Structure
 
+  - blueprint: patterns/principal-identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Identity
+          fields_used: [id, public_key]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
 ```
 weblisk-app/
 ├── package.json
@@ -88,10 +98,6 @@ weblisk-app/
 requires:
   - blueprint: protocol/identity
     version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: Identity
-          fields_used: [public_key, key_id]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

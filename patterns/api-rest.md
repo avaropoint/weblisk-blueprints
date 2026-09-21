@@ -31,8 +31,6 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: FieldType
-          fields_used: [uuid, string, boolean, integer, float, timestamp]
         - name: ErrorResponse
           fields_used: [error, code, category, retryable]
     on_change:

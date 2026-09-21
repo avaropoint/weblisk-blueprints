@@ -38,6 +38,16 @@ variant parts.
 
 ## Dependencies
 
+  - blueprint: patterns/principal-identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Identity
+          fields_used: [id, public_key]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
 ```yaml
 requires:
   - blueprint: protocol/types
@@ -62,9 +72,7 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: Identity
-          fields_used: [id, public_key, verification]
-        - name: WLT
+        - name: WLToken
           fields_used: [token, claims]
     on_change:
       compatible: validate-and-adopt

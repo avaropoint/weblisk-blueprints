@@ -58,8 +58,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: HealthResponse
-          fields_used: [name, status, mode]
+        - name: Response
+          fields_used: [name, state]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

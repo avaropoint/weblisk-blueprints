@@ -51,8 +51,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: GatewayRoute
-          fields_used: [path, method, rate_limit]
+        - name: Route
+          fields_used: [path, methods, rate_limit]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

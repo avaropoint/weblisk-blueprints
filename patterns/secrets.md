@@ -36,10 +36,6 @@ so that:
 requires:
   - blueprint: protocol/identity
     version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: AgentIdentity
-          fields_used: [name, capabilities]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -48,6 +44,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
+        - name: AgentManifest
+          fields_used: [name, capabilities]
         - name: ErrorResponse
           fields_used: [code, error, detail]
     on_change:
