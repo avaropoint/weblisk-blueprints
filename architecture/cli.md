@@ -188,6 +188,39 @@ requires:
 
 ---
 
+## Architecture
+
+The CLI has two command surfaces against one identity: **project** commands that
+act on local files, and **operator** commands that act on a running hub.
+
+```
+   Operator (a person)
+         │
+         ▼
+   ┌────────────────────────────────────┐
+   │ CLI                                │
+   │  project: scaffold · build · serve │
+   │  operator: init · connect · token  │
+   │  generation: dispatch · verify     │
+   └────┬──────────────────────┬────────┘
+        │ signature requested  │ authenticated per request
+        ▼                      ▼
+   Identity holder        Orchestrator
+   (hardware, vault,      (over a transport
+    or key file)           the operator named)
+```
+
+**Responsibilities.** Scaffolding and building projects, generating components from
+blueprints and gating them on conformance, resolving where an identity lives,
+requesting signatures without handling private keys, and minting short-lived
+credentials per invocation.
+
+**Not responsibilities.** Holding a long-lived secret of its own. Deciding what a
+blueprint requires — it reads the corpus. Administering a hub's data, which is
+Studio's and the orchestrator's own surfaces.
+
+---
+
 ## Responsibilities
 
 ### Owns

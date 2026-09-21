@@ -1181,6 +1181,37 @@ protocol:
    signatures before generation. A tampered asset is cryptographically
    detectable before any code is generated.
 
+## Architecture
+
+The hub is the collaboration and discovery layer above the federation protocol.
+Its two halves are detailed in **Registry Architecture** and **Hub Network
+Architecture** below; this is how they fit together.
+
+```
+   ┌──────────────────────────────────────────────┐
+   │ HUB                                          │
+   │                                              │
+   │  catalogue          trust              observed│
+   │  listings ◄──────► establishment ◄──► behaviour│
+   │  search             data contracts    metrics  │
+   └───────┬──────────────────────┬───────────────┘
+           │ federation protocol  │
+           ▼                      ▼
+      Peer hub               Peer hub
+```
+
+**Responsibilities.** Indexing capability listings and verifying their signatures,
+serving search over the catalogue, recording observed behaviour and behavioural
+change, holding trust tiers and data contracts per peer, and revoking a peer so it
+is refused at its next request.
+
+**Not responsibilities.** Trust and data-boundary semantics, which are
+`protocol/federation`'s. Executing a federated task, which is the local agents'
+under the contract's scope. Deciding a peer is trustworthy — a human does that, and
+the hub records it.
+
+---
+
 ## Responsibilities
 
 ### Owns

@@ -106,6 +106,30 @@ requires:
 
 ---
 
+## Architecture
+
+The continuous optimisation loop. Every arrow before approval produces a proposal;
+nothing before it changes a system.
+
+```
+   strategy ──► observation ──► recommendation ──► approval ──► execution
+       ▲              │               │              │            │
+       │              │               │              │            ▼
+       └───────── feedback ◄──────────┴──────────────┴──────── measurement
+                  (measured, not asserted)
+```
+
+**Responsibilities.** Holding strategies and entity context, recording observations,
+producing recommendations marked as inferred, routing them for human approval,
+dispatching approved work under the approver's scope, and updating strategy from
+measured feedback.
+
+**Not responsibilities.** Applying its own recommendations. Deciding whether a
+recommendation is correct, which is the approver's. Executing work, which is an
+ordinary task.
+
+---
+
 ## Responsibilities
 
 ### Owns

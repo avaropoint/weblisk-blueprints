@@ -133,6 +133,30 @@ requires:
 
 ---
 
+## Architecture
+
+This component governs data **in motion**. Each hop verifies its peer rather than
+inheriting trust from the hop before it.
+
+```
+   Client ═══► Gateway ═══► Agent ═══► Agent ═══► Peer hub
+          TLS         identity    brokered    contract +
+          +session    per hop     channel     trust tier
+
+   ═══  authenticated at both ends, scope carried in the envelope
+```
+
+**Responsibilities.** Encrypted channels, identity verification at every hop, the
+rules for what a payload may cross which boundary, scope propagation so a
+classification is never dropped in transit, and replay rejection.
+
+**Not responsibilities.** Data at rest, which belongs to the store's owner and
+`architecture/storage`. Deciding a payload's classification, which is
+`patterns/scope`. What a peer may receive, which is `protocol/federation`'s data
+contracts.
+
+---
+
 ## Responsibilities
 
 The boundary between framework and application security is detailed in
