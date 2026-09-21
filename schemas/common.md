@@ -19,6 +19,7 @@ type-specific schema governs the blueprint.
 | `protocol` | [protocol.md](protocol.md) | `protocol/` | Wire protocol specifications |
 | `pattern` | [pattern.md](pattern.md) | `patterns/` | Cross-cutting pattern contracts |
 | `architecture` | [architecture.md](architecture.md) | `architecture/` | System architecture components |
+| `language` | [language.md](language.md) | `languages/` | Programming language bindings |
 | `platform` | [platform.md](platform.md) | `platforms/` | Platform implementation bindings |
 | `standard` | [standard.md](standard.md) | `standards/` | Framework standards and conventions |
 
@@ -50,12 +51,12 @@ may add additional required fields.
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `type` | enum | **yes** | — | One of: `agent`, `domain`, `protocol`, `pattern`, `architecture`, `platform` |
+| `type` | enum | **yes** | — | One of: `agent`, `domain`, `protocol`, `pattern`, `architecture`, `language`, `platform`, `standard` |
 | `name` | string | **yes** | — | Unique identifier. Lowercase, hyphen-separated. Must match filename (without `.md`). |
 | `version` | semver | **yes** | — | Blueprint version in `MAJOR.MINOR.PATCH` format |
 | `requires` | list | **yes** | `[]` | Blueprints this one depends on. Format: `[type/name, type/name]` |
 | `extends` | list | conditional | `[]` | Patterns this blueprint inherits. Format: `[patterns/name]`. Required for `agent` and `domain` types. |
-| `platform` | enum | **yes** | `any` | Target platform: `any`, `go`, `cloudflare`, `node`, `rust` |
+| `platform` | enum | conditional | `any` | Target platform: `any`, `cloudflare`, `node`. Not used by `type: language` — see [language.md](language.md#why-no-platform) |
 | `tier` | enum | **yes** | `free` | Availability tier: `free` or `pro` |
 | `author` | string | no | — | Original author or authoring organization of the blueprint |
 | `publisher` | string | no | — | Entity publishing the blueprint to a marketplace. Must conform to marketplace validation and verification requirements. |
@@ -88,6 +89,7 @@ completely it must be implemented once it is.
 | `kind` | enum | `agent`, `domain` | Agent kind: `domain`, `work`, or `infrastructure` |
 | `port` | integer | `agent`, `domain` | Default port assignment (see architecture/agent port convention) |
 | `depends_on` | list | `agent`, `domain` | Runtime agent dependencies. `[]` if none. Distinguishes build-time (`requires`) from run-time (`depends_on`) dependencies. |
+| `language` | string | `language` | The language the blueprint describes. Must match `name`. |
 | `domain` | string | `agent` (kind: work) | The domain this work agent belongs to. Must match an existing domain name defined in the project's domain configuration. |
 
 ### Field Constraints

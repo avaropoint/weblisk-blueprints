@@ -1,5 +1,5 @@
 <!-- blueprint
-type: platform
+type: language
 name: go
 version: 1.0.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
@@ -384,7 +384,7 @@ No `require` statements needed — stdlib only.
 
 ---
 
-## Platform-Specific Conventions
+## Language Conventions
 
 ### Concurrency
 

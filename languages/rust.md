@@ -1,5 +1,5 @@
 <!-- blueprint
-type: platform
+type: language
 name: rust
 version: 1.0.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
@@ -319,7 +319,7 @@ with no runtime dependencies.
 
 ---
 
-## Platform-Specific Conventions
+## Language Conventions
 
 ### Agent Trait
 
