@@ -866,6 +866,40 @@ types:
 
 ---
 
+## Security
+
+```yaml
+security:
+  trust_model:
+    description: |
+      An agent trusts the orchestrator that admitted it and nothing else. A task
+      arrives with a token the agent verifies before acting; a payload is data the
+      agent validates before reading. An agent has no privileged path to another
+      agent, and cannot widen the capabilities its own manifest declared.
+  boundaries:
+    - boundary: Orchestrator → Agent. Every inbound request carries a token the
+        agent verifies against the orchestrator's key before dispatch
+    - boundary: Caller payload → Agent logic. A payload is untrusted input,
+        validated against the agent's declared inputs before use
+    - boundary: Agent → Agent. Only over a channel the orchestrator brokered;
+        never by addressing a peer directly
+    - boundary: Agent → Storage. Confined to the stores the agent owns
+  enforcement:
+    - rule: An unauthenticated task is refused, not queued
+      mechanism: Token verification precedes dispatch; failure returns an error
+        rather than deferring the decision
+    - rule: An agent cannot exercise a capability it did not declare
+      mechanism: The orchestrator enforces the manifest at registration, and the
+        agent's own dispatch table contains only declared actions
+    - rule: A payload field the agent did not declare is rejected
+      mechanism: Input validation against declared inputs, rejecting rather than
+        ignoring what was not declared
+    - rule: An agent does not reach a store it does not own
+      mechanism: Store ownership is declared, and the agent binds only its own
+```
+
+---
+
 ## Implementation Notes
 
 - The agent framework is the foundation layer — every running process in Weblisk is an agent

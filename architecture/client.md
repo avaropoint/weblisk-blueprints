@@ -1140,6 +1140,42 @@ types:
 
 ---
 
+## Security
+
+```yaml
+security:
+  trust_model:
+    description: |
+      A client is outside the agent network and is trusted by nothing inside it.
+      What a client sends is untrusted input; what it holds is a credential bound
+      to one session on one device. Trust levels bound what a client may reach,
+      and no client — however trusted — reaches an agent directly.
+  boundaries:
+    - boundary: Client → Gateway. The only ingress. A client never addresses an
+        agent, an orchestrator or a store
+    - boundary: Client credential → Session. Bound to the device and origin it
+        was issued for
+    - boundary: Client input → Server logic. Untrusted, validated against a
+        declared contract before use
+    - boundary: Client → Data boundary. What a client may see is bounded by its
+        trust level and its scope, never by what it requests
+  enforcement:
+    - rule: A client request never selects data by an identifier the client
+        supplied for a subject other than itself
+      mechanism: Subject resolved from the session, injected server-side
+    - rule: A credential presented from an origin or device other than the one it
+        was bound to is refused
+      mechanism: Binding checked on every use, not at issue only
+    - rule: A trust level cannot be raised by the client claiming it
+      mechanism: Trust level is recorded server-side and re-evaluated per request
+    - rule: A client sees no data above its scope, and no evidence that such data
+        exists
+      mechanism: Filtering before serialisation; absence and denial are
+        indistinguishable
+```
+
+---
+
 ## Implementation Notes
 
 - Session token signing MUST use the gateway's ML-DSA-65 key — not a

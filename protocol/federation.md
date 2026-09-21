@@ -1096,6 +1096,44 @@ error_codes:
 
 ---
 
+## Security
+
+```yaml
+security:
+  trust_model:
+    description: |
+      Federation grants no authority. A peer reaches only what a data contract
+      already permitted, and a contract is a mutual declaration rather than a
+      request one side can widen. Both hubs hold identities, verify each other,
+      and record what crossed — so neither has to trust the other's account of
+      what happened.
+  boundaries:
+    - boundary: Peer hub ↔ This hub. Both ends verify identity per exchange; no
+        exchange inherits trust from a previous one
+    - boundary: Data contract → Payload. The contract bounds fields, operations,
+        retention and jurisdiction before any data is selected
+    - boundary: Peer request → Local execution. Executed under the scope the
+        contract grants, never the local caller's
+    - boundary: Behavioural fingerprint → Trust. Observed divergence lowers what
+        a peer may reach; a peer's own assertion does not raise it
+  enforcement:
+    - rule: A field not named in the contract does not cross
+      mechanism: Projection against the contract's field list before
+        serialisation, rather than filtering afterwards
+    - rule: An operation not named in the contract is refused
+      mechanism: Operation checked against the contract before dispatch
+    - rule: Retention and jurisdiction travel with the payload
+      mechanism: Carried in the envelope, so a recipient cannot claim it was not
+        told
+    - rule: Key rotation preserves identity continuity without granting a window
+      mechanism: A rotation announcement is signed by both the retiring and the
+        new key; one proves continuity, the other possession
+    - rule: A revoked peer is refused at its next request
+      mechanism: Revocation checked at request time rather than by expiry
+```
+
+---
+
 ## Implementation Notes
 
 - Federation is optional — a single-orchestrator deployment does not need this protocol

@@ -486,6 +486,42 @@ In production:
 
 ---
 
+## Security
+
+```yaml
+security:
+  trust_model:
+    description: |
+      Observability reads and never writes to the systems it observes. Its own
+      records are trusted as evidence only because they are append-only and
+      attributable; anything a component asserts about itself is recorded as its
+      assertion rather than as fact. Its greatest risk is disclosure: a log is
+      where scoped data leaks when nobody is watching.
+  boundaries:
+    - boundary: Component → Observability. Components emit; observability never
+        calls back into them to act
+    - boundary: Log record → Scope. Redaction applies before a record is written,
+        not before it is read
+    - boundary: Audit record → Mutation. Append-only. An audit record is never
+        amended or deleted
+    - boundary: Observability → Reader. What a reader sees is bounded by their
+        scope, including in aggregates
+  enforcement:
+    - rule: A record carrying data above its scope is redacted before it is
+        written
+      mechanism: Scope read from the payload and redaction applied at emission;
+        a record once written cannot be un-leaked
+    - rule: An audit record is never modified or removed
+      mechanism: Append-only store with a hash chain over entries
+    - rule: A trace identifier propagates without carrying payload data
+      mechanism: Correlation identifiers are opaque and contain no subject data
+    - rule: An aggregate does not disclose what its inputs would not
+      mechanism: Aggregates computed within the reader's scope, not filtered
+        after computation
+```
+
+---
+
 ## Implementation Notes
 
 - Structured logging MUST be the default — never use unstructured

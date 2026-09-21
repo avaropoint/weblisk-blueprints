@@ -996,6 +996,45 @@ types:
 
 ---
 
+## Security
+
+```yaml
+security:
+  trust_model:
+    description: |
+      A store trusts its owner and nothing else. Ownership is declared, one
+      component per store, so a caller reaching a store it does not own is a fault
+      rather than a permission question. The backend is the only boundary a store
+      does not control on both sides, and what it guarantees is what the platform
+      blueprint says it does.
+  boundaries:
+    - boundary: Caller → Store. Every operation is confined to a store the caller
+        owns, resolved before any I/O
+    - boundary: Store → Backend. The one boundary not controlled on both sides;
+        its guarantees are the platform's, stated rather than assumed
+    - boundary: Record scope → Backend capability. A record whose scope requires
+        protection the backend cannot provide does not reach it
+    - boundary: Store → Installation state. Keys, secrets and run state are never
+        reachable through a store operation
+  enforcement:
+    - rule: A component reads and writes only the stores it owns
+      mechanism: Ownership declared per component; bindings carry only its own
+        stores
+    - rule: An identifier supplied by a caller cannot select another owner's store
+      mechanism: Store resolved from the component's own declaration, never from
+        a caller-supplied name
+    - rule: A write whose scope exceeds what the backend can protect is refused,
+        never downgraded
+      mechanism: Ceiling check before the operation reaches the backend
+    - rule: Deleting an absent record succeeds
+      mechanism: Delete is idempotent, so a retry after a partial failure is safe
+    - rule: Absence is not an error
+      mechanism: Get reports absence distinctly from failure, so a caller does not
+        treat a missing record as a fault
+```
+
+---
+
 ## Implementation Notes
 
 - **Flat-file first**: The default storage backend is JSONL files —

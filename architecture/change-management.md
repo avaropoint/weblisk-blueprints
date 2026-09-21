@@ -1483,6 +1483,40 @@ constraints:
 
 ---
 
+## Security
+
+```yaml
+security:
+  trust_model:
+    description: |
+      A change is untrusted until it has been reviewed by someone who did not
+      author it. The component trusts the record of what was approved and never
+      the assertion of the party proposing the change — which is the whole reason
+      it exists between a proposal and its application.
+  boundaries:
+    - boundary: Proposer → Change record. A proposal is recorded, never applied
+        on submission
+    - boundary: Change record → Application. Crossed only by an approval from a
+        principal distinct from the proposer
+    - boundary: Approval → Audit. Every decision is recorded before the change is
+        applied, not after
+  enforcement:
+    - rule: A proposer cannot approve their own change
+      mechanism: Approver identity compared against proposer identity; identical
+        principals are refused
+    - rule: A change is applied only in the form that was approved
+      mechanism: The approval names a digest of the proposed change; a change
+        whose digest differs requires a new approval
+    - rule: An approval cannot be inferred from silence
+      mechanism: A pending change remains pending; timeouts expire a proposal
+        rather than admitting it
+    - rule: Every decision is attributable
+      mechanism: Audit records proposer, approver, digest, decision and time
+        before application
+```
+
+---
+
 ## Implementation Notes
 
 - Change detection runs automatically when a blueprint is updated — no manual trigger required
