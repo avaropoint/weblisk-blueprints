@@ -53,8 +53,6 @@ requires:
       types:
         - name: AgentManifest
           fields_used: [name, type, capabilities]
-        - name: FieldType
-          fields_used: [string, int, boolean, timestamp]
         - name: ErrorResponse
           fields_used: [error, code, category, retryable]
     on_change:

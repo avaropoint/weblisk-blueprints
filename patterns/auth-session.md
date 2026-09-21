@@ -25,14 +25,22 @@ state-changing operations.
 
 ## Dependencies
 
+  - blueprint: patterns/principal-identity
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: Identity
+          fields_used: [id, public_key]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
 ```yaml
 requires:
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: FieldType
-          fields_used: [uuid, string, int64, timestamp]
         - name: ErrorResponse
           fields_used: [error, code, category, retryable]
     on_change:
@@ -41,10 +49,6 @@ requires:
       removed: halt-immediately
   - blueprint: protocol/identity
     version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: Identity
-          fields_used: [id, public_key, verification]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -53,8 +57,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: GatewayRoute
-          fields_used: [path, method, auth_required]
+        - name: Route
+          fields_used: [path, methods, rate_limit]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

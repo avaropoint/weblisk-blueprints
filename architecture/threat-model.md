@@ -68,6 +68,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
+        - name: LogEntry
+          fields_used: [ts, level, component, trace_id]
         - name: AuditEntry
           fields_used: [timestamp, actor, action, target, status]
         - name: RegisterRequest
@@ -136,10 +138,6 @@ requires:
       removed: halt-immediately
   - blueprint: architecture/observability
     version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: StructuredLog
-          fields_used: [ts, level, component, trace_id]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

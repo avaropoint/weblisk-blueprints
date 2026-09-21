@@ -65,10 +65,6 @@ requires:
 
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: protocol-types
-          fields_used: [name, fields]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

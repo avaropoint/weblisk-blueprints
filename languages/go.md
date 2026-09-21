@@ -44,14 +44,20 @@ production deployments.
 
 ## Dependencies
 
-```yaml
-requires:
-  - blueprint: protocol/identity
+  - blueprint: patterns/principal-identity
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: Identity
-          fields_used: [public_key, key_id]
+          fields_used: [id, public_key]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+```yaml
+requires:
+  - blueprint: protocol/identity
+    version: ">=1.0.0 <2.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

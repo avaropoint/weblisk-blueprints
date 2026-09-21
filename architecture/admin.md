@@ -60,6 +60,8 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
+        - name: WLToken
+          fields_used: [sub, iss, iat, exp, cap, role, type]
         - name: SigningKeyPair
           fields_used: [public_key, private_key]
     on_change:
@@ -72,8 +74,6 @@ requires:
       types:
         - name: Strategy
           fields_used: [id, name, targets, status, priority]
-        - name: WLT
-          fields_used: [sub, iss, iat, exp, cap, role, type]
         - name: AgentManifest
           fields_used: [name, version, capabilities, public_key]
     on_change:

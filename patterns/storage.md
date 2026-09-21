@@ -46,8 +46,6 @@ requires:
     version: ">=1.0.0 <2.0.0"
     bindings:
       types:
-        - name: TypeDefinition
-          fields_used: [name, fields, description, constraints]
         - name: ErrorResponse
           fields_used: [code, error, detail]
     on_change:
