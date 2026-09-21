@@ -930,105 +930,108 @@ by the three boundary interfaces and consumed by audit, approval,
 and quarantine subsystems.
 
 ```yaml
-ViolationRecord:
-  description: |
-    Record of a policy or safety violation detected at a boundary.
-    One record is produced for each violation detected during
-    inspection — a single operation can produce multiple violations.
-  fields:
-    id:
-      type: string
-      required: true
-      description: Unique identifier for this violation record
-    boundary:
-      type: enum(message, storage, external, response)
-      required: true
-      description: Which enforcement boundary detected the violation
-    agent:
-      type: string
-      required: true
-      description: Name of the agent whose operation triggered the violation
-    operation:
-      type: string
-      required: true
-      description: The operation that was attempted (action name or operation type)
-    violation_type:
-      type: enum(policy_denied, scope_exceeded, capability_mismatch, safety_blocked, contract_invalid, quarantine_active, output_contract_violation, output_scope_exceeded, data_contract_violation)
-      required: true
-      description: Classification of why the operation was blocked
-    policy_name:
-      type: string
-      required: false
-      description: Name of the policy that produced the denial (if policy_denied)
-    scope_required:
-      type: ScopeLevel
-      required: false
-      description: Required scope level (if scope_exceeded)
-    scope_actual:
-      type: ScopeLevel
-      required: false
-      description: Actual scope level of the agent or resource
-    detail:
-      type: string
-      required: true
-      description: Human-readable explanation of the violation
-    severity:
-      type: enum(low, medium, high, critical)
-      required: true
-      description: Severity of the violation for alerting and audit
-    correlation_id:
-      type: string
-      required: true
-      description: Links this violation to the inspection trace
-    timestamp:
-      type: integer
-      required: true
-      description: Unix epoch seconds when violation was recorded
+types:
+  ViolationRecord:
+    description: |
+      Record of a policy or safety violation detected at a boundary.
+      One record is produced for each violation detected during
+      inspection — a single operation can produce multiple violations.
+    fields:
+      id:
+        type: string
+        required: true
+        description: Unique identifier for this violation record
+      boundary:
+        type: enum(message, storage, external, response)
+        required: true
+        description: Which enforcement boundary detected the violation
+      agent:
+        type: string
+        required: true
+        description: Name of the agent whose operation triggered the violation
+      operation:
+        type: string
+        required: true
+        description: The operation that was attempted (action name or operation type)
+      violation_type:
+        type: enum(policy_denied, scope_exceeded, capability_mismatch, safety_blocked, contract_invalid, quarantine_active, output_contract_violation, output_scope_exceeded, data_contract_violation)
+        required: true
+        description: Classification of why the operation was blocked
+      policy_name:
+        type: string
+        required: false
+        description: Name of the policy that produced the denial (if policy_denied)
+      scope_required:
+        type: ScopeLevel
+        required: false
+        description: Required scope level (if scope_exceeded)
+      scope_actual:
+        type: ScopeLevel
+        required: false
+        description: Actual scope level of the agent or resource
+      detail:
+        type: string
+        required: true
+        description: Human-readable explanation of the violation
+      severity:
+        type: enum(low, medium, high, critical)
+        required: true
+        description: Severity of the violation for alerting and audit
+      correlation_id:
+        type: string
+        required: true
+        description: Links this violation to the inspection trace
+      timestamp:
+        type: integer
+        required: true
+        description: Unix epoch seconds when violation was recorded
+
 ```
 
 ```yaml
-ApprovalContext:
-  description: |
-    Context object produced when an enforcement decision is
-    require_approval. Contains all information needed by the
-    approval pattern to route, evaluate, and resolve the request.
-  fields:
-    operation:
-      type: string
-      required: true
-      description: The operation awaiting approval
-    agent:
-      type: string
-      required: true
-      description: Agent that requested the operation
-    boundary:
-      type: enum(message, storage, external, response)
-      required: true
-      description: Which enforcement boundary produced this context
-    policy_decision:
-      type: PolicyDecision
-      required: true
-      description: The policy evaluation result that triggered escalation
-    safety_gate:
-      type: ProtectionGate
-      required: false
-      description: Safety gate result if safety evaluation was involved
-    scope_level:
-      type: ScopeLevel
-      required: true
-      description: Scope level of the target resource or message
-    required_authority:
-      type: string
-      required: true
-      description: Minimum authority level needed to approve
-    correlation_id:
-      type: string
-      required: true
-      description: Links approval back to the original operation
-    timestamp:
-      type: integer
-      required: true
-      description: Unix epoch seconds when approval was requested
+types:
+  ApprovalContext:
+    description: |
+      Context object produced when an enforcement decision is
+      require_approval. Contains all information needed by the
+      approval pattern to route, evaluate, and resolve the request.
+    fields:
+      operation:
+        type: string
+        required: true
+        description: The operation awaiting approval
+      agent:
+        type: string
+        required: true
+        description: Agent that requested the operation
+      boundary:
+        type: enum(message, storage, external, response)
+        required: true
+        description: Which enforcement boundary produced this context
+      policy_decision:
+        type: PolicyDecision
+        required: true
+        description: The policy evaluation result that triggered escalation
+      safety_gate:
+        type: ProtectionGate
+        required: false
+        description: Safety gate result if safety evaluation was involved
+      scope_level:
+        type: ScopeLevel
+        required: true
+        description: Scope level of the target resource or message
+      required_authority:
+        type: string
+        required: true
+        description: Minimum authority level needed to approve
+      correlation_id:
+        type: string
+        required: true
+        description: Links approval back to the original operation
+      timestamp:
+        type: integer
+        required: true
+        description: Unix epoch seconds when approval was requested
 ```
 
 ---
@@ -1384,63 +1387,6 @@ complete isolation of the targeted agent across all four boundaries.
 7. Agent behavioral profile is reset to current baseline
    (not historical — post-quarantine behavior establishes a new baseline)
 ```
-
----
-
-## Types
-
-```yaml
-types:
-
-  QuarantineOrder:
-    description: An instruction to stop dispatching to an agent
-    fields:
-      id:
-        type: string
-        description: Identifier for this order
-      agent:
-        type: string
-        description: The agent being quarantined
-      reason:
-        type: string
-        description: Why, in terms a human reviewing the order can act on
-      severity:
-        type: string
-        description: How severe the triggering violation was
-      source:
-        type: string
-        description: What issued the order, so an automated quarantine is distinguishable from an operator's
-
-  ViolationRecord:
-    description: A recorded attempt to cross a boundary the actor was not permitted to cross
-    fields:
-      agent:
-        type: string
-        description: The agent that attempted it
-      boundary:
-        type: string
-        description: Which boundary was crossed
-      violation_type:
-        type: string
-        description: The kind of violation
-      operation:
-        type: string
-        description: The operation attempted
-      scope_required:
-        type: string
-        description: The scope the operation needed
-      scope_actual:
-        type: string
-        description: The scope the actor held
-      severity:
-        type: string
-        description: How severe the violation was
-      detail:
-        type: map
-        description: Structured context, carrying no data the actor was not entitled to see
-```
-
----
 
 ## Security
 
