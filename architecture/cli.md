@@ -1824,6 +1824,19 @@ $ weblisk marketplace terminate mkt-001
 
 ## Configuration
 
+
+| Source | Precedence | Location |
+|---|---|---|
+| Command-line flag | 1 — highest | `--orch http://localhost:9800` |
+| Environment variable | 2 | Implementation-defined |
+| Project config | 3 | `.weblisk/config.json` in the working directory |
+| User config | 4 — lowest | `~/.weblisk/config.json` |
+
+| Key | Type | Description |
+|---|---|---|
+| `orchestrator_url` | string | Which orchestrator commands act against |
+| `operator_name` | string | Which identity to resolve; never a key or a passphrase |
+| `default_format` | string | Output shape — `table` or `json` |
 The CLI reads orchestrator connection details from (in priority order):
 
 1. Command-line flags: `--orch http://localhost:9800`

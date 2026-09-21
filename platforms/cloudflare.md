@@ -459,6 +459,16 @@ wrangler secret put WL_AI_KEY
 
 ## Platform-Specific Conventions
 
+
+| Concern | Convention on Workers |
+|---|---|
+| Concurrency | Single-threaded per request. Coordination uses a Durable Object as the single-writer point — a per-isolate counter counts nothing, because isolates are not shared |
+| Request body | Bounded by the runtime; use `request.json()` or `request.text()` rather than raw stream parsing |
+| Subrequests | Limited per invocation. A component making one call per record does not scale here; batch instead |
+| Error handling | Return a `Response` with a status and a JSON body. Never throw an unhandled exception — there is no supervisor to catch it |
+| Storage errors | Durable Object methods handle storage failure explicitly rather than propagating |
+| Logging | `console.log()` with JSON-structured output, carrying `component`, `trace_id` and `timestamp`. Collected by the platform; see `## Service Mapping` |
+| Background work | There is none. No timer, no thread. Use a Cron Trigger or a Durable Object alarm |
 ### Concurrency
 
 Cloudflare Workers are single-threaded per request. Concurrency

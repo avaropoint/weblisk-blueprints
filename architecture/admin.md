@@ -1274,6 +1274,50 @@ types:
 
 ## Security
 
+
+```yaml
+security:
+  trust_model:
+    description: |
+      The admin surface is a separate listener from the application gateway,
+      sharing no session store and no cookie domain, so compromising one does not
+      reach the other. Every request is authenticated against an operator
+      identity and authorised against a role; multi-factor authentication is
+      required without exception, because an operator credential is the most
+      valuable one in a deployment.
+
+  boundaries:
+    - boundary: Operator browser → Admin gateway. A separate TLS entry point,
+        authenticated per request against the orchestrator's key
+    - boundary: Admin gateway → Orchestrator. Reads the orchestrator's own
+        endpoints; it does not reach past them into an agent or a store
+    - boundary: Operator role → Action. Every endpoint declares a minimum role,
+        checked before the handler runs
+    - boundary: Destructive action → Effect. Crossed only through the change
+        gate, by approvers who are distinct principals
+
+  enforcement:
+    - rule: Every admin endpoint except operator registration requires a verified
+        operator token
+      mechanism: Admin auth middleware verifies the token against the
+        orchestrator's public key and checks `type == operator` before dispatch
+    - rule: An endpoint is refused to a role below its declared minimum
+      mechanism: Role compared against the endpoint's requirement; 403 rather
+        than a partial result
+    - rule: The auditor role cannot approve or mutate
+      mechanism: Auditor carries viewer permissions plus audit read, and no
+        approval or management capability — it is a branch of the hierarchy
+        rather than a rank within it
+    - rule: Multi-factor authentication cannot be disabled
+      mechanism: Required at session establishment, with no configuration that
+        removes it
+    - rule: A destructive action requires a second approver
+      mechanism: The change gate holds the action pending, with ordered
+        approvers who must differ from the requester
+    - rule: Every admin action is attributable
+      mechanism: Audit records operator, action, target and time before the
+        action takes effect
+```
 ### Auth Middleware
 
 All `/v1/admin/*` endpoints (except operator registration) go through

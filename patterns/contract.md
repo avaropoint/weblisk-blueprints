@@ -187,7 +187,7 @@ contracts:
 
 ---
 
-## Types
+## Examples
 
 All types declared in the Contracts section are defined below,
 organized by concern.

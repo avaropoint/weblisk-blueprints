@@ -841,6 +841,47 @@ regression precisely when the loop begins doing the more valuable half of its jo
 
 ## Security
 
+
+```yaml
+security:
+  trust_model:
+    description: |
+      A model's output is untrusted input. Where a blueprint came from a
+      marketplace, the file paths in a response are attacker-influenced, so
+      generation treats what it receives as data to validate rather than
+      instructions to follow. The generator is given a specification and nothing
+      else: no key material, no tenant content, no instance state.
+
+  boundaries:
+    - boundary: Blueprint corpus → Generator. The specification and the platform
+        binding are the only inputs
+    - boundary: Generator → Filesystem. None. The generator returns text and the
+        caller writes files
+    - boundary: Model response → Written artifact. Every path is validated for
+        containment before anything is written
+    - boundary: Partial result → Target directory. Not crossed: nothing is
+        written until every file succeeds
+
+  enforcement:
+    - rule: A file path in a model response is validated for containment before
+        any write
+      mechanism: Path resolution and containment check per `architecture/cli`,
+        refusing rather than normalising a path that escapes the target
+    - rule: The generator receives no secrets
+      mechanism: Inputs are blueprints and a platform specification; key
+        material, tenant content and instance state are not passed
+    - rule: The generator holds no filesystem tools
+      mechanism: It returns text. A generator able to write directly has no
+        boundary between generating an implementation and doing anything else to
+        the machine
+    - rule: Nothing is written until every file succeeds
+      mechanism: Writes are staged and committed together. A partially written
+        target invites a hand repair, which converts a reproducible artifact into
+        an unreviewed one
+    - rule: Provenance is recorded for every target
+      mechanism: Which model, at which blueprint versions, per
+        `patterns/content-identity`
+```
 - **Generated output is untrusted.** File paths in a model response are
   attacker-influenced input where any blueprint came from a marketplace. Paths
   MUST be validated for containment before any file is written; see
