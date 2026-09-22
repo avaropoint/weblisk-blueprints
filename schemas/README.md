@@ -67,6 +67,7 @@ This applies to:
 | [platform.md](platform.md) | Platform implementation bindings | `platforms/` directory |
 | [framework.md](framework.md) | Framework blueprints — what building *with* a framework requires | `frameworks/<name>/` directories |
 | [standard.md](standard.md) | Industry standards — ISO, SOC 2, NIST, CSA — as JSON | `standards/` directory |
+| [programme.md](programme.md) | Programmes — which artifacts a body of work requires, what each answers, and the recurring work it commits an organisation to | `programmes/` directory |
 | [kinds.md](kinds.md) | What sorts of thing the platform can talk about, what each drives, and which relations join them | Every tool that classifies, relates or scores content |
 
 ### kinds.md is different from the others
@@ -96,6 +97,7 @@ common.md (inherited by all)
 ├── platform.md (type: platform — platforms/ and languages/)
 ├── framework.md (frameworks/<name>/ — building WITH a framework)
 ├── standard.md (standards/ — industry standards, as JSON)
+├── programme.md (programmes/ — programme maps and artifact specifications)
 └── kinds.md (what sorts of thing exist — read at runtime, not checked against a document)
 ```
 

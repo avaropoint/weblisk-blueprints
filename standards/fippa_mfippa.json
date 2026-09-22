@@ -5,6 +5,9 @@
   "description": "Ontario's Freedom of Information and Protection of Privacy Act (FIPPA — provincial ministries, agencies, universities, colleges and public hospitals) and Municipal Freedom of Information and Protection of Privacy Act (MFIPPA — municipalities, school boards, police services and local boards). A contractor is not itself an institution, but records it creates or holds on an institution's behalf can be in that institution's custody or control, which brings them within scope of access requests and the institution's privacy obligations. The practical consequence is contractual: flow-down clauses requiring safeguards, retention limits, Canadian residency, cooperation with access requests, and notification to the institution on a privacy breach. Oversight is by the Information and Privacy Commissioner of Ontario.",
   "authority": "Information and Privacy Commissioner of Ontario (IPC)",
   "scope": "Ontario public institutions and their service providers and contractors handling institutional records",
+  "applies_in": [
+    "CA-ON"
+  ],
   "category": "privacy",
   "status": "active",
   "official_url": "https://www.ipc.on.ca/",

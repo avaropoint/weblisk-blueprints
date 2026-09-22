@@ -5,6 +5,9 @@
   "description": "The mechanical refrigeration code governing design, installation, operation and servicing of refrigeration systems, adopted in Ontario under the Technical Standards and Safety Act, 2000. It carries requirements no other code covers: machinery-room ventilation and refrigerant detection, refrigerant classification and charge limits by occupancy, relief-device discharge, and operator or mechanic certification. It also intersects environmental obligations — halocarbon handling, leak detection and recovery — which are enforced separately from the safety code. Refrigeration work was the one HVAC/R obligation with no configured framework before this catalog existed.",
   "authority": "CSA Group, administered in Ontario by TSSA",
   "scope": "Design, installation, alteration and servicing of mechanical refrigeration systems",
+  "applies_in": [
+    "CA"
+  ],
   "category": "operational",
   "status": "active",
   "supersedes": "CSA B52-18",

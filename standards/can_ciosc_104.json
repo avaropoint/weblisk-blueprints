@@ -5,6 +5,9 @@
   "description": "National Standard of Canada specifying baseline cyber security controls for organizations with fewer than 500 employees. Published by the CIO Strategy Council and accredited by the Standards Council of Canada; it is the control basis of the CyberSecure Canada certification programme run by ISED with the Communications Security Establishment. Level 1 defines 22 baseline controls; Level 2 adds up to 33 further controls for organizations with greater risk exposure. CIS publishes an official mapping between CIS Controls v8.1 and this standard, so an organization already targeting CIS IG2 satisfies most of it.",
   "authority": "CIO Strategy Council / Standards Council of Canada (SCC)",
   "scope": "Canadian organizations with fewer than 500 employees; the basis of CyberSecure Canada certification",
+  "applies_in": [
+    "CA"
+  ],
   "category": "cybersecurity",
   "status": "active",
   "published_date": "2021-03-01",

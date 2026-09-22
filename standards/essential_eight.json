@@ -5,6 +5,9 @@
   "description": "Australian Signals Directorate Essential Eight Maturity Model — eight prioritized mitigation strategies to protect against cyber threats",
   "authority": "Australian Signals Directorate (ASD)",
   "scope": "Australian government entities and organizations seeking baseline cybersecurity maturity",
+  "applies_in": [
+    "AU"
+  ],
   "families": [
     {
       "id": "PM",

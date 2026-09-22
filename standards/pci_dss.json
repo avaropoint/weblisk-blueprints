@@ -5,6 +5,9 @@
   "description": "Payment Card Industry Data Security Standard for organizations handling cardholder data",
   "authority": "PCI Security Standards Council",
   "scope": "Organizations storing, processing, or transmitting cardholder data",
+  "applies_in": [
+    "international"
+  ],
   "families": [
     {
       "id": "NET",

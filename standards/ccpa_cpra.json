@@ -5,6 +5,9 @@
   "description": "California Consumer Privacy Act as amended by California Privacy Rights Act — consumer data privacy rights and business obligations",
   "authority": "California Privacy Protection Agency (CPPA)",
   "scope": "Businesses processing California residents' personal information meeting revenue/volume thresholds",
+  "applies_in": [
+    "US-CA"
+  ],
   "families": [
     {
       "id": "CR",

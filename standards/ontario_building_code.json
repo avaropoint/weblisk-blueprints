@@ -5,6 +5,9 @@
   "description": "The Ontario Building Code made under the Building Code Act, 1992. The 2024 Building Code came into force on 1 January 2025 and has been mandatory for permit applications since 1 April 2025, revising over 1,700 provisions — the largest change to the Code to date, and a deliberate harmonisation move toward the National Construction Codes. For Lancaster the load-bearing divisions are Part 6 (heating, ventilating and air-conditioning) and Part 7 (plumbing), plus Part 3 and Part 9 requirements engaged by construction work. The practical audit exposure is documents, specifications and estimating templates still written against the pre-2025 Code.",
   "authority": "Ontario Ministry of Municipal Affairs and Housing",
   "scope": "Construction, renovation and change of use of buildings in Ontario, including mechanical and plumbing work",
+  "applies_in": [
+    "CA-ON"
+  ],
   "category": "operational",
   "status": "active",
   "effective_date": "2025-01-01",

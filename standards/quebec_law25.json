@@ -5,6 +5,9 @@
   "description": "An Act to modernize legislative provisions as regards the protection of personal information (formerly Bill 64) — Quebec's private-sector privacy law, phased in 2022-2024 with obligations exceeding PIPEDA.",
   "authority": "Commission d'acces a l'information du Quebec (CAI)",
   "scope": "Any enterprise that collects, holds, uses, or communicates personal information of Quebec residents in the course of carrying on an enterprise",
+  "applies_in": [
+    "CA-QC"
+  ],
   "category": "privacy",
   "status": "active",
   "published_date": "2021-09-22",

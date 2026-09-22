@@ -5,6 +5,9 @@
   "description": "Construction, registration and inspection requirements for boilers, pressure vessels and pressure piping, adopted in Ontario under the Technical Standards and Safety Act, 2000 and administered by TSSA. The obligations attach to the equipment rather than to a trade: HVAC/R, plumbing, combustion and the fabrication shop can all install pressure-retaining components, and the Canadian Registration Number, welding-procedure qualification and inspection chain apply the same way regardless of which team holds the torch. That is why this standard sits at scope level rather than under a single department.",
   "authority": "CSA Group, administered in Ontario by TSSA",
   "scope": "Design, fabrication, installation, alteration and repair of boilers, pressure vessels and pressure piping",
+  "applies_in": [
+    "CA"
+  ],
   "category": "operational",
   "status": "active",
   "supersedes": "CSA B51:19",

@@ -5,6 +5,9 @@
   "description": "OSFI Guideline B-13 — Technology and Cyber Risk Management expectations for federally regulated financial institutions, structured around governance, technology operations & resilience, and cyber security.",
   "authority": "Office of the Superintendent of Financial Institutions (OSFI), Canada",
   "scope": "Federally regulated financial institutions (banks, insurers, trust and loan companies) in Canada",
+  "applies_in": [
+    "CA"
+  ],
   "category": "industry",
   "status": "active",
   "published_date": "2022-07-13",

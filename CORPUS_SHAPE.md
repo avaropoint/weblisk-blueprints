@@ -218,9 +218,67 @@ controls that do not exist — GDPR's identifiers are article citations, so thes
 are a naming scheme it never used rather than a missing prefix. Repairing them is
 a compliance judgement, not a formatting fix.
 
+**4a — a standard says where it has force. DONE.** `applies_in` on
+`schemas/standard.md`: a list of ISO 3166-1 alpha-2 codes, ISO 3166-2
+subdivision codes, or the single token `international`. All 37 standards
+backfilled, and Studio's embedded copy with them.
+
+Geography was carried only by convention — inside the `id`
+(`ontario_building_code`, `quebec_law25`) and in `scope` prose — so *"which
+standards apply to a company operating in Ontario"* had no answer, and
+`construction_safety_ca` was indistinguishable from California by anything but a
+person reading the description. That question is the one a programme asks when
+the same structure must bind to different standards per country or province,
+which is step 6's problem arriving early.
+
+**Optional, and the transition is the reason.** The prerequisite below says a
+corpus change is not real until it is pushed, and that consumers must tolerate
+both states in the meantime. A required tenth field would have made every
+customer-authored standard invalid the moment a build learned about it, and
+every standard here invalid on any build that had not. So it is optional, an
+absent value means *unstated* rather than *global*, and the corpus is filled in
+completely — which is what lets it be promoted to required later, once no
+supported build predates it.
+
+**Not `jurisdiction`.** `protocol/federation.md` already spends that word on
+data residency, on the orchestrator manifest and in `JurisdictionSpec`. Same
+shape of answer — a list of ISO 3166 codes — to a different question: where an
+authority's writ runs, versus where bytes may come to rest. An organisation
+governed by Ontario law can contract that its data resides in Germany, and a
+word that answered both would be wrong in one of them half the time.
+
 **5 — `programmes/`.** Studio's `packs/` and the substance of
 PROGRAM_ARCHITECTURE and PROGRAM_CONSTRUCTION, plus `schemas/programme.md` for
 the form. The largest step, and the one with the most product behind it.
+
+**5a — the location and the schema. DONE.** `programmes/` exists with a README,
+and [`schemas/programme.md`](schemas/programme.md) declares the form — derived
+from the loader that reads these files rather than written ahead of it. Studio
+resolves **either** location: the corpus is consulted first and `packs/` answers
+for every name it does not carry, on exactly the terms `packs/` was already
+offered on. Nothing moved, and the planner and the engine are untouched.
+
+The most valuable part of that schema turned out to be the **closed
+vocabularies**, because none of them is enforced when a file loads. `applies_to`
+outside `the organisation` / `each project`, an unreadable `cadence`, a `cadence`
+and a `for:` together, an unparseable `escalate.after` — every one of those
+produces a file that parses, renders and reviews cleanly, and is discovered
+later as an obligation reported "undeclarable", or as a readiness number that is
+wrong in the flattering direction. They were stated in Go comments, in three
+packages, and nowhere an author would look.
+
+Three things found while deriving it, all left alone. A pack may declare a
+`creates:` card and have it **silently dropped** — the field exists only on the
+engine's own obligation type, and the YAML decoder discards what it cannot place.
+`kind:` is not checked against [`schemas/kinds.md`](schemas/kinds.md), so packs
+carry kinds the corpus does not declare and nothing says so. And an
+`escalate.after` that does not parse is **silently inert**: the code beside it
+states that an unreadable escalation "is NOT silently ignored", and the only
+caller returns without a word — an obligation with an unreadable escalation path
+is indistinguishable from one that declared none.
+
+**5b — the packs themselves.** Move `packs/ohs` here, once 5a is released. Until
+then both locations resolve and neither is wrong.
 
 **6 — a programme declares what it needs built.** Agents, workflows, tasks and
 forms, so `weblisk programme <id> init` can bootstrap an operating programme from

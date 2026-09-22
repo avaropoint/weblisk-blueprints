@@ -5,6 +5,9 @@
   "description": "General use report on controls at a service organization — public-facing summary of SOC 2 Trust Service Criteria compliance",
   "authority": "AICPA",
   "scope": "Service organizations wanting public attestation of security controls",
+  "applies_in": [
+    "international"
+  ],
   "families": [
     {
       "id": "TS",

@@ -8,9 +8,9 @@ rest.
 
 ## What a standard here is, and is not
 
-A standard **declares**: its identity, authority, scope and status; its families;
-and its controls, each with an identifier, what it requires, and how conformance
-is judged.
+A standard **declares**: its identity, authority, scope, status and the places it
+has force; its families; and its controls, each with an identifier, what it
+requires, and how conformance is judged.
 
 A standard does **not** know who adopted it. Which standards an organisation is
 measured against, how well it does, and what evidence answers which control are

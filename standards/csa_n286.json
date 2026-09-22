@@ -5,6 +5,9 @@
   "description": "Management system requirements for the lifecycle of nuclear facilities, applied through a graded approach proportionate to safety significance. For a trade contractor working at a nuclear generating station the standard reaches it through the licensee's flow-down: the licensee holds the N286 management system and imposes its requirements on suppliers by contract and by supplier qualification. The requirements a contractor is normally held to are procurement and supplier control, special-process qualification (welding, NDE), configuration and change control, document and records control, inspection and test, nonconformance and corrective action, and demonstrable training and competency. Confirm the edition the client contract specifies, since licensees transition on their own schedules.",
   "authority": "CSA Group / CNSC licence conditions",
   "scope": "Nuclear facility licensees and, by flow-down, their suppliers and contractors",
+  "applies_in": [
+    "CA"
+  ],
   "category": "operational",
   "status": "active",
   "supersedes": "CSA N286-12",

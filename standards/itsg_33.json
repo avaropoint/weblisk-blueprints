@@ -5,6 +5,9 @@
   "description": "IT Security Risk Management: A Lifecycle Approach — the Government of Canada catalogue of security controls (aligned to NIST SP 800-53) used to build departmental security control profiles.",
   "authority": "Canadian Centre for Cyber Security (CCCS)",
   "scope": "Government of Canada departments and agencies, and contractors handling GC information systems",
+  "applies_in": [
+    "CA"
+  ],
   "category": "government",
   "status": "active",
   "official_url": "https://www.cyber.gc.ca/en/guidance/it-security-risk-management-lifecycle-approach-itsg-33",

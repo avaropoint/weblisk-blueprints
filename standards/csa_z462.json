@@ -5,6 +5,9 @@
   "description": "Workplace electrical safety — the Canadian standard governing protection of workers from electrical hazards, principally arc flash and shock. It is distinct from the Ontario Electrical Safety Code: the OESC governs the installation, Z462 governs the safety of the people working on it. Ontario OHSA requirements for electrical work are read alongside it, and it is invoked by name in most industrial and institutional client site rules. The auditable core is the energized electrical work permit, the incident-energy or arc-flash assessment underpinning PPE selection, equipment labelling, and demonstrated worker qualification.",
   "authority": "CSA Group",
   "scope": "Employers and workers performing work on or near energized electrical equipment in Canada",
+  "applies_in": [
+    "CA"
+  ],
   "category": "operational",
   "status": "active",
   "supersedes": "CSA Z462:21",

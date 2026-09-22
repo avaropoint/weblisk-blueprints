@@ -5,6 +5,9 @@
   "description": "The Ontario Electrical Safety Code, 29th edition — CSA C22.1:24 Canadian Electrical Code Part I with Ontario Amendments dated November 2024, effective 1 May 2025 — together with the Electrical Safety Authority licensing and notification regime under the Electricity Act, 1998 and O. Reg. 570/05. Two distinct obligation sets travel together and are audited together: the technical code governing installations, and the contractor licensing, notification and inspection regime governing who may perform them and how the work is verified. The 1 May 2025 edition change is recent enough that documents, specifications and estimating templates written against the 28th edition are now out of date.",
   "authority": "Electrical Safety Authority (ESA) / CSA Group",
   "scope": "Electrical contractors and master electricians performing electrical installations in Ontario",
+  "applies_in": [
+    "CA-ON"
+  ],
   "category": "operational",
   "status": "active",
   "effective_date": "2025-05-01",

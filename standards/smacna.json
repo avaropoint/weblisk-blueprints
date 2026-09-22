@@ -5,6 +5,9 @@
   "description": "SMACNA's HVAC Duct Construction Standards — Metal and Flexible, together with the associated HVAC Air Duct Leakage Test Manual, define construction gauge, reinforcement, sealing and permitted leakage by pressure class. They are industry consensus standards rather than law, but they are almost always incorporated by reference into mechanical specifications, which makes them contractually binding on the project. For a fabrication shop the auditable questions are which pressure class was specified, whether the fabrication matches it, and whether leakage testing was performed and recorded when the specification called for it.",
   "authority": "SMACNA",
   "scope": "Sheet metal fabrication shops and mechanical contractors constructing and installing HVAC ductwork",
+  "applies_in": [
+    "international"
+  ],
   "category": "industry",
   "status": "active",
   "official_url": "https://www.smacna.org/technical/standards",

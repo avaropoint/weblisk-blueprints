@@ -5,6 +5,9 @@
   "description": "The Certificate of Recognition national standard as administered in Ontario by the Infrastructure Health & Safety Association (IHSA) on behalf of the Canadian Federation of Construction Safety Associations. COR is an audited health and safety management system: certification requires an external audit in the certifying year and internal audits in maintenance years, and is a common prequalification condition for ICI and public-sector work. Element titles below follow the COR 2020 audit instrument; confirm element numbering and current scoring weights against the IHSA audit protocol in force before presenting a conformance claim, since IHSA revises the instrument periodically.",
   "authority": "IHSA / CFCSA",
   "scope": "Ontario construction and trade employers seeking or maintaining COR certification",
+  "applies_in": [
+    "CA-ON"
+  ],
   "category": "operational",
   "status": "active",
   "official_url": "https://www.ihsa.ca/cor",

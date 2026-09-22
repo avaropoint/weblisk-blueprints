@@ -5,6 +5,9 @@
   "description": "Trust Service Criteria for Security, Availability, Processing Integrity, Confidentiality, and Privacy",
   "authority": "AICPA (American Institute of Certified Public Accountants)",
   "scope": "Service organizations processing or storing customer data",
+  "applies_in": [
+    "international"
+  ],
   "families": [
     {
       "id": "CC",

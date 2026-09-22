@@ -5,6 +5,12 @@
   "description": "General Data Protection Regulation — protection of natural persons with regard to processing of personal data",
   "authority": "European Parliament and Council of the EU",
   "scope": "Any organization processing personal data of EU/EEA individuals",
+  "applies_in": [
+    "EU",
+    "IS",
+    "LI",
+    "NO"
+  ],
   "families": [
     {
       "id": "PRIN",
