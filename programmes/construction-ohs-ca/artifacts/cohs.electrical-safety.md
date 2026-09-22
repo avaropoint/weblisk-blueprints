@@ -3,7 +3,7 @@ id: cohs.electrical-safety
 kind: procedure
 title: Electrical Safety and Control of Hazardous Energy
 structure: procedure
-path: procedures/construction/electrical-safety.md
+path: procedures/electrical-safety.md
 
 satisfies:
   - csa_z462:Z462-01
@@ -23,7 +23,7 @@ declares:
     interval_basis: chosen
     responsible: site-supervisor
     applies_to: each project
-    records: registers/construction/electrical-safety-reviews.md
+    records: registers/electrical-safety-reviews.md
     escalate: {after: 1w, to: health-safety-lead}
   register:
     title: Electrical Safety Review Record
@@ -37,7 +37,7 @@ declares:
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,
-         target: /registers/construction/projects.md#records, display: project_id}
+         target: /registers/projects.md#records, display: project_id}
       - {key: reviewed_by, label: Reviewed by, type: user, required: true}
       - {key: overhead_conductors_present, label: Energized overhead conductors in or near the work, type: bool, required: true}
       - {key: highest_voltage, label: Highest conductor voltage, type: text}

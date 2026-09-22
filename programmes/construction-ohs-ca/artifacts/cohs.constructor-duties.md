@@ -3,7 +3,7 @@ id: cohs.constructor-duties
 kind: procedure
 title: Constructor, Employer and Supervisor Duties
 structure: procedure
-path: procedures/construction/duty-holders.md
+path: procedures/duty-holders.md
 
 satisfies:
   - cor_2020:COR-03
@@ -19,14 +19,14 @@ declares:
     id: cohs.project-start-up
     activity: Project start-up duties completed before work begins
     for:
-      records: registers/construction/projects.md
+      records: registers/projects.md
       due: 14d before start_on
       key: project_id
     authority: OHSA s. 23(1); O. Reg. 213/91 ss. 5, 13, 14
     interval_basis: chosen
     responsible: constructor-representative
     applies_to: each project
-    records: registers/construction/project-start-up.md
+    records: registers/project-start-ups.md
     escalate: {after: 1w, to: senior-management}
   register:
     title: Project Start-Up Record
@@ -41,7 +41,7 @@ declares:
     approvers: [health-safety-lead]
     columns:
       - {key: project_id, label: Project, type: relation, required: true,
-         target: /registers/construction/projects.md#records, display: project_id}
+         target: /registers/projects.md#records, display: project_id}
       - {key: completed_on, label: Completed on, type: date, required: true}
       - {key: completed_by, label: Completed by, type: user, required: true}
       - {key: registrations_collected, label: Registration form held for every employer, type: bool, required: true}

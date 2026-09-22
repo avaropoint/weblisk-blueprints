@@ -3,7 +3,7 @@ id: cohs.confined-space-entry-permits
 kind: register
 title: Confined Space Entry Permits
 structure: standard
-path: registers/construction/confined-space-entry-permits.md
+path: registers/confined-space-entry-permits.md
 
 # A register carries no `satisfies:`.
 #
@@ -44,7 +44,7 @@ register:
   columns:
     - {key: permit_id, label: Permit, type: text, required: true}
     - {key: project, label: Project, type: relation, required: true,
-       target: /registers/construction/projects.md#records, display: project_id}
+       target: /registers/projects.md#records, display: project_id}
     - {key: space, label: Space, type: text, required: true}
     - {key: entry_on, label: Date of entry, type: date, required: true}
     - {key: entry_from, label: Permit valid from, type: text, required: true}

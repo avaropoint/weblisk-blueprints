@@ -3,7 +3,7 @@ id: cohs.site-emergency-response
 kind: procedure
 title: Project Emergency Response Plan
 structure: procedure
-path: plans/construction/project-emergency-response.md
+path: procedures/project-emergency-response.md
 
 satisfies:
   - cor_2020:COR-13
@@ -23,7 +23,7 @@ declares:
     interval_basis: chosen
     responsible: site-supervisor
     applies_to: each project
-    records: registers/construction/emergency-drills.md
+    records: registers/emergency-drills.md
     escalate: {after: 2w, to: health-safety-lead}
   register:
     title: Emergency Drill Record
@@ -35,7 +35,7 @@ declares:
     columns:
       - {key: held_on, label: Held on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,
-         target: /registers/construction/projects.md#records, display: project_id}
+         target: /registers/projects.md#records, display: project_id}
       - {key: scenario, label: Scenario, type: select, required: true,
          options: [Evacuation, Fire, Medical emergency, High-angle or suspension rescue,
                    Confined space rescue, Trench collapse, Utility strike, Severe weather,

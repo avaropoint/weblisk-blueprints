@@ -3,7 +3,7 @@ id: cohs.fall-protection-equipment
 kind: register
 title: Register of Fall Protection Equipment
 structure: standard
-path: registers/construction/fall-protection-equipment.md
+path: registers/fall-protection-equipment.md
 
 # A register carries no `satisfies:`.
 #
@@ -46,7 +46,7 @@ register:
     - {key: in_service_on, label: Placed in service on, type: date, required: true}
     - {key: issued_to, label: Issued to, type: user}
     - {key: project, label: Currently at, type: relation,
-       target: /registers/construction/projects.md#records, display: project_id}
+       target: /registers/projects.md#records, display: project_id}
     - {key: last_inspected_on, label: Last recorded inspection, type: date}
     - {key: next_inspection_due, label: Next inspection due, type: date, required: true}
     - {key: status, label: Status, type: select, required: true,

@@ -3,7 +3,7 @@ id: cohs.daily-crew-assignments
 kind: register
 title: Register of Daily Crew Assignments
 structure: standard
-path: registers/construction/daily-crew-assignments.md
+path: registers/daily-crew-assignments.md
 
 # A register carries no `satisfies:`.
 #
@@ -32,7 +32,7 @@ register:
     - {key: assignment_id, label: Assignment, type: text, required: true}
     - {key: work_date, label: Date, type: date, required: true}
     - {key: project, label: Project, type: relation, required: true,
-       target: /registers/construction/projects.md#records, display: project_id}
+       target: /registers/projects.md#records, display: project_id}
     - {key: crew, label: Crew, type: text, required: true}
     - {key: trade, label: Trade or discipline, type: text, required: true}
     - {key: supervisor, label: Supervisor, type: user, required: true}

@@ -3,7 +3,7 @@ id: cohs.designated-substances
 kind: procedure
 title: Designated Substances and Silica
 structure: procedure
-path: procedures/construction/designated-substances.md
+path: procedures/designated-substances.md
 
 satisfies:
   - cor_2020:COR-06
@@ -16,14 +16,14 @@ declares:
     id: cohs.designated-substance-list
     activity: Obtain the owner's designated substance list and pass it to every prospective contractor before a binding contract
     for:
-      records: registers/construction/projects.md
+      records: registers/projects.md
       due: 21d before start_on
       key: project_id
     authority: OHSA s. 30 — the owner shall determine the designated substances present and include the list in the tender; s. 30(4) the constructor shall pass it to every prospective contractor before a binding contract
     interval_basis: chosen
     responsible: project-manager
     applies_to: each project
-    records: registers/construction/designated-substance-lists.md
+    records: registers/designated-substance-lists.md
     escalate: {after: 1w, to: constructor-representative}
   register:
     title: Designated Substance List Record
@@ -37,7 +37,7 @@ declares:
     approvers: [project-manager]
     columns:
       - {key: project_id, label: Project, type: relation, required: true,
-         target: /registers/construction/projects.md#records, display: project_id}
+         target: /registers/projects.md#records, display: project_id}
       - {key: requested_on, label: Requested from the owner on, type: date, required: true}
       - {key: list_received, label: List received, type: bool, required: true}
       - {key: received_on, label: Received on, type: date}

@@ -3,7 +3,7 @@ id: cohs.subcontractor-prequalification
 kind: procedure
 title: Sub-Trade Prequalification and Management
 structure: procedure
-path: procedures/construction/subcontractor-prequalification.md
+path: procedures/subcontractor-prequalification.md
 
 satisfies:
   - cor_2020:COR-15
@@ -21,7 +21,7 @@ declares:
     interval_basis: chosen
     responsible: procurement-lead
     applies_to: the organisation
-    records: registers/construction/subcontractor-requalifications.md
+    records: registers/subcontractor-requalifications.md
     escalate: {after: 4w, to: senior-management}
   register:
     title: Sub-Trade Requalification Record

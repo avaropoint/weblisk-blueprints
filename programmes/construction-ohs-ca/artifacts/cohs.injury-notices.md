@@ -3,7 +3,7 @@ id: cohs.injury-notices
 kind: procedure
 title: Statutory Notices and Injury Reporting
 structure: procedure
-path: procedures/construction/statutory-notices.md
+path: procedures/statutory-notice.md
 
 satisfies:
   - construction_safety_ca:CSA-SITE-3
@@ -17,14 +17,14 @@ declares:
     id: cohs.statutory-notice
     activity: Give every notice a reportable event requires, to every recipient it is owed to
     for:
-      records: registers/construction/notifiable-events.md
+      records: registers/notifiable-events.md
       due: 48h after occurred_on
       key: reference
     authority: OHSA s. 51(1) — written report within forty-eight hours of a death or critical injury. The other notices in this procedure run on their own shorter or longer clocks
     interval_basis: required
     responsible: health-safety-lead
     applies_to: the organisation
-    records: registers/construction/statutory-notices.md
+    records: registers/statutory-notices.md
     escalate: {after: 24h, to: senior-management}
   register:
     title: Statutory Notice Record
@@ -40,7 +40,7 @@ declares:
     approvers: [health-safety-lead]
     columns:
       - {key: reference, label: Event, type: relation, required: true,
-         target: /registers/construction/notifiable-events.md#records, display: reference}
+         target: /registers/notifiable-events.md#records, display: reference}
       - {key: prepared_by, label: Prepared by, type: user, required: true}
       - {key: inspector_notified_at, label: Inspector notified immediately at, type: text}
       - {key: written_report_to_director_on, label: Written report to a Director sent on, type: date}

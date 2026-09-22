@@ -3,7 +3,7 @@ id: cohs.excavation-trenching
 kind: procedure
 title: Excavation and Trenching
 structure: procedure
-path: procedures/construction/excavation-and-trenching.md
+path: procedures/excavation-and-trenching.md
 
 satisfies:
   - construction_safety_ca:CSA-SITE-1
@@ -20,7 +20,7 @@ declares:
     interval_basis: chosen
     responsible: site-supervisor
     applies_to: each project
-    records: registers/construction/excavation-inspections.md
+    records: registers/excavation-inspections.md
     escalate: {after: 1d, to: health-safety-lead}
   register:
     title: Excavation Inspection Record
@@ -33,7 +33,7 @@ declares:
     columns:
       - {key: inspected_on, label: Inspected on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,
-         target: /registers/construction/projects.md#records, display: project_id}
+         target: /registers/projects.md#records, display: project_id}
       - {key: location, label: Excavation, type: text, required: true}
       - {key: inspector, label: Inspected by, type: user, required: true}
       - {key: depth, label: Depth in metres, type: number, required: true}

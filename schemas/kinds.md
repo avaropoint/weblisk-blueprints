@@ -215,6 +215,7 @@ tie-break and is therefore part of the declaration.
 | kind | stems |
 |---|---|
 | `evidence` | evidence, proof, attestation |
+| `register` | register, registers |
 | `sop` | sop, runbook, runbooks, playbook |
 | `procedure` | procedure, procedures |
 | `policy` | policy, policies |
@@ -227,6 +228,17 @@ tie-break and is therefore part of the declaration.
 directories of this corpus, and a document in one of them is a framework
 blueprint. `schemas` states the structure blueprints must satisfy, which is a
 measurable requirement — a standard.
+
+`register` had no stem, and every register in every pack therefore classified as
+`document` — unclassified, contributing nothing to an evidence chain — while
+`register` itself is a declared kind and IS a chain member. The kind was right;
+nothing mapped a path onto it.
+
+It sits above `policy` deliberately. Without it `registers/policy-reviews.md`
+fell past the segments to the FILENAME rule and classified as a **policy**: a
+record of a review counted as the thing being reviewed, in a layer that counts
+as coverage. An unclassified node contributes nothing; a wrongly classified one
+contributes the wrong thing, which is worse.
 
 **This is a weak signal and it is the one available before anything has been
 classified.** It decides a node's kind, never whether a control is answered —

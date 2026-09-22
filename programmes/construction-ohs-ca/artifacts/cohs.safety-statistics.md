@@ -3,7 +3,7 @@ id: cohs.safety-statistics
 kind: register
 title: Safety Performance Statistics
 structure: standard
-path: registers/construction/safety-performance-statistics.md
+path: registers/safety-performance-statistics.md
 
 satisfies:
   - cor_2020:COR-18
@@ -50,7 +50,7 @@ declares:
     interval_basis: chosen
     responsible: health-safety-lead
     applies_to: the organisation
-    records: registers/construction/safety-performance-statistics.md
+    records: registers/safety-performance-statistics.md
     escalate: {after: 2w, to: senior-management}
 ---
 

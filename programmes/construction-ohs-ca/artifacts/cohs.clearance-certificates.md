@@ -3,7 +3,7 @@ id: cohs.clearance-certificates
 kind: register
 title: Register of Clearance Certificates
 structure: standard
-path: registers/construction/clearance-certificates.md
+path: registers/clearance-certificates.md
 
 # A register carries no `satisfies:`.
 #
@@ -34,7 +34,7 @@ register:
     - {key: contractor_account, label: Their account number, type: text, required: true}
     - {key: contract, label: Contract or purchase order, type: text, required: true}
     - {key: project, label: Project, type: relation,
-       target: /registers/construction/projects.md#records, display: project_id}
+       target: /registers/projects.md#records, display: project_id}
     - {key: directly_retained, label: Directly retained by us, type: bool, required: true}
     - {key: obtained_on, label: Obtained on, type: date, required: true}
     - {key: covers_from, label: Covers from, type: date, required: true}

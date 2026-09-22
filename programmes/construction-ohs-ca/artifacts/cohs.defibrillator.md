@@ -3,7 +3,7 @@ id: cohs.defibrillator
 kind: procedure
 title: Defibrillators on Projects
 structure: procedure
-path: procedures/construction/defibrillator.md
+path: procedures/defibrillator.md
 
 satisfies:
   - cor_2020:COR-13
@@ -20,7 +20,7 @@ declares:
     interval_basis: required
     responsible: site-supervisor
     applies_to: each project
-    records: registers/construction/defibrillator-inspections.md
+    records: registers/defibrillator-inspections.md
     escalate: {after: 2w, to: health-safety-lead}
   register:
     title: Defibrillator Inspection Record
@@ -33,7 +33,7 @@ declares:
     columns:
       - {key: inspected_on, label: Inspected on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,
-         target: /registers/construction/projects.md#records, display: project_id}
+         target: /registers/projects.md#records, display: project_id}
       - {key: unit, label: Unit and serial number, type: text, required: true}
       - {key: inspector, label: Inspected by, type: user, required: true}
       - {key: per_manufacturer, label: Inspected per the manufacturer's instructions, type: bool, required: true}

@@ -3,7 +3,7 @@ id: cohs.credential-register
 kind: register
 title: Register of Statutory Credentials and Training
 structure: standard
-path: registers/construction/statutory-credentials.md
+path: registers/statutory-credentials.md
 
 # A register carries no `satisfies:`.
 #

@@ -3,7 +3,7 @@ id: cohs.fall-protection
 kind: procedure
 title: Fall Protection Programme
 structure: procedure
-path: procedures/construction/fall-protection.md
+path: procedures/fall-protection.md
 
 satisfies:
   - construction_safety_ca:CSA-FP-1
@@ -19,14 +19,14 @@ declares:
     id: cohs.fall-protection-inspection
     activity: Inspection of an item of fall protection equipment before its next inspection falls due
     for:
-      records: registers/construction/fall-protection-equipment.md
+      records: registers/fall-protection-equipment.md
       due: 7d before next_inspection_due
       key: asset_id
     authority: O. Reg. 213/91 s. 26.1 and the manufacturer's instructions. Ontario prescribes no periodic inspection interval for fall protection equipment
     interval_basis: chosen
     responsible: health-safety-lead
     applies_to: the organisation
-    records: registers/construction/fall-protection-inspections.md
+    records: registers/fall-protection-inspections.md
     escalate: {after: 3d, to: site-supervisor}
     satisfies:
       - construction_safety_ca:CSA-FP-2
@@ -43,7 +43,7 @@ declares:
     approvers: [health-safety-lead]
     columns:
       - {key: asset_id, label: Item, type: relation, required: true,
-         target: /registers/construction/fall-protection-equipment.md#records, display: asset_id}
+         target: /registers/fall-protection-equipment.md#records, display: asset_id}
       - {key: inspected_on, label: Inspected on, type: date, required: true}
       - {key: inspector, label: Inspected by, type: user, required: true}
       - {key: competence, label: Basis of the inspector's competence, type: text, required: true}

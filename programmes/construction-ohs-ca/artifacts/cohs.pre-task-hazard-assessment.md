@@ -3,7 +3,7 @@ id: cohs.pre-task-hazard-assessment
 kind: procedure
 title: Pre-Task Hazard Assessment
 structure: procedure
-path: procedures/construction/pre-task-hazard-assessment.md
+path: procedures/pre-task-hazard-assessment.md
 
 satisfies:
   - construction_safety_ca:CSA-OHS-2
@@ -18,14 +18,14 @@ declares:
     id: cohs.pre-task-assessment
     activity: Pre-task hazard assessment completed by the crew before work begins
     for:
-      records: registers/construction/daily-crew-assignments.md
+      records: registers/daily-crew-assignments.md
       due: 1d after work_date
       key: assignment_id
     authority: OHSA s. 25(2)(h) — every precaution reasonable in the circumstances. No Ontario provision prescribes a pre-task assessment or its frequency
     interval_basis: chosen
     responsible: site-supervisor
     applies_to: each project
-    records: registers/construction/pre-task-hazard-assessments.md
+    records: registers/pre-task-hazard-assessments.md
     escalate: {after: 1d, to: health-safety-lead}
     satisfies:
       - construction_safety_ca:CSA-OHS-2
@@ -45,7 +45,7 @@ declares:
     approvers: [site-supervisor]
     columns:
       - {key: assignment_id, label: Assignment, type: relation, required: true,
-         target: /registers/construction/daily-crew-assignments.md#records, display: assignment_id}
+         target: /registers/daily-crew-assignments.md#records, display: assignment_id}
       - {key: assessed_on, label: Assessed on, type: date, required: true}
       - {key: led_by, label: Led by, type: user, required: true}
       - {key: participants, label: Everyone who took part, type: longtext, required: true}

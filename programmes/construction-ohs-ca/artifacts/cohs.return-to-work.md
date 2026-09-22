@@ -3,7 +3,7 @@ id: cohs.return-to-work
 kind: procedure
 title: Return to Work and Re-employment in Construction
 structure: procedure
-path: procedures/construction/return-to-work.md
+path: procedures/return-to-work.md
 
 satisfies:
   - cor_2020:COR-19
@@ -19,7 +19,7 @@ declares:
     interval_basis: chosen
     responsible: return-to-work-coordinator
     applies_to: the organisation
-    records: registers/construction/return-to-work-reviews.md
+    records: registers/return-to-work-reviews.md
     escalate: {after: 2w, to: senior-management}
   register:
     title: Return to Work Review Record

@@ -3,7 +3,7 @@ id: cohs.whmis
 kind: procedure
 title: WHMIS and Hazardous Products
 structure: procedure
-path: procedures/construction/whmis.md
+path: procedures/whmis.md
 
 satisfies:
   - construction_safety_ca:CSA-TR-2
@@ -20,7 +20,7 @@ declares:
     interval_basis: required
     responsible: health-safety-lead
     applies_to: the organisation
-    records: registers/construction/whmis-reviews.md
+    records: registers/whmis-reviews.md
     escalate: {after: 4w, to: senior-management}
   register:
     title: WHMIS Review Record

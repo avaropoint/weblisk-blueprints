@@ -3,7 +3,7 @@ id: cohs.traffic-protection
 kind: procedure
 title: Traffic Protection
 structure: procedure
-path: procedures/construction/traffic-protection.md
+path: procedures/traffic-protection.md
 
 satisfies:
   - cor_2020:COR-07
@@ -20,7 +20,7 @@ declares:
     interval_basis: chosen
     responsible: site-supervisor
     applies_to: each project
-    records: registers/construction/traffic-protection-reviews.md
+    records: registers/traffic-protection-reviews.md
     escalate: {after: 3d, to: health-safety-lead}
   register:
     title: Traffic Protection Review Record
@@ -32,7 +32,7 @@ declares:
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,
-         target: /registers/construction/projects.md#records, display: project_id}
+         target: /registers/projects.md#records, display: project_id}
       - {key: reviewed_by, label: Reviewed by, type: user, required: true}
       - {key: work_zone, label: Work zone, type: text, required: true}
       - {key: posted_speed, label: Posted speed limit, type: int, required: true}

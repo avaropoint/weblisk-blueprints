@@ -23,7 +23,7 @@ declares:
     interval_basis: required
     responsible: health-safety-lead
     applies_to: the organisation
-    records: registers/construction/policy-reviews.md
+    records: registers/policy-reviews.md
     escalate: {after: 4w, to: senior-management}
     satisfies:
       - cor_2020:COR-01

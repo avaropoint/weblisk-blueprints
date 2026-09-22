@@ -3,7 +3,7 @@ id: cohs.project-register
 kind: register
 title: Register of Construction Projects
 structure: standard
-path: registers/construction/projects.md
+path: registers/projects.md
 
 # A register carries no `satisfies:`.
 #

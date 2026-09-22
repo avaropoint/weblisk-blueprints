@@ -3,7 +3,7 @@ id: cohs.suspended-access
 kind: procedure
 title: Suspended Access Equipment
 structure: procedure
-path: procedures/construction/suspended-access.md
+path: procedures/suspended-access.md
 
 satisfies:
   - construction_safety_ca:CSA-FP-1
@@ -20,7 +20,7 @@ declares:
     interval_basis: chosen
     responsible: site-supervisor
     applies_to: each project
-    records: registers/construction/suspended-access-reviews.md
+    records: registers/suspended-access-reviews.md
     escalate: {after: 1w, to: health-safety-lead}
   register:
     title: Suspended Access Review Record
@@ -32,7 +32,7 @@ declares:
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,
-         target: /registers/construction/projects.md#records, display: project_id}
+         target: /registers/projects.md#records, display: project_id}
       - {key: installation, label: Installation, type: text, required: true}
       - {key: type, label: Type, type: select, required: true,
          options: [Suspended work platform system, Single-point suspended platform,
