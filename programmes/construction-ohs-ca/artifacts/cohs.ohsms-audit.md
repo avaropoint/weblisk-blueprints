@@ -3,7 +3,7 @@ id: cohs.ohsms-audit
 kind: procedure
 title: Audit of the Management System
 structure: procedure
-path: procedures/construction/management-system-audit.md
+path: procedures/management-system-audit.md
 
 satisfies:
   - iso_45001:9.2
@@ -20,7 +20,7 @@ declares:
     interval_basis: required
     responsible: health-safety-lead
     applies_to: the organisation
-    records: registers/construction/management-system-audits.md
+    records: registers/management-system-audits.md
     escalate: {after: 4w, to: senior-management}
   register:
     title: Management System Audit Record

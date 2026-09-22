@@ -3,7 +3,7 @@ id: cohs.regulatory-currency
 kind: register
 title: Register of Applicable Law, Standards and Editions
 structure: standard
-path: registers/construction/legal-requirements.md
+path: registers/legal-requirements.md
 
 satisfies:
   - cor_2020:COR-04
@@ -48,7 +48,7 @@ declares:
     interval_basis: chosen
     responsible: health-safety-lead
     applies_to: the organisation
-    records: registers/construction/legal-requirements.md
+    records: registers/legal-requirements.md
     escalate: {after: 4w, to: senior-management}
 ---
 

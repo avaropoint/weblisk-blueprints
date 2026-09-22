@@ -3,7 +3,7 @@ id: cohs.elevating-work-platforms
 kind: procedure
 title: Elevating Work Platforms
 structure: procedure
-path: procedures/construction/elevating-work-platforms.md
+path: procedures/elevating-work-platforms.md
 
 satisfies:
   - construction_safety_ca:CSA-SITE-2
@@ -21,7 +21,7 @@ declares:
     interval_basis: chosen
     responsible: site-supervisor
     applies_to: each project
-    records: registers/construction/elevating-work-platform-verifications.md
+    records: registers/elevating-work-platform-verifications.md
     escalate: {after: 1w, to: health-safety-lead}
   register:
     title: Elevating Work Platform Verification Record
@@ -33,7 +33,7 @@ declares:
     columns:
       - {key: checked_on, label: Checked on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,
-         target: /registers/construction/projects.md#records, display: project_id}
+         target: /registers/projects.md#records, display: project_id}
       - {key: checked_by, label: Checked by, type: user, required: true}
       - {key: machines_on_site, label: Platforms on site, type: int, required: true}
       - {key: operators, label: Workers who operate them, type: int, required: true}

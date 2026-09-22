@@ -3,7 +3,7 @@ id: cohs.site-orientation
 kind: procedure
 title: Site Orientation and Awareness Training
 structure: procedure
-path: procedures/construction/site-orientation.md
+path: procedures/site-orientation.md
 
 satisfies:
   - construction_safety_ca:CSA-TR-1
@@ -21,7 +21,7 @@ declares:
     interval_basis: chosen
     responsible: site-supervisor
     applies_to: each project
-    records: registers/construction/orientation-verifications.md
+    records: registers/site-orientation-verifications.md
     escalate: {after: 1w, to: health-safety-lead}
   register:
     title: Orientation Verification Record

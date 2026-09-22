@@ -3,7 +3,7 @@ id: cohs.asbestos-management
 kind: procedure
 title: Asbestos on Construction Projects
 structure: procedure
-path: procedures/construction/asbestos.md
+path: procedures/asbestos.md
 
 satisfies:
   - cor_2020:COR-06
@@ -20,7 +20,7 @@ declares:
     interval_basis: required
     responsible: health-safety-lead
     applies_to: the organisation
-    records: registers/construction/asbestos-work-reports.md
+    records: registers/asbestos-work-reports.md
     escalate: {after: 4w, to: senior-management}
   register:
     title: Asbestos Work Report Record

@@ -3,7 +3,7 @@ id: cohs.jhsc
 kind: procedure
 title: Joint Health and Safety Committee and Health and Safety Representative
 structure: procedure
-path: procedures/construction/joint-health-and-safety-committee.md
+path: procedures/joint-health-and-safety-committee.md
 
 satisfies:
   - construction_safety_ca:CSA-OHS-3
@@ -21,7 +21,7 @@ declares:
     interval_basis: required
     responsible: health-safety-lead
     applies_to: each project
-    records: registers/construction/jhsc-meetings.md
+    records: registers/joint-health-and-safety-committee-meetings.md
     escalate: {after: 2w, to: constructor-representative}
     satisfies:
       - cor_2020:COR-05
@@ -36,7 +36,7 @@ declares:
     columns:
       - {key: met_on, label: Met on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,
-         target: /registers/construction/projects.md#records, display: project_id}
+         target: /registers/projects.md#records, display: project_id}
       - {key: format, label: Format, type: select, required: true,
          options: [At the workplace, Virtual, Hybrid]}
       - {key: worker_members_present, label: Worker members present, type: int, required: true}

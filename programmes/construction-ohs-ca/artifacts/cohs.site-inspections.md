@@ -3,7 +3,7 @@ id: cohs.site-inspections
 kind: procedure
 title: Workplace Inspections
 structure: procedure
-path: procedures/construction/workplace-inspections.md
+path: procedures/workplace-inspection.md
 
 satisfies:
   - cor_2020:COR-11
@@ -20,7 +20,7 @@ declares:
     interval_basis: required
     responsible: health-safety-lead
     applies_to: each project
-    records: registers/construction/workplace-inspections.md
+    records: registers/workplace-inspections.md
     escalate: {after: 1w, to: constructor-representative}
   register:
     title: Workplace Inspection Record
@@ -32,7 +32,7 @@ declares:
     columns:
       - {key: inspected_on, label: Inspected on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,
-         target: /registers/construction/projects.md#records, display: project_id}
+         target: /registers/projects.md#records, display: project_id}
       - {key: by_whom, label: Carried out by, type: select, required: true,
          options: [Designated worker member of the committee, Health and safety representative,
                    Supervisor, Other]}

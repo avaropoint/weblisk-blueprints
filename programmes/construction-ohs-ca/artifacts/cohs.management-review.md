@@ -1,9 +1,9 @@
 ---
 id: cohs.management-review
 kind: procedure
-title: Management Review
+title: Health and Safety Management Review
 structure: procedure
-path: procedures/construction/management-review.md
+path: procedures/health-and-safety-management-review.md
 
 satisfies:
   - cor_2020:COR-02
@@ -21,10 +21,10 @@ declares:
     interval_basis: chosen
     responsible: senior-management
     applies_to: the organisation
-    records: registers/construction/management-reviews.md
+    records: registers/health-and-safety-management-reviews.md
     escalate: {after: 4w, to: senior-management}
   register:
-    title: Management Review Record
+    title: Health and Safety Management Review Record
     note: >
       One row per review. The inputs are enumerated because the standard
       enumerates them: a record that lists attendance and decisions but not what

@@ -3,7 +3,7 @@ id: cohs.credential-renewal
 kind: procedure
 title: Credential Renewal
 structure: procedure
-path: procedures/construction/credential-renewal.md
+path: procedures/credential-renewal.md
 
 satisfies:
   - iso_45001:7.2
@@ -16,14 +16,14 @@ declares:
     id: cohs.credential-renewal
     activity: Renew a statutory credential before it expires, or restrict the work
     for:
-      records: registers/construction/statutory-credentials.md
+      records: registers/statutory-credentials.md
       due: 90d before expires_on
       key: reference
     authority: the issuing authority named on each row — see the register's `interval_source` and `authority` columns
     interval_basis: chosen
     responsible: training-coordinator
     applies_to: the organisation
-    records: registers/construction/credential-renewals.md
+    records: registers/credential-renewals.md
     escalate: {after: 2w, to: site-supervisor}
   register:
     title: Credential Renewal Record
@@ -38,7 +38,7 @@ declares:
     approvers: [training-coordinator]
     columns:
       - {key: reference, label: Credential, type: relation, required: true,
-         target: /registers/construction/statutory-credentials.md#records, display: reference}
+         target: /registers/statutory-credentials.md#records, display: reference}
       - {key: person, label: Person, type: user, required: true}
       - {key: first_chased_on, label: First acted on, type: date, required: true}
       - {key: booked_on, label: Seat booked on, type: date}

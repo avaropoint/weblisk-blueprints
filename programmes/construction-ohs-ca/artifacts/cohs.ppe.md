@@ -3,7 +3,7 @@ id: cohs.ppe
 kind: procedure
 title: Protective Equipment on a Project
 structure: procedure
-path: procedures/construction/protective-equipment.md
+path: procedures/protective-equipment.md
 
 satisfies:
   - construction_safety_ca:CSA-PPE-1
@@ -21,7 +21,7 @@ declares:
     interval_basis: chosen
     responsible: site-supervisor
     applies_to: each project
-    records: registers/construction/protective-equipment-checks.md
+    records: registers/protective-equipment-checks.md
     escalate: {after: 2w, to: health-safety-lead}
   register:
     title: Protective Equipment Check Record
@@ -34,7 +34,7 @@ declares:
     columns:
       - {key: checked_on, label: Checked on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,
-         target: /registers/construction/projects.md#records, display: project_id}
+         target: /registers/projects.md#records, display: project_id}
       - {key: checked_by, label: Checked by, type: user, required: true}
       - {key: head_protection, label: Head protection conforms and is in good condition, type: bool, required: true}
       - {key: footwear, label: Footwear conforms, type: bool, required: true}

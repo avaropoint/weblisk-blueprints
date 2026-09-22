@@ -3,7 +3,7 @@ id: cohs.equipment-inspections
 kind: procedure
 title: Machinery and Equipment Inspection
 structure: procedure
-path: procedures/construction/equipment-inspection.md
+path: procedures/equipment-inspection.md
 
 satisfies:
   - construction_safety_ca:CSA-SITE-2
@@ -21,7 +21,7 @@ declares:
     interval_basis: required
     responsible: site-supervisor
     applies_to: each project
-    records: registers/construction/equipment-inspections.md
+    records: registers/equipment-inspections.md
     escalate: {after: 3d, to: health-safety-lead}
   register:
     title: Equipment Inspection Record
@@ -33,7 +33,7 @@ declares:
     columns:
       - {key: inspected_on, label: Inspected on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,
-         target: /registers/construction/projects.md#records, display: project_id}
+         target: /registers/projects.md#records, display: project_id}
       - {key: inspector, label: Inspected by, type: user, required: true}
       - {key: competent, label: Inspector is a competent person for this equipment, type: bool, required: true}
       - {key: items_inspected, label: Items inspected, type: longtext, required: true}

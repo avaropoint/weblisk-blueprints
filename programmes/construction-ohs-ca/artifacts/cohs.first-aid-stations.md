@@ -3,7 +3,7 @@ id: cohs.first-aid-stations
 kind: procedure
 title: First Aid Stations and Coverage
 structure: procedure
-path: procedures/construction/first-aid.md
+path: procedures/first-aid.md
 
 satisfies:
   - cor_2020:COR-14
@@ -19,7 +19,7 @@ declares:
     interval_basis: required
     responsible: site-supervisor
     applies_to: each project
-    records: registers/construction/first-aid-station-inspections.md
+    records: registers/first-aid-station-inspections.md
     escalate: {after: 2w, to: health-safety-lead}
   register:
     title: First Aid Station Inspection Record
@@ -32,7 +32,7 @@ declares:
     columns:
       - {key: inspected_on, label: Inspected on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,
-         target: /registers/construction/projects.md#records, display: project_id}
+         target: /registers/projects.md#records, display: project_id}
       - {key: station, label: Station, type: text, required: true}
       - {key: inspector, label: Inspected by, type: user, required: true}
       - {key: workers_per_shift, label: Workers on the largest shift, type: int, required: true}

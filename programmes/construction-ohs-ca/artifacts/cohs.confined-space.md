@@ -3,7 +3,7 @@ id: cohs.confined-space
 kind: procedure
 title: Confined Space Programme
 structure: procedure
-path: procedures/construction/confined-space.md
+path: procedures/confined-space.md
 
 satisfies:
   - cor_2020:COR-08
@@ -22,7 +22,7 @@ declares:
     interval_basis: chosen
     responsible: health-safety-lead
     applies_to: the organisation
-    records: registers/construction/confined-space-programme-reviews.md
+    records: registers/confined-space-programme-reviews.md
     escalate: {after: 4w, to: senior-management}
   register:
     title: Confined Space Programme Review Record

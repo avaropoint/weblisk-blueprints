@@ -1,9 +1,9 @@
 ---
 id: cohs.competency-requirements
-kind: matrix
+kind: standard
 title: Competency Requirements by Position and Trade
 structure: standard
-path: standards/construction/competency-requirements.md
+path: standards/competency-requirements.md
 
 satisfies:
   - construction_safety_ca:CSA-TR-1
@@ -22,7 +22,7 @@ declares:
     interval_basis: chosen
     responsible: training-coordinator
     applies_to: the organisation
-    records: registers/construction/competency-requirement-reviews.md
+    records: registers/competency-requirement-reviews.md
     escalate: {after: 4w, to: health-safety-lead}
   register:
     title: Competency Requirement Review Record

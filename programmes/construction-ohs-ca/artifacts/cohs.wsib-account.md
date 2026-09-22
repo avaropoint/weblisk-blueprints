@@ -3,7 +3,7 @@ id: cohs.wsib-account
 kind: procedure
 title: Workers' Compensation Registration and Reporting
 structure: procedure
-path: procedures/construction/workers-compensation-account.md
+path: procedures/workers-compensation-account.md
 
 satisfies:
   - isnetworld:ISN-SAFE-02
@@ -20,7 +20,7 @@ declares:
     interval_basis: required
     responsible: payroll-administrator
     applies_to: the organisation
-    records: registers/construction/workers-compensation-reconciliations.md
+    records: registers/workers-compensation-reconciliations.md
     escalate: {after: 2w, to: senior-management}
   register:
     title: Workers' Compensation Reconciliation Record

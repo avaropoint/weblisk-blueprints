@@ -3,7 +3,7 @@ id: cohs.notifiable-events
 kind: register
 title: Register of Notifiable Events
 structure: standard
-path: registers/construction/notifiable-events.md
+path: registers/notifiable-events.md
 
 # A register carries no `satisfies:`.
 #
@@ -37,7 +37,7 @@ register:
     - {key: occurred_on, label: Occurred on, type: date, required: true}
     - {key: became_aware_on, label: The organisation became aware on, type: date, required: true}
     - {key: project, label: Project, type: relation, required: true,
-       target: /registers/construction/projects.md#records, display: project_id}
+       target: /registers/projects.md#records, display: project_id}
     - {key: category, label: Category, type: select, required: true,
        options: [Death, Critical injury, Injury requiring medical attention or preventing usual work,
                  Occupational illness, Project-site occurrence, Workplace violence]}

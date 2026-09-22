@@ -3,7 +3,7 @@ id: cohs.violence-harassment
 kind: procedure
 title: Workplace Violence and Workplace Harassment
 structure: procedure
-path: procedures/construction/violence-and-harassment.md
+path: procedures/violence-and-harassment.md
 
 satisfies:
   - cor_2020:COR-09
@@ -21,7 +21,7 @@ declares:
     interval_basis: required
     responsible: health-safety-lead
     applies_to: the organisation
-    records: registers/construction/violence-harassment-reviews.md
+    records: registers/violence-and-harassment-reviews.md
     escalate: {after: 4w, to: senior-management}
   register:
     title: Violence and Harassment Review Record

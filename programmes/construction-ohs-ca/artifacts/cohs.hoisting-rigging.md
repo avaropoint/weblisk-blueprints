@@ -3,7 +3,7 @@ id: cohs.hoisting-rigging
 kind: procedure
 title: Cranes, Hoisting and Rigging
 structure: procedure
-path: procedures/construction/hoisting-and-rigging.md
+path: procedures/hoisting-and-rigging.md
 
 satisfies:
   - construction_safety_ca:CSA-SITE-2
@@ -21,7 +21,7 @@ declares:
     interval_basis: required
     responsible: site-supervisor
     applies_to: each project
-    records: registers/construction/crane-log-inspections.md
+    records: registers/crane-log-inspections.md
     escalate: {after: 3d, to: health-safety-lead}
   register:
     title: Crane Log Inspection Record
@@ -35,7 +35,7 @@ declares:
     columns:
       - {key: inspected_on, label: Inspected on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,
-         target: /registers/construction/projects.md#records, display: project_id}
+         target: /registers/projects.md#records, display: project_id}
       - {key: machine, label: Machine, type: text, required: true}
       - {key: inspector, label: Inspected by, type: user, required: true}
       - {key: cables, label: Cables, type: select, required: true,

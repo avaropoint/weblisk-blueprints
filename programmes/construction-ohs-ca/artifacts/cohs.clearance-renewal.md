@@ -3,7 +3,7 @@ id: cohs.clearance-renewal
 kind: procedure
 title: Clearance Certificate Renewal
 structure: procedure
-path: procedures/construction/clearance-renewal.md
+path: procedures/clearance-renewal.md
 
 satisfies:
   - isnetworld:ISN-SAFE-02
@@ -16,14 +16,14 @@ declares:
     id: cohs.clearance-renewal
     activity: Renew a clearance certificate before it expires, or stop the contractor
     for:
-      records: registers/construction/clearance-certificates.md
+      records: registers/clearance-certificates.md
       due: 14d before expires_on
       key: reference
     authority: Workplace Safety and Insurance Act, 1997 ss. 141.1, 141.2 and the board's clearance policy — a clearance is valid for up to ninety days and must be renewed for the whole duration of the contract. No notice period is prescribed
     interval_basis: chosen
     responsible: procurement-lead
     applies_to: the organisation
-    records: registers/construction/clearance-renewals.md
+    records: registers/clearance-renewals.md
     escalate: {after: 1w, to: project-manager}
   register:
     title: Clearance Renewal Record
@@ -38,7 +38,7 @@ declares:
     approvers: [procurement-lead]
     columns:
       - {key: reference, label: Clearance renewed, type: relation, required: true,
-         target: /registers/construction/clearance-certificates.md#records, display: reference}
+         target: /registers/clearance-certificates.md#records, display: reference}
       - {key: contractor, label: Contractor, type: text, required: true}
       - {key: requested_on, label: Requested on, type: date, required: true}
       - {key: received_on, label: Replacement received on, type: date}

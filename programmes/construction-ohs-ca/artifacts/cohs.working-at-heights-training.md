@@ -3,7 +3,7 @@ id: cohs.working-at-heights-training
 kind: procedure
 title: Working at Heights Training
 structure: procedure
-path: procedures/construction/working-at-heights-training.md
+path: procedures/working-at-heights-training.md
 
 satisfies:
   - construction_safety_ca:CSA-FP-1
@@ -22,7 +22,7 @@ declares:
     interval_basis: chosen
     responsible: site-supervisor
     applies_to: each project
-    records: registers/construction/heights-training-verifications.md
+    records: registers/working-at-heights-verifications.md
     escalate: {after: 1w, to: health-safety-lead}
   register:
     title: Heights Training Verification Record
@@ -34,7 +34,7 @@ declares:
     columns:
       - {key: checked_on, label: Checked on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,
-         target: /registers/construction/projects.md#records, display: project_id}
+         target: /registers/projects.md#records, display: project_id}
       - {key: checked_by, label: Checked by, type: user, required: true}
       - {key: workers_at_height, label: Workers who may use a fall protection system, type: int, required: true}
       - {key: with_working_at_heights, label: With a current Working at Heights certificate, type: int, required: true}

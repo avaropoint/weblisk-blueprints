@@ -3,7 +3,7 @@ id: cohs.notice-of-project
 kind: procedure
 title: Notice of Project and Prescribed Notifications
 structure: procedure
-path: procedures/construction/notice-of-project.md
+path: procedures/notice-of-project.md
 
 satisfies:
   - cor_2020:COR-04
@@ -16,14 +16,14 @@ declares:
     id: cohs.notice-of-project
     activity: Notice of project filed, and any other prescribed notification given
     for:
-      records: registers/construction/projects.md
+      records: registers/projects.md
       due: 5d before start_on
       key: project_id
     authority: O. Reg. 213/91 ss. 6, 7, 7.1
     interval_basis: chosen
     responsible: project-manager
     applies_to: each project
-    records: registers/construction/notices-of-project.md
+    records: registers/notices-of-project.md
     escalate: {after: 3d, to: constructor-representative}
   register:
     title: Notice of Project Record
@@ -38,7 +38,7 @@ declares:
     approvers: [constructor-representative]
     columns:
       - {key: project_id, label: Project, type: relation, required: true,
-         target: /registers/construction/projects.md#records, display: project_id}
+         target: /registers/projects.md#records, display: project_id}
       - {key: trigger, label: Trigger, type: select, required: true,
          options: [Cost over the prescribed threshold,
                    Erection or structural alteration over two storeys or 7.5 m,
