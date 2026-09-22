@@ -5,6 +5,9 @@
   "description": "Security requirements for protecting Controlled Unclassified Information in non-federal systems. Revision 3 (May 2024) restructured the catalogue to 97 requirements across 17 families, down from 110 in Revision 2, and added three families: Planning (03.15), System and Services Acquisition (03.16) and Supply Chain Risk Management (03.17). A contract citing \"800-171\" without a revision is ambiguous, and many contracts still specify Rev 2 — confirm the revision per contract, because the requirement counts and family structure differ. Reaches Canadian contractors through defence-adjacent and some nuclear flow-down clauses. One representative requirement per family is catalogued here; the full 97 apply where a contract invokes the standard.",
   "authority": "National Institute of Standards and Technology (NIST)",
   "scope": "Non-federal organizations processing, storing or transmitting Controlled Unclassified Information under contract",
+  "applies_in": [
+    "US"
+  ],
   "category": "cybersecurity",
   "status": "active",
   "published_date": "2024-05-14",

@@ -5,6 +5,9 @@
   "description": "Information security, cybersecurity and privacy protection — Information security management systems",
   "authority": "ISO/IEC",
   "scope": "Any organization (certification available)",
+  "applies_in": [
+    "international"
+  ],
   "families": [
     {
       "id": "ORG",

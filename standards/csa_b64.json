@@ -5,6 +5,9 @@
   "description": "The CSA B64 series covering backflow preventers and their field testing, applied through the Ontario Building Code Part 7 and, more stringently, through municipal cross-connection control by-laws. The auditable obligations are almost entirely about certified testers and records: a backflow preventer must be tested on installation and at least annually by a certified tester, and the test report filed with the municipality. Because enforcement is municipal, requirements differ between Hamilton, Brantford and Niagara — a single company-wide assumption is a defect. Testers hold a certification that expires and must be recertified.",
   "authority": "CSA Group / municipal cross-connection control programmes",
   "scope": "Plumbing contractors installing, testing or maintaining backflow prevention devices",
+  "applies_in": [
+    "CA"
+  ],
   "category": "operational",
   "status": "active",
   "official_url": "https://www.csagroup.org/store/product/CSA%20B64.10%3A22/",

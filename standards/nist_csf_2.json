@@ -5,6 +5,9 @@
   "description": "Voluntary framework for managing cybersecurity risk across critical infrastructure and all organizations",
   "authority": "National Institute of Standards and Technology (NIST)",
   "scope": "All organizations (voluntary)",
+  "applies_in": [
+    "international"
+  ],
   "families": [
     {
       "id": "GV",

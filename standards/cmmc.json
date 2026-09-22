@@ -5,6 +5,9 @@
   "description": "Cybersecurity Maturity Model Certification for protecting CUI in the Defense Industrial Base",
   "authority": "U.S. Department of Defense (DoD)",
   "scope": "Defense Industrial Base contractors handling FCI/CUI (DFARS 252.204-7012)",
+  "applies_in": [
+    "US"
+  ],
   "families": [
     {
       "id": "AC",

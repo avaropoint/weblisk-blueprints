@@ -5,6 +5,9 @@
   "description": "Standards for the protection of electronic protected health information (ePHI)",
   "authority": "U.S. Department of Health and Human Services (HHS)",
   "scope": "Covered entities and business associates handling ePHI",
+  "applies_in": [
+    "US"
+  ],
   "families": [
     {
       "id": "ADM",

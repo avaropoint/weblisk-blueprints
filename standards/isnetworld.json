@@ -5,6 +5,9 @@
   "description": "ISNetworld (ISN) contractor prequalification, used by industrial and institutional owners to gate site access. Two reviews are assessed independently: safety prequalification (statistics, written programmes, training, insurance, subcontractor management, reviewed under RAVS) and Cyber 360 (an information security review conducted as a structured interview plus an employee evaluation). The Cyber 360 categories follow the ISO/IEC 27002:2005 domain structure, which predates the 2022 reorganisation — an organization documented against ISO 27001:2022 holds every answer but files it under different headings, so the crosswalk matters. ISN revises requirements without general notice; confirm the current requirement set and grade against the ISN portal.",
   "authority": "ISN Software Corporation",
   "scope": "Contractors seeking or maintaining site access with ISN-subscribing owners",
+  "applies_in": [
+    "international"
+  ],
   "category": "industry",
   "status": "active",
   "official_url": "https://www.isnetworld.com/",

@@ -54,6 +54,7 @@ One file per standard, named for its `id`: `standards/<id>.json`.
 
 | field | type | means |
 |---|---|---|
+| `applies_in` | string[] | where the standard has force — ISO 3166 codes, or `international`. Below |
 | `official_url` | string | where the authority publishes it |
 | `published_date` | date | when this edition was published |
 | `effective_date` | date | when conformance is expected |
@@ -65,6 +66,98 @@ One file per standard, named for its `id`: `standards/<id>.json`.
 an audit of a past period is judged against what applied then. `status` and
 `supersedes` are how an edition retires without its history becoming
 unreadable — the same rule the fabric applies to a retired node.
+
+
+## `applies_in` — where a standard has force
+
+A standard is published by an authority with a reach. Ontario's *Occupational
+Health and Safety Act* binds in Ontario; 29 CFR 1926 binds in the United States;
+ISO 27001 binds nowhere at all until somebody adopts it. `applies_in` states
+that reach as data, so *"which standards apply to an organisation operating in
+Ontario"* is a question with an answer.
+
+It was carried by convention until now — inside the `id`
+(`ontario_building_code`, `quebec_law25`) and in `scope` prose. A convention is
+unreadable to a tool and, worse, it is ambiguous to a person:
+`construction_safety_ca` is Canada, and nothing short of reading the description
+distinguishes it from California.
+
+A **list**, because reach is plural. CSA publishes nationally and each province
+adopts by reference; a data protection regulation covers a union and the states
+that treat with it. A single value would force one of those to be a lie.
+
+| entry | means | example |
+|---|---|---|
+| ISO 3166-1 alpha-2 | a country, and every subdivision of it | `CA`, `US`, `AU` |
+| ISO 3166-2 | one subdivision, when the authority is sub-national | `CA-ON`, `CA-QC`, `US-CA` |
+| `international` | published for adoption anywhere, binding nowhere by itself | ISO/IEC, SOC 2, PCI DSS |
+
+ISO 3166 because this corpus already writes places that way —
+[`../protocol/federation.md`](../protocol/federation.md) uses alpha-2 codes — and
+a second geographic vocabulary in one repository is a translation table waiting
+to be written. `EU` is ISO 3166-1's exceptionally reserved code for the European
+Union, which is why GDPR can name its union and the three EEA states beside it.
+
+Four rules keep two lists comparable:
+
+- **`international` stands alone.** A standard is territorially bound or it is
+  not; a list holding both claims both.
+- **Never a subdivision of a country already listed.** `CA` already contains
+  `CA-ON`, and writing both invites a reader to think the second adds something.
+- **Ascending order**, so the same reach is the same text.
+- **As ISO writes them** — upper case, hyphenated.
+
+### `international` is a value, not an absence
+
+ISO 27001 applies to an organisation in Ontario exactly as it applies to one in
+Osaka: by adoption or by contract, never by law. That is a fact about the
+standard, and `applies_in: ["international"]` records it. Leaving the field out
+would record something else entirely — see below — and a filter answering
+"standards for Ontario" would then have to choose between dropping ISO 27001 and
+guessing.
+
+### Force, never origin
+
+`applies_in` says where the standard has force. Where its authority sits is
+`authority`'s job, and the two disagree often: SOC 2 is AICPA's, PCI DSS is a
+US-incorporated council's, SMACNA is a US trade association's, and all three
+bind only where a contract makes them, anywhere on earth. A standard's reach
+must not be inferred from its publisher's address, and this field must never be
+read as a restatement of one.
+
+### Absent means nobody has said, and nothing more
+
+The field is **optional**, and that is deliberate: a customer's own standard
+must still load without it, and a corpus older than this field must still be
+readable by a build that has it. So an absent `applies_in` means *unstated* —
+never *global*, never *local*, never *checked and found to be neither*. A
+consumer filtering by place includes an unstated standard as a stated unknown or
+excludes it and says so. Treating the gap as "applies everywhere" is the
+confident zero this corpus exists to avoid.
+
+Every standard in `standards/` carries one. Absence here is a gap to be filled,
+not a shape to be copied.
+
+### It is not `jurisdiction`, and not by accident
+
+[`../protocol/federation.md`](../protocol/federation.md) already spends that
+word: an orchestrator declares a `jurisdiction`, and a data contract carries a
+`JurisdictionSpec.country_codes`. Both are **data residency** — where bytes may
+come to rest — and both are enforced at routing time by rejecting a peer.
+
+That is a different question with the same shape of answer, which is the
+dangerous kind of collision: an ISO 3166 list under the same name, one
+describing a legal authority's reach and the other where a payload may be
+stored. A tenant can perfectly well be governed by Ontario law while contracting
+that its data resides in Germany. So this field takes a different word, and no
+consumer should ever resolve one from the other.
+
+### It never records adoption
+
+The ruler, never the measurement, applies here too. `applies_in` says where the
+standard *has* force, not that any organisation there has adopted it, is
+certified to it, or is being measured against it. Which standards an
+organisation is held to is tenant content, in the customer's own repositories.
 
 ---
 
@@ -138,3 +231,8 @@ holds an accreditation it has never been assessed for.
 - [ ] Every `mapped_controls` entry is `<standard>:<control>` and names a standard the corpus carries
 - [ ] No standard records an organisation's adoption, score or evidence
 - [ ] `weblisk_framework` is absent — it is generated from `schemas/`, not authored
+- [ ] Every standard carries `applies_in` — optional in the schema so a customer's file still loads, filled in everywhere here
+- [ ] Every `applies_in` entry is an ISO 3166-1 alpha-2 code, an ISO 3166-2 subdivision code, or `international`
+- [ ] `international`, where it appears, is the only entry
+- [ ] No `applies_in` names a subdivision of a country it already names
+- [ ] No `applies_in` restates data residency — that is `jurisdiction` in `protocol/federation.md`, a different question

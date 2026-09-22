@@ -5,6 +5,9 @@
   "description": "Requirements for an occupational health and safety management system, on the Annex SL structure (clauses 4 to 10). It shares its architecture with ISO 9001:2015 and ISO 27001:2022, so a single management-review, internal-audit and corrective-action process can serve all three. Its distinguishing requirements against COR are clause 5.4 (consultation and participation of workers, including non-managerial workers) and clause 8.1.4 (procurement, contractors and outsourcing) — both are where an auditor probes whether the system is real.",
   "authority": "International Organization for Standardization (ISO)",
   "scope": "Any organization seeking to manage occupational health and safety risks systematically",
+  "applies_in": [
+    "international"
+  ],
   "category": "operational",
   "status": "active",
   "published_date": "2018-03-12",

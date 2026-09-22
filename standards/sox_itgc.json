@@ -5,6 +5,9 @@
   "description": "IT General Controls supporting Sarbanes-Oxley Section 404 internal control over financial reporting (ICFR) — the control areas auditors evaluate for systems relevant to financial statements.",
   "authority": "U.S. Securities and Exchange Commission / PCAOB (Sarbanes-Oxley Act of 2002)",
   "scope": "U.S. public companies (and their in-scope IT systems) subject to SOX Section 404 ICFR assertions",
+  "applies_in": [
+    "US"
+  ],
   "category": "industry",
   "status": "active",
   "official_url": "https://pcaobus.org/oversight/standards/auditing-standards",

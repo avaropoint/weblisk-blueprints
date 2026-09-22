@@ -5,6 +5,9 @@
   "description": "Security and Privacy Controls for Information Systems and Organizations",
   "authority": "National Institute of Standards and Technology (NIST)",
   "scope": "Federal agencies (required), private sector (voluntary)",
+  "applies_in": [
+    "US"
+  ],
   "families": [
     {
       "id": "AC",

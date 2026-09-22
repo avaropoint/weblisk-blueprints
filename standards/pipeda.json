@@ -5,6 +5,9 @@
   "description": "Personal Information Protection and Electronic Documents Act — Canada's federal private-sector privacy law. Controls follow the ten Fair Information Principles in Schedule 1. Representative starter catalog; refine to your organization's obligations.",
   "authority": "Office of the Privacy Commissioner of Canada (OPC)",
   "scope": "Canadian private-sector organizations that collect, use, or disclose personal information in the course of commercial activity",
+  "applies_in": [
+    "CA"
+  ],
   "category": "privacy",
   "official_url": "https://www.priv.gc.ca/en/privacy-topics/privacy-laws-in-canada/the-personal-information-protection-and-electronic-documents-act-pipeda/",
   "status": "active",

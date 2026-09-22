@@ -5,6 +5,9 @@
   "description": "Ontario's fuels safety regime: CSA B149.1:25 Natural gas and propane installation code (with 2026 Ontario amendments), CSA B149.2:25 Propane storage and handling code, and CSA B149.3 Field approval of fuel-related accessories, administered by the Technical Standards and Safety Authority under the Technical Standards and Safety Act, 2000. Two obligation sets travel together: the installation codes governing the work, and the TSSA certificate and contractor registration regime governing who may perform it. Gas technician certification classes are task-limiting — a G3 may not perform G2 work — so competency records are the control an inspector checks first.",
   "authority": "Technical Standards and Safety Authority (TSSA) / CSA Group",
   "scope": "Contractors and certified persons installing, servicing or altering fuel-burning appliances and gas piping in Ontario",
+  "applies_in": [
+    "CA-ON"
+  ],
   "category": "operational",
   "status": "active",
   "official_url": "https://www.tssa.org/en/fuels/",

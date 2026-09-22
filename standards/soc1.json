@@ -5,6 +5,9 @@
   "description": "Service Organization Control Report on controls relevant to user entities' internal control over financial reporting",
   "authority": "AICPA (SSAE 18 / ISAE 3402)",
   "scope": "Service organizations whose services affect user entity financial reporting",
+  "applies_in": [
+    "international"
+  ],
   "families": [
     {
       "id": "CE",

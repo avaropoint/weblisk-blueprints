@@ -5,6 +5,9 @@
   "description": "Requirements for a quality management system, structured on the Annex SL high-level structure (clauses 4 to 10) and built on the process approach, risk-based thinking and the Plan-Do-Check-Act cycle. Frequently required for ICI, institutional and public-sector prequalification. For a trade contractor the clauses that carry the most audit weight are 8.5 (production and service provision), 8.7 (nonconforming outputs), 7.1.5 (monitoring and measuring resources) and 10.2 (corrective action) — these are where inspection, test and handover records live.",
   "authority": "International Organization for Standardization (ISO)",
   "scope": "Any organization seeking to demonstrate consistent provision of conforming products and services",
+  "applies_in": [
+    "international"
+  ],
   "category": "operational",
   "status": "active",
   "published_date": "2015-09-15",

@@ -5,6 +5,9 @@
   "description": "Prioritized set of actions to protect organizations from known cyber attack vectors",
   "authority": "Center for Internet Security (CIS)",
   "scope": "Any organization — Implementation Groups IG1 (basic) through IG3 (advanced)",
+  "applies_in": [
+    "international"
+  ],
   "families": [
     {
       "id": "CIS-1",

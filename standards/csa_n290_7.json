@@ -5,6 +5,9 @@
   "description": "Cyber security requirements for nuclear power plants and small reactor facilities, second edition, superseding N290.7-14. The Canadian Nuclear Safety Commission uses it as compliance verification criteria for cyber security at high-security nuclear facilities. It is built on a defensive computer security architecture: digital assets are identified and assigned to security levels (zones), with communication between zones controlled and inbound-only where required. A trade contractor is reached through the licensee's flow-down — most commonly as controls on portable media, on remote access and maintenance tools, on personnel screening, and on the handling of facility digital-system information. Confirm which requirements a specific nuclear contract actually invokes; licensees flow down selectively.",
   "authority": "CSA Group / CNSC",
   "scope": "Nuclear power plants and small reactor facilities in Canada, and by flow-down their suppliers, contractors and maintenance providers",
+  "applies_in": [
+    "CA"
+  ],
   "category": "cybersecurity",
   "status": "active",
   "published_date": "2021-01-01",

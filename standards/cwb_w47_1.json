@@ -5,6 +5,9 @@
   "description": "CSA W47.1 certifies a company — not an individual — to perform fusion welding of steel, administered by the Canadian Welding Bureau. Certification is granted in a division (1, 2.1, 2.2 or 3) that limits what the company may weld and how much engineering oversight it requires, and it depends on holding a qualified welding engineer or supervisor, qualified procedures, qualified welders with current continuity, and passing periodic CWB audit. CSA W59:24 provides the workmanship and design requirements the welding must satisfy. W47.1:25 was published in May 2025, so a certificate issued against the seventh edition warrants a currency check.",
   "authority": "Canadian Welding Bureau (CWB) / CSA Group",
   "scope": "Companies performing fusion welding of steel, including fabrication shops and field welding",
+  "applies_in": [
+    "CA"
+  ],
   "category": "operational",
   "status": "active",
   "published_date": "2025-05-01",
