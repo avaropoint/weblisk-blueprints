@@ -297,13 +297,22 @@ which control a document answers, instead of leaving it to keyword inference.
 A declared target may qualify its kind as `kind:id`:
 
 ```yaml
-implements: [control:A.5.15]        # this policy answers that control
-requires:   [protocol/spec.md]      # unqualified: a blueprint, as before
+implements: [control:iso_27001:A.5.15]   # this policy answers that control
+requires:   [protocol/spec.md]           # unqualified: a blueprint, as before
 ```
 
 An identifier alone cannot say what it is, and **guessing from its shape is how
 a platform comes to assert something an author never said**. So an unqualified
 target keeps its previous meaning — a blueprint — and anything else is named.
+
+**Qualify a control by its framework too.** Only the first colon is the kind
+qualifier; everything after it is the id, so `control:iso_27001:A.5.15` names a
+control of a named standard. A control id is unique only within the standard that
+declared it — four standards in [`../standards/`](../standards/README.md) declare
+a control called `5.1` — so a bare `control:5.1` is a join onto whichever
+framework answers first. Nothing refuses the bare form, which is precisely why
+the example shows the one that cannot be read two ways. See
+[`../CORPUS_SHAPE.md`](../CORPUS_SHAPE.md).
 
 A prefix is only a qualifier when it is a **declared kind**, so a colon in a URL
 or a path is left alone.

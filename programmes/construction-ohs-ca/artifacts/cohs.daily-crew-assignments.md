@@ -5,8 +5,18 @@ title: Register of Daily Crew Assignments
 structure: standard
 path: registers/construction/daily-crew-assignments.md
 
-satisfies:
-  - cor_2020:COR-06
+# A register carries no `satisfies:`.
+#
+# It is the evidence that work happened, not the document that answers a
+# control — and the relation vocabulary says so structurally: `implements`
+# onto a control may be asserted by a blueprint, a policy or a procedure,
+# and by nothing else. A register citing a control could never be recorded
+# as answering it, so it sat at `present_uncited` permanently and capped the
+# tier's readiness at a number no amount of work could move.
+#
+# The citation belongs on the procedure that declares this register, which
+# is where the organisation states what it does; this file is where it
+# records having done it.
 
 requires: [cohs.project-register]
 

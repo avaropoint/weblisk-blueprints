@@ -473,6 +473,17 @@ preference is a requirement.
 Anything else is **refused at load**, quoting the word. A pack author who wrote
 one believes the product is now saying whose interval this is, and accepting an
 undefined word and then showing nothing would leave that belief intact and wrong.
+Case is folded before matching, so `Required` and `required` are one declaration.
+
+**Refused in a pack; read as unstated in a tenant's document.** The same unknown
+word in the frontmatter of somebody's own procedure does *not* stop the file. It
+is read as **unstated** — and it is not passed through either. A pack is content
+this corpus governs, so a word nobody defined is an authoring mistake and the
+file is skipped; a tenant's procedure is the customer's, and Studio is a client
+of their repository rather than a validator of it. What a client may not do is
+put a label nobody checked beside a due date, where a reader has no way to tell
+whether `mandated` meant anything. So the asymmetry is in what happens to the
+file, never in what the word is allowed to mean.
 
 **Absent is absent.** An obligation that declares neither field is unaffected and
 gains no default — not `chosen`, not "policy", not any word chosen on the
