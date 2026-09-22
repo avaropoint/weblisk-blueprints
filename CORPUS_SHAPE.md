@@ -108,6 +108,42 @@ architecture blueprint does; only the target differs.
 - Packs say `satisfies:`; the relation vocabulary says `implements` onto a
   `control`. Same claim, two words.
 
+#### What driving a programme end to end measured
+
+Recorded here rather than acted on: **the reconciliation is still the user's
+decision**, and the measurement changes what is being decided.
+
+**The two words are at different layers, and may not be in conflict at all.** A
+pack spec's `satisfies:` is a *specification-level* claim — what an artifact must
+answer, asserted by the pack author before any document exists. A **document's**
+citation is a claim about a file that does exist, and `schemas/kinds.md` makes
+`implements` the one declared relation a content kind may assert onto a
+`control`, saying why: it exists *"to state which control a document answers,
+instead of leaving it to keyword inference."* Converting one word into the other
+would flatten two claims into one rather than remove a dialect.
+
+**What was in conflict is what the drafted documents carried.** They copied the
+pack's `satisfies:` key into the document's own frontmatter, where nothing reads
+it as a relation. So the only citations that reached the ledger were the
+conformance producer's keyword guesses — **2 of 5 controls on the first real
+document, both merely `suggested`.** Every artifact stayed `present_uncited`, the
+plan never subtracted it, and a programme that had been drafted and filed
+reported as not begun.
+
+**The framework-qualified form is the one that works.** Verified against a live
+ledger: `implements: [control:iso_45001:5.1]` resolves and clears the citation.
+The bare form is ambiguous, and measurably so: **four standards in `standards/`
+declare a control called `5.1`** (`iso_45001`, `iso_9001`, `pci_dss`,
+`cis_controls`). An unqualified control id is a join key onto whichever framework
+answers first, which is exactly the guess the relation exists to stop. Nothing
+refuses it, so `schemas/kinds.md`'s example now shows the qualified form — an
+example is what gets copied. `skills/kinds/SKILL.md` still shows the bare one;
+that copy is mirrored into the CLI and has to move with it.
+
+**And the two bullets above are one problem, not two.** The producer that turns a
+declaration into a ledger edge has to recognise the header the declaration is
+written in. A vocabulary agreed in a form nothing reads is not agreed.
+
 ---
 
 ## Four axes, not two

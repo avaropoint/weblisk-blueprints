@@ -1,6 +1,6 @@
 ---
 id: cohs.site-emergency-response
-kind: plan
+kind: procedure
 title: Project Emergency Response Plan
 structure: procedure
 path: plans/construction/project-emergency-response.md
