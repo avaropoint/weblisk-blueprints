@@ -6,7 +6,10 @@ structure: procedure
 path: procedures/statutory-notice.md
 
 satisfies:
-  - construction_safety_ca:CSA-SITE-3
+  - ohsa_ontario:51(1)
+  - ohsa_ontario:52(1)
+  - ohsa_ontario:53(1)
+  - wsia_ontario:21
   - cor_2020:COR-17
   - iso_45001:10.2
 

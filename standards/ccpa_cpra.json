@@ -258,7 +258,7 @@
     },
     {
       "id": "DM",
-      "name": "Data Minimization \u0026 Purpose Limitation",
+      "name": "Data Minimization & Purpose Limitation",
       "description": "CPRA requirements for limiting collection, use, and retention of personal information",
       "controls": [
         {
@@ -407,5 +407,5 @@
   "supersedes": "CCPA (2020)",
   "status": "active",
   "official_url": "https://cppa.ca.gov/regulations/",
-  "changes_summary": "CPRA amendments added sensitive personal information category, data minimization requirements, established CPPA enforcement agency, expanded opt-out rights"
+  "changes_summary": "CPRA amendments added sensitive personal information category, data minimization requirements, established CPPA enforcement agency, expanded opt-out rights. The California Privacy Protection Agency's further regulations on automated decision-making technology, risk assessments and cybersecurity audits were approved by the Office of Administrative Law on 23 September 2025 and took effect on 1 January 2026, with obligations phased through 2030 — risk assessments for activities begun before 1 January 2026 to be completed by 31 December 2027 with attestations due 1 April 2028, and cybersecurity audits due 1 April 2028, 2029 or 2030 by revenue tier. This catalogue's controls are the pre-2026 set and do NOT yet carry the ADMT, risk assessment or cybersecurity audit requirements; that gap is stated here rather than left to be discovered."
 }

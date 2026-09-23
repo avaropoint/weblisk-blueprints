@@ -6,6 +6,12 @@ structure: procedure
 path: procedures/violence-and-harassment.md
 
 satisfies:
+  - ohsa_ontario:32.0.1
+  - ohsa_ontario:32.0.2
+  - ohsa_ontario:32.0.3
+  - ohsa_ontario:32.0.6
+  - ohsa_ontario:32.0.7
+  - ohsa_ontario:32.0.8
   - cor_2020:COR-09
   - iso_45001:6.1.2
   - iso_45001:6.1.3

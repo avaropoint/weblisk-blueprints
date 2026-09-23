@@ -1,0 +1,161 @@
+{
+  "id": "reg_860_whmis",
+  "name": "R.R.O. 1990, Reg. 860: Workplace Hazardous Materials Information System (WHMIS)",
+  "version": "R.R.O. 1990, Reg. 860, consolidated to 21 January 2019",
+  "description": "Ontario's WHMIS regulation, made under the Occupational Health and Safety Act, and the provision that gives section 42 of the Act its content on a construction project. It is the workplace half of a two-part system: the federal Hazardous Products Act and Hazardous Products Regulations classify a product and set what a supplier must put on a label and a safety data sheet, and this regulation says what the employer must then do — inform workers of all hazard information, instruct them in labels, safety data sheets and safe handling, keep labels legible and current, and obtain, update or prepare the safety data sheets. Aligned to WHMIS 2015 by O. Reg. 168/16 and consolidated to 21 January 2019, last amended by O. Reg. 3/19.",
+  "authority": "Lieutenant Governor in Council, Ontario, under the Occupational Health and Safety Act",
+  "scope": "Every Ontario workplace where a worker works with, or may be exposed to, a hazardous product",
+  "applies_in": [
+    "CA-ON"
+  ],
+  "category": "government",
+  "status": "active",
+  "official_url": "https://www.ontario.ca/laws/regulation/900860",
+  "families": [
+    {
+      "id": "R860-EDU",
+      "name": "Worker Education",
+      "description": "Sections 6 and 7. What a worker exposed to a hazardous product must be told and instructed in, and the employer's duty to keep that instruction current.",
+      "controls": [
+        {
+          "id": "6",
+          "name": "Workers Informed of All Hazard Information",
+          "description": "An employer shall ensure that a worker who works with, or who may be exposed in the course of work to, a hazardous product received from a supplier is informed about all hazard information received from the supplier and all further hazard information of which the employer is or ought to be aware concerning its use, storage and handling. The same duty applies, on the employer's own knowledge, to a hazardous product the employer produces in the workplace.",
+          "family": "R860-EDU",
+          "framework": "reg_860_whmis",
+          "domains": [
+            "health_safety",
+            "training_competency",
+            "environmental"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "hazard information",
+            "supplier",
+            "produced in the workplace",
+            "informed",
+            "exposure"
+          ]
+        },
+        {
+          "id": "7",
+          "name": "Worker Instruction on Labels, Safety Data Sheets and Safe Handling",
+          "description": "An employer shall ensure that every worker who works with, or may be exposed to, a hazardous product is instructed in the contents required on labels and on a safety data sheet and their purpose and significance; in procedures for the safe use, storage, handling and disposal of the product, including where it is contained or transferred in a pipe, piping system, vessel, reaction vessel or tank car; and in the procedures to be followed where fugitive emissions are present and in emergencies.",
+          "family": "R860-EDU",
+          "framework": "reg_860_whmis",
+          "domains": [
+            "health_safety",
+            "training_competency",
+            "environmental"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "WHMIS instruction",
+            "label",
+            "safety data sheet",
+            "safe handling",
+            "disposal",
+            "fugitive emission",
+            "emergency"
+          ],
+          "mapped_controls": [
+            "ohsa_ontario:42"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R860-LABEL",
+      "name": "Labels",
+      "description": "Sections 8 to 13. Supplier labels, workplace labels, and what must happen when a label becomes illegible or new data arrives.",
+      "controls": [
+        {
+          "id": "8",
+          "name": "Hazardous Products Labelled and Labels Maintained",
+          "description": "An employer shall ensure that every hazardous product, and every container of a hazardous product, received at a workplace from a supplier is labelled with a supplier label. No employer shall alter a supplier label while any of the product remains in the container. Where a label becomes illegible or is removed, the employer shall replace it with a supplier label or a workplace label. Where significant new data is received from a supplier, the employer shall as soon as practicable attach information reflecting it to every relevant supplier label.",
+          "family": "R860-LABEL",
+          "framework": "reg_860_whmis",
+          "domains": [
+            "health_safety",
+            "environmental"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "supplier label",
+            "workplace label",
+            "illegible",
+            "significant new data",
+            "container"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R860-SDS",
+      "name": "Safety Data Sheets",
+      "description": "Sections 17 and 18. Obtaining, updating and preparing safety data sheets.",
+      "controls": [
+        {
+          "id": "17",
+          "name": "Supplier Safety Data Sheets Obtained and Kept Current",
+          "description": "An employer who receives a hazardous product from a supplier for use, storage or handling at a workplace shall obtain a supplier safety data sheet for it, unless the supplier is exempted under the Hazardous Products Regulations (Canada), and shall update it as soon as practicable after significant new data about the product is provided by the supplier or otherwise becomes available. An employer may provide a sheet in a different format or with additional hazard information only if it contains no less content than the supplier's and the supplier's sheet is available at the workplace and identified as such.",
+          "family": "R860-SDS",
+          "framework": "reg_860_whmis",
+          "domains": [
+            "health_safety",
+            "records_management",
+            "environmental"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "safety data sheet",
+            "SDS",
+            "obtain",
+            "update",
+            "significant new data",
+            "available at the workplace"
+          ]
+        },
+        {
+          "id": "18",
+          "name": "Safety Data Sheet Prepared for a Product the Employer Produces",
+          "description": "An employer who produces a hazardous product at a workplace shall prepare a safety data sheet complying with the Hazardous Products Regulations (Canada), as shall an employer who affixes a label under subsection 8 (8) or (9) or section 13 and cannot obtain a supplier sheet. No safety data sheet is required for a laboratory sample the employer produces at the workplace.",
+          "family": "R860-SDS",
+          "framework": "reg_860_whmis",
+          "domains": [
+            "health_safety",
+            "records_management",
+            "environmental"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "prepare SDS",
+            "produced product",
+            "laboratory sample",
+            "hazardous products regulations"
+          ]
+        }
+      ]
+    }
+  ]
+}

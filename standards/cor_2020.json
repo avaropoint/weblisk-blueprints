@@ -42,7 +42,8 @@
           ],
           "mapped_controls": [
             "isnetworld:ISN-SAFE-03",
-            "iso_45001:5.2"
+            "iso_45001:5.2",
+            "ohsa_ontario:25(2)(j)"
           ]
         },
         {
@@ -95,7 +96,8 @@
             "competent-person"
           ],
           "mapped_controls": [
-            "iso_45001:5.3"
+            "iso_45001:5.3",
+            "ohsa_ontario:23(1)"
           ]
         },
         {
@@ -121,7 +123,8 @@
             "green-book"
           ],
           "mapped_controls": [
-            "iso_45001:6.1.3"
+            "iso_45001:6.1.3",
+            "ohsa_ontario:27"
           ]
         },
         {
@@ -183,7 +186,8 @@
           ],
           "mapped_controls": [
             "construction_safety_ca:CSA-OHS-2",
-            "iso_45001:6.1.2"
+            "iso_45001:6.1.2",
+            "ohsa_ontario:25(2)(h)"
           ]
         },
         {
@@ -234,7 +238,9 @@
             "arc-flash"
           ],
           "mapped_controls": [
-            "iso_45001:8.1.2"
+            "iso_45001:8.1.2",
+            "o_reg_213_91:234",
+            "o_reg_632_05:5"
           ]
         },
         {
@@ -258,6 +264,9 @@
             "enforcement",
             "discipline",
             "compliance"
+          ],
+          "mapped_controls": [
+            "ohsa_ontario:32.0.1"
           ]
         },
         {
@@ -284,7 +293,9 @@
           ],
           "mapped_controls": [
             "construction_safety_ca:CSA-PPE-1",
-            "isnetworld:ISN-SAFE-08"
+            "isnetworld:ISN-SAFE-08",
+            "o_reg_213_91:21",
+            "o_reg_213_91:26.1"
           ]
         }
       ]
@@ -318,7 +329,8 @@
             "deficiency"
           ],
           "mapped_controls": [
-            "isnetworld:ISN-SAFE-10"
+            "isnetworld:ISN-SAFE-10",
+            "o_reg_213_91:14"
           ]
         },
         {
@@ -373,7 +385,8 @@
           ],
           "mapped_controls": [
             "isnetworld:ISN-SAFE-11",
-            "iso_45001:8.2"
+            "iso_45001:8.2",
+            "o_reg_213_91:27.1"
           ]
         },
         {
@@ -424,7 +437,8 @@
           ],
           "mapped_controls": [
             "isnetworld:ISN-SAFE-12",
-            "iso_45001:8.1.4"
+            "iso_45001:8.1.4",
+            "wsia_ontario:141.2"
           ]
         }
       ]
@@ -461,7 +475,11 @@
           "mapped_controls": [
             "construction_safety_ca:CSA-TR-1",
             "isnetworld:ISN-SAFE-04",
-            "iso_45001:7.2"
+            "iso_45001:7.2",
+            "o_reg_213_91:147",
+            "o_reg_213_91:150",
+            "o_reg_297_13:1",
+            "ohsa_ontario:25(2)(a)"
           ]
         },
         {
@@ -490,7 +508,8 @@
           ],
           "mapped_controls": [
             "construction_safety_ca:CSA-SITE-3",
-            "iso_45001:10.2"
+            "iso_45001:10.2",
+            "ohsa_ontario:51(1)"
           ]
         },
         {
@@ -543,6 +562,9 @@
             "claim",
             "disability",
             "safety"
+          ],
+          "mapped_controls": [
+            "wsia_ontario:40"
           ]
         }
       ]

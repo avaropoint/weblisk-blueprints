@@ -6,6 +6,10 @@ structure: procedure
 path: procedures/electrical-safety.md
 
 satisfies:
+  - o_reg_213_91:181
+  - o_reg_213_91:182
+  - o_reg_213_91:188
+  - o_reg_213_91:191
   - csa_z462:Z462-01
   - csa_z462:Z462-02
   - csa_z462:Z462-03

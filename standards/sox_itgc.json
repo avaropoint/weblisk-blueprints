@@ -21,41 +21,85 @@
           "id": "APD-1",
           "name": "User Access Provisioning & Deprovisioning",
           "description": "Grant access based on documented approval and role; remove access promptly on termination or role change.",
-          "family": "APD", "framework": "sox_itgc",
-          "domains": ["access_control", "hr_security"],
+          "family": "APD",
+          "framework": "sox_itgc",
+          "domains": [
+            "access_control",
+            "hr_security"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["provisioning", "deprovisioning", "joiner-mover-leaver", "approval"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "provisioning",
+            "deprovisioning",
+            "joiner-mover-leaver",
+            "approval"
+          ]
         },
         {
           "id": "APD-2",
           "name": "Periodic Access Review",
           "description": "Perform and document periodic reviews (recertification) of user and privileged access to financial applications and data.",
-          "family": "APD", "framework": "sox_itgc",
-          "domains": ["access_control", "compliance_audit"],
+          "family": "APD",
+          "framework": "sox_itgc",
+          "domains": [
+            "access_control",
+            "compliance_audit"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["access-review", "recertification", "attestation"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "access-review",
+            "recertification",
+            "attestation"
+          ]
         },
         {
           "id": "APD-3",
           "name": "Segregation of Duties",
           "description": "Enforce segregation of incompatible duties (e.g., initiate vs. approve) and restrict privileged/administrator access.",
-          "family": "APD", "framework": "sox_itgc",
-          "domains": ["access_control", "governance"],
+          "family": "APD",
+          "framework": "sox_itgc",
+          "domains": [
+            "access_control",
+            "governance"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["sod", "segregation-of-duties", "privileged-access"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "sod",
+            "segregation-of-duties",
+            "privileged-access"
+          ]
         },
         {
           "id": "APD-4",
           "name": "Authentication Controls",
           "description": "Enforce strong authentication (password policy, MFA) for access to in-scope financial systems.",
-          "family": "APD", "framework": "sox_itgc",
-          "domains": ["access_control"],
+          "family": "APD",
+          "framework": "sox_itgc",
+          "domains": [
+            "access_control"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["authentication", "mfa", "password-policy"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "authentication",
+            "mfa",
+            "password-policy"
+          ]
         }
       ]
     },
@@ -68,21 +112,42 @@
           "id": "CM-1",
           "name": "Change Authorization & Approval",
           "description": "Require documented request, approval, and business sign-off before changes are migrated to production.",
-          "family": "CM", "framework": "sox_itgc",
-          "domains": ["change_management"],
+          "family": "CM",
+          "framework": "sox_itgc",
+          "domains": [
+            "change_management"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["change-approval", "authorization", "sign-off"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "change-approval",
+            "authorization",
+            "sign-off"
+          ]
         },
         {
           "id": "CM-2",
           "name": "Testing & Segregation of Environments",
           "description": "Test changes in non-production environments; enforce separation of development, test, and production with restricted migration rights.",
-          "family": "CM", "framework": "sox_itgc",
-          "domains": ["change_management", "secure_development"],
+          "family": "CM",
+          "framework": "sox_itgc",
+          "domains": [
+            "change_management",
+            "secure_development"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["testing", "environment-separation", "migration"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "testing",
+            "environment-separation",
+            "migration"
+          ]
         }
       ]
     },
@@ -95,11 +160,23 @@
           "id": "PD-1",
           "name": "System Development Lifecycle",
           "description": "Follow a documented SDLC for new financial systems including requirements, testing, approval, and data-conversion validation.",
-          "family": "PD", "framework": "sox_itgc",
-          "domains": ["secure_development", "change_management"],
+          "family": "PD",
+          "framework": "sox_itgc",
+          "domains": [
+            "secure_development",
+            "change_management"
+          ],
           "priority": "medium",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["sdlc", "implementation", "data-conversion", "uat"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "sdlc",
+            "implementation",
+            "data-conversion",
+            "uat"
+          ]
         }
       ]
     },
@@ -112,21 +189,43 @@
           "id": "CO-1",
           "name": "Batch Job & Interface Monitoring",
           "description": "Schedule, monitor, and remediate failures of batch jobs and system interfaces that feed financial data.",
-          "family": "CO", "framework": "sox_itgc",
-          "domains": ["logging_monitoring", "change_management"],
+          "family": "CO",
+          "framework": "sox_itgc",
+          "domains": [
+            "logging_monitoring",
+            "change_management"
+          ],
           "priority": "medium",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["batch-jobs", "interfaces", "monitoring", "failure-remediation"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "batch-jobs",
+            "interfaces",
+            "monitoring",
+            "failure-remediation"
+          ]
         },
         {
           "id": "CO-2",
           "name": "Backup & Recovery",
           "description": "Perform and monitor backups of financial systems and periodically test restoration to support recoverability.",
-          "family": "CO", "framework": "sox_itgc",
-          "domains": ["business_continuity"],
+          "family": "CO",
+          "framework": "sox_itgc",
+          "domains": [
+            "business_continuity"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["backup", "recovery", "restore-test"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "backup",
+            "recovery",
+            "restore-test"
+          ]
         }
       ]
     }

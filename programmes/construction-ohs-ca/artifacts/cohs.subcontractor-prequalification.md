@@ -6,6 +6,8 @@ structure: procedure
 path: procedures/subcontractor-prequalification.md
 
 satisfies:
+  - ohsa_ontario:23(1)
+  - wsia_ontario:141.1
   - cor_2020:COR-15
   - isnetworld:ISN-SAFE-12
   - iso_45001:8.1.4

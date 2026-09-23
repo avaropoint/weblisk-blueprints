@@ -1,0 +1,540 @@
+{
+  "id": "construction_act_ontario",
+  "name": "Construction Act (Ontario)",
+  "version": "R.S.O. 1990, c. C.30, consolidated to 1 January 2026",
+  "description": "Ontario's construction payment and lien statute — for most contractors the largest legal exposure that is not a safety matter, and one an occupational health and safety programme never touches. It carries four separate regimes. Prompt payment (Part I.1) makes the proper invoice the trigger for a 28-day owner payment deadline and a 7-day flow-down to subcontractors, with a 14-day notice of non-payment as the only way to withhold and interest running automatically when a deadline is missed. The trust provisions (Part II) make money received on account of a contract price trust money, require it in a bank account in the trustee's name with written records, and make directors, officers and anyone with effective control personally liable for a breach. Interim adjudication (Part II.1) gives either party a 30-day determination that must be paid within 15 days. Holdbacks (Part IV) require 10 per cent retained, with a mandatory annual release on each anniversary of the contract, and Parts III and V set the 60-day preservation and 90-day perfection clocks that a lien lives or dies by. Consolidated to 1 January 2026, last amended by 2025, c. 14, Sched. 2.",
+  "authority": "Legislative Assembly of Ontario",
+  "scope": "Every owner, contractor, subcontractor, supplier, mortgagee and payment certifier connected with an improvement to land in Ontario",
+  "applies_in": [
+    "CA-ON"
+  ],
+  "category": "government",
+  "status": "active",
+  "official_url": "https://www.ontario.ca/laws/statute/90c30",
+  "families": [
+    {
+      "id": "CA-PAY",
+      "name": "Prompt Payment",
+      "description": "Part I.1, sections 6.1 to 6.9. The proper invoice, the twenty-eight day and seven day payment deadlines, the fourteen day notice of non-payment and the interest that runs when a deadline is missed.",
+      "controls": [
+        {
+          "id": "6.1",
+          "name": "Proper Invoice",
+          "description": "A proper invoice is a written bill or other request for payment for services or materials in respect of an improvement under a contract, containing the contractor's name and address, the date of the invoice and the period, milestone or other contractual payment entitlement it relates to, and the further information paragraph list in subsection 6.1 (1) requires, plus any other requirements the contract specifies subject to subsection 6.3 (2). The prompt payment clock does not start until an invoice is a proper invoice, which makes the invoice template itself a compliance artifact.",
+          "family": "CA-PAY",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "proper invoice",
+            "prompt payment",
+            "invoice template",
+            "payment entitlement",
+            "clock starts"
+          ]
+        },
+        {
+          "id": "6.3",
+          "name": "Proper Invoices Given Monthly, and Not Conditional on Certification",
+          "description": "Proper invoices shall be given to an owner on a monthly basis unless the contract provides otherwise. A contract provision making the giving of a proper invoice conditional on the prior certification of a payment certifier or on the owner's prior approval is of no force or effect.",
+          "family": "CA-PAY",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "monthly invoicing",
+            "no force or effect",
+            "prior certification",
+            "prior approval"
+          ]
+        },
+        {
+          "id": "6.4",
+          "name": "Owner Pays Within Twenty-Eight Days",
+          "description": "Subject to a notice of non-payment, an owner shall pay the amount payable under a proper invoice no later than 28 days after receiving it from the contractor. An owner who disputes a proper invoice may refuse to pay all or part of it only if, no later than 14 days after receiving it, the owner gives the contractor a notice of non-payment in the prescribed form and manner specifying the amount not being paid and detailing all of the reasons. Any amount not the subject of such a notice remains payable within 28 days.",
+          "family": "CA-PAY",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "twenty-eight days",
+            "owner",
+            "notice of non-payment",
+            "fourteen days",
+            "prescribed form",
+            "reasons"
+          ]
+        },
+        {
+          "id": "6.5",
+          "name": "Contractor Pays Subcontractors Within Seven Days",
+          "description": "Subject to giving a notice of non-payment under subsection 6.5 (6), a contractor who receives full payment of a proper invoice within the time specified in subsection 6.4 (1) shall, no later than seven days after receiving payment, pay each subcontractor whose services or materials were included in that invoice. Where the owner pays only part, the contractor shall within the same seven days pay subcontractors from the amount received, in accordance with the rules in subsection 6.5 (3).",
+          "family": "CA-PAY",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory",
+            "vendor_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "seven days",
+            "subcontractor",
+            "flow down",
+            "partial payment",
+            "notice of non-payment"
+          ]
+        },
+        {
+          "id": "6.7",
+          "name": "Reasons for Non-Payment May Include Set-Off",
+          "description": "Reasons for non-payment in accordance with Part I.1 may include the retention of amounts under section 12 (set-off by trustee) or under subsection 17 (3) (lien set-off).",
+          "family": "CA-PAY",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "set-off",
+            "reasons for non-payment",
+            "lien set-off",
+            "trustee"
+          ]
+        },
+        {
+          "id": "6.9",
+          "name": "Interest Accrues Automatically on Late Payment",
+          "description": "Interest begins to accrue on an amount not paid when it is due under Part I.1, at the prejudgment interest rate determined under subsection 127 (2) of the Courts of Justice Act or, if the contract or subcontract specifies a different rate for the purpose, the greater of the two. No demand is required for interest to run.",
+          "family": "CA-PAY",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "interest",
+            "prejudgment rate",
+            "courts of justice act",
+            "late payment",
+            "automatic"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CA-TRUST",
+      "name": "Trust Provisions",
+      "description": "Part II, sections 7 to 13. Money received on account of a contract price is trust money, the separate account and written records that go with it, and who is personally liable for a breach.",
+      "controls": [
+        {
+          "id": "8",
+          "name": "Contractor's and Subcontractor's Trust",
+          "description": "All amounts owing to a contractor or subcontractor, whether or not due or payable, and all amounts received by a contractor or subcontractor on account of the contract or subcontract price of an improvement — including holdback — constitute a trust fund for the benefit of the subcontractors and other persons who supplied services or materials to the improvement and are owed amounts by that contractor or subcontractor.",
+          "family": "CA-TRUST",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "trust fund",
+            "contractor",
+            "subcontractor",
+            "holdback",
+            "amounts received",
+            "beneficiaries"
+          ]
+        },
+        {
+          "id": "8.1",
+          "name": "Trust Funds in a Named Bank Account With Written Records",
+          "description": "Every person who is a trustee under section 8 shall deposit the trust funds into a bank account in the trustee's name (or in all the trustees' names), and shall maintain written records respecting the trust funds detailing the amounts received into and paid out of them, any transfers made for the purposes of the trust, and any other prescribed information. Funds of more than one trust may share a single account only if the records are maintained separately for each trust.",
+          "family": "CA-TRUST",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "trust account",
+            "bank account",
+            "written records",
+            "commingling",
+            "separate records",
+            "bookkeeping"
+          ]
+        },
+        {
+          "id": "10",
+          "name": "Payment Discharging the Trust",
+          "description": "Subject to Part IV, every payment by a trustee to a person the trustee is liable to pay for services or materials supplied to the improvement discharges the trust to the extent of the payment made, and that includes payment of holdback in accordance with section 26 or 27.",
+          "family": "CA-TRUST",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "discharge",
+            "payment",
+            "holdback",
+            "trustee",
+            "extent of payment"
+          ]
+        },
+        {
+          "id": "13",
+          "name": "Personal Liability for Breach of Trust",
+          "description": "In addition to those otherwise liable, every director or officer of a corporation, and any person — including an employee or agent — who has effective control of a corporation or its relevant activities, is liable in an action for breach of trust under Part II where that person assents to or acquiesces in conduct that the person knows or reasonably ought to know amounts to a breach of trust by the corporation.",
+          "family": "CA-TRUST",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "breach of trust",
+            "director",
+            "officer",
+            "effective control",
+            "personal liability",
+            "acquiesce"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CA-ADJ",
+      "name": "Construction Dispute Interim Adjudication",
+      "description": "Part II.1, sections 13.1 to 13.23. The interim adjudication a party may commence, its timetable, and the binding effect of the determination.",
+      "controls": [
+        {
+          "id": "13.5",
+          "name": "Availability of Adjudication",
+          "description": "A party to a contract may refer a dispute with the other party respecting any prescribed matter, or any matter the parties agree to, to adjudication; and so may a party to a subcontract. An adjudication in respect of a contract may not be commenced if the notice of adjudication is given more than 90 days after the contract is completed, abandoned or terminated, unless the parties agree otherwise.",
+          "family": "CA-ADJ",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "adjudication",
+            "notice of adjudication",
+            "ninety days",
+            "prescribed matter",
+            "subcontract"
+          ]
+        },
+        {
+          "id": "13.13",
+          "name": "Determination Within Thirty Days",
+          "description": "An adjudicator shall make a determination of the matter no later than 30 days after receiving the documents required by section 13.11. The deadline may be extended before expiry for no more than 14 days on the adjudicator's request with the written consent of the parties, or for the period the parties agree in writing subject to the adjudicator's consent.",
+          "family": "CA-ADJ",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "thirty days",
+            "determination",
+            "extension",
+            "adjudicator",
+            "timetable"
+          ]
+        },
+        {
+          "id": "13.19",
+          "name": "Amount Payable Within Fifteen Days of a Determination",
+          "description": "A party required under an adjudicator's determination to pay an amount shall pay it no later than 15 days after the determination has been communicated to the parties. The requirement is subject to any requirement to retain a holdback under Part IV, and interest runs on late payment.",
+          "family": "CA-ADJ",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "fifteen days",
+            "pay the determination",
+            "interim binding",
+            "holdback",
+            "interest"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CA-HOLD",
+      "name": "Holdbacks",
+      "description": "Part IV, sections 22 to 30. The ten per cent every payer retains, the separate finishing holdback, and how and when the holdback is released.",
+      "controls": [
+        {
+          "id": "22",
+          "name": "Ten Per Cent Holdback Retained",
+          "description": "Each payer upon a contract or subcontract under which a lien may arise shall retain a holdback equal to 10 per cent of the price of the services or materials as they are actually supplied, until all liens that may be claimed against the holdback have expired or been satisfied, discharged or otherwise provided for. Where the contract has been certified or declared substantially performed but work remains, subsection 22 (2) requires a separate holdback of 10 per cent of the price of the remaining services or materials.",
+          "family": "CA-HOLD",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "holdback",
+            "ten per cent",
+            "substantial performance",
+            "finishing holdback",
+            "payer",
+            "lien"
+          ]
+        },
+        {
+          "id": "26",
+          "name": "Payment of the Basic Holdback and the Mandatory Annual Payment",
+          "description": "A payer required by subsection 22 (1) to retain a holdback shall pay it in accordance with section 26. Following each anniversary of the date the contract was entered into, the owner shall give notice in accordance with subsection 26 (3) and make payment of accrued holdback in accordance with subsection 26 (4) — a mandatory annual release, not an option the parties may quietly let lapse.",
+          "family": "CA-HOLD",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "basic holdback",
+            "annual release",
+            "anniversary",
+            "notice",
+            "accrued holdback"
+          ]
+        },
+        {
+          "id": "27",
+          "name": "Payment of the Holdback for Finishing Work",
+          "description": "A payer required by subsection 22 (2) to retain a holdback shall pay it so as to discharge all claims in respect of that holdback, once all liens that may be claimed against it have expired or been satisfied, discharged or otherwise provided for under the Act.",
+          "family": "CA-HOLD",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "finishing holdback",
+            "discharge claims",
+            "liens expired",
+            "release"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CA-LIEN",
+      "name": "Liens",
+      "description": "Parts III and V, sections 14 to 38. When a lien arises, when it expires, and the two steps — preservation and perfection — that keep it alive.",
+      "controls": [
+        {
+          "id": "31",
+          "name": "Expiry of Liens",
+          "description": "Unless preserved under section 34, a lien arising from the supply of services or materials to an improvement expires as section 31 provides. A contractor's lien for services or materials supplied on or before the date certified or declared to be the date of substantial performance expires at the conclusion of the 60-day period following the earlier of publication of the certificate or declaration and the events the section lists, with corresponding rules for subcontractors and for finishing work.",
+          "family": "CA-LIEN",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "lien expiry",
+            "sixty days",
+            "substantial performance",
+            "publication",
+            "last supply"
+          ]
+        },
+        {
+          "id": "34",
+          "name": "Preservation of a Lien",
+          "description": "A lien may be preserved during the supplying of services or materials or at any time before it expires: where the lien attaches to the premises, by registering a claim for lien on title in the proper land registry office in accordance with Part V; and where it does not attach, by giving the owner a copy of the claim for lien.",
+          "family": "CA-LIEN",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "preserve",
+            "claim for lien",
+            "land registry",
+            "title",
+            "copy to the owner"
+          ]
+        },
+        {
+          "id": "36",
+          "name": "Perfection of a Lien",
+          "description": "A lien may not be perfected unless it is preserved, and a preserved lien expires unless it is perfected before the end of the 90-day period following the last day on which the lien could have been preserved under section 31. Subsection 36 (3) sets out how a lien claimant perfects a preserved lien.",
+          "family": "CA-LIEN",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "perfect",
+            "ninety days",
+            "statement of claim",
+            "preserved lien",
+            "expires"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CA-INFO",
+      "name": "Right to Information",
+      "description": "Part VI, section 39. What a lien claimant, trust beneficiary or mortgagee may demand, and the twenty-one day deadline to answer.",
+      "controls": [
+        {
+          "id": "39",
+          "name": "Twenty-One Days to Answer a Request for Information",
+          "description": "A person having a lien, a beneficiary of a trust under Part II, or a mortgagee may at any time require by written request that information be provided within a reasonable time not exceeding twenty-one days — from an owner or contractor, the names of the parties to the contract, the date it was entered into, the date any applicable procurement process commenced, the contract price and the further particulars section 39 enumerates; and correspondingly from the other persons the section names.",
+          "family": "CA-INFO",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "right to information",
+            "twenty-one days",
+            "written request",
+            "contract price",
+            "procurement process",
+            "trust beneficiary"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CA-BOND",
+      "name": "Surety Bonds on Public Contracts",
+      "description": "Part XI.1, section 85.1. The labour and material payment bond and performance bond a contractor must furnish on a public contract above the prescribed threshold.",
+      "controls": [
+        {
+          "id": "85.1",
+          "name": "Bonds Required on a Public Contract",
+          "description": "A public contract — one between an owner that is the Crown, a municipality or a broader public sector organisation and a contractor respecting an improvement — is subject to section 85.1 where the contract price exceeds the amount prescribed for that owner. The section requires the contractor to furnish the prescribed bonds, including a labour and material payment bond and a performance bond, in the prescribed coverage and form.",
+          "family": "CA-BOND",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory",
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "surety bond",
+            "labour and material payment bond",
+            "performance bond",
+            "public contract",
+            "broader public sector",
+            "threshold"
+          ]
+        }
+      ]
+    }
+  ]
+}

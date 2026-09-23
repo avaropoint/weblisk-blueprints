@@ -6,8 +6,11 @@ structure: procedure
 path: procedures/working-at-heights-training.md
 
 satisfies:
-  - construction_safety_ca:CSA-FP-1
-  - construction_safety_ca:CSA-TR-1
+  - o_reg_297_13:6
+  - o_reg_297_13:7
+  - o_reg_297_13:8(1)
+  - o_reg_297_13:10
+  - o_reg_213_91:26.2
   - cor_2020:COR-16
   - iso_45001:7.2
 

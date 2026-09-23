@@ -36,7 +36,7 @@
         },
         {
           "id": "AC.L1-3.1.2",
-          "name": "Transaction \u0026 Function Control",
+          "name": "Transaction & Function Control",
           "description": "Limit information system access to types of transactions and functions that authorized users are permitted to execute",
           "family": "AC",
           "framework": "cmmc",
@@ -1184,7 +1184,7 @@
           "requires_technical": false,
           "requires_evidence": true,
           "keywords": [
-            "POA\u0026M",
+            "POA&M",
             "plan-of-action",
             "remediation-plan"
           ]
@@ -1535,5 +1535,5 @@
   "supersedes": "CMMC 1.0 (2020)",
   "status": "active",
   "official_url": "https://dodcio.defense.gov/cmmc/",
-  "changes_summary": "Reduced from 5 levels to 3, streamlined assessment requirements, aligned Level 2 directly to NIST SP 800-171 Rev 2, added POA\u0026M allowances"
+  "changes_summary": "Reduced from 5 levels to 3, streamlined assessment requirements, aligned Level 2 directly to NIST SP 800-171 Rev 2, added POA&M allowances. Two rules make the programme operative and both have now landed: the 32 CFR Part 170 programme rule, published 15 October 2024 and effective 16 December 2024, and the 48 CFR acquisition rule, published in the Federal Register on 10 September 2025 and effective 10 November 2025, which put CMMC requirements into new DoD contracts and solicitations and began Phase 1 — at least Level 1 or Level 2 self-assessment at time of award. The Department has since PAUSED the move to Phase 2 pending a CMMC Reform Task Force review, so the phased-rollout dates carried here should be read as the published schedule and not as a schedule currently being executed. The Department no longer uses the “2.0” suffix in the programme's name."
 }

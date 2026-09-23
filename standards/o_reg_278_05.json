@@ -1,0 +1,374 @@
+{
+  "id": "o_reg_278_05",
+  "name": "O. Reg. 278/05: Designated Substance — Asbestos on Construction Projects and in Buildings and Repair Operations",
+  "version": "O. Reg. 278/05, consolidated to 1 July 2026",
+  "description": "Ontario's asbestos regulation, made under the Occupational Health and Safety Act, covering construction projects, buildings and repair operations. It carries three chains a contractor must hold. The first is the building owner's: a record of where asbestos-containing material is, updated at least every twelve months, notice to whoever may disturb it, and a survey and report before tender that must be passed down owner to constructor to contractor to subcontractor. The second is the work itself: an operation is classified Type 1, 2 or 3, and the classification decides the respirator, the measures and procedures, the training and whether an inspector must be told before work starts. The third is the worker's own exposure history: an asbestos work report for every Type 2 and Type 3 worker at least every twelve months and immediately on termination, forwarded to the Provincial Physician with a copy to the worker, feeding the Asbestos Workers Register — a record that will matter to that worker decades after the employer has gone. Consolidated to 1 July 2026, last amended by O. Reg. 115/26.",
+  "authority": "Lieutenant Governor in Council, Ontario, under the Occupational Health and Safety Act",
+  "scope": "Construction projects, buildings and repair operations in Ontario where a worker may be exposed to asbestos, and the owners, constructors and employers connected with them",
+  "applies_in": [
+    "CA-ON"
+  ],
+  "category": "government",
+  "status": "active",
+  "official_url": "https://www.ontario.ca/laws/regulation/050278",
+  "families": [
+    {
+      "id": "R278-MGMT",
+      "name": "Asbestos Management in Buildings and Before Work",
+      "description": "Sections 8 to 11. The owner's asbestos record and its annual update, the duty to advise, the survey and report before tender, and the notice before a Type 3 operation.",
+      "controls": [
+        {
+          "id": "8",
+          "name": "Owner's Asbestos Record, Updated at Least Every Twelve Months",
+          "description": "Where an owner knows, ought reasonably to know, or has been advised that asbestos-containing material has been used in a building — or treats material as if it were — the owner shall prepare and keep on the premises a record of its location and whether it is friable or non-friable; give written notice of the relevant parts to occupiers, to employers contracted for work that may disturb it, and to the owner's own workers; maintain a training programme for those workers; and inspect the material at reasonable intervals to determine its condition. The record shall be updated at least once in each 12-month period and whenever the owner becomes aware of new information.",
+          "family": "R278-MGMT",
+          "framework": "o_reg_278_05",
+          "domains": [
+            "health_safety",
+            "records_management",
+            "environmental"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "asbestos record",
+            "building",
+            "annual update",
+            "friable",
+            "notice to occupiers",
+            "inspection"
+          ]
+        },
+        {
+          "id": "9",
+          "name": "Employer Advises the Owner of Suspect Material",
+          "description": "An employer whose workers work in a building of which the employer is not the owner shall advise the owner if the workers discover material that may be asbestos-containing material in the building.",
+          "family": "R278-MGMT",
+          "framework": "o_reg_278_05",
+          "domains": [
+            "health_safety",
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "advise the owner",
+            "suspect material",
+            "discovery",
+            "not the owner"
+          ]
+        },
+        {
+          "id": "10",
+          "name": "Survey and Report Before Tender or Contract",
+          "description": "Before requesting tenders for, or arranging or contracting for, the demolition, alteration or repair of all or part of machinery, equipment or a building, an owner shall have an examination carried out to establish whether material likely to be handled, disturbed or removed is asbestos-containing material, unless the owner already knows or the work will proceed as though it were. Whether or not an examination is required, the owner shall have a report prepared stating the finding, describing the material's condition and friability, and containing drawings, plans and specifications showing its location, and shall give a complete copy to every prospective constructor — and the constructor to every prospective contractor, and the contractor to every prospective subcontractor. Material discovered later that the report did not name triggers immediate oral and written notice to an inspector, the owner, the contractor and the committee or representative, and a stop on the work.",
+          "family": "R278-MGMT",
+          "framework": "o_reg_278_05",
+          "domains": [
+            "health_safety",
+            "vendor_management",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "asbestos survey",
+            "designated substance report",
+            "before tender",
+            "prospective constructor",
+            "pass down",
+            "unexpected discovery"
+          ],
+          "mapped_controls": [
+            "ohsa_ontario:30"
+          ]
+        },
+        {
+          "id": "11",
+          "name": "Notice Before a Type 3 Operation",
+          "description": "Before commencing a Type 3 operation, the constructor on a project, or the employer in any other case, shall notify an inspector at the nearest Ministry office both orally and in writing, with the particulars subsection 11 (3) requires. The same duty applies to a Type 2 operation described in paragraph 9 of subsection 12 (3) in which one square metre or more of insulation is to be removed.",
+          "family": "R278-MGMT",
+          "framework": "o_reg_278_05",
+          "domains": [
+            "health_safety",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "Type 3",
+            "notice to inspector",
+            "oral and written",
+            "one square metre",
+            "before commencing"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R278-WORK",
+      "name": "Classification, Respirators and Work Procedures",
+      "description": "Sections 12 to 18. How an operation is classified Type 1, 2 or 3, the respiratory protection it requires, and the measures and procedures that apply to each type.",
+      "controls": [
+        {
+          "id": "12",
+          "name": "Classification of Operations as Type 1, Type 2 or Type 3",
+          "description": "Operations that may expose a worker to asbestos are classified as Type 1, Type 2 or Type 3 operations. Subsections 12 (2), (3) and (4) enumerate which operations fall in each class; the classification determines the respirators, the measures and procedures, the training and the notice that apply.",
+          "family": "R278-WORK",
+          "framework": "o_reg_278_05",
+          "domains": [
+            "health_safety",
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "Type 1",
+            "Type 2",
+            "Type 3",
+            "classification",
+            "asbestos operation"
+          ]
+        },
+        {
+          "id": "13",
+          "name": "Respirators Fitted, Selected and Maintained",
+          "description": "A respirator provided by an employer and used by a worker in a Type 1, Type 2 or Type 3 operation shall be fitted so that there is an effective seal between the respirator and the worker's face unless it is hooded or helmeted, shall be assigned to the worker where practicable, and shall be selected in accordance with Table 2 and otherwise comply with section 13.",
+          "family": "R278-WORK",
+          "framework": "o_reg_278_05",
+          "domains": [
+            "health_safety",
+            "equipment_integrity",
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "respirator",
+            "fit test",
+            "effective seal",
+            "Table 2",
+            "assigned",
+            "maintenance"
+          ]
+        },
+        {
+          "id": "14",
+          "name": "Measures and Procedures for Type 1 Operations",
+          "description": "Section 14 prescribes the measures for a Type 1 operation: removing visible dust from surfaces likely to be disturbed with a damp cloth or HEPA vacuum before work; controlling the spread of dust including by impervious drop sheets; wetting material where paragraph 4 of subsection 12 (2) applies unless wetting would create a hazard or cause damage; adding a wetting agent to the water used; frequent and regular clean-up by HEPA vacuum, damp mopping or wet sweeping into a container described in paragraph 5 of section 15; and not reusing drop sheets or polyethylene barriers.",
+          "family": "R278-WORK",
+          "framework": "o_reg_278_05",
+          "domains": [
+            "health_safety",
+            "environmental"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "Type 1",
+            "HEPA vacuum",
+            "drop sheet",
+            "wetting",
+            "clean-up",
+            "no reuse"
+          ]
+        },
+        {
+          "id": "15",
+          "name": "Measures and Procedures for Type 2 and Type 3 Operations",
+          "description": "Section 15 prescribes the measures and procedures common to Type 2 and Type 3 operations, including the containers asbestos waste is placed in, the prohibition on compressed air and dry sweeping, the decontamination of equipment and clothing, and the eating, drinking and smoking prohibitions in the work area.",
+          "family": "R278-WORK",
+          "framework": "o_reg_278_05",
+          "domains": [
+            "health_safety",
+            "environmental"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "Type 2",
+            "Type 3",
+            "waste container",
+            "dry sweeping",
+            "decontamination",
+            "compressed air"
+          ]
+        },
+        {
+          "id": "16",
+          "name": "Additional Measures for Type 2 Operations",
+          "description": "In addition to the measures prescribed by section 15, section 16 sets the further measures and procedures that apply to Type 2 operations.",
+          "family": "R278-WORK",
+          "framework": "o_reg_278_05",
+          "domains": [
+            "health_safety",
+            "environmental"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "Type 2",
+            "additional measures",
+            "enclosure",
+            "glove bag"
+          ]
+        },
+        {
+          "id": "18",
+          "name": "Additional Measures for Type 3 Operations",
+          "description": "In addition to the measures prescribed by section 15, section 18 sets the further measures and procedures for Type 3 operations, beginning with the separation of the work area from the rest of the workplace by walls, barricades, fencing or other suitable means, and continuing through enclosure, negative pressure, decontamination facilities and air sampling.",
+          "family": "R278-WORK",
+          "framework": "o_reg_278_05",
+          "domains": [
+            "health_safety",
+            "environmental"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "Type 3",
+            "enclosure",
+            "negative pressure",
+            "decontamination facility",
+            "air sampling",
+            "barricade"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R278-TRAIN",
+      "name": "Instruction and Training",
+      "description": "Sections 19 and 20. The instruction every asbestos worker receives, and the approved abatement training a Type 3 worker must have completed.",
+      "controls": [
+        {
+          "id": "19",
+          "name": "Instruction and Training by a Competent Person",
+          "description": "The employer shall ensure that instruction and training in the subjects listed in subsection 19 (1) — beginning with the hazards of asbestos exposure — are provided by a competent person to every worker working in a Type 1, Type 2 or Type 3 operation.",
+          "family": "R278-TRAIN",
+          "framework": "o_reg_278_05",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "asbestos awareness",
+            "instruction",
+            "competent person",
+            "hazards of exposure"
+          ]
+        },
+        {
+          "id": "20",
+          "name": "Approved Asbestos Abatement Training Programme",
+          "description": "The employer shall ensure that every worker involved in a Type 3 operation has successfully completed the approved Asbestos Abatement Worker Training Program, and that supervisors meet the corresponding requirement section 20 sets.",
+          "family": "R278-TRAIN",
+          "framework": "o_reg_278_05",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "asbestos abatement",
+            "approved training program",
+            "Type 3",
+            "worker",
+            "supervisor"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R278-REC",
+      "name": "Asbestos Work Reports and the Workers Register",
+      "description": "Sections 21 and 22. The report an employer files for every Type 2 and Type 3 worker, and the provincial register it feeds.",
+      "controls": [
+        {
+          "id": "21",
+          "name": "Asbestos Work Report at Least Every Twelve Months and on Termination",
+          "description": "The employer of a worker working in a Type 2 or Type 3 operation shall complete an asbestos work report on a Ministry form for each such worker at least once in each 12-month period and immediately on the termination of that worker's employment. As soon as it is completed the employer shall forward it to the Provincial Physician and give a copy to the worker.",
+          "family": "R278-REC",
+          "framework": "o_reg_278_05",
+          "domains": [
+            "health_safety",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "asbestos work report",
+            "twelve months",
+            "termination",
+            "provincial physician",
+            "copy to the worker"
+          ]
+        },
+        {
+          "id": "22",
+          "name": "Asbestos Workers Register",
+          "description": "The Provincial Physician maintains an Asbestos Workers Register listing each worker for whom an asbestos work report is submitted under section 21. On the Provincial Physician's recommendation, a listed worker may volunteer to undergo the prescribed medical examination described in subsection 22 (4).",
+          "family": "R278-REC",
+          "framework": "o_reg_278_05",
+          "domains": [
+            "health_safety",
+            "records_management"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "asbestos workers register",
+            "medical examination",
+            "provincial physician",
+            "voluntary"
+          ]
+        }
+      ]
+    }
+  ]
+}

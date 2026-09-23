@@ -211,7 +211,7 @@
         {
           "id": "B51-08",
           "name": "Data Reports and Equipment Records",
-          "description": "Manufacturer's data reports, CRN references, test records and as-built documentation are compiled and handed to the owner, and retained by Lancaster for the required period.",
+          "description": "Manufacturer's data reports, CRN references, test records and as-built documentation are compiled and handed to the owner, and retained by the organisation for the required period.",
           "family": "B51-RECORD",
           "framework": "csa_b51",
           "domains": [

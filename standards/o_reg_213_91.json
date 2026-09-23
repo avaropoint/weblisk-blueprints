@@ -1,0 +1,1335 @@
+{
+  "id": "o_reg_213_91",
+  "name": "O. Reg. 213/91: Construction Projects",
+  "version": "O. Reg. 213/91, consolidated to 20 April 2026",
+  "description": "The Construction Projects regulation made under the Occupational Health and Safety Act — the prescriptive rule book for every construction project in Ontario, and the regulation an Ontario construction safety programme is mostly an implementation of. It runs to 399 sections; this catalogue carries the provisions a construction health and safety programme is built on: registration and notice of project (ss. 5–7.1), project supervision and the weekly equipment inspection (ss. 13–15), personal protective equipment (ss. 21–25), fall protection (ss. 26–26.9), defibrillators (s. 27.1, added by O. Reg. 157/25), fire safety (ss. 52–58), traffic control (ss. 67–69.1), scaffolds and suspended access, elevating work platforms, cranes and rigging, electrical hazards and excavations. Consolidated to 20 April 2026, last amended by O. Reg. 116/26. Two changes are pending and are noted on the controls they affect: O. Reg. 116/26 revokes ss. 143–149 (elevating work platforms) on 1 January 2027 in favour of O. Reg. 117/26, and O. Reg. 112/26 adds side-impact and retention requirements to protective headwear on 1 July 2027.",
+  "authority": "Lieutenant Governor in Council, Ontario, under the Occupational Health and Safety Act; administered by the Ministry of Labour, Immigration, Training and Skills Development",
+  "scope": "Every construction project in Ontario, and every constructor, employer, supervisor and worker at one",
+  "applies_in": [
+    "CA-ON"
+  ],
+  "category": "government",
+  "status": "active",
+  "official_url": "https://www.ontario.ca/laws/regulation/910213",
+  "families": [
+    {
+      "id": "R213-NOTICE",
+      "name": "Registration and Notices",
+      "description": "Sections 5 to 7.1. What must be registered, notified and posted before work begins at a project.",
+      "controls": [
+        {
+          "id": "5",
+          "name": "Registration Form for Every Constructor and Employer",
+          "description": "Before beginning work at a project, each constructor and employer engaged in construction shall complete an approved registration form. The constructor shall ensure that each employer provides a completed form and that a copy is kept at the project while that employer is working there.",
+          "family": "R213-NOTICE",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "records_management",
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "registration form",
+            "before work begins",
+            "constructor",
+            "employer",
+            "kept at the project"
+          ]
+        },
+        {
+          "id": "6",
+          "name": "Notice of Project",
+          "description": "Where the project meets any of the triggers in subsection 6 (1) — labour and materials expected to exceed $50,000 ($250,000 in an automobile factory), erection or structural alteration of a building over two storeys or 7.5 metres, demolition of a building at least four metres high with a floor area of at least thirty square metres, certain bridge, retaining, silo and chimney work, compressed air work, a tunnel, caisson, cofferdam or enterable well, certain trenches, an ice road, or any part required to be engineer-designed — the constructor shall file an approved notification form with the Ministry office nearest the project or submit it electronically before beginning work, and keep the completed form posted or available at the project.",
+          "family": "R213-NOTICE",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "trade_regulatory",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "notice of project",
+            "notification form",
+            "fifty thousand",
+            "before beginning work",
+            "posted at the project"
+          ],
+          "mapped_controls": [
+            "ohsa_ontario:23(2)"
+          ]
+        },
+        {
+          "id": "7",
+          "name": "Notice of a Trench More Than 1.2 Metres Deep",
+          "description": "If section 6 does not apply to a project but the project includes work on a trench more than 1.2 metres deep into which a worker may enter, the constructor shall, before any work at the project begins, give notice in person, by telephone or by fax to the Ministry office nearest the project.",
+          "family": "R213-NOTICE",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "trade_regulatory"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "trench",
+            "1.2 metres",
+            "notice",
+            "excavation",
+            "before work begins"
+          ]
+        },
+        {
+          "id": "7.1",
+          "name": "Notice Before a Suspended Work Platform System is First Used",
+          "description": "At least 48 hours before a suspended work platform system is used for the first time at a project, the constructor shall provide an approved notification form to the Ministry office nearest the project or submit it electronically, and keep a copy in a conspicuous location at the project. Where immediate use is necessary to prevent injury or property damage, oral notice may be given first and the form provided within 24 hours of beginning to use the system.",
+          "family": "R213-NOTICE",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "trade_regulatory"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "suspended work platform",
+            "48 hours",
+            "notification",
+            "swing stage",
+            "first use"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R213-SUPER",
+      "name": "Project Supervision and Weekly Inspection",
+      "description": "Sections 13 to 15. The constructor's posted notice, the appointment of a supervisor and the weekly inspection of machinery and equipment.",
+      "controls": [
+        {
+          "id": "13",
+          "name": "Constructor's Notice Posted at the Project",
+          "description": "A constructor shall post and keep posted at a project a notice setting out the constructor's name and business name, the address and telephone number of its head office or principal place of business in Ontario, and the address and telephone number of the nearest Ministry office. Within forty-eight hours after a health and safety representative or committee members are selected, the constructor shall add their names, trades and employers to the notice.",
+          "family": "R213-SUPER",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "records_management"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "constructor notice",
+            "posting",
+            "forty-eight hours",
+            "representative",
+            "committee members"
+          ]
+        },
+        {
+          "id": "14",
+          "name": "Supervisor Appointed and Weekly Equipment Inspection",
+          "description": "A constructor shall appoint a supervisor for every project at which five or more workers will work at the same time, and the supervisor shall supervise at all times personally or through a competent assistant. The supervisor or a competent person appointed by the supervisor shall inspect all machinery and equipment — including fire extinguishing equipment, magazines, electrical installations, communication systems, sanitation and medical facilities, buildings and other structures, temporary supports and means of access and egress — at least once a week, or more often as necessary.",
+          "family": "R213-SUPER",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "equipment_integrity",
+            "compliance_audit"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "supervisor",
+            "weekly inspection",
+            "machinery",
+            "equipment",
+            "competent person",
+            "five or more workers"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-11"
+          ]
+        },
+        {
+          "id": "15",
+          "name": "Employer's Supervisor for Five or More Workers",
+          "description": "An employer of five or more workers on a project shall appoint a supervisor for those workers.",
+          "family": "R213-SUPER",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "employer supervisor",
+            "five or more workers",
+            "appointment"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R213-PPE",
+      "name": "Protective Clothing, Equipment and Devices",
+      "description": "Sections 21 to 25. The personal protective equipment every worker on a project must wear, and the instruction that must come with it.",
+      "controls": [
+        {
+          "id": "21",
+          "name": "Protective Equipment Provided, Used and Instructed In",
+          "description": "A worker shall wear such protective clothing and use such personal protective equipment or devices as are necessary to protect the worker against the hazards to which the worker may be exposed, and the worker's employer shall require compliance. A worker required to wear or use them shall be adequately instructed and trained in their care and use before wearing or using them.",
+          "family": "R213-PPE",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "PPE",
+            "protective clothing",
+            "instruction",
+            "training",
+            "care and use"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-10"
+          ]
+        },
+        {
+          "id": "22",
+          "name": "Protective Headwear",
+          "description": "Every worker shall wear protective headwear at all times when on a project. The headwear shall be a safety hat with a shell and suspension adequate to protect the head against impact and against flying or falling small objects, with a shell able to withstand a dielectric strength test at 20,000 volts phase to ground. On 1 July 2027, O. Reg. 112/26 adds requirements referencing CSA Z94.1 or ANSI Z89.1, a Type 2 requirement where side impact hazards may be present, and a chin strap or other retention system where conditions may dislodge the headwear.",
+          "family": "R213-PPE",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "hard hat",
+            "protective headwear",
+            "safety hat",
+            "dielectric",
+            "Z94.1",
+            "side impact",
+            "chin strap"
+          ]
+        },
+        {
+          "id": "23",
+          "name": "Protective Footwear",
+          "description": "Every worker shall wear protective footwear at all times when on a project. It shall be a safety shoe or boot with a box toe adequate to protect the toes against impact and capable of resisting at least 125 joules, and with a sole or insole adequate to protect against puncture and capable of resisting a penetration load of 1.2 kilonewtons.",
+          "family": "R213-PPE",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "safety boots",
+            "protective footwear",
+            "box toe",
+            "puncture",
+            "125 joules"
+          ]
+        },
+        {
+          "id": "24",
+          "name": "Eye Protection",
+          "description": "A worker shall use protection appropriate in the circumstances when there is a risk of eye injury to the worker.",
+          "family": "R213-PPE",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "eye protection",
+            "safety glasses",
+            "goggles",
+            "face shield"
+          ]
+        },
+        {
+          "id": "25",
+          "name": "Skin Protection",
+          "description": "A worker shall use protection appropriate in the circumstances when there is a risk of injury on a project from contact between the worker's skin and a noxious gas, liquid, fume or dust; an object that may puncture, cut or abrade the skin; a hot object, hot liquid or molten metal; or radiant heat.",
+          "family": "R213-PPE",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "skin protection",
+            "gloves",
+            "noxious",
+            "molten metal",
+            "radiant heat"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R213-FALL",
+      "name": "Fall Protection",
+      "description": "Sections 26 to 26.9. When fall protection is required, the ranked order of methods, the training, the guardrail specification and the rescue plan.",
+      "controls": [
+        {
+          "id": "26",
+          "name": "When Fall Protection is Required",
+          "description": "Sections 26.1 to 26.9 apply where a worker may be exposed to falling more than 3 metres; falling more than 1.2 metres where the work area is a path for a wheelbarrow or similar equipment; falling into operating machinery; falling into water or another liquid; falling into or onto a hazardous substance or object; or falling through an opening on a work surface.",
+          "family": "R213-FALL",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "fall protection",
+            "three metres",
+            "1.2 metres",
+            "opening",
+            "trigger height"
+          ]
+        },
+        {
+          "id": "26.1",
+          "name": "Ranked Order of Fall Protection Methods",
+          "description": "A worker shall be adequately protected by a guardrail system meeting subsections 26.3 (2) to (8). Where that is not practicable, the worker shall be protected by the highest ranked practicable method: a travel restraint system, then a fall restricting system, then a fall arrest system, then a safety net. Components shall be designed by an engineer in accordance with good engineering practice and meet the applicable CAN/CSA Z259 standards listed in subsection 26.1 (3).",
+          "family": "R213-FALL",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "equipment_integrity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "guardrail",
+            "travel restraint",
+            "fall restricting",
+            "fall arrest",
+            "safety net",
+            "Z259",
+            "hierarchy"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-10"
+          ]
+        },
+        {
+          "id": "26.1(4)",
+          "name": "Written Rescue Procedures Before a Fall Arrest System is Used",
+          "description": "Before any use of a fall arrest system or a safety net by a worker at a project, the worker's employer shall develop written procedures for rescuing the worker after a fall has been arrested.",
+          "family": "R213-FALL",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "rescue plan",
+            "suspension trauma",
+            "fall arrest",
+            "safety net",
+            "written procedures"
+          ]
+        },
+        {
+          "id": "26.2",
+          "name": "Training and a Signed Training Record for Fall Protection",
+          "description": "An employer shall ensure that a worker who may use a fall protection system is adequately trained in its use and given adequate oral and written instructions by a competent person, and that the worker also meets the working at heights training requirements of O. Reg. 297/13. The person providing the training shall prepare and sign a written training and instruction record for each worker giving the worker's name and the dates of training, and the employer shall make it available to an inspector on request.",
+          "family": "R213-FALL",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "training_competency",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "fall protection training",
+            "training record",
+            "competent person",
+            "working at heights",
+            "signed record"
+          ],
+          "mapped_controls": [
+            "o_reg_297_13:7"
+          ]
+        },
+        {
+          "id": "26.3(1)",
+          "name": "Guardrail Required at an Open Edge at 2.4 Metres",
+          "description": "Despite the 3-metre trigger in paragraph 1 of section 26, a guardrail system meeting section 26.3 shall be used where a worker has access to the perimeter or an open side of a floor (including a mezzanine or balcony), the surface of a bridge, a roof while formwork is in place, or a scaffold platform, other work platform, runway or ramp, and may be exposed to a fall of 2.4 metres or more.",
+          "family": "R213-FALL",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "guardrail",
+            "2.4 metres",
+            "open side",
+            "perimeter",
+            "mezzanine",
+            "runway"
+          ]
+        },
+        {
+          "id": "26.3(2)",
+          "name": "Openings in a Work Surface Protected",
+          "description": "One of the following shall be used to prevent a worker from falling through an opening on a work surface: a guardrail system meeting section 26.3, or a protective covering that completely covers the opening, is securely fastened, is adequately identified as covering an opening, is made from material adequate to support all loads to which it may be subjected, and can support a live load of at least 2.4 kilonewtons per square metre.",
+          "family": "R213-FALL",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "floor opening",
+            "hole cover",
+            "protective covering",
+            "identified",
+            "securely fastened"
+          ]
+        },
+        {
+          "id": "26.9",
+          "name": "Lanyards and Lifelines",
+          "description": "Where a lanyard or lifeline is part of a travel restraint system or a fall arrest system, it shall meet the requirements of section 26.9, including how it is attached, protected from chafing and abrasion, and used by no more than one worker where the section so requires.",
+          "family": "R213-FALL",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "equipment_integrity"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "lanyard",
+            "lifeline",
+            "anchorage",
+            "abrasion",
+            "fall arrest"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R213-AED",
+      "name": "Defibrillators",
+      "description": "Section 27.1, added by O. Reg. 157/25. The defibrillator a project with twenty or more workers must install, maintain, sign and inspect quarterly.",
+      "controls": [
+        {
+          "id": "27.1",
+          "name": "Defibrillator Installed, Maintained and Inspected Quarterly",
+          "description": "Where twenty or more workers are regularly employed at a project, the constructor shall ensure a Health Canada licensed defibrillator is installed and maintained, stored with the six prescribed items in a suitable, protected, labelled and unobstructed place, with signs bearing the prescribed AED symbol posted adjacent to it and elsewhere on the project. It shall be maintained and tested per the manufacturer's instructions and inspected quarterly by a competent worker, with a record kept with the defibrillator giving the date of each inspection and the name and signature of the worker. A worker trained in cardiopulmonary resuscitation and defibrillator operation shall be present at all times when work is in progress. The section does not apply to a project expected to last less than three months.",
+          "family": "R213-AED",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "equipment_integrity",
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "defibrillator",
+            "AED",
+            "quarterly inspection",
+            "CPR",
+            "twenty workers",
+            "signage",
+            "competent worker"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-13"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R213-FIRE",
+      "name": "Fire Safety",
+      "description": "Sections 52 to 58. Fire extinguishing equipment on a project, its rating, its monthly inspection and the standpipe requirements for a building under construction.",
+      "controls": [
+        {
+          "id": "52",
+          "name": "Fire Extinguishing Equipment Provided and Workers Trained",
+          "description": "Fire extinguishing equipment shall be provided at readily accessible and adequately marked locations at a project, and every worker who may be required to use it shall be trained in its use. At least one extinguisher shall be provided where flammable liquids or combustible materials are stored, handled or used; where oil-fired or gas-fired equipment other than a permanent furnace is used; where welding or open-flame operations are carried on; and on each storey of an enclosed building being constructed or altered, subject to the dwelling exemptions in subsection 52 (4).",
+          "family": "R213-FIRE",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "fire extinguisher",
+            "hot work",
+            "welding",
+            "flammable",
+            "training",
+            "each storey"
+          ]
+        },
+        {
+          "id": "53",
+          "name": "Fire Extinguisher Type and Rating",
+          "description": "Fire extinguishing equipment shall be of a suitable type and size to permit the evacuation of workers during a fire. Every fire extinguisher shall be a type whose contents are discharged under pressure and shall have an Underwriters' Laboratories of Canada rating of at least 4A40BC.",
+          "family": "R213-FIRE",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "equipment_integrity"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "4A40BC",
+            "ULC rating",
+            "extinguisher type",
+            "evacuation"
+          ]
+        },
+        {
+          "id": "54",
+          "name": "Fire Extinguishing Equipment Protected and Recharged",
+          "description": "Fire extinguishing equipment shall be protected from physical damage and from freezing, and after a fire extinguisher is used it shall be refilled or replaced immediately.",
+          "family": "R213-FIRE",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "equipment_integrity"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "freezing",
+            "physical damage",
+            "refill",
+            "replace immediately"
+          ]
+        },
+        {
+          "id": "55",
+          "name": "Monthly Fire Extinguisher Inspection Recorded on a Tag",
+          "description": "Every fire extinguisher shall be inspected for defects or deterioration at least once a month by a competent worker, who shall record the date of the inspection on a tag attached to it.",
+          "family": "R213-FIRE",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "equipment_integrity",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "monthly inspection",
+            "extinguisher tag",
+            "competent worker",
+            "date recorded"
+          ]
+        },
+        {
+          "id": "57",
+          "name": "Standpipe Kept Within Two Storeys of the Work Level",
+          "description": "As construction proceeds in a building with two or more storeys, a permanent or temporary standpipe shall be installed such that the distance between the standpipe and the uppermost work level is no more than two storeys at any time, unless the building is not required by the Building Code to have a permanent standpipe. The section sets the hose outlet, fire department connection, hose and nozzle requirements, and requires that a temporary standpipe not be disconnected until the permanent one is connected.",
+          "family": "R213-FIRE",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "equipment_integrity"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "standpipe",
+            "two storeys",
+            "hose outlet",
+            "fire department connection",
+            "temporary standpipe"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R213-TRAFFIC",
+      "name": "Traffic Control",
+      "description": "Sections 67 to 69.1. Protecting workers from vehicular traffic, the written traffic protection plan, the sign a traffic control person uses and the competency that person must have.",
+      "controls": [
+        {
+          "id": "67(2)",
+          "name": "Measures Against Vehicular Traffic",
+          "description": "If a worker at a project on a highway may be endangered by vehicular traffic unrelated to the project, the project shall make use of as many of the listed measures as is necessary to adequately protect the worker: barriers, barricades, delineators, lane control devices, warning signs, flashing lights, flares, traffic control devices, blocker trucks, crash trucks, sign trucks, speed control devices and longitudinal buffer areas.",
+          "family": "R213-TRAFFIC",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "traffic",
+            "barricade",
+            "barrier",
+            "crash truck",
+            "delineator",
+            "buffer area",
+            "highway"
+          ]
+        },
+        {
+          "id": "67(4)",
+          "name": "Written Traffic Protection Plan",
+          "description": "Every employer shall develop in writing and implement a traffic protection plan for the employer's workers at a project if any of them may be exposed to a hazard from vehicular traffic. The plan shall specify the traffic hazards and the measures in subsection 67 (2) to be used, and shall be kept at the project and made available to an inspector or a worker on request.",
+          "family": "R213-TRAFFIC",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "traffic protection plan",
+            "written",
+            "kept at the project",
+            "available on request"
+          ]
+        },
+        {
+          "id": "67(6)",
+          "name": "Competent Worker Sets Up and Removes Traffic Measures",
+          "description": "A worker required to set up or remove traffic protection measures on a roadway or its shoulder shall be a competent worker, shall not perform any other work while doing so, and shall be given adequate written and oral instructions, in a language the worker understands, on setting up or removing the measures.",
+          "family": "R213-TRAFFIC",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "competent worker",
+            "set up",
+            "remove",
+            "language the worker understands",
+            "instructions"
+          ]
+        },
+        {
+          "id": "67(7)",
+          "name": "Barriers on a Freeway Project Over Five Days",
+          "description": "Adequate barriers shall be installed to protect workers at a project that is on a freeway, is not a mobile operation and is expected to require more than five days to complete. Where barriers are not practical, or the project is expected to take five days or less, crash trucks shall be adequately positioned instead.",
+          "family": "R213-TRAFFIC",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "freeway",
+            "barrier",
+            "crash truck",
+            "five days",
+            "mobile operation"
+          ]
+        },
+        {
+          "id": "68",
+          "name": "Traffic Control Sign Specification",
+          "description": "A sign used by a worker to direct vehicular traffic shall be octagonal, 450 millimetres between opposite sides, mounted on a 1.2-metre pole, made of material at least as rigid as six-millimetre plywood, red retro-reflective with white \"STOP\" lettering 150 millimetres high on one side and fluorescent chartreuse micro-prismatic with a black diamond border and black \"SLOW\" lettering 120 millimetres high on the other, and maintained clean and legible.",
+          "family": "R213-TRAFFIC",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "equipment_integrity"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "stop slow sign",
+            "traffic control person",
+            "octagonal",
+            "retro-reflective",
+            "legible"
+          ]
+        },
+        {
+          "id": "69",
+          "name": "Directing Traffic on a Public Way",
+          "description": "Where vehicular traffic on a public way may be a hazard to workers, a worker shall not direct traffic for more than one lane in the same direction, and section 69 sets the further conditions and protective clothing requirements that apply to directing traffic.",
+          "family": "R213-TRAFFIC",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "traffic control person",
+            "one lane",
+            "public way",
+            "high visibility"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R213-ACCESS",
+      "name": "Scaffolds and Suspended Access",
+      "description": "Sections 126 to 142.8. Scaffold design and loading, and the training and competency required before a suspended work platform or boatswain's chair is used or installed.",
+      "controls": [
+        {
+          "id": "126",
+          "name": "Scaffold Design and Loading",
+          "description": "Every scaffold shall be designed and constructed to support or resist two times the maximum load or force to which it is likely to be subjected without exceeding allowable unit stresses, and four times that load without overturning. A scaffold whose component capacity can only be determined by testing shall support or resist three times the maximum load without component failure. No scaffold shall be loaded beyond what it was designed and constructed to bear.",
+          "family": "R213-ACCESS",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "equipment_integrity"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "scaffold",
+            "design load",
+            "overturning",
+            "safety factor",
+            "loading"
+          ]
+        },
+        {
+          "id": "138",
+          "name": "Training Before a Suspended Work Platform or Boatswain's Chair is Used",
+          "description": "An employer shall ensure that a worker successfully completes a training program meeting the requirements of subsection 138 (2) before the worker uses a suspended work platform system or boatswain's chair for the first time, and thereafter at the intervals the section sets.",
+          "family": "R213-ACCESS",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "suspended work platform",
+            "boatswain's chair",
+            "swing stage",
+            "training",
+            "first use"
+          ]
+        },
+        {
+          "id": "138.1",
+          "name": "Competent Worker Designated for Installation and Inspection",
+          "description": "An employer shall designate a competent worker to be responsible for the installation and inspection of a suspended work platform system or boatswain's chair before it is put into service for the first time, and shall ensure that worker successfully completes a training program meeting subsection 138.1 (3) before installing or inspecting such an installation for the first time and thereafter as the section requires.",
+          "family": "R213-ACCESS",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "training_competency",
+            "equipment_integrity"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "competent worker",
+            "installation",
+            "inspection",
+            "suspended platform",
+            "designation",
+            "training"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R213-EWP",
+      "name": "Elevating Work Platforms",
+      "description": "Sections 143 to 149. Design, maintenance records, operator instruction and the manual kept with the machine. NOTE: O. Reg. 116/26 revokes sections 143 to 149 on 1 January 2027, when O. Reg. 117/26 (Elevating Work Platforms) takes their place.",
+      "controls": [
+        {
+          "id": "144",
+          "name": "Elevating Work Platform Design",
+          "description": "An elevating work platform shall be designed by an engineer in accordance with good engineering practice to meet the applicable National Standards of Canada standard set out in the Table to subsection 144 (6) and to support a minimum 1.3 kilonewton rated working load determined in accordance with that standard. Revoked 1 January 2027 by O. Reg. 116/26.",
+          "family": "R213-EWP",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "equipment_integrity"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "elevating work platform",
+            "scissor lift",
+            "boom lift",
+            "engineer",
+            "design",
+            "rated working load"
+          ]
+        },
+        {
+          "id": "145",
+          "name": "Maintenance and a Permanent Record of Inspections",
+          "description": "The owner of an elevating work platform shall maintain it such that the safety factors of the original design are maintained, and shall keep a permanent record of all inspections, tests, repairs, modifications and maintenance performed on it. Revoked 1 January 2027 by O. Reg. 116/26.",
+          "family": "R213-EWP",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "equipment_integrity",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "maintenance record",
+            "permanent record",
+            "inspections",
+            "repairs",
+            "owner"
+          ]
+        },
+        {
+          "id": "147",
+          "name": "Operator Instruction and Training Before First Use",
+          "description": "A worker who operates an elevating work platform shall, before using it for the first time, be given oral and written instruction on the operation and be trained to operate that class of elevating work platform, covering the matters listed in subsection 147 (2). Revoked 1 January 2027 by O. Reg. 116/26.",
+          "family": "R213-EWP",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "operator training",
+            "elevating work platform",
+            "class",
+            "oral and written instruction",
+            "before first use"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-16"
+          ]
+        },
+        {
+          "id": "149",
+          "name": "Operator's Manual Kept With the Machine",
+          "description": "An operator's manual for an elevating work platform shall be kept with it while it is on a project. Revoked 1 January 2027 by O. Reg. 116/26.",
+          "family": "R213-EWP",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "records_management"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "operator's manual",
+            "kept with the machine",
+            "project"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R213-CRANE",
+      "name": "Cranes, Hoisting and Rigging",
+      "description": "Sections 149.1 to 180. Who may operate a crane, its rated capacity, the owner's crane log and the weekly inspection of cables.",
+      "controls": [
+        {
+          "id": "150",
+          "name": "Crane Operator Certificate of Qualification",
+          "description": "No worker shall operate a crane or similar hoisting device unless the worker holds an unsuspended certificate of qualification or provisional certificate issued under the Building Opportunities in the Skilled Trades Act, 2021, or is a registered apprentice, in the trade of hoisting engineer — mobile crane operator 1, hoisting engineer — mobile crane operator 2 or hoisting engineer — tower crane operator, as the capacity and type of the device require.",
+          "family": "R213-CRANE",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "training_competency",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "crane operator",
+            "certificate of qualification",
+            "hoisting engineer",
+            "apprentice",
+            "tower crane",
+            "mobile crane"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-16"
+          ]
+        },
+        {
+          "id": "151",
+          "name": "Rated Load-Carrying Capacity Not Exceeded",
+          "description": "No crane or similar hoisting device shall be subjected to a load greater than its rated load-carrying capacity, other than during load tests required by the manufacturer. The manufacturer or an engineer shall determine the rated load-carrying capacity in accordance with the applicable CSA standard.",
+          "family": "R213-CRANE",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "equipment_integrity"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "rated capacity",
+            "overload",
+            "load chart",
+            "CSA Z150",
+            "load test"
+          ]
+        },
+        {
+          "id": "152",
+          "name": "Owner's Crane Log",
+          "description": "The owner of a crane or similar hoisting device shall keep an owner's crane log consisting of a record of all inspections, tests, repairs, modifications and maintenance. Where the log does not contain all the required information, the owner shall ensure an inspection meeting clause 6.4.7 of CSA Z248-17 (tower cranes) or clause 5.3.5 of CSA Z150-16 (mobile cranes) is completed before the crane is put into service at a project.",
+          "family": "R213-CRANE",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "equipment_integrity",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "crane log",
+            "owner",
+            "inspection record",
+            "Z248",
+            "Z150",
+            "before service"
+          ]
+        },
+        {
+          "id": "170",
+          "name": "Weekly Visual Inspection of Crane Cables",
+          "description": "All cables used by a crane or other hoisting device shall be visually inspected by a competent worker at least once a week when the crane or hoisting device is being used, or more frequently if the cable manufacturer recommends it. The worker shall record the condition of the cable inspected, and the record shall be kept at the project while the crane or hoisting device is in use there.",
+          "family": "R213-CRANE",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "equipment_integrity",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "cable inspection",
+            "weekly",
+            "wire rope",
+            "competent worker",
+            "record kept at the project"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R213-ELEC",
+      "name": "Electrical Hazards",
+      "description": "Sections 181 to 195.3. Who may work on electrical equipment, the minimum distances from energized overhead conductors, and what applies when work on energized parts cannot be avoided.",
+      "controls": [
+        {
+          "id": "181",
+          "name": "Electrical Utility Safety Rules",
+          "description": "Except where otherwise required by the Regulation, electrical work performed on or near electrical transmission or distribution systems shall be performed in accordance with the Electrical Utility Safety Rules published by the Infrastructure Health and Safety Association, revised 2019. Where work is performed in accordance with that document, sections 182, 187, 188, 189, 190, 191 and 193 do not apply.",
+          "family": "R213-ELEC",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "trade_regulatory"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "electrical utility safety rules",
+            "EUSR",
+            "transmission",
+            "distribution",
+            "IHSA"
+          ]
+        },
+        {
+          "id": "182",
+          "name": "Certificate of Qualification for Electrical Work",
+          "description": "No worker shall connect, maintain or modify electrical equipment or installations unless the worker holds an unsuspended certificate of qualification or provisional certificate under the Building Opportunities in the Skilled Trades Act, 2021 in the trade of electrician — construction and maintenance, or electrician — domestic and rural within that trade's scope of practice, or is otherwise permitted under that Act.",
+          "family": "R213-ELEC",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "training_competency",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "electrician",
+            "certificate of qualification",
+            "licensed",
+            "scope of practice"
+          ]
+        },
+        {
+          "id": "188",
+          "name": "Minimum Distance From Energized Overhead Conductors",
+          "description": "No object shall be brought closer to an energized overhead electrical conductor than the distance specified in the Table to subsection 188 (2) for the conductor's nominal phase-to-phase voltage rating, unless the conditions in clauses 189 (a) and (b) are satisfied.",
+          "family": "R213-ELEC",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "overhead powerline",
+            "limits of approach",
+            "minimum distance",
+            "voltage",
+            "contact"
+          ]
+        },
+        {
+          "id": "191",
+          "name": "Work on or Near Energized Exposed Parts",
+          "description": "Where it is not reasonably possible to disconnect equipment, an installation or a conductor from the power supply before working on or near energized exposed parts, section 191 applies instead of section 190 and sets the precautions, insulating protection and procedures required.",
+          "family": "R213-ELEC",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "energized work",
+            "live work",
+            "arc flash",
+            "insulating",
+            "not reasonably possible"
+          ],
+          "mapped_controls": [
+            "csa_z462:Z462-03"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R213-EXC",
+      "name": "Excavations",
+      "description": "Part III, sections 222 to 242. Soil classification, the condition of the excavation, and the support system that must protect its walls.",
+      "controls": [
+        {
+          "id": "227",
+          "name": "Soil Type Determined by Examination",
+          "description": "The type of soil in which an excavation is made shall be determined by visual and physical examination of the soil at the walls of the excavation and within the excavation's zone of influence, in accordance with section 227.",
+          "family": "R213-EXC",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "soil type",
+            "Type 1",
+            "Type 4",
+            "classification",
+            "examination",
+            "competent person"
+          ]
+        },
+        {
+          "id": "230",
+          "name": "Excavation Kept Free of Water",
+          "description": "Every excavation that a worker may be required to enter shall be kept reasonably free of water.",
+          "family": "R213-EXC",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "water",
+            "dewatering",
+            "excavation",
+            "entry"
+          ]
+        },
+        {
+          "id": "233",
+          "name": "Spoil, Equipment and Barriers at the Edge",
+          "description": "A level area extending at least one metre from the upper edge of each wall of an excavation shall be kept clear of equipment, excavated soil, rock and construction material; the stability of a wall shall be maintained where stockpiling may affect it; no vehicle or machine shall be operated or located so as to affect the stability of a wall; and where a person could fall into an excavation more than 2.4 metres deep, a barrier at least 1.1 metres high shall be provided at the top of every wall that is not sloped as clauses 234 (2) (e), (f) and (g) describe.",
+          "family": "R213-EXC",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "spoil pile",
+            "one metre",
+            "stability",
+            "barrier",
+            "2.4 metres",
+            "edge protection"
+          ]
+        },
+        {
+          "id": "234",
+          "name": "Support System Required Unless an Exemption Applies",
+          "description": "The walls of an excavation shall be supported by a support system complying with sections 235 to 241, unless the excavation is less than 1.2 metres deep, no worker is required to enter it, it is not a trench and no worker need be closer to a wall than the wall's height, it is cut in sound and stable rock, its walls are sloped as prescribed for the soil type, or an engineer has given a written opinion that the walls are sufficiently stable. The constructor shall keep a copy of every such engineer's opinion on the project while it is in progress, and the engineer or a competent worker the engineer designates shall inspect the excavation as frequently as the opinion specifies.",
+          "family": "R213-EXC",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "risk_management",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "shoring",
+            "trench box",
+            "sloping",
+            "engineer's opinion",
+            "cave-in",
+            "support system",
+            "inspection frequency"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-08"
+          ]
+        },
+        {
+          "id": "235",
+          "name": "Composition of the Support System",
+          "description": "A support system shall consist of timbering and shoring meeting subsection 238 (2) where no hydrostatic pressure is present and the excavation is within the Table to section 238; a prefabricated support system complying with sections 236 and 237; a hydraulic support system complying with sections 236 and 237; or an engineered support system complying with section 236. Where the excavation is a trench deeper than six metres or wider than 3.6 metres, the support system shall be an engineered support system designed for the specific location and project.",
+          "family": "R213-EXC",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "equipment_integrity"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "timbering",
+            "shoring",
+            "trench box",
+            "hydraulic",
+            "engineered support system",
+            "six metres"
+          ]
+        },
+        {
+          "id": "236",
+          "name": "Prefabricated, Hydraulic and Engineered Support Systems Designed by an Engineer",
+          "description": "Every prefabricated, hydraulic or engineered support system shall be designed by an engineer, and section 236 sets what the design and its documentation shall establish and what shall be kept at the project.",
+          "family": "R213-EXC",
+          "framework": "o_reg_213_91",
+          "domains": [
+            "health_safety",
+            "equipment_integrity",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "engineer",
+            "design drawings",
+            "trench box",
+            "kept at the project",
+            "support system"
+          ]
+        }
+      ]
+    }
+  ]
+}

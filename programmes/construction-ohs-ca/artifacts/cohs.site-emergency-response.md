@@ -6,6 +6,8 @@ structure: procedure
 path: procedures/project-emergency-response.md
 
 satisfies:
+  - o_reg_213_91:52
+  - o_reg_213_91:55
   - cor_2020:COR-13
   - iso_45001:8.2
   - isnetworld:ISN-SAFE-11
@@ -23,7 +25,7 @@ declares:
     interval_basis: chosen
     responsible: site-supervisor
     applies_to: each project
-    records: registers/emergency-drills.md
+    records: registers/project-emergency-drills.md
     escalate: {after: 2w, to: health-safety-lead}
   register:
     title: Emergency Drill Record

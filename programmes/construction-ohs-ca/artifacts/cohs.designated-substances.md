@@ -6,6 +6,9 @@ structure: procedure
 path: procedures/designated-substances.md
 
 satisfies:
+  - ohsa_ontario:30
+  - o_reg_278_05:8
+  - o_reg_278_05:10
   - cor_2020:COR-06
   - iso_45001:6.1.2
 

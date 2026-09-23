@@ -21,41 +21,97 @@
           "id": "SMACNA-01",
           "name": "Pressure Class Determination from Specification",
           "description": "The pressure class and seal class required by the project specification are identified before fabrication and recorded on the shop drawing and fabrication ticket.",
-          "family": "SMACNA-FAB", "framework": "smacna",
-          "domains": ["quality_management"],
+          "family": "SMACNA-FAB",
+          "framework": "smacna",
+          "domains": [
+            "quality_management"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["pressure-class", "seal-class", "specification", "quality", "shop-drawing", "duct"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "pressure-class",
+            "seal-class",
+            "specification",
+            "quality",
+            "shop-drawing",
+            "duct"
+          ]
         },
         {
           "id": "SMACNA-02",
           "name": "Gauge, Reinforcement and Construction",
           "description": "Metal gauge, joint type, reinforcement spacing and hanger selection match the SMACNA table for the pressure class and duct dimension.",
-          "family": "SMACNA-FAB", "framework": "smacna",
-          "domains": ["quality_management", "equipment_integrity"],
+          "family": "SMACNA-FAB",
+          "framework": "smacna",
+          "domains": [
+            "quality_management",
+            "equipment_integrity"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["gauge", "reinforcement", "duct", "hanger", "quality", "construction", "tolerance"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "gauge",
+            "reinforcement",
+            "duct",
+            "hanger",
+            "quality",
+            "construction",
+            "tolerance"
+          ]
         },
         {
           "id": "SMACNA-03",
           "name": "Sealing to Seal Class",
           "description": "Transverse joints, longitudinal seams and duct-wall penetrations are sealed to the specified seal class using approved sealant, applied to manufacturer requirement.",
-          "family": "SMACNA-FAB", "framework": "smacna",
-          "domains": ["quality_management"],
+          "family": "SMACNA-FAB",
+          "framework": "smacna",
+          "domains": [
+            "quality_management"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["sealing", "seal-class", "sealant", "joint", "seam", "quality", "duct"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "sealing",
+            "seal-class",
+            "sealant",
+            "joint",
+            "seam",
+            "quality",
+            "duct"
+          ]
         },
         {
           "id": "SMACNA-04",
           "name": "Shop Drawing Review and Approval",
           "description": "Shop drawings are reviewed against the specification and approved before fabrication, with the approved revision controlled at the point of fabrication.",
-          "family": "SMACNA-FAB", "framework": "smacna",
-          "domains": ["quality_management", "records_management"],
+          "family": "SMACNA-FAB",
+          "framework": "smacna",
+          "domains": [
+            "quality_management",
+            "records_management"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["shop-drawing", "approval", "document-control", "revision", "quality", "records"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "shop-drawing",
+            "approval",
+            "document-control",
+            "revision",
+            "quality",
+            "records"
+          ]
         }
       ]
     },
@@ -68,43 +124,102 @@
           "id": "SMACNA-05",
           "name": "Duct Leakage Testing",
           "description": "Where the specification requires it, leakage testing is performed to the SMACNA test manual on the specified portion of the system, with allowable leakage calculated and results recorded.",
-          "family": "SMACNA-VERIFY", "framework": "smacna",
-          "domains": ["quality_management", "equipment_integrity"],
+          "family": "SMACNA-VERIFY",
+          "framework": "smacna",
+          "domains": [
+            "quality_management",
+            "equipment_integrity"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["leakage-test", "inspection-and-test", "duct", "allowable-leakage", "quality", "commissioning"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "leakage-test",
+            "inspection-and-test",
+            "duct",
+            "allowable-leakage",
+            "quality",
+            "commissioning"
+          ]
         },
         {
           "id": "SMACNA-06",
           "name": "Test Instrument Calibration",
           "description": "Instruments used for leakage and airflow measurement are calibrated at the required interval with certificates retained.",
-          "family": "SMACNA-VERIFY", "framework": "smacna",
-          "domains": ["quality_management", "equipment_integrity"],
+          "family": "SMACNA-VERIFY",
+          "framework": "smacna",
+          "domains": [
+            "quality_management",
+            "equipment_integrity"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["calibration", "measuring-equipment", "instrument", "quality", "traceable", "certificate"],
-          "mapped_controls": ["iso_9001:7.1.5"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "calibration",
+            "measuring-equipment",
+            "instrument",
+            "quality",
+            "traceable",
+            "certificate"
+          ],
+          "mapped_controls": [
+            "iso_9001:7.1.5"
+          ]
         },
         {
           "id": "SMACNA-07",
           "name": "Nonconforming Fabrication",
           "description": "Fabrication not meeting the specified class is identified, dispositioned by an authorized person, and reworked or accepted by documented concession.",
-          "family": "SMACNA-VERIFY", "framework": "smacna",
-          "domains": ["quality_management"],
+          "family": "SMACNA-VERIFY",
+          "framework": "smacna",
+          "domains": [
+            "quality_management"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["nonconformance", "rework", "concession", "deficiency", "quality", "disposition"],
-          "mapped_controls": ["iso_9001:8.7"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "nonconformance",
+            "rework",
+            "concession",
+            "deficiency",
+            "quality",
+            "disposition"
+          ],
+          "mapped_controls": [
+            "iso_9001:8.7"
+          ]
         },
         {
           "id": "SMACNA-08",
           "name": "Handover Documentation",
           "description": "As-built drawings, test records and material data are compiled and handed over, with copies retained.",
-          "family": "SMACNA-VERIFY", "framework": "smacna",
-          "domains": ["records_management", "quality_management"],
+          "family": "SMACNA-VERIFY",
+          "framework": "smacna",
+          "domains": [
+            "records_management",
+            "quality_management"
+          ],
           "priority": "medium",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["handover", "as-built", "records", "record-retention", "quality", "closeout"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "handover",
+            "as-built",
+            "records",
+            "record-retention",
+            "quality",
+            "closeout"
+          ]
         }
       ]
     }

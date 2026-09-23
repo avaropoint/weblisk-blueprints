@@ -1,7 +1,7 @@
 {
   "id": "iso_27001",
   "name": "ISO/IEC 27001:2022",
-  "version": "2022",
+  "version": "2022, incorporating Amd 1:2024",
   "description": "Information security, cybersecurity and privacy protection — Information security management systems",
   "authority": "ISO/IEC",
   "scope": "Any organization (certification available)",
@@ -2125,5 +2125,5 @@
   "supersedes": "ISO/IEC 27001:2013",
   "status": "active",
   "official_url": "https://www.iso.org/standard/27001",
-  "changes_summary": "Restructured Annex A from 14 domains to 4 themes (Organizational, People, Physical, Technological), reduced from 114 to 93 controls, added 11 new controls"
+  "changes_summary": "Restructured Annex A from 14 domains to 4 themes (Organizational, People, Physical, Technological), reduced from 114 to 93 controls, added 11 new controls. Amendment 1:2024 (ISO/IEC 27001:2022/Amd 1:2024, ISO reference 88435, published February 2024) adds the climate action changes: clause 4.1 now requires the organization to determine whether climate change is a relevant issue, and a note to clause 4.2 records that interested parties may have climate-related requirements. The amendment is normative in clause 4.1 and is part of the standard as certified against; it adds no Annex A control. The transition from ISO/IEC 27001:2013 closed on 31 October 2025."
 }

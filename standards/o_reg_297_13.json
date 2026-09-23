@@ -1,0 +1,279 @@
+{
+  "id": "o_reg_297_13",
+  "name": "O. Reg. 297/13: Occupational Health and Safety Awareness and Training",
+  "version": "O. Reg. 297/13, consolidated to 1 January 2021",
+  "description": "The training regulation made under the Occupational Health and Safety Act. It carries two distinct duties that are often confused. The first, sections 1 to 4, is the basic awareness training every worker and every supervisor in Ontario must complete — the worker as soon as practicable, the supervisor within a week — with a record the employer keeps and written proof the worker may demand. The second, sections 6 to 10, is working at heights training for construction projects: an approved program from an approved provider, valid for exactly three years by force of subsection 8 (1), recorded with the provider's name and the completion date, and expressly in addition to the equipment-specific training that subsection 26.2 (1) of O. Reg. 213/91 requires. Consolidated to 1 January 2021, last amended by O. Reg. 751/20.",
+  "authority": "Lieutenant Governor in Council, Ontario, under the Occupational Health and Safety Act; training programs and providers approved by the Chief Prevention Officer",
+  "scope": "Every employer in Ontario in respect of awareness training, and every employer whose workers use a fall protection method on a construction project in respect of working at heights training",
+  "applies_in": [
+    "CA-ON"
+  ],
+  "category": "government",
+  "status": "active",
+  "official_url": "https://www.ontario.ca/laws/regulation/130297",
+  "families": [
+    {
+      "id": "R297-AWARE",
+      "name": "Basic Occupational Health and Safety Awareness Training",
+      "description": "Sections 1 to 4. The awareness training every worker and every supervisor in Ontario must complete, and the record the employer must keep of it.",
+      "controls": [
+        {
+          "id": "1",
+          "name": "Worker Awareness Training as Soon as Practicable",
+          "description": "An employer shall ensure that a worker who performs work for the employer completes a basic occupational health and safety awareness training program as soon as practicable, unless the worker provides proof of previous training that the employer verifies meets subsection 1 (3). The program must cover the duties and rights of workers, the duties of employers and supervisors, the roles of representatives and committees, the roles of the Ministry, the Workplace Safety and Insurance Board and designated entities, common workplace hazards, the information and instruction requirements of Regulation 860 (WHMIS), and occupational illness including latency.",
+          "family": "R297-AWARE",
+          "framework": "o_reg_297_13",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "awareness training",
+            "worker",
+            "as soon as practicable",
+            "proof of completion",
+            "WHMIS",
+            "occupational illness"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-16"
+          ]
+        },
+        {
+          "id": "2",
+          "name": "Supervisor Awareness Training Within One Week",
+          "description": "An employer shall ensure that a supervisor who performs work for the employer completes a basic occupational health and safety awareness training program within one week of performing work as a supervisor, unless the supervisor provides verified proof of previous training. The supervisor program must additionally cover how to recognise, assess and control workplace hazards and evaluate those controls, and sources of information on occupational health and safety.",
+          "family": "R297-AWARE",
+          "framework": "o_reg_297_13",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "supervisor",
+            "awareness training",
+            "one week",
+            "recognise assess control",
+            "hazard"
+          ]
+        },
+        {
+          "id": "3",
+          "name": "Exemptions for Training Completed Before the Regulation",
+          "description": "The requirements of section 1 do not apply to an employer in respect of a supervisor who was performing supervisory work before the Regulation came into force and whose earlier training the employer verifies met subsection 2 (3), nor in respect of a worker or supervisor for whom another employer was exempt and who provides proof of that exemption.",
+          "family": "R297-AWARE",
+          "framework": "o_reg_297_13",
+          "domains": [
+            "health_safety",
+            "training_competency",
+            "records_management"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "exemption",
+            "grandfathered",
+            "proof of exemption",
+            "prior training"
+          ]
+        },
+        {
+          "id": "4",
+          "name": "Training Records and Written Proof on Request",
+          "description": "An employer shall maintain a record of the awareness training completed by its workers and supervisors, and of those for whom it is exempt under section 3. On request, the employer shall provide the worker or supervisor with written proof of completion or of the exemption, including where the request is made within six months of the person no longer performing work for the employer.",
+          "family": "R297-AWARE",
+          "framework": "o_reg_297_13",
+          "domains": [
+            "health_safety",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "training record",
+            "written proof",
+            "six months",
+            "portable",
+            "exemption record"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R297-CERT",
+      "name": "Certification Training",
+      "description": "Section 5. The employer's duty to carry out and pay for the training that makes a committee member a certified member.",
+      "controls": [
+        {
+          "id": "5",
+          "name": "Certification Training Carried Out and Paid For",
+          "description": "An employer shall carry out the training programs necessary to enable a committee member to become a certified member, selected in accordance with the training and other requirements established by the Chief Prevention Officer under section 7.6 of the Act. For greater certainty, \"carry out\" includes paying for the training.",
+          "family": "R297-CERT",
+          "framework": "o_reg_297_13",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "certified member",
+            "JHSC certification",
+            "chief prevention officer",
+            "employer pays"
+          ],
+          "mapped_controls": [
+            "ohsa_ontario:9(2)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R297-WAH",
+      "name": "Working at Heights Training — Construction Projects",
+      "description": "Sections 6 to 10. The approved working at heights training a worker on a construction project must hold before using a fall protection method, its three-year validity, and the record of it.",
+      "controls": [
+        {
+          "id": "6",
+          "name": "When Working at Heights Training is Required",
+          "description": "The requirements of section 7 apply to an employer in respect of workers who are required under O. Reg. 213/91 (Construction Projects) to use a travel restraint system, a fall restricting system, a fall arrest system, a safety net, a work belt or a safety belt.",
+          "family": "R297-WAH",
+          "framework": "o_reg_297_13",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "working at heights",
+            "travel restraint",
+            "fall arrest",
+            "safety net",
+            "work belt",
+            "trigger"
+          ]
+        },
+        {
+          "id": "7",
+          "name": "Approved Programme From an Approved Provider",
+          "description": "An employer shall ensure that a worker who may use a method of fall protection listed in section 6 has successfully completed a working at heights training program approved by the Chief Prevention Officer, delivered by a provider approved by the Chief Prevention Officer, for which the validity period has not expired — or the Newfoundland and Labrador fall protection program recognised by clause 7 (1) (b). The automobile manufacturing exception in subsection 7 (3) is narrow and applies only to directly employed workers at the workplaces it lists.",
+          "family": "R297-WAH",
+          "framework": "o_reg_297_13",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "approved training provider",
+            "chief prevention officer",
+            "working at heights",
+            "CPO approved",
+            "reciprocity"
+          ],
+          "mapped_controls": [
+            "o_reg_213_91:26.2"
+          ]
+        },
+        {
+          "id": "8(1)",
+          "name": "Working at Heights Training Valid for Three Years",
+          "description": "Working at heights training described in clause 7 (1) (a) is valid for three years from the date of successful completion of the training program. The only exception is training completed between 28 February 2017 and 31 August 2017, which was valid for four years. This is a validity period set in law, not a training provider's card expiry.",
+          "family": "R297-WAH",
+          "framework": "o_reg_297_13",
+          "domains": [
+            "health_safety",
+            "training_competency",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "three years",
+            "validity period",
+            "expiry",
+            "refresher",
+            "set in law"
+          ]
+        },
+        {
+          "id": "9",
+          "name": "O. Reg. 213/91 Training Applies in Addition",
+          "description": "For greater certainty, the requirements of subsection 26.2 (1) of O. Reg. 213/91 — adequate training and oral and written instruction in the specific fall protection system by a competent person — apply in addition to the working at heights training required by section 7.",
+          "family": "R297-WAH",
+          "framework": "o_reg_297_13",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "in addition",
+            "equipment specific",
+            "26.2",
+            "competent person",
+            "not a substitute"
+          ]
+        },
+        {
+          "id": "10",
+          "name": "Working at Heights Training Record",
+          "description": "An employer shall maintain a record of the training required by section 7, containing the worker's name, the name of the approved training provider, the date the approved training was successfully completed, and the name of the approved program. A copy of the worker's proof of successful completion issued by the Chief Prevention Officer is itself a training record. The employer shall make the record available to an inspector on request.",
+          "family": "R297-WAH",
+          "framework": "o_reg_297_13",
+          "domains": [
+            "health_safety",
+            "records_management",
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "training record",
+            "provider name",
+            "completion date",
+            "program name",
+            "available to an inspector"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -21,31 +21,74 @@
           "id": "FM-01",
           "name": "Identify Records in Institutional Custody or Control",
           "description": "Records created or held on behalf of a public institution are identified as such, so they can be produced for an access request and are not treated as ordinary commercial records.",
-          "family": "FM-CUSTODY", "framework": "fippa_mfippa",
-          "domains": ["records_management", "data_protection"],
+          "family": "FM-CUSTODY",
+          "framework": "fippa_mfippa",
+          "domains": [
+            "records_management",
+            "data_protection"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["custody", "control", "institutional-record", "records", "fippa", "mfippa", "public-sector"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "custody",
+            "control",
+            "institutional-record",
+            "records",
+            "fippa",
+            "mfippa",
+            "public-sector"
+          ]
         },
         {
           "id": "FM-02",
           "name": "Flow-Down Privacy and Security Clauses",
           "description": "Contract clauses imposing access, privacy, safeguard, residency and audit obligations are identified clause by clause and mapped to the controls that satisfy them.",
-          "family": "FM-CUSTODY", "framework": "fippa_mfippa",
-          "domains": ["compliance_audit", "vendor_management"],
+          "family": "FM-CUSTODY",
+          "framework": "fippa_mfippa",
+          "domains": [
+            "compliance_audit",
+            "vendor_management"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["flow-down", "contract", "clause", "compliance", "obligation", "audit-right"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "flow-down",
+            "contract",
+            "clause",
+            "compliance",
+            "obligation",
+            "audit-right"
+          ]
         },
         {
           "id": "FM-03",
           "name": "Cooperation with Access Requests",
           "description": "A defined route exists for responding to an institution's request for records to satisfy a freedom-of-information request within the statutory timeline.",
-          "family": "FM-CUSTODY", "framework": "fippa_mfippa",
-          "domains": ["records_management", "compliance_audit"],
+          "family": "FM-CUSTODY",
+          "framework": "fippa_mfippa",
+          "domains": [
+            "records_management",
+            "compliance_audit"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["access-request", "freedom-of-information", "records", "timeline", "disclosure", "fippa"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "access-request",
+            "freedom-of-information",
+            "records",
+            "timeline",
+            "disclosure",
+            "fippa"
+          ]
         }
       ]
     },
@@ -58,51 +101,118 @@
           "id": "FM-04",
           "name": "Collection Limited to Lawful Authority",
           "description": "Personal information is collected only where necessary to the properly authorized activity, and only what is needed for it.",
-          "family": "FM-PI", "framework": "fippa_mfippa",
-          "domains": ["data_protection"],
+          "family": "FM-PI",
+          "framework": "fippa_mfippa",
+          "domains": [
+            "data_protection"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["collection", "personal-information", "necessity", "privacy", "lawful-authority", "minimization"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "collection",
+            "personal-information",
+            "necessity",
+            "privacy",
+            "lawful-authority",
+            "minimization"
+          ]
         },
         {
           "id": "FM-05",
           "name": "Use and Disclosure Limits",
           "description": "Personal information is used and disclosed only for the purpose for which it was obtained or a consistent purpose, and disclosures are recorded.",
-          "family": "FM-PI", "framework": "fippa_mfippa",
-          "domains": ["data_protection"],
+          "family": "FM-PI",
+          "framework": "fippa_mfippa",
+          "domains": [
+            "data_protection"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["use", "disclosure", "consistent-purpose", "privacy", "personal-information", "records"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "use",
+            "disclosure",
+            "consistent-purpose",
+            "privacy",
+            "personal-information",
+            "records"
+          ]
         },
         {
           "id": "FM-06",
           "name": "Security Safeguards for Personal Information",
           "description": "Reasonable measures — access control, encryption, secure transmission and secure disposal — protect personal information against unauthorized access, in line with the regulations under both Acts.",
-          "family": "FM-PI", "framework": "fippa_mfippa",
-          "domains": ["data_protection", "access_control", "encryption"],
+          "family": "FM-PI",
+          "framework": "fippa_mfippa",
+          "domains": [
+            "data_protection",
+            "access_control",
+            "encryption"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["safeguard", "encryption", "access", "privacy", "secure-disposal", "personal-information"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "safeguard",
+            "encryption",
+            "access",
+            "privacy",
+            "secure-disposal",
+            "personal-information"
+          ]
         },
         {
           "id": "FM-07",
           "name": "Retention and Secure Disposal",
           "description": "Personal information is retained only as long as required by the institution's retention schedule or contract, then securely destroyed with the destruction recorded.",
-          "family": "FM-PI", "framework": "fippa_mfippa",
-          "domains": ["records_management", "data_protection"],
+          "family": "FM-PI",
+          "framework": "fippa_mfippa",
+          "domains": [
+            "records_management",
+            "data_protection"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["record-retention", "disposal", "destruction", "records", "schedule", "privacy"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "record-retention",
+            "disposal",
+            "destruction",
+            "records",
+            "schedule",
+            "privacy"
+          ]
         },
         {
           "id": "FM-08",
           "name": "Accuracy and Correction",
           "description": "Personal information used for a decision about an individual is accurate and complete, and a correction route exists.",
-          "family": "FM-PI", "framework": "fippa_mfippa",
-          "domains": ["data_protection"],
+          "family": "FM-PI",
+          "framework": "fippa_mfippa",
+          "domains": [
+            "data_protection"
+          ],
           "priority": "medium",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["accuracy", "correction", "privacy", "personal-information", "request"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "accuracy",
+            "correction",
+            "privacy",
+            "personal-information",
+            "request"
+          ]
         }
       ]
     },
@@ -115,41 +225,96 @@
           "id": "FM-09",
           "name": "Data Residency and Cross-Border Handling",
           "description": "Where a contract commits to Canadian storage and processing, the platform configuration implements it and the configuration is evidenced rather than asserted.",
-          "family": "FM-OPS", "framework": "fippa_mfippa",
-          "domains": ["data_protection", "configuration_management"],
+          "family": "FM-OPS",
+          "framework": "fippa_mfippa",
+          "domains": [
+            "data_protection",
+            "configuration_management"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["residency", "canada", "data-region", "cross-border", "privacy", "sovereignty"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "residency",
+            "canada",
+            "data-region",
+            "cross-border",
+            "privacy",
+            "sovereignty"
+          ]
         },
         {
           "id": "FM-10",
           "name": "Privacy Breach Notification to the Institution",
           "description": "A privacy breach affecting institutional personal information is reported to the institution promptly per contract, and the institution's own IPC obligations are supported with the facts it needs.",
-          "family": "FM-OPS", "framework": "fippa_mfippa",
-          "domains": ["incident_response", "data_protection"],
+          "family": "FM-OPS",
+          "framework": "fippa_mfippa",
+          "domains": [
+            "incident_response",
+            "data_protection"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["breach", "notification", "ipc", "privacy", "incident", "institution"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "breach",
+            "notification",
+            "ipc",
+            "privacy",
+            "incident",
+            "institution"
+          ]
         },
         {
           "id": "FM-11",
           "name": "Personnel Confidentiality and Screening",
           "description": "Personnel with access to institutional information are bound by confidentiality undertakings and screened where the contract requires it.",
-          "family": "FM-OPS", "framework": "fippa_mfippa",
-          "domains": ["hr_security"],
+          "family": "FM-OPS",
+          "framework": "fippa_mfippa",
+          "domains": [
+            "hr_security"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["confidentiality", "screening", "personnel", "background-check", "undertaking", "clearance"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "confidentiality",
+            "screening",
+            "personnel",
+            "background-check",
+            "undertaking",
+            "clearance"
+          ]
         },
         {
           "id": "FM-12",
           "name": "Subcontractor Pass-Through",
           "description": "Subcontractors touching institutional information are bound to equivalent obligations, and the institution is informed where required.",
-          "family": "FM-OPS", "framework": "fippa_mfippa",
-          "domains": ["vendor_management", "data_protection"],
+          "family": "FM-OPS",
+          "framework": "fippa_mfippa",
+          "domains": [
+            "vendor_management",
+            "data_protection"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["subcontractor", "vendor", "pass-through", "third-party", "privacy", "contract"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "subcontractor",
+            "vendor",
+            "pass-through",
+            "third-party",
+            "privacy",
+            "contract"
+          ]
         }
       ]
     }

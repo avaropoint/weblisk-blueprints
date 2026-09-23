@@ -6,6 +6,8 @@ structure: procedure
 path: procedures/clearance-renewal.md
 
 satisfies:
+  - wsia_ontario:141.1
+  - wsia_ontario:141.2
   - isnetworld:ISN-SAFE-02
   - cor_2020:COR-15
 

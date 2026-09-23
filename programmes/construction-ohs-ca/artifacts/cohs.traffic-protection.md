@@ -6,6 +6,9 @@ structure: procedure
 path: procedures/traffic-protection.md
 
 satisfies:
+  - o_reg_213_91:67(2)
+  - o_reg_213_91:67(4)
+  - o_reg_213_91:67(6)
   - cor_2020:COR-07
   - isnetworld:ISN-SAFE-05
 

@@ -22,31 +22,75 @@
           "id": "Z462-01",
           "name": "Documented Electrical Safety Programme",
           "description": "A written electrical safety programme defines roles, risk assessment procedure, training requirements and audit frequency, and is reviewed on a defined cycle.",
-          "family": "Z462-PROG", "framework": "csa_z462",
-          "domains": ["health_safety"],
+          "family": "Z462-PROG",
+          "framework": "csa_z462",
+          "domains": [
+            "health_safety"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["safety", "electrical-safety-programme", "arc-flash", "hazard", "ohsa", "review"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "safety",
+            "electrical-safety-programme",
+            "arc-flash",
+            "hazard",
+            "ohsa",
+            "review"
+          ]
         },
         {
           "id": "Z462-02",
           "name": "Shock and Arc Flash Risk Assessment",
           "description": "A risk assessment is performed before work on or near energized equipment, establishing approach boundaries, incident energy and the resulting PPE category.",
-          "family": "Z462-PROG", "framework": "csa_z462",
-          "domains": ["health_safety", "risk_management"],
+          "family": "Z462-PROG",
+          "framework": "csa_z462",
+          "domains": [
+            "health_safety",
+            "risk_management"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["arc-flash", "incident-energy", "shock", "boundary", "hazard", "risk-assessment", "safety"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "arc-flash",
+            "incident-energy",
+            "shock",
+            "boundary",
+            "hazard",
+            "risk-assessment",
+            "safety"
+          ]
         },
         {
           "id": "Z462-03",
           "name": "Energized Electrical Work Permit",
           "description": "Work on energized equipment above the threshold requires an authorized permit recording justification, hazard assessment, controls and approvals; de-energizing is the default.",
-          "family": "Z462-PROG", "framework": "csa_z462",
-          "domains": ["health_safety"],
+          "family": "Z462-PROG",
+          "framework": "csa_z462",
+          "domains": [
+            "health_safety"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["energized-work-permit", "safety", "authorization", "justification", "arc-flash", "de-energize"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "energized-work-permit",
+            "safety",
+            "authorization",
+            "justification",
+            "arc-flash",
+            "de-energize"
+          ],
+          "mapped_controls": [
+            "o_reg_213_91:191"
+          ]
         }
       ]
     },
@@ -59,51 +103,121 @@
           "id": "Z462-04",
           "name": "Lockout, Tagout and Verification of Absence of Voltage",
           "description": "Energy isolation follows a documented lockout procedure, and absence of voltage is verified with a tested instrument before work begins.",
-          "family": "Z462-CTRL", "framework": "csa_z462",
-          "domains": ["health_safety"],
+          "family": "Z462-CTRL",
+          "framework": "csa_z462",
+          "domains": [
+            "health_safety"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["lockout", "tagout", "safety", "absence-of-voltage", "isolation", "verification", "hazard"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "lockout",
+            "tagout",
+            "safety",
+            "absence-of-voltage",
+            "isolation",
+            "verification",
+            "hazard"
+          ]
         },
         {
           "id": "Z462-05",
           "name": "Equipment Labelling",
           "description": "Equipment likely to be worked on while energized carries a current label stating nominal voltage, arc flash boundary and incident energy or PPE category, with a label review process.",
-          "family": "Z462-CTRL", "framework": "csa_z462",
-          "domains": ["health_safety", "equipment_integrity"],
+          "family": "Z462-CTRL",
+          "framework": "csa_z462",
+          "domains": [
+            "health_safety",
+            "equipment_integrity"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["labelling", "arc-flash", "boundary", "incident-energy", "safety", "equipment"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "labelling",
+            "arc-flash",
+            "boundary",
+            "incident-energy",
+            "safety",
+            "equipment"
+          ]
         },
         {
           "id": "Z462-06",
           "name": "Arc-Rated PPE Selection, Care and Inspection",
           "description": "Arc-rated clothing and protective equipment matched to the assessed incident energy is provided, inspected before use, maintained and replaced when compromised.",
-          "family": "Z462-CTRL", "framework": "csa_z462",
-          "domains": ["health_safety"],
+          "family": "Z462-CTRL",
+          "framework": "csa_z462",
+          "domains": [
+            "health_safety"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["ppe", "arc-rated", "arc-flash", "safety", "inspection", "cal-cm2"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "ppe",
+            "arc-rated",
+            "arc-flash",
+            "safety",
+            "inspection",
+            "cal-cm2"
+          ]
         },
         {
           "id": "Z462-07",
           "name": "Qualified Person Training and Retraining",
           "description": "Workers are trained and demonstrably qualified for the tasks and equipment they work on, with retraining at defined intervals and after a change in practice or an incident.",
-          "family": "Z462-CTRL", "framework": "csa_z462",
-          "domains": ["training_competency", "health_safety"],
+          "family": "Z462-CTRL",
+          "framework": "csa_z462",
+          "domains": [
+            "training_competency",
+            "health_safety"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["qualified-person", "competency", "refresher", "certification-currency", "safety", "arc-flash", "training"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "qualified-person",
+            "competency",
+            "refresher",
+            "certification-currency",
+            "safety",
+            "arc-flash",
+            "training"
+          ]
         },
         {
           "id": "Z462-08",
           "name": "Contractor and Host Employer Coordination",
-          "description": "Where Lancaster works on a client's electrical system, hazard information is exchanged in both directions and the coordination is recorded before work starts.",
-          "family": "Z462-CTRL", "framework": "csa_z462",
-          "domains": ["health_safety", "vendor_management"],
+          "description": "Where the organisation works on a client's electrical system, hazard information is exchanged in both directions and the coordination is recorded before work starts.",
+          "family": "Z462-CTRL",
+          "framework": "csa_z462",
+          "domains": [
+            "health_safety",
+            "vendor_management"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["host-employer", "coordination", "safety", "hazard", "client-site", "information-exchange"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "host-employer",
+            "coordination",
+            "safety",
+            "hazard",
+            "client-site",
+            "information-exchange"
+          ]
         }
       ]
     }

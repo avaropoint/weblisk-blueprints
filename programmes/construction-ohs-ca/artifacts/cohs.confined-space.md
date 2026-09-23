@@ -6,6 +6,11 @@ structure: procedure
 path: procedures/confined-space.md
 
 satisfies:
+  - o_reg_632_05:5
+  - o_reg_632_05:6
+  - o_reg_632_05:7
+  - o_reg_632_05:9.1
+  - o_reg_632_05:11
   - cor_2020:COR-08
   - iso_45001:8.1.2
 

@@ -6,7 +6,10 @@ structure: procedure
 path: procedures/fall-protection.md
 
 satisfies:
-  - construction_safety_ca:CSA-FP-1
+  - o_reg_213_91:26
+  - o_reg_213_91:26.1
+  - o_reg_213_91:26.1(4)
+  - o_reg_213_91:26.3(1)
   - cor_2020:COR-10
   - iso_45001:8.1.2
 
@@ -29,7 +32,7 @@ declares:
     records: registers/fall-protection-inspections.md
     escalate: {after: 3d, to: site-supervisor}
     satisfies:
-      - construction_safety_ca:CSA-FP-2
+      - ohsa_ontario:25(1)
   register:
     title: Fall Protection Inspection Record
     note: >

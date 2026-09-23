@@ -1,0 +1,73 @@
+{
+  "id": "o_reg_559_22",
+  "name": "O. Reg. 559/22: Naloxone Kits",
+  "version": "O. Reg. 559/22, consolidated to 1 June 2023",
+  "description": "The regulation that gives section 25.2 of the Occupational Health and Safety Act its content. Section 25.2 came into force on 1 June 2023 and requires an employer who becomes aware, or ought reasonably to be aware, that there may be a risk of a worker having an opioid overdose at a workplace to provide and maintain a naloxone kit there. This regulation prescribes how the kit is kept — manufacturer's instructions, a hard case, unexpired single-use contents promptly replaced after use, and the names and locations of the trained workers in charge of it posted nearby — and exactly what a nasal spray kit and an injectable kit must contain. It has not been amended since it came into force.",
+  "authority": "Lieutenant Governor in Council, Ontario, under the Occupational Health and Safety Act",
+  "scope": "Every Ontario employer to whom subsection 25.2 (1) of the Act applies",
+  "applies_in": [
+    "CA-ON"
+  ],
+  "category": "government",
+  "status": "active",
+  "official_url": "https://www.ontario.ca/laws/regulation/220559",
+  "families": [
+    {
+      "id": "R559-KIT",
+      "name": "Naloxone Kits",
+      "description": "The two prescribing sections that give clause 25.2 (1) (b) and subsection 25.2 (6) of the Act their content: how a kit is provided and maintained, and what is in one.",
+      "controls": [
+        {
+          "id": "2",
+          "name": "Provision and Maintenance of a Naloxone Kit",
+          "description": "For the purposes of clause 25.2 (1) (b) of the Act: every naloxone kit shall be used, stored and maintained in accordance with the manufacturer's instructions; its contents shall be kept in a hard case; the contents shall be single use and promptly replaced after use; the contents shall not have expired; and the names and workplace locations of the workers in charge of the kit who have received the training referred to in subsection 25.2 (3) of the Act shall be posted in a conspicuous place in the vicinity of the kit.",
+          "family": "R559-KIT",
+          "framework": "o_reg_559_22",
+          "domains": [
+            "health_safety",
+            "equipment_integrity"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "naloxone",
+            "hard case",
+            "expiry",
+            "single use",
+            "posted names",
+            "in charge of the kit"
+          ],
+          "mapped_controls": [
+            "ohsa_ontario:25.2"
+          ]
+        },
+        {
+          "id": "3",
+          "name": "Contents of a Naloxone Kit",
+          "description": "For the purposes of subsection 25.2 (6) of the Act, a nasal spray kit shall contain two doses of intra-nasal spray each of 4 mg/0.1 ml naloxone hydrochloride, one rescue breathing barrier and one pair of non-latex gloves. An injectable kit shall contain two vials or ampoules each of a 0.4 mg/1 ml dose of naloxone, a safe opening device for each ampoule, two syringes each attached to a 25 gauge one-inch safety-engineered needle, two alcohol swabs, one rescue breathing barrier and one pair of non-latex gloves.",
+          "family": "R559-KIT",
+          "framework": "o_reg_559_22",
+          "domains": [
+            "health_safety",
+            "equipment_integrity"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "naloxone contents",
+            "nasal spray",
+            "injectable",
+            "safety-engineered needle",
+            "rescue breathing barrier"
+          ]
+        }
+      ]
+    }
+  ]
+}

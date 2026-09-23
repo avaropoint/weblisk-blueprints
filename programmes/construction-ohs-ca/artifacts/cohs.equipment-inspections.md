@@ -6,7 +6,8 @@ structure: procedure
 path: procedures/equipment-inspection.md
 
 satisfies:
-  - construction_safety_ca:CSA-SITE-2
+  - o_reg_213_91:14
+  - ohsa_ontario:25(1)
   - cor_2020:COR-12
   - isnetworld:ISN-SAFE-09
 

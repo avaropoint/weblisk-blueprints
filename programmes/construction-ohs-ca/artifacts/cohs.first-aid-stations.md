@@ -3,9 +3,12 @@ id: cohs.first-aid-stations
 kind: procedure
 title: First Aid Stations and Coverage
 structure: procedure
-path: procedures/first-aid.md
+path: procedures/first-aid-station.md
 
 satisfies:
+  - reg_1101_first_aid:1
+  - reg_1101_first_aid:5
+  - reg_1101_first_aid:6
   - cor_2020:COR-14
 
 requires: [cohs.site-emergency-response]
