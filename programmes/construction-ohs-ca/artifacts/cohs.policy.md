@@ -6,7 +6,8 @@ structure: policy
 path: policies/occupational-health-and-safety-policy.md
 
 satisfies:
-  - construction_safety_ca:CSA-OHS-1
+  - ohsa_ontario:25(2)(j)
+  - ohsa_ontario:25(2)(k)
   - cor_2020:COR-01
   - iso_45001:5.1
   - iso_45001:5.2
@@ -26,6 +27,7 @@ declares:
     records: registers/policy-reviews.md
     escalate: {after: 4w, to: senior-management}
     satisfies:
+      - ohsa_ontario:25(2)(j)
       - cor_2020:COR-01
       - iso_45001:5.2
   register:

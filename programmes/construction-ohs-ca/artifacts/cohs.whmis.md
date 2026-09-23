@@ -6,7 +6,10 @@ structure: procedure
 path: procedures/whmis.md
 
 satisfies:
-  - construction_safety_ca:CSA-TR-2
+  - ohsa_ontario:42
+  - reg_860_whmis:7
+  - reg_860_whmis:8
+  - reg_860_whmis:17
   - cor_2020:COR-16
 
 requires: [cohs.site-orientation]

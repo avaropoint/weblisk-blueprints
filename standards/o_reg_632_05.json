@@ -1,0 +1,364 @@
+{
+  "id": "o_reg_632_05",
+  "name": "O. Reg. 632/05: Confined Spaces",
+  "version": "O. Reg. 632/05, consolidated to 1 July 2016",
+  "description": "The Confined Spaces regulation made under the Occupational Health and Safety Act, applying to every Ontario workplace including construction projects. It requires a written programme before anyone enters, a written hazard assessment of each space, a written entry plan by a competent person, a separate entry permit for every entry, rescue procedures ready for immediate implementation before a worker goes in, an attendant outside, isolation of energy and atmospheric testing. Two things differ on a construction project and are easy to get wrong: training is governed by section 9.1 rather than sections 8 and 9, which are expressly disapplied to projects — so the annual programme review in subsection 8 (4) does NOT apply to construction — and retention under subsection 21 (2) runs for one year after the PROJECT is finished rather than one year from the record. Consolidated to 1 July 2016, last amended by O. Reg. 346/15.",
+  "authority": "Lieutenant Governor in Council, Ontario, under the Occupational Health and Safety Act",
+  "scope": "Every Ontario workplace, including construction projects, that includes a confined space a worker may enter",
+  "applies_in": [
+    "CA-ON"
+  ],
+  "category": "government",
+  "status": "active",
+  "official_url": "https://www.ontario.ca/laws/regulation/050632",
+  "families": [
+    {
+      "id": "R632-PROG",
+      "name": "Programme, Assessment and Plan",
+      "description": "Sections 4 to 7. The written programme a workplace with confined spaces must have, the hazard assessment behind it, and the written entry plan for each space.",
+      "controls": [
+        {
+          "id": "4",
+          "name": "Confined Spaces With Multi-Employer Involvement",
+          "description": "Where more than one employer is involved at a workplace with a confined space, section 4 requires the employers to co-ordinate, and a written co-ordination document naming who does what before a worker enters.",
+          "family": "R632-PROG",
+          "framework": "o_reg_632_05",
+          "domains": [
+            "health_safety",
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "multi-employer",
+            "co-ordination document",
+            "confined space",
+            "constructor"
+          ]
+        },
+        {
+          "id": "5",
+          "name": "Written Confined Space Programme",
+          "description": "If a workplace includes a confined space that workers may enter to perform work, the employer shall ensure that a written programme for the confined space is developed and maintained in accordance with the Regulation before a worker enters it. One programme may apply to one or more confined spaces.",
+          "family": "R632-PROG",
+          "framework": "o_reg_632_05",
+          "domains": [
+            "health_safety",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "confined space programme",
+            "written",
+            "before entry",
+            "one or more spaces"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-08"
+          ]
+        },
+        {
+          "id": "6",
+          "name": "Written Hazard Assessment for Each Confined Space",
+          "description": "Before any worker enters a confined space, the employer shall ensure an adequate assessment of the hazards related to that space has been carried out. The assessment shall be recorded in writing and shall consider, for each space, the hazards subsection 6 (2) lists.",
+          "family": "R632-PROG",
+          "framework": "o_reg_632_05",
+          "domains": [
+            "health_safety",
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "hazard assessment",
+            "written",
+            "each confined space",
+            "before entry",
+            "inventory"
+          ]
+        },
+        {
+          "id": "7",
+          "name": "Written Entry Plan Developed by a Competent Person",
+          "description": "Before any worker enters a confined space, the employer shall ensure that an adequate written plan, including procedures for the control of the hazards identified in the assessment, has been developed and implemented by a competent person for that space. The plan may be incorporated into an entry permit under section 10.",
+          "family": "R632-PROG",
+          "framework": "o_reg_632_05",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "entry plan",
+            "competent person",
+            "control of hazards",
+            "written",
+            "incorporated into the permit"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R632-TRAIN",
+      "name": "Training",
+      "description": "Section 9.1. The training a worker who enters a confined space on a project must have. Sections 8 and 9 expressly do not apply to projects.",
+      "controls": [
+        {
+          "id": "9.1",
+          "name": "Training for Confined Space Work on a Project",
+          "description": "This section applies only to workplaces that are projects. The employer shall ensure that every worker who enters a confined space or performs related work receives adequate training to perform the work safely in accordance with the relevant plan, covering the matters subsection 9.1 (3) lists. Sections 8 and 9 — the general training provisions and their annual programme review — do not apply to projects.",
+          "family": "R632-TRAIN",
+          "framework": "o_reg_632_05",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "confined space training",
+            "project",
+            "plan specific",
+            "attendant",
+            "entrant",
+            "rescue"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R632-ENTRY",
+      "name": "Entry Controls",
+      "description": "Sections 10 to 20. The permit issued for each entry, the rescue arrangement, isolation, the attendant and atmospheric testing.",
+      "controls": [
+        {
+          "id": "10",
+          "name": "A Separate Entry Permit For Each Entry",
+          "description": "The employer shall ensure that a separate entry permit is issued each time work is to be performed in a confined space, before any worker enters it. The permit shall be adequate and shall include at least the matters subsection 10 (2) lists.",
+          "family": "R632-ENTRY",
+          "framework": "o_reg_632_05",
+          "domains": [
+            "health_safety",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "entry permit",
+            "separate permit",
+            "each entry",
+            "before entry",
+            "adequate"
+          ]
+        },
+        {
+          "id": "11",
+          "name": "Written On-Site Rescue Procedures Ready for Immediate Implementation",
+          "description": "No worker shall enter or remain in a confined space unless adequate written on-site rescue procedures that apply to that space have been developed in accordance with the relevant plan and are ready for immediate implementation. Before a worker enters, an adequate number of persons trained in the matters subsection 11 (3) lists shall be available for immediate implementation of those procedures.",
+          "family": "R632-ENTRY",
+          "framework": "o_reg_632_05",
+          "domains": [
+            "health_safety",
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "rescue procedures",
+            "on-site",
+            "immediate implementation",
+            "trained rescuers",
+            "standby"
+          ]
+        },
+        {
+          "id": "12",
+          "name": "Rescue Equipment and Communication",
+          "description": "The employer shall ensure the rescue equipment identified in the relevant plan is readily available to effect a rescue in the confined space and meets the further requirements of section 12, and that the means of communication the plan identifies are in place.",
+          "family": "R632-ENTRY",
+          "framework": "o_reg_632_05",
+          "domains": [
+            "health_safety",
+            "equipment_integrity",
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "rescue equipment",
+            "tripod",
+            "retrieval",
+            "communication",
+            "readily available"
+          ]
+        },
+        {
+          "id": "13",
+          "name": "Personal Protective Equipment for Confined Space Entry",
+          "description": "The employer shall ensure that each worker who enters a confined space is provided with adequate personal protective equipment, clothing and devices in accordance with the relevant plan.",
+          "family": "R632-ENTRY",
+          "framework": "o_reg_632_05",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "PPE",
+            "respirator",
+            "harness",
+            "confined space",
+            "per the plan"
+          ]
+        },
+        {
+          "id": "14",
+          "name": "Isolation of Energy and Control of Materials Movement",
+          "description": "Section 14 requires that, in accordance with the relevant plan, energy be isolated and the movement of materials into the confined space be controlled before and while a worker is inside.",
+          "family": "R632-ENTRY",
+          "framework": "o_reg_632_05",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "isolation",
+            "lockout",
+            "blanking",
+            "energy",
+            "materials movement"
+          ]
+        },
+        {
+          "id": "15",
+          "name": "Attendant Stationed Outside the Space",
+          "description": "Section 15 requires an attendant, stationed outside the confined space, in constant communication with the workers inside and able to summon the rescue procedures, in accordance with the relevant plan.",
+          "family": "R632-ENTRY",
+          "framework": "o_reg_632_05",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "attendant",
+            "standby person",
+            "constant communication",
+            "outside the space"
+          ]
+        },
+        {
+          "id": "18",
+          "name": "Atmospheric Testing Before and During Entry",
+          "description": "The employer shall appoint a person with adequate knowledge, training and experience to perform adequate tests as often as necessary before and while a worker is in a confined space, to ensure that acceptable atmospheric levels are maintained in accordance with the relevant plan. Where the space has been both unoccupied and unattended, tests shall be performed before a worker enters or re-enters.",
+          "family": "R632-ENTRY",
+          "framework": "o_reg_632_05",
+          "domains": [
+            "health_safety",
+            "equipment_integrity"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "atmospheric testing",
+            "oxygen",
+            "flammable",
+            "toxic",
+            "before re-entry",
+            "gas detector"
+          ]
+        },
+        {
+          "id": "20",
+          "name": "Purging and Ventilation",
+          "description": "Where atmospheric hazards of the kind described in clause (b) or (c) of the definition exist or are likely to exist in a confined space, the space shall be purged, ventilated or both before any worker enters it, so that acceptable atmospheric levels are maintained while any worker is inside.",
+          "family": "R632-ENTRY",
+          "framework": "o_reg_632_05",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "purging",
+            "ventilation",
+            "acceptable atmospheric levels",
+            "before entry"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R632-REC",
+      "name": "Records",
+      "description": "Section 21. How long the assessments, plans, permits, training and test records are kept, and the different clock that runs on a project.",
+      "controls": [
+        {
+          "id": "21",
+          "name": "Retention of Confined Space Records",
+          "description": "At a workplace that is not a project, every assessment, plan, co-ordination document, training record, entry permit, inspection record and test record shall be retained for the longer of one year after the document is created and until it is superseded, as subsection 21 (1) sets out. On a project, subsection 21 (2) requires the records to be kept available at the project and retained for one year after the project is finished — a clock that runs from the end of the project, not from the creation of the record.",
+          "family": "R632-REC",
+          "framework": "o_reg_632_05",
+          "domains": [
+            "health_safety",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "retention",
+            "one year",
+            "project finished",
+            "kept at the project",
+            "permits",
+            "test records"
+          ]
+        }
+      ]
+    }
+  ]
+}

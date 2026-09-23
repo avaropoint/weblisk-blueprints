@@ -2,14 +2,16 @@
   "id": "construction_safety_ca",
   "name": "Construction Safety (Canada)",
   "version": "2024",
-  "description": "Industry occupational health & safety standard for construction, aligned with CSA Z1000 OHS management principles and common Canadian provincial OH&S construction requirements. Representative starter catalog; align to the applicable provincial OH&S regulation (e.g. Ontario O. Reg. 213/91, Alberta OHS Code) for your jurisdiction.",
+  "description": "A representative starter catalogue of construction health and safety controls, loosely aligned to CSA Z1000 management principles and to common Canadian provincial construction requirements. It was never a published standard: its control identifiers (CSA-OHS-1, CSA-TR-2, CSA-FP-1 and the rest) were invented for this catalogue, and no authority issues or recognises them — CSA Z1000 and its successor number their clauses 4.1, 4.2 and so on, and an Ontario duty is numbered by the section of the instrument that imposes it. Superseded and retained only so that an organisation which adopted it can still read its own history; nothing new should cite it.",
   "authority": "CSA Group / provincial OH&S regulators",
   "scope": "Construction employers, general contractors, and trades operating on Canadian job sites",
   "applies_in": [
     "CA"
   ],
   "category": "industry",
-  "status": "active",
+  "status": "superseded",
+  "supersedes": "Nothing — this catalogue had no prior edition. It is itself superseded, and in two directions. For management-system content, by CSA Z45001:19, Occupational health and safety management systems — Requirements with guidance for use (the Canadian adoption of ISO 45001:2018), which replaced CSA Z1000-14. For anything legally binding in Ontario, by the instruments that actually impose the duty: the Occupational Health and Safety Act, R.S.O. 1990, c. O.1, and the regulations made under it — O. Reg. 213/91 (Construction Projects), O. Reg. 297/13 (Occupational Health and Safety Awareness and Training), O. Reg. 632/05 (Confined Spaces), O. Reg. 278/05 (Designated Substance — Asbestos), O. Reg. 559/22 (Naloxone Kits) and R.R.O. 1990, Reg. 860 (WHMIS) — together with the Workplace Safety and Insurance Act, 1997, S.O. 1997, c. 16, Sched. A and R.R.O. 1990, Reg. 1101 (First Aid Requirements).",
+  "changes_summary": "Retired 2026-09-22. Its description always called it a \"representative starter catalog\"; what made retirement necessary is that it was being CITED as though it were not one. Eighteen citations in the Ontario construction programme pointed at control identifiers no auditor could look up, while that programme's own prose cited O. Reg. 213/91 thirteen times with nowhere to cite it. Those citations now name the sections of the instruments themselves. A superseded standard is never deleted: evidence was gathered against it, and an audit of a past period is judged against what applied then.",
   "families": [
     {
       "id": "OHSMS",

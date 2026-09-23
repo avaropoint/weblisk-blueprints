@@ -6,7 +6,10 @@ structure: procedure
 path: procedures/protective-equipment.md
 
 satisfies:
-  - construction_safety_ca:CSA-PPE-1
+  - ohsa_ontario:25(1)
+  - o_reg_213_91:21
+  - o_reg_213_91:22
+  - o_reg_213_91:23
   - cor_2020:COR-10
   - isnetworld:ISN-SAFE-08
 

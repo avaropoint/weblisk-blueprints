@@ -1,0 +1,1019 @@
+{
+  "id": "ohsa_ontario",
+  "name": "Occupational Health and Safety Act (Ontario)",
+  "version": "R.S.O. 1990, c. O.1, consolidated to 27 November 2025",
+  "description": "Ontario's occupational health and safety statute and the spine of every health and safety obligation in the province. It creates the internal responsibility system — constructor, employer, supervisor, worker, owner, supplier, and the directors and officers of a corporation each owing their own duty — and it is the Act under which every construction regulation cited by an Ontario safety programme is made. For a constructor the load-bearing provisions are section 23 (the constructor's overall duty on a project), section 25 (the employer's duties, including the general duty in clause 25 (2) (h) and the annual policy review in clause 25 (2) (j)), Part III.0.1 (workplace violence and harassment), Part V (the right to refuse), Part VI (reprisals) and Part VII (what must be reported and how fast). Consolidated to 27 November 2025; last amended by 2025, c. 13, Sched. 4, which made accredited health and safety management systems equivalents for any purpose for which they are required.",
+  "authority": "Legislative Assembly of Ontario; administered by the Ministry of Labour, Immigration, Training and Skills Development",
+  "scope": "Every workplace in Ontario and every constructor, employer, supervisor, worker, owner, supplier, director and officer connected with one, subject to the exclusions in Part I",
+  "applies_in": [
+    "CA-ON"
+  ],
+  "category": "government",
+  "status": "active",
+  "official_url": "https://www.ontario.ca/laws/statute/90o01",
+  "families": [
+    {
+      "id": "OHSA-IRS",
+      "name": "Internal Responsibility System",
+      "description": "Part II. Worker representation at the workplace — the health and safety representative, the joint health and safety committee, and the Chief Prevention Officer's accreditation of a health and safety management system.",
+      "controls": [
+        {
+          "id": "7.6.1",
+          "name": "Accreditation of Health and Safety Management Systems",
+          "description": "The Chief Prevention Officer may accredit a health and safety management system against standards the Officer establishes. Since 27 November 2025, accredited systems are equivalents and shall be treated as such for any purpose for which they are required.",
+          "family": "OHSA-IRS",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "governance"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "accreditation",
+            "health and safety management system",
+            "chief prevention officer",
+            "OHSMS",
+            "equivalency"
+          ],
+          "mapped_controls": [
+            "iso_45001:5.1"
+          ]
+        },
+        {
+          "id": "7.6.2",
+          "name": "Recognition of Employers",
+          "description": "On application, the Chief Prevention Officer may recognise an employer for one or more of its workplaces if the employer is a certified user of an accredited health and safety management system and meets the Officer's criteria.",
+          "family": "OHSA-IRS",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "governance"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "recognition",
+            "certified user",
+            "supporting ontario's safe employers",
+            "accredited system"
+          ]
+        },
+        {
+          "id": "8(1)",
+          "name": "Health and Safety Representative Selected",
+          "description": "At a project or other workplace where no committee is required under section 9 and the number of workers regularly exceeds five, the constructor or employer shall cause the workers to select at least one health and safety representative from among the workers who do not exercise managerial functions.",
+          "family": "OHSA-IRS",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "health and safety representative",
+            "worker representation",
+            "selection",
+            "project"
+          ]
+        },
+        {
+          "id": "8(6)",
+          "name": "Monthly Inspection by the Health and Safety Representative",
+          "description": "Unless otherwise required by the regulations or by an inspector's order, the health and safety representative shall inspect the physical condition of the workplace at least once a month. Where that is not practical, subsection 8 (7) requires inspection at least once a year with at least a part inspected in each month, on a schedule agreed with the constructor or employer.",
+          "family": "OHSA-IRS",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "workplace inspection",
+            "monthly",
+            "representative",
+            "schedule",
+            "physical condition"
+          ]
+        },
+        {
+          "id": "9(2)",
+          "name": "Joint Health and Safety Committee Required",
+          "description": "A joint health and safety committee is required at a workplace where twenty or more workers are regularly employed, where an order under section 33 is in effect, or where a designated substance regulation applies other than at a construction project with fewer than twenty workers. Section 9 does not apply to a constructor at a project expected to last less than three months.",
+          "family": "OHSA-IRS",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "joint health and safety committee",
+            "JHSC",
+            "twenty workers",
+            "committee required",
+            "three months"
+          ],
+          "mapped_controls": [
+            "o_reg_297_13:5"
+          ]
+        },
+        {
+          "id": "9(26)",
+          "name": "Monthly Workplace Inspection by a Committee Member",
+          "description": "Unless otherwise required by the regulations or by an inspector's order, the committee member designated under subsection 9 (23) shall inspect the physical condition of the workplace at least once a month. Where that is not practical, subsection 9 (27) requires inspection at least once a year with at least a part inspected in each month, on a schedule established by the committee.",
+          "family": "OHSA-IRS",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "workplace inspection",
+            "monthly",
+            "committee member",
+            "designated",
+            "schedule"
+          ]
+        },
+        {
+          "id": "9(32)",
+          "name": "Committee Members' Names Posted",
+          "description": "A constructor or employer required to establish a committee shall post and keep posted the names and work locations of the committee members.",
+          "family": "OHSA-IRS",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "governance"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "posting",
+            "committee members",
+            "names",
+            "work locations"
+          ]
+        },
+        {
+          "id": "9(33)",
+          "name": "Committee Meets at Least Once Every Three Months",
+          "description": "A committee shall meet at least once every three months, and may be required to meet by order of the Minister.",
+          "family": "OHSA-IRS",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "committee meeting",
+            "quarterly",
+            "three months",
+            "minutes"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OHSA-DUTY",
+      "name": "Duties of Employers and Other Persons",
+      "description": "Part III. The duties the Act places on the constructor, the employer, the supervisor, the worker, the project owner, the supplier, and the directors and officers of a corporation.",
+      "controls": [
+        {
+          "id": "23(1)",
+          "name": "Duties of the Constructor on a Project",
+          "description": "A constructor shall ensure, on a project it undertakes, that the measures and procedures prescribed by the Act and the regulations are carried out, that every employer and worker on the project complies with the Act and the regulations, and that the health and safety of workers on the project is protected.",
+          "family": "OHSA-DUTY",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "constructor",
+            "project",
+            "duty",
+            "compliance",
+            "overall responsibility"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-03"
+          ]
+        },
+        {
+          "id": "23(2)",
+          "name": "Notice of Project",
+          "description": "Where so prescribed, a constructor shall give a Director written notice of the project, containing the prescribed information, before commencing any work on the project.",
+          "family": "OHSA-DUTY",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "trade_regulatory"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "notice of project",
+            "director",
+            "before work begins",
+            "notification"
+          ],
+          "mapped_controls": [
+            "o_reg_213_91:6"
+          ]
+        },
+        {
+          "id": "25(1)",
+          "name": "Employer's Prescribed Duties",
+          "description": "An employer shall ensure that prescribed equipment, materials and protective devices are provided and maintained in good condition, that personal protective clothing and equipment provided, worn or used is a proper fit and appropriate in the circumstances, that prescribed measures and procedures are carried out, that equipment is used as prescribed, and that any part of a workplace is capable of supporting the loads applied to it.",
+          "family": "OHSA-DUTY",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "equipment_integrity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "equipment",
+            "protective devices",
+            "maintenance",
+            "proper fit",
+            "load capacity"
+          ]
+        },
+        {
+          "id": "25(2)(a)",
+          "name": "Information, Instruction and Supervision",
+          "description": "An employer shall provide information, instruction and supervision to a worker to protect the health or safety of the worker.",
+          "family": "OHSA-DUTY",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "information",
+            "instruction",
+            "supervision",
+            "training",
+            "orientation"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-16",
+            "iso_45001:7.3"
+          ]
+        },
+        {
+          "id": "25(2)(c)",
+          "name": "A Competent Person is Appointed Supervisor",
+          "description": "When appointing a supervisor, an employer shall appoint a competent person. Under subsection 25 (3) an employer who is a competent person may appoint himself or herself.",
+          "family": "OHSA-DUTY",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "competent person",
+            "supervisor",
+            "appointment",
+            "competency"
+          ]
+        },
+        {
+          "id": "25(2)(d)",
+          "name": "Workers Acquainted with the Hazards",
+          "description": "An employer shall acquaint a worker, or a person in authority over a worker, with any hazard in the work and in the handling, storage, use, disposal and transport of any article, device, equipment or biological, chemical or physical agent.",
+          "family": "OHSA-DUTY",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "hazard awareness",
+            "handling",
+            "storage",
+            "transport",
+            "acquaint"
+          ]
+        },
+        {
+          "id": "25(2)(h)",
+          "name": "Every Precaution Reasonable in the Circumstances",
+          "description": "An employer shall take every precaution reasonable in the circumstances for the protection of a worker. The general duty against which any hazard the Act and regulations do not name is measured, and the provision most often charged after an incident.",
+          "family": "OHSA-DUTY",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "general duty",
+            "reasonable precaution",
+            "due diligence",
+            "hazard assessment",
+            "risk assessment"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-06",
+            "iso_45001:6.1.2"
+          ]
+        },
+        {
+          "id": "25(2)(i)",
+          "name": "The Act and Explanatory Material Posted",
+          "description": "An employer shall post, in a conspicuous place at the workplace or in a readily accessible electronic format, a copy of the Act and any Ministry explanatory material, in English and the majority language of the workplace.",
+          "family": "OHSA-DUTY",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "records_management"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "posting",
+            "act",
+            "explanatory material",
+            "majority language"
+          ]
+        },
+        {
+          "id": "25(2)(j)",
+          "name": "Written Health and Safety Policy, Reviewed at Least Annually",
+          "description": "An employer shall prepare and review at least annually a written occupational health and safety policy, and develop and maintain a programme to implement it. Subsection 25 (4) exempts a workplace at which five or fewer workers are regularly employed unless otherwise prescribed.",
+          "family": "OHSA-DUTY",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "health and safety policy",
+            "annual review",
+            "programme",
+            "written policy",
+            "signed"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-01",
+            "iso_45001:5.2"
+          ]
+        },
+        {
+          "id": "25(2)(k)",
+          "name": "Health and Safety Policy Posted",
+          "description": "An employer shall post a copy of the occupational health and safety policy in a conspicuous place at the workplace or in a readily accessible electronic format.",
+          "family": "OHSA-DUTY",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "governance"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "posting",
+            "policy",
+            "conspicuous place"
+          ]
+        },
+        {
+          "id": "25.2",
+          "name": "Naloxone Kits",
+          "description": "Where an employer becomes aware, or ought reasonably to be aware, that there may be a risk of a worker having an opioid overdose at a workplace, or where the prescribed circumstances exist, the employer shall provide and maintain a naloxone kit in good condition and comply with the prescribed requirements. The kit shall be in the charge of a trained worker working in its vicinity whenever workers are present. No more personal information may be disclosed than is reasonably necessary.",
+          "family": "OHSA-DUTY",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "naloxone",
+            "opioid overdose",
+            "kit",
+            "training",
+            "privacy"
+          ],
+          "mapped_controls": [
+            "o_reg_559_22:2"
+          ]
+        },
+        {
+          "id": "27",
+          "name": "Duties of a Supervisor",
+          "description": "A supervisor shall ensure that a worker works in the manner and with the protective devices, measures and procedures required by the Act and the regulations and uses or wears what the employer requires; shall advise a worker of any potential or actual danger of which the supervisor is aware; shall provide written instructions where prescribed; and shall take every precaution reasonable in the circumstances for the protection of a worker.",
+          "family": "OHSA-DUTY",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "supervisor",
+            "duties",
+            "written instructions",
+            "danger",
+            "reasonable precaution"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-04"
+          ]
+        },
+        {
+          "id": "28",
+          "name": "Duties of a Worker",
+          "description": "A worker shall work in compliance with the Act and the regulations, use or wear what the employer requires, and report any absent or defective protective equipment, any contravention and any hazard. A worker shall not make a protective device ineffective, work in a manner that may endanger anyone, or engage in horseplay.",
+          "family": "OHSA-DUTY",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "worker duties",
+            "report hazard",
+            "protective device",
+            "horseplay"
+          ]
+        },
+        {
+          "id": "30",
+          "name": "Designated Substances Named Before Tender",
+          "description": "Before beginning a project, the owner shall determine whether any designated substance is present at the site, prepare a list of them and include it in the tender documents. The constructor shall ensure that every prospective contractor and subcontractor receives the list before entering a binding contract. An owner or constructor who fails to comply is liable for the resulting loss.",
+          "family": "OHSA-DUTY",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "vendor_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "designated substance",
+            "tender",
+            "asbestos",
+            "lead",
+            "silica",
+            "prospective contractor"
+          ],
+          "mapped_controls": [
+            "o_reg_278_05:10"
+          ]
+        },
+        {
+          "id": "31(1)",
+          "name": "Duties of Suppliers",
+          "description": "Every person who supplies a machine, device, tool or equipment under a rental, leasing or similar arrangement for use in or about a workplace shall ensure it is in good condition, complies with the Act and the regulations, and, where it is that person's responsibility under the arrangement, is maintained in good condition.",
+          "family": "OHSA-DUTY",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "equipment_integrity",
+            "vendor_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "supplier",
+            "rental",
+            "leasing",
+            "equipment condition",
+            "hire"
+          ]
+        },
+        {
+          "id": "32",
+          "name": "Duties of Directors and Officers of a Corporation",
+          "description": "Every director and every officer of a corporation shall take all reasonable care to ensure that the corporation complies with the Act and the regulations, with the orders and requirements of inspectors and Directors, and with the orders of the Minister.",
+          "family": "OHSA-DUTY",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "director",
+            "officer",
+            "due diligence",
+            "reasonable care",
+            "personal liability"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OHSA-VH",
+      "name": "Violence and Harassment",
+      "description": "Part III.0.1. Workplace violence and workplace harassment: the two policies, the two programmes, the risk assessment, and the investigation duty.",
+      "controls": [
+        {
+          "id": "32.0.1",
+          "name": "Workplace Violence and Harassment Policies, Reviewed at Least Annually",
+          "description": "An employer shall prepare a policy with respect to workplace violence and a policy with respect to workplace harassment, and review the policies as often as is necessary but at least annually. The policies shall be in written form and posted at a conspicuous place in the workplace or in a readily accessible electronic format, unless five or fewer workers are regularly employed and an inspector has not ordered otherwise.",
+          "family": "OHSA-VH",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "governance",
+            "hr_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "workplace violence",
+            "workplace harassment",
+            "policy",
+            "annual review",
+            "posting"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-09"
+          ]
+        },
+        {
+          "id": "32.0.2",
+          "name": "Workplace Violence Programme",
+          "description": "An employer shall develop and maintain a programme to implement the workplace violence policy, including measures to control the identified risks, a means of summoning immediate assistance, and procedures for reporting and for investigating and dealing with incidents and complaints.",
+          "family": "OHSA-VH",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "incident_response"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "violence programme",
+            "summon assistance",
+            "reporting",
+            "investigation"
+          ]
+        },
+        {
+          "id": "32.0.3",
+          "name": "Assessment of the Risks of Workplace Violence",
+          "description": "An employer shall assess the risks of workplace violence arising from the nature of the workplace, the type of work and the conditions of work, taking into account circumstances common to similar workplaces, circumstances specific to the workplace, and any prescribed elements. The results shall be given to the committee or representative, or to the workers where there is neither, and the risks reassessed as often as is necessary.",
+          "family": "OHSA-VH",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "risk_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "violence risk assessment",
+            "reassessment",
+            "results",
+            "committee"
+          ]
+        },
+        {
+          "id": "32.0.4",
+          "name": "Domestic Violence",
+          "description": "If an employer becomes aware, or ought reasonably to be aware, that domestic violence likely to expose a worker to physical injury may occur in the workplace, the employer shall take every precaution reasonable in the circumstances for the protection of that worker.",
+          "family": "OHSA-VH",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "risk_management"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "domestic violence",
+            "reasonable precaution",
+            "physical injury"
+          ]
+        },
+        {
+          "id": "32.0.5",
+          "name": "Information and Instruction on Workplace Violence",
+          "description": "An employer shall provide a worker with information and instruction appropriate for the worker on the contents of the workplace violence policy and programme. Where a worker can be expected to encounter a person with a history of violent behaviour and the risk is likely to expose the worker to physical injury, the duty to inform extends to personal information about that risk, limited to what is reasonably necessary.",
+          "family": "OHSA-VH",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "training_competency",
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "information",
+            "instruction",
+            "history of violent behaviour",
+            "personal information",
+            "limit on disclosure"
+          ]
+        },
+        {
+          "id": "32.0.6",
+          "name": "Written Workplace Harassment Programme",
+          "description": "An employer shall, in consultation with the committee or representative, develop and maintain a written programme to implement the workplace harassment policy. It shall set out how workers report incidents, including where the employer or supervisor is the alleged harasser; how incidents and complaints are investigated and dealt with; how information will be kept confidential; and how the parties will be informed of the results.",
+          "family": "OHSA-VH",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "hr_security",
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "harassment programme",
+            "reporting",
+            "confidentiality",
+            "investigation",
+            "consultation"
+          ]
+        },
+        {
+          "id": "32.0.7",
+          "name": "Harassment Investigated and the Programme Reviewed at Least Annually",
+          "description": "An employer shall ensure that an investigation appropriate in the circumstances is conducted into incidents and complaints of workplace harassment, that the worker and the alleged harasser are informed in writing of the results and of any corrective action, and that the programme is reviewed as often as necessary but at least annually.",
+          "family": "OHSA-VH",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "incident_response",
+            "compliance_audit"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "harassment investigation",
+            "results in writing",
+            "corrective action",
+            "annual review"
+          ]
+        },
+        {
+          "id": "32.0.8",
+          "name": "Information and Instruction on Workplace Harassment",
+          "description": "An employer shall provide a worker with information and instruction appropriate for the worker on the contents of the workplace harassment policy and programme.",
+          "family": "OHSA-VH",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "information",
+            "instruction",
+            "harassment policy",
+            "harassment programme"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OHSA-TOX",
+      "name": "Toxic Substances",
+      "description": "Part IV. Hazardous materials and hazardous physical agents, and the instruction and training a worker exposed to them must receive.",
+      "controls": [
+        {
+          "id": "42",
+          "name": "Instruction and Training on Hazardous Materials, Reviewed at Least Annually",
+          "description": "In addition to the information and instruction required by clause 25 (2) (a), an employer shall ensure that a worker exposed or likely to be exposed to a hazardous material or a hazardous physical agent receives, and participates in, the prescribed instruction and training. It shall be developed and implemented in consultation with the committee or representative, and the training and the worker's familiarity with it reviewed in consultation at least annually, and more often on the committee's advice or on a change in circumstances.",
+          "family": "OHSA-TOX",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "training_competency",
+            "environmental"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "WHMIS",
+            "hazardous material",
+            "hazardous physical agent",
+            "annual review",
+            "consultation",
+            "training"
+          ],
+          "mapped_controls": [
+            "reg_860_whmis:7"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OHSA-REFUSE",
+      "name": "Right to Refuse Work and Reprisals",
+      "description": "Parts V and VI. The worker's right to refuse unsafe work and the prohibition on penalising a worker who exercises a right under the Act.",
+      "controls": [
+        {
+          "id": "43",
+          "name": "Refusal to Work",
+          "description": "A worker may refuse to work or do particular work where the worker has reason to believe that equipment or the physical condition of the workplace is likely to endanger the worker, or that a contravention is likely to endanger the worker, subject to the exclusions in subsections 43 (1) and (2). The Act sets out how the refusal is reported, investigated in the worker's presence, and escalated to an inspector.",
+          "family": "OHSA-REFUSE",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "right to refuse",
+            "unsafe work",
+            "investigation",
+            "inspector",
+            "stage one",
+            "stage two"
+          ]
+        },
+        {
+          "id": "50",
+          "name": "No Reprisal Against a Worker",
+          "description": "No employer or person acting on behalf of an employer shall dismiss, discipline, suspend, penalise, intimidate or coerce a worker because the worker has acted in compliance with the Act or the regulations or an order made under them, has sought their enforcement, or has given evidence in an enforcement proceeding or a Coroners Act inquest.",
+          "family": "OHSA-REFUSE",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "hr_security",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "reprisal",
+            "dismissal",
+            "discipline",
+            "whistleblower",
+            "complaint to the board"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OHSA-NOTICE",
+      "name": "Notices",
+      "description": "Part VII. What must be reported to the Ministry, to the committee or representative and to the trade union, and how quickly.",
+      "controls": [
+        {
+          "id": "51(1)",
+          "name": "Notice of a Death or Critical Injury",
+          "description": "Where a person is killed or critically injured from any cause at a workplace, the constructor, if any, and the employer shall notify an inspector, and the committee, health and safety representative and trade union, immediately by telephone or other direct means; and the employer shall, within forty-eight hours, send a written report of the circumstances containing the prescribed particulars to a Director and to the committee, representative and trade union.",
+          "family": "OHSA-NOTICE",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "incident_response",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "fatality",
+            "critical injury",
+            "immediate notice",
+            "forty-eight hours",
+            "written report",
+            "director"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-17"
+          ]
+        },
+        {
+          "id": "51(2)",
+          "name": "Preservation of the Scene",
+          "description": "Where a person is killed or critically injured at a workplace, no person shall interfere with, disturb, destroy, alter or carry away any wreckage, article or thing at the scene until an inspector gives permission, except to save life, relieve human suffering, maintain an essential public utility or transportation service, or prevent unnecessary damage to property.",
+          "family": "OHSA-NOTICE",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "preserve the scene",
+            "wreckage",
+            "inspector permission",
+            "do not disturb"
+          ]
+        },
+        {
+          "id": "52(1)",
+          "name": "Notice of an Accident, Explosion, Fire or Violence Causing Injury",
+          "description": "If a person is disabled from performing his or her usual work or requires medical attention because of an accident, explosion, fire or incident of workplace violence, but nobody dies or is critically injured, the employer shall within four days give written notice containing the prescribed particulars to the committee, health and safety representative and trade union, and to the Director if an inspector requires it.",
+          "family": "OHSA-NOTICE",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "incident_response",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "four days",
+            "lost time",
+            "medical attention",
+            "written notice",
+            "workplace violence"
+          ]
+        },
+        {
+          "id": "52(2)",
+          "name": "Notice of an Occupational Illness",
+          "description": "If an employer is advised by or on behalf of a worker that the worker has an occupational illness, or that a claim in respect of one has been filed with the Workplace Safety and Insurance Board, the employer shall give written notice within four days to a Director, to the committee or representative and to the trade union. Subsection 52 (3) applies the same duty in respect of a former worker.",
+          "family": "OHSA-NOTICE",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "incident_response",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "occupational illness",
+            "four days",
+            "former worker",
+            "WSIB claim",
+            "latency"
+          ]
+        },
+        {
+          "id": "53(1)",
+          "name": "Notice of an Incident at a Project Site",
+          "description": "If an accident, premature or unexpected explosion, fire, flood or inrush of water, failure of equipment, cave-in, subsidence, rockburst or other prescribed incident occurs at a project site, the constructor shall within two days give written notice with the prescribed particulars to the committee, representative and trade union, and to a Director unless a report under section 51 or a notice under section 52 has already been given.",
+          "family": "OHSA-NOTICE",
+          "framework": "ohsa_ontario",
+          "domains": [
+            "health_safety",
+            "incident_response",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "two days",
+            "project site",
+            "structural failure",
+            "cave-in",
+            "equipment failure",
+            "constructor"
+          ]
+        }
+      ]
+    }
+  ]
+}

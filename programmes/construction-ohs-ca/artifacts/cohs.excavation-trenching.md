@@ -6,7 +6,9 @@ structure: procedure
 path: procedures/excavation-and-trenching.md
 
 satisfies:
-  - construction_safety_ca:CSA-SITE-1
+  - o_reg_213_91:227
+  - o_reg_213_91:233
+  - o_reg_213_91:234
   - cor_2020:COR-08
 
 requires: [cohs.pre-task-hazard-assessment]

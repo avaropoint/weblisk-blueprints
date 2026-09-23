@@ -1692,5 +1692,5 @@
   "supersedes": "NIST SP 800-53 Rev 4 (2013)",
   "status": "active",
   "official_url": "https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final",
-  "changes_summary": "Consolidated security and privacy controls, outcome-based language, separated control selection from baselines into SP 800-53B"
+  "changes_summary": "Consolidated security and privacy controls, outcome-based language, separated control selection from baselines into SP 800-53B. NIST versions Revision 5 by patch release rather than by a new revision: the current patch release is 5.2.0, issued 27 August 2025 in response to Executive Order 14306, which adds control enhancements on software update and patch integrity — SA-15(13), SA-24, SI-2(7) and SI-7(12) — and updates SP 800-53A. Those four are NOT carried in this catalogue's control set, which is the Revision 5 baseline as published 23 September 2020. Stated rather than assumed: an organisation assessing against 5.2.0 must take those enhancements from NIST directly."
 }

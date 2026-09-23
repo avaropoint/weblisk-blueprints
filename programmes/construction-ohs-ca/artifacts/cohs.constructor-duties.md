@@ -6,6 +6,13 @@ structure: procedure
 path: procedures/duty-holders.md
 
 satisfies:
+  - ohsa_ontario:23(1)
+  - ohsa_ontario:27
+  - ohsa_ontario:28
+  - ohsa_ontario:32
+  - o_reg_213_91:5
+  - o_reg_213_91:13
+  - o_reg_213_91:15
   - cor_2020:COR-03
   - cor_2020:COR-04
   - iso_45001:5.3

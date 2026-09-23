@@ -6,7 +6,8 @@ structure: standard
 path: standards/competency-requirements.md
 
 satisfies:
-  - construction_safety_ca:CSA-TR-1
+  - ohsa_ontario:25(2)(c)
+  - o_reg_297_13:2
   - cor_2020:COR-16
   - iso_45001:7.2
   - isnetworld:ISN-SAFE-04

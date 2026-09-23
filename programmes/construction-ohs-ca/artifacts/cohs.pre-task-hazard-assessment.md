@@ -6,7 +6,7 @@ structure: procedure
 path: procedures/pre-task-hazard-assessment.md
 
 satisfies:
-  - construction_safety_ca:CSA-OHS-2
+  - ohsa_ontario:25(2)(h)
   - cor_2020:COR-06
   - iso_45001:6.1.2
   - iso_45001:6.1.4
@@ -28,7 +28,7 @@ declares:
     records: registers/pre-task-hazard-assessments.md
     escalate: {after: 1d, to: health-safety-lead}
     satisfies:
-      - construction_safety_ca:CSA-OHS-2
+      - ohsa_ontario:25(2)(h)
       - iso_45001:6.1.2
   register:
     title: Pre-Task Hazard Assessment Record

@@ -6,6 +6,8 @@ structure: procedure
 path: procedures/return-to-work.md
 
 satisfies:
+  - wsia_ontario:40
+  - wsia_ontario:41
   - cor_2020:COR-19
 
 requires: [cohs.wsib-account]

@@ -313,8 +313,68 @@ states that an unreadable escalation "is NOT silently ignored", and the only
 caller returns without a word — an obligation with an unreadable escalation path
 is indistinguishable from one that declared none.
 
-**5b — the packs themselves.** Move `packs/ohs` here, once 5a is released. Until
-then both locations resolve and neither is wrong.
+**5b — the packs themselves. DONE.** `packs/ohs` is now
+[`programmes/ohs/`](programmes/ohs/) — 29 artifacts and one map. `packs/` in
+Studio still resolves and is now what it should always have been: where an
+*installation* may drop a pack, not where we keep one. `document-control` stays
+embedded in the product; it is the management-system floor and moving it here
+would make the floor an option.
+
+Four things the move surfaced, all of which were invisible while the pack sat in
+the product tree beside nothing it could collide with.
+
+**A path is only unique within the pack that wrote it.** Merged into one
+catalogue, `ohs` and `construction-ohs-ca` both wanted
+`procedures/return-to-work.md` and `registers/emergency-drills.md`, and `ohs`
+wanted `procedures/internal-audit.md` — which `document-control`, present on
+every installation, already produces. Seven collisions in all. The loader reports
+a derived register colliding with anything; it says nothing about two AUTHORED
+artifacts at one path, which is the commoner case and the one a person browsing
+either pack cannot see.
+
+**`kind:` still is not checked, and two packs still carry undeclared kinds.**
+`ohs` had `kind: plan` and `kind: matrix`, neither of which
+[`schemas/kinds.md`](schemas/kinds.md) declares, so both resolved to the zero
+value — a node with no capabilities, answering controls it could not count
+toward. The same fault 11d5714 fixed in `construction-ohs-ca`, found the same way
+and not by any check.
+
+**`plans/` was a directory contradicting its only occupant**, exactly as it was
+in the other pack: one file, whose own `structure:` said `procedure`.
+
+**An obligation triggered by rows that nothing produces reports as no work.**
+`ohs` chained incident → investigation → corrective action and each artifact
+declared the register named after ITSELF rather than the one its obligation
+writes into, so every block sat one link upstream of where the engine
+materialises it: the incident register at the head of the chain was never
+produced at all, and `registers/investigations.md` was created carrying incident
+columns. The loader checked `records:` and not `for.records:`, so the chain the
+programme's own overview describes could not start and nothing said so. Studio
+now reports it.
+
+**5c — the word. DONE.** The container was called a **pack** in Studio's code and
+a **programme** everywhere a person reads: `programmes/` is the family here,
+`schemas/programme.md` is the declaring schema, and what a customer adopts is a
+programme. Two words, one thing — the fault this corpus already names for
+`satisfies`/`implements` and Studio names for platform/provider/integration.
+
+The distinction a pack *could* have carried is the container: a shipping unit
+holding a programme the way a crate holds what is in it. Nothing used it that
+way, and four measurements say so. Every provided container holds exactly one
+map. A container holding no map is not offered at all, so what makes one
+offerable is the programme in it. The name is carried for provenance and nothing
+joins on it. And **a path is unique across containers, not within one** — stated
+three sections above as a finding — so the container is not even a namespace. The
+capability was called `programme-packs`, which is the two words already conceding
+they name one thing.
+
+So programme won and pack was converted, in Studio: Go identifiers, the file
+names, the API routes (`/api/programmes/…`, with the old paths kept as aliases
+for a browser holding an older page), the UI, and the source capability — whose
+id is *persisted* in every installation's taxonomy and is therefore read under
+both spellings, converted once at load, and never written again. The on-disk
+layout inside a programme (`programs/`, `artifacts/`) is unchanged: it is content
+in this corpus and in every tenant's copy, and moving it is its own decision.
 
 **6 — a programme declares what it needs built.** Agents, workflows, tasks and
 forms, so `weblisk programme <id> init` can bootstrap an operating programme from

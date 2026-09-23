@@ -6,7 +6,9 @@ structure: procedure
 path: procedures/hoisting-and-rigging.md
 
 satisfies:
-  - construction_safety_ca:CSA-SITE-2
+  - o_reg_213_91:150
+  - o_reg_213_91:152
+  - o_reg_213_91:170
   - cor_2020:COR-08
   - cor_2020:COR-12
 

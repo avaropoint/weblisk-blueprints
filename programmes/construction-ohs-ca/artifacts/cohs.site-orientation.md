@@ -6,7 +6,9 @@ structure: procedure
 path: procedures/site-orientation.md
 
 satisfies:
-  - construction_safety_ca:CSA-TR-1
+  - ohsa_ontario:25(2)(a)
+  - o_reg_297_13:1
+  - o_reg_297_13:4
   - cor_2020:COR-16
   - iso_45001:7.3
 

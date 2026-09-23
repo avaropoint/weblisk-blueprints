@@ -6,7 +6,9 @@ structure: procedure
 path: procedures/suspended-access.md
 
 satisfies:
-  - construction_safety_ca:CSA-FP-1
+  - o_reg_213_91:7.1
+  - o_reg_213_91:138
+  - o_reg_213_91:138.1
   - cor_2020:COR-08
 
 requires: [cohs.fall-protection, cohs.credential-register]

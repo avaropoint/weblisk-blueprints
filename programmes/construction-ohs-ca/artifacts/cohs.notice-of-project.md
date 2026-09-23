@@ -6,6 +6,10 @@ structure: procedure
 path: procedures/notice-of-project.md
 
 satisfies:
+  - ohsa_ontario:23(2)
+  - o_reg_213_91:6
+  - o_reg_213_91:7
+  - o_reg_213_91:7.1
   - cor_2020:COR-04
   - iso_45001:6.1.3
 

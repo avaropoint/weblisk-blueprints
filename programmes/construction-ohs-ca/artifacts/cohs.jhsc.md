@@ -6,7 +6,9 @@ structure: procedure
 path: procedures/joint-health-and-safety-committee.md
 
 satisfies:
-  - construction_safety_ca:CSA-OHS-3
+  - ohsa_ontario:8(1)
+  - ohsa_ontario:9(2)
+  - ohsa_ontario:9(33)
   - cor_2020:COR-05
   - iso_45001:5.4
 
@@ -24,6 +26,7 @@ declares:
     records: registers/joint-health-and-safety-committee-meetings.md
     escalate: {after: 2w, to: constructor-representative}
     satisfies:
+      - ohsa_ontario:9(33)
       - cor_2020:COR-05
       - iso_45001:5.4
   register:

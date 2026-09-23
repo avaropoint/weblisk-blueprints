@@ -12,6 +12,7 @@
   "status": "active",
   "published_date": "2015-09-15",
   "official_url": "https://www.iso.org/standard/62085.html",
+  "changes_summary": "This entry is ISO 9001:2015, the fifth edition, and it remains the basis on which certificates are held. ISO published ISO 9001:2026, the sixth edition (ISO reference 88464), on 16 September 2026; it retains the process approach and the familiar clause framework while strengthening requirements around leadership, opportunities, planning of change and organizational knowledge. No transition end date is recorded here because none has been confirmed by an accreditation authority: every source available at the time of writing describes a three-year window ending “around September 2029” as expected and subject to formal confirmation, and an unconfirmed certification deadline is exactly the kind of fact that gets acted on. The 2026 controls are not carried here either — its clause identifiers need the purchased text and cannot be verified without it. An organisation intending to move to the 2026 edition should record that as an objective with a target date and an owner, not as a change to this file.",
   "families": [
     {
       "id": "9001-4",

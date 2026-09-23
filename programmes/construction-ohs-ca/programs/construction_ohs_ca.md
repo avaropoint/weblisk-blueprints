@@ -10,7 +10,15 @@ domains:
   - equipment_integrity
   - records_management
 conforms_to:
-  - construction_safety_ca
+  - ohsa_ontario
+  - o_reg_213_91
+  - o_reg_297_13
+  - o_reg_632_05
+  - o_reg_278_05
+  - o_reg_559_22
+  - reg_860_whmis
+  - wsia_ontario
+  - reg_1101_first_aid
   - cor_2020
   - iso_45001
   - isnetworld

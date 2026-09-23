@@ -23,31 +23,72 @@
           "id": "OESC-01",
           "name": "Electrical Contractor Licence (ECRA/ESA)",
           "description": "A current Electrical Contractor Registration Agency licence is held, its number is displayed as required, and renewal is tracked ahead of expiry.",
-          "family": "OESC-LIC", "framework": "esa_oesc",
-          "domains": ["trade_regulatory"],
+          "family": "OESC-LIC",
+          "framework": "esa_oesc",
+          "domains": [
+            "trade_regulatory"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["licence", "ecra", "esa", "contractor-licence", "renewal", "regulator"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "licence",
+            "ecra",
+            "esa",
+            "contractor-licence",
+            "renewal",
+            "regulator"
+          ]
         },
         {
           "id": "OESC-02",
           "name": "Master Electrician of Record",
           "description": "A designated Master Electrician is on record for the licence, currently certified, and a named successor arrangement exists so the licence is not exposed to a single departure.",
-          "family": "OESC-LIC", "framework": "esa_oesc",
-          "domains": ["trade_regulatory", "training_competency"],
+          "family": "OESC-LIC",
+          "framework": "esa_oesc",
+          "domains": [
+            "trade_regulatory",
+            "training_competency"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["master-electrician", "licence", "certification-currency", "competency", "succession"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "master-electrician",
+            "licence",
+            "certification-currency",
+            "competency",
+            "succession"
+          ]
         },
         {
           "id": "OESC-03",
           "name": "Certificate of Qualification and Apprenticeship Ratios",
           "description": "Electricians hold a valid Certificate of Qualification for the compulsory trade, apprentices are registered, and journeyperson-to-apprentice ratios are respected on site.",
-          "family": "OESC-LIC", "framework": "esa_oesc",
-          "domains": ["training_competency", "trade_regulatory"],
+          "family": "OESC-LIC",
+          "framework": "esa_oesc",
+          "domains": [
+            "training_competency",
+            "trade_regulatory"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["certificate-of-qualification", "apprentice", "journeyperson", "ticket", "competency", "skilled-trades", "ratio"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "certificate-of-qualification",
+            "apprentice",
+            "journeyperson",
+            "ticket",
+            "competency",
+            "skilled-trades",
+            "ratio"
+          ]
         }
       ]
     },
@@ -60,41 +101,97 @@
           "id": "OESC-04",
           "name": "Notification of Work to ESA",
           "description": "Notification is filed for work requiring it, before the required stage, and the notification number is recorded against the job.",
-          "family": "OESC-WORK", "framework": "esa_oesc",
-          "domains": ["trade_regulatory", "records_management"],
+          "family": "OESC-WORK",
+          "framework": "esa_oesc",
+          "domains": [
+            "trade_regulatory",
+            "records_management"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["notification", "esa", "permit", "inspection-authority", "records", "job-number"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "notification",
+            "esa",
+            "permit",
+            "inspection-authority",
+            "records",
+            "job-number"
+          ]
         },
         {
           "id": "OESC-05",
           "name": "Inspection and Certificate of Acceptance",
           "description": "Work is presented for inspection, defects are corrected and re-inspected, and the Certificate of Acceptance is obtained and filed with the project record.",
-          "family": "OESC-WORK", "framework": "esa_oesc",
-          "domains": ["trade_regulatory", "quality_management"],
+          "family": "OESC-WORK",
+          "framework": "esa_oesc",
+          "domains": [
+            "trade_regulatory",
+            "quality_management"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["inspection-authority", "certificate-of-acceptance", "defect", "deficiency", "records", "handover"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "inspection-authority",
+            "certificate-of-acceptance",
+            "defect",
+            "deficiency",
+            "records",
+            "handover"
+          ]
         },
         {
           "id": "OESC-06",
           "name": "Current Code Edition in Use",
           "description": "The edition in force is identified and used in design, estimating and installation, and the transition from a superseded edition is recorded including any grandfathered work.",
-          "family": "OESC-WORK", "framework": "esa_oesc",
-          "domains": ["trade_regulatory", "records_management"],
+          "family": "OESC-WORK",
+          "framework": "esa_oesc",
+          "domains": [
+            "trade_regulatory",
+            "records_management"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["code-edition", "code-compliance", "c22.1", "29th-edition", "transition", "grandfathering"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "code-edition",
+            "code-compliance",
+            "c22.1",
+            "29th-edition",
+            "transition",
+            "grandfathering"
+          ]
         },
         {
           "id": "OESC-07",
           "name": "Contract-Specified Edition Conflict",
           "description": "Where a contract or client specification names a superseded code edition, the conflict is recorded and resolved with the client rather than silently resolved in the field.",
-          "family": "OESC-WORK", "framework": "esa_oesc",
-          "domains": ["trade_regulatory", "quality_management"],
+          "family": "OESC-WORK",
+          "framework": "esa_oesc",
+          "domains": [
+            "trade_regulatory",
+            "quality_management"
+          ],
           "priority": "medium",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["code-edition", "contract", "specification", "conflict", "code-compliance", "records"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "code-edition",
+            "contract",
+            "specification",
+            "conflict",
+            "code-compliance",
+            "records"
+          ]
         }
       ]
     }

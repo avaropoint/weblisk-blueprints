@@ -1,0 +1,329 @@
+{
+  "id": "wsia_ontario",
+  "name": "Workplace Safety and Insurance Act, 1997 (Ontario)",
+  "version": "S.O. 1997, c. 16, Sched. A, consolidated to 24 April 2026",
+  "description": "Ontario's workers' compensation statute and the second legal chain every construction employer in the province stands in, beside the Occupational Health and Safety Act. It is a different regime with different duties: coverage and registration within ten days, compulsory coverage of independent operators, sole proprietors, partners and executive officers in construction, notice of an accident to the Board within three days, the prohibition on suppressing a claim, the continuing duty to co-operate in an injured worker's early and safe return to work, the obligation to re-employ, and — the provision a contractor meets most often — the clearance certificate that must be obtained before a directly retained contractor begins construction work and held for the whole duration of the contract. First aid is prescribed separately by R.R.O. 1990, Reg. 1101 made under this Act. Consolidated to 24 April 2026.",
+  "authority": "Legislative Assembly of Ontario; administered by the Workplace Safety and Insurance Board",
+  "scope": "Employers and workers in Ontario in Schedule 1 and Schedule 2 industries, and every person who directly retains a contractor or subcontractor to perform construction work",
+  "applies_in": [
+    "CA-ON"
+  ],
+  "category": "government",
+  "status": "active",
+  "official_url": "https://www.ontario.ca/laws/statute/97w16",
+  "families": [
+    {
+      "id": "WSIA-REG",
+      "name": "Registration and Coverage",
+      "description": "Sections 12.2 to 12.3 and 75 to 80. Who must register, the compulsory coverage of independent operators in construction, and the wage statements and records the Board requires.",
+      "controls": [
+        {
+          "id": "12.2",
+          "name": "Compulsory Coverage in Construction",
+          "description": "Every independent operator, every sole proprietor, and — except as the regulations otherwise provide — every partner in a partnership and every executive officer of a corporation carrying on business in construction is deemed to be a worker to whom the insurance plan applies. The narrow exemptions the section allows are the exception, not the rule, and a contractor who assumes an unincorporated trade is outside the plan is usually wrong.",
+          "family": "WSIA-REG",
+          "framework": "wsia_ontario",
+          "domains": [
+            "health_safety",
+            "vendor_management",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "compulsory coverage",
+            "independent operator",
+            "sole proprietor",
+            "partner",
+            "executive officer",
+            "construction"
+          ]
+        },
+        {
+          "id": "12.3",
+          "name": "Registration Within Ten Days",
+          "description": "Every independent operator, every sole proprietor who employs no workers, and every partner in a partnership that employs no workers carrying on business in construction shall register with the Board within 10 days after becoming such.",
+          "family": "WSIA-REG",
+          "framework": "wsia_ontario",
+          "domains": [
+            "trade_regulatory",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "registration",
+            "ten days",
+            "independent operator",
+            "construction"
+          ]
+        },
+        {
+          "id": "75",
+          "name": "Employer Registration Within Ten Days",
+          "description": "Every Schedule 1 and Schedule 2 employer shall register with the Board within 10 days after becoming such an employer, and a Schedule 1 employer shall on registering give the Board a statement of the total estimated wages workers are expected to earn during the current year.",
+          "family": "WSIA-REG",
+          "framework": "wsia_ontario",
+          "domains": [
+            "trade_regulatory",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "registration",
+            "ten days",
+            "schedule 1",
+            "schedule 2",
+            "estimated wages"
+          ]
+        },
+        {
+          "id": "78",
+          "name": "Annual Statement of Wages",
+          "description": "Every year, on or before the date specified by the Board, a Schedule 1 employer shall give the Board a statement setting out the total wages earned during the preceding year by all workers and such other information as the Board requests, and on request the estimated wages for the current year. The filing date is set by the Board rather than by the Act.",
+          "family": "WSIA-REG",
+          "framework": "wsia_ontario",
+          "domains": [
+            "trade_regulatory",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "annual statement",
+            "reconciliation",
+            "wages",
+            "schedule 1",
+            "date specified by the board"
+          ]
+        },
+        {
+          "id": "80",
+          "name": "Wage Records Kept in Ontario",
+          "description": "A Schedule 1 employer shall keep accurate records of all wages paid to its workers and shall keep the records in Ontario, and shall produce them when the Board or any of its officers requires it. Failure attracts an administrative penalty in addition to any penalty imposed by a court.",
+          "family": "WSIA-REG",
+          "framework": "wsia_ontario",
+          "domains": [
+            "records_management",
+            "trade_regulatory"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "wage records",
+            "kept in Ontario",
+            "produce on request",
+            "administrative penalty"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "WSIA-CLAIM",
+      "name": "Notice of Accident and Claims",
+      "description": "Sections 21 to 23. What the employer must report to the Board and when, the prohibition on suppressing a claim, and the continuing duty to give information.",
+      "controls": [
+        {
+          "id": "21",
+          "name": "Notice to the Board Within Three Days",
+          "description": "An employer shall notify the Board within three days after learning of an accident to a worker it employs if the accident necessitates health care or results in the worker not being able to earn full wages. The notice must be on a Board-approved form, and the employer shall give such other information as the Board requires. An employer who fails to comply shall pay the prescribed amount in addition to any penalty imposed by a court.",
+          "family": "WSIA-CLAIM",
+          "framework": "wsia_ontario",
+          "domains": [
+            "health_safety",
+            "incident_response",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "three days",
+            "form 7",
+            "notice of accident",
+            "health care",
+            "lost earnings",
+            "penalty"
+          ]
+        },
+        {
+          "id": "22.1",
+          "name": "No Claim Suppression",
+          "description": "No employer shall take any action, including the actions subsection 22.1 (2) prohibits, in respect of a worker with the intent of discouraging or preventing the worker from filing a claim for benefits, or of influencing or inducing the worker to withdraw or abandon a claim.",
+          "family": "WSIA-CLAIM",
+          "framework": "wsia_ontario",
+          "domains": [
+            "health_safety",
+            "hr_security",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "claim suppression",
+            "discourage",
+            "withdraw a claim",
+            "incentive programme",
+            "prohibited action"
+          ]
+        },
+        {
+          "id": "23",
+          "name": "Continuing Obligation to Provide Information",
+          "description": "A person receiving benefits, or who may be entitled to do so, shall give the Board such information as it requires from time to time in connection with the claim, and the Board may reduce or suspend payments while non-compliance continues. Section 23 also carries the duty to notify the Board of a material change in circumstances.",
+          "family": "WSIA-CLAIM",
+          "framework": "wsia_ontario",
+          "domains": [
+            "records_management"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "continuing obligation",
+            "material change",
+            "information to the board",
+            "suspension of payments"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "WSIA-RTW",
+      "name": "Return to Work",
+      "description": "Sections 40 to 42. The duty to co-operate in the worker's early and safe return to work, and the obligation to re-employ.",
+      "controls": [
+        {
+          "id": "40",
+          "name": "Duty to Co-operate in Return to Work",
+          "description": "The employer of an injured worker shall co-operate in the early and safe return to work of the worker by contacting the worker as soon as possible after the injury and maintaining communication throughout recovery and impairment; attempting to provide suitable employment that is available and consistent with the worker's functional abilities and, where possible, restores pre-injury earnings; giving the Board the information it requests about the return to work; and doing such other things as may be prescribed. The duty is continuous and the Act sets no review interval.",
+          "family": "WSIA-RTW",
+          "framework": "wsia_ontario",
+          "domains": [
+            "health_safety",
+            "hr_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "return to work",
+            "co-operate",
+            "suitable employment",
+            "functional abilities",
+            "contact the worker",
+            "modified duties"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-19"
+          ]
+        },
+        {
+          "id": "41",
+          "name": "Obligation to Re-employ",
+          "description": "The employer of a worker who has been unable to work as a result of an injury and who had been employed continuously for at least one year on the date of the injury shall offer to re-employ the worker in accordance with section 41. The section does not apply to employers who regularly employ fewer than 20 workers or to prescribed classes.",
+          "family": "WSIA-RTW",
+          "framework": "wsia_ontario",
+          "domains": [
+            "hr_security",
+            "health_safety"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "re-employment",
+            "one year",
+            "twenty workers",
+            "offer",
+            "injured worker"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "WSIA-CLEAR",
+      "name": "Contractors and Subcontractors in Construction",
+      "description": "Sections 141.1 and 141.2. The liability a person takes on by retaining a contractor, and the clearance certificate that answers it.",
+      "controls": [
+        {
+          "id": "141.1",
+          "name": "Liability for a Retained Contractor's Premiums",
+          "description": "Where a person directly retains a contractor or subcontractor to perform construction work, that person shall ensure the contractor or subcontractor complies with its payment obligations under the Act in respect of the work, and is liable as the section provides where it does not.",
+          "family": "WSIA-CLEAR",
+          "framework": "wsia_ontario",
+          "domains": [
+            "vendor_management",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "directly retained",
+            "contractor",
+            "premium liability",
+            "construction work",
+            "subcontractor"
+          ]
+        },
+        {
+          "id": "141.2",
+          "name": "Clearance Certificate Obtained Before Work Begins",
+          "description": "Before permitting a contractor or subcontractor it directly retains to begin construction work, the person shall obtain a certificate, or a copy of a certificate, issued by the Board under subsection 141.2 (3). The obligation runs for the duration of the work, not once at the start, so a certificate that expires part-way through a contract leaves the period after it unanswered.",
+          "family": "WSIA-CLEAR",
+          "framework": "wsia_ontario",
+          "domains": [
+            "vendor_management",
+            "trade_regulatory",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "clearance certificate",
+            "before work begins",
+            "directly retained",
+            "validity period",
+            "renewal"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-15"
+          ]
+        }
+      ]
+    }
+  ]
+}

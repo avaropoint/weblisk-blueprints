@@ -21,33 +21,73 @@
           "id": "PM-1",
           "name": "Security Control Profile",
           "description": "Select and tailor a security control profile appropriate to the information system's categorization (confidentiality, integrity, availability).",
-          "family": "SG", "framework": "itsg_33",
-          "domains": ["governance", "risk_management"],
+          "family": "SG",
+          "framework": "itsg_33",
+          "domains": [
+            "governance",
+            "risk_management"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["profile", "categorization", "tailoring", "cia"],
-          "mapped_controls": ["nist_800_53:PM-1"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "profile",
+            "categorization",
+            "tailoring",
+            "cia"
+          ],
+          "mapped_controls": [
+            "nist_800_53:PM-1"
+          ]
         },
         {
           "id": "RA-1",
           "name": "Security Assessment & Authorization",
           "description": "Assess controls and formally authorize the system to operate (ATO) based on residual risk acceptance by a delegated authority.",
-          "family": "SG", "framework": "itsg_33",
-          "domains": ["risk_management", "compliance_audit"],
+          "family": "SG",
+          "framework": "itsg_33",
+          "domains": [
+            "risk_management",
+            "compliance_audit"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["ato", "authorization", "assessment", "residual-risk"],
-          "mapped_controls": ["nist_800_53:CA-6"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "ato",
+            "authorization",
+            "assessment",
+            "residual-risk"
+          ],
+          "mapped_controls": [
+            "nist_800_53:CA-6"
+          ]
         },
         {
           "id": "CM-1",
           "name": "Continuous Monitoring",
           "description": "Maintain ongoing awareness of security posture through continuous monitoring of controls, vulnerabilities, and threats.",
-          "family": "SG", "framework": "itsg_33",
-          "domains": ["logging_monitoring", "vulnerability_management", "risk_management"],
+          "family": "SG",
+          "framework": "itsg_33",
+          "domains": [
+            "logging_monitoring",
+            "vulnerability_management",
+            "risk_management"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["continuous-monitoring", "posture", "conmon"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "continuous-monitoring",
+            "posture",
+            "conmon"
+          ]
         }
       ]
     },
@@ -60,23 +100,47 @@
           "id": "AC-2",
           "name": "Account Management",
           "description": "Manage system accounts including establishment, activation, modification, review, disabling, and removal with least privilege.",
-          "family": "AC", "framework": "itsg_33",
-          "domains": ["access_control"],
+          "family": "AC",
+          "framework": "itsg_33",
+          "domains": [
+            "access_control"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["account", "least-privilege", "provisioning"],
-          "mapped_controls": ["nist_800_53:AC-2"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "account",
+            "least-privilege",
+            "provisioning"
+          ],
+          "mapped_controls": [
+            "nist_800_53:AC-2"
+          ]
         },
         {
           "id": "IA-2",
           "name": "Multi-Factor Authentication",
           "description": "Uniquely identify and authenticate users; enforce multi-factor authentication for privileged and remote access.",
-          "family": "AC", "framework": "itsg_33",
-          "domains": ["access_control"],
+          "family": "AC",
+          "framework": "itsg_33",
+          "domains": [
+            "access_control"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["mfa", "authentication", "identity"],
-          "mapped_controls": ["nist_800_53:IA-2"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "mfa",
+            "authentication",
+            "identity"
+          ],
+          "mapped_controls": [
+            "nist_800_53:IA-2"
+          ]
         }
       ]
     },
@@ -89,23 +153,50 @@
           "id": "SC-13",
           "name": "Approved Cryptography (CMVP)",
           "description": "Use CCCS-approved cryptographic algorithms and CMVP-validated modules for protecting information in transit and at rest.",
-          "family": "SC", "framework": "itsg_33",
-          "domains": ["encryption", "network_security"],
+          "family": "SC",
+          "framework": "itsg_33",
+          "domains": [
+            "encryption",
+            "network_security"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["cryptography", "cmvp", "fips", "approved-algorithms"],
-          "mapped_controls": ["nist_800_53:SC-13"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "cryptography",
+            "cmvp",
+            "fips",
+            "approved-algorithms"
+          ],
+          "mapped_controls": [
+            "nist_800_53:SC-13"
+          ]
         },
         {
           "id": "SC-7",
           "name": "Boundary Protection",
           "description": "Monitor and control communications at external and key internal boundaries using managed interfaces and segmentation.",
-          "family": "SC", "framework": "itsg_33",
-          "domains": ["network_security"],
+          "family": "SC",
+          "framework": "itsg_33",
+          "domains": [
+            "network_security"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["boundary", "segmentation", "firewall", "zoning"],
-          "mapped_controls": ["nist_800_53:SC-7"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "boundary",
+            "segmentation",
+            "firewall",
+            "zoning"
+          ],
+          "mapped_controls": [
+            "nist_800_53:SC-7"
+          ]
         }
       ]
     },
@@ -118,12 +209,24 @@
           "id": "AU-2",
           "name": "Audit Event Logging",
           "description": "Determine, generate, and retain audit records for security-relevant events sufficient to support after-the-fact investigation.",
-          "family": "AU", "framework": "itsg_33",
-          "domains": ["logging_monitoring"],
+          "family": "AU",
+          "framework": "itsg_33",
+          "domains": [
+            "logging_monitoring"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["audit-log", "events", "retention"],
-          "mapped_controls": ["nist_800_53:AU-2"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "audit-log",
+            "events",
+            "retention"
+          ],
+          "mapped_controls": [
+            "nist_800_53:AU-2"
+          ]
         }
       ]
     },
@@ -136,12 +239,25 @@
           "id": "IR-4",
           "name": "Incident Handling & GC Reporting",
           "description": "Implement an incident handling capability and report cyber security events to CCCS and the appropriate GC authorities.",
-          "family": "IR", "framework": "itsg_33",
-          "domains": ["incident_response"],
+          "family": "IR",
+          "framework": "itsg_33",
+          "domains": [
+            "incident_response"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["incident", "reporting", "cccs", "handling"],
-          "mapped_controls": ["nist_800_53:IR-4"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "incident",
+            "reporting",
+            "cccs",
+            "handling"
+          ],
+          "mapped_controls": [
+            "nist_800_53:IR-4"
+          ]
         }
       ]
     }

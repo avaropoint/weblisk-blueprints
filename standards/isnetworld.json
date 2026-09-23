@@ -21,130 +21,310 @@
           "id": "ISN-SAFE-01",
           "name": "Safety Statistics (TRIR, LTIR, DART, EMR)",
           "description": "Injury and illness rates are compiled per period from verifiable records and submitted on schedule; figures reconcile to WSIB and internal incident records.",
-          "family": "ISN-SAFE", "framework": "isnetworld",
-          "domains": ["health_safety", "records_management"],
+          "family": "ISN-SAFE",
+          "framework": "isnetworld",
+          "domains": [
+            "health_safety",
+            "records_management"
+          ],
           "priority": "critical",
-          "requires_policy": false, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["statistics", "trir", "lost-time", "wsib", "safety", "records", "frequency-rate"],
-          "mapped_controls": ["cor_2020:COR-18"]
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "statistics",
+            "trir",
+            "lost-time",
+            "wsib",
+            "safety",
+            "records",
+            "frequency-rate"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-18"
+          ]
         },
         {
           "id": "ISN-SAFE-02",
           "name": "WSIB Clearance and Insurance Certificates",
           "description": "WSIB clearance certificate and certificates of insurance are current, cover the contracted scope and limits, and are refreshed before expiry.",
-          "family": "ISN-SAFE", "framework": "isnetworld",
-          "domains": ["trade_regulatory", "records_management"],
+          "family": "ISN-SAFE",
+          "framework": "isnetworld",
+          "domains": [
+            "trade_regulatory",
+            "records_management"
+          ],
           "priority": "critical",
-          "requires_policy": false, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["wsib-clearance", "insurance", "licence", "certificate", "records", "expiry"]
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "wsib-clearance",
+            "insurance",
+            "licence",
+            "certificate",
+            "records",
+            "expiry"
+          ]
         },
         {
           "id": "ISN-SAFE-03",
           "name": "Written Health and Safety Programme",
           "description": "A complete written health and safety programme exists covering the trades performed, and matches what is actually done on site.",
-          "family": "ISN-SAFE", "framework": "isnetworld",
-          "domains": ["health_safety"],
+          "family": "ISN-SAFE",
+          "framework": "isnetworld",
+          "domains": [
+            "health_safety"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["safety", "programme", "written", "ohsa", "hazard"],
-          "mapped_controls": ["cor_2020:COR-01"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "safety",
+            "programme",
+            "written",
+            "ohsa",
+            "hazard"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-01"
+          ]
         },
         {
           "id": "ISN-SAFE-04",
           "name": "Training and Competency Documentation",
           "description": "Training records are held per worker per requirement, with expiry tracked; sampling a named worker produces their complete record.",
-          "family": "ISN-SAFE", "framework": "isnetworld",
-          "domains": ["training_competency", "records_management"],
+          "family": "ISN-SAFE",
+          "framework": "isnetworld",
+          "domains": [
+            "training_competency",
+            "records_management"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["competency", "certification-currency", "ticket", "qualification", "records", "whmis", "refresher"],
-          "mapped_controls": ["cor_2020:COR-16"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "competency",
+            "certification-currency",
+            "ticket",
+            "qualification",
+            "records",
+            "whmis",
+            "refresher"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-16"
+          ]
         },
         {
           "id": "ISN-SAFE-05",
           "name": "Written Safe Work Practices per Trade",
           "description": "Safe work practices are written for each trade's specific hazards, not generically for construction.",
-          "family": "ISN-SAFE", "framework": "isnetworld",
-          "domains": ["health_safety"],
+          "family": "ISN-SAFE",
+          "framework": "isnetworld",
+          "domains": [
+            "health_safety"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["safe-work-practice", "safety", "hazard", "trade-specific", "arc-flash", "confined-space"],
-          "mapped_controls": ["cor_2020:COR-07"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "safe-work-practice",
+            "safety",
+            "hazard",
+            "trade-specific",
+            "arc-flash",
+            "confined-space"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-07"
+          ]
         },
         {
           "id": "ISN-SAFE-06",
           "name": "Drug and Alcohol Programme",
           "description": "A written drug and alcohol policy exists, addressing safety-sensitive positions and testing where contractually required; commonly asked for by name.",
-          "family": "ISN-SAFE", "framework": "isnetworld",
-          "domains": ["health_safety", "hr_security"],
+          "family": "ISN-SAFE",
+          "framework": "isnetworld",
+          "domains": [
+            "health_safety",
+            "hr_security"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["drug-and-alcohol", "safety-sensitive", "testing", "fitness-for-duty", "safety"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "drug-and-alcohol",
+            "safety-sensitive",
+            "testing",
+            "fitness-for-duty",
+            "safety"
+          ]
         },
         {
           "id": "ISN-SAFE-07",
           "name": "Short Service Employee Programme",
           "description": "Newly hired or newly assigned workers are identified, mentored and restricted from certain tasks for a defined period; commonly asked for by name.",
-          "family": "ISN-SAFE", "framework": "isnetworld",
-          "domains": ["health_safety", "training_competency"],
+          "family": "ISN-SAFE",
+          "framework": "isnetworld",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["short-service", "new-hire", "mentor", "safety", "competency", "orientation"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "short-service",
+            "new-hire",
+            "mentor",
+            "safety",
+            "competency",
+            "orientation"
+          ]
         },
         {
           "id": "ISN-SAFE-08",
           "name": "PPE Programme",
           "description": "A written PPE programme identifies required equipment per hazard and documents provision, inspection and fit testing.",
-          "family": "ISN-SAFE", "framework": "isnetworld",
-          "domains": ["health_safety"],
+          "family": "ISN-SAFE",
+          "framework": "isnetworld",
+          "domains": [
+            "health_safety"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["ppe", "safety", "fit-test", "respirator", "inspection"],
-          "mapped_controls": ["cor_2020:COR-10"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "ppe",
+            "safety",
+            "fit-test",
+            "respirator",
+            "inspection"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-10"
+          ]
         },
         {
           "id": "ISN-SAFE-09",
           "name": "Preventive Maintenance and Fleet Programme",
           "description": "Vehicles, tools and equipment are on a documented maintenance and inspection schedule, with records retrievable per unit.",
-          "family": "ISN-SAFE", "framework": "isnetworld",
-          "domains": ["health_safety", "asset_management"],
+          "family": "ISN-SAFE",
+          "framework": "isnetworld",
+          "domains": [
+            "health_safety",
+            "asset_management"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["preventive-maintenance", "fleet", "equipment", "pre-use-inspection", "safety", "records"],
-          "mapped_controls": ["cor_2020:COR-12"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "preventive-maintenance",
+            "fleet",
+            "equipment",
+            "pre-use-inspection",
+            "safety",
+            "records"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-12"
+          ]
         },
         {
           "id": "ISN-SAFE-10",
           "name": "Workplace Inspection Schedule and Records",
           "description": "Inspections occur on a stated frequency with recorded findings and verified corrective actions.",
-          "family": "ISN-SAFE", "framework": "isnetworld",
-          "domains": ["health_safety", "compliance_audit"],
+          "family": "ISN-SAFE",
+          "framework": "isnetworld",
+          "domains": [
+            "health_safety",
+            "compliance_audit"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["inspection", "safety", "corrective-action", "deficiency", "records"],
-          "mapped_controls": ["cor_2020:COR-11"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "inspection",
+            "safety",
+            "corrective-action",
+            "deficiency",
+            "records"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-11"
+          ]
         },
         {
           "id": "ISN-SAFE-11",
           "name": "Emergency Response Plans per Site Type",
           "description": "Emergency response plans are site-type specific — industrial plant, construction project, confined space, nuclear station — not a single generic plan.",
-          "family": "ISN-SAFE", "framework": "isnetworld",
-          "domains": ["health_safety", "business_continuity"],
+          "family": "ISN-SAFE",
+          "framework": "isnetworld",
+          "domains": [
+            "health_safety",
+            "business_continuity"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["emergency", "rescue", "evacuation", "safety", "site-specific", "drill"],
-          "mapped_controls": ["cor_2020:COR-13"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "emergency",
+            "rescue",
+            "evacuation",
+            "safety",
+            "site-specific",
+            "drill"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-13"
+          ]
         },
         {
           "id": "ISN-SAFE-12",
           "name": "Subcontractor Management",
           "description": "Subcontractors are prequalified, monitored and held to the same standard, with their records available to the owner-client on request.",
-          "family": "ISN-SAFE", "framework": "isnetworld",
-          "domains": ["vendor_management", "health_safety"],
+          "family": "ISN-SAFE",
+          "framework": "isnetworld",
+          "domains": [
+            "vendor_management",
+            "health_safety"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["subcontractor", "prequalification", "vendor", "safety", "monitoring"],
-          "mapped_controls": ["cor_2020:COR-15"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "subcontractor",
+            "prequalification",
+            "vendor",
+            "safety",
+            "monitoring"
+          ],
+          "mapped_controls": [
+            "cor_2020:COR-15"
+          ]
         }
       ]
     },
@@ -157,100 +337,259 @@
           "id": "ISN-CYBER-01",
           "name": "Physical and Environmental Security",
           "description": "Premises holding organizational or client data are access-controlled, monitored, and cover every location — not only the head office.",
-          "family": "ISN-CYBER", "framework": "isnetworld",
-          "domains": ["physical_security"],
+          "family": "ISN-CYBER",
+          "framework": "isnetworld",
+          "domains": [
+            "physical_security"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["physical", "facility", "badge", "premises", "cctv", "site-access"],
-          "mapped_controls": ["iso_27001:A.7.1", "iso_27001:A.7.2"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "physical",
+            "facility",
+            "badge",
+            "premises",
+            "cctv",
+            "site-access"
+          ],
+          "mapped_controls": [
+            "iso_27001:A.7.1",
+            "iso_27001:A.7.2"
+          ]
         },
         {
           "id": "ISN-CYBER-02",
           "name": "Human Resources Security",
           "description": "Screening, terms of employment, security awareness training and termination handling are defined and evidenced per person.",
-          "family": "ISN-CYBER", "framework": "isnetworld",
-          "domains": ["hr_security"],
+          "family": "ISN-CYBER",
+          "framework": "isnetworld",
+          "domains": [
+            "hr_security"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["personnel", "screening", "awareness", "training", "termination", "onboarding", "background-check"],
-          "mapped_controls": ["iso_27001:A.6.1", "iso_27001:A.6.3", "iso_27001:A.6.5"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "personnel",
+            "screening",
+            "awareness",
+            "training",
+            "termination",
+            "onboarding",
+            "background-check"
+          ],
+          "mapped_controls": [
+            "iso_27001:A.6.1",
+            "iso_27001:A.6.3",
+            "iso_27001:A.6.5"
+          ]
         },
         {
           "id": "ISN-CYBER-03",
           "name": "Access Control",
           "description": "Access is provisioned on least privilege, authenticated with MFA, reviewed periodically and revoked promptly.",
-          "family": "ISN-CYBER", "framework": "isnetworld",
-          "domains": ["access_control"],
+          "family": "ISN-CYBER",
+          "framework": "isnetworld",
+          "domains": [
+            "access_control"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["access", "mfa", "least-privilege", "access-review", "identity", "permission"],
-          "mapped_controls": ["iso_27001:A.5.15", "iso_27001:A.5.17", "iso_27001:A.8.2"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "access",
+            "mfa",
+            "least-privilege",
+            "access-review",
+            "identity",
+            "permission"
+          ],
+          "mapped_controls": [
+            "iso_27001:A.5.15",
+            "iso_27001:A.5.17",
+            "iso_27001:A.8.2"
+          ]
         },
         {
           "id": "ISN-CYBER-04",
           "name": "Asset Management",
           "description": "Assets and information are inventoried, owned and classified, with handling rules per classification.",
-          "family": "ISN-CYBER", "framework": "isnetworld",
-          "domains": ["asset_management", "data_protection"],
+          "family": "ISN-CYBER",
+          "framework": "isnetworld",
+          "domains": [
+            "asset_management",
+            "data_protection"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["asset", "inventory", "classification", "ownership", "labelling"],
-          "mapped_controls": ["iso_27001:A.5.9", "iso_27001:A.5.12"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "asset",
+            "inventory",
+            "classification",
+            "ownership",
+            "labelling"
+          ],
+          "mapped_controls": [
+            "iso_27001:A.5.9",
+            "iso_27001:A.5.12"
+          ]
         },
         {
           "id": "ISN-CYBER-05",
           "name": "Communications and Operations Management",
           "description": "Endpoint, network, email, logging, backup and supplier-service operations are controlled to a documented baseline.",
-          "family": "ISN-CYBER", "framework": "isnetworld",
-          "domains": ["network_security", "logging_monitoring", "configuration_management"],
+          "family": "ISN-CYBER",
+          "framework": "isnetworld",
+          "domains": [
+            "network_security",
+            "logging_monitoring",
+            "configuration_management"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["endpoint", "network", "logging", "backup", "email-security", "baseline", "hardening"],
-          "mapped_controls": ["iso_27001:A.8.7", "iso_27001:A.8.15", "iso_27001:A.8.20"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "endpoint",
+            "network",
+            "logging",
+            "backup",
+            "email-security",
+            "baseline",
+            "hardening"
+          ],
+          "mapped_controls": [
+            "iso_27001:A.8.7",
+            "iso_27001:A.8.15",
+            "iso_27001:A.8.20"
+          ]
         },
         {
           "id": "ISN-CYBER-06",
           "name": "Information Systems Acquisition, Development and Maintenance",
           "description": "Systems are acquired against security requirements, configured from a baseline, patched on a target, and changed under control.",
-          "family": "ISN-CYBER", "framework": "isnetworld",
-          "domains": ["secure_development", "vulnerability_management", "change_management"],
+          "family": "ISN-CYBER",
+          "framework": "isnetworld",
+          "domains": [
+            "secure_development",
+            "vulnerability_management",
+            "change_management"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["acquisition", "patch", "vulnerability", "change", "baseline", "maintenance"],
-          "mapped_controls": ["iso_27001:A.8.8", "iso_27001:A.8.9", "iso_27001:A.8.32"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "acquisition",
+            "patch",
+            "vulnerability",
+            "change",
+            "baseline",
+            "maintenance"
+          ],
+          "mapped_controls": [
+            "iso_27001:A.8.8",
+            "iso_27001:A.8.9",
+            "iso_27001:A.8.32"
+          ]
         },
         {
           "id": "ISN-CYBER-07",
           "name": "Information Security Incident Management",
           "description": "Security events are reported, triaged, investigated and closed, with breach notification obligations understood and exercised.",
-          "family": "ISN-CYBER", "framework": "isnetworld",
-          "domains": ["incident_response"],
+          "family": "ISN-CYBER",
+          "framework": "isnetworld",
+          "domains": [
+            "incident_response"
+          ],
           "priority": "critical",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["incident", "breach", "notification", "triage", "investigation", "closure"],
-          "mapped_controls": ["iso_27001:A.5.24", "iso_27001:A.5.25", "iso_27001:A.6.8"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "incident",
+            "breach",
+            "notification",
+            "triage",
+            "investigation",
+            "closure"
+          ],
+          "mapped_controls": [
+            "iso_27001:A.5.24",
+            "iso_27001:A.5.25",
+            "iso_27001:A.6.8"
+          ]
         },
         {
           "id": "ISN-CYBER-08",
           "name": "Business Continuity Management",
           "description": "Continuity and recovery arrangements exist for the systems holding client data, with recovery objectives stated and tested.",
-          "family": "ISN-CYBER", "framework": "isnetworld",
-          "domains": ["business_continuity"],
+          "family": "ISN-CYBER",
+          "framework": "isnetworld",
+          "domains": [
+            "business_continuity"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": true, "requires_evidence": true,
-          "keywords": ["continuity", "backup", "restore", "disaster-recovery", "rto", "resilience"],
-          "mapped_controls": ["iso_27001:A.5.29", "iso_27001:A.8.13"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "continuity",
+            "backup",
+            "restore",
+            "disaster-recovery",
+            "rto",
+            "resilience"
+          ],
+          "mapped_controls": [
+            "iso_27001:A.5.29",
+            "iso_27001:A.8.13"
+          ]
         },
         {
           "id": "ISN-CYBER-09",
           "name": "Compliance",
           "description": "Legal, regulatory and contractual obligations are identified and met, with intellectual property, privacy and records requirements addressed.",
-          "family": "ISN-CYBER", "framework": "isnetworld",
-          "domains": ["compliance_audit", "data_protection", "records_management"],
+          "family": "ISN-CYBER",
+          "framework": "isnetworld",
+          "domains": [
+            "compliance_audit",
+            "data_protection",
+            "records_management"
+          ],
           "priority": "high",
-          "requires_policy": true, "requires_procedure": true, "requires_technical": false, "requires_evidence": true,
-          "keywords": ["compliance", "legal", "contractual", "privacy", "records", "audit", "pipeda"],
-          "mapped_controls": ["iso_27001:A.5.31", "iso_27001:A.5.34", "iso_27001:A.5.36"]
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "compliance",
+            "legal",
+            "contractual",
+            "privacy",
+            "records",
+            "audit",
+            "pipeda"
+          ],
+          "mapped_controls": [
+            "iso_27001:A.5.31",
+            "iso_27001:A.5.34",
+            "iso_27001:A.5.36"
+          ]
         }
       ]
     }

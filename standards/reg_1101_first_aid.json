@@ -1,0 +1,254 @@
+{
+  "id": "reg_1101_first_aid",
+  "name": "R.R.O. 1990, Reg. 1101: First Aid Requirements",
+  "version": "R.R.O. 1990, Reg. 1101, consolidated to 31 December 1990",
+  "description": "Ontario's first aid regulation, made under the Workplace Safety and Insurance Act, 1997 and formerly under the Workers' Compensation Act. It is enforced by the Workplace Safety and Insurance Board rather than by the Ministry of Labour, which is why it is missed by programmes built only from the Occupational Health and Safety Act. It sets what a first aid station contains and who is in charge of it, scales the box and the attendant's certificate to the number of workers on a shift, requires the Form 82 poster and a record of every first aid treatment given, and requires the box to be inspected at not less than quarter-yearly intervals with the inspection card dated and signed. It has never been amended: the consolidation date of 31 December 1990 is the current one, and the dressing lists it enumerates are the ones still in force.",
+  "authority": "Lieutenant Governor in Council, Ontario, under the Workplace Safety and Insurance Act, 1997; enforced by the Workplace Safety and Insurance Board",
+  "scope": "Every place of employment in Ontario covered by the insurance plan",
+  "applies_in": [
+    "CA-ON"
+  ],
+  "category": "government",
+  "status": "active",
+  "official_url": "https://www.ontario.ca/laws/regulation/901101",
+  "families": [
+    {
+      "id": "R1101-STATION",
+      "name": "First Aid Stations and Boxes",
+      "description": "Sections 1 to 2 and 8 to 11. What a first aid station contains, who is in charge of it, and how its contents scale with the number of workers on a shift.",
+      "controls": [
+        {
+          "id": "1",
+          "name": "First Aid Station Contents, Charge and Location",
+          "description": "A first aid station shall contain a first aid box holding the items the Regulation requires, and a notice board displaying the Board's Form 82 poster, the valid first aid certificates of qualification of the trained workers on duty, and an inspection card with spaces for the date of the most recent inspection and the signature of the person who made it. The station shall be in the charge of a worker who works in its immediate vicinity and who is qualified in first aid to the standards the Regulation requires, and stations shall be located so as to be easily accessible for prompt treatment at all times when work is in progress.",
+          "family": "R1101-STATION",
+          "framework": "reg_1101_first_aid",
+          "domains": [
+            "health_safety",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "first aid station",
+            "Form 82",
+            "certificates posted",
+            "inspection card",
+            "in charge",
+            "accessible"
+          ]
+        },
+        {
+          "id": "2",
+          "name": "First Aid Box Maintained and Accessible",
+          "description": "A first aid box shall contain as a minimum the items the Regulation requires, all maintained in good condition at all times, and shall be large enough that each item is in plain view and easily accessible.",
+          "family": "R1101-STATION",
+          "framework": "reg_1101_first_aid",
+          "domains": [
+            "health_safety",
+            "equipment_integrity"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "first aid box",
+            "good condition",
+            "plain view",
+            "easily accessible"
+          ]
+        },
+        {
+          "id": "8",
+          "name": "Five or Fewer Workers per Shift",
+          "description": "An employer employing not more than five workers in any one shift shall provide and maintain a first aid station with a box containing at least a current standard first aid manual, a card of safety pins and the dressings subsection 8 (1) enumerates, and shall ensure the station is at all times in the charge of a worker holding a valid Emergency First Aid Certificate or its equivalent who works in the immediate vicinity.",
+          "family": "R1101-STATION",
+          "framework": "reg_1101_first_aid",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "five workers",
+            "emergency first aid certificate",
+            "first aid box contents",
+            "shift"
+          ]
+        },
+        {
+          "id": "9",
+          "name": "More Than Five and Not More Than Fifteen Workers per Shift",
+          "description": "An employer employing more than five and not more than fifteen workers in any one shift shall provide and maintain a first aid station with the larger box subsection 9 (1) enumerates, and shall ensure it is at all times in the charge of a worker holding a valid Standard First Aid Certificate or its equivalent who works in the immediate vicinity.",
+          "family": "R1101-STATION",
+          "framework": "reg_1101_first_aid",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "fifteen workers",
+            "standard first aid certificate",
+            "first aid box contents",
+            "shift"
+          ]
+        },
+        {
+          "id": "10",
+          "name": "More Than Fifteen and Fewer Than Two Hundred Workers per Shift",
+          "description": "An employer employing more than fifteen and fewer than 200 workers in any one shift shall provide and maintain one stretcher, two blankets and a first aid station with the box subsection 10 (1) enumerates, and shall meet the attendant qualification the section sets.",
+          "family": "R1101-STATION",
+          "framework": "reg_1101_first_aid",
+          "domains": [
+            "health_safety",
+            "training_competency"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "two hundred workers",
+            "stretcher",
+            "blankets",
+            "first aid box contents",
+            "shift"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R1101-UPKEEP",
+      "name": "Records, Inspection and Cost",
+      "description": "Sections 3 to 7. The accident record every employer keeps, the quarterly inspection of the first aid box, and who pays.",
+      "controls": [
+        {
+          "id": "3",
+          "name": "Form 82 Poster Posted",
+          "description": "Every employer shall at all times keep posted in other conspicuous places in the place of employment the Board's Form 82 poster respecting the necessity of reporting all accidents and receiving first aid treatment.",
+          "family": "R1101-UPKEEP",
+          "framework": "reg_1101_first_aid",
+          "domains": [
+            "health_safety",
+            "records_management"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "Form 82",
+            "poster",
+            "conspicuous",
+            "report all accidents"
+          ]
+        },
+        {
+          "id": "4",
+          "name": "Employer Bears the Cost",
+          "description": "The expense of furnishing and maintaining first aid appliances and services shall be borne by the employer.",
+          "family": "R1101-UPKEEP",
+          "framework": "reg_1101_first_aid",
+          "domains": [
+            "health_safety"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "cost",
+            "employer pays",
+            "first aid appliances"
+          ]
+        },
+        {
+          "id": "5",
+          "name": "First Aid Treatment Record",
+          "description": "Every employer shall keep a record of all circumstances respecting an accident as described by the injured worker, the date and time of its occurrence, the names of witnesses, the nature and exact location of the injuries, and the date, time and nature of each first aid treatment given.",
+          "family": "R1101-UPKEEP",
+          "framework": "reg_1101_first_aid",
+          "domains": [
+            "health_safety",
+            "incident_response",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "first aid record",
+            "treatment log",
+            "witnesses",
+            "nature of injury",
+            "date and time"
+          ]
+        },
+        {
+          "id": "6",
+          "name": "Quarterly Inspection of the First Aid Box",
+          "description": "Employers shall inspect first aid boxes and their contents at not less than quarter-yearly intervals and shall mark the inspection card for each box with the date of the most recent inspection and the signature of the person making the inspection.",
+          "family": "R1101-UPKEEP",
+          "framework": "reg_1101_first_aid",
+          "domains": [
+            "health_safety",
+            "equipment_integrity",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "quarterly",
+            "quarter-yearly",
+            "inspection card",
+            "signature",
+            "first aid box"
+          ]
+        },
+        {
+          "id": "7",
+          "name": "Board Inspection",
+          "description": "The Board or its appointees may make inspections of first aid stations, appliances, services and records.",
+          "family": "R1101-UPKEEP",
+          "framework": "reg_1101_first_aid",
+          "domains": [
+            "compliance_audit"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "board inspection",
+            "WSIB",
+            "records",
+            "first aid station"
+          ]
+        }
+      ]
+    }
+  ]
+}

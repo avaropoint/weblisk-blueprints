@@ -6,7 +6,9 @@ structure: procedure
 path: procedures/elevating-work-platforms.md
 
 satisfies:
-  - construction_safety_ca:CSA-SITE-2
+  - o_reg_213_91:144
+  - o_reg_213_91:145
+  - o_reg_213_91:147
   - cor_2020:COR-16
   - iso_45001:7.2
 

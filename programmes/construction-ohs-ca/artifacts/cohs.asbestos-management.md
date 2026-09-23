@@ -6,6 +6,9 @@ structure: procedure
 path: procedures/asbestos.md
 
 satisfies:
+  - o_reg_278_05:12
+  - o_reg_278_05:19
+  - o_reg_278_05:21
   - cor_2020:COR-06
   - cor_2020:COR-08
 

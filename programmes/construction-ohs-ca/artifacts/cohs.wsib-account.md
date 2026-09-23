@@ -6,6 +6,10 @@ structure: procedure
 path: procedures/workers-compensation-account.md
 
 satisfies:
+  - wsia_ontario:12.2
+  - wsia_ontario:75
+  - wsia_ontario:78
+  - wsia_ontario:80
   - isnetworld:ISN-SAFE-02
   - cor_2020:COR-19
 

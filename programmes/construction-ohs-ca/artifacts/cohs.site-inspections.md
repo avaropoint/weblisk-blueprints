@@ -3,9 +3,12 @@ id: cohs.site-inspections
 kind: procedure
 title: Workplace Inspections
 structure: procedure
-path: procedures/workplace-inspection.md
+path: procedures/site-inspection.md
 
 satisfies:
+  - ohsa_ontario:8(6)
+  - ohsa_ontario:9(26)
+  - o_reg_213_91:14
   - cor_2020:COR-11
   - isnetworld:ISN-SAFE-10
 
@@ -20,7 +23,7 @@ declares:
     interval_basis: required
     responsible: health-safety-lead
     applies_to: each project
-    records: registers/workplace-inspections.md
+    records: registers/site-inspections.md
     escalate: {after: 1w, to: constructor-representative}
   register:
     title: Workplace Inspection Record

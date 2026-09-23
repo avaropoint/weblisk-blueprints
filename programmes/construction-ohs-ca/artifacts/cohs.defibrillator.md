@@ -6,6 +6,7 @@ structure: procedure
 path: procedures/defibrillator.md
 
 satisfies:
+  - o_reg_213_91:27.1
   - cor_2020:COR-13
   - iso_45001:8.2
 
