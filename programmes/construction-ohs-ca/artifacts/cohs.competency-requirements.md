@@ -32,6 +32,9 @@ declares:
       because the two reasons a matrix changes are different: the organisation
       started doing work it did not do before, or the law moved. Both happen, and
       an organisation that only watches the second will be caught by the first.
+    layout: form
+    review: required
+    approvers: [training-coordinator]
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: reviewed_by, label: Reviewed by, type: user, required: true}

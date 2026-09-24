@@ -34,6 +34,9 @@ declares:
       inspector asks the operator for, and this register is what tells a head
       office that a machine on a site four hours away has not been logged in
       three weeks.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: inspected_on, label: Inspected on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,

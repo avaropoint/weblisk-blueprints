@@ -5,6 +5,14 @@ title: Safe Job Procedures
 structure: procedure
 path: procedures/safe-job-procedure.md
 
+# The SHAPE the individual job procedures are written to, never their content.
+# This artifact is a procedure ABOUT procedures; the procedures it governs are
+# authored per task by this organisation, and a template is what makes fifty of
+# them consistent without canning what any of them says. The created document
+# declares `kind: sop` — a procedure an agent may be asked to PERFORM or verify,
+# which an ordered task sequence is and a management procedure is not.
+template: safe-job-procedure
+
 satisfies:
   - cor_2020:COR-08
   - iso_45001:8.1.2

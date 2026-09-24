@@ -26,6 +26,9 @@ declares:
       One row per drill. The time taken and what went wrong are the substance:
       a drill that records only that it happened tests attendance rather than
       the plan.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: held_on, label: Held on, type: date, required: true}
       - {key: location, label: Location, type: text, required: true}

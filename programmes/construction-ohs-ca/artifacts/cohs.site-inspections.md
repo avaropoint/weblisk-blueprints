@@ -32,6 +32,9 @@ declares:
       a designated worker member of the committee, or the representative — from a
       supervisor's own walk, because only the first discharges the duty and both
       look identical in a photograph of a clipboard.
+    layout: form
+    review: required
+    approvers: [constructor-representative]
     columns:
       - {key: inspected_on, label: Inspected on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,

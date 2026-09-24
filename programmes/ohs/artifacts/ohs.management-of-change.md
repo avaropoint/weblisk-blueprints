@@ -34,6 +34,9 @@ declares:
       happened before the change took effect, because a review conducted
       afterwards is an investigation with better manners, and a register that
       cannot tell them apart will report full compliance either way.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: change, label: Change, type: text, required: true}

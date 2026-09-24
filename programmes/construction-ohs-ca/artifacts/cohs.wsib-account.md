@@ -33,6 +33,9 @@ declares:
       account has more than one row, and that is deliberate: classification,
       rates and several prequalification schemes operate per account, and a
       consolidated figure hides the account that is drifting.
+    layout: form
+    review: required
+    approvers: [senior-management]
     columns:
       - {key: reconciled_on, label: Reconciled on, type: date, required: true}
       - {key: account, label: Account number, type: text, required: true}

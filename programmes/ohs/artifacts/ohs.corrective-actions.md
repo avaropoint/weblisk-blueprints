@@ -41,6 +41,9 @@ declares:
       and what was done about them. A sweep that names no oldest action and
       raises nothing is a sweep that read the register and changed nothing,
       which is the failure this review exists to make visible.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: reviewed_by, label: Reviewed by, type: user, required: true}

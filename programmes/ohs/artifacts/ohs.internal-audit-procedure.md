@@ -25,6 +25,9 @@ declares:
       One row per audit. What was examined is required even when nothing was
       found — the procedure says an unaudited programme and an exemplary one are
       indistinguishable unless the scope is recorded.
+    layout: form
+    review: required
+    approvers: [senior-management]
     columns:
       - {key: audited_on, label: Audited on, type: date, required: true}
       - {key: auditor, label: Auditor, type: user, required: true}

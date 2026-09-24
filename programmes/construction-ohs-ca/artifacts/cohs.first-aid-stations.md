@@ -32,6 +32,9 @@ declares:
       open, and a certified attendant with an empty box, fail the same way. The
       inspection card at the station is the statutory record and is dated and
       signed there; this register is the organisation's view across its sites.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: inspected_on, label: Inspected on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,

@@ -31,6 +31,9 @@ declares:
     note: >
       One row per review. ISO 45001 9.3 names the inputs a management review
       must consider; a record that lists none of them evidences a meeting.
+    layout: form
+    review: required
+    approvers: [senior-management]
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: chaired_by, label: Chaired by, type: user, required: true}

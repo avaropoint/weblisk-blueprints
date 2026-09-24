@@ -31,6 +31,9 @@ declares:
       is a separate column from `defects` because a defect found and a machine
       stopped are two different facts, and the pair of them is what shows whether
       a finding changed anything.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: inspected_on, label: Inspected on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,

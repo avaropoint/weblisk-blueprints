@@ -26,6 +26,9 @@ declares:
       predicts harm or counts it after the fact — an objective set entirely on
       lagging measures can be met by a quiet quarter, and the programme cannot
       tell luck from improvement without both.
+    layout: form
+    review: required
+    approvers: [senior-management]
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: objective, label: Objective, type: text, required: true}

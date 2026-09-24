@@ -25,6 +25,9 @@ declares:
       repeatedly as the person recovers, and a register keyed to the worker would
       overwrite the history that shows whether the accommodation was working.
       Nothing clinical belongs in these columns — see the note in the document.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: case_ref, label: Case reference, type: text, required: true}

@@ -38,6 +38,9 @@ declares:
       measures and makes them available to every employer on the project, and an
       employer that has not received them cannot have explained them to its
       workers.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,

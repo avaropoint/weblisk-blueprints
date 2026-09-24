@@ -25,6 +25,9 @@ declares:
       either alone is not first aid: a stocked cabinet nobody is certified to
       open, and a certified attendant with an empty cabinet, both fail the same
       way.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: checked_on, label: Checked on, type: date, required: true}
       - {key: location, label: Site or work area, type: text, required: true}

@@ -34,6 +34,9 @@ declares:
       people — a worker for whom the standard-issue harness or respirator does not
       fit is an exclusion with a name, not a preference, and a register with
       nowhere to record it produces a clean sheet and an unprotected person.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: checked_on, label: Checked on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,

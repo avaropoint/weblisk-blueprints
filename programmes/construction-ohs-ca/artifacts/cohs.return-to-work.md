@@ -30,6 +30,9 @@ declares:
       column because the co-operation duty is made of contact: the penalty
       provisions bite on failing to stay in touch and failing to attempt suitable
       work, and both are invisible in a register that only records outcomes.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: claim, label: Claim, type: text, required: true}

@@ -25,6 +25,9 @@ declares:
       One row per item serviced. `due_on` beside `serviced_on` is what makes the
       schedule auditable: a register of work performed cannot show the service
       that was thirty days late, and lateness is the finding.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: item, label: Item, type: text, required: true}
       - {key: identifier, label: Serial or unit number, type: text, required: true}

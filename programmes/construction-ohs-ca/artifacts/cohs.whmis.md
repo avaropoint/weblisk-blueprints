@@ -33,6 +33,9 @@ declares:
       product, a changed safety data sheet or a changed label is what makes
       training out of date, and an annual review that does not ask what changed
       has reviewed nothing.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: reviewed_by, label: Reviewed by, type: user, required: true}

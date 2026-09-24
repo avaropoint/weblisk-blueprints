@@ -27,6 +27,9 @@ declares:
       separate dates on purpose: prequalification is a judgement made before the
       work and evaluation is a judgement made after it, and a programme that
       records only the first has never checked whether the judgement was right.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: contractor, label: Contractor, type: text, required: true}
       - {key: work_performed, label: Work performed, type: text, required: true}

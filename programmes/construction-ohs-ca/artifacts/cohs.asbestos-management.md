@@ -32,6 +32,9 @@ declares:
       assumption: the report is the worker's own occupational exposure history and
       it will matter to them decades after they have left, at a point when the
       organisation may no longer exist.
+    layout: form
+    review: required
+    approvers: [senior-management]
     columns:
       - {key: reported_on, label: Report submitted on, type: date, required: true}
       - {key: period_from, label: Period from, type: date, required: true}
