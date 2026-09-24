@@ -31,6 +31,9 @@ declares:
       the procedure requires elimination before substitution and engineering
       before PPE, and a record that names only the hazard cannot show which
       way round the choice was made.
+    layout: form
+    review: required
+    approvers: [site-supervisor]
     columns:
       - {key: assessed_on, label: Assessed on, type: date, required: true}
       - {key: location, label: Location or work area, type: text, required: true}

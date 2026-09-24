@@ -26,6 +26,9 @@ declares:
       because finding a defect and doing something about it are two facts, and a
       record that collapses them cannot show equipment that was inspected,
       failed, and stayed in service.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: inspected_on, label: Inspected on, type: date, required: true}
       - {key: location, label: Site or work area, type: text, required: true}

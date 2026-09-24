@@ -32,6 +32,9 @@ declares:
       separately because they are separate requirements with different triggers:
       the training has a five-year clock, the familiarisation has no clock at all
       and is triggered by a machine the operator has not used before.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: checked_on, label: Checked on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,

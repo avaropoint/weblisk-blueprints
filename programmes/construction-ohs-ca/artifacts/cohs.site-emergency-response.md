@@ -34,6 +34,9 @@ declares:
       a drill that records only that it happened has tested nothing. The number
       that matters is how long it took, and the finding that matters is what did
       not work.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: held_on, label: Held on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,

@@ -32,6 +32,9 @@ declares:
       `plan_matches_site` are two questions, not one: a plan can be the latest
       revision on file and still describe a taper that was moved on Tuesday, and
       only the second question is answered by walking the zone.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,

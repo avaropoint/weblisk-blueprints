@@ -31,6 +31,9 @@ declares:
       requirement is that the worker carry written proof of training — the
       organisation holding a record somewhere does not satisfy it, and the only
       way to know is to have asked on site.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,

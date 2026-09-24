@@ -33,6 +33,9 @@ declares:
       own right, signed by the worker and by whoever delivered it. What is
       counted here is the gap: how many people were on site, how many had a
       record, and who the difference was.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: checked_on, label: Checked on, type: date, required: true}
       - {key: checked_by, label: Checked by, type: user, required: true}

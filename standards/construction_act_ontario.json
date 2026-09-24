@@ -428,6 +428,52 @@
           ]
         },
         {
+          "id": "32",
+          "name": "Certification or Declaration of Substantial Performance, and Its Publication",
+          "description": "Substantial performance of a contract is certified by the payment certifier on the contractor's application, or, where the contract provides for no payment certifier, declared jointly by the owner and the contractor, in accordance with section 32. A copy is given to the owner and to the contractor, and the contractor shall then publish the certificate or declaration in the manner and within the time section 32 and its regulations prescribe — and where the contractor does not, another person may publish it. Publication is not a formality: the 60-day period in section 31 runs from it, and the basic holdback under section 26 becomes payable by reference to it. A certificate issued and never published leaves every lien alive and the holdback unreleasable, which is the failure this control exists to make visible.",
+          "family": "CA-LIEN",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "substantial performance",
+            "certificate",
+            "declaration",
+            "publication",
+            "payment certifier",
+            "holdback release"
+          ]
+        },
+        {
+          "id": "33",
+          "name": "Certification of Completion of a Subcontract",
+          "description": "On the application of a subcontractor whose subcontract has been completed, the payment certifier — or, where the contract provides for none, the owner and the contractor together — may certify the subcontract complete under section 33, and a copy is given as the section requires. Certifying a subcontract complete runs that subcontractor's lien period against its own work rather than against the improvement as a whole, which is what allows the holdback retained from an early sub-trade to be dealt with before the project itself is substantially performed.",
+          "family": "CA-LIEN",
+          "framework": "construction_act_ontario",
+          "domains": [
+            "trade_regulatory"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "certificate of completion",
+            "subcontract",
+            "payment certifier",
+            "subcontractor lien period",
+            "early release"
+          ]
+        },
+        {
           "id": "34",
           "name": "Preservation of a Lien",
           "description": "A lien may be preserved during the supplying of services or materials or at any time before it expires: where the lien attaches to the premises, by registering a claim for lien on title in the proper land registry office in accordance with Part V; and where it does not attach, by giving the owner a copy of the claim for lien.",

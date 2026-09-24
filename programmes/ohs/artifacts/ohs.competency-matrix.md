@@ -26,6 +26,9 @@ declares:
       One row per person reviewed. The expiry date is what makes competence
       measurable rather than asserted — without it the platform cannot tell a
       current ticket from one that lapsed two years ago.
+    layout: form
+    review: required
+    approvers: [training-coordinator]
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: person, label: Person, type: user, required: true}

@@ -30,6 +30,9 @@ declares:
       separate register because a short-service worker is an ordinary worker
       under extra supervision, and splitting them into two lists is how one of
       the lists stops being maintained.
+    layout: form
+    review: required
+    approvers: [training-coordinator]
     columns:
       - {key: delivered_on, label: Delivered on, type: date, required: true}
       - {key: person, label: Person, type: user, required: true}

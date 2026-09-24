@@ -37,6 +37,9 @@ declares:
       the policies are reviewed annually, and the assessment is reassessed "as
       often as is necessary" — which is an event-driven duty with no clock, and
       the event is usually a new site or a change in who works there.
+    layout: form
+    review: required
+    approvers: [senior-management]
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: reviewed_by, label: Reviewed by, type: user, required: true}

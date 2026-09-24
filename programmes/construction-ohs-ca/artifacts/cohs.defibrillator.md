@@ -31,6 +31,9 @@ declares:
       replace it. `record_with_unit` is a column so that the organisation can see
       the difference between a unit that was inspected and a unit whose
       inspection an inspector will be able to find.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: inspected_on, label: Inspected on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,

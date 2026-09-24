@@ -37,6 +37,9 @@ declares:
       text: a space nobody assessed is not covered by a programme however well
       written, and the review that does not reconcile the list has reviewed the
       document instead of the risk.
+    layout: form
+    review: required
+    approvers: [senior-management]
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: reviewed_by, label: Reviewed by, type: user, required: true}

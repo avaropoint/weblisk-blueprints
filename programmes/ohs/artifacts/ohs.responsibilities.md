@@ -26,6 +26,9 @@ declares:
       duty as a position, because that is the join the platform needs: an
       obligation belongs to the position and is discharged by whoever holds it,
       and a review that names only the person cannot survive them changing jobs.
+    layout: form
+    review: required
+    approvers: [senior-management]
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: position, label: Position, type: text, required: true}

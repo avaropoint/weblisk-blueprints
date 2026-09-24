@@ -33,6 +33,9 @@ declares:
       immaculate and whose crews have been sent home twice is a contractor the
       documents cannot describe, and a requalification that only reads files will
       approve them every year.
+    layout: form
+    review: required
+    approvers: [procurement-lead]
     columns:
       - {key: contractor, label: Contractor, type: text, required: true}
       - {key: trades, label: Trades, type: text, required: true}

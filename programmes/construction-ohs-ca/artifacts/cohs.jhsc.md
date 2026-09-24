@@ -36,6 +36,9 @@ declares:
       columns because the committee's power is the written recommendation and the
       employer owes a written response within twenty-one days — a meeting record
       that captures attendance and not recommendations evidences a gathering.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: met_on, label: Met on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,

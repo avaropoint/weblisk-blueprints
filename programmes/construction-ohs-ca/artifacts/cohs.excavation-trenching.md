@@ -32,6 +32,9 @@ declares:
       soil is reclassified by rain, by vibration, by a spoil pile moved, and by
       the excavation reaching a different stratum. A type recorded once at the
       top of a job is a statement about a hole that no longer exists.
+    layout: form
+    review: required
+    approvers: [site-supervisor]
     columns:
       - {key: inspected_on, label: Inspected on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,

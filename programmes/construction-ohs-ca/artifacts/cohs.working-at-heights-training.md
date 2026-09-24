@@ -34,6 +34,9 @@ declares:
       They are two different requirements with two different regulations behind
       them, and an organisation that records a single "trained" number has built
       the exact confusion this artifact exists to prevent.
+    layout: form
+    review: required
+    approvers: [training-coordinator]
     columns:
       - {key: checked_on, label: Checked on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,

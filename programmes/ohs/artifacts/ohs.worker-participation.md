@@ -27,6 +27,9 @@ declares:
       members because the balance is what makes the meeting a committee: a
       quorum met entirely by management is a management meeting, and a record
       that reports only a headcount cannot show the difference.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: met_on, label: Met on, type: date, required: true}
       - {key: location, label: Site or workplace, type: text, required: true}

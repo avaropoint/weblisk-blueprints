@@ -47,6 +47,9 @@ declares:
       the point of collecting causes is to count them: fourteen investigations
       each describing a slightly different lapse of attention are one finding,
       and prose cannot be added up.
+    layout: form
+    review: required
+    approvers: [health-safety-lead]
     columns:
       - {key: reference, label: Reference, type: text, required: true}
       - {key: investigated_on, label: Investigated on, type: date, required: true}
