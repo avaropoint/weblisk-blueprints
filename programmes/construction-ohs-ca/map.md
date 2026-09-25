@@ -377,14 +377,28 @@ programme's statutory credentials register, with the shortest expiry clock on
 it. Splitting it into a programme of its own would have produced one artifact
 that could not be checked without this one's data.
 
-**Environmental protection.** Excess soil under O. Reg. 406/19, spill reporting
-under the *Environmental Protection Act*, and approvals from the Ministry of the
-Environment, Conservation and Parks all bind an Ontario construction company,
-and none of them is here. They are genuinely absent rather than out of scope,
-and they are absent because each is a programme rather than an artifact: a
-different regulator, a different duty-holder inside the company, and a standard
-this corpus does not yet carry. A constructor reading a clean screen here should
-not conclude that they have been answered.
+**Environmental protection is not here, and it is not unanswered: it is
+[`construction-environment-ca`](../construction-environment-ca/map.md).** Excess
+soil under O. Reg. 406/19 — the reuse planning, the Excess Soil Registry notice
+before soil leaves a project area, the hauling record that travels with every
+load, and the close-out thirty days after the last one — spill reporting under
+the *Environmental Protection Act*, dewatering and discharge under the *Ontario
+Water Resources Act*, and approvals from the Ministry of the Environment,
+Conservation and Parks are a programme of their own, and it now exists. It was
+split out rather than folded in for the reason that decides every split in this
+corpus: a different regulator, and a different duty-holder — the duties there
+run against the **project leader** and the **operator of the project area**,
+which are terms the *Occupational Health and Safety Act* does not use and which
+are frequently not the constructor.
+
+The join between the two programmes is real and runs in one direction that must
+not be missed. **The contaminated material a designated substances or asbestos
+survey finds under `cohs.designated-substances` and `cohs.asbestos-management`
+becomes an environmental obligation the moment it is loaded into a truck.** This
+programme governs the worker standing beside it; that one governs where it goes
+and what has to be filed before it moves. Neither may assume the other has it,
+and a constructor that has answered this programme in full has answered nothing
+about the soil leaving the gate.
 
 **The fleet is not here, and it is not unanswered: it is
 [`fleet-safety-ca`](../fleet-safety-ca/map.md).** The *Highway Traffic Act*
