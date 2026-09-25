@@ -377,16 +377,29 @@ programme's statutory credentials register, with the shortest expiry clock on
 it. Splitting it into a programme of its own would have produced one artifact
 that could not be checked without this one's data.
 
-**Environmental protection, and the fleet.** Excess soil under O. Reg. 406/19,
-spill reporting under the *Environmental Protection Act*, approvals from the
-Ministry of the Environment, Conservation and Parks, and the *Highway Traffic
-Act* regime that governs an operator's CVOR record, hours of service and load
-securement all bind an Ontario construction company, and none of them is here.
-They are genuinely absent rather than out of scope, and they are absent because
-each is a programme rather than an artifact: a different regulator, a different
-duty-holder inside the company, and a standard this corpus does not yet carry.
-A constructor reading a clean screen here should not conclude that they have
-been answered.
+**Environmental protection.** Excess soil under O. Reg. 406/19, spill reporting
+under the *Environmental Protection Act*, and approvals from the Ministry of the
+Environment, Conservation and Parks all bind an Ontario construction company,
+and none of them is here. They are genuinely absent rather than out of scope,
+and they are absent because each is a programme rather than an artifact: a
+different regulator, a different duty-holder inside the company, and a standard
+this corpus does not yet carry. A constructor reading a clean screen here should
+not conclude that they have been answered.
+
+**The fleet is not here, and it is not unanswered: it is
+[`fleet-safety-ca`](../fleet-safety-ca/map.md).** The *Highway Traffic Act*
+regime that governs an operator's CVOR record, its drivers' hours of service,
+the daily trip inspection, load securement, the annual periodic inspection and
+the driver's licence and abstract is a programme of its own, and it now exists.
+It was split out rather than folded in for the reason that decides every split
+in this corpus: a different regulator (the Ministry of Transportation), a
+different duty-holder inside the company, and a record — the CVOR — that
+accumulates against the company itself rather than against a project. It is
+also a programme that many construction companies must **not** adopt: its line
+is 4,500 kg, and a company whose vehicles are all pickups and vans is outside
+every duty in it. A constructor with a tandem dump, a float, a boom truck or a
+tow truck in the yard is inside it, and should read that programme's map before
+anything else in it.
 
 **Drug and alcohol testing, and short service employee programmes.** Both are
 ISNetworld prequalification expectations with a distinctly American shape.

@@ -1,0 +1,122 @@
+{
+  "id": "owra_ontario",
+  "name": "Ontario Water Resources Act",
+  "version": "R.S.O. 1990, c. O.40, consolidated to 22 September 2026",
+  "description": "The Ontario statute for water, and the other half of the environmental regime a construction company that excavates meets — the Environmental Protection Act governs discharges to air and land, this one governs water. Three provisions reach a construction site. Section 30 makes it an offence to discharge any material of any kind into or in any waters, or on a shore or bank, or into any place that may impair water quality, and separately requires the Ministry to be notified forthwith of such a discharge that is not in the normal course of events, or of material escaping from a person's control — a duty that stands beside the Environmental Protection Act's spill notification rather than instead of it, and which is engaged by sediment-laden water reaching a ditch as readily as by fuel reaching a creek. Section 34 prohibits taking more than 50,000 litres of water on any day except under a permit to take water, which is the statutory ceiling construction dewatering sits under before the Environmental Activity and Sector Registry offers the lighter route. Section 53 requires an environmental compliance approval before sewage works are used, operated, established, altered, extended or replaced, and 'sewage works' reaches the pumps, settling tanks, filter bags and pipework by which water taken from a dewatered excavation is treated and discharged. Consolidated to 22 September 2026.",
+  "authority": "Legislative Assembly of Ontario; administered by the Ministry of the Environment, Conservation and Parks",
+  "scope": "Every person in Ontario who takes water, discharges material that may impair the quality of any waters, or establishes or operates sewage works",
+  "applies_in": [
+    "CA-ON"
+  ],
+  "category": "government",
+  "status": "active",
+  "official_url": "https://www.ontario.ca/laws/statute/90o40",
+  "families": [
+    {
+      "id": "OWRA-WATER",
+      "name": "Protection of Water Quality",
+      "description": "Section 30. The offence of impairing water quality, and the duty to report a discharge that was not in the normal course of events.",
+      "controls": [
+        {
+          "id": "30",
+          "name": "Impairing Water Quality, and Notice of a Discharge Not in the Normal Course",
+          "description": "Every person that discharges, or causes or permits the discharge of, any material of any kind into or in any waters or on any shore or bank of them, or into or in any place that may impair the quality of the water of any waters, is guilty of an offence. Separately, every person that makes such a discharge that is not in the normal course of events, or from whose control material of any kind escapes into any such waters or place, shall forthwith notify the Ministry. The duty is not limited to pollutants or to substances the Environmental Protection Act would call a spill: sediment-laden water from a dewatered excavation reaching a roadside ditch engages it, and 'may impair' does not require that impairment be proved.",
+          "family": "OWRA-WATER",
+          "framework": "owra_ontario",
+          "domains": [
+            "environmental",
+            "incident_response",
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "impair the quality of the water",
+            "forthwith notify",
+            "not in the normal course of events",
+            "escapes",
+            "shore or bank",
+            "sediment"
+          ],
+          "mapped_controls": [
+            "epa_ontario:15",
+            "epa_ontario:92"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OWRA-TAKING",
+      "name": "Water Taking",
+      "description": "Section 34. The volume above which water may not be taken without a permit, and the exceptions that do not include construction.",
+      "controls": [
+        {
+          "id": "34",
+          "name": "Permit To Take Water — More Than 50,000 Litres a Day",
+          "description": "A person shall not take more than 50,000 litres of water on any day by any means except in accordance with a permit issued under section 34.1. The exceptions are domestic use, watering livestock or poultry, firefighting and other emergency purposes, and dams associated with the production of electricity — none of which reaches construction dewatering. Taking ground water or storm water to create or maintain a dewatered work area within a construction site is instead prescribed for registration in the Environmental Activity and Sector Registry under Ontario Regulation 63/16, so the practical question on a site is which of the two instruments applies rather than whether one does; a permit already in effect keeps the taking out of the Registry route.",
+          "family": "OWRA-TAKING",
+          "framework": "owra_ontario",
+          "domains": [
+            "environmental",
+            "compliance_audit",
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "permit to take water",
+            "PTTW",
+            "50,000 litres",
+            "dewatering",
+            "water taking",
+            "exception"
+          ],
+          "mapped_controls": [
+            "epa_ontario:20.21"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OWRA-SEWAGE",
+      "name": "Sewage Works",
+      "description": "Section 53. The approval required before water is collected, treated and discharged.",
+      "controls": [
+        {
+          "id": "53",
+          "name": "Environmental Compliance Approval for Sewage Works",
+          "description": "No person shall use, operate, establish, alter, extend or replace new or existing sewage works except under and in accordance with an environmental compliance approval. The works by which water taken from a dewatered excavation is collected, settled, filtered and discharged are sewage works, and an approval under section 53 is what authorises them unless the activity is instead covered by a registration in the Environmental Activity and Sector Registry. Discharge to a municipal storm or sanitary sewer engages a separate consent from the municipality under its sewer use by-law, which the provincial approval does not supply.",
+          "family": "OWRA-SEWAGE",
+          "framework": "owra_ontario",
+          "domains": [
+            "environmental",
+            "compliance_audit",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "sewage works",
+            "environmental compliance approval",
+            "section 53",
+            "discharge",
+            "storm sewer",
+            "sewer use by-law"
+          ],
+          "mapped_controls": [
+            "epa_ontario:20.2"
+          ]
+        }
+      ]
+    }
+  ]
+}

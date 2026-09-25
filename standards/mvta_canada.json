@@ -1,0 +1,376 @@
+{
+  "id": "mvta_canada",
+  "name": "Motor Vehicle Transport Act and the Commercial Vehicle Drivers Hours of Service Regulations",
+  "version": "R.S.C. 1985, c. 29 (3rd Supp.); SOR/2005-313, as amended, including the electronic logging device amendments of SOR/2019-165",
+  "description": "The federal half of Canadian commercial vehicle regulation, and the reason a carrier has to know which half it is in. The Motor Vehicle Transport Act reaches an extra-provincial motor carrier undertaking \u2014 an operation that crosses a provincial, territorial or international boundary \u2014 and makes the National Safety Code standards applicable to it. Administration is delegated to the province or territory in which the carrier is based, which is why an Ontario-based extra-provincial carrier deals with the Ontario Ministry of Transportation and holds an Ontario CVOR certificate while being under a federal regulation. The Commercial Vehicle Drivers Hours of Service Regulations are the hours of service rules for that carrier. Each province has an equivalent regulation for intra-provincial operation \u2014 in Ontario, O. Reg. 555/06 \u2014 and the substantive numbers are, with narrow exceptions, the same. What differs is the instrument under which a driver or a carrier is charged, and that turns on where the vehicle goes rather than on where the carrier is based. A carrier that runs into Quebec or into the United States occasionally is extra-provincial for that trip and for the hours records behind it.",
+  "authority": "Parliament of Canada; administered by Transport Canada and, by delegation under the Act, by the provincial and territorial transport administrations",
+  "scope": "Extra-provincial motor carrier undertakings and their drivers \u2014 an operation that crosses a provincial, territorial or international boundary \u2014 and the commercial vehicles they operate",
+  "applies_in": [
+    "CA"
+  ],
+  "category": "government",
+  "status": "active",
+  "official_url": "https://laws-lois.justice.gc.ca/eng/regulations/SOR-2005-313/",
+  "families": [
+    {
+      "id": "MVTA-FIT",
+      "name": "Extra-Provincial Operating Authority and Safety Fitness",
+      "description": "Who is under the federal Act, and how their fitness to operate is certified and administered.",
+      "controls": [
+        {
+          "id": "MVTA-01",
+          "name": "Safety Fitness Certificate for Extra-Provincial Operation",
+          "description": "An extra-provincial motor carrier undertaking must hold a safety fitness certificate issued by the jurisdiction in which it is based, and must operate in accordance with it. In Ontario the Commercial Vehicle Operator's Registration certificate is the instrument that serves this purpose, so an Ontario carrier does not obtain a second certificate on becoming extra-provincial \u2014 which is exactly why the transition is so easy to miss. What changes is the body of regulation the carrier is measured against, not the piece of paper it holds.",
+          "family": "MVTA-FIT",
+          "framework": "mvta_canada",
+          "domains": [
+            "trade_regulatory",
+            "governance",
+            "compliance_audit"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "safety fitness certificate",
+            "extra-provincial",
+            "operating authority",
+            "base jurisdiction",
+            "CVOR"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-CVOR-01"
+          ]
+        },
+        {
+          "id": "MVTA-02",
+          "name": "Administration and Rating by the Base Jurisdiction",
+          "description": "The Act delegates administration, inspection, audit and rating of an extra-provincial carrier to the jurisdiction in which it is based. The consequence for a carrier is that its federal compliance is recorded in its provincial profile: a federal hours of service conviction, or an out-of-service order on a trip into another province, is an entry on the same record the province uses to decide whether to intervene. There is no separate federal record for the carrier to watch.",
+          "family": "MVTA-FIT",
+          "framework": "mvta_canada",
+          "domains": [
+            "compliance_audit",
+            "governance",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "base jurisdiction",
+            "delegation",
+            "carrier profile",
+            "audit",
+            "rating"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-CVOR-04"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CVDHS-HOURS",
+      "name": "Driving, On-Duty and Off-Duty Limits",
+      "description": "The limits themselves, for a driver operating south of latitude 60\u00b0N. The regulation carries a separate and more permissive set north of 60, which is not reproduced here.",
+      "controls": [
+        {
+          "id": "CVDHS-01",
+          "name": "Daily Driving Limit \u2014 13 Hours",
+          "description": "A driver must not drive after having accumulated 13 hours of driving time in a day. Driving time is time at the controls of the vehicle in motion, and it is a subset of on-duty time rather than a separate budget: the two limits bite independently and the shorter of them is the one that stops the driver.",
+          "family": "CVDHS-HOURS",
+          "framework": "mvta_canada",
+          "domains": [
+            "health_safety",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "13 hours",
+            "driving time",
+            "daily limit",
+            "hours of service"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-HOS-01",
+            "hta_ontario:HTA-HOS-02",
+            "nsc_ca:NSC-09"
+          ]
+        },
+        {
+          "id": "CVDHS-02",
+          "name": "Daily On-Duty Limit \u2014 14 Hours, and the 16-Hour Elapsed Rule",
+          "description": "A driver must not drive after having accumulated 14 hours of on-duty time in a day, and must not drive after 16 hours have elapsed since the driver last came on duty following 8 or more consecutive hours off duty. On-duty time is everything that is not off-duty time: loading, unloading, waiting, inspecting, fuelling and repairing all count. The 16-hour rule is the one most often overlooked, because it runs on the clock on the wall rather than on the hours worked \u2014 a long unpaid wait in the middle of a shift consumes it without adding to either of the other two totals.",
+          "family": "CVDHS-HOURS",
+          "framework": "mvta_canada",
+          "domains": [
+            "health_safety",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "14 hours",
+            "on-duty time",
+            "16 hours",
+            "elapsed time",
+            "duty status"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-HOS-02"
+          ]
+        },
+        {
+          "id": "CVDHS-03",
+          "name": "Mandatory Off-Duty Time \u2014 10 Hours a Day, 8 of Them Consecutive",
+          "description": "A driver must take at least 10 hours of off-duty time in a day. At least 8 of those hours must be consecutive, and the remainder must be taken in blocks of no less than 30 minutes. Separately, a driver must take at least 24 consecutive hours off duty in the preceding 14 days. The 8 consecutive hours are what resets the 16-hour elapsed clock, so they are load-bearing for more than rest.",
+          "family": "CVDHS-HOURS",
+          "framework": "mvta_canada",
+          "domains": [
+            "health_safety",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "off-duty",
+            "10 hours",
+            "8 consecutive hours",
+            "24 consecutive hours",
+            "rest"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-HOS-03"
+          ]
+        },
+        {
+          "id": "CVDHS-04",
+          "name": "Cycles \u2014 70 Hours in 7 Days, or 120 Hours in 14",
+          "description": "A driver operates on one of two cycles and must not drive once the on-duty limit for the cycle is reached. Cycle 1 is 70 hours of on-duty time in any period of 7 days. Cycle 2 is 120 hours in any period of 14 days, and carries an additional condition: the driver must take at least 24 consecutive hours off duty before accumulating more than 70 hours of on-duty time. A driver may switch cycles only after taking the off-duty time that resets the cycle being left.",
+          "family": "CVDHS-HOURS",
+          "framework": "mvta_canada",
+          "domains": [
+            "health_safety",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "cycle 1",
+            "cycle 2",
+            "70 hours",
+            "120 hours",
+            "7 days",
+            "14 days"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-HOS-04"
+          ]
+        },
+        {
+          "id": "CVDHS-05",
+          "name": "Cycle Reset \u2014 36 or 72 Consecutive Hours Off Duty",
+          "description": "A driver ends a cycle and begins a new one by taking consecutive off-duty time: at least 36 hours to reset Cycle 1, and at least 72 hours to reset Cycle 2. Until that time is taken the cycle continues to accumulate across the boundary of any week or pay period, which is the point most often lost in a payroll system that resets on a Sunday.",
+          "family": "CVDHS-HOURS",
+          "framework": "mvta_canada",
+          "domains": [
+            "health_safety",
+            "trade_regulatory"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "cycle reset",
+            "36 hours",
+            "72 hours",
+            "consecutive off-duty"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-HOS-04"
+          ]
+        },
+        {
+          "id": "CVDHS-06",
+          "name": "Deferral of Off-Duty Time and Sleeper-Berth Splitting",
+          "description": "Two permitted departures from the daily pattern, each with conditions that are part of the permission rather than commentary on it. A driver may defer a portion of the daily off-duty time to the following day, provided the total off-duty time over the two days meets the regulation's aggregate and the deferral is recorded as such on the log. A driver using a sleeper berth may accumulate the required off-duty time in two periods, neither shorter than the regulation's minimum, neither including driving, and together meeting the aggregate. Both are conditional permissions, and a deferral or a split taken without recording it as one is simply a short rest.",
+          "family": "CVDHS-HOURS",
+          "framework": "mvta_canada",
+          "domains": [
+            "health_safety",
+            "trade_regulatory"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "deferral",
+            "sleeper berth",
+            "split rest",
+            "day one",
+            "day two"
+          ]
+        },
+        {
+          "id": "CVDHS-07",
+          "name": "The Carrier May Not Request, Require or Allow a Contravention",
+          "description": "The duty is on the carrier as well as on the driver. A carrier must not request, require or allow a driver to drive when the driver has exceeded a limit, or would exceed one in completing the trip as dispatched. This is the provision that makes dispatch a compliance activity rather than a scheduling one: a trip that cannot lawfully be completed within the driver's remaining hours is a contravention at the moment it is assigned, not at the moment the driver runs out.",
+          "family": "CVDHS-HOURS",
+          "framework": "mvta_canada",
+          "domains": [
+            "health_safety",
+            "governance",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "carrier duty",
+            "dispatch",
+            "request require allow",
+            "permit",
+            "contravention"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-HOS-07"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CVDHS-RECORD",
+      "name": "Daily Logs, Time Records and Retention",
+      "description": "How hours are recorded, when a log is not required, and how long any of it is kept.",
+      "controls": [
+        {
+          "id": "CVDHS-08",
+          "name": "The Daily Log",
+          "description": "A driver must record each day's duty status in a daily log in the prescribed form, keep it current as the day is worked, carry the current day's log and those for the preceding 14 days, and produce them to an inspector on demand. The log records the hours at which each change of duty status occurred, the total in each status, the vehicle and the carrier, and the odometer. A log filled in at the end of the week from memory satisfies none of that, and is the single most common finding at a facility audit.",
+          "family": "CVDHS-RECORD",
+          "framework": "mvta_canada",
+          "domains": [
+            "records_management",
+            "trade_regulatory",
+            "compliance_audit"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "daily log",
+            "logbook",
+            "duty status",
+            "14 days",
+            "produce on demand"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-HOS-05"
+          ]
+        },
+        {
+          "id": "CVDHS-09",
+          "name": "The 160 km Radius Exemption, and the Time Record That Replaces the Log",
+          "description": "A driver is not required to fill out a daily log if three conditions all hold: the driver operates within a radius of 160 km of the home terminal, returns to the home terminal to begin at least 8 consecutive hours of off-duty time, and the carrier maintains accurate and legible records showing the driver's on-duty times and the hour at which each duty status begins and ends. This is an exemption from the LOG and from nothing else: every driving, on-duty, off-duty and cycle limit continues to apply in full, and the carrier is still required to be able to show that they were met. It is also conditional day by day, not a status a driver holds \u2014 a single trip beyond the radius, or a night not spent at the home terminal, means that day needed a log. A carrier that keeps no time record has not used the exemption; it has no record of hours at all.",
+          "family": "CVDHS-RECORD",
+          "framework": "mvta_canada",
+          "domains": [
+            "records_management",
+            "trade_regulatory",
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "160 km",
+            "radius exemption",
+            "home terminal",
+            "time record",
+            "log exempt",
+            "local driver"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-HOS-06"
+          ]
+        },
+        {
+          "id": "CVDHS-10",
+          "name": "Electronic Logging Devices",
+          "description": "A driver required to keep a daily log under the federal regulation must record it using a certified electronic logging device, subject to the regulation's exceptions \u2014 which include a vehicle operated under a permit, a vehicle subject to a rental agreement of short duration, and a vehicle of an older model year. Certification is by an accredited third-party body against the federal technical standard; a device that merely produces an electronic log is not a certified ELD. The requirement follows the federal instrument, so a carrier that is extra-provincial for some of its work and intra-provincial for the rest must know which regime each trip falls under before it can say whether a device was required.",
+          "family": "CVDHS-RECORD",
+          "framework": "mvta_canada",
+          "domains": [
+            "records_management",
+            "trade_regulatory"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "electronic logging device",
+            "ELD",
+            "certified",
+            "third-party certification",
+            "exemption"
+          ]
+        },
+        {
+          "id": "CVDHS-11",
+          "name": "Forwarding and Retention of Records",
+          "description": "A driver must forward the original daily logs and supporting documents to the carrier within 20 days of their completion, and the carrier must keep the logs, time records and supporting documents for 6 months from the day they were received. Supporting documents are what make a log checkable \u2014 bills of lading, dispatch records, fuel and toll receipts \u2014 and a carrier holding logs with nothing to test them against is holding an assertion rather than a record.",
+          "family": "CVDHS-RECORD",
+          "framework": "mvta_canada",
+          "domains": [
+            "records_management",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "20 days",
+            "6 months",
+            "retention",
+            "supporting documents",
+            "forward to carrier"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-HOS-07"
+          ]
+        }
+      ]
+    }
+  ]
+}

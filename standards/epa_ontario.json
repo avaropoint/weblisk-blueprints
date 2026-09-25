@@ -1,0 +1,275 @@
+{
+  "id": "epa_ontario",
+  "name": "Environmental Protection Act (Ontario)",
+  "version": "R.S.O. 1990, c. E.19, consolidated to 22 September 2026",
+  "description": "Ontario's general environmental statute, and the Act under which most of the instruments a construction company meets are made — the excess soil regulation, the air and noise regulations, the waste regulations and the spill reporting regulation are all made under it. Three parts of it bind an organisation that excavates. The general prohibition in section 14 forbids discharging a contaminant that causes or may cause an adverse effect, and 'contaminant' reaches dust, odour, noise and vibration as readily as it reaches a liquid; section 15 requires the Ministry to be notified forthwith of a discharge out of the normal course of events that causes or is likely to cause an adverse effect, where section 92 does not already require it. The approvals regime in sections 9, 20.2, 20.21 and 27 makes an Environmental Compliance Approval a precondition of discharging to air or land or of operating a waste management system, and gives a lighter alternative for prescribed activities — registration in the Environmental Activity and Sector Registry, which is how construction site dewatering above 50,000 litres a day is authorised. Part X makes a spill of a pollutant reportable forthwith to the Ministry and to the municipality where it occurred, and imposes on the owner of the pollutant and the person having control of it a duty to do everything practicable to prevent, eliminate and ameliorate the adverse effect and to restore the natural environment. Consolidated to 22 September 2026.",
+  "authority": "Legislative Assembly of Ontario; administered by the Ministry of the Environment, Conservation and Parks",
+  "scope": "Every person in Ontario who discharges or may discharge a contaminant into the natural environment, operates a waste management system or waste disposal site, or has control of a pollutant that is spilled",
+  "applies_in": [
+    "CA-ON"
+  ],
+  "category": "government",
+  "status": "active",
+  "official_url": "https://www.ontario.ca/laws/statute/90e19",
+  "families": [
+    {
+      "id": "EPA-DISCHARGE",
+      "name": "General Prohibition and Reporting",
+      "description": "Sections 14 and 15. The prohibition every other requirement in the Act sits behind, and the duty to tell the Ministry when it has been breached.",
+      "controls": [
+        {
+          "id": "14",
+          "name": "Prohibition — Discharge Causing an Adverse Effect",
+          "description": "Despite any other provision of the Act or the regulations, a person shall not discharge a contaminant, or cause or permit the discharge of a contaminant, into the natural environment if the discharge causes or may cause an adverse effect. 'Contaminant' is defined broadly enough to reach dust, odour, noise and vibration as well as a substance, so the section is the provincial hook behind nuisance from a construction site even where the operative limit is a municipal by-law's.",
+          "family": "EPA-DISCHARGE",
+          "framework": "epa_ontario",
+          "domains": [
+            "environmental",
+            "health_safety",
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "adverse effect",
+            "discharge a contaminant",
+            "natural environment",
+            "dust",
+            "odour",
+            "noise",
+            "nuisance"
+          ]
+        },
+        {
+          "id": "15",
+          "name": "Notice to the Ministry — Discharge Out of the Normal Course of Events",
+          "description": "Every person who discharges a contaminant, or causes or permits the discharge of a contaminant, into the natural environment shall forthwith notify the Ministry if the discharge is out of the normal course of events, it causes or is likely to cause an adverse effect, and the person is not otherwise required to notify under section 92. The notice must be given in accordance with the requirements prescribed by the regulations — by telephone to the Spills Action Centre, with the information Ontario Regulation 675/98 sets out.",
+          "family": "EPA-DISCHARGE",
+          "framework": "epa_ontario",
+          "domains": [
+            "environmental",
+            "incident_response",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "forthwith notify",
+            "out of the normal course of events",
+            "adverse effect",
+            "Spills Action Centre",
+            "discharge"
+          ],
+          "mapped_controls": [
+            "owra_ontario:30"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EPA-APPROVAL",
+      "name": "Approvals and Registrations",
+      "description": "Sections 9, 20.2, 20.21 and 27. When an activity may not be carried on at all without an instrument from the Ministry, and which of the two instruments applies.",
+      "controls": [
+        {
+          "id": "9",
+          "name": "Environmental Compliance Approval for Discharges to Air, Land, Noise and Vibration",
+          "description": "No person shall, except under and in accordance with an environmental compliance approval, use, operate, construct, alter, extend or replace any plant, structure, equipment, apparatus, mechanism or thing that may discharge a contaminant into any part of the natural environment other than water, or alter a process or rate of production so that a contaminant may be discharged or the rate or manner of discharge altered. Routine maintenance, agricultural equipment, motor vehicles subject to the Highway Traffic Act and classes exempted by regulation are outside it.",
+          "family": "EPA-APPROVAL",
+          "framework": "epa_ontario",
+          "domains": [
+            "environmental",
+            "compliance_audit",
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "environmental compliance approval",
+            "ECA",
+            "discharge to air",
+            "noise",
+            "plant structure equipment",
+            "routine maintenance"
+          ]
+        },
+        {
+          "id": "20.2",
+          "name": "Application for an Environmental Compliance Approval",
+          "description": "A person may apply to the Director for approval to engage in an activity mentioned in subsection 9 (1) or 27 (1) of this Act or subsection 53 (1) of the Ontario Water Resources Act, if the activity has not been prescribed for registration in the Environmental Activity and Sector Registry. One approval may cover several activities at a site, and the Director may impose terms and conditions — which then become the operative requirement the holder must meet and evidence.",
+          "family": "EPA-APPROVAL",
+          "framework": "epa_ontario",
+          "domains": [
+            "environmental",
+            "governance",
+            "records_management"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "application",
+            "Director",
+            "terms and conditions",
+            "environmental compliance approval",
+            "site"
+          ],
+          "mapped_controls": [
+            "owra_ontario:53"
+          ]
+        },
+        {
+          "id": "20.21",
+          "name": "Registration in the Environmental Activity and Sector Registry",
+          "description": "No person shall engage in an activity prescribed by regulation for the purposes of the subsection unless the person has registered the activity in the Registry in accordance with the regulations, the Director has provided a confirmation of registration, the person engages in the activity in accordance with the regulations, and the registration is neither suspended nor removed. For construction, the prescribed activity that matters is the taking of ground water or storm water to create or maintain a dewatered work area within a construction site, and the sewage works used solely to collect, transmit, treat and dispose of it, under Ontario Regulation 63/16 — prescribed where more than 50,000 litres will be taken on at least one day. Registration is not an application: the conditions in the regulation apply from the day of registration, and include a water taking report and a discharge report each prepared by a qualified professional before registration, an annual report of daily volumes to the Director on or before 31 March, immediate notification of any complaint relating to the natural environment, notice to the municipalities and any conservation authority where the taking will run beyond 365 days, and five-year retention of the records.",
+          "family": "EPA-APPROVAL",
+          "framework": "epa_ontario",
+          "domains": [
+            "environmental",
+            "compliance_audit",
+            "logging_monitoring",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "EASR",
+            "environmental activity and sector registry",
+            "registration",
+            "dewatering",
+            "50,000 litres",
+            "water taking report",
+            "discharge report",
+            "annual report"
+          ],
+          "mapped_controls": [
+            "owra_ontario:34"
+          ]
+        },
+        {
+          "id": "27",
+          "name": "Environmental Compliance Approval for Waste Management Systems and Waste Disposal Sites",
+          "description": "No person shall use, operate, establish, alter, enlarge or extend a waste management system or a waste disposal site except under and in accordance with an environmental compliance approval. It is what makes a soil management site, a transfer facility or an on-site processing operation an approved activity rather than an unlawful one, and it is the approval a project leader must confirm the receiving site holds before soil is sent there.",
+          "family": "EPA-APPROVAL",
+          "framework": "epa_ontario",
+          "domains": [
+            "environmental",
+            "vendor_management",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "waste disposal site",
+            "waste management system",
+            "environmental compliance approval",
+            "receiving site",
+            "soil management site"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EPA-SPILL",
+      "name": "Part X — Spills",
+      "description": "Sections 91 to 93. What counts as a spill, who must report it and to whom, and the duty to clean it up that does not wait for anybody to be told.",
+      "controls": [
+        {
+          "id": "91",
+          "name": "What Counts as a Spill",
+          "description": "A spill, in relation to a pollutant, means a discharge into the natural environment, from or out of a structure, vehicle or other container, that is abnormal in quality or quantity in light of all the circumstances of the discharge. A pollutant is a contaminant other than heat, sound, vibration or radiation. The person having control of a pollutant includes their employee or agent. Ontario Regulation 675/98 classifies eleven kinds of spill and exempts some of them from the duty to notify — including not more than 100 litres of fluid from the fuel or operating system of a motor vehicle, where it does not and is not likely to enter waters directly or through drainage structures, causes no adverse effect other than one readily remediated from prepared surfaces, and remediation is arranged and carried out immediately. Those three conditions are cumulative, and a record of an unreported exempt spill must be kept for two years.",
+          "family": "EPA-SPILL",
+          "framework": "epa_ontario",
+          "domains": [
+            "environmental",
+            "incident_response",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "spill",
+            "pollutant",
+            "abnormal in quality or quantity",
+            "100 litres",
+            "motor vehicle",
+            "exempt",
+            "drainage structures"
+          ]
+        },
+        {
+          "id": "92",
+          "name": "Notice of Spills",
+          "description": "Every person having control of a pollutant that is spilled, and every person who spills or causes or permits a spill of a pollutant, shall forthwith notify the Ministry, the municipality within whose boundaries the spill occurred, the owner of the pollutant where the person is not the owner and can readily ascertain who is, and the person having control of the pollutant on the same terms — of the spill, its circumstances, and the action taken or intended. The duty takes effect the moment the person knows or ought to know the pollutant is spilled. Notice is given by telephoning the Spills Action Centre, and Ontario Regulation 675/98 prescribes what must be said, including the location, the time the discharge was discovered and occurred, the pollutant and quantity, the cause or the best assessment of it, the adverse effects that occurred or may occur, and who is responsible for each action being taken. Information not available at the time must be ascertained and provided forthwith, and an inaccuracy discovered later must be corrected forthwith.",
+          "family": "EPA-SPILL",
+          "framework": "epa_ontario",
+          "domains": [
+            "environmental",
+            "incident_response",
+            "compliance_audit"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "notice of spill",
+            "forthwith",
+            "Spills Action Centre",
+            "municipality",
+            "owner of the pollutant",
+            "knows or ought to know"
+          ],
+          "mapped_controls": [
+            "owra_ontario:30"
+          ]
+        },
+        {
+          "id": "93",
+          "name": "Duty to Mitigate and Restore",
+          "description": "The owner of a pollutant and the person having control of a pollutant that is spilled and that causes or is likely to cause an adverse effect shall forthwith do everything practicable to prevent, eliminate and ameliorate the adverse effect and to restore the natural environment. The duty takes effect the moment the owner or person knows or ought to know that the pollutant is spilled and is causing or likely to cause an adverse effect, and it is owed independently of whether anybody has been notified. What is practicable is judged having regard to the technical, physical and financial resources that are or can reasonably be made available.",
+          "family": "EPA-SPILL",
+          "framework": "epa_ontario",
+          "domains": [
+            "environmental",
+            "incident_response",
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "duty to restore",
+            "everything practicable",
+            "prevent eliminate ameliorate",
+            "restore the natural environment",
+            "adverse effect"
+          ]
+        }
+      ]
+    }
+  ]
+}
