@@ -29,6 +29,37 @@ tiers:
       certifying body or a prequalification service asks for without a
       scramble.
 
+# ── the standing work adopting this programme takes on ──────────────────────
+#
+# Two, and deliberately fewer than a heavily regulated programme would declare.
+# A programme's standing work is a judgement about the work, not a fixed set:
+# what every programme needs is somebody told when work falls due and somebody
+# measuring whether the programme is operating. Everything beyond that is
+# specific enough that a generic programme should not presume it.
+#
+# Both are created PAUSED. A schedule sends people work unattended, and adopting
+# a programme must not start doing that on a cadence nobody chose.
+operations:
+  - id: due-sweep
+    title: What is due
+    does: due-sweep
+    schedule: {cadence: daily, at: "07:00"}
+    why: >
+      Reports every obligation in this programme that has fallen due or is about
+      to, to the position each one belongs to, once, when it advances. Daily
+      because the finest work in this programme runs daily; it reports and never
+      remediates.
+
+  - id: programme-readiness
+    title: Programme readiness
+    does: programme-readiness
+    schedule: {cadence: monthly, at: "07:00", day: 1}
+    why: >
+      Both readiness numbers on a cycle: how much of the programme exists as
+      current, cited documents, and how much of it is producing attested
+      records. A programme does not move week to week, and a report that says
+      the same thing four times a month is one nobody reads by the second.
+
 artifacts:
   # ── essential: what an employer must have to operate lawfully ──────────────
   - { id: ohs.policy, tier: essential }

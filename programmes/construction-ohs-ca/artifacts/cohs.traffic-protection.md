@@ -22,7 +22,13 @@ declares:
     authority: O. Reg. 213/91 s. 67(4)–(5) requires the plan in writing and kept at the project. No review interval is prescribed
     interval_basis: chosen
     responsible: site-supervisor
-    applies_to: each project
+    applies_to: the organisation
+    per:
+      listed_in: registers/projects.md
+      key: project_id
+      label: name
+      from: start_on
+      until: finished_on
     records: registers/traffic-protection-reviews.md
     escalate: {after: 3d, to: health-safety-lead}
   register:

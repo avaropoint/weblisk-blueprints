@@ -1,0 +1,249 @@
+{
+  "id": "ohrc_ontario",
+  "name": "Human Rights Code (Ontario)",
+  "version": "R.S.O. 1990, c. H.19, consolidated as amended",
+  "description": "Ontario's quasi-constitutional statute of equal treatment. It has primacy over every other Ontario Act unless that Act says otherwise, which is why it is not one policy among several: a workplace rule that is lawful under the Employment Standards Act and discriminatory under the Code is unlawful. In employment it prohibits discrimination and harassment on the protected grounds, prohibits reprisal, and imposes a duty to accommodate the needs of a person to the point of undue hardship \u2014 a test with three factors and no fourth. An organisation is liable for the acts of its officers, officials, employees and agents, so a manager's decision is the organisation's decision.",
+  "authority": "Legislative Assembly of Ontario; applied by the Human Rights Tribunal of Ontario, with policy guidance from the Ontario Human Rights Commission",
+  "scope": "Employment, services, goods, facilities, contracts, accommodation (housing) and vocational association in Ontario. It binds every Ontario employer regardless of size \u2014 there is no employee-count threshold",
+  "applies_in": [
+    "CA-ON"
+  ],
+  "category": "government",
+  "status": "active",
+  "official_url": "https://www.ontario.ca/laws/statute/90h19",
+  "families": [
+    {
+      "id": "HRC-EMP",
+      "name": "Equal Treatment in Employment",
+      "description": "The employment rights, from hiring through to the end of the relationship. \u2018Employment\u2019 is read broadly and reaches volunteers, contractors in a dependent relationship, and applicants who were never hired.",
+      "controls": [
+        {
+          "id": "5(1)",
+          "name": "Right to Equal Treatment in Employment",
+          "description": "Every person has a right to equal treatment with respect to employment without discrimination because of race, ancestry, place of origin, colour, ethnic origin, citizenship, creed, sex, sexual orientation, gender identity, gender expression, age, record of offences, marital status, family status or disability. It covers every aspect of the employment relationship \u2014 recruitment, selection, terms, training, promotion, transfer, discipline, layoff and termination \u2014 and discrimination need not be intentional to be established.",
+          "family": "HRC-EMP",
+          "framework": "ohrc_ontario",
+          "domains": [
+            "governance",
+            "hr_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "protected grounds",
+            "equal treatment",
+            "discrimination",
+            "employment"
+          ]
+        },
+        {
+          "id": "5(2)",
+          "name": "Freedom From Harassment in the Workplace",
+          "description": "Every person who is an employee has a right to freedom from harassment in the workplace by the employer or agent of the employer or by another employee because of a protected ground. Harassment means a course of vexatious comment or conduct that is known or ought reasonably to be known to be unwelcome. This is a Code duty distinct from the workplace harassment duties in the Occupational Health and Safety Act: the OHSA requires a programme and an investigation, the Code creates a right and a liability, and a programme that answers only one of them leaves the other unanswered.",
+          "family": "HRC-EMP",
+          "framework": "ohrc_ontario",
+          "domains": [
+            "governance",
+            "hr_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "harassment",
+            "vexatious comment",
+            "poisoned environment"
+          ]
+        },
+        {
+          "id": "7(2)",
+          "name": "Freedom From Sexual Harassment and Sexual Solicitation",
+          "description": "Every person who is an employee has a right to freedom from sexual harassment in the workplace by the employer, an agent of the employer or another employee; and every person has a right to be free from a sexual solicitation or advance made by a person in a position to confer, grant or deny a benefit or advancement, and from reprisal for rejecting it. The solicitation provision reaches conduct that would not meet the \u2018course of conduct\u2019 threshold for harassment: one advance by a person with power over the complainant is enough.",
+          "family": "HRC-EMP",
+          "framework": "ohrc_ontario",
+          "domains": [
+            "governance",
+            "hr_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "sexual harassment",
+            "solicitation",
+            "position to confer a benefit"
+          ]
+        },
+        {
+          "id": "8",
+          "name": "Reprisal",
+          "description": "Every person has a right to claim and enforce rights under the Code, to institute and participate in proceedings under it, and to refuse to infringe another person's rights, without reprisal or threat of reprisal. A complainant who is moved, reassigned or managed more closely after raising a complaint has a reprisal claim that can succeed even where the underlying discrimination complaint fails.",
+          "family": "HRC-EMP",
+          "framework": "ohrc_ontario",
+          "domains": [
+            "governance",
+            "hr_security"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "reprisal",
+            "threat",
+            "enforce rights"
+          ]
+        },
+        {
+          "id": "11",
+          "name": "Constructive Discrimination",
+          "description": "A right is infringed where a requirement, qualification or factor that is not itself discriminatory has the effect of excluding or restricting a group identified by a protected ground \u2014 unless the requirement is reasonable and bona fide in the circumstances, which it is not unless the needs of the group cannot be accommodated without undue hardship. This is the provision that makes a neutral rule unlawful, and it is the one most organisations do not know applies to them.",
+          "family": "HRC-EMP",
+          "framework": "ohrc_ontario",
+          "domains": [
+            "governance",
+            "hr_security"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "constructive discrimination",
+            "adverse effect",
+            "bona fide requirement"
+          ]
+        },
+        {
+          "id": "17",
+          "name": "Accommodation to the Point of Undue Hardship",
+          "description": "A right is not infringed where a person is incapable of performing the essential duties of the position because of disability, but no such finding may be made unless the person's needs can be accommodated without undue hardship, considering cost, outside sources of funding, and health and safety requirements. Those three factors are the whole test: inconvenience, employee morale and customer preference are not among them. The duty is procedural as well as substantive \u2014 a failure to consider accommodation properly is a breach even where no accommodation was possible.",
+          "family": "HRC-EMP",
+          "framework": "ohrc_ontario",
+          "domains": [
+            "governance",
+            "hr_security",
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "duty to accommodate",
+            "undue hardship",
+            "essential duties",
+            "procedural duty"
+          ]
+        },
+        {
+          "id": "23",
+          "name": "Employment Advertising, Application Forms and Interviews",
+          "description": "The right to equal treatment in employment is infringed by an advertisement that directly or indirectly classifies or indicates qualifications by a protected ground, by an application form that makes a written or oral enquiry about a protected ground, and by an enquiry at a personal employment interview about a protected ground \u2014 except where the ground is a reasonable and bona fide qualification. Questions about the ability to meet the essential duties are permitted; questions about how the applicant will arrange child care, or about citizenship, are not.",
+          "family": "HRC-EMP",
+          "framework": "ohrc_ontario",
+          "domains": [
+            "governance",
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "job advertisement",
+            "application form",
+            "interview questions",
+            "bona fide qualification"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "HRC-SERV",
+      "name": "Services, Goods and Facilities",
+      "description": "The customer-facing half. An organisation that serves the public owes this whether or not it has employees.",
+      "controls": [
+        {
+          "id": "1",
+          "name": "Equal Treatment in Services, Goods and Facilities",
+          "description": "Every person has a right to equal treatment with respect to services, goods and facilities, without discrimination because of a protected ground. The duty to accommodate applies here as it does in employment, which is what connects the Code to the accessibility standards made under the AODA: the accessibility standards set a floor of specific measures, and the Code requires accommodation of the individual up to undue hardship even where a standard is silent.",
+          "family": "HRC-SERV",
+          "framework": "ohrc_ontario",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "services",
+            "customers",
+            "accommodation",
+            "public"
+          ]
+        },
+        {
+          "id": "9",
+          "name": "Infringement Prohibited",
+          "description": "No person shall infringe or do, directly or indirectly, anything that infringes a right under the Code. The indirect limb is what catches an employer who acts on a discriminatory instruction from a client, or who structures a contract so that another party does what the employer may not.",
+          "family": "HRC-SERV",
+          "framework": "ohrc_ontario",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "infringement",
+            "indirect discrimination"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "HRC-ORG",
+      "name": "Organisational Responsibility",
+      "description": "Why this is a governance obligation and not an individual one.",
+      "controls": [
+        {
+          "id": "46.3",
+          "name": "Liability for Officers, Officials, Employees and Agents",
+          "description": "Any act or thing done or omitted by an officer, official, employee or agent of a corporation, trade union, unincorporated association or employers' organisation in the course of employment shall be deemed to be an act or thing done or omitted by that body. The organisation is answerable for its managers' conduct without any need to show it authorised the conduct, which is why the existence of a policy, of training, and of a complaint process the organisation actually follows are the practical defences available to it.",
+          "family": "HRC-ORG",
+          "framework": "ohrc_ontario",
+          "domains": [
+            "governance",
+            "hr_security"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "corporate liability",
+            "deemed act",
+            "vicarious liability"
+          ]
+        }
+      ]
+    }
+  ]
+}

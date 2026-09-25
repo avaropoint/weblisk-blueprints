@@ -24,7 +24,13 @@ declares:
     authority: ISO 45001:2018 clause 8.2 requires the response to be periodically tested. No Ontario construction provision sets a drill interval
     interval_basis: chosen
     responsible: site-supervisor
-    applies_to: each project
+    applies_to: the organisation
+    per:
+      listed_in: registers/projects.md
+      key: project_id
+      label: name
+      from: start_on
+      until: finished_on
     records: registers/project-emergency-drills.md
     escalate: {after: 2w, to: health-safety-lead}
   register:

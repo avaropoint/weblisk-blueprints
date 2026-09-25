@@ -26,7 +26,13 @@ declares:
     authority: O. Reg. 213/91 ss. 181, 188, 191. The duties are continuous and no review interval is prescribed
     interval_basis: chosen
     responsible: site-supervisor
-    applies_to: each project
+    applies_to: the organisation
+    per:
+      listed_in: registers/projects.md
+      key: project_id
+      label: name
+      from: start_on
+      until: finished_on
     records: registers/electrical-safety-reviews.md
     escalate: {after: 1w, to: health-safety-lead}
   register:

@@ -159,6 +159,82 @@ Where both name one document their paths are deliberately different, so an
 installation carrying both is told which programme each document belongs to
 rather than silently keeping two of it.
 
+**[`information-security/`](information-security/)** — an information security
+management system aligned to **ISO/IEC 27001:2022**, using the 2022 Annex A
+control set of four themes and 93 controls rather than the 2013 annex. One map,
+**24 artifact specifications** authored here and eleven more placed from the IT
+and records programmes, across three tiers. It also cites `nist_csf_2`,
+`can_ciosc_104` — the Canadian small-and-medium baseline behind CyberSecure
+Canada — `iso_22301` for continuity, and `soc2` where an artifact genuinely
+answers a trust services criterion. Three obligations are record-origin: a
+security incident is investigated five days after it is reported, a risk is
+re-scored before its own review date, and a supplier is reassessed before its
+own. Secure development (A.8.25–A.8.33) is deliberately excluded and belongs in
+the Statement of Applicability's exclusions rather than as ten permanently
+unanswerable gaps.
+
+**[`it-operations/`](it-operations/)** — the operational half: acceptable use,
+IT assets, endpoints and mobile devices, backup and recovery, change management,
+account provisioning, remote access, patching, software and cloud approval,
+network security and configuration baselines. **12 artifacts** citing
+`cis_controls`, `can_ciosc_104` and ISO/IEC 27001. Split from the security
+programme because the two are done by different people on different rhythms, and
+several of its artifacts are placed into the security map rather than written
+twice.
+
+**[`privacy/`](privacy/)** — PIPEDA and CASL, for any Ontario company. **14
+artifacts** across three tiers. The jurisdiction question is the programme:
+PIPEDA applies federally to commercial activity, **Ontario has no private-sector
+privacy statute of general application**, and PIPEDA does not reach employee
+information for a provincially regulated Ontario employer at all. Quebec's
+`quebec_law25` is cited because an Ontario company with Quebec customers is
+bound by it for those customers. A privacy request is answered 30 days after it
+arrived — the one obligation in this corpus whose interval is recorded as
+`required` because an Act sets it — and a breach is assessed three days after
+discovery.
+
+**[`privacy-health-on/`](privacy-health-on/)** — **PHIPA**, for health
+information custodians and their agents and electronic service providers, and
+for nobody else. **5 artifacts** authored plus nine placed. It exists separately
+because PHIPA binds by role rather than by geography: an employer holding sick
+notes is not a custodian, and adopting these obligations where they are not owed
+produces gaps that can never be closed. Two duties are stricter than PIPEDA's and
+are the reason the programme is worth having — notice to the individual with **no
+harm threshold**, and an annual statistical report to the Commissioner by 1 March.
+
+**[`privacy-public-sector-on/`](privacy-public-sector-on/)** — **FIPPA and
+MFIPPA**, for organisations that hold an Ontario institution's records. **4
+artifacts** authored plus nine placed. Neither Act binds a private-sector supplier
+directly; what binds it is the institution's contract, which is why the flow-down
+of terms to subcontractors and a 24-hour contractual notification clock are the
+substance of it.
+
+**[`employment-ontario/`](employment-ontario/)** — the **Employment Standards
+Act, 2000**, the **Human Rights Code**, the **AODA** and its Integrated
+Accessibility Standards Regulation, and the OHSA's workplace violence and
+harassment duties. **16 artifacts** across three tiers, covering the recent
+amendments that are most often missed: the disconnecting-from-work and
+electronic-monitoring policies required at 25 employees, the prohibition since
+July 2024 on engaging unlicensed temporary help agencies and recruiters, and the
+job-posting requirements in force 1 January 2026. Accessibility obligations step
+up at 20 and at 50 employees, so the headcount is a column on two registers
+rather than an assumption.
+
+Workplace violence and harassment sits here rather than in `ohs/` because the
+generic occupational health and safety programme does not carry the OHSA
+ss. 32.0.1–32.0.8 duties at all — only `construction-ohs-ca` does, written for a
+constructor. `emp.violence-harassment` answers it for a single-workplace
+employer, at a different path, and an organisation carrying both programmes
+removes one from its plan.
+
+**[`records-management/`](records-management/)** — retention, disposition, legal
+hold and vital records. **8 artifacts**, built around a register rather than a
+document because **Ontario has no general private-sector retention statute**: the
+schedule holds a dozen authorities at once and the `authority` column is what
+separates a defensible period from a habit. It is placed into five other
+programmes rather than restated, so a change to a keeping period reaches every
+programme that depends on it.
+
 ## What is deliberately not here
 
 **`document-control` is still in the product.** It is the management-system floor

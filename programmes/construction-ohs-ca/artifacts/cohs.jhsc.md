@@ -22,7 +22,13 @@ declares:
     authority: OHSA s. 9(33) — "at least once every three months"
     interval_basis: required
     responsible: health-safety-lead
-    applies_to: each project
+    applies_to: the organisation
+    per:
+      listed_in: registers/projects.md
+      key: project_id
+      label: name
+      from: start_on
+      until: finished_on
     records: registers/joint-health-and-safety-committee-meetings.md
     escalate: {after: 2w, to: constructor-representative}
     satisfies:

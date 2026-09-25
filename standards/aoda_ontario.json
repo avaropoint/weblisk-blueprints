@@ -1,0 +1,553 @@
+{
+  "id": "aoda_ontario",
+  "name": "AODA and the Integrated Accessibility Standards Regulation (Ontario)",
+  "version": "Accessibility for Ontarians with Disabilities Act, 2005, S.O. 2005, c. 11, with O. Reg. 191/11 consolidated as amended",
+  "description": "Ontario's accessibility law and the single regulation that carries almost all of its operative requirements. The IASR applies to every organisation with one or more employees in Ontario, with additional duties at 20 employees (compliance reporting) and at 50 employees (multi-year plan, accessible websites, and written documentation of several policies). It is prescriptive where the Human Rights Code is principled: the Code requires accommodation of an individual to the point of undue hardship, and the IASR requires named measures whether or not anybody has asked. Both apply at once, and meeting the IASR does not discharge the Code.",
+  "authority": "Legislative Assembly of Ontario; administered by the Ministry for Seniors and Accessibility, enforced by accessibility compliance directors",
+  "scope": "Every person or organisation in Ontario that provides goods, services or facilities, or employs at least one person in Ontario. Obligations scale with employee count and with whether the organisation is in the designated public sector",
+  "applies_in": [
+    "CA-ON"
+  ],
+  "category": "government",
+  "status": "active",
+  "official_url": "https://www.ontario.ca/laws/regulation/110191",
+  "families": [
+    {
+      "id": "IASR-GEN",
+      "name": "General Requirements",
+      "description": "Part I of O. Reg. 191/11 \u2014 what every obligated organisation must have in place regardless of which standard is being met.",
+      "controls": [
+        {
+          "id": "3",
+          "name": "Accessibility Policies",
+          "description": "Every obligated organisation shall develop, implement and maintain policies governing how it achieves or will achieve accessibility through meeting the requirements of the regulation, and shall include a statement of organisational commitment to meet the accessibility needs of persons with disabilities in a timely manner. A large organisation \u2014 50 or more employees \u2014 shall put its policies in writing, make them publicly available, and provide them in an accessible format on request.",
+          "family": "IASR-GEN",
+          "framework": "aoda_ontario",
+          "domains": [
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "accessibility policy",
+            "statement of commitment",
+            "publicly available"
+          ]
+        },
+        {
+          "id": "4",
+          "name": "Multi-Year Accessibility Plan",
+          "description": "A large organisation shall establish, implement, maintain and document a multi-year accessibility plan outlining its strategy to prevent and remove barriers, post it on its website and provide it in an accessible format on request, review and update it at least once every five years, and prepare an annual status report on the progress of the measures in it. The five-year review is the obligation most often missed because nothing recurs annually to prompt it.",
+          "family": "IASR-GEN",
+          "framework": "aoda_ontario",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "multi-year plan",
+            "five years",
+            "status report",
+            "barriers"
+          ]
+        },
+        {
+          "id": "5",
+          "name": "Procuring or Acquiring Goods, Services or Facilities",
+          "description": "An obligated organisation shall incorporate accessibility design, criteria and features when procuring or acquiring goods, services or facilities, except where it is not practicable to do so \u2014 and where it is not practicable, it shall provide an explanation on request. Accessibility that is not written into the requirement at purchase is bought out of the organisation for the life of the asset.",
+          "family": "IASR-GEN",
+          "framework": "aoda_ontario",
+          "domains": [
+            "vendor_management",
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "procurement",
+            "accessibility criteria",
+            "not practicable"
+          ]
+        },
+        {
+          "id": "6",
+          "name": "Self-Service Kiosks",
+          "description": "An obligated organisation shall incorporate accessibility features when designing, procuring or acquiring self-service kiosks, and shall have regard to the accessibility of a kiosk for persons with disabilities. An interactive terminal a customer is expected to operate unaided is a kiosk whether or not it is called one.",
+          "family": "IASR-GEN",
+          "framework": "aoda_ontario",
+          "domains": [
+            "governance"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "kiosk",
+            "self-service",
+            "accessibility features"
+          ]
+        },
+        {
+          "id": "7",
+          "name": "Training on the IASR and the Human Rights Code",
+          "description": "Every obligated organisation shall ensure that training is provided on the requirements of the accessibility standards and on the Human Rights Code as it pertains to persons with disabilities, to all employees and volunteers, to all persons who participate in developing the organisation's policies, and to all other persons who provide goods, services or facilities on the organisation's behalf. Training must be appropriate to the person's duties, provided as soon as practicable, provided again on any change to the policies, and a record of the training dates and the number of participants must be kept.",
+          "family": "IASR-GEN",
+          "framework": "aoda_ontario",
+          "domains": [
+            "training_competency",
+            "hr_security"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "training",
+            "Human Rights Code",
+            "volunteers",
+            "training records",
+            "on change"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "IASR-IC",
+      "name": "Information and Communications",
+      "description": "Part II \u2014 how the organisation's information reaches a person who cannot use the format it was produced in.",
+      "controls": [
+        {
+          "id": "11",
+          "name": "Accessible Feedback Processes",
+          "description": "Every obligated organisation that has processes for receiving and responding to feedback shall ensure that they are accessible to persons with disabilities by providing or arranging for accessible formats and communication supports on request, and shall notify the public about their availability. A feedback form that exists only as an inaccessible PDF is a process the people most likely to have feedback cannot use.",
+          "family": "IASR-IC",
+          "framework": "aoda_ontario",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "feedback",
+            "accessible formats",
+            "communication supports"
+          ]
+        },
+        {
+          "id": "12",
+          "name": "Accessible Formats and Communication Supports",
+          "description": "On request, an obligated organisation shall provide or arrange for accessible formats and communication supports for persons with disabilities, in a timely manner that takes the person's accessibility needs into account, at a cost no more than the regular cost charged to others. The organisation shall consult with the person making the request to determine the suitability of the format or support, and shall notify the public that they are available.",
+          "family": "IASR-IC",
+          "framework": "aoda_ontario",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "on request",
+            "timely manner",
+            "consult",
+            "same cost"
+          ]
+        },
+        {
+          "id": "13",
+          "name": "Emergency Procedures, Plans and Public Safety Information",
+          "description": "An obligated organisation that prepares emergency procedures, plans or public safety information and makes them available to the public shall provide them in an accessible format or with appropriate communication supports, as soon as practicable, on request. This duty applies to organisations of every size, without the thresholds that qualify most of the rest of Part II.",
+          "family": "IASR-IC",
+          "framework": "aoda_ontario",
+          "domains": [
+            "governance",
+            "health_safety"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "emergency procedures",
+            "public safety information",
+            "as soon as practicable"
+          ]
+        },
+        {
+          "id": "14",
+          "name": "Accessible Websites and Web Content",
+          "description": "A large organisation shall ensure that its internet websites and web content conform with the Web Content Accessibility Guidelines (WCAG) 2.0 Level A for new sites and content since 1 January 2014, and with Level AA \u2014 excluding success criteria on live captions and pre-recorded audio descriptions \u2014 for all internet websites and web content since 1 January 2021. The duty attaches to content the organisation controls directly or through a contractual relationship that allows modification, so a third-party booking tool embedded in the site is not outside it.",
+          "family": "IASR-IC",
+          "framework": "aoda_ontario",
+          "domains": [
+            "governance",
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "WCAG 2.0",
+            "Level AA",
+            "website",
+            "web content",
+            "1 January 2021"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "IASR-EMP",
+      "name": "Employment",
+      "description": "Part III \u2014 the employment cycle from job advertisement to return to work. These are the duties that overlap most closely with the Human Rights Code's duty to accommodate, and they are more specific than it.",
+      "controls": [
+        {
+          "id": "22",
+          "name": "Notification of Availability of Accommodation in Recruitment",
+          "description": "Every employer shall notify its employees and the public about the availability of accommodation for applicants with disabilities in its recruitment processes. The notice belongs in the job posting itself, not only in a policy an applicant will never see.",
+          "family": "IASR-EMP",
+          "framework": "aoda_ontario",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "recruitment",
+            "notification",
+            "job posting"
+          ]
+        },
+        {
+          "id": "23",
+          "name": "Accommodation During Assessment or Selection",
+          "description": "During a recruitment process, an employer shall notify job applicants, when they are individually selected to participate in an assessment or selection process, that accommodations are available on request in relation to the materials or processes to be used; and shall consult with any applicant who requests one and provide or arrange for a suitable accommodation.",
+          "family": "IASR-EMP",
+          "framework": "aoda_ontario",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "assessment",
+            "selection",
+            "consult",
+            "suitable accommodation"
+          ]
+        },
+        {
+          "id": "24",
+          "name": "Notice to Successful Applicants",
+          "description": "Every employer shall, when making offers of employment, notify the successful applicant of its policies for accommodating employees with disabilities.",
+          "family": "IASR-EMP",
+          "framework": "aoda_ontario",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "offer of employment",
+            "notice",
+            "accommodation policies"
+          ]
+        },
+        {
+          "id": "25",
+          "name": "Informing Employees of Supports",
+          "description": "Every employer shall inform its employees of its policies used to support employees with disabilities, including policies on the provision of job accommodations that take into account an employee's accessibility needs due to disability; shall do so as soon as practicable after hiring; and shall provide updated information whenever there is a change to existing policies.",
+          "family": "IASR-EMP",
+          "framework": "aoda_ontario",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "inform employees",
+            "on hire",
+            "policy change"
+          ]
+        },
+        {
+          "id": "26",
+          "name": "Accessible Formats and Communication Supports for Employees",
+          "description": "Where an employee with a disability requests it, the employer shall consult with the employee to provide or arrange for accessible formats and communication supports for information needed to perform the job and for information generally available to employees in the workplace.",
+          "family": "IASR-EMP",
+          "framework": "aoda_ontario",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "accessible formats",
+            "information needed to perform the job"
+          ]
+        },
+        {
+          "id": "27",
+          "name": "Workplace Emergency Response Information",
+          "description": "Every employer shall provide individualised workplace emergency response information to employees who have a disability, where the disability is such that the individualised information is necessary and the employer is aware of the need. With the employee's consent, the employer shall provide the information to the person designated to assist them, and shall review it when the employee moves to a different location, when overall accommodation needs or plans are reviewed, and when the employer reviews its general emergency response policies.",
+          "family": "IASR-EMP",
+          "framework": "aoda_ontario",
+          "domains": [
+            "hr_security",
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "individualised emergency response",
+            "designated person",
+            "review triggers"
+          ]
+        },
+        {
+          "id": "28",
+          "name": "Documented Individual Accommodation Plans",
+          "description": "Large employers shall have a written process for the development of documented individual accommodation plans, and the process shall set out how the employee participates, how the employee is assessed individually, how the employer may request an evaluation by an outside medical or other expert at its own expense, how the employee may request the participation of a bargaining agent representative or other workplace representative, the steps taken to protect the privacy of the employee's personal information, the frequency and manner of review, how an employee is given the reasons if a plan is denied, and the format in which the plan is provided. The plan must include any individualised emergency response information.",
+          "family": "IASR-EMP",
+          "framework": "aoda_ontario",
+          "domains": [
+            "hr_security",
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "individual accommodation plan",
+            "written process",
+            "privacy",
+            "denial reasons"
+          ]
+        },
+        {
+          "id": "29",
+          "name": "Return to Work Process",
+          "description": "Large employers shall develop and have in place a documented return to work process for employees absent due to disability who require disability-related accommodations to return, outlining the steps taken to facilitate the return and using documented individual accommodation plans. This process does not replace or override any return to work process created by or under any other statute \u2014 including the Workplace Safety and Insurance Act, whose process governs work-related injury.",
+          "family": "IASR-EMP",
+          "framework": "aoda_ontario",
+          "domains": [
+            "hr_security",
+            "health_safety"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "return to work",
+            "documented process",
+            "does not override WSIA"
+          ]
+        },
+        {
+          "id": "30",
+          "name": "Performance Management, Career Development and Redeployment",
+          "description": "An employer that uses performance management, provides career development and advancement, or redeploys employees shall take into account the accessibility needs of employees with disabilities and any individual accommodation plans when doing so. Accessibility that stops at hiring produces a workforce that is accommodated into the job and not through it.",
+          "family": "IASR-EMP",
+          "framework": "aoda_ontario",
+          "domains": [
+            "hr_security"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "performance management",
+            "career development",
+            "redeployment"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "IASR-CS",
+      "name": "Customer Service",
+      "description": "Part IV.2 \u2014 formerly a standalone regulation, folded into the IASR in 2016. It applies to every provider of goods, services or facilities to the public or to other third parties.",
+      "controls": [
+        {
+          "id": "80.46",
+          "name": "Establishment of Customer Service Policies",
+          "description": "Every provider shall establish policies governing the provision of its goods, services or facilities to persons with disabilities, addressing the use of assistive devices and any other measures that enable a person to obtain, use or benefit from them. Large organisations shall document the policies, make the documents publicly available, and provide them in an accessible format on request. Service must be provided in a manner that respects dignity and independence, is integrated unless an alternative is necessary, and gives an equal opportunity to obtain, use and benefit.",
+          "family": "IASR-CS",
+          "framework": "aoda_ontario",
+          "domains": [
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "customer service policy",
+            "dignity",
+            "independence",
+            "integration",
+            "assistive devices"
+          ]
+        },
+        {
+          "id": "80.47",
+          "name": "Service Animals and Support Persons",
+          "description": "A person with a disability may be accompanied by a service animal in areas open to the public, unless the animal is otherwise excluded by law \u2014 and where it is, the provider shall ensure another measure is available. A person may be accompanied by a support person, and where an admission fee is charged the provider shall give notice in advance of any amount payable for the support person. Where confidential information will be discussed, consent of the person with a disability is required.",
+          "family": "IASR-CS",
+          "framework": "aoda_ontario",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "service animal",
+            "support person",
+            "admission fee",
+            "consent"
+          ]
+        },
+        {
+          "id": "80.48",
+          "name": "Notice of Temporary Disruption",
+          "description": "Where facilities or services a person with a disability usually uses to obtain, use or benefit from the provider's goods, services or facilities are temporarily disrupted, the provider shall give notice of the reason, the anticipated duration and a description of alternative facilities or services, by posting it in a conspicuous place and by any other reasonable method. A lift out of service with no posted alternative is a disruption that becomes a denial of service.",
+          "family": "IASR-CS",
+          "framework": "aoda_ontario",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "temporary disruption",
+            "notice",
+            "alternative",
+            "anticipated duration"
+          ]
+        },
+        {
+          "id": "80.49",
+          "name": "Customer Service Training",
+          "description": "Every provider shall ensure that training on the provision of its goods, services or facilities to persons with disabilities is provided to every person who deals with the public on its behalf and to every person who participates in developing its customer service policies. The training must cover the purposes of the AODA and the requirements of the customer service standard, how to interact with people with various types of disability, how to interact with people who use assistive devices or are accompanied by a service animal or support person, what to do if a person is having difficulty accessing the provider's goods, services or facilities, and the provider's own policies. A record of the dates and the number of participants must be kept.",
+          "family": "IASR-CS",
+          "framework": "aoda_ontario",
+          "domains": [
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "customer service training",
+            "training record",
+            "third parties"
+          ]
+        },
+        {
+          "id": "80.50",
+          "name": "Feedback Process for Customer Service",
+          "description": "Every provider shall establish a process for receiving and responding to feedback about the manner in which it provides goods, services or facilities to persons with disabilities, shall make information about the process readily available to the public, and shall specify the actions the provider is required to take if a complaint is received. Feedback must be able to be given in person, by telephone, in writing, by electronic text or otherwise \u2014 a single channel is not a process.",
+          "family": "IASR-CS",
+          "framework": "aoda_ontario",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "feedback process",
+            "complaint",
+            "readily available",
+            "multiple channels"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "IASR-REP",
+      "name": "Compliance Reporting",
+      "description": "Part V \u2014 the filing that makes the rest of it visible to the regulator.",
+      "controls": [
+        {
+          "id": "86.1",
+          "name": "Accessibility Compliance Report",
+          "description": "Every obligated organisation with 20 or more employees, and every designated public sector organisation, shall file an accessibility compliance report with a director, in the form and by the date the Minister requires \u2014 currently every three years, by 31 December of the reporting year. The report is a self-certification signed by a person with authority, and filing it while a named requirement is unmet is a statement the organisation has to be able to stand behind.",
+          "family": "IASR-REP",
+          "framework": "aoda_ontario",
+          "domains": [
+            "compliance_audit",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "compliance report",
+            "every three years",
+            "31 December",
+            "20 employees",
+            "self-certification"
+          ]
+        }
+      ]
+    }
+  ]
+}

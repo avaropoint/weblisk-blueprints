@@ -21,7 +21,13 @@ declares:
     authority: O. Reg. 213/91 s. 14(3)–(4) — all machinery and equipment inspected at least once a week
     interval_basis: required
     responsible: site-supervisor
-    applies_to: each project
+    applies_to: the organisation
+    per:
+      listed_in: registers/projects.md
+      key: project_id
+      label: name
+      from: start_on
+      until: finished_on
     records: registers/equipment-inspections.md
     escalate: {after: 3d, to: health-safety-lead}
   register:

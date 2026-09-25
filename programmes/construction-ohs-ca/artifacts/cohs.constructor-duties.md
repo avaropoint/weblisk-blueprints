@@ -32,7 +32,7 @@ declares:
     authority: OHSA s. 23(1); O. Reg. 213/91 ss. 5, 13, 14
     interval_basis: chosen
     responsible: constructor-representative
-    applies_to: each project
+    applies_to: the organisation
     records: registers/project-start-ups.md
     escalate: {after: 1w, to: senior-management}
   register:

@@ -251,7 +251,8 @@ generating the document and starting the programme loop are one act.
 | `authority` | string | no | what requires the activity, cited the way its own world writes it. Free text, deliberately: the platform must never hold a list of which laws exist |
 | `interval_basis` | string | no | whose interval this is — `required` or `chosen`, a **closed pair**, below |
 | `responsible` | string | no | the **position** that owns it, never a person |
-| `applies_to` | string | no | where each occurrence is expected — a **closed vocabulary**, below |
+| `applies_to` | string | no | **where** each occurrence is expected in the organisation — a **closed vocabulary**, below |
+| `per` | mapping | no | **what** each occurrence is about — one occurrence per period per subject, below. Requires `cadence`; mutually exclusive with `for` |
 | `records` | string | no | the register each occurrence is written into. Empty means the platform cannot tell whether the activity happened |
 | `satisfies` | string[] | no | the controls this activity answers, as `framework:control` |
 | `for` | mapping | conditional | a **record-origin** trigger, below. Mutually exclusive with `cadence` |
@@ -260,6 +261,80 @@ generating the document and starting the programme loop are one act.
 **An obligation with no `records:` is a statement that something must happen and
 no way to tell whether it did.** That is worth saying — an unverifiable
 obligation is a governance finding — and it is never counted as met.
+
+### `per` — one occurrence per period, per subject
+
+| field | type | required | means |
+|---|---|---|---|
+| `listed_in` | string | **yes** | the register whose rows ARE the subjects |
+| `key` | string | **yes** | the column carrying each subject's identity — what a record cites |
+| `label` | string | no | the column a person reads. Identity and name are different columns because the name changes and the join must not |
+| `from` | string | no | the column saying when a subject enters |
+| `until` | string | no | and when it leaves. An empty cell means still |
+| `recorded_as` | string | no | the column in `records:` that cites the subject. **Derived when absent** from the relation that register already declares — see below |
+
+`applies_to` and `per` answer different questions, and keeping them apart is the
+whole point:
+
+```yaml
+applies_to: the organisation          # WHERE — the org holds the register
+per:                                  # WHAT  — one card per live job site
+  listed_in: registers/projects.md
+  key: project_id
+  label: name
+  from: start_on
+  until: finished_on
+cadence: each quarter
+records: registers/first-aid-station-inspections.md
+```
+
+That declaration expects one first aid inspection **per live site per quarter**.
+Fourteen sites, fourteen cards, each one nameable and each one dischargeable on
+its own.
+
+**Why this is not `applies_to: each project`.** It reads as though it were, and
+that is exactly the trap. `applies_to` expands over the *placement* tree —
+tenant, organisation, workspace — and a construction firm running fourteen job
+sites from one workspace was expected to produce **one** inspection between them.
+Measured on a real programme: a monthly obligation over a register of four jobs
+produced four occurrences, one per month for the whole company, and would have
+produced the same four with forty sites. Worse than a gap, because the first site
+to file discharged it for all of them: a false clean bill, the same shape as
+`applies_to: each crew`.
+
+**Why it is not fourteen workspaces either.** A subject's identity is already in
+the data — every recording register carries a relation column onto the subject
+register, and the rows join on it today. Minting a workspace per site would make
+a second identity for one thing, and the occurrence would then join on a slug
+while the record joined on the id. A subject also has a *life*: `start_on` and
+`finished_on` are columns, so "expected only while the job is running" is a fact
+the register already states, and a workspace has no such window. Placement means
+something else again — where content sits and who can see it — and job sites are
+not a visibility boundary.
+
+**Liveness is overlap, not a point.** A subject is expected to have work done on
+it in any period its window overlaps. A job that ran to the 28th of August owed
+August's inspection; judging liveness at the moment the record was due — the
+31st — writes off the last period of every job the organisation ever ran.
+
+**The join is derived, not declared twice.** The recording register already says
+which of its columns cites a subject:
+
+```yaml
+- {key: project, label: Project, type: relation,
+   target: /registers/projects.md#records, display: project_id}
+```
+
+That relation *is* the join, so `recorded_as:` exists only for a register with no
+schema fence. A recording register that declares no such relation reports its
+occurrences **unverifiable**, naming the missing column — never matched by date
+alone, because one site's inspection credited to all fourteen is the failure this
+section exists to remove.
+
+**A register of subjects that cannot be read is said, not counted as nothing.**
+A renamed, moved or not-yet-created register reports one unverifiable occurrence
+with the reason attached. An empty register and a missing one are different
+answers.
 
 ### `for` — one occurrence per record, not per period
 
@@ -417,15 +492,28 @@ flattering direction.
 | accepted | means |
 |---|---|
 | *(omitted)*, `the organisation`, `organization`, `org`, `company`, `business`, `tenant`, `programme`, `program`, `whole` | one occurrence, at the scope the artifact lives in |
-| `each project`, `projects`, `workspace`, `workspaces` | one occurrence **per project** in scope |
+| `each workspace`, `workspaces`, `each project`, `projects` | one occurrence **per workspace** in scope |
 
-Determiners are stripped before matching, so `each project`, `every project`,
-`all projects` and `per project` are one declaration written four ways.
+Determiners are stripped before matching, so `each workspace`, `every workspace`,
+`all workspaces` and `per workspace` are one declaration written four ways.
+
+**`each workspace` is the spelling to use.** `each project` is an accepted alias
+and is not going away — ids are what records join on and must not move — but the
+word is doing two jobs and only one of them is this one. A **workspace** is the
+placement level in the platform's own tree: tenant → organisation → workspace,
+the unit that carries sources, standards and visibility. A **project** in a
+construction programme is a job site, and the organisation keeps those as rows in
+a register. Writing `each project` and meaning the second is the most expensive
+mistake this document can prevent.
+
+If what you mean is "one per job site", "one per vehicle", "one per ward", the
+declaration you want is [`per`](#per--one-occurrence-per-period-per-subject) —
+not this field.
 
 **`each crew`, `each shift` and `each site` are refused.** Not because they are
-unreasonable, but because a place in this model is a tenant, an org or a project
-— there is no fourth axis for them to expand along — and accepting one would
-mean quietly mapping somebody's concept onto ours.
+unreasonable, but because a *place* in this model is a tenant, an org or a
+workspace — there is no fourth axis for them to expand along — and accepting one
+would mean quietly mapping somebody's concept onto ours.
 
 Refused, not defaulted, and the reason is measured. A daily assessment written
 `applies_to: each crew` once read as "the organisation" and expected **one**
@@ -435,10 +523,17 @@ hundred per cent while nineteen twentieths of the work is invisible. Not a gap �
 a false clean bill.
 
 **The workaround is not "write `each project`"**, which silently discards the
-distinction: two crews on one site become one record a day for the site. It is
-to expand on the *work* instead — a register with one row per crew per day, and
-a `for:` trigger over it, which raises one occurrence per row. The same
-expansion, arriving through the data rather than through a taxonomy this product
+distinction in exactly the same way — two crews on one site become one record a
+day for the site, and fourteen sites in one workspace become one record a day for
+the company. Expand on the thing instead:
+
+| what you mean | how to say it |
+|---|---|
+| one per job site, vehicle, ward, vessel — things the organisation keeps a register of | `per:` over that register |
+| one per crew per day, one per incident, one per certificate | `for:` over a register with one row per piece of work |
+| one per department, division, business unit — things that are *placements* | `applies_to: each workspace` |
+
+The first two arrive through the data rather than through a taxonomy this product
 would have to invent and somebody would have to maintain.
 
 ### `cadence` — how often
@@ -642,6 +737,167 @@ will.
 
 ---
 
+## `operations` — the standing work a programme installs
+
+A programme that declares thirty-six obligations and nothing that RUNS has
+handed the organisation a filing system and a hope. `operations:` on the
+programme map is the standing machine work adopting the programme takes on: the
+sweeps, the checks, the passes. Installing the programme creates them as real
+schedules; they are visible in the product, each one named, with its clock, its
+reason, and what it may touch.
+
+**Measured before this existed.** A live installation running a programme with
+thirty-six obligations held **one** scheduled job, typed in by hand months after
+the documents landed. Nothing in the programme said one was needed, and nothing
+in the product said it was missing.
+
+### What is declared here, and what is deliberately not
+
+The *need* for a due sweep is **derived, not declared**, and stays that way. A
+programme with obligations needs chasing by construction; a second statement of
+that fact in a file would disagree with the first the moment somebody changed
+one. Studio's `program_chasing.go` reports a programme nothing is chasing and
+offers a schedule, whether or not this block exists.
+
+What derivation cannot answer is everything *else* about the work:
+
+- **when** — 06:00 is right for a crew dispatched before seven and wrong for an
+  office, and a derived sweep has to pick a number on the author's behalf;
+- **what else** — that sub-trade clearance certificates want a weekly look of
+  their own, separate from the daily sweep, is a judgement about an industry;
+  identically shaped obligations in a hospital's medication regime produce a
+  different answer;
+- **what it may touch** — an operation that runs a model must say so, because
+  the alternative is that it inherits whatever the scheduler holds.
+
+So a programme with no `operations:` at all is valid and unchanged. This block
+adds what a programme knows and the engine cannot infer.
+
+| field | type | required | means |
+|---|---|---|---|
+| `id` | string | **yes** | stable and local to the programme. An installed schedule is matched back to it, so installing twice does not create the work twice |
+| `title` | string | no | what a person reads in the schedule list. Defaults to `id` |
+| `does` | string | conditional | a **deterministic action** the platform runs. Mutually exclusive with `agent` |
+| `agent` | string | conditional | an instruction for a model, in the author's own words. Mutually exclusive with `does` |
+| `needs` | string[] | no | the capabilities the agent may use — a **closed set**, below. A ceiling, never a grant |
+| `schedule` | mapping | conditional | the clock — `{cadence, at, weekday, day}`, below |
+| `on` | string[] | conditional | the events it reacts to — a **closed set**, below |
+| `why` | string | no | prose for whoever finds this running at three in the morning and wants to know who asked for it |
+| `start` | enum | no | `paused` (default) or `running` |
+
+An operation needs **a `schedule`, or an `on`, or both**. Both is the useful
+combination: react when something lapses, and sweep anyway in case the event was
+missed while the server was down.
+
+### `start` defaults to `paused`, and that is the design
+
+A schedule runs unattended and sends people work. An install that started doing
+that would be acting on a cadence the organisation never chose — the same
+refusal Studio already makes when it *offers* a due sweep rather than creating
+one. What changes is that the offer is now concrete: the work **exists**, named,
+with its schedule and its permissions on screen, and starting it is one switch
+instead of a form somebody has to fill in from nothing.
+
+`start: running` is available and no shipped programme uses it. Writing one is a
+decision to have adoption change an organisation's behaviour the same day.
+
+### `does` names an action the platform has, and the list is the platform's
+
+The vocabulary is **not restated here**, deliberately, and not held in the
+programme loader either: it is the engine's own list of scheduled actions, and a
+second copy in a schema is a second answer about what can run. An operation
+naming an action a build does not have is **reported by name, with the
+alternatives**, at the point of install — never silently skipped, because a
+skipped operation presents as a programme that installed and produced less
+standing work than it declared, with nothing anywhere saying so.
+
+At the time of writing the engine runs `due-sweep`, `compliance-scan`,
+`coverage-analysis`, `impact-analysis`, `gap-analysis`, `evidence-scan`,
+`validate-blueprints`, `generate-policies`, `standards-drift`,
+`standards-verify`, `programme-readiness` and `drift-prepare`. Ask the
+installation (`GET /api/jobs/actions`) rather than trusting that sentence.
+
+### `needs` is a ceiling on an agent, and is refused beside `does`
+
+The closed set is `read`, `write`, `delete`, `integrations`, `dispatch`.
+
+**Empty means read, and nothing else.** An author who forgets a capability gets
+an operation that cannot do the thing and will notice; the other default gives
+them one that can do everything and nobody will.
+
+It is a **ceiling**, not a grant. What the run actually gets is this
+∩ the agent's own declaration ∩ what the identity underneath may do, so a
+programme can never hand an agent authority the agent did not ask for.
+
+A capability outside the set **stops the file**, quoting the word. Dropping it
+would leave the author believing the operation was permitted to do something it
+cannot — and the mirror case, a word nobody checked being honoured, would give
+an operation more authority than the programme asked for.
+
+**`needs:` beside `does:` is refused.** A built-in action's authority is the
+action's own; a declaration there would be read by nothing, and whoever wrote it
+would believe the action was bounded by it.
+
+Three things no capability grants, at any authority: **attesting or signing**
+(the whole obligation model rests on automation being unable to produce one),
+**changing its own authority**, and **silent egress**.
+
+### `schedule` — a small closed vocabulary, and not the obligation's
+
+| field | required | accepted |
+|---|---|---|
+| `cadence` | **yes** | `hourly` · `daily` · `weekly` · `monthly` |
+| `at` | required except `hourly` | `HH:MM`, 24-hour, in the installation's local time |
+| `weekday` | required for `weekly` | `monday` … `sunday` |
+| `day` | required for `monthly` | 1–31. A day past the end of a short month lands on that month's last day |
+
+**Deliberately not the same words an obligation's `cadence` uses.** They answer
+different questions: an obligation's cadence is how often the *work* must
+happen, and this is how often the *machine looks*. Sharing the vocabulary would
+invite an author to write `each working day` here and get a silently different
+clock.
+
+`once` is absent on purpose. A programme declares *standing* work; installing it
+twice would otherwise produce two one-off tasks with nothing to say they were
+the same intention.
+
+**A weekly cadence with no `weekday` is refused**, and a daily, weekly or
+monthly one with no `at`. The scheduler refuses both outright, so a declaration
+without them is one that could never be installed — and the refusal belongs
+against the file rather than against the operator who tried.
+
+### `on` — reacting to a fact instead of to the clock
+
+The allow-list is `obligation.due_soon`, `obligation.overdue`,
+`obligation.escalated` and `attestation`. It is an allow-list rather than a free
+string because dispatching an agent emits events of its own: a job triggered on
+machine chatter re-triggers itself, forever, spending money each time.
+
+A burst **coalesces** — a sweep that finds forty lapsed obligations emits forty
+events and the job runs once — and the instruction the agent receives says so.
+An agent that believed it was handling a single item would report on one of
+forty and read as complete.
+
+### The refusals
+
+| refused at load — the file is skipped and reported | reported at install, naming the operation |
+|---|---|
+| an operation with no `id`, or two with one `id` | a `does:` this build does not have |
+| neither `does:` nor `agent:`, or both | an `on:` event outside the allow-list |
+| no `schedule` and no `on:` | — |
+| a `cadence` outside the closed set | — |
+| `weekly` with no `weekday`; a missing or malformed `at`; `monthly` outside 1–31 | — |
+| a `needs:` capability outside the closed set | — |
+| `needs:` beside `does:` | — |
+| a `start:` other than `paused` or `running` | — |
+
+The right-hand column is at install rather than at load for one reason: what a
+*build* can run is not a property of the file. The same programme is correct on
+a newer installation and short of an action on an older one, and refusing the
+file would make a programme unreadable rather than partly installable.
+
+---
+
 ## Known gaps
 
 Stated because a schema that describes only what works teaches an author to
@@ -660,12 +916,19 @@ declared by packs and absent from the loader's type for a period, so prepared
 programmes arrived with no trigger and no escalation path — an obligation with
 no clock at all, correctly reported as undeclarable three layers from the cause.
 
-**A programme cannot declare the agents, workflows, tasks or forms it needs.**
-Documents, obligations, registers, escalation and retention are declarable.
-Positions the work is assigned to, notifications, scheduled jobs and approval
-campaigns are not — they are configured by hand, per organisation, after the
-documents land, and nothing tells anybody it needs doing. `CORPUS_SHAPE.md`
-step 6 is that work.
+**A programme can now declare its standing work, and not yet its people or its
+forms.** `operations:` closes the scheduled half of what this gap used to
+describe: sweeps, checks and event-driven passes are declarable, install with
+the programme, and carry the capability ceiling they run under. What is still
+configured by hand and still unannounced is **who holds a position**, **who is
+notified**, and **the approval campaigns** a submission travels through. The
+first of those is tenant data and belongs to the customer rather than to a
+programme; the other two are `CORPUS_SHAPE.md` step 6's remainder.
+
+**An operation is created paused and nothing enables it.** That is deliberate —
+see `operations` above — but it means an organisation that installs a programme
+and never opens the schedule list has standing work that exists and does not
+run. The product reports it as paused; nothing yet insists.
 
 **`kind` is not validated against the declared kinds.** Packs in use carry kinds
 that [`kinds.md`](kinds.md) does not declare, and nothing reports it. Kinds are
@@ -689,7 +952,9 @@ rather than by content.
 - [ ] No artifact sits at a tier lower than something it `requires`
 - [ ] Every artifact `id` a map places is defined by some spec in the pack, or is knowingly supplied by another
 - [ ] Every obligation declares an `activity`, and a `cadence` **or** a `for:` — never both
-- [ ] Every `cadence` is in the declared vocabulary; every `applies_to` is `the organisation` or `each project`
+- [ ] Every `cadence` is in the declared vocabulary; every `applies_to` is `the organisation` or `each workspace`
+- [ ] Nothing says `each project` meaning *a job site* — that is `per:`, and the check is whether the organisation keeps a register of them
+- [ ] Every obligation with `per:` records into a register carrying a relation column onto the subject register
 - [ ] Every `interval_basis` is `required` or `chosen`, and every interval the organisation picked itself says `chosen` — an interval with a citation beside it and no basis reads as imposed
 - [ ] Every `for.due` matches `<n><h|d|w> (after|before) <field>`, and `<field>` names a column of the trigger register
 - [ ] Every `for.records` names a register **other than** the obligation's own `records:`
@@ -700,4 +965,11 @@ rather than by content.
 - [ ] Every `retention.keep` is `<n>y`, `<n>m` or `<n>d`, and declares its `authority`
 - [ ] `responsible`, `approved_by`, `approvers` and `escalate.to` name positions, no individual is named anywhere
 - [ ] No spec declares `creates:`
+- [ ] Every operation declares an `id` unique within the programme, and a `does:` **or** an `agent:` — never both
+- [ ] Every operation has a `schedule`, an `on:`, or both, and every `cadence`, `weekday` and `at` is in the declared vocabulary
+- [ ] Every `does:` names an action the target installation actually runs — ask `GET /api/jobs/actions`, do not trust a list in a document
+- [ ] Every `needs:` entry is `read`, `write`, `delete`, `integrations` or `dispatch`, and no operation declares `needs:` beside `does:`
+- [ ] Every operation that runs a model states what it may touch, even when that is only `read`
+- [ ] Every operation says `why:`, in terms that answer somebody who finds it running at three in the morning
+- [ ] No operation declares `start: running` unless adopting the programme is genuinely meant to change behaviour that day
 - [ ] Every artifact's body is a brief for **this organisation** — not the document itself, and not a recital of the standard

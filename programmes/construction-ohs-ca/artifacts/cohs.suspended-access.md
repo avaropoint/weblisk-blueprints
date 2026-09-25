@@ -21,7 +21,13 @@ declares:
     authority: O. Reg. 213/91 ss. 7.1, 138, 138.1. The notification and the three-year training clocks are prescribed; no review interval is
     interval_basis: chosen
     responsible: site-supervisor
-    applies_to: each project
+    applies_to: the organisation
+    per:
+      listed_in: registers/projects.md
+      key: project_id
+      label: name
+      from: start_on
+      until: finished_on
     records: registers/suspended-access-reviews.md
     escalate: {after: 1w, to: health-safety-lead}
   register:

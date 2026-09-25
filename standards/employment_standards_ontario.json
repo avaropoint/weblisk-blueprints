@@ -1,0 +1,450 @@
+{
+  "id": "employment_standards_ontario",
+  "name": "Employment Standards Act, 2000 (Ontario)",
+  "version": "S.O. 2000, c. 41, consolidated as amended, including the Working for Workers Acts in force to 1 January 2026",
+  "description": "The minimum terms of employment in Ontario. It sets wages, hours, rest, overtime, public holidays, vacation, protected leaves, notice and severance on termination, and the records an employer must keep to show it met them \u2014 and those minimums cannot be contracted out of, so an employment agreement that gives less than the Act is void to that extent rather than merely unenforced. Recent amendments have added written-policy and disclosure duties that did not exist a few years ago: a policy on disconnecting from work and a policy on electronic monitoring for employers with 25 or more employees, a prohibition on engaging unlicensed temporary help agencies and recruiters since 1 July 2024, and job-posting requirements in force 1 January 2026. Not to be confused with esa_oesc, which is the Electrical Safety Authority's Ontario Electrical Safety Code and shares only an abbreviation.",
+  "authority": "Legislative Assembly of Ontario; administered by the Ministry of Labour, Immigration, Training and Skills Development",
+  "scope": "Employers and employees in Ontario in provincially regulated work. Employees in federally regulated industries \u2014 banking, telecommunications, interprovincial transport and others \u2014 are covered by the Canada Labour Code instead, not by this Act",
+  "applies_in": [
+    "CA-ON"
+  ],
+  "category": "government",
+  "status": "active",
+  "official_url": "https://www.ontario.ca/laws/statute/00e41",
+  "families": [
+    {
+      "id": "ESA-INFO",
+      "name": "Information, Written Policies and Postings",
+      "description": "What the employer must tell employees in writing, and the policies the Act now requires an employer of a certain size to have prepared and distributed.",
+      "controls": [
+        {
+          "id": "2",
+          "name": "Minister's Poster and Copy to Employees",
+          "description": "An employer shall post in the workplace a copy of the most recent poster published by the Minister describing employment standards (\u2018Employment Standards in Ontario\u2019), and shall give each employee a copy of it within 30 days of the day the employee becomes an employee. Where the majority language of a workplace is not English, the employer shall post a translation if the Minister has published one. A poster from a superseded edition is not compliance: the copy given has to be the current one.",
+          "family": "ESA-INFO",
+          "framework": "employment_standards_ontario",
+          "domains": [
+            "governance",
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "poster",
+            "30 days",
+            "copy to employee"
+          ]
+        },
+        {
+          "id": "21.1.1",
+          "name": "Written Policy on Disconnecting From Work",
+          "description": "An employer that employs 25 or more employees on 1 January of any year shall, before 1 March of that year, have a written policy in place for all employees with respect to disconnecting from work, and shall provide a copy to each employee within 30 days of preparing it or of changing an existing policy, and to a new employee within 30 days of hire. The Act sets no content standard for what the policy must say \u2014 which means the compliance question is whether it exists, is current, and reached everybody, and those are exactly the three facts an employer cannot reconstruct after the fact.",
+          "family": "ESA-INFO",
+          "framework": "employment_standards_ontario",
+          "domains": [
+            "governance",
+            "hr_security"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "disconnecting from work",
+            "25 employees",
+            "1 March",
+            "written policy"
+          ]
+        },
+        {
+          "id": "41.1.1",
+          "name": "Written Policy on Electronic Monitoring",
+          "description": "An employer that employs 25 or more employees on 1 January of any year shall, before 1 March of that year, have a written policy in place with respect to the electronic monitoring of employees, stating whether the employer electronically monitors employees and, if so, a description of how and in what circumstances it does, and the purposes for which the information may be used. A copy must be provided to each employee within 30 days of preparing or changing it, and to a new employee within 30 days of hire; the policy must be retained for three years after it ceases to be in effect.",
+          "family": "ESA-INFO",
+          "framework": "employment_standards_ontario",
+          "domains": [
+            "governance",
+            "data_protection",
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "electronic monitoring",
+            "25 employees",
+            "written policy",
+            "three years"
+          ]
+        },
+        {
+          "id": "8.4",
+          "name": "Publicly Advertised Job Posting Requirements",
+          "description": "For publicly advertised job postings, in force 1 January 2026: the posting must include information about the expected compensation or its range, must disclose whether artificial intelligence is used to screen, assess or select applicants, and must state whether the posting is for an existing vacancy. Canadian experience requirements are prohibited in postings and in associated application forms. An employer that interviews an applicant must inform that applicant whether a hiring decision has been made, within 45 days of the last interview. Copies of every publicly advertised posting and of the associated application forms must be retained for three years after public access to the posting is removed.",
+          "family": "ESA-INFO",
+          "framework": "employment_standards_ontario",
+          "domains": [
+            "governance",
+            "hr_security",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "job posting",
+            "compensation range",
+            "artificial intelligence",
+            "45 days",
+            "Canadian experience"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ESA-WAGES",
+      "name": "Wages, Hours and Time Off",
+      "description": "The core minimums. Most of what a payroll audit finds sits in this family, and most of it is arithmetic somebody got wrong once and repeated.",
+      "controls": [
+        {
+          "id": "23",
+          "name": "Minimum Wage",
+          "description": "An employer shall pay at least the minimum wage prescribed for the class of employee. The general rate, and the separate rates for students under 18, homeworkers and hunting, fishing and wilderness guides, are adjusted annually on 1 October by reference to the Ontario Consumer Price Index. A rate that was correct last year is a contravention this year, which is why the adjustment date belongs on a calendar rather than in somebody's memory.",
+          "family": "ESA-WAGES",
+          "framework": "employment_standards_ontario",
+          "domains": [
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "minimum wage",
+            "1 October",
+            "annual adjustment",
+            "student rate"
+          ]
+        },
+        {
+          "id": "17",
+          "name": "Hours of Work Limits and Written Agreements",
+          "description": "An employer shall not require or permit an employee to work more than eight hours a day (or the number of hours in an established regular work day, if longer) or 48 hours a week, unless the employee has made a written agreement to exceed those limits and, for weekly hours above 48, the approval requirements of the Act are met. The agreement must be accompanied by the Director's information sheet, and it may be revoked by the employee on two weeks' written notice.",
+          "family": "ESA-WAGES",
+          "framework": "employment_standards_ontario",
+          "domains": [
+            "governance",
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "hours of work",
+            "excess hours agreement",
+            "48 hours",
+            "eight hours"
+          ]
+        },
+        {
+          "id": "18",
+          "name": "Rest Periods and Eating Periods",
+          "description": "An employee shall receive at least 11 consecutive hours free from work each day, at least eight hours free between shifts unless the total of the shifts does not exceed 13 hours or the employee has agreed otherwise, and at least 24 consecutive hours free each work week or 48 consecutive hours in every period of two work weeks. An employee shall not work more than five consecutive hours without an eating period of at least 30 minutes, which may be split into two periods totalling 30 minutes by agreement.",
+          "family": "ESA-WAGES",
+          "framework": "employment_standards_ontario",
+          "domains": [
+            "governance",
+            "health_safety"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "rest periods",
+            "eating period",
+            "11 hours",
+            "24 consecutive hours"
+          ]
+        },
+        {
+          "id": "22",
+          "name": "Overtime Pay",
+          "description": "An employer shall pay an employee overtime pay of at least one and one half times the employee's regular rate for each hour worked in excess of 44 hours in a work week, unless the employee holds a position exempt under the regulations. Overtime is calculated weekly unless an averaging agreement with the required approval is in place, and time off in lieu is permitted only by written agreement and at time and a half.",
+          "family": "ESA-WAGES",
+          "framework": "employment_standards_ontario",
+          "domains": [
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "overtime",
+            "44 hours",
+            "time and a half",
+            "averaging agreement"
+          ]
+        },
+        {
+          "id": "24",
+          "name": "Public Holidays",
+          "description": "An employee is entitled to the nine Ontario public holidays off with public holiday pay, or to a substitute day or premium pay where the employee works the holiday and the conditions of Part X are met. Public holiday pay is calculated from the regular wages earned and vacation pay payable in the four work weeks before the work week with the holiday, divided by 20. Entitlement is lost only where the employee fails, without reasonable cause, to work the last scheduled day before or the first scheduled day after the holiday.",
+          "family": "ESA-WAGES",
+          "framework": "employment_standards_ontario",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "public holiday",
+            "substitute day",
+            "premium pay",
+            "last and first rule"
+          ]
+        },
+        {
+          "id": "33",
+          "name": "Vacation Time and Vacation Pay",
+          "description": "An employee with less than five years of employment is entitled to two weeks of vacation time and vacation pay of at least four per cent of the wages earned in the vacation entitlement year; at five years or more the entitlement is three weeks and six per cent. Vacation pay is payable in the manner the Act permits, vacation time must be scheduled in accordance with Part XI, and an agreement to forgo vacation time requires the Director's approval.",
+          "family": "ESA-WAGES",
+          "framework": "employment_standards_ontario",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "vacation time",
+            "vacation pay",
+            "four per cent",
+            "five years"
+          ]
+        },
+        {
+          "id": "11",
+          "name": "Payment of Wages, Statements and Deductions",
+          "description": "An employer shall establish a recurring pay period and pay day, pay all wages earned in a pay period on or before the pay day, and give the employee a written statement setting out the pay period, the wage rate, the gross amount, the amount and purpose of each deduction, any living allowance, and the net amount. An employer shall not withhold, deduct or require a payment of wages except as authorised by statute, court order or the employee's written authorisation, and may never deduct for faulty work or for a cash shortage or lost property that another person had access to.",
+          "family": "ESA-WAGES",
+          "framework": "employment_standards_ontario",
+          "domains": [
+            "governance",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "pay statement",
+            "deductions",
+            "pay period",
+            "faulty work"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ESA-LEAVES",
+      "name": "Protected Leaves and Reprisal",
+      "description": "The statutory leaves, and the protection that makes them real. A leave the employee is afraid to take is a leave that has not been provided.",
+      "controls": [
+        {
+          "id": "46",
+          "name": "Statutory Leaves of Absence",
+          "description": "Part XIV entitles employees to job-protected unpaid leaves, each with its own qualifying conditions, duration and notice requirements: pregnancy and parental leave, sick leave, family responsibility leave, bereavement leave, family caregiver leave, family medical leave, critical illness leave, child death and crime-related child disappearance leave, domestic or sexual violence leave, organ donor leave, reservist leave, and long-term illness leave. During any leave the employee continues to participate in benefit plans and continues to accrue length of service, and must be reinstated to the same or a comparable position at the end of it.",
+          "family": "ESA-LEAVES",
+          "framework": "employment_standards_ontario",
+          "domains": [
+            "governance",
+            "hr_security"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "leaves of absence",
+            "job protected",
+            "reinstatement",
+            "benefit continuation"
+          ]
+        },
+        {
+          "id": "74",
+          "name": "Reprisal Prohibited",
+          "description": "No employer or person acting on behalf of an employer shall intimidate, dismiss, penalise or threaten an employee because the employee asks the employer to comply with the Act, makes enquiries about rights, files a complaint, exercises or attempts to exercise a right, gives information to an employment standards officer, or takes a leave. Where a reprisal is alleged, the burden of proof that the Act was not contravened lies on the employer \u2014 which makes a contemporaneous record of the real reason for a decision the employer's only defence.",
+          "family": "ESA-LEAVES",
+          "framework": "employment_standards_ontario",
+          "domains": [
+            "governance",
+            "hr_security"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "reprisal",
+            "reverse onus",
+            "burden of proof",
+            "protected activity"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ESA-END",
+      "name": "Ending the Employment Relationship",
+      "description": "Notice, severance and mass termination. The most expensive part of the Act to get wrong, and the part most often confused with common-law reasonable notice, which is a separate and usually larger entitlement.",
+      "controls": [
+        {
+          "id": "54",
+          "name": "Notice of Termination",
+          "description": "An employer shall not terminate the employment of an employee who has been continuously employed for three months or more unless it gives written notice under Part XV and the notice period expires, or pays termination pay in lieu. The notice period runs from one week at three months to eight weeks at eight years or more of employment. Statutory notice is a floor: it does not displace an employee's common-law entitlement to reasonable notice unless the contract validly limits it.",
+          "family": "ESA-END",
+          "framework": "employment_standards_ontario",
+          "domains": [
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "notice of termination",
+            "termination pay",
+            "eight weeks",
+            "three months"
+          ]
+        },
+        {
+          "id": "64",
+          "name": "Severance Pay",
+          "description": "An employer shall pay severance pay to an employee who has been employed for five years or more where the employer's payroll is $2.5 million or more, or where 50 or more employees have had their employment severed in a six-month period because all or part of the business permanently discontinued. Severance pay is one week's regular wages for each year of employment to a maximum of 26 weeks, and it is in addition to termination notice or pay in lieu, not instead of it.",
+          "family": "ESA-END",
+          "framework": "employment_standards_ontario",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "severance pay",
+            "five years",
+            "2.5 million payroll",
+            "26 weeks"
+          ]
+        },
+        {
+          "id": "58",
+          "name": "Mass Termination",
+          "description": "Where the employment of 50 or more employees at an establishment is terminated in a four-week period, the employer shall give notice in the form and for the period prescribed \u2014 eight, twelve or sixteen weeks depending on the number of employees \u2014 and shall file a Form 1 with the Director. Notice to employees is not effective until the Form 1 is received by the Director, so filing late extends every employee's notice period.",
+          "family": "ESA-END",
+          "framework": "employment_standards_ontario",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "mass termination",
+            "Form 1",
+            "50 employees",
+            "four weeks"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ESA-THIRD",
+      "name": "Temporary Help Agencies and Recruiters",
+      "description": "A duty that falls on the client employer rather than on the agency, which is why it is missed: engaging an unlicensed agency is the client's contravention.",
+      "controls": [
+        {
+          "id": "74.1.1",
+          "name": "Engaging Only Licensed Agencies and Recruiters",
+          "description": "Since 1 July 2024, no person shall knowingly engage or use the services of a temporary help agency that does not hold a licence, and no employer or prospective employer shall knowingly engage or use the services of a recruiter who does not hold a licence. Licences are published in a searchable public registry, so the check is available and the defence of not knowing is correspondingly narrow. The obligation is continuous rather than one-time: a licence can be revoked during an engagement.",
+          "family": "ESA-THIRD",
+          "framework": "employment_standards_ontario",
+          "domains": [
+            "vendor_management",
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "temporary help agency",
+            "recruiter",
+            "licence",
+            "public registry"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ESA-RECORDS",
+      "name": "Records",
+      "description": "What must be written down and for how long. The Act's remedies run back years, and an employer without records is judged on the employee's.",
+      "controls": [
+        {
+          "id": "15",
+          "name": "Employment Records and Retention Periods",
+          "description": "An employer shall record the employee's name, address and starting date, date of birth if the employee is a student under 18, the hours worked each day and each week, the information contained in each wage statement, and the documents relating to each leave taken. Records are retained for three years after the work was performed; records of vacation time and vacation pay for five years after the vacation entitlement year they relate to; agreements to work excess hours or to average overtime for three years after they expire; and documents relating to a leave for three years after the leave ended. Records must be readily available for inspection by an employment standards officer.",
+          "family": "ESA-RECORDS",
+          "framework": "employment_standards_ontario",
+          "domains": [
+            "records_management",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "employment records",
+            "three years",
+            "five years",
+            "vacation records",
+            "inspection"
+          ]
+        }
+      ]
+    }
+  ]
+}

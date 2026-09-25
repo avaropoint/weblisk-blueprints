@@ -24,7 +24,13 @@ declares:
     authority: O. Reg. 297/13 s. 8(1) sets a three-year validity; O. Reg. 213/91 s. 26.2 requires system training with no interval. Neither sets a verification interval
     interval_basis: chosen
     responsible: site-supervisor
-    applies_to: each project
+    applies_to: the organisation
+    per:
+      listed_in: registers/projects.md
+      key: project_id
+      label: name
+      from: start_on
+      until: finished_on
     records: registers/working-at-heights-verifications.md
     escalate: {after: 1w, to: health-safety-lead}
   register:

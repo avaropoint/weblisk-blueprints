@@ -26,7 +26,7 @@ declares:
     authority: O. Reg. 213/91 ss. 6, 7, 7.1
     interval_basis: chosen
     responsible: project-manager
-    applies_to: each project
+    applies_to: the organisation
     records: registers/notices-of-project.md
     escalate: {after: 3d, to: constructor-representative}
   register:
