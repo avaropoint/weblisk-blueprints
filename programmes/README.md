@@ -162,6 +162,38 @@ It was **authored here, not moved here**, which is the whole of the argument in
 the section above: a programme specification written in a product's source tree
 is invisible to the CLI and unversionable by a customer, and this one never was.
 
+**[`construction-environment-ca/`](construction-environment-ca/)** — environmental
+protection for an Ontario contractor that excavates. One map, **18 artifact
+specifications** across two tiers — `statutory` (15 — lawful to dig and lawful to
+move what comes out) and `defensible` (3 — it can still be shown three years
+later). It cites `o_reg_406_19`, `epa_ontario` and `owra_ontario` in
+[`../standards/`](../standards/README.md): the excess soil regulation, the
+*Environmental Protection Act* and the *Ontario Water Resources Act*.
+
+The top tier is deliberately three artifacts, and **the smallness is the
+finding**: almost everything in this area is a prohibition with a record
+attached, so there is very little that is merely good practice. What is in it is
+the work of looking — an instrument's conditions read against what the site is
+actually doing, an expiry acted on before it passes, and somebody reading the
+whole programme at once on a cycle.
+
+Its central claim is that **the Registry regime is triggered and mostly does not
+apply, and two duties do not care.** A notice is owed only where a project area
+meets one of three criteria and Schedule 2 has not exempted it; the hauling
+record under s. 18 and the written contamination procedure under s. 23 are owed
+on every project area at every volume. A programme that made every load a
+Registry filing would be wrong and would be abandoned — taking the filings that
+were owed with it — so the shape here is a **determination recorded per project
+area** and a filing on the minority. It also refuses to express "forthwith": the
+spill reporting obligation's deadline is explicitly the deadline for the record
+of the call rather than for the call, and its register asks whether the call was
+forthwith as a separate required question.
+
+It does not restate the designated substances and asbestos work in
+`construction-ohs-ca`; it cross-references it, and names the join — the material
+a survey finds becomes an environmental obligation the moment it is loaded into
+a truck.
+
 **[`construction-payment-ca/`](construction-payment-ca/)** — the *Construction
 Act*: holdback, substantial performance, prompt payment, the trust, liens,
 bonds and adjudication. One map, **15 artifact specifications** across two
