@@ -48,18 +48,29 @@ why it is data here and not a judgement in code.
 
 ## The shape on disk
 
-    programmes/<programme>/programs/<map>.md        the map: tiers and placements
-    programmes/<programme>/artifacts/<artifact>.md  one artifact, and its brief
+    programmes/<programme>/map.md              the map: tiers and placements
+    programmes/<programme>/specs/<name>.md     one specification, and its brief
+    programmes/<programme>/templates/<name>.md one blank form
 
-The **parent directory alone** says what a file is. The segment above it names
-the programme, so provenance survives being merged with every other programme an
-installation has. Anything else in the directory is ignored, so a `README.md`
-beside them costs nothing.
+The **name of the thing holding a file** says what the file is. The segment above
+it names the programme, so provenance survives being merged with every other
+programme an installation has. Anything else in the directory is ignored, so a
+`README.md` beside them costs nothing.
 
-`programmes/` is also accepted in place of `programs/` inside a programme,
-because the rest of this corpus and all of Studio spell the word that way and a
-directory that spelled it naturally used to load its artifacts, carry no map, and
-report nothing. Existing ones keep `programs/`; neither spelling is wrong.
+Each name says what it holds. A **spec** is a specification for a document — what
+it must establish, for this organisation — which is why the directory is not
+called `artifacts/`: an artifact, everywhere else in the product, is a real
+document sitting at a real path, and that is the one thing these files are not.
+The **map** is one file, so it is a file: it used to be the only thing in a
+directory called `programs/`, two letters from its own parent `programmes/`, and
+a reader told the two apart by counting directory levels.
+
+**Every earlier spelling still loads, and always will** — `artifacts/` for
+`specs/`, and `programs/` or `programmes/` for the directory the map sat in. A
+programme is content in somebody's repository: a tenant's adopted copy, an
+organisation's own authoring. A convention that stopped recognising what it wrote
+last month would orphan all of it. So there is no cutover and nothing to migrate;
+moving a programme to the new names is tidying, at whatever moment suits.
 
 ### The paths a programme declares
 
@@ -120,26 +131,52 @@ about anybody's industry.
 ## What is here
 
 **[`construction-ohs-ca/`](construction-ohs-ca/)** — occupational health and
-safety for construction work in Ontario. One programme map, **43 artifact
-specifications**, 36 of which declare an obligation, placed across three tiers:
-`essential` (36 artifacts — lawful to put a worker on a project), `conformant`
-(5 — showable to somebody who was not there) and `certifiable` (2 — on the cycle
-a certifying body actually runs). It is written against the Ontario instruments that actually bind — the
+safety for construction work in Ontario. One programme map, **52 artifact
+specifications** placed across three tiers: `essential` (44 artifacts — lawful
+to put a worker on a project), `conformant` (6 — showable to somebody who was
+not there) and `certifiable` (2 — on the cycle a certifying body actually runs).
+It is written against the Ontario instruments that actually bind — the
 *Occupational Health and Safety Act* and its construction, training, confined
 space, asbestos, naloxone and WHMIS regulations, the *Workplace Safety and
-Insurance Act, 1997* and its first aid regulation — together with `cor_2020`,
+Insurance Act, 1997* and its first aid regulation, and the *Building
+Opportunities in the Skilled Trades Act, 2021* — together with `cor_2020`,
 `iso_45001`, `isnetworld` and `csa_z462`, all in
 [`../standards/`](../standards/README.md), and cites their controls without
 containing any of them.
 
-Nine of its artifacts are **standing registers**, whose rows are the subjects the
-obligations multiply over; eight obligations are **record-origin**, raised one per
-row of a trigger register rather than one per period — a clearance certificate
-renewed `14d before expires_on`, a notice of project filed before a start date.
+Twelve of its artifacts are **standing registers**, whose rows are the subjects
+the obligations multiply over; eleven obligations are **record-origin**, raised
+one per row of a trigger register rather than one per period — a clearance
+certificate renewed `14d before expires_on`, a notice of project filed before a
+start date, an incident investigated `3d after reported_on`.
+
+Its **incident register carries a relation onto the project register**, which is
+the difference between it and the generic one in `ohs/`. A constructor's
+questions are per job site — near misses on this job, first aids this month,
+which of eleven live sites is carrying the exposure — and those are joins, not
+prose. A free-text location column cannot answer them. Near misses and first aid
+are both incidents here; the chain runs incident → investigation → corrective
+action and terminates in a monthly sweep of what is open and late.
 
 It was **authored here, not moved here**, which is the whole of the argument in
 the section above: a programme specification written in a product's source tree
 is invisible to the CLI and unversionable by a customer, and this one never was.
+
+**[`construction-payment-ca/`](construction-payment-ca/)** — the *Construction
+Act*: holdback, substantial performance, prompt payment, the trust, liens,
+bonds and adjudication. One map, **15 artifact specifications** across two
+tiers — `statutory` (12) and `assured` (3). It is a sibling of the health and
+safety programme rather than part of it: different authority, different readers,
+and an organisation may well adopt one without the other. What they share is the
+sub-trade, which is why this map places `cohs.clearance-certificates` rather
+than declaring a second register of the same certificates.
+
+Prompt payment is modelled as **two registers and not one**, because the Act
+gives the two directions different triggers: an invoice given starts a 28-day
+clock on the payer, and an invoice received starts a 7-day clock that runs from
+the day the organisation itself was paid. Every trigger here fires off a date
+column that is empty until something happens, so all three chains terminate in a
+monthly sweep whose governing figure is **what was not looked at**.
 
 **[`ohs/`](ohs/)** — occupational health and safety, generic: the programme any
 employer with workers needs, with no jurisdiction in it. One programme map, **29

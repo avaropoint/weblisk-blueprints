@@ -4,7 +4,7 @@
 against. ISO 27001, ISO 45001, SOC 2, NIST 800-53, CSA B51, COR 2020, and the
 rest.
 
-53 of them, as JSON. Governed by [`../schemas/standard.md`](../schemas/standard.md).
+54 of them, as JSON. Governed by [`../schemas/standard.md`](../schemas/standard.md).
 
 ## What a standard here is, and is not
 

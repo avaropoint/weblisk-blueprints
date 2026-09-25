@@ -16,6 +16,7 @@ conforms_to:
   - o_reg_632_05
   - o_reg_278_05
   - o_reg_559_22
+  - skilled_trades_ontario
   - reg_860_whmis
   - wsia_ontario
   - reg_1101_first_aid
@@ -198,6 +199,14 @@ artifacts:
   - { id: cohs.designated-substances, tier: essential }
   - { id: cohs.asbestos-management, tier: essential }
   - { id: cohs.violence-harassment, tier: essential }
+  - { id: cohs.work-refusal, tier: essential }
+  - { id: cohs.work-refusals, tier: essential }
+  - { id: cohs.fire-protection, tier: essential }
+  - { id: cohs.trade-certification, tier: essential }
+  - { id: cohs.incident-reporting, tier: essential }
+  - { id: cohs.incidents, tier: essential }
+  - { id: cohs.incident-investigation, tier: essential }
+  - { id: cohs.corrective-actions, tier: essential }
   - { id: cohs.notifiable-events, tier: essential }
   - { id: cohs.injury-notices, tier: essential }
   - { id: cohs.first-aid-stations, tier: essential }
@@ -210,6 +219,7 @@ artifacts:
   - { id: cohs.competency-requirements, tier: conformant }
   - { id: cohs.regulatory-currency, tier: conformant }
   - { id: cohs.subcontractor-prequalification, tier: conformant }
+  - { id: cohs.hot-work-permits, tier: conformant }
   - { id: cohs.return-to-work, tier: conformant }
   - { id: cohs.management-review, tier: conformant }
   # ── certifiable: it audits itself and produces what is asked for ───────────
@@ -217,7 +227,7 @@ artifacts:
   - { id: cohs.safety-statistics, tier: certifiable }
 ---
 
-Forty-three artifacts for a constructor or employer working on construction
+Fifty-two artifacts for a constructor or employer working on construction
 projects in Canada, drawn against Ontario law because occupational health and
 safety is provincial and Ontario is where the prescription is heaviest. An
 organisation working in another province keeps the shape and re-points the
@@ -232,7 +242,7 @@ one fact.
 
 ## Why the first tier is so large
 
-Thirty-six of the forty-three artifacts sit at `essential`, and that is the
+Forty-four of the fifty-two artifacts sit at `essential`, and that is the
 honest count rather than a discouraging one. Ontario prescribes construction in
 detail: guardrails at 2.4 m, soil classified to the highest of the types
 present, a written traffic protection plan kept at the project, a separate entry
@@ -283,6 +293,26 @@ the work unlawful. An overdue committee meeting is a contravention and nothing
 becomes invalid. The platform records the interval and its authority; the
 consequence belongs in the artifact's text, and each one states it.
 
+## Incidents are counted per job site, not per company
+
+`cohs.incidents` carries a **relation** onto the project register rather than a
+typed-in location, and that single column is why it exists separately from the
+generic occupational health and safety programme's incident register. Every
+question a constructor is actually asked is per job site — how many near misses
+on this job, how many first aids this month, which of the eleven live sites is
+carrying the exposure — and a free-text location cannot answer any of them,
+because "Bay St", "Bay Street" and "bay st." are three sites to a machine.
+
+It is also what makes `cohs.safety-statistics` honest. That register holds a
+near-miss count and a first-aid count per month per account, and until now there
+was nothing in the programme to count them FROM: they were integers somebody
+typed in. They are now derivable from rows, and the statistics artifact requires
+the incident register so the dependency is stated rather than assumed.
+
+Near misses and first aid are both incidents here, and that is deliberate: a
+register holding only lost time records the injuries that were not prevented,
+which is the smallest and latest slice of what the organisation could have known.
+
 ## The crew problem, solved in the data
 
 A pre-task hazard assessment happens once per crew per shift, and `applies_to`
@@ -300,7 +330,7 @@ findings.
 
 ## The record-origin chains
 
-Four chains are triggered by rows rather than by a calendar, because the work
+Six chains are triggered by rows rather than by a calendar, because the work
 has no period: a project has a start date, a credential has an expiry date, an
 injury happens at a time.
 
@@ -308,6 +338,15 @@ injury happens at a time.
     statutory credentials → renewal, 90 days before the card's own expiry
     WSIB clearances     → renewal, 14 days before the certificate's own expiry
     notifiable events   → the statutory notice, due 48 hours after the event
+    project incidents   → investigation 3 days after it was reported
+                          → corrective action 14 days after the investigation
+                          → a monthly sweep of what is open and late
+    work refusals       → the investigation, in the worker's presence
+
+The incident chain is three links long and it terminates in a cadence, for the
+reason the schema gives: the last link's verification would otherwise be
+recorded in the register that triggered it, and every occurrence would discharge
+itself at the moment it was created.
 
 Each writes into a register other than the one that triggered it. A trigger
 whose recording register is its own trigger register discharges every occurrence
@@ -318,13 +357,36 @@ at the moment it creates it, reporting completeness having checked nothing.
 **Documented information.** `iso_45001:7.5` is answered by the document control
 programme. Citing it here as well would double-count a gap one document closes.
 
-**Trade licensing and code compliance.** The Ontario Electrical Safety Code,
-TSSA fuels, CWB welding certification and the Ontario Building Code are
-standards this corpus carries, and none of them is cited by an artifact here.
-They govern whether the finished work is lawful; this programme governs whether
-the people building it are safe. The two overlap in an organisation and not in a
-document, and an OHS artifact claiming a building code control would be a
-compliance claim nobody could defend at either end.
+**Code compliance.** The Ontario Electrical Safety Code, TSSA fuels, CWB
+welding certification and the Ontario Building Code are standards this corpus
+carries, and none of them is cited by an artifact here. They govern whether the
+finished work is lawful; this programme governs whether the people building it
+are safe. The two overlap in an organisation and not in a document, and an OHS
+artifact claiming a building code control would be a compliance claim nobody
+could defend at either end.
+
+**Trade certification is the exception, and it is here.** Who may lawfully do
+the work of a compulsory trade is a licensing question under the *Building
+Opportunities in the Skilled Trades Act, 2021* rather than a safety one, and by
+the paragraph above it would sit outside this programme. It is in it anyway, for
+two reasons that are about the organisation rather than about the taxonomy: the
+prohibition runs against **the employer** as well as the worker and reaches
+anyone it "otherwise engages", so it is a duty discharged on site by the same
+person doing the same walk; and the credential it turns on is already on this
+programme's statutory credentials register, with the shortest expiry clock on
+it. Splitting it into a programme of its own would have produced one artifact
+that could not be checked without this one's data.
+
+**Environmental protection, and the fleet.** Excess soil under O. Reg. 406/19,
+spill reporting under the *Environmental Protection Act*, approvals from the
+Ministry of the Environment, Conservation and Parks, and the *Highway Traffic
+Act* regime that governs an operator's CVOR record, hours of service and load
+securement all bind an Ontario construction company, and none of them is here.
+They are genuinely absent rather than out of scope, and they are absent because
+each is a programme rather than an artifact: a different regulator, a different
+duty-holder inside the company, and a standard this corpus does not yet carry.
+A constructor reading a clean screen here should not conclude that they have
+been answered.
 
 **Drug and alcohol testing, and short service employee programmes.** Both are
 ISNetworld prequalification expectations with a distinctly American shape.

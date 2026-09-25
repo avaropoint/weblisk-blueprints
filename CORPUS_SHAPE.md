@@ -372,9 +372,16 @@ So programme won and pack was converted, in Studio: Go identifiers, the file
 names, the API routes (`/api/programmes/…`, with the old paths kept as aliases
 for a browser holding an older page), the UI, and the source capability — whose
 id is *persisted* in every installation's taxonomy and is therefore read under
-both spellings, converted once at load, and never written again. The on-disk
-layout inside a programme (`programs/`, `artifacts/`) is unchanged: it is content
-in this corpus and in every tenant's copy, and moving it is its own decision.
+both spellings, converted once at load, and never written again. The on-disk layout inside a programme was left alone at the time — it is content
+in this corpus and in every tenant's copy, and moving it was its own decision.
+
+**5d — that decision, taken.** `artifacts/` became `specs/`, because *artifact*
+everywhere else in the product means a real document at a real path and these
+files are specifications for documents. `programs/`, a directory holding one file
+and spelled two letters from its own parent `programmes/`, became that one file:
+`map.md`. `templates/` kept its name and started travelling with an install,
+which it never had. Studio reads every earlier spelling forever, so no tenant's
+adopted copy was touched and there was no cutover.
 
 **6 — a programme declares what it needs built.** Agents, workflows, tasks and
 forms, so `weblisk programme <id> init` can bootstrap an operating programme from

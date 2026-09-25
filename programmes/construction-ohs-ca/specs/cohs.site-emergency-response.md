@@ -6,8 +6,6 @@ structure: procedure
 path: procedures/project-emergency-response.md
 
 satisfies:
-  - o_reg_213_91:52
-  - o_reg_213_91:55
   - cor_2020:COR-13
   - iso_45001:8.2
   - isnetworld:ISN-SAFE-11

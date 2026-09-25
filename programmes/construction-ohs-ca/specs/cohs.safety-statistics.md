@@ -9,7 +9,7 @@ satisfies:
   - cor_2020:COR-18
   - isnetworld:ISN-SAFE-01
 
-requires: [cohs.notifiable-events]
+requires: [cohs.notifiable-events, cohs.incidents]
 
 register:
   title: Safety Performance Statistics

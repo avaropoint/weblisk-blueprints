@@ -7,8 +7,16 @@ path: procedures/first-aid-station.md
 
 satisfies:
   - reg_1101_first_aid:1
+  - reg_1101_first_aid:2
+  - reg_1101_first_aid:3
   - reg_1101_first_aid:5
   - reg_1101_first_aid:6
+  - reg_1101_first_aid:8
+  - reg_1101_first_aid:9
+  - reg_1101_first_aid:10
+  - ohsa_ontario:25.2
+  - o_reg_559_22:2
+  - o_reg_559_22:3
   - cor_2020:COR-14
 
 requires: [cohs.site-emergency-response]

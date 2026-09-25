@@ -14,6 +14,9 @@ satisfies:
   - csa_z462:Z462-02
   - csa_z462:Z462-03
   - csa_z462:Z462-04
+  - csa_z462:Z462-06
+  - csa_z462:Z462-07
+  - csa_z462:Z462-08
   - cor_2020:COR-08
 
 requires: [cohs.pre-task-hazard-assessment]
