@@ -21,7 +21,13 @@ declares:
     authority: O. Reg. 213/91 ss. 227, 234. The regulation prescribes no inspection interval except where an engineer's written opinion states one under s. 234(4)
     interval_basis: chosen
     responsible: site-supervisor
-    applies_to: each project
+    applies_to: the organisation
+    per:
+      listed_in: registers/projects.md
+      key: project_id
+      label: name
+      from: start_on
+      until: finished_on
     records: registers/excavation-inspections.md
     escalate: {after: 1d, to: health-safety-lead}
   register:

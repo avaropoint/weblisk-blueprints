@@ -63,6 +63,111 @@ tiers:
       maintenance in years two and three. An organisation that budgets the COR
       cycle against an ISO certificate loses the certificate.
 
+# ── the standing work adopting this programme takes on ──────────────────────
+#
+# Documents alone are a binder. These are the four things that must be RUNNING
+# for the programme above to be a programme: somebody is told what is due,
+# somebody senior hears when that is ignored, the instruments that let a
+# sub-trade on site are checked before they lapse, and the whole of it is
+# measured on a cycle rather than at audit.
+#
+# Every one of them is created PAUSED. A schedule sends people work unattended,
+# and adopting a programme must not start doing that on a cadence this
+# organisation did not choose. Turning them on is one switch each, and the
+# switch is the organisation's.
+operations:
+  - id: due-sweep
+    title: What is due
+    does: due-sweep
+    schedule: {cadence: daily, at: "06:00"}
+    why: >
+      Construction work is dispatched before seven. A report about what is due
+      today is only of use to the person who can still do something about it,
+      so this runs before the crews are assigned rather than at the start of an
+      office day. It reports every obligation in the project — the daily hazard
+      assessments, the weekly site inspections, the credentials inside their
+      renewal window — and tells the position each one belongs to, once, when
+      it advances. It never remediates.
+
+  - id: escalation-review
+    title: Escalated work, and whether escalation is working
+    agent: >
+      Report on the health-and-safety work that has escalated in this project.
+      Use the governance and search tools to read the obligation registers and
+      the current due list. For each occurrence that has passed its declared
+      grace and become another position's problem, say what the activity was,
+      which position it belonged to, which position it escalated to, and how
+      many days late it is now.
+
+      Then answer the question the counts alone do not: is escalation being
+      used here as a safety net, or as the normal path? An escalation that
+      fires as a matter of routine is a finding about the declaration — either
+      the grace is shorter than the work takes, or the position it lands on is
+      not the one that can act — and it is worth saying that it is one or the
+      other even when the records cannot say which.
+
+      State both readings and prefer neither. Never recommend lengthening a
+      cadence or a grace period in order to make the numbers improve. Do not
+      write any file, do not create any document request, and do not contact
+      anybody: your whole output is this report.
+    needs: [read]
+    on: [obligation.escalated]
+    schedule: {cadence: weekly, at: "07:00", weekday: monday}
+    why: >
+      Two clocks on purpose. The trigger catches an escalation on the day it
+      happens; the Monday sweep catches the week in which nothing escalated
+      because the server was down, and is the only view that can see whether
+      escalation has quietly become the route by which work gets done.
+
+  - id: sub-trade-currency
+    title: Sub-trade clearance and certificate currency
+    agent: >
+      Check whether every sub-trade currently engaged on this project is
+      covered by the instruments that let them be on site.
+
+      Read registers/clearance-certificates.md, registers/statutory-credentials.md
+      and registers/subcontractor-requalifications.md, plus the procedures that
+      govern them. For each sub-trade, report: the clearance certificate held
+      and the date it was valid to; whether the insurance certificates recorded
+      at requalification are still current; whether the requalification itself
+      is inside its own interval; and which statutory credentials held by that
+      sub-trade's people expire inside the next ninety days.
+
+      Separate three things that a single list would blur: LAPSED — the
+      instrument has expired and the work should not be proceeding; EXPIRING —
+      it is inside the notice period and somebody has to act now; and UNKNOWN —
+      the register has no row, or the row has no date, which is not the same as
+      compliant and must never be reported as such.
+
+      Say plainly when a register could not be read. A check that could not
+      parse its source has refuted nothing, and reporting an empty result as a
+      clean one is worse than reporting nothing at all.
+
+      Do not write any file, do not create any document request, and do not
+      contact any sub-trade: this is a report to the people who can.
+    needs: [read]
+    schedule: {cadence: weekly, at: "07:30", weekday: monday}
+    why: >
+      A clearance certificate is the one document whose lapse transfers
+      liability for a sub-trade's workers onto the constructor, and it is
+      issued with a validity date rather than a fixed term — so it cannot be
+      derived from a cadence and has to be looked at. Weekly, and on the same
+      morning as the escalation review, because both are the constructor's
+      Monday question: who is on our sites this week, and are they allowed to
+      be.
+
+  - id: programme-readiness
+    title: Programme readiness
+    does: programme-readiness
+    schedule: {cadence: monthly, at: "07:00", day: 1}
+    why: >
+      Both readiness numbers on a cycle: how much of the programme exists as
+      current, cited documents, and how much of it is producing attested
+      records. Monthly rather than weekly because a programme does not move
+      week to week, and a report that says the same thing four times a month is
+      one nobody reads by the second. It reports; it never drafts the documents
+      it finds missing.
+
 artifacts:
   # ── essential: lawful to put a worker on a project ─────────────────────────
   - { id: cohs.policy, tier: essential }

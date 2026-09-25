@@ -1,0 +1,430 @@
+{
+  "id": "phipa_ontario",
+  "name": "PHIPA (Personal Health Information Protection Act, Ontario)",
+  "version": "S.O. 2004, c. 3, Sched. A, consolidated as amended, with O. Reg. 329/04",
+  "description": "Ontario's health privacy statute. It binds health information custodians \u2014 practitioners, hospitals, long-term care homes, pharmacies, laboratories, ambulance services, medical officers of health and others listed in section 3 \u2014 and, through them, the agents and electronic service providers who handle personal health information on their behalf. It is substantially similar to PIPEDA for health information, which is why an Ontario custodian answers this Act rather than the federal one for the health information in its custody, and it is enforced by the Information and Privacy Commissioner of Ontario rather than by the Office of the Privacy Commissioner of Canada. An organisation that is NOT a custodian and is not an agent of one is not bound by it \u2014 holding employee sick notes does not make an employer a custodian \u2014 and adopting it where it does not apply produces obligations nobody owes.",
+  "authority": "Legislative Assembly of Ontario; oversight by the Information and Privacy Commissioner of Ontario",
+  "scope": "Health information custodians as defined in s. 3 of the Act, their agents, and the electronic service providers who supply them with services for handling personal health information",
+  "applies_in": [
+    "CA-ON"
+  ],
+  "category": "privacy",
+  "status": "active",
+  "official_url": "https://www.ontario.ca/laws/statute/04p03",
+  "families": [
+    {
+      "id": "PH-GOV",
+      "name": "Accountability and Information Practices",
+      "description": "Who is answerable for personal health information in the organisation, what the organisation has committed to doing with it, and how that commitment reaches the people acting on the custodian's behalf.",
+      "controls": [
+        {
+          "id": "10",
+          "name": "Information Practices and Compliance With Them",
+          "description": "A health information custodian that has custody or control of personal health information shall have in place information practices that comply with the Act, and shall comply with its information practices. An information practice is the custodian's own stated rule for how personal health information is collected, used, disclosed, modified, retained, transferred and disposed of \u2014 so a practice that exists on paper and is not followed is itself a contravention, not merely a gap.",
+          "family": "PH-GOV",
+          "framework": "phipa_ontario",
+          "domains": [
+            "governance",
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "information practices",
+            "custodian",
+            "compliance"
+          ]
+        },
+        {
+          "id": "15",
+          "name": "Contact Person",
+          "description": "A custodian that is a person other than a natural person shall designate a contact person to facilitate compliance with the Act, ensure agents are informed of their duties, respond to enquiries from the public, respond to access and correction requests, and receive complaints. Where no contact person is designated, the custodian itself performs those functions \u2014 the duty does not lapse for want of an appointment.",
+          "family": "PH-GOV",
+          "framework": "phipa_ontario",
+          "domains": [
+            "governance",
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "contact person",
+            "privacy officer",
+            "designation"
+          ]
+        },
+        {
+          "id": "16",
+          "name": "Written Public Statement",
+          "description": "A custodian shall make available to the public a written statement that provides a general description of its information practices, describes how to reach the contact person, describes how an individual may obtain access to or request correction of a record, and describes how to make a complaint to the custodian and to the Commissioner. If the custodian uses or discloses personal health information in a way that is outside its described practices, it must inform the individual at the first reasonable opportunity.",
+          "family": "PH-GOV",
+          "framework": "phipa_ontario",
+          "domains": [
+            "governance",
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "public statement",
+            "openness",
+            "transparency"
+          ]
+        },
+        {
+          "id": "17",
+          "name": "Agents and Their Permitted Handling",
+          "description": "A custodian is responsible for personal health information in the custody of its agents. An agent may collect, use, disclose, retain or dispose of personal health information only on the custodian's behalf, only for the purposes the custodian permits, only if the custodian itself would be permitted to do it, and only as necessary in the course of the agent's duties. An agent must notify the custodian at the first reasonable opportunity of an unauthorised use, disclosure, theft or loss.",
+          "family": "PH-GOV",
+          "framework": "phipa_ontario",
+          "domains": [
+            "governance",
+            "hr_security",
+            "vendor_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "agent",
+            "permitted purpose",
+            "notification to custodian"
+          ]
+        },
+        {
+          "id": "10(4)",
+          "name": "Electronic Service Providers",
+          "description": "A person who supplies services to a custodian for the purpose of enabling the custodian to use electronic means to collect, use, modify, disclose, retain or dispose of personal health information \u2014 including a health information network provider \u2014 shall not use the information except as necessary to provide those services, shall not disclose it, and shall not permit its employees or any person acting on its behalf to have access unless the person agrees to comply with those restrictions. O. Reg. 329/04 adds notice, plain-language description, threat risk assessment and written agreement duties for a network provider serving more than one custodian.",
+          "family": "PH-GOV",
+          "framework": "phipa_ontario",
+          "domains": [
+            "vendor_management",
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "electronic service provider",
+            "health information network provider",
+            "written agreement"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PH-CONSENT",
+      "name": "Consent, Collection, Use and Disclosure",
+      "description": "The authority to hold the information at all. PHIPA's model is consent-based with statutory exceptions, and the exceptions are what most contraventions turn on.",
+      "controls": [
+        {
+          "id": "18",
+          "name": "Knowledgeable Consent",
+          "description": "Consent to the collection, use or disclosure of personal health information must be given by the individual, must be knowledgeable, must relate to the information, and must not be obtained through deception or coercion. Consent is knowledgeable if it is reasonable to believe the individual knows the purposes and knows that consent may be given or withheld. Consent may be express or implied except where the Act requires it to be express.",
+          "family": "PH-CONSENT",
+          "framework": "phipa_ontario",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "knowledgeable consent",
+            "express consent",
+            "implied consent"
+          ]
+        },
+        {
+          "id": "20",
+          "name": "Assumed Implied Consent Within the Circle of Care",
+          "description": "A custodian described in paragraphs 1 to 4 of the definition of custodian that receives personal health information about an individual from the individual, the individual's substitute decision-maker or another custodian, for the purpose of providing health care, is entitled to assume implied consent to collect, use or disclose it for that purpose \u2014 unless the custodian is aware that the individual has expressly withheld or withdrawn the consent. The assumption is available for health care and nothing else; it is not authority for research, marketing, fundraising or administration.",
+          "family": "PH-CONSENT",
+          "framework": "phipa_ontario",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "circle of care",
+            "implied consent",
+            "health care purpose"
+          ]
+        },
+        {
+          "id": "19",
+          "name": "Withdrawal of Consent and the Lock-Box",
+          "description": "An individual may withdraw consent at any time, by notice, and the withdrawal is not retroactive. Where an individual has withheld or withdrawn consent to a disclosure that would otherwise be permitted on assumed implied consent \u2014 what practice calls a lock-box \u2014 the custodian must not make the disclosure, and where it discloses without the withheld information it must notify the recipient that the disclosure is incomplete if the recipient would otherwise be misled.",
+          "family": "PH-CONSENT",
+          "framework": "phipa_ontario",
+          "domains": [
+            "data_protection",
+            "access_control"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "lock-box",
+            "withdrawal of consent",
+            "express instruction"
+          ]
+        },
+        {
+          "id": "29",
+          "name": "No Collection, Use or Disclosure Without Authority",
+          "description": "A custodian shall not collect, use or disclose personal health information about an individual unless it has the individual's consent and the collection, use or disclosure is necessary for a lawful purpose, or the Act permits or requires it without consent. Every handling of personal health information therefore has to be traceable to either a consent or a named statutory authority, and \u2018it was convenient\u2019 is neither.",
+          "family": "PH-CONSENT",
+          "framework": "phipa_ontario",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "authority",
+            "lawful purpose",
+            "without consent"
+          ]
+        },
+        {
+          "id": "30",
+          "name": "Limiting Collection, Use and Disclosure",
+          "description": "A custodian shall not collect, use or disclose personal health information if other information will serve the purpose, and shall not collect, use or disclose more than is reasonably necessary to meet the purpose. This is the test that decides whether a whole record may be sent when a single result was asked for.",
+          "family": "PH-CONSENT",
+          "framework": "phipa_ontario",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "data minimisation",
+            "no more than necessary",
+            "other information will serve"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PH-SAFEGUARD",
+      "name": "Safeguards, Retention and Disposal",
+      "description": "Keeping the information safe while it is held, and destroying it in a way that cannot be reversed when it is not.",
+      "controls": [
+        {
+          "id": "12",
+          "name": "Security Safeguards",
+          "description": "A custodian shall take steps that are reasonable in the circumstances to ensure that personal health information in its custody or control is protected against theft, loss and unauthorised use or disclosure, and that records containing it are protected against unauthorised copying, modification or disposal. Reasonableness is judged against the sensitivity of health information, which is the most sensitive category the Ontario regime recognises.",
+          "family": "PH-SAFEGUARD",
+          "framework": "phipa_ontario",
+          "domains": [
+            "data_protection",
+            "access_control",
+            "encryption"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "safeguards",
+            "theft loss unauthorised use",
+            "protection of records"
+          ]
+        },
+        {
+          "id": "13",
+          "name": "Retention and Secure Disposal",
+          "description": "A custodian shall ensure that records of personal health information are retained, transferred and disposed of in a secure manner and in accordance with the prescribed requirements. Where a record is the subject of a request for access, it must be retained for as long as necessary to allow the individual to exhaust any recourse. Secure disposal means the information cannot be reconstructed or retrieved.",
+          "family": "PH-SAFEGUARD",
+          "framework": "phipa_ontario",
+          "domains": [
+            "records_management",
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "retention",
+            "secure disposal",
+            "destruction"
+          ]
+        },
+        {
+          "id": "6(3)",
+          "name": "Audit Logs and Access Controls for Electronic Records",
+          "description": "Where a custodian uses electronic means to handle personal health information, O. Reg. 329/04 requires that the electronic service provider \u2014 and in practice the system itself \u2014 make available an electronic record of who accessed personal health information, notify the custodian of unauthorised access, and make a plain-language description of its services available to the public. A system that cannot say who looked at a record cannot answer the question the Commissioner asks first after a snooping complaint.",
+          "family": "PH-SAFEGUARD",
+          "framework": "phipa_ontario",
+          "domains": [
+            "logging_monitoring",
+            "access_control"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "audit log",
+            "who accessed",
+            "snooping",
+            "electronic records"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PH-ACCESS",
+      "name": "Access and Correction",
+      "description": "The individual's own rights over the record, and the clock the custodian answers on.",
+      "controls": [
+        {
+          "id": "52",
+          "name": "Right of Access to a Record",
+          "description": "An individual has a right of access to a record of personal health information about the individual that is in the custody or control of a custodian, subject to the exemptions in the Act \u2014 including quality of care information, raw psychological test data, information subject to legal privilege, and information whose disclosure could reasonably be expected to result in a risk of serious harm. The custodian shall respond within 30 days, with one permitted extension of a further 30 days where the request is for a large number of records or consultation is required.",
+          "family": "PH-ACCESS",
+          "framework": "phipa_ontario",
+          "domains": [
+            "data_protection",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "access request",
+            "30 days",
+            "exemptions",
+            "right of access"
+          ]
+        },
+        {
+          "id": "55",
+          "name": "Correction of a Record",
+          "description": "Where an individual believes a record is inaccurate or incomplete for the purposes for which the custodian uses it, the individual may request a correction. The custodian shall grant the request unless the record was not originally created by it and it lacks sufficient knowledge, expertise and authority to correct it, or the information consists of a professional opinion or observation made in good faith. Where a correction is refused, the individual may require a statement of disagreement to be attached, and the custodian must notify anyone to whom the information was disclosed in the previous year.",
+          "family": "PH-ACCESS",
+          "framework": "phipa_ontario",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "correction",
+            "statement of disagreement",
+            "professional opinion"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PH-BREACH",
+      "name": "Notification and Reporting",
+      "description": "What happens when the information goes where it should not. PHIPA's individual-notice duty has no harm threshold, which distinguishes it sharply from PIPEDA's.",
+      "controls": [
+        {
+          "id": "12(2)",
+          "name": "Notice to the Individual",
+          "description": "Subject to the exceptions in the Act and its regulations, a custodian that has custody or control of personal health information shall notify the individual at the first reasonable opportunity if the information is stolen or lost, or if it is used or disclosed without authority. There is no real-risk-of-significant-harm threshold as there is under PIPEDA: the trigger is the unauthorised event itself, and the notice must state that the individual is entitled to make a complaint to the Commissioner.",
+          "family": "PH-BREACH",
+          "framework": "phipa_ontario",
+          "domains": [
+            "incident_response",
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "notice to individual",
+            "first reasonable opportunity",
+            "theft loss unauthorised use"
+          ]
+        },
+        {
+          "id": "12(3)",
+          "name": "Reporting to the Information and Privacy Commissioner",
+          "description": "A custodian shall notify the Commissioner of a privacy breach in the circumstances prescribed by O. Reg. 329/04 s. 6.3 \u2014 among them use or disclosure without authority by a person who knew or ought to have known it was not permitted, stolen information, further unauthorised use or disclosure after a breach, a pattern of similar breaches, disciplinary action taken or that would have been taken against a college member or other regulated person, and a breach significant having regard to its sensitivity, volume, the number of custodians involved and whether it was systemic.",
+          "family": "PH-BREACH",
+          "framework": "phipa_ontario",
+          "domains": [
+            "incident_response",
+            "compliance_audit"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "report to IPC",
+            "prescribed circumstances",
+            "significant breach",
+            "pattern"
+          ]
+        },
+        {
+          "id": "6.4",
+          "name": "Annual Statistical Report to the Commissioner",
+          "description": "A custodian shall provide the Commissioner, by 1 March each year, with a report of the number of times in the previous calendar year that personal health information in its custody or control was stolen, lost, used without authority or disclosed without authority. The count is of every breach, not only those that met the reporting threshold \u2014 which is why the breach record has to be kept even when a particular breach did not have to be reported.",
+          "family": "PH-BREACH",
+          "framework": "phipa_ontario",
+          "domains": [
+            "incident_response",
+            "compliance_audit",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "annual report",
+            "1 March",
+            "breach statistics"
+          ]
+        }
+      ]
+    }
+  ]
+}

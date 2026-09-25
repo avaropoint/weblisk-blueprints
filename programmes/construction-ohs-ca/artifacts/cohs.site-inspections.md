@@ -22,7 +22,13 @@ declares:
     authority: OHSA ss. 9(26)–(28), 8(6)–(8) — at least once a month, or where that is not practicable, at least annually with a part inspected each month
     interval_basis: required
     responsible: health-safety-lead
-    applies_to: each project
+    applies_to: the organisation
+    per:
+      listed_in: registers/projects.md
+      key: project_id
+      label: name
+      from: start_on
+      until: finished_on
     records: registers/site-inspections.md
     escalate: {after: 1w, to: constructor-representative}
   register:

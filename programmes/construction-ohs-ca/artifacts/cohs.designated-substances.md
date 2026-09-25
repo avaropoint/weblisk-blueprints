@@ -25,7 +25,7 @@ declares:
     authority: OHSA s. 30 — the owner shall determine the designated substances present and include the list in the tender; s. 30(4) the constructor shall pass it to every prospective contractor before a binding contract
     interval_basis: chosen
     responsible: project-manager
-    applies_to: each project
+    applies_to: the organisation
     records: registers/designated-substance-lists.md
     escalate: {after: 1w, to: constructor-representative}
   register:

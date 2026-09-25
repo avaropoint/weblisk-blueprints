@@ -1,0 +1,209 @@
+{
+  "id": "casl",
+  "name": "CASL (Canada's Anti-Spam Legislation)",
+  "version": "S.C. 2010, c. 23, in force as amended",
+  "description": "The federal statute governing commercial electronic messages, the installation of computer programs, and the alteration of transmission data. It is consent-first: a commercial electronic message may not be sent to an electronic address unless the recipient has given express or implied consent, and the message itself must identify the sender and carry a working unsubscribe mechanism. It binds any organisation that sends a commercial electronic message accessed by a computer system in Canada, which means an Ontario company's newsletters, sales outreach, event invitations and renewal reminders are all in scope. Administrative monetary penalties reach $1 million for an individual and $10 million for an organisation, and directors and officers can be personally liable, so the record of consent is the defence rather than the paperwork.",
+  "authority": "Parliament of Canada; enforced by the Canadian Radio-television and Telecommunications Commission, with roles for the Competition Bureau and the Office of the Privacy Commissioner",
+  "scope": "Any person or organisation that sends, or causes or permits to be sent, a commercial electronic message where a computer system in Canada is used to send or access it; and any person who installs a computer program on another person's computer system in the course of commercial activity",
+  "applies_in": [
+    "CA"
+  ],
+  "category": "privacy",
+  "status": "active",
+  "official_url": "https://laws-lois.justice.gc.ca/eng/acts/E-1.6/",
+  "families": [
+    {
+      "id": "CASL-CEM",
+      "name": "Commercial Electronic Messages",
+      "description": "The consent, content and unsubscribe rules that govern every commercial message the organisation sends.",
+      "controls": [
+        {
+          "id": "6(1)",
+          "name": "Consent Before Sending a Commercial Electronic Message",
+          "description": "It is prohibited to send, or cause or permit to be sent, a commercial electronic message unless the person to whom it is sent has consented, expressly or by implication. A request for express consent must set out clearly the purposes for which consent is sought, identify the person seeking it and on whose behalf it is sought, give their mailing address and one other contact method, and state that consent may be withdrawn. Consent obtained through a pre-checked box or bundled into terms and conditions is not express consent.",
+          "family": "CASL-CEM",
+          "framework": "casl",
+          "domains": [
+            "data_protection",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "express consent",
+            "implied consent",
+            "CEM",
+            "pre-checked box"
+          ]
+        },
+        {
+          "id": "10(9)",
+          "name": "Implied Consent and Its Expiry",
+          "description": "Consent is implied where there is an existing business relationship or an existing non-business relationship as defined in the Act, where the recipient has conspicuously published or disclosed their electronic address without a statement that they do not wish to receive unsolicited commercial messages and the message is relevant to their role or function, and in the other circumstances the Act names. Implied consent from a purchase, contract or enquiry expires \u2014 two years from the transaction, six months from an enquiry \u2014 so a list built on implied consent decays whether or not anybody maintains it.",
+          "family": "CASL-CEM",
+          "framework": "casl",
+          "domains": [
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "implied consent",
+            "existing business relationship",
+            "two years",
+            "six months",
+            "expiry"
+          ]
+        },
+        {
+          "id": "6(2)",
+          "name": "Identification and Contact Information",
+          "description": "Every commercial electronic message must set out the name by which the sender carries on business, the name of any person on whose behalf it is sent, a statement of which of them is sending the message, a mailing address, and either a telephone number with an active response voicemail, an email address or a web address \u2014 and that contact information must remain valid for at least 60 days after the message is sent.",
+          "family": "CASL-CEM",
+          "framework": "casl",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "identification",
+            "mailing address",
+            "60 days",
+            "contact information"
+          ]
+        },
+        {
+          "id": "6(2)(c)",
+          "name": "Unsubscribe Mechanism",
+          "description": "Every commercial electronic message must set out an unsubscribe mechanism that is clearly and prominently displayed and can be readily performed, allowing the recipient to indicate at no cost that they no longer wish to receive any commercial electronic messages, or any specified class of them, from the sender. The mechanism must be able to be performed by the same means the message was sent or another electronic means, must remain valid for 60 days after the message is sent, and the withdrawal must be given effect without delay and in any event within 10 business days \u2014 with no further action required of the recipient to confirm it.",
+          "family": "CASL-CEM",
+          "framework": "casl",
+          "domains": [
+            "governance",
+            "data_protection"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "unsubscribe",
+            "10 business days",
+            "60 days",
+            "no cost"
+          ]
+        },
+        {
+          "id": "10(1)",
+          "name": "Proof of Consent",
+          "description": "The person who alleges consent has the burden of proving it. In practice that means keeping, for each electronic address, what form of consent was given, when, by what means, and what the person was told at the time \u2014 and keeping it for as long after the consent ends as the limitation period runs. An organisation that cannot produce the record is in the same position as one that never had the consent.",
+          "family": "CASL-CEM",
+          "framework": "casl",
+          "domains": [
+            "records_management",
+            "data_protection",
+            "compliance_audit"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "burden of proof",
+            "consent record",
+            "evidence of consent"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CASL-SOFT",
+      "name": "Computer Programs",
+      "description": "The less-known half of the Act, which binds anybody who installs software on somebody else's system in the course of commercial activity.",
+      "controls": [
+        {
+          "id": "8",
+          "name": "Consent Before Installing a Computer Program",
+          "description": "It is prohibited, in the course of a commercial activity, to install or cause to be installed a computer program on another person's computer system, or to cause an electronic message to be sent from that system, unless the owner or authorised user has expressly consented. The request for consent must describe clearly the function and purpose of the program, and where the program performs specified functions \u2014 collecting personal information, interfering with control of the system, changing settings or preferences, or transmitting data without further authorisation \u2014 those functions must be brought to the person's attention separately from the licence agreement.",
+          "family": "CASL-SOFT",
+          "framework": "casl",
+          "domains": [
+            "configuration_management",
+            "data_protection"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "computer program",
+            "installation consent",
+            "specified functions",
+            "licence agreement"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CASL-ENF",
+      "name": "Enforcement and Liability",
+      "description": "What follows a contravention, and why this is a governance obligation rather than a marketing one.",
+      "controls": [
+        {
+          "id": "20",
+          "name": "Administrative Monetary Penalties and the Due Diligence Defence",
+          "description": "The Commission may impose an administrative monetary penalty of up to $1 million for an individual and $10 million for any other person, with the purpose of promoting compliance rather than punishment. It is a defence that the person exercised due diligence to prevent the contravention \u2014 which is established by a documented compliance programme with policies, training, consent records, complaint handling and monitoring, and by nothing else.",
+          "family": "CASL-ENF",
+          "framework": "casl",
+          "domains": [
+            "compliance_audit",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "administrative monetary penalty",
+            "due diligence defence",
+            "compliance programme"
+          ]
+        },
+        {
+          "id": "31",
+          "name": "Director, Officer and Vicarious Liability",
+          "description": "An officer, director, agent or mandatary of a corporation that contravenes the Act is liable if they directed, authorised, assented to, acquiesced in or participated in the contravention, whether or not the corporation is proceeded against; and a person is liable for a contravention committed by an employee acting within the scope of their employment.",
+          "family": "CASL-ENF",
+          "framework": "casl",
+          "domains": [
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "director liability",
+            "officer liability",
+            "vicarious liability"
+          ]
+        }
+      ]
+    }
+  ]
+}

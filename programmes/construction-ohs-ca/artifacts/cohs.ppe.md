@@ -23,7 +23,13 @@ declares:
     authority: O. Reg. 213/91 ss. 21–25; OHSA s. 25(1)(b.1) — the duties are continuous and no inspection interval is prescribed
     interval_basis: chosen
     responsible: site-supervisor
-    applies_to: each project
+    applies_to: the organisation
+    per:
+      listed_in: registers/projects.md
+      key: project_id
+      label: name
+      from: start_on
+      until: finished_on
     records: registers/protective-equipment-checks.md
     escalate: {after: 2w, to: health-safety-lead}
   register:

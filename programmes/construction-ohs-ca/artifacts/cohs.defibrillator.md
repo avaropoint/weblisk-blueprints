@@ -20,7 +20,13 @@ declares:
     authority: O. Reg. 213/91 s. 27.1(7)–(8) — inspected quarterly by a competent worker, the record kept with the defibrillator showing the date and the name and signature of the worker
     interval_basis: required
     responsible: site-supervisor
-    applies_to: each project
+    applies_to: the organisation
+    per:
+      listed_in: registers/projects.md
+      key: project_id
+      label: name
+      from: start_on
+      until: finished_on
     records: registers/defibrillator-inspections.md
     escalate: {after: 2w, to: health-safety-lead}
   register:

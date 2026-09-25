@@ -22,7 +22,13 @@ declares:
     authority: OHSA s. 25(2)(a), (c); O. Reg. 297/13 ss. 1–2 — awareness training is required, no verification interval is set
     interval_basis: chosen
     responsible: site-supervisor
-    applies_to: each project
+    applies_to: the organisation
+    per:
+      listed_in: registers/projects.md
+      key: project_id
+      label: name
+      from: start_on
+      until: finished_on
     records: registers/site-orientation-verifications.md
     escalate: {after: 1w, to: health-safety-lead}
   register:
@@ -38,6 +44,8 @@ declares:
     approvers: [health-safety-lead]
     columns:
       - {key: checked_on, label: Checked on, type: date, required: true}
+      - {key: project, label: Project, type: relation, required: true,
+         target: /registers/projects.md#records, display: project_id}
       - {key: checked_by, label: Checked by, type: user, required: true}
       - {key: workers_on_site, label: Workers on site, type: int, required: true}
       - {key: oriented, label: With a site orientation on file, type: int, required: true}

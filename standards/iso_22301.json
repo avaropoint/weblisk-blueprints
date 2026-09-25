@@ -1,0 +1,564 @@
+{
+  "id": "iso_22301",
+  "name": "ISO 22301 (Business Continuity Management Systems)",
+  "version": "2019",
+  "description": "The management-system standard for business continuity. It requires an organisation to decide which of its activities matter and how quickly they must be back, on evidence rather than on assertion \u2014 a business impact analysis that produces prioritised timeframes, a risk assessment of what could disrupt them, strategies and solutions chosen against those timeframes, plans that say who does what, and exercises that test whether any of it works. It shares the Annex SL high-level structure with ISO 9001, ISO 45001 and ISO 27001, so an organisation that already runs one management system is adding clauses 8.2 to 8.6 rather than a second system. ISO/IEC 27001's A.5.29 and A.5.30 point at exactly this discipline without containing it.",
+  "authority": "International Organization for Standardization",
+  "scope": "Any organisation, of any size or sector, that wishes to establish a business continuity management system. It binds nowhere by law and everywhere by adoption or contract",
+  "applies_in": [
+    "international"
+  ],
+  "category": "operational",
+  "status": "active",
+  "official_url": "https://www.iso.org/standard/75106.html",
+  "families": [
+    {
+      "id": "22301-4",
+      "name": "Context of the Organization",
+      "description": "Clause 4 \u2014 what the management system covers and who it has to satisfy.",
+      "controls": [
+        {
+          "id": "4.1",
+          "name": "Understanding the Organization and Its Context",
+          "description": "The organisation shall determine the external and internal issues relevant to its purpose that affect its ability to achieve the intended outcomes of its business continuity management system. Context that is not written down is context that changes without anybody noticing it changed.",
+          "family": "22301-4",
+          "framework": "iso_22301",
+          "domains": [
+            "business_continuity",
+            "governance"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "context",
+            "internal and external issues"
+          ]
+        },
+        {
+          "id": "4.2",
+          "name": "Needs and Expectations of Interested Parties",
+          "description": "The organisation shall determine the interested parties relevant to the business continuity management system, their relevant requirements, and which of those requirements are legal and regulatory. A continuity objective that ignores a contractual recovery commitment is an objective that will be met and still breach the contract.",
+          "family": "22301-4",
+          "framework": "iso_22301",
+          "domains": [
+            "business_continuity",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "interested parties",
+            "legal and regulatory requirements"
+          ]
+        },
+        {
+          "id": "4.3",
+          "name": "Scope of the Management System",
+          "description": "The organisation shall determine the boundaries and applicability of the business continuity management system, taking into account its mission, goals, obligations, products and services, and its risk appetite \u2014 and shall document the scope, including the parts of the organisation excluded and why. An undeclared exclusion is what turns a certificate into a surprise.",
+          "family": "22301-4",
+          "framework": "iso_22301",
+          "domains": [
+            "business_continuity",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "scope",
+            "boundaries",
+            "exclusions"
+          ]
+        },
+        {
+          "id": "4.4",
+          "name": "Business Continuity Management System",
+          "description": "The organisation shall establish, implement, maintain and continually improve a business continuity management system, including the processes needed and their interactions, in accordance with the requirements of the standard.",
+          "family": "22301-4",
+          "framework": "iso_22301",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "management system",
+            "processes"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "22301-5",
+      "name": "Leadership",
+      "description": "Clause 5 \u2014 the commitment, the policy and the assignment of authority, none of which can be delegated to the person who writes the plan.",
+      "controls": [
+        {
+          "id": "5.1",
+          "name": "Leadership and Commitment",
+          "description": "Top management shall demonstrate leadership and commitment by ensuring the business continuity policy and objectives are compatible with the strategic direction, integrating the requirements into the organisation's processes, ensuring the resources needed are available, communicating the importance of effective business continuity management, and directing and supporting the people who contribute to it.",
+          "family": "22301-5",
+          "framework": "iso_22301",
+          "domains": [
+            "business_continuity",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "top management",
+            "commitment",
+            "resources"
+          ]
+        },
+        {
+          "id": "5.2",
+          "name": "Business Continuity Policy",
+          "description": "Top management shall establish a business continuity policy appropriate to the purpose of the organisation, providing a framework for setting objectives and including a commitment to satisfy applicable requirements and to continual improvement. It shall be documented, communicated within the organisation, and available to interested parties as appropriate.",
+          "family": "22301-5",
+          "framework": "iso_22301",
+          "domains": [
+            "business_continuity",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "policy",
+            "framework for objectives",
+            "continual improvement"
+          ]
+        },
+        {
+          "id": "5.3",
+          "name": "Roles, Responsibilities and Authorities",
+          "description": "Top management shall ensure that the responsibilities and authorities for relevant roles are assigned and communicated, including the authority to report on the performance of the management system and the authority to invoke a continuity response. Authority to invoke that sits with somebody unreachable at 3 a.m. is authority nobody has.",
+          "family": "22301-5",
+          "framework": "iso_22301",
+          "domains": [
+            "business_continuity",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "roles",
+            "authority to invoke",
+            "responsibilities"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "22301-6",
+      "name": "Planning",
+      "description": "Clause 6 \u2014 risks and opportunities to the system itself, and the objectives it is steered by.",
+      "controls": [
+        {
+          "id": "6.1",
+          "name": "Actions to Address Risks and Opportunities",
+          "description": "When planning the management system, the organisation shall determine the risks and opportunities that need to be addressed to give assurance the system can achieve its intended outcomes, prevent or reduce undesired effects, and achieve continual improvement \u2014 and shall plan actions to address them and evaluate their effectiveness. These are risks to the management system, which is not the same question as the disruption risk assessment in 8.2.3.",
+          "family": "22301-6",
+          "framework": "iso_22301",
+          "domains": [
+            "business_continuity",
+            "risk_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "risks and opportunities",
+            "planning"
+          ]
+        },
+        {
+          "id": "6.2",
+          "name": "Business Continuity Objectives",
+          "description": "The organisation shall establish business continuity objectives at relevant functions and levels, consistent with the policy, measurable, monitored, communicated and updated as appropriate \u2014 and shall retain documented information on them. An objective with no measure is a sentiment.",
+          "family": "22301-6",
+          "framework": "iso_22301",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "objectives",
+            "measurable",
+            "monitored"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "22301-7",
+      "name": "Support",
+      "description": "Clause 7 \u2014 competence, awareness, communication and documented information.",
+      "controls": [
+        {
+          "id": "7.2",
+          "name": "Competence",
+          "description": "The organisation shall determine the competence necessary for the people doing work that affects its business continuity performance, ensure they are competent on the basis of education, training or experience, take action to acquire the competence needed, and retain documented information as evidence of it.",
+          "family": "22301-7",
+          "framework": "iso_22301",
+          "domains": [
+            "training_competency",
+            "business_continuity"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "competence",
+            "training",
+            "evidence"
+          ]
+        },
+        {
+          "id": "7.4",
+          "name": "Communication",
+          "description": "The organisation shall determine the internal and external communications relevant to the management system, including what it will communicate, when, with whom and how \u2014 and, for a disruption, how it will communicate with interested parties, how it will receive and respond to warnings, and how it will make the means of communication available and workable when the primary means are unavailable.",
+          "family": "22301-7",
+          "framework": "iso_22301",
+          "domains": [
+            "business_continuity",
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "communication",
+            "warning",
+            "alternative means"
+          ]
+        },
+        {
+          "id": "7.5",
+          "name": "Documented Information",
+          "description": "The management system shall include the documented information the standard requires and that the organisation determines is necessary, and that information shall be controlled: available where and when it is needed, adequately protected, and with its creation, updating, distribution, access, retrieval, storage, version control and disposition managed. A continuity plan available only on the system that is down is documented information that is not available where it is needed.",
+          "family": "22301-7",
+          "framework": "iso_22301",
+          "domains": [
+            "records_management",
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "documented information",
+            "version control",
+            "availability"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "22301-8",
+      "name": "Operation",
+      "description": "Clause 8 \u2014 the substance of the standard, and the part that cannot be answered by a policy alone.",
+      "controls": [
+        {
+          "id": "8.1",
+          "name": "Operational Planning and Control",
+          "description": "The organisation shall plan, implement and control the processes needed to meet its requirements, shall establish criteria for those processes, and shall control planned changes and review the consequences of unintended ones \u2014 taking action to mitigate adverse effects as necessary. Outsourced processes within the scope shall be controlled.",
+          "family": "22301-8",
+          "framework": "iso_22301",
+          "domains": [
+            "business_continuity",
+            "change_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "operational planning",
+            "outsourced processes",
+            "change"
+          ]
+        },
+        {
+          "id": "8.2.2",
+          "name": "Business Impact Analysis",
+          "description": "The organisation shall implement and maintain a systematic process for analysing business impact that defines the impact types and criteria relevant to its context, identifies the activities that support the provision of its products and services, and uses the analysis to assess the impacts over time of not resuming those activities \u2014 establishing prioritised timeframes for resuming them at a specified minimum acceptable capacity, and identifying the dependencies and supporting resources each requires. This is the analysis everything downstream is sized against: recovery objectives chosen before it are preferences.",
+          "family": "22301-8",
+          "framework": "iso_22301",
+          "domains": [
+            "business_continuity",
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "business impact analysis",
+            "prioritised timeframes",
+            "minimum acceptable capacity",
+            "dependencies"
+          ]
+        },
+        {
+          "id": "8.2.3",
+          "name": "Risk Assessment",
+          "description": "The organisation shall implement and maintain a risk assessment process that identifies the risks of disruption to its prioritised activities and the resources supporting them, analyses and evaluates them, and determines which require treatment \u2014 in a way consistent with its risk appetite.",
+          "family": "22301-8",
+          "framework": "iso_22301",
+          "domains": [
+            "risk_management",
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "risk assessment",
+            "disruption",
+            "risk appetite"
+          ]
+        },
+        {
+          "id": "8.3",
+          "name": "Business Continuity Strategies and Solutions",
+          "description": "Based on the outputs of the business impact analysis and the risk assessment, the organisation shall identify and select strategies that consider protecting prioritised activities, stabilising and continuing them, mitigating and responding to impacts, and managing the resources required \u2014 and shall implement the selected solutions so that the requirements identified in 8.2 can be met, including the resource requirements for people, information, technology, premises, suppliers and finance.",
+          "family": "22301-8",
+          "framework": "iso_22301",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "strategies",
+            "solutions",
+            "resource requirements"
+          ]
+        },
+        {
+          "id": "8.4",
+          "name": "Business Continuity Plans and Procedures",
+          "description": "The organisation shall implement and maintain a response structure and documented plans and procedures that are specific about the immediate steps to be taken during a disruption, are flexible to respond to unanticipated threats and changing conditions, specify the criteria and procedure for activation, identify the person who may invoke and the person who may stand down, name communication requirements including notification of interested parties, and set out the interdependencies and interactions between response teams. Each plan shall identify its purpose and scope, its objectives, its activation criteria, its roles and their authorities, and the resources it assumes.",
+          "family": "22301-8",
+          "framework": "iso_22301",
+          "domains": [
+            "business_continuity",
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "continuity plan",
+            "activation criteria",
+            "invoke",
+            "stand down",
+            "response structure"
+          ]
+        },
+        {
+          "id": "8.5",
+          "name": "Exercise Programme",
+          "description": "The organisation shall implement and maintain an exercise programme to validate over time the effectiveness of its business continuity strategies and solutions \u2014 with exercises consistent with the scope and objectives, based on appropriate scenarios that are well planned with clearly defined aims, developed to minimise the risk of disruption to operations, producing a formalised post-exercise report with outcomes, recommendations and actions, reviewed in the context of promoting continual improvement, and conducted at planned intervals and when significant changes occur. An exercise whose report recommends nothing tested nothing.",
+          "family": "22301-8",
+          "framework": "iso_22301",
+          "domains": [
+            "business_continuity",
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "exercise",
+            "scenario",
+            "post-exercise report",
+            "planned intervals"
+          ]
+        },
+        {
+          "id": "8.6",
+          "name": "Evaluation of Business Continuity Documentation and Capabilities",
+          "description": "The organisation shall evaluate the suitability, adequacy and effectiveness of its business impact analysis, risk assessment, strategies, solutions, plans and procedures at planned intervals, and after an incident, activation or exercise \u2014 and shall undertake evaluations of its continuity capability through reviews, analysis, exercises, post-incident reviews and performance evaluations, including those by its partners and suppliers.",
+          "family": "22301-8",
+          "framework": "iso_22301",
+          "domains": [
+            "business_continuity",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "evaluation",
+            "after an incident",
+            "post-incident review",
+            "suppliers"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "22301-9",
+      "name": "Performance Evaluation",
+      "description": "Clause 9 \u2014 measuring, auditing and reviewing.",
+      "controls": [
+        {
+          "id": "9.1",
+          "name": "Monitoring, Measurement, Analysis and Evaluation",
+          "description": "The organisation shall determine what needs to be monitored and measured, the methods to be used, when it is performed, and when the results are analysed and evaluated \u2014 and shall retain appropriate documented information as evidence of the results.",
+          "family": "22301-9",
+          "framework": "iso_22301",
+          "domains": [
+            "business_continuity",
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "monitoring",
+            "measurement",
+            "evidence"
+          ]
+        },
+        {
+          "id": "9.2",
+          "name": "Internal Audit",
+          "description": "The organisation shall conduct internal audits at planned intervals to determine whether the management system conforms to its own requirements and to the standard, and is effectively implemented and maintained \u2014 planning an audit programme that considers the importance of the processes and the results of previous audits, defining criteria and scope for each audit, selecting auditors who ensure objectivity and impartiality, reporting results to relevant management, and retaining documented information as evidence.",
+          "family": "22301-9",
+          "framework": "iso_22301",
+          "domains": [
+            "compliance_audit",
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "internal audit",
+            "impartiality",
+            "audit programme"
+          ]
+        },
+        {
+          "id": "9.3",
+          "name": "Management Review",
+          "description": "Top management shall review the business continuity management system at planned intervals, considering the status of previous actions, changes in external and internal issues, information on performance including nonconformities, monitoring results, audit results, the need for changes, opportunities for improvement, and information from the business impact analysis and risk assessment \u2014 and shall retain documented information as evidence of the outcomes.",
+          "family": "22301-9",
+          "framework": "iso_22301",
+          "domains": [
+            "governance",
+            "business_continuity"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "management review",
+            "planned intervals",
+            "outcomes"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "22301-10",
+      "name": "Improvement",
+      "description": "Clause 10 \u2014 what happens to what the reviews and exercises found.",
+      "controls": [
+        {
+          "id": "10.1",
+          "name": "Nonconformity and Corrective Action",
+          "description": "When a nonconformity occurs, the organisation shall react to it, evaluate the need for action to eliminate its causes so that it does not recur, implement the action needed, review its effectiveness, and make changes to the management system if necessary \u2014 retaining documented information on the nature of the nonconformity and on the results of the action taken.",
+          "family": "22301-10",
+          "framework": "iso_22301",
+          "domains": [
+            "business_continuity",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "nonconformity",
+            "corrective action",
+            "effectiveness"
+          ]
+        },
+        {
+          "id": "10.2",
+          "name": "Continual Improvement",
+          "description": "The organisation shall continually improve the suitability, adequacy and effectiveness of the business continuity management system, using the outputs of monitoring, audits, management review and exercises.",
+          "family": "22301-10",
+          "framework": "iso_22301",
+          "domains": [
+            "business_continuity"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "continual improvement"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -21,7 +21,13 @@ declares:
     authority: R.R.O. 1990 Reg. 1101 s. 6 — first aid boxes inspected at not less than quarter-yearly intervals, the card dated and signed
     interval_basis: required
     responsible: site-supervisor
-    applies_to: each project
+    applies_to: the organisation
+    per:
+      listed_in: registers/projects.md
+      key: project_id
+      label: name
+      from: start_on
+      until: finished_on
     records: registers/first-aid-station-inspections.md
     escalate: {after: 2w, to: health-safety-lead}
   register:

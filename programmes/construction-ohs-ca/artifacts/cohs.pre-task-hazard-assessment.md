@@ -24,7 +24,7 @@ declares:
     authority: OHSA s. 25(2)(h) — every precaution reasonable in the circumstances. No Ontario provision prescribes a pre-task assessment or its frequency
     interval_basis: chosen
     responsible: site-supervisor
-    applies_to: each project
+    applies_to: the organisation
     records: registers/pre-task-hazard-assessments.md
     escalate: {after: 1d, to: health-safety-lead}
     satisfies:

@@ -22,7 +22,13 @@ declares:
     authority: O. Reg. 213/91 s. 170 — cables visually inspected by a competent worker at least weekly when in use and recorded in the operator's log; s. 176 — chains at least weekly
     interval_basis: required
     responsible: site-supervisor
-    applies_to: each project
+    applies_to: the organisation
+    per:
+      listed_in: registers/projects.md
+      key: project_id
+      label: name
+      from: start_on
+      until: finished_on
     records: registers/crane-log-inspections.md
     escalate: {after: 3d, to: health-safety-lead}
   register:
