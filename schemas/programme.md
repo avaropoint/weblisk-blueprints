@@ -52,24 +52,34 @@ A `.yaml` or `.yml` file is accepted for a generated programme, with `brief:` or
 frontmatter `brief:`/`overview:`, because the body is the form a person edits
 and a file carrying both answers the same question twice.
 
-### Two file kinds, and the parent directory decides
+### Three file kinds, and where a file sits decides
 
-    programmes/<pack>/programs/<programme>.md      a programme map
-    programmes/<pack>/artifacts/<artifact>.md      an artifact specification
+    programmes/<programme>/map.md                a programme map
+    programmes/<programme>/specs/<name>.md       an artifact specification
+    programmes/<programme>/templates/<name>.md   a blank form
 
-**The parent directory alone says what a file is.** A file directly under
-`programs/` is a map; one under `artifacts/` is a spec; a file under anything
-else is ignored entirely. The segment above those two directories names the
-**pack**, so provenance survives the merge — "which pack claimed this artifact"
-is the first question asked of a programme somebody did not write.
+**Where a file sits alone says what it is.** The map is one file at the
+programme's own root; a file under `specs/` is a specification; a file under
+`templates/` is a form somebody fills in; a file under anything else is ignored
+entirely. The segment above them names the **programme**, so provenance survives
+the merge — "which programme claimed this" is the first question asked of a
+programme somebody did not write.
 
-`<root>/programs/…` also loads, for a root that *is* a single pack. One rule
-covers both shapes, so nobody has to learn a nesting depth.
+A root that *is* a single programme loads too, with its `map.md` and `specs/` at
+the top. One rule covers both shapes, so nobody has to learn a nesting depth.
 
-A path convention rather than a `type:` field because a pack is a repository of
-content: directories are what a person browsing one already sees, and a
+**Every earlier spelling still loads, and always will**: `artifacts/` for
+`specs/`, and `programs/` or `programmes/` for the directory the map used to sit
+in. A programme is content in somebody's repository, and a convention that
+stopped recognising what it wrote last month would orphan a tenant's adopted copy
+and every programme an organisation authored. There is no cutover.
+
+A path convention rather than a `type:` field because a programme is a repository
+of content: directories are what a person browsing one already sees, and a
 discriminator field is a thing to get wrong in a file whose whole point is being
-hand-authored.
+hand-authored. Which is also why the names have to be right. `specs/` was
+`artifacts/`, and *artifact* everywhere else in this product means a real
+document at a real path — the directory said the opposite of what it held.
 
 ### Not in the blueprint type registry, yet
 
@@ -92,7 +102,7 @@ the pack loads.
 
 ## The programme map
 
-One file per programme, under `programs/`.
+One file per programme: `map.md`, at the programme's own root.
 
 | field | type | required | means |
 |---|---|---|---|
@@ -165,7 +175,7 @@ nobody could tell "this tier is light" from "four specs are missing".
 
 ## The artifact specification
 
-One file per artifact, under `artifacts/`. Standalone, and deliberately **not
+One file per artifact, under `specs/`. Standalone, and deliberately **not
 nested inside a programme**: one training-record matrix serves several
 programmes at once.
 
@@ -943,7 +953,7 @@ rather than by content.
 
 ## Verification Checklist
 
-- [ ] Every file lives directly under a `programs/` or `artifacts/` directory, and nothing relies on a `type:` field to say which it is
+- [ ] The map is `map.md` at the programme's root, every spec is directly under `specs/`, every form directly under `templates/`, and nothing relies on a `type:` field to say which it is
 - [ ] Every map and every spec carries an `id`, unique within the pack
 - [ ] No file declares `pack`, `source`, `builtin` or `derived_from`
 - [ ] Every `satisfies` entry is `framework:control` with exactly one colon and neither half empty

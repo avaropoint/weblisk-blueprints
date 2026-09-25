@@ -41,14 +41,21 @@ artifacts:
   - { id: capay.substantial-performance, tier: statutory }
   - { id: capay.holdback-release, tier: statutory }
   - { id: capay.insurance-certificates, tier: statutory }
+  - { id: capay.prompt-payment, tier: statutory }
+  - { id: capay.invoices-given, tier: statutory }
+  - { id: capay.subcontract-payment, tier: statutory }
+  - { id: capay.invoices-received, tier: statutory }
+  - { id: capay.lien-administration, tier: statutory }
+  - { id: capay.liens, tier: statutory }
   - { id: cohs.clearance-certificates, tier: statutory }
   # ── assured: the documents are current, and the account is swept ───────────
   - { id: capay.insurance-renewal, tier: assured }
   - { id: capay.holdback-reconciliation, tier: assured }
+  - { id: capay.payment-position, tier: assured }
 ---
 
-Seven artifacts for a contractor, subcontractor or owner working on improvements
-to land in Ontario, covering the statute that is for most construction companies
+Fifteen artifacts for a contractor, subcontractor or owner working on
+improvements to land in Ontario, covering the statute that is for most construction companies
 the largest legal exposure that is not a safety matter — and the one an
 occupational health and safety programme never touches.
 
@@ -145,13 +152,50 @@ run the health and safety programme, and a position with no holder means an
 approval with nowhere to go and an escalation into silence. They are created
 once, in the product, and they are the first thing to check after adopting this.
 
-## What this programme does not cover
+## Prompt payment: per invoice, in two directions
 
-Prompt payment and adjudication are cited by the policy and are **not**
-operationalised here. The proper-invoice clock, the fourteen-day notice of
-non-payment and the thirty-day adjudicator's determination are real, they are
-severe, and they turn on documents and deadlines this pack could model the same
-way — but they run per invoice rather than per contract, and an invoice register
-is a different subject with a different volume. They are named here so that an
-organisation reading a clean screen does not conclude that the Act has been
-answered in full.
+Prompt payment was named here for a while as the thing this programme did not
+do, on the ground that it runs per invoice rather than per contract and that an
+invoice register is a different subject with a different volume. Both halves of
+that were true and neither was a reason: the volume is the point, and the Act's
+clocks are the largest non-safety exposure a contractor carries.
+
+It is modelled as **two registers and not one**, because the Act gives the two
+directions different triggers and a single register with a `direction` column
+would raise every occurrence against both halves.
+
+    proper invoices GIVEN     → what the payer did, 28 days after they received it
+    proper invoices RECEIVED  → pay the subcontractor, 7 days after WE were paid
+    construction liens        → perfect, vacate, discharge or provide for it
+    ────────────────────────────────────────────────────────────────────────────
+    the monthly payment position review terminates all three
+
+The second chain's trigger is the day the organisation was **paid**, which is
+the Act's own trigger and is also the honest one: the duty is to pass on money
+received. That column is empty until the owner pays, so no occurrence is raised
+before then — correct, and completely silent, and indistinguishable from an
+invoice nobody entered. Every trigger in this programme has that property, which
+is why `capay.payment-position` sweeps the whole account monthly and why the
+count it exists to produce is **what was not looked at**.
+
+## The trust is why the second direction matters more than the first
+
+Money received on account of a contract price is a trust fund for the people who
+supplied the work, and a director, an officer or anybody with effective control
+who assents to or acquiesces in a breach of that trust is **personally liable**.
+Paying a subcontractor late out of money already received for that
+subcontractor's work is not only a prompt payment contravention; it is the fact
+pattern the trust provisions were written for. `capay.subcontract-payment`
+therefore records who decided, on every row, and asks whether the payment came
+out of the account holding the trust funds and whether the written trust record
+was updated — two statutory duties that are ordinarily not done at all by an
+organisation running a single operating account.
+
+## What this programme still does not cover
+
+**Construction pricing, change orders and delay claims.** A notice of delay, a
+change directive, a claim for extended overheads and the contract's own
+dispute ladder are where most construction money is actually argued about, and
+none of it is in the Act. It is contract administration, it differs by standard
+form, and a pack that shipped one organisation's version would be shipping a
+commercial position as a compliance requirement.

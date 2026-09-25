@@ -1,0 +1,128 @@
+{
+  "id": "skilled_trades_ontario",
+  "name": "Building Opportunities in the Skilled Trades Act, 2021 (Ontario)",
+  "version": "S.O. 2021, c. 28, Sched. 1, with O. Reg. 872/21, O. Reg. 876/21 and O. Reg. 877/21, consolidated to 1 September 2026",
+  "description": "The statute that governs who may lawfully do the work of a skilled trade in Ontario, in force since 1 January 2022. It replaced the Ontario College of Trades and Apprenticeship Act, 2009: the Ontario College of Trades was wound up, Skilled Trades Ontario was established as a Crown agency responsible for apprenticeship, trade standards and certification, and compliance and enforcement moved to inspectors appointed under this Act who are employees of the Ministry of Labour, Immigration, Training and Skills Development. O. Reg. 876/21 prescribes the trades — 144 of them, of which 23 are compulsory. O. Reg. 877/21 prescribes what an individual must be able to produce as proof of authorisation, the journeyperson-to-apprentice ratios and the terms of certificates. O. Reg. 872/21 prescribes the administrative penalties. This is a licensing statute and not a health and safety one: it decides whether the person doing the work is allowed to do it, which is a different question from whether they are doing it safely, and an organisation answers both.",
+  "authority": "Legislative Assembly of Ontario; administered by Skilled Trades Ontario and enforced by inspectors appointed under the Act who are employees of the Ministry of Labour, Immigration, Training and Skills Development",
+  "scope": "Any person in Ontario who engages in the practice of a compulsory trade, and any person who employs or otherwise engages an individual to do so",
+  "applies_in": [
+    "CA-ON"
+  ],
+  "category": "government",
+  "status": "active",
+  "official_url": "https://www.ontario.ca/page/compulsory-trades-and-enforcement",
+  "families": [
+    {
+      "id": "STO-AUTH",
+      "name": "Authorisation to Practise a Compulsory Trade",
+      "description": "Who may do the work, who may be engaged to do it, and what has to be producible on the spot.",
+      "controls": [
+        {
+          "id": "6",
+          "name": "Prohibition on Engaging in the Practice of a Compulsory Trade",
+          "description": "No individual shall engage in the practice of a compulsory trade unless the individual holds a certificate of qualification or a provisional certificate of qualification in that trade that is not suspended, or is an apprentice in that trade working pursuant to a registered training agreement that is not suspended, or is exempted by regulation. The prohibition runs against the individual.",
+          "family": "STO-AUTH",
+          "framework": "skilled_trades_ontario",
+          "domains": ["trade_regulatory", "training_competency"],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": ["compulsory trade", "certificate of qualification", "provisional certificate", "registered training agreement", "apprentice"]
+        },
+        {
+          "id": "7",
+          "name": "Prohibition on Employing or Engaging an Unauthorised Individual",
+          "description": "No person shall employ or otherwise engage an individual to perform work or to engage in the practice of a compulsory trade unless the individual is an apprentice in that trade working pursuant to a registered training agreement that is not suspended, holds a certificate of qualification or a provisional certificate of qualification in that trade that is not suspended, or is exempted by regulation. The prohibition runs against the employer, and 'otherwise engage' reaches a subcontract as well as a payroll.",
+          "family": "STO-AUTH",
+          "framework": "skilled_trades_ontario",
+          "domains": ["trade_regulatory", "vendor_management"],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": ["employ", "otherwise engage", "unauthorised", "subcontractor", "compulsory trade"]
+        },
+        {
+          "id": "877-2",
+          "name": "Proof of Authorisation Carried and Produced",
+          "description": "O. Reg. 877/21 s. 2 prescribes the valid forms of proof an individual must be able to produce: a document issued by Skilled Trades Ontario confirming that the individual holds a certificate of qualification or a provisional certificate of qualification in the trade, or a document issued by Skilled Trades Ontario confirming that the individual is an apprentice working under a registered training agreement. A recollection, a photograph of somebody else's card, or an employer's assurance is not proof.",
+          "family": "STO-AUTH",
+          "framework": "skilled_trades_ontario",
+          "domains": ["trade_regulatory", "records_management"],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": ["proof", "card", "Skilled Trades Ontario document", "produce on request"]
+        }
+      ]
+    },
+    {
+      "id": "STO-RATIO",
+      "name": "Journeyperson to Apprentice Ratios",
+      "description": "How many apprentices may work against how many certified journeypersons.",
+      "controls": [
+        {
+          "id": "8",
+          "name": "Journeyperson to Apprentice Ratio Observed",
+          "description": "Ratios are set under the Act and prescribed per trade in O. Reg. 877/21; the default is one apprentice to each journeyperson. An individual who holds an unsuspended provisional certificate of qualification is deemed to be an apprentice for the purpose of calculating the ratio. The ratio is counted on the work being done, so it is a condition that can be breached by a crew change rather than by a hiring decision.",
+          "family": "STO-RATIO",
+          "framework": "skilled_trades_ontario",
+          "domains": ["trade_regulatory", "training_competency"],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": ["ratio", "journeyperson", "apprentice", "provisional certificate", "crew composition"]
+        }
+      ]
+    },
+    {
+      "id": "STO-SCOPE",
+      "name": "Which Trades, and Which of Them Are Compulsory",
+      "description": "The prescribed trades and the compulsory subset — the question every other duty depends on.",
+      "controls": [
+        {
+          "id": "876-1",
+          "name": "Prescribed Trades and Compulsory Trades",
+          "description": "O. Reg. 876/21 prescribes the trades to which the Act applies — 144 of them — and identifies which are compulsory. Twenty-three are compulsory, including the construction and maintenance electrician, the domestic and rural electrician, the plumber, the steamfitter, the sheet metal worker, the refrigeration and air conditioning systems mechanic and the hoisting engineer branches. A trade being prescribed is not the same as a trade being compulsory, and only the compulsory ones carry the prohibitions.",
+          "family": "STO-SCOPE",
+          "framework": "skilled_trades_ontario",
+          "domains": ["trade_regulatory", "compliance_audit"],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": false,
+          "keywords": ["prescribed trade", "compulsory trade", "voluntary trade", "144 trades", "23 compulsory"]
+        }
+      ]
+    },
+    {
+      "id": "STO-ENF",
+      "name": "Inspection and Enforcement",
+      "description": "What happens when an inspector finds unauthorised work.",
+      "controls": [
+        {
+          "id": "872-1",
+          "name": "Notices of Contravention and Administrative Penalties",
+          "description": "Inspectors appointed under the Act, who are employees of the Ministry of Labour, Immigration, Training and Skills Development, may enter a workplace and investigate whether individuals are authorised. Where they are not, an inspector may take an educational enforcement measure, make a compliance order, or issue a notice of contravention carrying an administrative monetary penalty prescribed in O. Reg. 872/21. A penalty may be issued against the employer as well as against the individual.",
+          "family": "STO-ENF",
+          "framework": "skilled_trades_ontario",
+          "domains": ["trade_regulatory", "compliance_audit"],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": ["inspector", "notice of contravention", "administrative monetary penalty", "compliance order"]
+        }
+      ]
+    }
+  ]
+}
