@@ -1,0 +1,316 @@
+{
+  "id": "nsc_ca",
+  "name": "National Safety Code for Motor Carriers",
+  "version": "CCMTA National Safety Code \u2014 the ten carrier-facing standards, as in force in 2026",
+  "description": "The National Safety Code is a set of model standards for commercial vehicle safety agreed by the federal, provincial and territorial governments through the Canadian Council of Motor Transport Administrators. It is not itself law in any jurisdiction, and that is the single most important thing to know about it. It acquires force in two ways, and a carrier is bound by the adopting instrument rather than by the Code: federally, through the Motor Vehicle Transport Act and the regulations made under it, for a carrier whose operation crosses a provincial, territorial or international boundary; and provincially, where a legislature adopts a standard into its own regulation \u2014 in Ontario, Standard 9 as O. Reg. 555/06, Standard 10 as O. Reg. 363/04, Standard 13 as O. Reg. 199/07, and the periodic inspection half of Standard 11 as R.R.O. 1990, Reg. 611. The adoptions are close to the Code and are not always word for word, and where they differ the adopting instrument is the one enforced. This standard carries the ten carrier-facing standards; those addressed to licensing administrations rather than to carriers are not reproduced.",
+  "authority": "Canadian Council of Motor Transport Administrators (CCMTA), on behalf of the federal, provincial and territorial governments of Canada",
+  "scope": "Motor carriers, commercial drivers and commercial vehicles in Canada \u2014 reached through the federal and provincial instruments that adopt these standards, never directly by the Code itself",
+  "applies_in": [
+    "CA"
+  ],
+  "category": "government",
+  "status": "active",
+  "official_url": "https://ccmta.ca/en/national-safety-code",
+  "families": [
+    {
+      "id": "NSC-DRIVER",
+      "name": "Driver Standards",
+      "description": "The standards that govern who may drive a commercial vehicle, for how long, and what the carrier must know about them.",
+      "controls": [
+        {
+          "id": "NSC-04",
+          "name": "Driver Licence Classification",
+          "description": "A common national classification of driver licences, so that the class a driver holds means the same thing in every jurisdiction and a licence issued in one is recognised in the others. It sets out which class of licence is needed for which combination of vehicle and, separately, the air brake endorsement required to operate a vehicle equipped with air brakes. A carrier's obligation under this standard is discharged by verifying that the class and endorsements a driver actually holds cover the vehicle the driver is assigned to \u2014 a verification that is made against the issuing jurisdiction's record, not against the card.",
+          "family": "NSC-DRIVER",
+          "framework": "nsc_ca",
+          "domains": [
+            "trade_regulatory",
+            "training_competency"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "licence class",
+            "air brake endorsement",
+            "class A",
+            "class D",
+            "driver qualification"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-DRIVER-01"
+          ]
+        },
+        {
+          "id": "NSC-06",
+          "name": "Medical Standards for Drivers",
+          "description": "Medical fitness standards for commercial drivers and the examination cycle at which fitness is reconfirmed. The standard is administered by the licensing jurisdiction rather than by the carrier: it is the licence that is conditioned on the medical, and the carrier's exposure is that a driver whose medical has lapsed has a licence that is no longer valid for the class. Which is why a carrier that checks licence classes from a photocopy taken at hire and never again learns about the lapse from an enforcement officer.",
+          "family": "NSC-DRIVER",
+          "framework": "nsc_ca",
+          "domains": [
+            "health_safety",
+            "trade_regulatory"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "medical examination",
+            "driver fitness",
+            "medical certificate",
+            "licence condition"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-DRIVER-02"
+          ]
+        },
+        {
+          "id": "NSC-07",
+          "name": "Carrier and Driver Profiles",
+          "description": "Each jurisdiction maintains a safety record \u2014 a profile \u2014 for every carrier it registers and every driver it licenses, recording collisions, convictions and the results of roadside and facility inspections. The carrier profile is the basis on which a jurisdiction rates a carrier and decides whether to intervene, and it is the instrument behind Ontario's CVOR record. The standard also contemplates that a carrier monitors its own profile: the record accumulates whether or not anybody looks at it, and an operator that waits to be told is finding out at the point where the jurisdiction has already decided to act.",
+          "family": "NSC-DRIVER",
+          "framework": "nsc_ca",
+          "domains": [
+            "compliance_audit",
+            "governance",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "carrier profile",
+            "driver profile",
+            "safety record",
+            "abstract",
+            "CVOR",
+            "monitoring"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-CVOR-01",
+            "hta_ontario:HTA-CVOR-04",
+            "hta_ontario:HTA-DRIVER-03"
+          ]
+        },
+        {
+          "id": "NSC-09",
+          "name": "Hours of Service",
+          "description": "The limits on how long a commercial driver may drive and be on duty, the off-duty time that must be taken, the cycles over which on-duty time accumulates, and the daily log by which all of it is recorded. Standard 9 is the model behind both the federal Commercial Vehicle Drivers Hours of Service Regulations and each province's own hours of service regulation, which is why the numbers are the same on either side of the federal/provincial line while the instrument charged is not. The standard also carries the exemption from the daily log for a driver operating within a set radius of the home terminal, on condition that the carrier keeps a time record instead \u2014 an exemption, not an absence of a duty to record hours.",
+          "family": "NSC-DRIVER",
+          "framework": "nsc_ca",
+          "domains": [
+            "health_safety",
+            "trade_regulatory",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "hours of service",
+            "daily log",
+            "driving time",
+            "on-duty time",
+            "off-duty",
+            "cycle",
+            "160 km",
+            "time record"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-HOS-02",
+            "mvta_canada:CVDHS-01"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "NSC-VEHICLE",
+      "name": "Vehicle Standards",
+      "description": "The standards that govern the condition of the vehicle and the security of what it is carrying.",
+      "controls": [
+        {
+          "id": "NSC-10",
+          "name": "Cargo Securement",
+          "description": "How cargo must be contained, immobilised or secured so that it cannot shift, fall from, leak from or be dislodged from the vehicle. It has two parts and both bind. The general rules set the performance the securement system must meet \u2014 the deceleration forces it must withstand, the aggregate working load limit of the tiedowns relative to the weight of the cargo, and the minimum number of tiedowns by the length and weight of the article. The commodity-specific rules then govern particular cargo whose behaviour the general rules do not adequately describe: logs, dressed lumber, metal coils, paper rolls, concrete pipe, intermodal containers, automobiles and light trucks, heavy vehicles and equipment, flattened or crushed vehicles, roll-on/roll-off containers, and large boulders. Standard 10 is harmonised with the equivalent United States rules, which is why a load secured to it is lawful on both sides of the border.",
+          "family": "NSC-VEHICLE",
+          "framework": "nsc_ca",
+          "domains": [
+            "health_safety",
+            "equipment_integrity",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "cargo securement",
+            "load security",
+            "tiedown",
+            "working load limit",
+            "commodity specific",
+            "heavy equipment"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-LOAD-01",
+            "hta_ontario:HTA-LOAD-04"
+          ]
+        },
+        {
+          "id": "NSC-11",
+          "name": "Maintenance and Periodic Inspection Standards",
+          "description": "Two duties that are frequently collapsed into one and are not the same. The first is a systematic maintenance programme: the carrier plans, performs and records the servicing and repair of every vehicle it operates, on an interval it sets, and keeps the record for each vehicle. The second is the periodic inspection: at a prescribed interval, a vehicle is inspected against the national inspection standard by a technician at an authorised facility, and the result is certified. Passing a periodic inspection says the vehicle met the standard on that day; the maintenance programme is what makes that true for the rest of the year, and it is the half a facility audit finds missing.",
+          "family": "NSC-VEHICLE",
+          "framework": "nsc_ca",
+          "domains": [
+            "equipment_integrity",
+            "records_management",
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "preventive maintenance",
+            "periodic inspection",
+            "PMVI",
+            "maintenance record",
+            "annual inspection"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-PMVI-01",
+            "hta_ontario:HTA-PMVI-03"
+          ]
+        },
+        {
+          "id": "NSC-12",
+          "name": "Commercial Vehicle On-Road Inspections",
+          "description": "The roadside inspection regime \u2014 the North American Standard levels of inspection carried out by enforcement officers, and the out-of-service criteria that decide whether a vehicle or a driver may continue. A vehicle placed out of service at roadside may not be moved until the defect is repaired. The inspection result is reported into the carrier's profile whether it was clean or not, so the roadside inspection is simultaneously an enforcement event and the largest single source of data in the record on which the carrier is rated.",
+          "family": "NSC-VEHICLE",
+          "framework": "nsc_ca",
+          "domains": [
+            "compliance_audit",
+            "equipment_integrity",
+            "health_safety"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "roadside inspection",
+            "out of service",
+            "CVSA",
+            "inspection level",
+            "decal"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-PMVI-04"
+          ]
+        },
+        {
+          "id": "NSC-13",
+          "name": "Trip Inspection",
+          "description": "The inspection a driver carries out on the vehicle before it is driven each day, and the report that records it. The standard fixes the systems to be inspected by vehicle type through its schedules, and \u2014 the part that decides what happens next \u2014 it classifies what may be found as either a major or a minor defect. A minor defect is recorded and reported to the carrier and the vehicle may continue in service. A major defect means the vehicle must not be driven: the driver stops, reports it, and the vehicle stays where it is until the defect is repaired. A report that records defects without saying which kind they were has recorded the fact and lost the decision.",
+          "family": "NSC-VEHICLE",
+          "framework": "nsc_ca",
+          "domains": [
+            "equipment_integrity",
+            "health_safety",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "trip inspection",
+            "daily inspection",
+            "pre-trip",
+            "major defect",
+            "minor defect",
+            "schedule 1",
+            "inspection report"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-TRIP-01",
+            "hta_ontario:HTA-TRIP-04"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "NSC-CARRIER",
+      "name": "Carrier Oversight",
+      "description": "How a jurisdiction judges a carrier, and what it does when the judgement is adverse.",
+      "controls": [
+        {
+          "id": "NSC-14",
+          "name": "Safety Rating",
+          "description": "The rating a jurisdiction assigns a carrier from its profile, and the consequences that attach to it. A rating is a statement about the carrier rather than about any one vehicle or driver, and it travels: a carrier rated in its base jurisdiction carries that rating into every other. The rating is derived from data the carrier itself generates \u2014 the collisions its drivers are involved in, the convictions they accumulate, and what roadside inspections find \u2014 so it is not a judgement a carrier can answer at the point it is made, only one it can change in advance.",
+          "family": "NSC-CARRIER",
+          "framework": "nsc_ca",
+          "domains": [
+            "governance",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "safety rating",
+            "carrier rating",
+            "satisfactory",
+            "conditional",
+            "unsatisfactory"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-CVOR-05"
+          ]
+        },
+        {
+          "id": "NSC-15",
+          "name": "Facility Audits",
+          "description": "The audit a jurisdiction carries out at the carrier's premises: an examination of the carrier's own records against the duties it holds \u2014 driver files and licence verification, hours of service logs and time records, trip inspection reports, maintenance and periodic inspection records, and the carrier's own monitoring of all of them. A facility audit tests the records rather than the vehicles, and the finding that most often decides its outcome is not a defect but an absence: a duty performed and not recorded is, to an audit, a duty not performed.",
+          "family": "NSC-CARRIER",
+          "framework": "nsc_ca",
+          "domains": [
+            "compliance_audit",
+            "records_management",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "facility audit",
+            "carrier audit",
+            "records",
+            "driver file",
+            "audit finding"
+          ],
+          "mapped_controls": [
+            "hta_ontario:HTA-CVOR-06"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,468 @@
+{
+  "id": "o_reg_406_19",
+  "name": "O. Reg. 406/19: On-Site and Excess Soil Management",
+  "version": "O. Reg. 406/19, consolidated to 22 September 2026",
+  "description": "The On-Site and Excess Soil Management regulation made under the Environmental Protection Act — the rule book for soil that is excavated as part of a project and removed from the project area, and the reason excess soil moved from being waste by default to being a managed material. It binds the project leader, defined in section 1 as the person or persons ultimately responsible for making decisions relating to the planning and implementation of the project: on one job that is the owner, on the next it is the contractor, and which of them it is on a given job is a fact to be recorded rather than a role to be assumed. Its heaviest obligations are triggered rather than universal. Reuse planning by a qualified person — an assessment of past uses, a sampling and analysis plan, a soil characterization report and an excess soil destination assessment report — and a notice filed in the Excess Soil Registry before soil leaves the project area are owed only where the project area meets one of the three criteria in subsection 8 (1.1): it is or has been an enhanced investigation project area; 2,000 m³ or more is to be removed from a project area partly within an area of settlement whose whole is not residential, institutional, parkland or agricultural-and-other use; or it is being excavated to reduce contaminant concentrations. Schedule 2 exempts seven further sets of circumstances, including 100 m³ or less taken directly to a waste disposal site that is not a Class 2 soil management site. Two duties are owed whatever the volume and whatever the destination: the written procedure for an observation during excavation suggesting the soil is affected by a contaminant (s. 23), and the hauling record that travels with each load (s. 18). Phased in over several years; the final tranche commenced 1 January 2026, revoking the clause 8 (2) (b) exemption for projects whose excess soil management contract was entered into before 1 January 2022 — so no project is grandfathered out of the Registry any longer. Consolidated to 22 September 2026, last amended by O. Reg. 235/25.",
+  "authority": "Lieutenant Governor in Council, Ontario, under the Environmental Protection Act; administered by the Ministry of the Environment, Conservation and Parks, with the Registry operated by the Resource Productivity and Recovery Authority",
+  "scope": "Every project in Ontario that involves the excavation of soil and the removal of that soil from the project area, and every project leader, operator of a project area, hauler, soil management site and reuse site connected with one",
+  "applies_in": [
+    "CA-ON"
+  ],
+  "category": "government",
+  "status": "active",
+  "official_url": "https://www.ontario.ca/laws/regulation/190406",
+  "families": [
+    {
+      "id": "R406-PLAN",
+      "name": "Reuse Planning",
+      "description": "Sections 11 to 13, 15 and 26. What a qualified person must prepare before a notice may be filed, what those documents must contain, and what happens when what is found in the ground contradicts them.",
+      "controls": [
+        {
+          "id": "11",
+          "name": "Assessment of Past Uses",
+          "description": "Where the project leader is required to file a notice under section 8, the project leader shall ensure that, before filing the notice, a qualified person prepares or supervises the preparation of an assessment of past uses of the project area in accordance with the Soil Rules. It is not required where the project relates to excavation at a stormwater management pond, or where a phase one environmental site assessment within the meaning of Ontario Regulation 153/04 has already been prepared for the project.",
+          "family": "R406-PLAN",
+          "framework": "o_reg_406_19",
+          "domains": [
+            "environmental",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "assessment of past uses",
+            "qualified person",
+            "before filing the notice",
+            "phase one environmental site assessment",
+            "Soil Rules"
+          ]
+        },
+        {
+          "id": "12",
+          "name": "Sampling and Analysis Plan and Soil Characterization Report",
+          "description": "Where a notice is required and the assessment of past uses or a phase one environmental site assessment identifies a potentially contaminating activity, or any part of the project area is or has been an enhanced investigation project area, or the project involves excavation from a stormwater management pond, a qualified person shall prepare or supervise a sampling and analysis plan before the notice is filed. The project leader shall ensure a qualified person implements or supervises the plan, shall develop and apply written procedures so that soil is segregated and stockpiled in accordance with the Soil Rules and sampled soil is kept segregated, and shall ensure a soil characterization report is prepared before filing. The report must set out the sampling results and an assessment of them, which soil may be reused within the project area and which may go to a Class 1 soil management site, landfill or dump, and which types of reuse site the soil may be transported to for final placement. A plan is not required if the soil is to be deposited at a Class 1 soil management site.",
+          "family": "R406-PLAN",
+          "framework": "o_reg_406_19",
+          "domains": [
+            "environmental",
+            "records_management",
+            "quality_management"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "sampling and analysis plan",
+            "soil characterization report",
+            "potentially contaminating activity",
+            "enhanced investigation project area",
+            "segregated stockpile",
+            "excess soil quality standards"
+          ]
+        },
+        {
+          "id": "13",
+          "name": "Excess Soil Destination Assessment Report",
+          "description": "Where a notice is required, a qualified person shall prepare or supervise an excess soil destination assessment report before the notice is filed. It must identify each Class 1 soil management site, reuse site, local waste transfer facility, landfilling site or dump at which the excess soil will be deposited and its location, identify the contingency measures to be implemented if the soil cannot be deposited there including the location of an alternate site, and estimate the quality and quantity going to each location.",
+          "family": "R406-PLAN",
+          "framework": "o_reg_406_19",
+          "domains": [
+            "environmental",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "destination assessment report",
+            "reuse site",
+            "contingency measures",
+            "alternate site",
+            "quality and quantity"
+          ]
+        },
+        {
+          "id": "15",
+          "name": "Documents Updated When What Is Found Contradicts Them",
+          "description": "Where a qualified person's documents were required, a written record must be created immediately — including the date the circumstance became known — if additional testing reveals the soil characterization report does not accurately reflect the quality of soil bound for a reuse site, if an area of potential environmental concern not identified in the assessment of past uses is found within the project area, or if soil is to go to a reuse site the destination assessment report does not name. Within 30 days a qualified person or supervisee shall review all documents prepared under sections 11, 12 and 13 and amend them, and shall give the project leader or operator any further written recommendations needed to keep disposal lawful.",
+          "family": "R406-PLAN",
+          "framework": "o_reg_406_19",
+          "domains": [
+            "environmental",
+            "incident_response",
+            "records_management"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "documents to be updated",
+            "area of potential environmental concern",
+            "within 30 days",
+            "amend",
+            "further recommendations"
+          ]
+        },
+        {
+          "id": "26",
+          "name": "Qualified Person, Conflict of Interest",
+          "description": "No qualified person shall prepare or supervise the preparation of documents under this Regulation in respect of a project in which the qualified person holds a direct or indirect interest, nor develop site-specific excess soil quality standards for a reuse site in which they hold one. A qualified person may act where their employer holds the interest. Nothing in the section derogates from obligations under the Professional Engineers Act or the Professional Geoscientists Act, 2000.",
+          "family": "R406-PLAN",
+          "framework": "o_reg_406_19",
+          "domains": [
+            "environmental",
+            "governance",
+            "vendor_management"
+          ],
+          "priority": "medium",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "conflict of interest",
+            "qualified person",
+            "direct or indirect interest",
+            "professional engineer",
+            "professional geoscientist"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R406-REGISTRY",
+      "name": "Excess Soil Registry",
+      "description": "Sections 8, 9 and 27, with Schedules 1 and 2. When a notice must be filed before soil leaves a project area, what it must contain, when it must be updated and closed out, and the circumstances in which none is owed at all.",
+      "controls": [
+        {
+          "id": "8",
+          "name": "Notice Filed in the Registry Before Soil Leaves the Project Area",
+          "description": "The project leader shall ensure that, before removing from the project area soil that will become excess soil once removed, a notice setting out the information in Schedule 1 is filed in the Excess Soil Registry. It is owed only where the project area meets one of the criteria in subsection 8 (1.1): the project leader is of the opinion, after reasonable efforts to consider past reports and other available information, that the project area is or has ever been in whole or in part an enhanced investigation project area; or any part of it is in an area of settlement within the meaning of the Planning Act and 2,000 m³ or more is to be removed, unless the whole project area is in residential, institutional, parkland, or agricultural-and-other use within the meaning of Ontario Regulation 153/04; or all or part of it is being remediated by excavating and removing soil to reduce contaminant concentrations. The section does not apply where one of the seven sets of circumstances in Schedule 2 applies — among them, 100 m³ or less transported directly to a waste disposal site that is not a Class 2 soil management site; excavation to alleviate an immediate danger, to discharge the section 93 duty, under an order, or to maintain infrastructure in a fit state of repair; topsoil taken directly to a reuse site for use as topsoil; and 100 m³ or less deposited at a local waste transfer facility. Schedule 1 requires, among sixteen items, the location and coordinates of the project area, each project leader and the operator, each qualified person, an estimate of volume broken down by the Excess Soil Standards table it meets, every intended Class 1 and Class 2 site, local waste transfer facility, reuse site, landfill and dump, the applicable quality standards for each reuse site, and a declaration by the project leader.",
+          "family": "R406-REGISTRY",
+          "framework": "o_reg_406_19",
+          "domains": [
+            "environmental",
+            "trade_regulatory",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "excess soil registry",
+            "notice",
+            "before removing",
+            "2,000 cubic metres",
+            "enhanced investigation project area",
+            "area of settlement",
+            "Schedule 2",
+            "100 cubic metres",
+            "project leader declaration"
+          ]
+        },
+        {
+          "id": "9",
+          "name": "Updating and Closing Out the Registry Notice",
+          "description": "Before depositing excess soil at any Class 1 or Class 2 soil management site, reuse site, local waste transfer facility, landfilling site or dump, the project leader shall ensure the destination information in the filed notice is the information for the actual location. Within 30 days after all soil that will become excess soil has been removed from the project area, local waste transfer facility or Class 2 soil management site, the notice must be updated with the amount deposited at each class of destination and the date of the last load. Where the project leader or an authorised filer becomes aware that the notice is no longer complete or accurate, it must be updated within 30 days of becoming aware.",
+          "family": "R406-REGISTRY",
+          "framework": "o_reg_406_19",
+          "domains": [
+            "environmental",
+            "records_management",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "update the registry",
+            "within 30 days",
+            "last load",
+            "amount deposited",
+            "no longer complete or accurate"
+          ]
+        },
+        {
+          "id": "27",
+          "name": "Form of Notices and Declarations",
+          "description": "A notice required to be filed in the Registry shall be prepared in accordance with the Soil Rules and in the form, if any, approved by the Director and published on a Government of Ontario website. Any declaration, document or record required under the Regulation or the Soil Rules shall be prepared in the form, if any, so approved.",
+          "family": "R406-REGISTRY",
+          "framework": "o_reg_406_19",
+          "domains": [
+            "environmental",
+            "records_management"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": false,
+          "keywords": [
+            "approved form",
+            "Director",
+            "Soil Rules",
+            "declaration"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R406-TRACK",
+      "name": "Transportation and Tracking",
+      "description": "Sections 16 to 18.1. The tracking system a project leader must have running before the first load leaves, the record that travels with each load, and what the driver is told to do when the destination will not take it.",
+      "controls": [
+        {
+          "id": "16",
+          "name": "Tracking System",
+          "description": "Where the project leader is required to file a notice under section 8, the project leader shall, before removing from the project area soil that will become excess soil, develop and apply a tracking system in accordance with the Soil Rules to track each load during its transportation and deposit at a reuse site, Class 1 soil management site, local waste transfer facility, landfilling site or dump, and any transportation to and from a Class 2 soil management site.",
+          "family": "R406-TRACK",
+          "framework": "o_reg_406_19",
+          "domains": [
+            "environmental",
+            "records_management",
+            "logging_monitoring"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "tracking system",
+            "each load",
+            "before removing",
+            "Soil Rules",
+            "deposit"
+          ]
+        },
+        {
+          "id": "17",
+          "name": "Vehicles Transporting Excess Soil",
+          "description": "Excess soil not designated as waste shall be collected and transported only in a vehicle constructed to allow it to be transferred safely and without nuisance, with bodies able to withstand abrasion and corrosion, leakproof, and covered where necessary to prevent offensive odours, material falling or blowing from the vehicle, or the release of dust or other airborne material that may cause air pollution. Vehicles carrying liquid soil must have lockable valves, locked when unattended, and the owner or operator present whenever liquid soil is transferred.",
+          "family": "R406-TRACK",
+          "framework": "o_reg_406_19",
+          "domains": [
+            "environmental",
+            "equipment_integrity",
+            "health_safety"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": false,
+          "keywords": [
+            "vehicle",
+            "leakproof",
+            "covered",
+            "dust",
+            "liquid soil",
+            "locking valves"
+          ]
+        },
+        {
+          "id": "18",
+          "name": "Hauling Records",
+          "description": "A record must be available at all times during transportation setting out the loading location, the date and time of loading, the quantity, whether the load includes salt-impacted or asphalt-impacted excess soil, a named contact at the loading site who can answer questions about the soil quality, the transporting firm, the driver and the vehicle plate, the destination, and a named contact there. Before a load leaves, the owner or operator of the loading site must ensure the record has been created and must confirm in it that the information is accurate; where a load comes from two or more project areas each must be recorded. On arrival the record must be completed with the date and time of deposit, the name and telephone number of the individual at the destination who acknowledges it, and that individual's declaration of the deposit, and a copy given to both the loading and the receiving contact. An electronic tracking system may be used. The section does not apply — provided the information is given to a provincial officer on request — where 5 m³ or less of dry excess soil is being removed from a project area or is required for a reuse undertaking, or where the soil is packaged as a landscaping or gardening product.",
+          "family": "R406-TRACK",
+          "framework": "o_reg_406_19",
+          "domains": [
+            "environmental",
+            "records_management",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "hauling record",
+            "available at all times",
+            "vehicle plate",
+            "acknowledges the deposit",
+            "salt-impacted",
+            "asphalt-impacted",
+            "5 cubic metres"
+          ]
+        },
+        {
+          "id": "18.1",
+          "name": "Contingency Measures Communicated to the Driver",
+          "description": "The owner or operator of the site at which excess soil is loaded shall identify the contingency measures to be implemented if the soil cannot be deposited at the destination named in the hauling record — including the location of an alternate site, or the circumstances in which the soil should be returned to where it was loaded — and shall communicate those measures to the person operating the vehicle.",
+          "family": "R406-TRACK",
+          "framework": "o_reg_406_19",
+          "domains": [
+            "environmental",
+            "incident_response"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "contingency measures",
+            "alternate site",
+            "returned",
+            "communicate to the driver"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R406-DEPOSIT",
+      "name": "Deposit of Excess Soil",
+      "description": "Sections 19 and 22. What an operator must do before excess soil is finally placed at a reuse site, and the restriction on sending reusable soil to landfill.",
+      "controls": [
+        {
+          "id": "19",
+          "name": "Operation of a Reuse Site",
+          "description": "Where at least 10,000 m³ of excess soil is expected to be deposited for final placement at a reuse site — other than one that is part of an infrastructure undertaking — the owner or operator shall, before any is deposited, file a notice in the Registry describing the site and the undertaking, naming the operator and owner, estimating the quantity and stating the applicable excess soil quality standards, and shall develop and apply written procedures accounting for every load and ensuring that storage at the site does not cause an adverse effect.",
+          "family": "R406-DEPOSIT",
+          "framework": "o_reg_406_19",
+          "domains": [
+            "environmental",
+            "records_management"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "reuse site",
+            "10,000 cubic metres",
+            "final placement",
+            "notice in the Registry",
+            "adverse effect"
+          ]
+        },
+        {
+          "id": "22",
+          "name": "Restriction on Depositing Reusable Excess Soil at a Landfill",
+          "description": "No person shall deposit, or cause, permit or arrange for the deposit of, excess soil at a landfilling site or dump if the soil meets the soil quality standards set out in the Excess Soil Standards for the purposes of the subsection, unless it will be used for daily or final cover, roads, berms or another ancillary use supporting the site's operation. The deposit is permitted where a qualified person has determined that one of three criteria makes reuse inappropriate — a parameter with no applicable standard where final placement may cause an adverse effect, invasive species that should not be relocated, or soil unsuitable as structural fill for which reasonable efforts found no reuse site — has completed a declaration stating the determination and the amount and loading location, and has given it to the owner or operator of the landfill.",
+          "family": "R406-DEPOSIT",
+          "framework": "o_reg_406_19",
+          "domains": [
+            "environmental",
+            "trade_regulatory"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "landfilling site",
+            "dump",
+            "daily cover",
+            "qualified person declaration",
+            "invasive species",
+            "structural fill"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R406-SITE",
+      "name": "Excavation and Storage",
+      "description": "Sections 23 and 24. The two duties that do not turn on a volume, a destination or a registry filing, and are therefore owed on every project area where soil is excavated.",
+      "controls": [
+        {
+          "id": "23",
+          "name": "Written Procedure for an Observation Suggesting Contamination",
+          "description": "The project leader or the operator of a project area shall ensure a written procedure is developed and applied for what must occur if any person working in the project area makes an observation during excavation — including a visual or olfactory observation — suggesting the soil may be affected by the discharge of a contaminant. At a minimum the procedure must require all excavation in the project area to cease immediately until the project leader directs otherwise; immediate notification of the project leader or operator; and, before excavation resumes, that all necessary steps are taken to identify and segregate the affected soil, to determine the affected portion of the project area, and to dispose of excess soil from it in accordance with the Regulation. Where a qualified person's documents were required, the project leader must obtain the qualified person's advice on those steps and ask whether any of the documents need revision, before authorising any soil to be removed.",
+          "family": "R406-SITE",
+          "framework": "o_reg_406_19",
+          "domains": [
+            "environmental",
+            "health_safety",
+            "incident_response"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "written procedure",
+            "visual or olfactory",
+            "cease excavation immediately",
+            "segregate",
+            "affected portion",
+            "qualified person advice"
+          ]
+        },
+        {
+          "id": "24",
+          "name": "Storage of Soil in Accordance with the Soil Rules",
+          "description": "Except where an instrument regulates the management of soil at a site, the operator of a project area, local waste transfer facility, Class 2 soil management site, depot or reuse site shall ensure that any soil, excess soil or crushed rock at the site is stored in accordance with the Soil Rules.",
+          "family": "R406-SITE",
+          "framework": "o_reg_406_19",
+          "domains": [
+            "environmental",
+            "physical_security"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "storage",
+            "stockpile",
+            "Soil Rules",
+            "project area",
+            "crushed rock"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R406-RECORDS",
+      "name": "Records",
+      "description": "Section 28. How long each kind of document created under the Regulation must be kept, and by whom.",
+      "controls": [
+        {
+          "id": "28",
+          "name": "Records Retention",
+          "description": "A project leader or operator of a project area, an owner or operator of a Class 1 soil management site, reuse site, local waste transfer facility, landfilling site or dump, and an operator of a Class 2 soil management site shall retain every document and record created or acquired under the Regulation for at least seven years after it is created or acquired, and any contract relating to the management or transporting of excess soil for at least seven years after it was entered into. A qualified person shall keep documents they prepared or oversaw for at least seven years, or make reasonable efforts to have their firm hold a copy for that period, and shall make them available to a public body responsible for excess soil management on request. Hauling records under section 18 are kept for at least two years after the soil was loaded, and a qualified person's landfill declaration for at least two years after the soil was deposited.",
+          "family": "R406-RECORDS",
+          "framework": "o_reg_406_19",
+          "domains": [
+            "environmental",
+            "records_management",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "seven years",
+            "two years",
+            "records retention",
+            "contracts",
+            "hauling records",
+            "available on request"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,938 @@
+{
+  "id": "hta_ontario",
+  "name": "Highway Traffic Act and Ontario's Commercial Motor Vehicle Regulations",
+  "version": "R.S.O. 1990, c. H.8, with O. Reg. 555/06 (hours of service), O. Reg. 199/07 (commercial motor vehicle inspections), O. Reg. 363/04 (security of loads), R.R.O. 1990, Reg. 611 (safety inspections) and O. Reg. 340/94 (drivers' licences)",
+  "description": "The Ontario instruments that bind a company operating commercial motor vehicles. The Highway Traffic Act carries the Commercial Vehicle Operator's Registration regime in Part II \u2014 the certificate an operator must hold, the record the Ministry keeps against it, and the Registrar's power to act on that record. Four regulations made under the Act carry the operational duties: hours of service, the daily trip inspection, the security of loads, and the periodic inspection that produces the annual sticker. Each of the four is Ontario's adoption of a National Safety Code standard, and the adoption is what is enforced here. The federal/provincial line runs through the middle of this standard and must not be blurred: these regulations govern INTRA-provincial operation. A carrier whose vehicles cross a provincial, territorial or international boundary is an extra-provincial undertaking for that work and is under the federal instruments instead \u2014 see mvta_canada \u2014 while still holding an Ontario CVOR certificate and still appearing on the same Ontario record. The CVOR half of this standard applies either way.",
+  "authority": "Legislative Assembly of Ontario; administered by the Ministry of Transportation, and enforced by the Ministry's enforcement officers and by police",
+  "scope": "Every person who operates a commercial motor vehicle on an Ontario highway. The hours of service, trip inspection, load security and periodic inspection regulations govern intra-provincial operation; the CVOR regime reaches an Ontario-based operator whether its work is intra-provincial or extra-provincial",
+  "applies_in": [
+    "CA-ON"
+  ],
+  "category": "government",
+  "status": "active",
+  "official_url": "https://www.ontario.ca/laws/statute/90h08",
+  "families": [
+    {
+      "id": "HTA-CVOR",
+      "name": "Commercial Vehicle Operator's Registration",
+      "description": "Highway Traffic Act, Part II. The certificate, the record kept against it, and what the Registrar does when the record goes bad.",
+      "controls": [
+        {
+          "id": "HTA-CVOR-01",
+          "name": "Who Must Hold a CVOR Certificate",
+          "description": "A person who operates a commercial motor vehicle in Ontario must hold a valid Commercial Vehicle Operator's Registration certificate. The threshold that catches most companies is weight: a truck, or a truck and trailer combination, with a registered gross weight or an actual weight of more than 4,500 kg. Buses are caught by capacity rather than weight, and tow trucks are caught regardless of either. The Act and its regulations then except a list of vehicles \u2014 among them motor homes used for personal purposes, ambulances, fire apparatus, hearses and casket wagons, road-building machines, and a vehicle leased to an individual for a short period for personal use. The exception list is the instrument's and must be read from it rather than inferred, because it is the list, not the weight, that decides the edge cases. The operator is the person who is responsible for the operation of the vehicle, which is not always the registered owner and is not always the employer of the driver: a vehicle operated under a lease may be the lessee's responsibility, and getting that wrong means the wrong company's record is accumulating the events.",
+          "family": "HTA-CVOR",
+          "framework": "hta_ontario",
+          "domains": [
+            "trade_regulatory",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "CVOR",
+            "4500 kg",
+            "commercial motor vehicle",
+            "operator",
+            "certificate",
+            "exemption",
+            "tow truck",
+            "bus"
+          ],
+          "mapped_controls": [
+            "mvta_canada:MVTA-01",
+            "nsc_ca:NSC-07"
+          ]
+        },
+        {
+          "id": "HTA-CVOR-02",
+          "name": "The Certificate Is Carried in the Vehicle and Produced on Demand",
+          "description": "The driver of a commercial motor vehicle must carry the operator's CVOR certificate, or a true copy of it, in the vehicle and surrender it for inspection on the demand of a police officer or an officer appointed for carrying out the Act. A certificate held at the office is not carried in the vehicle, and the failure is the driver's and the operator's at once.",
+          "family": "HTA-CVOR",
+          "framework": "hta_ontario",
+          "domains": [
+            "trade_regulatory",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "carry certificate",
+            "produce on demand",
+            "true copy",
+            "roadside"
+          ]
+        },
+        {
+          "id": "HTA-CVOR-03",
+          "name": "The Operator Is Answerable for Its Drivers and Its Vehicles",
+          "description": "The operator is responsible for the conduct of the drivers of its commercial motor vehicles and for the mechanical condition of those vehicles. This is the provision that makes the rest of the regime coherent: a driver's conviction, a defect found at roadside, and a collision the driver was involved in are all recorded against the OPERATOR, not only against the driver. It follows that hiring a driver, dispatching a trip and deferring a repair are each decisions that are written onto the company's own record, and that a company that treats driver conduct as a personnel matter is treating its own licence to operate as somebody else's problem.",
+          "family": "HTA-CVOR",
+          "framework": "hta_ontario",
+          "domains": [
+            "governance",
+            "trade_regulatory",
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "operator responsibility",
+            "driver conduct",
+            "mechanical condition",
+            "vicarious",
+            "accountability"
+          ]
+        },
+        {
+          "id": "HTA-CVOR-04",
+          "name": "The CVOR Record and the Abstract",
+          "description": "The Ministry maintains a safety record for every registered operator. It accumulates four kinds of event: reportable collisions involving the operator's vehicles, convictions of the operator and of its drivers for offences committed while operating them, the results of roadside inspections including any out-of-service order, and the outcomes of any Ministry intervention. Each event is weighted by severity and each falls off the record after a fixed period, so the record is a rolling window rather than a permanent history. The operator can read it: the Ministry issues a CVOR abstract, and there is more than one kind \u2014 a short summary that anyone holding the CVOR number may obtain, and a fuller record over a longer period that is issued to the operator itself. The abstract is the only view of the record the operator gets, and obtaining one is the operator's act. Nothing happens automatically at the point an event lands.",
+          "family": "HTA-CVOR",
+          "framework": "hta_ontario",
+          "domains": [
+            "compliance_audit",
+            "records_management",
+            "governance"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "CVOR abstract",
+            "safety record",
+            "collision",
+            "conviction",
+            "inspection",
+            "rolling two years",
+            "level I",
+            "level II"
+          ],
+          "mapped_controls": [
+            "mvta_canada:MVTA-02",
+            "nsc_ca:NSC-07"
+          ]
+        },
+        {
+          "id": "HTA-CVOR-05",
+          "name": "The Violation Rate and the Points at Which the Ministry Intervenes",
+          "description": "The weighted events on the record are measured against the operator's exposure \u2014 its fleet size and the distance its vehicles travel \u2014 to produce a violation rate, expressed as a percentage of a threshold rather than as a raw count. Measuring against exposure is what allows a two-truck operator and a two-hundred-truck operator to be compared, and it is also why growth in the fleet changes the rate without anything having improved. The Ministry escalates along a published ladder: a warning letter, then an interview, then a facility audit, and finally sanction \u2014 conditions on the certificate, a plate sanction, suspension, or cancellation. The percentages at which each step is taken are administrative and are published by the Ministry in its Commercial Vehicle Operator's Safety Manual; they are commonly cited as 35, 50, 70 and 100 per cent of threshold, and an operator must read the current figures from the Ministry rather than from any secondary source, because they change without an amendment to the Act. The duty this creates in practice is monitoring: the ladder is climbed by events the operator generated and could have seen coming, and the first rung an operator that never orders an abstract hears about is the one the Ministry writes to it about.",
+          "family": "HTA-CVOR",
+          "framework": "hta_ontario",
+          "domains": [
+            "compliance_audit",
+            "governance",
+            "risk_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "violation rate",
+            "threshold",
+            "warning letter",
+            "interview",
+            "facility audit",
+            "sanction",
+            "intervention",
+            "monitoring"
+          ],
+          "mapped_controls": [
+            "nsc_ca:NSC-14"
+          ]
+        },
+        {
+          "id": "HTA-CVOR-06",
+          "name": "The Registrar's Power to Sanction, Suspend or Cancel",
+          "description": "The Registrar of Motor Vehicles may impose conditions on a CVOR certificate, suspend it, or cancel it, on grounds that include the operator's safety record and the results of an audit. The process runs through a conduct review, and the operator is heard \u2014 but the material being reviewed is the operator's own accumulated record, so the point at which it can be answered has largely passed. A suspended or cancelled CVOR certificate stops the operation: without it the operator's commercial motor vehicles may not be driven, whatever the state of the vehicles or the drivers.",
+          "family": "HTA-CVOR",
+          "framework": "hta_ontario",
+          "domains": [
+            "governance",
+            "compliance_audit",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "registrar",
+            "sanction",
+            "suspension",
+            "cancellation",
+            "conduct review",
+            "plate sanction"
+          ],
+          "mapped_controls": [
+            "nsc_ca:NSC-15"
+          ]
+        },
+        {
+          "id": "HTA-CVOR-07",
+          "name": "Keeping the Operator's Information Current",
+          "description": "The operator must keep the information on which its registration rests accurate and current \u2014 its legal name and address, who is responsible for it, the size of its fleet and the distance its vehicles travel \u2014 and must renew the certificate on the Ministry's cycle. Fleet size and distance travelled are not administrative trivia here: they are the denominator of the violation rate, so an operator that has not updated a fleet that has doubled is being measured against an exposure it no longer has.",
+          "family": "HTA-CVOR",
+          "framework": "hta_ontario",
+          "domains": [
+            "governance",
+            "records_management",
+            "trade_regulatory"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "renewal",
+            "fleet size",
+            "kilometres travelled",
+            "operator information",
+            "change of address"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "HTA-HOS",
+      "name": "Hours of Service",
+      "description": "O. Reg. 555/06, Ontario's adoption of National Safety Code Standard 9, governing intra-provincial operation.",
+      "controls": [
+        {
+          "id": "HTA-HOS-01",
+          "name": "Application, and What Is Outside It",
+          "description": "The regulation governs the hours of a driver of a commercial motor vehicle operated in Ontario, and the duties of the operator who dispatches that driver. It carries its own application and exemption provisions \u2014 which reach, among other things, vehicles below the weight at which the regime bites, emergency operation, and certain vehicles operated for personal use \u2014 and the list is the regulation's. Two points decide most questions in practice. The first is that the regime is keyed to the commercial motor vehicle, so a company whose vehicles are all below the threshold is outside it entirely and should not be building hours-of-service records it does not owe. The second is that the regulation governs INTRA-provincial operation: the moment a vehicle crosses into another province or into the United States, the federal regulation governs that driver for that work, and the numbers being the same does not make the instrument the same.",
+          "family": "HTA-HOS",
+          "framework": "hta_ontario",
+          "domains": [
+            "trade_regulatory",
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "application",
+            "exemption",
+            "intra-provincial",
+            "commercial motor vehicle",
+            "scope"
+          ],
+          "mapped_controls": [
+            "mvta_canada:CVDHS-01"
+          ]
+        },
+        {
+          "id": "HTA-HOS-02",
+          "name": "Daily Driving and On-Duty Limits",
+          "description": "A driver must not drive after accumulating 13 hours of driving time in a day, must not drive after accumulating 14 hours of on-duty time in a day, and must not drive after 16 hours have elapsed since coming on duty following 8 or more consecutive hours off duty. On-duty time includes everything that is not off-duty time \u2014 loading, unloading, waiting, inspecting, fuelling, repairing and any other work for the operator or anybody else. The three limits run at once and the first one reached is the one that stops the driver.",
+          "family": "HTA-HOS",
+          "framework": "hta_ontario",
+          "domains": [
+            "health_safety",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "13 hours driving",
+            "14 hours on-duty",
+            "16 hours elapsed",
+            "daily limit",
+            "duty status"
+          ],
+          "mapped_controls": [
+            "mvta_canada:CVDHS-01",
+            "mvta_canada:CVDHS-02",
+            "nsc_ca:NSC-09"
+          ]
+        },
+        {
+          "id": "HTA-HOS-03",
+          "name": "Mandatory Off-Duty Time",
+          "description": "A driver must take at least 10 hours of off-duty time in a day, at least 8 of which are consecutive, with the balance in blocks of no less than 30 minutes; and must take at least 24 consecutive hours off duty in the preceding 14 days. The 8 consecutive hours are what resets the 16-hour elapsed clock, so they do work beyond rest and cannot be made up out of shorter breaks.",
+          "family": "HTA-HOS",
+          "framework": "hta_ontario",
+          "domains": [
+            "health_safety",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "off-duty",
+            "10 hours",
+            "8 consecutive",
+            "24 consecutive hours",
+            "14 days"
+          ],
+          "mapped_controls": [
+            "mvta_canada:CVDHS-03"
+          ]
+        },
+        {
+          "id": "HTA-HOS-04",
+          "name": "Cycles and the Cycle Reset",
+          "description": "A driver operates on Cycle 1 \u2014 70 hours of on-duty time in any period of 7 days \u2014 or on Cycle 2 \u2014 120 hours in any period of 14 days, with at least 24 consecutive hours off duty taken before the driver accumulates more than 70 hours. A cycle ends and a new one begins only when the driver takes the consecutive off-duty time that resets it: at least 36 hours for Cycle 1 and at least 72 hours for Cycle 2. A cycle does not reset because a week ended, a pay period closed, or a driver moved to a different vehicle.",
+          "family": "HTA-HOS",
+          "framework": "hta_ontario",
+          "domains": [
+            "health_safety",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "cycle 1",
+            "cycle 2",
+            "70 hours",
+            "120 hours",
+            "36 hours",
+            "72 hours",
+            "reset"
+          ],
+          "mapped_controls": [
+            "mvta_canada:CVDHS-04",
+            "mvta_canada:CVDHS-05"
+          ]
+        },
+        {
+          "id": "HTA-HOS-05",
+          "name": "The Daily Log",
+          "description": "A driver must fill out a daily log for each day, keep it current through the day, and carry the current log together with those for the preceding 14 days, producing them on demand. The log records each change of duty status and the hour at which it occurred, the totals in each status, the vehicle, the operator and the odometer. Ontario's own regulation does not require an electronic logging device for intra-provincial operation, which the federal regulation does for the carriers it reaches \u2014 an operator running both kinds of work therefore has two record regimes at once. That difference is under review and should be confirmed with the Ministry rather than inherited from this sentence.",
+          "family": "HTA-HOS",
+          "framework": "hta_ontario",
+          "domains": [
+            "records_management",
+            "trade_regulatory",
+            "compliance_audit"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "daily log",
+            "logbook",
+            "14 days",
+            "duty status",
+            "electronic logging device",
+            "ELD"
+          ],
+          "mapped_controls": [
+            "mvta_canada:CVDHS-08"
+          ]
+        },
+        {
+          "id": "HTA-HOS-06",
+          "name": "The 160 km Radius Exemption and the Time Record",
+          "description": "A driver is not required to fill out a daily log where the driver operates within a radius of 160 km of the home terminal, returns to the home terminal to begin at least 8 consecutive hours off duty, and the operator keeps accurate and legible records showing the driver's on-duty times and the hour at which each duty status began and ended. This is how most construction and local-haul fleets in Ontario lawfully operate, and it is the provision they are most often told they cannot rely on. Three things about it decide whether an operator is actually inside it. It exempts the LOG and nothing else \u2014 every driving, on-duty, off-duty and cycle limit continues to apply and the operator must still be able to show they were met. It is conditional day by day rather than a status a driver holds, so a single trip beyond the radius or a night away from the home terminal means that day required a log. And the time record is a condition of the exemption, not an alternative to record-keeping: an operator keeping no time record has not used the exemption, it has no hours records at all.",
+          "family": "HTA-HOS",
+          "framework": "hta_ontario",
+          "domains": [
+            "records_management",
+            "trade_regulatory",
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "160 km",
+            "radius",
+            "home terminal",
+            "time record",
+            "log exemption",
+            "local",
+            "8 consecutive hours"
+          ],
+          "mapped_controls": [
+            "mvta_canada:CVDHS-09"
+          ]
+        },
+        {
+          "id": "HTA-HOS-07",
+          "name": "The Operator's Duties \u2014 Dispatch, Monitoring and Retention",
+          "description": "An operator must not request, require or allow a driver to drive in contravention of the regulation, must monitor its drivers' compliance, and must keep the daily logs, time records and supporting documents for 6 months. The first of those makes dispatch a compliance act: a trip that cannot be completed within the driver's remaining hours is a contravention at the moment it is assigned. The second is the one a facility audit tests, and it cannot be discharged by collecting logs \u2014 the duty is to look at them and to be able to show that somebody did.",
+          "family": "HTA-HOS",
+          "framework": "hta_ontario",
+          "domains": [
+            "governance",
+            "records_management",
+            "compliance_audit"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "operator duty",
+            "dispatch",
+            "monitor",
+            "6 months",
+            "retention",
+            "supporting documents"
+          ],
+          "mapped_controls": [
+            "mvta_canada:CVDHS-07",
+            "mvta_canada:CVDHS-11"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "HTA-TRIP",
+      "name": "Daily Trip Inspection",
+      "description": "O. Reg. 199/07, Ontario's adoption of National Safety Code Standard 13.",
+      "controls": [
+        {
+          "id": "HTA-TRIP-01",
+          "name": "A Trip Inspection Before the Vehicle Is Driven, Valid for 24 Hours",
+          "description": "A commercial motor vehicle must be inspected before it is driven on a day, and the inspection report is valid for 24 hours from the time the inspection was conducted. The driver must carry the report and the applicable inspection schedule in the vehicle and produce both on demand. A vehicle driven on the strength of yesterday's report is being driven without one.",
+          "family": "HTA-TRIP",
+          "framework": "hta_ontario",
+          "domains": [
+            "equipment_integrity",
+            "health_safety",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "trip inspection",
+            "pre-trip",
+            "24 hours",
+            "carry the report",
+            "schedule"
+          ],
+          "mapped_controls": [
+            "nsc_ca:NSC-13"
+          ]
+        },
+        {
+          "id": "HTA-TRIP-02",
+          "name": "The Schedule That Applies to the Vehicle",
+          "description": "The regulation prescribes inspection schedules by vehicle type, each listing the systems and components to be inspected and, for each, what constitutes a major defect and what constitutes a minor one. Trucks, tractors and trailers, buses, school purposes vehicles and motor coaches are each covered by their own schedule, and the schedule is part of what must be carried in the vehicle. Using the wrong schedule produces an inspection that looked thorough and did not cover the components the regulation asked about.",
+          "family": "HTA-TRIP",
+          "framework": "hta_ontario",
+          "domains": [
+            "equipment_integrity",
+            "trade_regulatory"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "schedule 1",
+            "schedule 2",
+            "schedule 3",
+            "schedule 4",
+            "truck",
+            "trailer",
+            "bus",
+            "motor coach"
+          ]
+        },
+        {
+          "id": "HTA-TRIP-03",
+          "name": "What the Inspection Report Must Record",
+          "description": "The report must identify the vehicle and the operator, give the date and the time at which the inspection was conducted, name the person who conducted it, record the odometer reading, and record every defect found \u2014 or state that none was found. A report with the defect field left empty says nothing: 'none found' is an assertion somebody is answerable for, and a blank is not.",
+          "family": "HTA-TRIP",
+          "framework": "hta_ontario",
+          "domains": [
+            "records_management",
+            "equipment_integrity"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "inspection report",
+            "odometer",
+            "no defects found",
+            "time of inspection",
+            "signature"
+          ]
+        },
+        {
+          "id": "HTA-TRIP-04",
+          "name": "Major and Minor Defects \u2014 What Decides Whether the Vehicle Moves",
+          "description": "This is the distinction the whole regime turns on, and it is prescribed rather than a matter of judgement: each schedule says which findings are major and which are minor. On finding or being informed of a MAJOR defect, the driver must not drive the vehicle \u2014 it stops where it is, the defect is reported to the operator immediately, and the vehicle stays out of service until the defect is repaired. On finding a MINOR defect, the driver records it on the report and reports it to the operator, and the vehicle may continue to be operated. A recording system that captures defects without capturing which kind they were has kept the fact and discarded the decision, and the decision is the part the regulation is about.",
+          "family": "HTA-TRIP",
+          "framework": "hta_ontario",
+          "domains": [
+            "health_safety",
+            "equipment_integrity",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "major defect",
+            "minor defect",
+            "out of service",
+            "must not drive",
+            "report immediately",
+            "repair"
+          ],
+          "mapped_controls": [
+            "nsc_ca:NSC-13"
+          ]
+        },
+        {
+          "id": "HTA-TRIP-05",
+          "name": "Monitoring the Vehicle During the Day",
+          "description": "The duty does not end when the vehicle is driven away. A driver must monitor the condition of the vehicle through the day and record on the report any defect that is found or reported during it. Most major defects that matter \u2014 a wheel fastener, a brake, a load-bearing component \u2014 develop in service rather than overnight in the yard.",
+          "family": "HTA-TRIP",
+          "framework": "hta_ontario",
+          "domains": [
+            "equipment_integrity",
+            "health_safety"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "monitor during the day",
+            "defect found in service",
+            "en route",
+            "record"
+          ]
+        },
+        {
+          "id": "HTA-TRIP-06",
+          "name": "The Operator's Duties \u2014 Require, Repair and Retain",
+          "description": "The operator must require the inspection to be conducted, must repair a defect reported to it, and must keep the inspection reports for 6 months at the place where the vehicle is based. The retention period is what makes the reports evidence: an operator that files them in the cab and lets them go with the vehicle has records of the inspections and no way to show at an audit that they were ever made.",
+          "family": "HTA-TRIP",
+          "framework": "hta_ontario",
+          "domains": [
+            "governance",
+            "records_management",
+            "equipment_integrity"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "operator duty",
+            "repair",
+            "6 months",
+            "retention",
+            "place where the vehicle is based"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "HTA-LOAD",
+      "name": "Security of Loads",
+      "description": "O. Reg. 363/04, Ontario's adoption of National Safety Code Standard 10.",
+      "controls": [
+        {
+          "id": "HTA-LOAD-01",
+          "name": "The General Duty \u2014 Contained, Immobilised or Secured",
+          "description": "A commercial motor vehicle must not be driven unless its cargo is contained, immobilised or secured so that it cannot leak, spill, blow off, fall from, fall through or otherwise be dislodged from the vehicle, and cannot shift so as to affect the vehicle's stability or manoeuvrability. The duty is on the driver and on the operator, and it is a duty about the outcome rather than about the equipment: a load secured with the right number of straps that can still shift is not secured.",
+          "family": "HTA-LOAD",
+          "framework": "hta_ontario",
+          "domains": [
+            "health_safety",
+            "equipment_integrity",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "load security",
+            "cargo securement",
+            "shift",
+            "dislodged",
+            "stability"
+          ],
+          "mapped_controls": [
+            "nsc_ca:NSC-10"
+          ]
+        },
+        {
+          "id": "HTA-LOAD-02",
+          "name": "Performance Criteria and the Aggregate Working Load Limit",
+          "description": "A cargo securement system must be capable of withstanding the prescribed deceleration and acceleration forces \u2014 0.8 g forward, 0.5 g rearward and 0.5 g lateral \u2014 without the cargo shifting. Separately, the aggregate working load limit of the tiedowns used must be at least half the weight of the cargo secured by them. Working load limit is marked on the tiedown by its manufacturer and is not its breaking strength; a strap with no legible marking has no working load limit that can be counted toward the aggregate, which is the commonest way a load that looks over-secured is not.",
+          "family": "HTA-LOAD",
+          "framework": "hta_ontario",
+          "domains": [
+            "equipment_integrity",
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "working load limit",
+            "WLL",
+            "aggregate",
+            "0.8 g",
+            "50 per cent",
+            "tiedown marking"
+          ]
+        },
+        {
+          "id": "HTA-LOAD-03",
+          "name": "The Minimum Number of Tiedowns",
+          "description": "An article not blocked or immobilised against forward movement requires at least one tiedown if it is 1.52 m or less in length and 500 kg or less in weight; at least two tiedowns if it is longer than 1.52 m or heavier than 500 kg; and one additional tiedown for every further 3.04 m or part of it. These are minimums that the performance criteria can override: meeting the count does not establish that the load is secured, and failing it establishes that it is not.",
+          "family": "HTA-LOAD",
+          "framework": "hta_ontario",
+          "domains": [
+            "equipment_integrity",
+            "health_safety"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "number of tiedowns",
+            "1.52 m",
+            "3.04 m",
+            "500 kg",
+            "minimum"
+          ]
+        },
+        {
+          "id": "HTA-LOAD-04",
+          "name": "Commodity-Specific Requirements",
+          "description": "Particular cargo is governed by its own rules in addition to the general ones: logs, dressed lumber, metal coils, paper rolls, concrete pipe, intermodal containers, automobiles and light trucks, heavy vehicles and equipment, flattened or crushed vehicles, roll-on/roll-off containers, and large boulders. For a contractor the one that bites is heavy vehicles, equipment and machinery: an item over the prescribed weight must be restrained at a minimum of four separate points against movement in every direction, and accessory equipment \u2014 a boom, a blade, a bucket, an outrigger \u2014 must be lowered and secured separately from the machine itself. Aggregate, soil and demolition debris are not in the commodity list and fall under the general duty, where the operative words are 'leak, spill or blow off': a loaded dump box is a securement question about the tarp and the tailgate rather than about straps.",
+          "family": "HTA-LOAD",
+          "framework": "hta_ontario",
+          "domains": [
+            "equipment_integrity",
+            "health_safety",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "heavy equipment",
+            "four tiedowns",
+            "accessory equipment",
+            "boom",
+            "bucket",
+            "aggregate",
+            "tarp",
+            "dump",
+            "lumber",
+            "pipe"
+          ],
+          "mapped_controls": [
+            "nsc_ca:NSC-10"
+          ]
+        },
+        {
+          "id": "HTA-LOAD-05",
+          "name": "Inspecting the Load Before and During the Trip",
+          "description": "The driver must inspect the cargo and its securement before driving, and must re-examine both within the first 80 km of the trip and thereafter at intervals of no more than 3 hours or 240 km, or whenever the driver changes duty status, whichever comes first. The first re-examination exists because tiedowns bed in and go slack over the first few kilometres, and it is the one most often skipped on a short local haul \u2014 where, on a job of under 80 km, it never falls due at all and the pre-trip inspection is therefore the only one there will be.",
+          "family": "HTA-LOAD",
+          "framework": "hta_ontario",
+          "domains": [
+            "health_safety",
+            "equipment_integrity"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "inspect the load",
+            "80 km",
+            "3 hours",
+            "240 km",
+            "re-examine",
+            "duty status change"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "HTA-PMVI",
+      "name": "Periodic Inspection and Mechanical Fitness",
+      "description": "R.R.O. 1990, Reg. 611 and the mechanical fitness duties that surround it \u2014 Ontario's half of National Safety Code Standard 11.",
+      "controls": [
+        {
+          "id": "HTA-PMVI-01",
+          "name": "The Periodic Inspection and the Sticker",
+          "description": "A commercial motor vehicle must be inspected at a licensed motor vehicle inspection station against the prescribed inspection standard, and must display a valid inspection sticker showing the month and year in which the inspection expires. For a truck or trailer the sticker is valid for 12 months; buses are inspected on a shorter cycle. The sticker is issued by the inspecting station, not by the Ministry, and it is the one compliance item on the vehicle that an enforcement officer can read from outside it \u2014 which is why an expired sticker is among the most reliably caught contraventions in the regime.",
+          "family": "HTA-PMVI",
+          "framework": "hta_ontario",
+          "domains": [
+            "equipment_integrity",
+            "trade_regulatory",
+            "compliance_audit"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "annual inspection",
+            "PMVI",
+            "sticker",
+            "motor vehicle inspection station",
+            "12 months",
+            "semi-annual"
+          ],
+          "mapped_controls": [
+            "nsc_ca:NSC-11"
+          ]
+        },
+        {
+          "id": "HTA-PMVI-02",
+          "name": "The Inspection Certificate and Record",
+          "description": "The inspection produces a certificate or report recording what was inspected, what was found, what was repaired and who carried it out. The operator keeps it. This is the document a facility audit asks for first, and the one an operator most often cannot produce for a vehicle it acquired mid-year or disposed of mid-cycle.",
+          "family": "HTA-PMVI",
+          "framework": "hta_ontario",
+          "domains": [
+            "records_management",
+            "equipment_integrity",
+            "compliance_audit"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "inspection certificate",
+            "inspection report",
+            "record",
+            "technician",
+            "retention"
+          ]
+        },
+        {
+          "id": "HTA-PMVI-03",
+          "name": "A Systematic Maintenance Programme, and Its Records",
+          "description": "No Ontario regulation prescribes a servicing interval for a commercial vehicle between periodic inspections. What binds is the operator's responsibility for the mechanical condition of its vehicles, and what tests it is the facility audit, which asks to see a planned maintenance programme and a record for each vehicle of the work performed under it. The interval is therefore the operator's own \u2014 set from the manufacturer's schedule, the duty cycle and the distance travelled \u2014 and the governance requirement is that it is written down, followed, and recorded. An operator that services by symptom has a maintenance history and no maintenance programme, and the difference is invisible until somebody asks for the programme.",
+          "family": "HTA-PMVI",
+          "framework": "hta_ontario",
+          "domains": [
+            "equipment_integrity",
+            "governance",
+            "records_management"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "preventive maintenance",
+            "maintenance programme",
+            "maintenance record",
+            "interval",
+            "manufacturer schedule",
+            "facility audit"
+          ],
+          "mapped_controls": [
+            "nsc_ca:NSC-11"
+          ]
+        },
+        {
+          "id": "HTA-PMVI-04",
+          "name": "An Unsafe Vehicle Is Not Driven",
+          "description": "A commercial motor vehicle in a condition that is dangerous, or that fails the out-of-service criteria applied at roadside, must not be operated. A vehicle placed out of service by an officer stays where it is until the defect is repaired, and the order is recorded on the operator's CVOR record whatever the outcome of any charge. The rule joins this family to the trip inspection one: the major defect the driver was required to stop for, and the out-of-service condition the officer stops the vehicle for, are largely the same list read by two different people.",
+          "family": "HTA-PMVI",
+          "framework": "hta_ontario",
+          "domains": [
+            "health_safety",
+            "equipment_integrity",
+            "compliance_audit"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "out of service",
+            "unsafe vehicle",
+            "dangerous condition",
+            "roadside",
+            "CVSA"
+          ],
+          "mapped_controls": [
+            "nsc_ca:NSC-12"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "HTA-DRIVER",
+      "name": "Driver Licensing and Fitness",
+      "description": "Highway Traffic Act and O. Reg. 340/94 \u2014 who may lawfully drive the vehicle, and how the operator knows they still may.",
+      "controls": [
+        {
+          "id": "HTA-DRIVER-01",
+          "name": "Licence Class and the Air Brake Endorsement",
+          "description": "A driver must hold the class of licence that covers the vehicle driven. Class A covers a combination in which the towed vehicle exceeds 4,600 kg; Class D covers a truck exceeding 11,000 kg gross weight, or a combination in which the towed vehicle does not exceed 4,600 kg; Classes B, C, E and F cover buses by size and purpose; Class G covers the rest. A vehicle equipped with air brakes may be driven only by a driver whose licence carries the air brake endorsement, written as a 'Z' on the class. The endorsement is where a contractor's fleet most often comes unstuck, because a Class G driver moving a tandem with air brakes is wrong twice and the second wrong is not visible from the class alone.",
+          "family": "HTA-DRIVER",
+          "framework": "hta_ontario",
+          "domains": [
+            "trade_regulatory",
+            "training_competency",
+            "health_safety"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "class A",
+            "class D",
+            "class DZ",
+            "class AZ",
+            "air brake",
+            "Z endorsement",
+            "11000 kg",
+            "4600 kg"
+          ],
+          "mapped_controls": [
+            "nsc_ca:NSC-04"
+          ]
+        },
+        {
+          "id": "HTA-DRIVER-02",
+          "name": "Medical Fitness on the Ministry's Cycle",
+          "description": "A driver holding a commercial class of licence must undergo a medical examination and report to the Ministry on a cycle set by age, with the interval shortening as the driver gets older. The obligation runs between the driver and the Ministry, and its consequence for the operator is indirect and severe: a medical not submitted results in the licence being downgraded or suspended, and a driver whose commercial class has lapsed is not licensed for the vehicle. The operator learns this from the driver's record, or from an officer.",
+          "family": "HTA-DRIVER",
+          "framework": "hta_ontario",
+          "domains": [
+            "health_safety",
+            "trade_regulatory"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "medical examination",
+            "downgrade",
+            "age",
+            "commercial licence",
+            "fitness"
+          ],
+          "mapped_controls": [
+            "nsc_ca:NSC-06"
+          ]
+        },
+        {
+          "id": "HTA-DRIVER-03",
+          "name": "The Driver Record and the Abstract",
+          "description": "The Ministry maintains a record for every licence holder, recording convictions, demerit points, suspensions and the status and class of the licence. The operator can obtain an abstract of it with the driver's authorisation, and a commercial driver's abstract shows the convictions that also attach to the operator's own CVOR record. Verifying a licence from the driver's card establishes what the card said on the day it was printed; verifying it from the Ministry's record establishes what the licence is today, and the difference between those two is where a suspended driver keeps working.",
+          "family": "HTA-DRIVER",
+          "framework": "hta_ontario",
+          "domains": [
+            "records_management",
+            "compliance_audit",
+            "trade_regulatory"
+          ],
+          "priority": "critical",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "driver abstract",
+            "driver record",
+            "conviction",
+            "demerit points",
+            "licence status",
+            "verification"
+          ],
+          "mapped_controls": [
+            "nsc_ca:NSC-07"
+          ]
+        },
+        {
+          "id": "HTA-DRIVER-04",
+          "name": "Demerit Points, Suspension, and the Operator's Exposure",
+          "description": "Convictions accumulate demerit points against a driver's licence and lead, at thresholds set by the Ministry, to interview and suspension. The same convictions are weighted onto the operator's CVOR record under HTA-CVOR-03, so a driver approaching a licence suspension is simultaneously moving the operator toward an intervention. An operator that tracks only whether a licence is currently valid is watching the outcome and not the trend.",
+          "family": "HTA-DRIVER",
+          "framework": "hta_ontario",
+          "domains": [
+            "risk_management",
+            "compliance_audit",
+            "trade_regulatory"
+          ],
+          "priority": "high",
+          "requires_policy": true,
+          "requires_procedure": true,
+          "requires_technical": false,
+          "requires_evidence": true,
+          "keywords": [
+            "demerit points",
+            "suspension",
+            "interview",
+            "conviction",
+            "trend",
+            "exposure"
+          ]
+        }
+      ]
+    }
+  ]
+}
