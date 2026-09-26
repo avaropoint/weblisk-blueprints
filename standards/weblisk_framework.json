@@ -1,0 +1,2201 @@
+{
+  "id": "weblisk_framework",
+  "name": "Weblisk Framework",
+  "version": "1.0.0",
+  "description": "Structural and security requirements every Weblisk blueprint must satisfy. Generated from the blueprint schema definitions.",
+  "authority": "Weblisk",
+  "scope": "Blueprints, and the code, agents and platforms implementing them",
+  "applies_in": [
+    "international"
+  ],
+  "category": "code",
+  "status": "active",
+  "families": [
+    {
+      "id": "WLF-AGENT",
+      "name": "Agent blueprints",
+      "description": "Structure required of an infrastructure agent blueprint",
+      "controls": [
+        {
+          "id": "WLF-AGENT-01",
+          "name": "Frontmatter",
+          "description": "YAML metadata in HTML comment",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "frontmatter"
+          ],
+          "obligation": "yes",
+          "section": "\u003c!-- blueprint --\u003e"
+        },
+        {
+          "id": "WLF-AGENT-02",
+          "name": "Title",
+          "description": "Level-1 heading + summary paragraph",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "title"
+          ],
+          "obligation": "yes",
+          "section": "# Name"
+        },
+        {
+          "id": "WLF-AGENT-03",
+          "name": "Overview",
+          "description": "2–5 sentence scope description",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "overview"
+          ],
+          "obligation": "yes",
+          "section": "## Overview"
+        },
+        {
+          "id": "WLF-AGENT-04",
+          "name": "Dependencies",
+          "description": "Full YAML dependency contracts",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "dependencies"
+          ],
+          "obligation": "yes",
+          "section": "## Dependencies"
+        },
+        {
+          "id": "WLF-AGENT-05",
+          "name": "Configuration",
+          "description": "Runtime parameters in YAML",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "configuration"
+          ],
+          "obligation": "yes",
+          "section": "## Configuration"
+        },
+        {
+          "id": "WLF-AGENT-06",
+          "name": "Types",
+          "description": "Data structures in YAML",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "types"
+          ],
+          "obligation": "yes",
+          "section": "## Types"
+        },
+        {
+          "id": "WLF-AGENT-07",
+          "name": "Storage",
+          "description": "Required if agent persists data",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": false,
+          "keywords": [
+            "storage"
+          ],
+          "obligation": "conditional",
+          "section": "## Storage"
+        },
+        {
+          "id": "WLF-AGENT-08",
+          "name": "Endpoints",
+          "description": "HTTP surface beyond the six protocol endpoints. Required if the agent serves any — same shape and rules as schemas/architecture.md",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": false,
+          "keywords": [
+            "endpoints"
+          ],
+          "obligation": "conditional",
+          "section": "## Endpoints"
+        },
+        {
+          "id": "WLF-AGENT-09",
+          "name": "State Machine",
+          "description": "Agent and entity state transitions",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "state",
+            "machine"
+          ],
+          "obligation": "yes",
+          "section": "## State Machine"
+        },
+        {
+          "id": "WLF-AGENT-10",
+          "name": "Lifecycle",
+          "description": "Startup, shutdown, health, self-update",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "lifecycle"
+          ],
+          "obligation": "yes",
+          "section": "## Lifecycle"
+        },
+        {
+          "id": "WLF-AGENT-11",
+          "name": "Triggers",
+          "description": "Events, schedules, messages that activate the agent",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "triggers"
+          ],
+          "obligation": "yes",
+          "section": "## Triggers"
+        },
+        {
+          "id": "WLF-AGENT-12",
+          "name": "Actions",
+          "description": "Message handlers with full specs",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "actions"
+          ],
+          "obligation": "yes",
+          "section": "## Actions"
+        },
+        {
+          "id": "WLF-AGENT-13",
+          "name": "Execute Workflow",
+          "description": "Core processing loop",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "execute",
+            "workflow"
+          ],
+          "obligation": "yes",
+          "section": "## Execute Workflow"
+        },
+        {
+          "id": "WLF-AGENT-14",
+          "name": "Collaboration",
+          "description": "Events published/subscribed, direct messages",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "collaboration"
+          ],
+          "obligation": "yes",
+          "section": "## Collaboration"
+        },
+        {
+          "id": "WLF-AGENT-15",
+          "name": "Manual Overrides",
+          "description": "Override policy, levels, audit",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "manual",
+            "overrides"
+          ],
+          "obligation": "yes",
+          "section": "## Manual Overrides"
+        },
+        {
+          "id": "WLF-AGENT-16",
+          "name": "Constraints",
+          "description": "Blast radius, forbidden actions, resource limits",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "constraints"
+          ],
+          "obligation": "yes",
+          "section": "## Constraints"
+        },
+        {
+          "id": "WLF-AGENT-17",
+          "name": "Error Handling",
+          "description": "Permanent and transient errors",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "error",
+            "handling"
+          ],
+          "obligation": "yes",
+          "section": "## Error Handling"
+        },
+        {
+          "id": "WLF-AGENT-18",
+          "name": "Observability",
+          "description": "Logs, metrics, alerts. Three collections — customlogtypes, metrics, alerts — which no single table can carry; see the Section Specification",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "observability"
+          ],
+          "obligation": "yes",
+          "section": "## Observability"
+        },
+        {
+          "id": "WLF-AGENT-19",
+          "name": "Security",
+          "description": "Permissions, data sensitivity, access control",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security"
+          ],
+          "obligation": "yes",
+          "section": "## Security"
+        },
+        {
+          "id": "WLF-AGENT-20",
+          "name": "Test Fixtures",
+          "description": "Happy path, error cases, edge cases",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "test",
+            "fixtures"
+          ],
+          "obligation": "yes",
+          "section": "## Test Fixtures"
+        },
+        {
+          "id": "WLF-AGENT-21",
+          "name": "Scaling",
+          "description": "Horizontal model, coordination, blue-green",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "scaling"
+          ],
+          "obligation": "yes",
+          "section": "## Scaling"
+        },
+        {
+          "id": "WLF-AGENT-22",
+          "name": "Implementation Notes",
+          "description": "Practical guidance",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "implementation",
+            "notes"
+          ],
+          "obligation": "yes",
+          "section": "## Implementation Notes"
+        },
+        {
+          "id": "WLF-AGENT-23",
+          "name": "Verification Checklist",
+          "description": "Testable assertions (min 10)",
+          "family": "WLF-AGENT",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "verification",
+            "checklist"
+          ],
+          "obligation": "yes",
+          "section": "## Verification Checklist"
+        }
+      ]
+    },
+    {
+      "id": "WLF-DOMAIN",
+      "name": "Domain controllers",
+      "description": "Structure required of a domain controller specification",
+      "controls": [
+        {
+          "id": "WLF-DOMAIN-01",
+          "name": "Frontmatter",
+          "description": "YAML metadata",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "frontmatter"
+          ],
+          "obligation": "yes",
+          "section": "\u003c!-- blueprint --\u003e"
+        },
+        {
+          "id": "WLF-DOMAIN-02",
+          "name": "Title",
+          "description": "Level-1 heading + summary",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "title"
+          ],
+          "obligation": "yes",
+          "section": "# Name"
+        },
+        {
+          "id": "WLF-DOMAIN-03",
+          "name": "Overview",
+          "description": "Scope description",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "overview"
+          ],
+          "obligation": "yes",
+          "section": "## Overview"
+        },
+        {
+          "id": "WLF-DOMAIN-04",
+          "name": "Dependencies",
+          "description": "Full YAML dependency contracts",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "dependencies"
+          ],
+          "obligation": "yes",
+          "section": "## Dependencies"
+        },
+        {
+          "id": "WLF-DOMAIN-05",
+          "name": "Domain Manifest",
+          "description": "JSON manifest with capabilities, inputs, outputs, required agents",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "domain",
+            "manifest"
+          ],
+          "obligation": "yes",
+          "section": "## Domain Manifest"
+        },
+        {
+          "id": "WLF-DOMAIN-06",
+          "name": "Required Agents",
+          "description": "Table of agents this domain dispatches to",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "required",
+            "agents"
+          ],
+          "obligation": "yes",
+          "section": "## Required Agents"
+        },
+        {
+          "id": "WLF-DOMAIN-07",
+          "name": "Workflows",
+          "description": "Workflow definitions with phases",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "workflows"
+          ],
+          "obligation": "yes",
+          "section": "## Workflows"
+        },
+        {
+          "id": "WLF-DOMAIN-08",
+          "name": "Configuration",
+          "description": "Runtime parameters in YAML",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "configuration"
+          ],
+          "obligation": "yes",
+          "section": "## Configuration"
+        },
+        {
+          "id": "WLF-DOMAIN-09",
+          "name": "Types",
+          "description": "Data structures in YAML",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "types"
+          ],
+          "obligation": "yes",
+          "section": "## Types"
+        },
+        {
+          "id": "WLF-DOMAIN-10",
+          "name": "Storage",
+          "description": "Domain controllers always persist data",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "storage"
+          ],
+          "obligation": "yes",
+          "section": "## Storage"
+        },
+        {
+          "id": "WLF-DOMAIN-11",
+          "name": "State Machine",
+          "description": "Domain and workflow state transitions",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "state",
+            "machine"
+          ],
+          "obligation": "yes",
+          "section": "## State Machine"
+        },
+        {
+          "id": "WLF-DOMAIN-12",
+          "name": "Lifecycle",
+          "description": "Startup, shutdown, health, self-update",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "lifecycle"
+          ],
+          "obligation": "yes",
+          "section": "## Lifecycle"
+        },
+        {
+          "id": "WLF-DOMAIN-13",
+          "name": "Triggers",
+          "description": "Events, schedules, messages",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "triggers"
+          ],
+          "obligation": "yes",
+          "section": "## Triggers"
+        },
+        {
+          "id": "WLF-DOMAIN-14",
+          "name": "Actions",
+          "description": "Message handlers",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "actions"
+          ],
+          "obligation": "yes",
+          "section": "## Actions"
+        },
+        {
+          "id": "WLF-DOMAIN-15",
+          "name": "Aggregation",
+          "description": "How results from agents are combined",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "aggregation"
+          ],
+          "obligation": "yes",
+          "section": "## Aggregation"
+        },
+        {
+          "id": "WLF-DOMAIN-16",
+          "name": "Scoring",
+          "description": "Required if domain produces scored reports",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": false,
+          "keywords": [
+            "scoring"
+          ],
+          "obligation": "conditional",
+          "section": "## Scoring"
+        },
+        {
+          "id": "WLF-DOMAIN-17",
+          "name": "Feedback Loop",
+          "description": "Continuous improvement cycle",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "feedback",
+            "loop"
+          ],
+          "obligation": "yes",
+          "section": "## Feedback Loop"
+        },
+        {
+          "id": "WLF-DOMAIN-18",
+          "name": "Collaboration",
+          "description": "Events, messages, agent coordination",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "collaboration"
+          ],
+          "obligation": "yes",
+          "section": "## Collaboration"
+        },
+        {
+          "id": "WLF-DOMAIN-19",
+          "name": "Manual Overrides",
+          "description": "Override policy, audit",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "manual",
+            "overrides"
+          ],
+          "obligation": "yes",
+          "section": "## Manual Overrides"
+        },
+        {
+          "id": "WLF-DOMAIN-20",
+          "name": "Constraints",
+          "description": "Boundaries, forbidden actions, limits",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "constraints"
+          ],
+          "obligation": "yes",
+          "section": "## Constraints"
+        },
+        {
+          "id": "WLF-DOMAIN-21",
+          "name": "Error Handling",
+          "description": "Permanent and transient errors",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "error",
+            "handling"
+          ],
+          "obligation": "yes",
+          "section": "## Error Handling"
+        },
+        {
+          "id": "WLF-DOMAIN-22",
+          "name": "Observability",
+          "description": "Logs, metrics, alerts",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "observability"
+          ],
+          "obligation": "yes",
+          "section": "## Observability"
+        },
+        {
+          "id": "WLF-DOMAIN-23",
+          "name": "Security",
+          "description": "Permissions, data sensitivity, access control",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security"
+          ],
+          "obligation": "yes",
+          "section": "## Security"
+        },
+        {
+          "id": "WLF-DOMAIN-24",
+          "name": "Test Fixtures",
+          "description": "Happy path, errors, edge cases",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "test",
+            "fixtures"
+          ],
+          "obligation": "yes",
+          "section": "## Test Fixtures"
+        },
+        {
+          "id": "WLF-DOMAIN-25",
+          "name": "Scaling",
+          "description": "Horizontal model, coordination",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "scaling"
+          ],
+          "obligation": "yes",
+          "section": "## Scaling"
+        },
+        {
+          "id": "WLF-DOMAIN-26",
+          "name": "Implementation Notes",
+          "description": "Practical guidance",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "implementation",
+            "notes"
+          ],
+          "obligation": "yes",
+          "section": "## Implementation Notes"
+        },
+        {
+          "id": "WLF-DOMAIN-27",
+          "name": "Verification Checklist",
+          "description": "Testable assertions (min 10)",
+          "family": "WLF-DOMAIN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "verification",
+            "checklist"
+          ],
+          "obligation": "yes",
+          "section": "## Verification Checklist"
+        }
+      ]
+    },
+    {
+      "id": "WLF-PROTO",
+      "name": "Wire protocols",
+      "description": "Structure required of a protocol specification",
+      "controls": [
+        {
+          "id": "WLF-PROTO-01",
+          "name": "Frontmatter",
+          "description": "YAML metadata",
+          "family": "WLF-PROTO",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "frontmatter"
+          ],
+          "obligation": "yes",
+          "section": "\u003c!-- blueprint --\u003e"
+        },
+        {
+          "id": "WLF-PROTO-02",
+          "name": "Title",
+          "description": "Level-1 heading + summary",
+          "family": "WLF-PROTO",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "title"
+          ],
+          "obligation": "yes",
+          "section": "# Name"
+        },
+        {
+          "id": "WLF-PROTO-03",
+          "name": "Overview",
+          "description": "Scope description",
+          "family": "WLF-PROTO",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "overview"
+          ],
+          "obligation": "yes",
+          "section": "## Overview"
+        },
+        {
+          "id": "WLF-PROTO-04",
+          "name": "Dependencies",
+          "description": "Dependency contracts",
+          "family": "WLF-PROTO",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "dependencies"
+          ],
+          "obligation": "yes",
+          "section": "## Dependencies"
+        },
+        {
+          "id": "WLF-PROTO-05",
+          "name": "Conventions",
+          "description": "Wire-level conventions (paths, content types, encoding)",
+          "family": "WLF-PROTO",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "conventions"
+          ],
+          "obligation": "yes",
+          "section": "## Conventions"
+        },
+        {
+          "id": "WLF-PROTO-06",
+          "name": "Endpoints",
+          "description": "Required for protocols that define HTTP endpoints",
+          "family": "WLF-PROTO",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": false,
+          "keywords": [
+            "endpoints"
+          ],
+          "obligation": "conditional",
+          "section": "## Endpoints"
+        },
+        {
+          "id": "WLF-PROTO-07",
+          "name": "Types",
+          "description": "Data structures in YAML. Required only where the blueprint declares types — a protocol that references another's registry states that and does not restate it",
+          "family": "WLF-PROTO",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": false,
+          "keywords": [
+            "types"
+          ],
+          "obligation": "conditional",
+          "section": "## Types"
+        },
+        {
+          "id": "WLF-PROTO-08",
+          "name": "Authentication",
+          "description": "Required for protocols that define auth",
+          "family": "WLF-PROTO",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": false,
+          "keywords": [
+            "authentication"
+          ],
+          "obligation": "conditional",
+          "section": "## Authentication"
+        },
+        {
+          "id": "WLF-PROTO-09",
+          "name": "Error Handling",
+          "description": "Error response format and codes",
+          "family": "WLF-PROTO",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "error",
+            "handling"
+          ],
+          "obligation": "yes",
+          "section": "## Error Handling"
+        },
+        {
+          "id": "WLF-PROTO-10",
+          "name": "Security",
+          "description": "Transport security, signing, verification",
+          "family": "WLF-PROTO",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security"
+          ],
+          "obligation": "yes",
+          "section": "## Security"
+        },
+        {
+          "id": "WLF-PROTO-11",
+          "name": "Implementation Notes",
+          "description": "Practical guidance",
+          "family": "WLF-PROTO",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "implementation",
+            "notes"
+          ],
+          "obligation": "yes",
+          "section": "## Implementation Notes"
+        },
+        {
+          "id": "WLF-PROTO-12",
+          "name": "Verification Checklist",
+          "description": "Testable assertions (min 5)",
+          "family": "WLF-PROTO",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "verification",
+            "checklist"
+          ],
+          "obligation": "yes",
+          "section": "## Verification Checklist"
+        }
+      ]
+    },
+    {
+      "id": "WLF-PATTERN",
+      "name": "Cross-cutting patterns",
+      "description": "Structure required of a pattern contract",
+      "controls": [
+        {
+          "id": "WLF-PATTERN-01",
+          "name": "Frontmatter",
+          "description": "YAML metadata",
+          "family": "WLF-PATTERN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "frontmatter"
+          ],
+          "obligation": "yes",
+          "section": "\u003c!-- blueprint --\u003e"
+        },
+        {
+          "id": "WLF-PATTERN-02",
+          "name": "Title",
+          "description": "Level-1 heading + summary",
+          "family": "WLF-PATTERN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "title"
+          ],
+          "obligation": "yes",
+          "section": "# Name"
+        },
+        {
+          "id": "WLF-PATTERN-03",
+          "name": "Overview",
+          "description": "Scope description",
+          "family": "WLF-PATTERN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "overview"
+          ],
+          "obligation": "yes",
+          "section": "## Overview"
+        },
+        {
+          "id": "WLF-PATTERN-04",
+          "name": "Dependencies",
+          "description": "Dependency contracts",
+          "family": "WLF-PATTERN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "dependencies"
+          ],
+          "obligation": "yes",
+          "section": "## Dependencies"
+        },
+        {
+          "id": "WLF-PATTERN-05",
+          "name": "Design Principles",
+          "description": "Core design decisions (numbered list)",
+          "family": "WLF-PATTERN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "design",
+            "principles"
+          ],
+          "obligation": "yes",
+          "section": "## Design Principles"
+        },
+        {
+          "id": "WLF-PATTERN-06",
+          "name": "Contracts",
+          "description": "Behaviors that extenders inherit",
+          "family": "WLF-PATTERN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "contracts"
+          ],
+          "obligation": "yes",
+          "section": "## Contracts"
+        },
+        {
+          "id": "WLF-PATTERN-07",
+          "name": "Types",
+          "description": "Data structures in YAML (if pattern defines types)",
+          "family": "WLF-PATTERN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": false,
+          "keywords": [
+            "types"
+          ],
+          "obligation": "conditional",
+          "section": "## Types"
+        },
+        {
+          "id": "WLF-PATTERN-08",
+          "name": "Configuration",
+          "description": "Default config extenders may override",
+          "family": "WLF-PATTERN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "low",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": false,
+          "keywords": [
+            "configuration"
+          ],
+          "obligation": "no",
+          "section": "## Configuration"
+        },
+        {
+          "id": "WLF-PATTERN-09",
+          "name": "Error Handling",
+          "description": "Error patterns extenders inherit",
+          "family": "WLF-PATTERN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "low",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": false,
+          "keywords": [
+            "error",
+            "handling"
+          ],
+          "obligation": "no",
+          "section": "## Error Handling"
+        },
+        {
+          "id": "WLF-PATTERN-10",
+          "name": "Implementation Notes",
+          "description": "Practical guidance",
+          "family": "WLF-PATTERN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "implementation",
+            "notes"
+          ],
+          "obligation": "yes",
+          "section": "## Implementation Notes"
+        },
+        {
+          "id": "WLF-PATTERN-11",
+          "name": "Verification Checklist",
+          "description": "Testable assertions (min 5)",
+          "family": "WLF-PATTERN",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "verification",
+            "checklist"
+          ],
+          "obligation": "yes",
+          "section": "## Verification Checklist"
+        }
+      ]
+    },
+    {
+      "id": "WLF-ARCH",
+      "name": "Architecture components",
+      "description": "Structure required of a system architecture component",
+      "controls": [
+        {
+          "id": "WLF-ARCH-01",
+          "name": "Frontmatter",
+          "description": "YAML metadata",
+          "family": "WLF-ARCH",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "frontmatter"
+          ],
+          "obligation": "yes",
+          "section": "\u003c!-- blueprint --\u003e"
+        },
+        {
+          "id": "WLF-ARCH-02",
+          "name": "Title",
+          "description": "Level-1 heading + summary",
+          "family": "WLF-ARCH",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "title"
+          ],
+          "obligation": "yes",
+          "section": "# Name"
+        },
+        {
+          "id": "WLF-ARCH-03",
+          "name": "Overview",
+          "description": "Scope description",
+          "family": "WLF-ARCH",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "overview"
+          ],
+          "obligation": "yes",
+          "section": "## Overview"
+        },
+        {
+          "id": "WLF-ARCH-04",
+          "name": "Declaration",
+          "description": "Everything machine-read, in one block. Required once migrated — see CONTRACTBLOCKPLAN.md",
+          "family": "WLF-ARCH",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": false,
+          "keywords": [
+            "declaration"
+          ],
+          "obligation": "conditional",
+          "section": "## Declaration"
+        },
+        {
+          "id": "WLF-ARCH-05",
+          "name": "Architecture",
+          "description": "Component diagram and responsibilities",
+          "family": "WLF-ARCH",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "architecture"
+          ],
+          "obligation": "yes",
+          "section": "## Architecture"
+        },
+        {
+          "id": "WLF-ARCH-06",
+          "name": "Responsibilities",
+          "description": "What this component owns and does NOT own",
+          "family": "WLF-ARCH",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "responsibilities"
+          ],
+          "obligation": "yes",
+          "section": "## Responsibilities"
+        },
+        {
+          "id": "WLF-ARCH-07",
+          "name": "Endpoints",
+          "description": "HTTP surface as a table, with a required Operation column. Required if the component serves any — see below",
+          "family": "WLF-ARCH",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": false,
+          "keywords": [
+            "endpoints"
+          ],
+          "obligation": "conditional",
+          "section": "## Endpoints"
+        },
+        {
+          "id": "WLF-ARCH-08",
+          "name": "Interfaces",
+          "description": "Public API surface (methods, endpoints, events)",
+          "family": "WLF-ARCH",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "interfaces"
+          ],
+          "obligation": "yes",
+          "section": "## Interfaces"
+        },
+        {
+          "id": "WLF-ARCH-09",
+          "name": "Data Flow",
+          "description": "How data moves through this component",
+          "family": "WLF-ARCH",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "data",
+            "flow"
+          ],
+          "obligation": "yes",
+          "section": "## Data Flow"
+        },
+        {
+          "id": "WLF-ARCH-10",
+          "name": "Types",
+          "description": "Data structures in YAML (if component defines types)",
+          "family": "WLF-ARCH",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": false,
+          "keywords": [
+            "types"
+          ],
+          "obligation": "conditional",
+          "section": "## Types"
+        },
+        {
+          "id": "WLF-ARCH-11",
+          "name": "Configuration",
+          "description": "Component-level configuration",
+          "family": "WLF-ARCH",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "low",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": false,
+          "keywords": [
+            "configuration"
+          ],
+          "obligation": "no",
+          "section": "## Configuration"
+        },
+        {
+          "id": "WLF-ARCH-12",
+          "name": "Security",
+          "description": "Security posture, trust model, and boundaries",
+          "family": "WLF-ARCH",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security"
+          ],
+          "obligation": "yes",
+          "section": "## Security"
+        },
+        {
+          "id": "WLF-ARCH-13",
+          "name": "Implementation Notes",
+          "description": "Practical guidance",
+          "family": "WLF-ARCH",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "implementation",
+            "notes"
+          ],
+          "obligation": "yes",
+          "section": "## Implementation Notes"
+        },
+        {
+          "id": "WLF-ARCH-14",
+          "name": "Verification Checklist",
+          "description": "Testable assertions (min 5)",
+          "family": "WLF-ARCH",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "verification",
+            "checklist"
+          ],
+          "obligation": "yes",
+          "section": "## Verification Checklist"
+        }
+      ]
+    },
+    {
+      "id": "WLF-PLATFORM",
+      "name": "Platform bindings",
+      "description": "Structure required of a platform implementation binding",
+      "controls": [
+        {
+          "id": "WLF-PLATFORM-01",
+          "name": "Frontmatter",
+          "description": "YAML metadata",
+          "family": "WLF-PLATFORM",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "frontmatter"
+          ],
+          "obligation": "yes",
+          "section": "\u003c!-- blueprint --\u003e"
+        },
+        {
+          "id": "WLF-PLATFORM-02",
+          "name": "Title",
+          "description": "Level-1 heading + summary",
+          "family": "WLF-PLATFORM",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "title"
+          ],
+          "obligation": "yes",
+          "section": "# Name"
+        },
+        {
+          "id": "WLF-PLATFORM-03",
+          "name": "Overview",
+          "description": "Scope description, why this platform fits Weblisk",
+          "family": "WLF-PLATFORM",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "overview"
+          ],
+          "obligation": "yes",
+          "section": "## Overview"
+        },
+        {
+          "id": "WLF-PLATFORM-04",
+          "name": "Dependencies",
+          "description": "Dependency contracts",
+          "family": "WLF-PLATFORM",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "dependencies"
+          ],
+          "obligation": "yes",
+          "section": "## Dependencies"
+        },
+        {
+          "id": "WLF-PLATFORM-05",
+          "name": "Primitive Mapping",
+          "description": "Where each primitive the specification blueprints require comes from on this platform",
+          "family": "WLF-PLATFORM",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "primitive",
+            "mapping"
+          ],
+          "obligation": "yes",
+          "section": "## Primitive Mapping"
+        },
+        {
+          "id": "WLF-PLATFORM-06",
+          "name": "Service Mapping",
+          "description": "Which capabilities the platform provides, and which a component must implement",
+          "family": "WLF-PLATFORM",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "service",
+            "mapping"
+          ],
+          "obligation": "yes",
+          "section": "## Service Mapping"
+        },
+        {
+          "id": "WLF-PLATFORM-07",
+          "name": "Project Structure",
+          "description": "Directory layout for orchestrator and agents",
+          "family": "WLF-PLATFORM",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "project",
+            "structure"
+          ],
+          "obligation": "yes",
+          "section": "## Project Structure"
+        },
+        {
+          "id": "WLF-PLATFORM-08",
+          "name": "Runtime Requirements",
+          "description": "Language version, dependencies, build tools",
+          "family": "WLF-PLATFORM",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "runtime",
+            "requirements"
+          ],
+          "obligation": "yes",
+          "section": "## Runtime Requirements"
+        },
+        {
+          "id": "WLF-PLATFORM-09",
+          "name": "Build and Run",
+          "description": "Build commands, run commands, environment setup",
+          "family": "WLF-PLATFORM",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "build",
+            "and",
+            "run"
+          ],
+          "obligation": "yes",
+          "section": "## Build and Run"
+        },
+        {
+          "id": "WLF-PLATFORM-10",
+          "name": "Platform-Specific Conventions",
+          "description": "Language idioms, concurrency model, IO patterns",
+          "family": "WLF-PLATFORM",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "platform",
+            "specific",
+            "conventions"
+          ],
+          "obligation": "yes",
+          "section": "## Platform-Specific Conventions"
+        },
+        {
+          "id": "WLF-PLATFORM-11",
+          "name": "Type Mapping",
+          "description": "How schema types map to language types",
+          "family": "WLF-PLATFORM",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "type",
+            "mapping"
+          ],
+          "obligation": "yes",
+          "section": "## Type Mapping"
+        },
+        {
+          "id": "WLF-PLATFORM-12",
+          "name": "Security",
+          "description": "Platform-specific security practices",
+          "family": "WLF-PLATFORM",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security"
+          ],
+          "obligation": "yes",
+          "section": "## Security"
+        },
+        {
+          "id": "WLF-PLATFORM-13",
+          "name": "Testing",
+          "description": "Test framework, test structure, CI guidance",
+          "family": "WLF-PLATFORM",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "testing"
+          ],
+          "obligation": "yes",
+          "section": "## Testing"
+        },
+        {
+          "id": "WLF-PLATFORM-14",
+          "name": "Implementation Notes",
+          "description": "Practical guidance",
+          "family": "WLF-PLATFORM",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "implementation",
+            "notes"
+          ],
+          "obligation": "yes",
+          "section": "## Implementation Notes"
+        },
+        {
+          "id": "WLF-PLATFORM-15",
+          "name": "Verification Checklist",
+          "description": "Testable assertions (min 5)",
+          "family": "WLF-PLATFORM",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "verification",
+            "checklist"
+          ],
+          "obligation": "yes",
+          "section": "## Verification Checklist"
+        }
+      ]
+    },
+    {
+      "id": "WLF-COMMON",
+      "name": "Shared rules",
+      "description": "Rules every blueprint inherits regardless of type",
+      "controls": [
+        {
+          "id": "WLF-COMMON-03",
+          "name": "Overview",
+          "description": "Scope description",
+          "family": "WLF-COMMON",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "high",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "overview"
+          ],
+          "obligation": "yes",
+          "section": "## Overview"
+        },
+        {
+          "id": "WLF-COMMON-07",
+          "name": "Endpoints",
+          "description": "HTTP surface",
+          "family": "WLF-COMMON",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "medium",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": false,
+          "keywords": [
+            "endpoints"
+          ],
+          "obligation": "conditional",
+          "section": "## Endpoints"
+        },
+        {
+          "id": "WLF-COMMON-12",
+          "name": "Security",
+          "description": "Trust model and boundaries",
+          "family": "WLF-COMMON",
+          "framework": "weblisk_framework",
+          "domains": [
+            "secure_development"
+          ],
+          "priority": "critical",
+          "requires_policy": false,
+          "requires_procedure": false,
+          "requires_technical": true,
+          "requires_evidence": true,
+          "keywords": [
+            "security"
+          ],
+          "obligation": "yes",
+          "section": "## Security"
+        }
+      ]
+    }
+  ]
+}

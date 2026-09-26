@@ -4,7 +4,7 @@
 against. ISO 27001, ISO 45001, SOC 2, NIST 800-53, CSA B51, COR 2020, and the
 rest.
 
-54 of them, as JSON. Governed by [`../schemas/standard.md`](../schemas/standard.md).
+61 of them, as JSON. Governed by [`../schemas/standard.md`](../schemas/standard.md).
 
 ## What a standard here is, and is not
 
@@ -25,16 +25,34 @@ want them — including a programme in [`../programmes/`](../CORPUS_SHAPE.md) th
 needs to cite the standards it operationalises. A citation that cannot resolve is
 not a citation.
 
-Studio still carries a copy, embedded so a fresh install is useful without a
-network call, and guarded against drifting from this one. Authored here; copied
-there. See [`../CORPUS_SHAPE.md`](../CORPUS_SHAPE.md).
+**This is now their only home.** Studio carried a byte-identical copy of all
+sixty-one, embedded so a fresh install was useful without a network call and
+guarded against drifting from this one. The copy is gone, and the reason is
+worse than duplication: an embedded catalogue is a **floor** under every scope.
+One industry's standards — a welding code, an electrical safety code, a nuclear
+quality programme — were present for every organisation on every installation,
+impossible to remove, and measured against whether anybody had chosen them.
 
-## One is generated, and is not here
+So Studio has no standards at all. A scope's catalogue is what its own connected
+sources carry, and an installation with none says *"no framework source is
+connected"* on every governance surface rather than scoring zero against
+requirements nobody put to it. What Weblisk provides is **offered** from this
+directory and **installed** into a source the customer owns, the way a programme
+or a blueprint library already is.
+
+## One is generated, and is here
 
 `weblisk_framework.json` — the Weblisk Framework standard — is **derived from
-`schemas/`** by a generator rather than authored. It stays where it is generated.
-Copying a derived artifact into the corpus would create a second copy free to
-drift from the thing it was derived from.
+[`../schemas/`](../schemas/)** by a generator rather than authored, and it is
+written here, beside the source it derives from.
+
+It used to live in the product, on the reasoning that copying a derived artifact
+into the corpus would create a second copy free to drift. That was right while
+the product also held the other sixty. With the product holding none, keeping
+this one there would leave a catalogue of exactly one embedded standard — the
+floor, smaller. There is one copy, next to its source, and
+`internal/governance/frameworkgen` regenerates it and fails if this file has
+drifted from the schemas.
 
 ## JSON, in a corpus of Markdown
 
