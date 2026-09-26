@@ -19,10 +19,24 @@ cosmetic — `code` existed in three of them and not in the fourth, so the logic
 switching on that fourth had no case for it and silently treated code as
 something else.
 
-A kind is also **part of identity**: a node's artifact key begins with its kind,
-so a classifier that answers differently on different runs makes one document
-into two nodes. Kinds therefore have to be declared once and resolved the same
-way everywhere.
+A kind is a **property of a node, not its identity** — and the `identity` column
+below is what says so. Every file-backed kind declares its identity as *source +
+path*: two references naming the same file are the same node, whichever kind
+either of them spells. A kind that has a name of its own — a control, a provider
+— keeps the kind in its identity, because that name is unique only within it.
+
+This matters because a kind is DERIVED. `Classify` reads it off the path against
+the stems declared here, so a kind inside a node's identity means two things at
+once: a producer that classifies a file differently from another mints a second
+node for one file, and editing a stem in this table silently re-keys every
+relationship a customer has recorded. The artifact key used to begin with the
+kind, and both faults were real — one file reached the ledger as `document`,
+`policy` and `procedure`, and a person's confirmation settled only the spelling
+they happened to be looking at.
+
+Kinds therefore still have to be declared once and resolved the same way
+everywhere — a classifier that answers differently on different runs is still a
+fault — but a reclassification no longer breaks a relationship.
 
 ---
 
@@ -332,6 +346,25 @@ or a path is left alone.
 A pairing this table does not permit is **skipped**, not recorded: a claim
 nothing can justify is worse than an absent one, and the corpus validator is
 where an author is told about it.
+
+### Spellings
+
+One relation, one name. A relation is part of a claim's identity — *mentions*
+and *implements* are different claims about the same two things — so a verb that
+reaches the ledger under a second spelling becomes a second record of one fact,
+which can then be confirmed on its own and disagree with the first.
+
+These are the names the platform has accepted for a relation already declared
+above. They are normalised on the way in, so nothing downstream has to know them.
+
+| spelling | means | why it exists |
+|---|---|---|
+| `satisfies` | `implements` | The verb this platform's own design documents use for "this document answers that control" — `Attest`, `AnchorBlock` and the agent's `record_relationship` tool all say *satisfies*, while this table says *implements*. Two authorities, one relation: a policy reached the ledger as both, each confirmed separately. |
+
+A spelling must name a relation this table already declares, and must not be
+declared as a relation itself. Adding one is a statement that the two names have
+always meant the same thing; if they do not, the answer is a new relation in the
+table above, not a spelling.
 
 ---
 

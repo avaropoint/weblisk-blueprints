@@ -389,6 +389,49 @@ the specification, the standards it conforms to, and the tenant's knowledge. Thi
 is the step that makes the collection worth having; the five before it are moving
 furniture so that this one is possible.
 
+**7 — `positions/`, and the audience the corpus did not have. DONE.**
+
+Every skill in [`skills/`](skills/README.md) is a **builder's** skill —
+`agents`, `blueprints`, `changes`, `cloudflare`, `domains`, `gateways`, `go`,
+`hubs`, `kinds`, `node`, `operators`, `rust`, `tenants`. Not one is for a person
+doing a job *inside* a tenant, which is the audience every programme in
+[`programmes/`](programmes/README.md) is written for.
+
+The programmes already name those people, as data, with weight: measured across
+the corpus, **twenty-one positions named 475 times** through `responsible`,
+`escalate.to`, `approvers` and `approved_by`. So a role brief is **derived**,
+and [`positions/`](positions/README.md) holds only the half derivation cannot
+reach — what to do first, what good looks like, how it goes wrong.
+
+**The derived half is rendered on read and is never a file.** It is a function
+of which programmes an organisation adopted and at which tier, and neither is
+knowable here: one position id resolves to 15 obligations and 17 inbound
+escalations under `construction_ohs_ca`, and to 15 obligations and 1 under
+`ohs`. Same id, different job. This is the same decision taken for
+`weblisk_framework.json` in step 4, for the same reason.
+
+**It is not a directory under `skills/`, and that is the load-bearing part.** A
+skill there is named for a verb, is installed by the CLI when that verb runs,
+and is embedded in the CLI byte-for-byte with a guard. Fourteen generated files
+would mean regenerating, copying them into a second repository, and editing a
+README table on every programme edit — and the guard's red light would come to
+mean *"you forgot to run the generator"* rather than *"two copies disagree"*.
+
+**The seam is a file boundary.** The generator reads `positions/<id>.md` and
+never writes one: no merge, no managed region, no markers. A generator that owns
+part of a file eventually owns the rest of it. A guide is refused if it names an
+artifact id or a register path — those are the two shapes that drift — and
+reported as an orphan if no programme names its position.
+
+Four things the derivation surfaced, recorded in the report and in the code that
+now guards them: Studio's existing `programPositions` has no escalation duty at
+all, so the position that catches every overdue thing in an organisation was
+reported as having one obligation; a derived register spec was double-counting
+every approver; an unresolvable programme id produced an empty brief that read
+as *"this position does nothing"*; and **143 of 151 registers in the corpus name
+exactly one approver**, so sole approval is how this corpus is written rather
+than a fact about any one position.
+
 ## Refuted: there is no JavaScript blueprint to extract
 
 The plan said `platforms/node.md` was mostly JavaScript conventions and that
