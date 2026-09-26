@@ -168,6 +168,11 @@ that support it.
 - MFA implementation (owned by auth patterns; session records MFA status)
 - Client-side offline data persistence and encryption (owned by `patterns/offline`)
 - Transport-level encryption (owned by `architecture/data-security`)
+- Which component addresses a caller may present a credential to (owned by
+  `architecture/orchestrator`, which publishes them and states what each is
+  worth). This document's taxonomy is of clients that reach the framework
+  through the application gateway; a caller that addresses a component directly
+  is bound by that rule, not by this one
 
 ---
 
@@ -179,7 +184,9 @@ The client architecture's API surface spans: [Client Taxonomy](#client-taxonomy)
 (identity binding per client type), [Trust Levels](#trust-levels)
 (capability-based trust classification), [Data Boundary](#data-boundary)
 (scope enforcement on outbound data), and [Browser Contract](#browser-contract)
-(browser-specific session, CSRF, and islands integration).
+(browser-specific session, CSRF, and islands integration). Callers that bypass
+the gateway and address a component directly are out of that span and are named
+in [Client Taxonomy](#clients-that-address-a-component-directly).
 
 ---
 
@@ -224,6 +231,33 @@ The gateway determines client type using the following precedence:
 
 Client type is determined once at session creation and immutable for the
 session's lifetime. A browser session cannot become a mobile session.
+
+### Clients that address a component directly
+
+Every type in the table above reaches the framework through the application
+gateway, and that is why this document can speak of one ingress. Two kinds of
+caller do not, and neither is in the taxonomy:
+
+- an **operator console**, which addresses a hub's administrative surface with
+  an operator token — [`architecture/admin`](admin.md)'s, not this document's;
+- a **sibling component**, which addresses another component in the same tenant
+  with its own registered identity.
+
+Both resolve an address out of the signed service directory, and for both the
+address may be on a different host from the one they were configured with,
+because a tenant's components may legitimately be distributed. Which addresses
+such a caller may present a credential to is **not decided here and MUST NOT be
+re-derived here**. It is
+[`architecture/orchestrator`](orchestrator.md#presenting-a-credential-to-a-component),
+which owns the directory that publishes those addresses and the `address_provenance`
+that says what each one is worth.
+
+The reason the rule is not a client-side heuristic is the reason this whole
+document exists: a client that decides for itself which hosts are in bounds has
+taken a decision the tenant owns. The failure mode is quiet in both directions
+— too strict and a correctly distributed tenant reads as broken, too loose and
+a live credential follows a value out of a response body to a host nobody
+chose.
 
 ---
 
@@ -1151,8 +1185,10 @@ security:
       to one session on one device. Trust levels bound what a client may reach,
       and no client — however trusted — reaches an agent directly.
   boundaries:
-    - boundary: Client → Gateway. The only ingress. A client never addresses an
-        agent, an orchestrator or a store
+    - boundary: Client → Gateway. The only ingress for every client type in this
+        document's taxonomy. Such a client never addresses an agent, an
+        orchestrator or a store. An operator console and a sibling component do,
+        and are bound by architecture/orchestrator's reach rule instead
     - boundary: Client credential → Session. Bound to the device and origin it
         was issued for
     - boundary: Client input → Server logic. Untrusted, validated against a
@@ -1235,3 +1271,4 @@ security:
 - [ ] Outbound responses carry X-Data-Scope, X-Data-TTL, and X-Data-Offline headers for client-side enforcement
 - [ ] API server (mTLS) has no session token — certificate IS the identity; revocation via CRL/OCSP
 - [ ] IoT devices receive only explicitly permitted fields with aggressive TTL (default: session duration)
+- [ ] No client type in this document's taxonomy addresses a component directly; a caller that does is governed by `architecture/orchestrator`, and this document contains no second rule for `address_provenance`

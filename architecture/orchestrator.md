@@ -292,6 +292,7 @@ ways, and each matters:
 |---|---|---|
 | What is this tenant running, right now? | `GET /v1/services` | Derived from registration. A component that is not running is not in it, and no file can claim otherwise |
 | What should this tenant build and start? | `.weblisk/config.yaml`, per [`schemas/config`](../schemas/config.md) | An operator's intent, which is a declared fact and belongs in a declared file |
+| Where may a component legitimately be? | the same declared file, republished per entry as `ServiceEntry.address_provenance` | A component's address is part of the operator's intent. A registrant asserting one is making a claim, and the registry must be able to say which it is holding |
 
 The first is what a client asks. Treating the second as the answer is how a
 tenant comes to report a component it has never started, and the specification
@@ -322,6 +323,150 @@ An empty list returned for a capability the tenant does not have is a confident
 zero, and it is the worst answer available — it is indistinguishable from a
 true one, and the caller's next act is to report that the tenant governs
 nothing.
+
+### A tenant's components may be distributed
+
+Nothing requires a tenant's siblings to share a host. A tenant may put its
+content service on the file server that already holds the documents, its
+gateway at an edge, and its fabric beside the records it appends. That is a
+legitimate tenant, not a misconfigured one, and a client that treats it as
+broken is wrong about the tenant rather than careful about itself.
+
+**What bounds the distribution is the tenant's own declaration, never a
+client's guess.** A client that infers the boundary — *the same hostname I
+connected to* — has moved a rule the tenant owns into the tooling, which is the
+fault [`adoption`](../schemas/common.md#adoption) exists to prevent, one layer
+down. The tenant declares where its components are, this orchestrator publishes
+that declaration, and a client reads it. Nothing in the chain guesses.
+
+Whether a given component *may* be placed away from its siblings is a fact its
+own blueprint already carries, and it needs no new field to state it: **a
+component's `## Endpoints` table is the whole of its remote surface.** A
+sibling that needs only what that table serves may be wherever the tenant puts
+it. A component that declares a coupling the table cannot carry — a shared
+filesystem, a shared process, a store opened directly — MUST be co-located, and
+the sentence declaring the coupling is the declaration.
+[`architecture/fabric`](fabric.md) states its own case in exactly that form: "A
+component that needs the filesystem of the thing it describes is not a client
+of it."
+
+### What the directory's signature attests, and what it does not
+
+`manifest.url` is supplied by the registrant. The registration contract in
+[`protocol/spec`](../protocol/spec.md) validates it non-empty and nothing more,
+so the registration signature proves that the key holder **asserted** an
+address. It does not prove the tenant chose that address, and it does not prove
+anything the tenant owns answers there.
+
+The directory's signature therefore attests *this orchestrator accepted these
+registrations* — the names, the keys, the capabilities, and the addresses as
+claimed. It is an authenticity statement about the registry. It is not an
+authorisation statement about the addresses inside it, and the two are easy to
+conflate precisely because both halves are true.
+
+Signing a self-asserted address without saying that it is self-asserted is what
+makes the conflation invisible. So an entry MUST say how this orchestrator came
+to hold its address. The field is `ServiceEntry.address_provenance` in
+[`protocol/types`](../protocol/types.md), and an absent value means
+`self-asserted`: an orchestrator that does not say how it knows has not
+verified.
+
+| `address_provenance` | What the orchestrator is saying | Set when |
+|---|---|---|
+| `self-asserted` | A registrant claimed this address and nothing has confirmed it | Always, absent one of the rungs below. The default, including when the field itself is absent |
+| `declared` | The tenant declared this component at this address, and the registrant's claim matched it | The registered `url` equals the address the tenant's declared configuration gives that component |
+| `verified` | `declared`, and the registered key answered at that address | The orchestrator has a round trip to the address, answered and signed by the key the registry holds for that component |
+
+The ladder is monotone, and the two upper rungs answer different questions.
+`declared` is **authorisation** — the tenant meant the component to be there.
+`verified` is **authentication** — something holding the right key is there.
+Neither substitutes for the other: a declared address whose name has been
+repointed is authorised and wrong, and a verified address nobody declared is
+authentic and unchosen. A client that needs to trust an address needs the
+first; it is better off with both.
+
+**A registrant whose claimed address contradicts the declaration is a conflict,
+not a correction.** The orchestrator MUST refuse that registration with `409
+ADDRESS_CONFLICT` rather than publish a contradiction, for the same reason it
+refuses `NAMESPACE_CONFLICT`: the registry is the tenant's statement about
+itself, and it cannot hold both answers at once.
+
+> **Gap — the declaration has nowhere to live.** `declared` compares the
+> registered `url` against the address the tenant declared for that component,
+> and [`schemas/config`](../schemas/config.md) gives a component a `port` and no
+> address. Until it carries one, every entry is `self-asserted` and every
+> foreign address is out of bounds by the rule below. The field is that schema's
+> to add; this document states only what the orchestrator does with it once it
+> exists.
+
+> **Gap — nothing can currently reach `verified`.** `GET /v1/health` is
+> unauthenticated, so a probe that answers proves something is listening, which
+> is not the claim. `verified` needs a probe the registered key signs over a
+> nonce the orchestrator chose, and no endpoint in this document provides one.
+> Until one does, `declared` is the strongest rung a tenant can occupy — which
+> is enough to authorise, and is honest about what it did not prove.
+
+### Presenting a credential to a component
+
+A client reads an address out of the directory in order to use it, and using it
+means sending a credential. The rule is about the credential rather than the
+address, because that is where the loss happens:
+
+> **A client MUST NOT present a credential at an address that credential is not
+> bound to.**
+
+A credential's **anchor** is the address the client presented an identity at in
+order to obtain it — the hub address a person typed into an operator console,
+or the orchestrator address a registered component was configured with. An
+anchor is a fact that arrived from a person or a deployment, never one that
+arrived in a response body; that is what stops the rule recursing into whatever
+the last answer happened to say.
+
+| The client holds | Same host as the anchor | Foreign host, `self-asserted` | Foreign host, `declared` or `verified` |
+|---|---|---|---|
+| Its anchor credential | Present it | **Refuse** — the address is not one the tenant declared | **Do not present it** — the credential is bound to the anchor, and a second host is a second place it can be taken from |
+| A grant naming that exact address | Present it | Never issued — see below | Present the grant's token, and only it |
+| Neither | — | Refuse, naming the undeclared address | Refuse, naming the credential it does not hold |
+
+Every refusal names **which fact was missing**, and the two are different
+remedies: an undeclared address is fixed in the tenant's configuration, and a
+missing grant is fixed by obtaining one. A client that collapses them into
+"unavailable" has reported a state nobody can act on.
+
+Same-host is not a special case in the rule; it is the rule. The credential is
+already at that host, so presenting it on another port there tells no new party
+anything. What that does assume is that a second process on the anchor's host is
+not a separate adversary, which is the trusted-network position
+[`architecture/threat-model`](threat-model.md) Boundary 2 already takes and
+records as residual. It is not an additional claim made here.
+
+**The orchestrator MUST NOT place an address in a grant that it would not
+publish as `declared`.** A grant carries the orchestrator's signature over
+`target_url`, which is the orchestrator vouching for the address rather than
+repeating a claim — and vouching for an address nobody declared is exactly the
+conflation this section exists to stop, moved into a stronger envelope.
+
+**A grant narrows and never widens.** Its capabilities MUST be the intersection
+of what the requester holds and what the target's registered manifest declares,
+and no `resources` glob in it may be wider than either side's.
+
+A capability means the same thing at any distance. `content:read` held by a
+component on another host is `content:read` — a capability names what the
+holder may do, and a name that meant less at a distance would be one word doing
+two jobs. What distance changes is not the meaning but the **containment**: a
+grant is for one target, at one address, for the capabilities that target
+declares, and it expires, because a credential's blast radius on theft is
+everything it authorises and a second host is a second place to lose it from.
+
+> **Gap — an external client cannot obtain a grant.** `POST /v1/channel`
+> already has the right shape: `ChannelGrant` carries `target_url` and
+> `target_pub_key` inside the orchestrator's signature with a scoped, expiring
+> token. But it verifies `from_agent` against `token.sub` and requires
+> `agent:message`, so it serves one registered component addressing another and
+> nothing else. An operator console holding an operator token has no path to a
+> grant, and therefore MUST refuse every foreign address regardless of its
+> `address_provenance`. Widening `/v1/channel` to an operator-authenticated caller is the
+> change that lifts it; inventing a second grant type for the same act is not.
 
 ---
 
@@ -997,6 +1142,11 @@ agents hold, which is theirs.
 - [ ] `DELETE /v1/register` releases owned namespaces and routing table entries
 - [ ] Service directory includes `routing_table` and namespaces map
 - [ ] Service directory broadcast to ALL agents after every registration/deregistration
+- [ ] `POST /v1/register` refuses with `409 ADDRESS_CONFLICT` when the registered `url` contradicts the address the tenant declared for that component
+- [ ] Every `ServiceEntry` carries `address_provenance`, and an entry the orchestrator has not matched against the tenant's declaration reports `self-asserted` rather than omitting the field
+- [ ] `address_provenance` is never reported as `verified` on the strength of an unauthenticated `GET /v1/health` probe
+- [ ] A `ChannelGrant` names a `target_url` only where the orchestrator would publish that address as `declared`
+- [ ] A `ChannelGrant`'s capabilities are the intersection of the requester's and the target's registered manifest, and no wider on either side
 - [ ] `POST /v1/channel` verifies `from_agent` matches token.sub
 - [ ] `POST /v1/channel` requires agent:message capability (403 if missing)
 - [ ] Channel tokens expire after configured TTL

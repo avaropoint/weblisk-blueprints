@@ -247,6 +247,7 @@ defines security contracts that other components implement:
 | Session binding and CSRF | Gateway + Browser Session | 1.9–1.13 |
 | Input validation and CSP | Gateway + Agents | 1.14–1.21 |
 | mTLS and agent identity verification | Orchestrator + Agents | 2.1–2.10 |
+| Component address provenance and the credential reach rule | Orchestrator + every caller | 2.11–2.15 |
 | Encryption at rest and key management | Agents + Data Security | 3.1–3.11 |
 | Admin gateway separation and MFA | Admin Gateway | 4.1–4.8 |
 | Federation data contracts and trust tiers | Federation Protocol | 5.1–5.8 |
@@ -393,6 +394,19 @@ identity on every request.
 | 2.8 | **Data exfiltration via agent** | Compromised agent sends data to external endpoint | Enforcement external boundary intercepts all outbound calls; agents can only reach declared external endpoints; scope-based leakage prevention blocks restricted data from crossing boundaries; agent behavioral monitoring detects anomalous external call patterns | Enforcement external boundary + monitoring |
 | 2.9 | **Deserialization attack** | Malicious payload in agent request/response | JSON-only protocol (no binary serialization); strict schema validation on all messages; no arbitrary object deserialization | Protocol spec |
 | 2.10 | **Replay attack (internal)** | Replay a valid gateway-to-agent request | Request includes `X-Request-Id` (UUID) + `X-Trace-Id`; agents track recent request IDs; duplicate requests rejected within replay window (300 seconds) | Protocol spec |
+| 2.11 | **Directory address poisoning** | A registrant claims a `url` on a host the attacker controls. The orchestrator signs the directory, so the entry is authentic; a caller follows the address carrying a live credential | `manifest.url` is a claim, and `ServiceEntry.address_provenance` says so. A caller presents a credential only at its anchor host or at an address a grant names, and an address the tenant never declared is `self-asserted` and refused. A registered `url` contradicting the declaration is `409 ADDRESS_CONFLICT` at registration, not a published contradiction | Orchestrator address provenance + reach rule |
+| 2.12 | **Content substitution via a foreign component** | The poisoned address answers as the tenant's content service and returns documents of its own | As 2.11. A response is attributable to the key the registry holds for that component, never to the address it arrived from. This is worse than an empty answer because it is plausible: a governance surface reports the attacker's documents as the tenant's policy, and an auditor reads a corpus nobody in the tenant wrote | Orchestrator address provenance + protocol identity |
+| 2.13 | **Silent write absorption** | As 2.12 with a write capability. The attacker cannot write the tenant's real store, but it can return success, so the tenant believes an edit landed | As 2.11. Detection afterwards rests on content identity and reconciliation — a later read of the real repository does not carry the identity the write was acknowledged with. That is a poor second to not having sent the write, and is why the address rule is preventive rather than detective | Orchestrator address provenance + content identity |
+| 2.14 | **Takeover of a declared address** | The tenant genuinely declared the address; the name now resolves somewhere else | `declared` is authorisation and proves nothing about who answers, which is why it is a separate rung from `verified`. TLS server-certificate validation at the declared name; `verified` where the orchestrator can obtain a signed round trip. Residual where it cannot — see the register | Transport + orchestrator address provenance |
+| 2.15 | **Credential spread across hosts** | A caller re-presents its anchor credential at every component address it finds, so one credential exists on every host the tenant runs | A credential is presented only at the address it is bound to. A foreign address takes a grant: one target, one address, the intersection of the two capability sets, and an expiry. The capability itself is unchanged by distance — narrowing its meaning would give one name two readings — so containment is what the grant provides | Reach rule + channel grant |
+
+**Address provenance note.** Vectors 2.11–2.15 exist because a signed service directory
+proves that a tenant *said* a component is at an address; it never proves the
+tenant controls that address. The registration contract validates `manifest.url`
+non-empty and no further, so the signature covers a claim. What each entry's
+address is worth is published as `ServiceEntry.address_provenance`, and what a caller may
+do with each value is
+[`architecture/orchestrator`](orchestrator.md#presenting-a-credential-to-a-component).
 
 ### Internal Network Model
 
@@ -406,7 +420,19 @@ TRUSTED NETWORK MODE (acceptable for single-host deployments):
   Gateway ──TLS──→ Orchestrator ──HTTP──→ Agents (localhost only)
   TLS at the gateway; plain HTTP on loopback interface.
   Agents bind to 127.0.0.1 only — unreachable from external network.
+
+DISTRIBUTED (a tenant whose components are on more than one host):
+  Zero-trust mode only. Trusted-network mode's whole guarantee is the
+  loopback interface, and a component reachable from another host has
+  left it. Every declared remote address is TLS, and every credential
+  crossing to one is a grant for that address — never the anchor's.
 ```
+
+The two single-host modes are not weakened by a tenant being distributed; they
+stop applying to it. Choosing between them by what the deployment happens to
+look like is the inference this model rejects — the tenant's own declaration
+is what says which applies, and a component whose `address_provenance` is not `declared`
+is not a distributed deployment, it is an unexplained address.
 
 ---
 
@@ -654,6 +680,9 @@ After all mitigations, these residual risks remain:
 | DDoS beyond rate limiter capacity | Medium | Medium | External DDoS protection (CDN/WAF) recommended for high-traffic deployments | Out of scope for application layer |
 | Social engineering of operators | Low | Critical | Security training; 4-eyes for destructive actions; audit trail | Human factor |
 | Supply chain attack on dependencies | Low | High | Dependency scanning; lockfile pinning; minimal dependency count | Weblisk itself is zero-dependency on client side |
+| A declared component address that no orchestrator can verify | Medium | High | `declared` authorises; TLS certificate validation at the declared name is the only authentication until a signed probe exists | The gap is named in `architecture/orchestrator`. An operator's declaration plus DNS is the whole trust chain for a remote component today |
+| A second process on the anchor's host under a different owner | Low | High | None at the client. Same-host is in bounds by the reach rule, and a caller cannot distinguish two processes on one host | The trusted-network position, stated rather than assumed. It is the residual that makes the anchor host's operator model load-bearing |
+| A key holder that genuinely controls a foreign address | Low | Critical | Address verification proves control of the address by the key holder, never that the key holder is the tenant's | Key issuance is the real boundary, and it is `protocol/identity`'s. `verified` narrows where a stolen key can be used, not whether it works |
 
 ---
 
@@ -725,7 +754,7 @@ security:
 - This threat model MUST be reviewed and updated when new features
   are added, new boundaries are introduced, or new attack techniques
   are published.
-- Every numbered vector (1.1 through 5.8) MUST have a corresponding
+- Every numbered vector (1.1 through 6.8) MUST have a corresponding
   test in the conformance test suite.
 - The attack chain analysis MUST be validated during penetration
   testing — testers should attempt each chain (1–7) and verify that all
@@ -746,7 +775,9 @@ security:
 - [ ] Admin gateway is on a separate domain/port, unreachable from the application gateway's network path
 - [ ] Destructive admin actions require per-request HMAC confirmation and 4-eyes approval with immutable audit logging
 - [ ] Federation data contracts enforce field-level filtering; forbidden fields stripped by sender, independently validated by receiver
-- [ ] Every numbered attack vector (1.1–5.8) has a corresponding test in the conformance test suite
+- [ ] Every numbered attack vector (1.1–6.8) has a corresponding test in the conformance test suite
+- [ ] A caller refuses an address whose `ServiceEntry.address_provenance` is `self-asserted` and whose host is not its anchor's, and names the undeclared address rather than reporting the component unavailable
+- [ ] No caller presents its anchor credential at a host other than its anchor's, whatever the entry's `address_provenance` says
 - [ ] Attack chains 1–7 are validated during penetration testing to confirm all stated control layers hold
 - [ ] Continuous security checks run at specified frequencies: dependency scan on every deploy, TLS expiry daily, OWASP baseline weekly
 - [ ] Residual risks are documented and accepted by the deployment operator in the deployment's risk register

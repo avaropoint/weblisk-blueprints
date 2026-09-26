@@ -322,7 +322,8 @@ types:
 - `content:read` — read entries and list a content repository
 - `content:write` — create, modify and remove entries
 - `content:describe` — read a repository's custody class, attestations and derived ceiling
-- `content:declare` — bring a store under governance: establish an empty repository, or adopt one that already holds bytes
+- `content:declare` — bring a store under governance. Sufficient to adopt one that already holds bytes; establishing a new one also needs `content:establish`
+- `content:establish` — create a store and declare it. Required in addition to `content:declare` for `disposition: establish`; adoption does not need it
 - `content:reconcile` — run custody reconciliation on a shared repository
 
 **Fabric capabilities:**
@@ -1559,7 +1560,28 @@ types:
         type: string
         required: true
         description: "`online`, `offline`, `degraded`"
+      address_provenance:
+        name: AddressProvenance
+        type: string
+        required: false
+        description: "How the orchestrator came to hold `url`: `self-asserted` (a registrant claimed it and nothing confirmed it), `declared` (it matches the address the tenant declared for this component), `verified` (declared, and the registered key answered there). Absent means `self-asserted`."
 ```
+
+**`url` is what a registrant claimed; `address_provenance` is how much that is worth.**
+The registration signature proves a key holder asserted an address. It proves
+nothing about who chose the address or what answers at it, so a directory that
+carries the address and not its provenance publishes an authentic statement
+that reads as an authorised one.
+
+An orchestrator that omits `address_provenance` has not verified, and a consumer MUST
+read the absence as `self-asserted` rather than as a tenant too old to say.
+There is no value meaning "unknown" for the same reason: an orchestrator always
+knows which of the three it did.
+
+What a client may do with each is
+[`architecture/orchestrator`](../architecture/orchestrator.md), "Presenting a
+credential to a component" — the one home for that rule, because the
+orchestrator is what publishes the fact the rule reads.
 
 ### ServiceDirectory
 

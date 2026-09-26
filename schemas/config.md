@@ -54,6 +54,27 @@ agents:
     replicas: integer              # Instance count (default: 1)
     env: map[string, string]       # Additional environment variables
 
+# Optional — content repositories
+content:
+  backends:                        # Stores this hub can reach. A placement names one
+    - name: string                 # Backend name (lowercase, alphanumeric + hyphens)
+                                   # Driver, root and credentials belong to the
+                                   # platform blueprint that implements it
+  repositories:                    # Stores brought under governance at startup
+    - id: string                   # Stable repository id, unique within scope_path
+      scope_path: string           # <tenant>/<org>[/<project>]
+      placement:
+        backend: string            # One of content.backends[].name
+        locator: string            # Path relative to that backend's root
+      custody: enum                # "exclusive" | "shared" | "opaque"
+      attestations:
+        enumerable_principals: boolean
+        attributable_writes: boolean
+        tamper_evident: boolean
+  reconcile_interval: duration     # Shared custody only. 0 disables scheduled runs
+  reverify_custody_interval: duration
+  max_entry_bytes: integer         # Largest entry the service will write
+
 # Optional — federation configuration
 federation:
   enabled: boolean                 # Enable federation (default: false)
@@ -122,6 +143,56 @@ observability:
 | `port` | integer | no | auto | Listen port (auto-assigned from range by type) |
 | `replicas` | integer | no | `1` | Number of instances to start |
 | `env` | map | no | `{}` | Extra env vars passed to the agent process |
+
+### content
+
+`content` is optional: a hub that governs no authored text declares none of it.
+Where it is present, the keys and types are as below — but what a value
+**means** is [`architecture/content`](../architecture/content.md), which is the
+authority and is not restated here. In particular, that a configured repository
+is processed as `establish`, that `establish` creates the store, what the
+backend owes once it exists, and what is refused, all live there.
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `backends` | list | cond | `[]` | Stores this hub can reach. Required when `repositories` is non-empty |
+| `repositories` | list | no | `[]` | Stores declared at startup |
+| `reconcile_interval` | duration | no | `15m` | Out-of-band change detection for shared-custody repositories. `0` disables |
+| `reverify_custody_interval` | duration | no | `24h` | How often attestations are re-demonstrated |
+| `max_entry_bytes` | integer | no | `10485760` | Largest entry the service will write |
+
+#### content.backends[]
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `name` | string | yes | — | What a placement names. Unique within the hub. Its driver, root and credentials are the platform blueprint's, not this file's |
+
+#### content.repositories[]
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `id` | string | yes | — | Stable repository id. Unique within `scope_path`. Survives rename and re-placement |
+| `scope_path` | string | yes | — | `<tenant>/<org>[/<project>]`. Also the resource scope the declaration is authorised on |
+| `placement` | object | yes | — | Which backend, and where within it |
+| `custody` | enum | no | `opaque` | `"exclusive"`, `"shared"` or `"opaque"`. A **claim**, demonstrated before it takes effect |
+| `attestations` | object | no | all `false` | Claims about what the backend can demonstrate. An undemonstrated claim resolves to `false` |
+
+#### content.repositories[].placement
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `backend` | string | yes | — | Must match a `content.backends[].name` declared in this file |
+| `locator` | string | yes | — | Path **relative** to that backend's root. Absolute paths, URLs and `..` segments are refused |
+
+**A repository is never given a location, only a backend and a locator inside
+it.** The root is named once, in `backends`, where an operator sets it
+deliberately; a repository entry names that backend. A file that could give a
+locator without a backend would be a file that writes anywhere, read at boot,
+with no caller and no capability to check against.
+
+**Neither `ceiling` nor `verified_at` is configurable.** Both are derived from
+what the service demonstrates at startup, and a configured ceiling would be a
+protection level nobody verified.
 
 ### federation
 
@@ -239,6 +310,28 @@ agents:
     type: infrastructure
     port: 9750
 
+content:
+  backends:
+    - name: governed
+  repositories:
+    - id: policies
+      scope_path: acme/corporate
+      placement:
+        backend: governed
+        locator: corporate/policies
+      custody: exclusive
+    - id: evidence
+      scope_path: acme/corporate
+      placement:
+        backend: governed
+        locator: corporate/evidence
+      custody: shared
+      attestations:
+        enumerable_principals: true
+        attributable_writes: true
+        tamper_evident: false
+  reconcile_interval: 15m
+
 federation:
   enabled: true
   port: 9801
@@ -266,3 +359,8 @@ observability:
 8. When `tls: true`, both `tls_cert` and `tls_key` must be specified
 9. `rate_limit` format: `<positive-integer>/<window>` where window is `sec`, `min`, or `hour`
 10. `trace_sample_rate` must be between 0.0 and 1.0 inclusive
+11. `content.backends[].name` must be unique within the hub
+12. Every `content.repositories[].placement.backend` must match a declared `content.backends[].name`
+13. `content.repositories[].placement.locator` must be relative — no leading separator, no scheme, no authority, no `..` segment
+14. `content.repositories[].id` must be unique within its `scope_path`
+15. No two `content.repositories[]` may name placements where one equals, contains or sits inside another

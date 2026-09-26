@@ -684,6 +684,50 @@ it describes is not a client of it.
 > a specification living in the tooling. That is the precondition, and it is
 > named rather than assumed.
 
+### Where the content service is
+
+Being a client of the content service means the fabric resolves that service's
+address out of the signed directory, and a tenant's components may
+legitimately be on different hosts. So this is the first place in the corpus
+where one component presents a credential across a host boundary, and it is
+worth working through rather than assuming.
+
+The fabric's **anchor** is the orchestrator address it was configured with. It
+holds `content:read` and `content:describe`, and it calls identity lookup and
+listing. Nothing about those two facts says where the content service is.
+
+| The directory says | What the fabric does |
+|---|---|
+| Content is on the anchor's host | Call it with its own registered credential. The ordinary single-host tenant, unchanged |
+| Content is elsewhere, `address_provenance: self-asserted` | **Refuse.** No credential is sent. The repository is `unreachable` and every answer citing it says which fact was missing — the tenant has not declared that address |
+| Content is elsewhere, `address_provenance: declared` or `verified` | The address is authorised, and the fabric's own credential is still bound to its anchor. It needs a grant naming that address for those two capabilities, and it has no way to obtain one |
+
+The last row is the honest state, and the reason is worth stating because the
+obvious fix is wrong. `POST /v1/channel` issues exactly the grant required —
+an orchestrator signature over `target_url` and `target_pub_key`, with a scoped
+token that expires — but it requires `agent:message`, and **the fabric MUST NOT
+declare `agent:message` in order to reach the content service.** That
+capability is the whole agent mesh. Taking it to solve an addressing problem
+would widen this service's declared reach from two content verbs to every
+component in the tenant, and the widening would be invisible: it would look
+like a routing detail and read, at the registry, as a general-purpose
+messenger. The gap is in the grant path, and it is named where the grant path
+lives — [`architecture/orchestrator`](orchestrator.md#presenting-a-credential-to-a-component).
+
+**Until it is closed, a tenant that places its content service on another host
+has a fabric that cannot resolve versions, and that is reported rather than
+worked around.** The model for reporting it already exists here and needs no
+addition: an endpoint this installation cannot read is `unreachable`, not
+`broken` and not `current`, and coverage counts it as needing review. A remote
+content service is the same condition arrived at by a different route — nothing
+was read, so nothing is claimed — and it lands on the one status that says so.
+
+The alternative, which must not be taken, is for the fabric to follow the
+address with its anchor credential because the directory was signed. That would
+put a credential holding `content:read` over a tenant's whole governed corpus
+onto a host chosen by whatever last registered under that name. The signature
+makes the address authentic; it was never a statement that the tenant chose it.
+
 ---
 
 ## The Claim Model
@@ -1323,6 +1367,12 @@ use it to transfer entry bytes — a ledger does not need content in order to ci
 it, and one that holds content answers around the access decision it was supposed
 to respect.
 
+Both are exercised at an address resolved from the directory, and the fabric
+MUST NOT decide for itself which addresses are in bounds — see
+[Where the content service is](#where-the-content-service-is). It declares no
+`agent:message`, and MUST NOT acquire one to reach a content service on another
+host.
+
 Startup follows the same order every mesh component follows, and for the same
 reason: the key this service authenticates with arrives in the registration
 response, so an authenticator that demanded it up front would exit before it
@@ -1400,6 +1450,10 @@ security:
     - rule: The ledger never holds content
       mechanism: Only address, identity and size are recorded; version resolution
         uses the content service's identity lookup, which transfers no bytes
+    - rule: The fabric's credential never leaves the host it is anchored to
+      mechanism: A content service on another host is reached only through a
+        grant naming that address; absent one the repository is unreachable and
+        the answer says so, per architecture/orchestrator's reach rule
 ```
 
 ---
@@ -1502,6 +1556,8 @@ security:
 - [ ] An answer whose traversal limit was reached says so on its completeness rather than returning a trimmed result as whole
 - [ ] Every answer citing a shared or opaque repository carries `access_complete` false, and no caller can set it true
 - [ ] No fabric code path transfers content bytes; version resolution and relocation use identity lookup and listing only
+- [ ] A content service whose `ServiceEntry` is on another host is reached only with a grant for that address; absent one the repository is `unreachable` and no credential is sent
+- [ ] The fabric's manifest declares no `agent:message`, and a remote content service does not cause it to be added
 - [ ] Recording, confirming, rejecting or retiring a relationship leaves both artifacts byte-identical
 - [ ] Projecting an unchanged ledger twice produces identical bytes, and every judgement in the projection can be recomputed from the content with a published digest tool
 - [ ] Every relationship reachable from one endpoint is reachable from the other, and a synthesised containment step is reported as synthesised
