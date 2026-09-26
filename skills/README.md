@@ -57,6 +57,26 @@ file. `TestTheEmbeddedSkillsMatchTheBlueprintCorpus` fails when they differ, and
 reports rather than skips when this repository is not checked out beside the
 CLI. Author here; copy the file over.
 
+## These are builder's skills, and that is now said out loud
+
+Every skill in the table is for somebody **building the platform**: which CLI
+verb to run, how to read a blueprint, what a platform binding provides. Not one
+is for a person doing a job **inside a tenant** — the supervisors, coordinators
+and officers the programmes are written for.
+
+That second audience is served from [`../positions/`](../positions/README.md)
+and is **derived**, not authored: what a programme expects of a position is
+already declared in every obligation's `responsible`, every `escalate.to`, every
+register's `approvers` and every artifact's `approved_by`, and a hand-written
+role skill would be a second copy of it.
+
+It is deliberately **not** a directory in here. A skill in this family is named
+for a verb, is installed by the CLI when that verb runs, and is embedded in the
+CLI byte-for-byte — a contract a generated file cannot keep. Feeding machine
+output to a byte-for-byte guard makes its red light mean *"you forgot to run the
+generator"* instead of *"two copies disagree"*, which is the one thing that
+guard exists to say.
+
 ## Authoring
 
 Each skill is `skills/<name>/SKILL.md` with YAML frontmatter:

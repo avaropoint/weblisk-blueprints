@@ -304,6 +304,18 @@ separates a defensible period from a habit. It is placed into five other
 programmes rather than restated, so a change to a keeping period reaches every
 programme that depends on it.
 
+## The positions a programme names
+
+An obligation's `responsible`, an `escalate.to`, a register's `approvers` and an
+artifact's `approved_by` all name **positions**, never people. Across this
+directory that is twenty-one positions named 475 times, and everything those
+namings imply about a job is derived rather than written down a second time.
+
+[`../positions/`](../positions/README.md) holds only what derivation cannot
+reach — the judgement — and [`../schemas/position.md`](../schemas/position.md)
+governs it. Nothing there declares that a position exists: this directory does
+that, by naming one.
+
 ## What is deliberately not here
 
 **`document-control` is still in the product.** It is the management-system floor
