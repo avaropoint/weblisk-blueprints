@@ -43,6 +43,22 @@ declares:
     layout: form
     review: required
     approvers: [training-coordinator]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        O. Reg. 297/13 s. 10 requires the employer to maintain a working at heights
+        training record naming the worker, the approved provider, the approved
+        program and the date of completion, and to keep the worker's proof of
+        completion. It sets no keeping period; s. 8(1) sets the training's validity
+        at three years, which is a validity period and not a retention period
+      reason: >
+        Seven years is this organisation's, chosen to span more than two full
+        three-year validity cycles so that a lapse and its renewal are both still on
+        file. Reading the three-year validity as the keeping period is the mistake
+        this declaration exists to prevent: it would dispose of the record of the
+        training a worker held on the day they fell, at almost exactly the moment
+        somebody asks for it.
     columns:
       - {key: checked_on, label: Checked on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,

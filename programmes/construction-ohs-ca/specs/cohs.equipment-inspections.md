@@ -12,6 +12,7 @@ satisfies:
   - isnetworld:ISN-SAFE-09
 
 requires: [cohs.constructor-duties]
+template: equipment-inspection
 
 declares:
   obligation:
@@ -40,6 +41,19 @@ declares:
     layout: form
     review: required
     approvers: [health-safety-lead]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        O. Reg. 213/91 s. 14(3)–(4) requires all machinery and equipment at the
+        project to be inspected at least once a week by a competent person, and
+        prescribes no keeping period for the record of the inspection
+      reason: >
+        Seven years is this organisation's. A failure of equipment is investigated
+        against the inspections that preceded it, and the useful evidence is the run
+        of weeks before the failure rather than the week of it. A project also ends:
+        the inspections stop and the claims do not, so the record has to outlive the
+        site by years.
     columns:
       - {key: inspected_on, label: Inspected on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,

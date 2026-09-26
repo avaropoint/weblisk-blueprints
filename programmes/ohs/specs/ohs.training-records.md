@@ -19,6 +19,24 @@ register:
     a position must hold, and a review says somebody judged a person competent,
     but neither of those is a dated card that stops being true on a particular
     day whether or not anybody looked.
+  retention:
+    keep: 7y
+    from: modified
+    authority: >-
+      ISO 45001 cl. 7.2 requires evidence of competence to be retained as
+      documented information and prescribes no period, as does COR 2020. This
+      programme is not written to one jurisdiction, so there is no statute to
+      cite here: the occupational health and safety legislation where the work is
+      done sets the period, and where it sets a longer one for a credential or an
+      exposure record, that period governs and this declaration does not displace
+      it
+    reason: >
+      Seven years is this organisation's, and it is a floor rather than an answer.
+      What a credential record has to outlive is not its own expiry but the working
+      life of the person who held it: whether somebody was trained before the work
+      is asked after an injury, and an injury is reported, claimed and litigated
+      over a span measured in years. The clock runs from the last change because
+      the register is cumulative — the newest card in it governs the file.
   columns:
     - {key: reference, label: Certificate or card number, type: text, required: true}
     - {key: person, label: Person, type: user, required: true}

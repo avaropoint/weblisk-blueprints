@@ -22,6 +22,12 @@ requires:
   - cenv.approval-conditions
   - cenv.approval-renewal
 
+# The review that reads every open determination, notice and instrument across
+# the organisation is the document a Ministry officer is shown when they ask
+# how the company knows it is compliant. The environmental lead performs it,
+# so the lead cannot also be the one who says the method is sufficient.
+approved_by: [senior-management]
+
 declares:
   obligation:
     id: cenv.compliance-review
@@ -58,6 +64,7 @@ declares:
     approvers: [senior-management]
     retention:
       keep: 7y
+      from: modified
       authority: O. Reg. 406/19 s. 28 (1) — every document and record created or acquired under the Regulation is retained for at least seven years after it is created or acquired
       reason: >
         This is the record of the organisation having looked. In a prosecution

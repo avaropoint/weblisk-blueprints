@@ -14,6 +14,12 @@ satisfies:
 
 requires: [rec.retention-schedule, rec.disposition]
 
+# The records manager audits their own programme, which is defensible only
+# because the method was accepted by somebody else first — CC4.1 is about
+# evaluations the entity has chosen, not evaluations the evaluator designed
+# for themselves on the day.
+approved_by: [senior-management]
+
 declares:
   obligation:
     id: rec.audit
@@ -34,6 +40,18 @@ declares:
     layout: form
     review: required
     approvers: [senior-management]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        Neither ISO 27001 A.5.35 nor ISO 9001 9.2 prescribes how long an internal
+        audit record is kept, and no Ontario records statute does either
+      reason: >
+        Seven years is this organisation's, chosen to span two full three-year
+        certification cycles plus the two-year basic limitation period in the
+        Limitations Act, 2002 s. 4 — so a certifying body can always see the cycle
+        before the one it is auditing, and a finding raised late still has its audit
+        behind it.
     columns:
       - {key: audited_on, label: Audited on, type: date, required: true}
       - {key: auditor, label: Auditor, type: user, required: true}

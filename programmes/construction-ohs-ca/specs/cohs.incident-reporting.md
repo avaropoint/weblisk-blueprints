@@ -15,6 +15,7 @@ satisfies:
 requires: [cohs.policy, cohs.project-register]
 
 approved_by: [senior-management]
+template: incident-report
 
 declares:
   obligation:

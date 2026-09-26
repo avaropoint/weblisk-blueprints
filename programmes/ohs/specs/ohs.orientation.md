@@ -10,6 +10,10 @@ satisfies:
   - isnetworld:ISN-SAFE-07
 
 requires: [ohs.competency-matrix]
+# The record each orientation produces. The monthly obligation confirms that
+# nobody who started was missed; this is what was actually delivered, and
+# without a form the confirmation counts documents that say different things.
+template: orientation-record
 
 declares:
   obligation:

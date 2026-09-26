@@ -51,6 +51,21 @@ declares:
     layout: form
     review: required
     approvers: [senior-management]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        The Building Opportunities in the Skilled Trades Act, 2021 and its
+        regulations require a person performing compulsory trade work to hold a
+        certificate of qualification and set the journeyperson-to-apprentice ratios.
+        They prescribe no keeping period for an employer's verification that either
+        was observed
+      reason: >
+        Seven years is this organisation's, matched to the other verification records
+        in this programme. What this row answers is whether unqualified work was
+        permitted on a particular day, which is raised by a prosecution, by an
+        insurer after a defect, and by an owner years into the warranty — long after
+        the certificate that was checked has itself been renewed.
     columns:
       - {key: checked_on, label: Checked on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,

@@ -36,6 +36,20 @@ declares:
     layout: form
     review: required
     approvers: [health-safety-lead]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        OHSA s. 42(3) requires the worker education and training programme to be
+        reviewed at least annually, and more often on the committee's advice or on a
+        change in circumstances. Neither the Act nor Reg. 860 prescribes a keeping
+        period for the record of the review
+      reason: >
+        Seven years is this organisation's, matched to the other training records in
+        this programme. What the review record answers is whether the programme was
+        current and whether the committee was consulted on the date a worker was
+        exposed to a hazardous product, and an exposure is investigated and claimed
+        over years, not within the year the review was held.
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: reviewed_by, label: Reviewed by, type: user, required: true}

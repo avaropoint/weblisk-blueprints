@@ -32,6 +32,20 @@ declares:
     layout: form
     review: required
     approvers: [privacy-officer]
+    retention:
+      keep: 10y
+      from: modified
+      authority: >-
+        PHIPA requires a custodian to maintain, audit and monitor an electronic
+        record of who accessed personal health information, and prescribes no
+        keeping period for the audit's own record
+      reason: >
+        Ten years is this organisation's, matched to the period the professional
+        college record regulations impose on the health record underneath — O. Reg.
+        114/94 under the Medicine Act, 1991 keeps a patient record for ten years
+        after the last entry — so the audit of who saw a record never expires before
+        the record itself. An audit disposed of first leaves the organisation able to
+        produce the record and unable to say who read it.
     columns:
       - {key: audited_on, label: Audited on, type: date, required: true}
       - {key: period, label: Period covered, type: text, required: true}

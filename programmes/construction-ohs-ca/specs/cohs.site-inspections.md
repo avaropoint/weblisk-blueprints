@@ -13,6 +13,7 @@ satisfies:
   - isnetworld:ISN-SAFE-10
 
 requires: [cohs.jhsc]
+template: site-inspection
 
 declares:
   obligation:

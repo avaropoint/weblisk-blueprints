@@ -13,6 +13,7 @@ satisfies:
   - iso_45001:7.3
 
 requires: [cohs.constructor-duties]
+template: worker-orientation
 
 declares:
   obligation:
@@ -42,6 +43,20 @@ declares:
     layout: form
     review: required
     approvers: [health-safety-lead]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        O. Reg. 297/13 s. 4 requires the employer to maintain a record of the
+        awareness training its workers and supervisors have completed, and to provide
+        written proof on request — including a request made after the worker has
+        stopped working for the employer. It prescribes no keeping period
+      reason: >
+        Seven years is this organisation's. The duty to produce written proof
+        outlives the working relationship, and the record has to outlive the duty:
+        whether a worker was oriented and held awareness training before being let
+        onto the project is asked by an inspector on the day and by a court years
+        afterwards.
     columns:
       - {key: checked_on, label: Checked on, type: date, required: true}
       - {key: project, label: Project, type: relation, required: true,

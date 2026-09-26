@@ -56,6 +56,15 @@ declares:
     layout: form
     review: required
     approvers: [senior-management]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >
+        No retention period is prescribed for a carrier's collision review.
+        Seven years is this organisation's, chosen against the period over which
+        a civil claim arising from a collision may still be brought and
+        defended, and long enough to outlive the CVOR record's own window.
+      reason: The review is the organisation's own account of what it knew and what it changed, and it is asked for years later by somebody else's lawyer.
     columns:
       - {key: collision, label: Collision, type: relation, required: true,
          target: /registers/collisions.md#records, display: reference}
@@ -92,14 +101,6 @@ declares:
                    "Removed from driving duties", "Handled as a personnel matter outside this record",
                    Not yet determined]}
       - {key: closed_on, label: Closed on, type: date}
-    retention:
-      keep: 7y
-      authority: >
-        No retention period is prescribed for a carrier's collision review.
-        Seven years is this organisation's, chosen against the period over which
-        a civil claim arising from a collision may still be brought and
-        defended, and long enough to outlive the CVOR record's own window.
-      reason: The review is the organisation's own account of what it knew and what it changed, and it is asked for years later by somebody else's lawyer.
 ---
 
 What this document must establish for THIS organisation: who reviews a

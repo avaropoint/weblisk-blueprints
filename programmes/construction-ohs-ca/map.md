@@ -222,6 +222,15 @@ artifacts:
   - { id: cohs.hot-work-permits, tier: conformant }
   - { id: cohs.return-to-work, tier: conformant }
   - { id: cohs.management-review, tier: conformant }
+  # From the records-management programme. An OHS programme in Ontario keeps
+  # records it does not choose the keeping period for — asbestos exposure
+  # records outlive most of the people named on them, and training and
+  # first-aid records have their own periods — and twenty-one artifacts here
+  # produced records against no stated rule for keeping or destroying any of
+  # them. Placed rather than restated: a second records policy written here
+  # is a second one to keep in step.
+  - { id: rec.policy, tier: conformant }
+  - { id: rec.retention-schedule, tier: conformant }
   # ── certifiable: it audits itself and produces what is asked for ───────────
   - { id: cohs.ohsms-audit, tier: certifiable }
   - { id: cohs.safety-statistics, tier: certifiable }

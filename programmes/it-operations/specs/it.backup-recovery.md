@@ -19,6 +19,12 @@ satisfies:
   - soc2:A1.2
 
 requires: [it.asset-register]
+# The procedure says what the organisation does; the profile is where the
+# per-system answer lives — recovery point, recovery time, where the copy
+# beyond the administrator's reach is, and who confirms the contents. The
+# restore-test register records that a test happened; without the profile,
+# every test begins by somebody deciding again what "correct" would look like.
+template: system-recovery-profile
 
 declares:
   obligation:

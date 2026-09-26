@@ -56,6 +56,7 @@ declares:
     approvers: [environmental-lead]
     retention:
       keep: 7y
+      from: modified
       authority: O. Reg. 406/19 s. 28 (1) — every document and record created or acquired under the Regulation is retained for at least seven years after it is created or acquired. Section 28 (4) sets a shorter period of two years for the hauling records themselves, measured from when the soil was loaded
       reason: >
         Two periods, deliberately not blended. The hauling records are kept for

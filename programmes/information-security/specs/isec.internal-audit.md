@@ -39,6 +39,17 @@ declares:
     layout: form
     review: required
     approvers: [senior-management]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        ISO/IEC 27001:2022 clause 9.2.2 requires the audit programme and its results
+        to be retained as documented information, and prescribes no period
+      reason: >
+        Seven years is this organisation's, chosen to span two full three-year
+        certification cycles plus the two-year basic limitation period in the
+        Limitations Act, 2002 s. 4, and matched to the records management audit so
+        the two internal audits are never kept for different lengths of time.
     columns:
       - {key: audited_on, label: Audited on, type: date, required: true}
       - {key: scope, label: Scope audited, type: longtext, required: true}

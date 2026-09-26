@@ -44,6 +44,17 @@ declares:
     layout: form
     review: required
     approvers: [health-safety-lead]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        ISO 45001 cl. 10.2 requires evidence of corrective action and its results to
+        be retained, and prescribes no period
+      reason: >
+        Seven years is this organisation's, matched to every other record in the
+        incident chain so that a finding, the action it produced and the check that
+        the action worked are never kept for different lengths of time. A chain kept
+        in unequal parts breaks at its shortest link.
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: reviewed_by, label: Reviewed by, type: user, required: true}

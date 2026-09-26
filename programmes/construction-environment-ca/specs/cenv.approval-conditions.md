@@ -56,6 +56,7 @@ declares:
     approvers: [environmental-lead]
     retention:
       keep: 5y
+      from: modified
       authority: O. Reg. 63/16 requires records relating to an activity registered in the Environmental Activity and Sector Registry to be retained for five years
       reason: >
         Five years is the prescribed period for the instrument with the most

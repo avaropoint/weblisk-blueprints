@@ -37,6 +37,18 @@ declares:
     layout: form
     review: required
     approvers: [contract-administrator]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        No provision of the Construction Act prescribes how long a record of
+        insurance placed for a project is kept
+      reason: >
+        Seven years is this organisation's, matched to the rest of this programme.
+        What this row proves is that cover was in force on a particular day, and that
+        is asked when a loss on a finished project surfaces years later — commonly
+        after the policy has lapsed, the broker has changed and the certificate is
+        the only evidence left that the project was insured at all.
     columns:
       - {key: policy_number, label: Policy renewed, type: relation, required: true,
          target: /registers/insurance-certificates.md#records, display: policy_number}

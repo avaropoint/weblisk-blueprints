@@ -24,6 +24,20 @@ register:
     `retention_rule` points at a class in the retention schedule rather than
     repeating a period, so that the schedule stays the single place a keeping
     period is decided.
+  retention:
+    keep: 7y
+    from: modified
+    authority: >-
+      Nothing prescribes how long the inventory itself is kept. This is the
+      keeping period of the inventory row, not of the information it describes:
+      that is what `retention_rule` points at, and the retention schedule remains
+      the single place a period for personal information is decided
+    reason: >
+      Seven years is this organisation's, and it is deliberately longer than the
+      reviews that run over it. The inventory is the only record of what was held,
+      about whom and on what basis at a given time, and a complaint, a breach
+      assessment or an access request is all argued against what was true then
+      rather than what is true now.
   columns:
     - {key: reference, label: Reference, type: text, required: true}
     - {key: information, label: Information held, type: longtext, required: true}

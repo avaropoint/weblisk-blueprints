@@ -53,6 +53,7 @@ declares:
     approvers: [environmental-lead]
     retention:
       keep: 7y
+      from: modified
       authority: O. Reg. 63/16 requires records relating to a registered activity to be kept for five years. O. Reg. 406/19 s. 28 (1) sets seven years for records created under that Regulation
       reason: >
         Seven years is this organisation's, chosen as the longer of the two so

@@ -41,6 +41,11 @@ artifacts:
   - {id: rec.classification, tier: conformant}
   # ── certifiable ────────────────────────────────────────────────────────────
   - {id: rec.vital-records, tier: certifiable}
+  # The standard says which records the business could not be reconstructed
+  # without; nothing said how one is actually got back, by somebody who may
+  # have no office and no password manager. The verification already counts
+  # classes retrieved in a test — this is what a test follows.
+  - {id: rec.vital-records-recovery, tier: certifiable}
   - {id: rec.audit, tier: certifiable}
 ---
 

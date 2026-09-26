@@ -38,6 +38,21 @@ declares:
     layout: form
     review: required
     approvers: [project-manager]
+    retention:
+      keep: 40y
+      from: modified
+      authority: >-
+        OHSA s. 30 requires the owner to determine the designated substances present
+        and the constructor to pass the list to every prospective contractor before a
+        binding contract. Neither OHSA nor the designated substances regulation
+        prescribes a keeping period for the record that it was done
+      reason: >
+        Forty years is this organisation's, matched to the asbestos work report for
+        one reason: this row is the evidence of what a worker could have been exposed
+        to on a project, and that question is asked on the same timescale as the
+        disease. A list received and passed on in 2026 is what answers a claim in
+        2056; the civil liability for failing to do either attaches to the
+        organisation, and only this record separates the two failures.
     columns:
       - {key: project_id, label: Project, type: relation, required: true,
          target: /registers/projects.md#records, display: project_id}

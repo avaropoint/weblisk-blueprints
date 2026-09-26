@@ -41,6 +41,21 @@ declares:
     layout: form
     review: required
     approvers: [health-safety-lead]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        OHSA s. 51(1) requires a written report within forty-eight hours of a death
+        or critical injury, and ss. 52 and 53 set the other notices. WSIA s. 21
+        requires the employer's report of an injury to the Board. None of them
+        prescribes how long the employer's own record of having given notice is kept
+      reason: >
+        Seven years is this organisation's. Whether a notice was given, to whom and
+        when is the first question after a serious injury and the hardest one to
+        answer late: the recipients keep their own copies on their own schedules, and
+        the only record of the whole set is this one. A compensation claim arising
+        from the same injury can be reopened well beyond the year in which a
+        prosecution could have been brought.
     columns:
       - {key: reference, label: Event, type: relation, required: true,
          target: /registers/notifiable-events.md#records, display: reference}

@@ -13,6 +13,11 @@ satisfies:
   - ohrc_ontario:46.3
 
 requires: [emp.violence-harassment]
+# The report an inspector or a tribunal reads to decide whether the
+# investigation was appropriate in the circumstances. Drafted fresh each
+# time, the section that gets left out is the one the Act is explicit about:
+# both parties informed of the results in writing.
+template: workplace-complaint-investigation
 
 declares:
   obligation:
@@ -44,6 +49,21 @@ declares:
     layout: form
     review: required
     approvers: [senior-management]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        OHSA s. 32.0.7 requires an investigation appropriate in the circumstances and
+        written results to both parties, and prescribes no keeping period for the
+        investigation record
+      reason: >
+        Seven years is this organisation's, matched to the policy review record so
+        that a complaint and the policy it was decided under are never kept for
+        different lengths of time. It is also the record that shows whether a pattern
+        was visible before the complaint that made it undeniable. The period is a
+        ceiling as much as a floor: these rows name individuals, and PIPEDA Schedule
+        1 cl. 4.5.3 requires personal information no longer needed to be destroyed,
+        so seven years is where the duty to be able to answer stops.
     columns:
       - {key: reference, label: Complaint, type: relation, required: true,
          target: /registers/workplace-complaints.md#records, display: reference}

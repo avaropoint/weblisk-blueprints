@@ -32,6 +32,18 @@ declares:
     layout: form
     review: required
     approvers: [records-manager]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        No statute prescribes a period for the verification that vital records are
+        recoverable. ISO 22301 8.2.2 requires the analysis to be retained and sets no
+        term
+      reason: >
+        Seven years is this organisation's, matched to the records audit so that both
+        halves of the same annual question — what is held, and whether what matters
+        could be recovered — are kept together. What the verification is worth is the
+        trend across years, which a shorter period destroys.
     columns:
       - {key: verified_on, label: Verified on, type: date, required: true}
       - {key: verified_by, label: Verified by, type: user, required: true}

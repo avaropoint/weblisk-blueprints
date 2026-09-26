@@ -43,6 +43,17 @@ declares:
       omit and the only one that distinguishes an action taken from a problem
       solved: an action closed on time whose hazard recurred twice is a finding
       about the action, not a success.
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        ISO 45001 cl. 10.2 requires evidence of the action taken and of its
+        effectiveness to be retained, and prescribes no period
+      reason: >
+        Seven years is this organisation's, matched to the investigation record the
+        action arises from. The value of a corrective action record is its
+        effectiveness column read across years: an action closed on time whose hazard
+        recurred twice is only visible if both recurrences are still on file.
     columns:
       - {key: reference, label: Reference, type: text, required: true}
       - {key: arose_from, label: Arose from, type: select, required: true,

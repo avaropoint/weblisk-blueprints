@@ -16,7 +16,7 @@ satisfies:
   - can_ciosc_104:CIOSC-L1-16
   - soc2:CC9.2
 
-requires: [isec.supplier-register]
+requires: [isec.supplier-policy, isec.supplier-register]
 
 declares:
   obligation:

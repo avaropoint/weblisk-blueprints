@@ -14,6 +14,12 @@ satisfies:
   - iso_45001:5.1
   - iso_45001:5.2
   - cor_2020:COR-01
+  # COR-17 is reporting, recording and investigating — and the half of it
+  # that only a policy can carry is the commitment: that a near miss is
+  # reported at all, and that reporting one costs the reporter nothing. The
+  # procedures answer the rest. Written nowhere, the programme had three
+  # incident procedures and no position for them to be consistent with.
+  - cor_2020:COR-17
   - isnetworld:ISN-SAFE-03
 
 declares:
@@ -54,6 +60,20 @@ representatives are consulted about decisions that affect their safety. It must
 name the roles that carry authority for the programme by position, never by
 person, because every obligation in the rest of the programme is assigned to a
 position and an unfilled position is a finding.
+
+It must state the organisation's position on **reporting**: that every
+injury, illness, incident and near miss is reported, to whom, and how
+quickly — and that nobody is disadvantaged for reporting one, for raising a
+hazard, or for refusing unsafe work. This is the commitment the incident
+procedures rest on and it cannot live in them: a procedure can describe the
+reporting route, and only the policy can be the promise that using it is
+safe. An organisation whose near-miss numbers are low has either an
+unusually good year or a reporting culture it has never committed to in
+writing, and it cannot tell which.
+
+It must say that management will act on what is reported, and what a worker
+should expect to hear back. Reports that vanish teach the workforce not to
+make them, and the learning is permanent.
 
 It is the parent document: every other artifact in this programme inherits its
 scope from here, so a vague scope here produces procedures that quietly disagree

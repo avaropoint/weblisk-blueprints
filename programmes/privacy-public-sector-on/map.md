@@ -35,6 +35,11 @@ artifacts:
   - {id: isec.policy, tier: conformant}
   - {id: isec.classification, tier: conformant}
   - {id: isec.access-control, tier: conformant}
+  # FM-02 and FM-12 put the clauses in the contract; nothing said what the
+  # institution is willing to send outside itself in the first place, or who
+  # may decide. Placed rather than restated, as the other security artifacts
+  # here are.
+  - {id: isec.supplier-policy, tier: conformant}
   - {id: isec.supplier-register, tier: conformant}
   - {id: isec.supplier-security, tier: conformant}
   - {id: rec.policy, tier: conformant}

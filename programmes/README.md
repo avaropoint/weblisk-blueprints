@@ -304,6 +304,21 @@ separates a defensible period from a habit. It is placed into five other
 programmes rather than restated, so a change to a keeping period reaches every
 programme that depends on it.
 
+## The domains a programme claims
+
+A map's `domains:` names the subject areas the programme operates in. Each of
+those words is defined in [`../policy-domains/`](../policy-domains/README.md),
+which says what the subject covers, where it stops relative to its neighbours,
+and — the part that has teeth — **what a programme claiming it must provide**.
+
+Nothing there declares that a domain exists; the policy-domain catalogue does
+that. And nothing there is enforced: a claim that is unanswered, or a domain
+short of what it requires, is **named** rather than refused. A deliberately
+narrow programme is a legitimate choice, and a rule that cannot be declined
+gets exempted rather than met.
+
+`studio domains -corpus .` reports the whole matrix.
+
 ## The positions a programme names
 
 An obligation's `responsible`, an `escalate.to`, a register's `approvers` and an

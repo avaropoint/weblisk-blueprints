@@ -54,6 +54,14 @@ declares:
     layout: form
     review: required
     approvers: [maintenance-lead]
+    retention:
+      keep: 2y
+      from: modified
+      authority: >
+        The operator keeps the inspection certificate or report. No period is
+        stated in Reg. 611 for the operator's own copy; two years is this
+        organisation's, set to cover a facility audit's review period.
+      reason: This is the document a facility audit asks for first, and the one most often missing for a vehicle acquired mid-year.
     columns:
       - {key: vehicle, label: Vehicle, type: relation, required: true,
          target: /registers/vehicles.md#records, display: unit_number}
@@ -75,13 +83,6 @@ declares:
       - {key: register_updated, label: The vehicle register has been updated with the new expiry, type: bool, required: true}
       - {key: cost, label: Cost, type: currency}
       - {key: attachment, label: Inspection certificate, type: attachment}
-    retention:
-      keep: 2y
-      authority: >
-        The operator keeps the inspection certificate or report. No period is
-        stated in Reg. 611 for the operator's own copy; two years is this
-        organisation's, set to cover a facility audit's review period.
-      reason: This is the document a facility audit asks for first, and the one most often missing for a vehicle acquired mid-year.
 ---
 
 What this document must establish for THIS organisation: who books the annual

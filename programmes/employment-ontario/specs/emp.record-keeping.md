@@ -33,6 +33,19 @@ declares:
     layout: form
     review: required
     approvers: [hr-lead]
+    retention:
+      keep: 5y
+      from: modified
+      authority: >-
+        Employment Standards Act, 2000 s. 15 requires the records it lists to be
+        retained for three years, and five years for vacation records. The Act
+        prescribes nothing for the employer's own check that it did so
+      reason: >
+        Five years is this organisation's, set to the longest period the Act imposes
+        on the records being checked rather than the shortest. A check kept for three
+        years expires at the same moment as most of what it verified, which leaves
+        the organisation with neither the record nor the evidence that the record was
+        ever there.
     columns:
       - {key: checked_on, label: Checked on, type: date, required: true}
       - {key: checked_by, label: Checked by, type: user, required: true}

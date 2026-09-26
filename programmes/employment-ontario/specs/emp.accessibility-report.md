@@ -38,6 +38,19 @@ declares:
     layout: form
     review: required
     approvers: [senior-management]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        The Accessibility for Ontarians with Disabilities Act, 2005 requires the
+        accessibility report to be filed with the Director on the prescribed
+        schedule and made available to the public. Neither the Act nor the IASR
+        prescribes how long the organisation's own copy is kept
+      reason: >
+        Seven years is this organisation's, matched to the accessibility training
+        record so the filed report and the evidence behind it are kept together, and
+        long enough to hold two full reporting cycles — what a report says has been
+        achieved is judged against what the last one said.
     columns:
       - {key: year, label: Year, type: text, required: true}
       - {key: employees, label: Employees in Ontario, type: int, required: true}

@@ -37,6 +37,17 @@ declares:
     layout: form
     review: required
     approvers: [information-security-lead]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        ISO/IEC 27001:2022 A.6.3 requires awareness, education and training and
+        prescribes no keeping period for the record of a cycle
+      reason: >
+        Seven years is this organisation's. Whether somebody was trained, on what,
+        and whether the cycle reached them is asked after an incident that the
+        training was supposed to prevent — and the answer has to cover the years
+        before the incident, not only the current cycle.
     columns:
       - {key: delivered_on, label: Delivered on, type: date, required: true}
       - {key: audience, label: Audience, type: text, required: true}

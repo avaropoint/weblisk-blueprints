@@ -174,6 +174,13 @@ artifacts:
   - { id: cenv.approval-conditions, tier: defensible }
   - { id: cenv.approval-renewal, tier: defensible }
   - { id: cenv.compliance-review, tier: defensible }
+  # From the records-management programme. "Defensible" is a claim about
+  # records three years later, and the programme had no statement of what is
+  # kept, for how long, or on whose authority — the soil registry filings and
+  # the approval correspondence are the evidence, and evidence with no
+  # keeping rule is evidence somebody may already have thrown away.
+  - { id: rec.policy, tier: defensible }
+  - { id: rec.retention-schedule, tier: defensible }
 ---
 
 Eighteen artifacts for an Ontario general contractor that excavates — which is

@@ -41,6 +41,20 @@ declares:
     layout: form
     review: required
     approvers: [information-security-lead]
+    retention:
+      keep: 3y
+      from: modified
+      authority: >-
+        Nothing prescribes how long the record of a log review is kept. ISO/IEC
+        27001:2022 A.8.15 requires logs to be produced, stored and protected and
+        sets no term; CIS Controls v8 8.10 sets ninety days as the floor for the
+        audit logs themselves
+      reason: >
+        Three years is this organisation's, and it is deliberately far longer than
+        the logs it reviews. An intrusion is usually discovered after the logs have
+        rolled off, and by then the monthly review — how many sources were expected,
+        how many had gone quiet, what was investigated — is the only contemporaneous
+        account of what the organisation could see at the time.
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: period, label: Period covered, type: text, required: true}

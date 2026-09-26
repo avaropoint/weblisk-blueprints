@@ -17,7 +17,7 @@ satisfies:
   - ohrc_ontario:5(2)
   - ohrc_ontario:7(2)
 
-requires: [emp.human-rights]
+requires: [emp.violence-harassment-policy, emp.human-rights]
 approved_by: [senior-management]
 
 declares:
@@ -42,6 +42,22 @@ declares:
     layout: form
     review: required
     approvers: [senior-management]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        OHSA ss. 32.0.1(1)(c) and 32.0.7(1)(c) require the policies and the
+        harassment programme to be reviewed at least annually, and prescribe no
+        keeping period for the record of the review
+      reason: >
+        Seven years is this organisation's. OHSA s. 69(2) bars a prosecution more
+        than a year after the act complained of, but that is the shortest of the
+        clocks that matter: an application to the Human Rights Tribunal may be
+        brought within a year of the last incident under Code s. 34(1) and then runs
+        for years, and a civil claim runs two years from discovery under the
+        Limitations Act, 2002 s. 5. What is asked in all three is whether a current,
+        reviewed policy was in force on the date complained of, and only this record
+        answers that.
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: reviewed_by, label: Reviewed by, type: user, required: true}

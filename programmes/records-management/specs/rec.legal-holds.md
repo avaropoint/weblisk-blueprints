@@ -24,6 +24,20 @@ register:
     `review_due` drives the review obligation, because a hold that outlives its
     matter is its own problem: it defeats the retention schedule, and an
     organisation with eleven-year-old holds is keeping everything by accident.
+  retention:
+    keep: 15y
+    from: modified
+    authority: >-
+      No statute prescribes a period. The duty to preserve arises at common law
+      when a proceeding is reasonably foreseeable, and the Limitations Act, 2002
+      s. 15 bars a claim fifteen years after the act or omission it is based on
+    reason: >
+      When a preservation obligation began, what it covered and who was told are
+      asked long after the matter closes, usually by somebody alleging that
+      something was destroyed after the duty arose. A released hold stays on the
+      register for the same reason. Fifteen years is this organisation's, matched to
+      the disposition record so that the hold and the disposal it prevented are
+      never kept for different lengths of time.
   columns:
     - {key: reference, label: Reference, type: text, required: true}
     - {key: matter, label: Matter, type: text, required: true}

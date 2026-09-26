@@ -35,6 +35,18 @@ declares:
     layout: form
     review: required
     approvers: [records-manager]
+    retention:
+      keep: 15y
+      from: modified
+      authority: >-
+        No statute prescribes a period for the review of a preservation hold. Matched
+        to the Legal Hold Register, whose period is taken from the Limitations Act,
+        2002 s. 15
+      reason: >
+        A review record is only useful beside the hold it reviews — it is what shows
+        the custodian list was kept current rather than issued once — so keeping the
+        two for different lengths would leave a hold on file with its reviews
+        disposed of.
     columns:
       - {key: reference, label: Hold, type: relation, required: true,
          target: /registers/legal-holds.md#records, display: matter}

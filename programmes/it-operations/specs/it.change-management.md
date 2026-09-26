@@ -14,6 +14,17 @@ satisfies:
   - soc2:CC8.1
 
 requires: [it.asset-register]
+# The form was shipped with this programme and named by nothing, so every
+# change request began with somebody deciding again what a change request
+# contains — including whether it asks about security and privacy impact,
+# which is the section that gets left out.
+template: change-request
+
+# A.8.32 requires changes to be assessed for their security consequences
+# before they are made, so the security lead is an adopter of this procedure
+# and not merely a reader of it. The IT manager runs the changes and cannot
+# be the position that accepts the method by which they are controlled.
+approved_by: [information-security-lead, senior-management]
 
 declares:
   obligation:

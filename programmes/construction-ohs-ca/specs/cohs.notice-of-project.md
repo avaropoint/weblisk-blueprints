@@ -40,6 +40,20 @@ declares:
     layout: form
     review: required
     approvers: [constructor-representative]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        O. Reg. 213/91 ss. 6, 7 and 7.1 require the notice of project and the other
+        prescribed notifications to be filed before work begins, and require a copy
+        of the notice to be kept at the project while the work continues. No
+        provision says how long it is kept after the project ends
+      reason: >
+        Seven years is this organisation's, and the whole question is what happens
+        after the site closes — the regulation's own duty expires with the project
+        and the exposure does not. Whether the notice was filed, and what it said the
+        work was, is asked by an inspector during the job and by a court long after
+        the hoarding has come down.
     columns:
       - {key: project_id, label: Project, type: relation, required: true,
          target: /registers/projects.md#records, display: project_id}

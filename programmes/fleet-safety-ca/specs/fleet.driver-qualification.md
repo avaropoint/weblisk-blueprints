@@ -18,6 +18,11 @@ satisfies:
   - iso_45001:7.2
 
 requires: [fleet.policy, fleet.drivers]
+# The file itself. NSC Standard 7 expects a profile per driver and a facility
+# audit asks for five of them by name; the programme described the annual
+# review and never said what the file contains, so each carrier's first file
+# was drafted from memory and no two were comparable.
+template: driver-qualification-file
 
 declares:
   obligation:
@@ -60,6 +65,14 @@ declares:
     layout: form
     review: required
     approvers: [fleet-manager]
+    retention:
+      keep: 2y
+      from: modified
+      authority: >
+        No retention period is prescribed for a carrier's driver file in
+        Ontario. Two years is this organisation's, set to cover a facility
+        audit's review period and to run past the end of an employment.
+      reason: A driver abstract carries personal information; keeping it longer than it is needed is its own exposure.
     columns:
       - {key: driver, label: Driver, type: relation, required: true,
          target: /registers/drivers.md#records, display: driver_id}
@@ -91,13 +104,6 @@ declares:
                    Not yet determined]}
       - {key: actions, label: Actions, with owners and dates, type: longtext}
       - {key: next_review, label: Next review due, type: date}
-    retention:
-      keep: 2y
-      authority: >
-        No retention period is prescribed for a carrier's driver file in
-        Ontario. Two years is this organisation's, set to cover a facility
-        audit's review period and to run past the end of an employment.
-      reason: A driver abstract carries personal information; keeping it longer than it is needed is its own exposure.
 ---
 
 What this document must establish for THIS organisation: how somebody becomes

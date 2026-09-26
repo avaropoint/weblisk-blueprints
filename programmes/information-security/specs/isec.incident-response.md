@@ -18,7 +18,7 @@ satisfies:
   - can_ciosc_104:CIOSC-L1-01
   - soc2:CC7.3
 
-requires: [isec.policy]
+requires: [isec.incident-policy]
 template: security-incident-report
 
 declares:
@@ -50,6 +50,22 @@ declares:
     layout: form
     review: required
     approvers: [information-security-lead]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        ISO/IEC 27001:2022 A.5.27 requires what is learned from an incident to be
+        used and prescribes no keeping period. Where personal information is
+        involved there is a floor: s. 6 of the Breach of Security Safeguards
+        Regulations under PIPEDA requires the record of the breach to be kept for
+        twenty-four months after the day the organisation determines it occurred
+      reason: >
+        Twenty-four months is a floor that applies only to breaches of personal
+        information, and reading it as the schedule would dispose of every other
+        investigation two years after the fact. Seven years is this organisation's:
+        an investigation's root cause is the evidence of whether a later, similar
+        incident was foreseeable, and that question is put by a regulator, an insurer
+        or a plaintiff long after the twenty-four months have run.
     columns:
       - {key: reference, label: Incident, type: relation, required: true,
          target: /registers/security-incidents.md#records, display: reference}

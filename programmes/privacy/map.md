@@ -57,7 +57,14 @@ artifacts:
   - {id: isec.policy, tier: conformant}
   - {id: isec.classification, tier: conformant}
   - {id: isec.access-control, tier: conformant}
+  # A processor is a security decision and a privacy one. The service-provider
+  # procedure says how a provider is assessed; this says what may be given to
+  # one at all, and who may decide — principle 1 holds the organisation
+  # accountable for information it has transferred, and accountability with
+  # no named decision-maker is a sentence.
+  - {id: isec.supplier-policy, tier: conformant}
   - {id: isec.security-incidents, tier: conformant}
+  - {id: isec.incident-policy, tier: conformant}
   - {id: isec.incident-response, tier: conformant}
   # ── certifiable ────────────────────────────────────────────────────────────
   - {id: priv.casl, tier: certifiable}

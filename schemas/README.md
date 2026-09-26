@@ -60,7 +60,7 @@ This applies to:
 | [compliance.md](compliance.md) | Compliance levels, validation, enforcement, security boundaries | Every blueprint |
 | [config.md](config.md) | Hub configuration file (`.weblisk/config.yaml`) | Every project |
 | [agent.md](agent.md) | Infrastructure agent blueprints | `agents/` directory |
-| [domain.md](domain.md) | Domain controller blueprints | Domain YAML specs in project `domains/` |
+| [domain.md](domain.md) | Domain **controller** blueprints — an agent process owning a business function. **Not** a policy domain; see [policy-domain.md](policy-domain.md) | Domain YAML specs in project `domains/` |
 | [protocol.md](protocol.md) | Wire protocol specifications | `protocol/` directory |
 | [pattern.md](pattern.md) | Cross-cutting patterns | `patterns/` directory |
 | [architecture.md](architecture.md) | System architecture components | `architecture/` directory |
@@ -68,6 +68,8 @@ This applies to:
 | [framework.md](framework.md) | Framework blueprints — what building *with* a framework requires | `frameworks/<name>/` directories |
 | [standard.md](standard.md) | Industry standards — ISO, SOC 2, NIST, CSA — as JSON | `standards/` directory |
 | [programme.md](programme.md) | Programmes — which artifacts a body of work requires, what each answers, and the recurring work it commits an organisation to | `programmes/` directory |
+| [position.md](position.md) | Positions — the hand-written judgement a role brief cannot derive | `positions/` directory |
+| [policy-domain.md](policy-domain.md) | Policy domains — what a subject area covers, where it stops, and what a programme claiming it must provide | `policy-domains/` directory |
 | [kinds.md](kinds.md) | What sorts of thing the platform can talk about, what each drives, and which relations join them | Every tool that classifies, relates or scores content |
 
 ### kinds.md is different from the others
@@ -98,6 +100,8 @@ common.md (inherited by all)
 ├── framework.md (frameworks/<name>/ — building WITH a framework)
 ├── standard.md (standards/ — industry standards, as JSON)
 ├── programme.md (programmes/ — programme maps and artifact specifications)
+├── position.md (positions/ — the hand-written half of a role brief)
+├── policy-domain.md (policy-domains/ — what a subject area covers and requires)
 └── kinds.md (what sorts of thing exist — read at runtime, not checked against a document)
 ```
 

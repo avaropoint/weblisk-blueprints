@@ -40,6 +40,11 @@ artifacts:
   - {id: emp.human-rights, tier: essential}
   - {id: emp.accommodation-requests, tier: essential}
   - {id: emp.accommodation, tier: essential}
+  # s. 32.0.1 requires POLICIES, signed and posted; ss. 32.0.2 and 32.0.6
+  # require PROGRAMMES that implement them. The programme was here and the
+  # policies were not, so the duty that is discharged by a signature nobody
+  # had given was being reported as met by a procedure.
+  - {id: emp.violence-harassment-policy, tier: essential}
   - {id: emp.violence-harassment, tier: essential}
   - {id: emp.workplace-complaints, tier: essential}
   - {id: emp.complaint-investigation, tier: essential}

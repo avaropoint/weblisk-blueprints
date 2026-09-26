@@ -9,6 +9,11 @@ satisfies:
   - ohsa_ontario:25(2)(j)
   - ohsa_ontario:25(2)(k)
   - cor_2020:COR-01
+  # COR-17's policy half. The reporting duties in this programme are
+  # statutory and sit in procedures; what the statute does not supply is the
+  # employer's own commitment that a near miss on a project is reported at
+  # all, and that s. 50 is meant rather than merely quoted.
+  - cor_2020:COR-17
   - iso_45001:5.1
   - iso_45001:5.2
   - isnetworld:ISN-SAFE-03
@@ -75,6 +80,21 @@ employees" contradicts the statute in its first paragraph.
 It must name positions and never people, because every obligation in this
 programme is assigned to a position and an unfilled position is a finding rather
 than a blank.
+
+It must state the position on **reporting**, and this is where a construction
+policy is most often thin. Say that every injury, occupational illness,
+incident and near miss on a project is reported, to whom, and how quickly —
+including by workers of other employers on the project, who report to their
+own employer and to the constructor and are usually told neither. Say that
+a worker who reports a hazard, gives evidence, or refuses unsafe work will
+not be dismissed, disciplined, penalised, coerced or intimidated for it;
+s. 50 already says so, and a policy that leaves it to the statute has left
+the one commitment a worker on a short engagement needs to hear from their
+own employer. The statutory notices — a death or critical injury, a
+disabling accident, an occupational illness — are procedures elsewhere in
+this programme and must not be restated here; what belongs here is that
+nothing waits for them, and that a near miss with no notice duty at all is
+still reported.
 
 The annual review is a statutory duty under OHSA s. 25(2)(j) and the interval is
 the law's, not this organisation's. The exemption for a workplace where five or

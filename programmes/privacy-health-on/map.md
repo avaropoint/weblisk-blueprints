@@ -40,6 +40,13 @@ artifacts:
   - {id: phipa.access-audit, tier: conformant}
   - {id: phipa.annual-report, tier: conformant}
   - {id: isec.policy, tier: conformant}
+  # A privacy breach at a custodian is a security incident as well, and the
+  # decisions the PHIPA protocol cannot make for itself — who may declare
+  # one, who decides who is told, that reporting a suspected breach costs
+  # the reporter nothing, and that evidence survives the restore — were
+  # written nowhere. The notification TEST stays in PHIPA's own procedure;
+  # this supplies the authority to use it.
+  - {id: isec.incident-policy, tier: conformant}
   - {id: isec.classification, tier: conformant}
   - {id: isec.access-control, tier: conformant}
   - {id: rec.policy, tier: conformant}

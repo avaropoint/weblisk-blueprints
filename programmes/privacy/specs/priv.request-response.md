@@ -44,6 +44,21 @@ declares:
     layout: form
     review: required
     approvers: [privacy-officer]
+    retention:
+      keep: 3y
+      from: modified
+      authority: >-
+        PIPEDA s. 8(8) requires an organisation holding personal information that is
+        the subject of a request to retain it for as long as is necessary to allow
+        the individual to exhaust any recourse they have under Part 1. The Act fixes
+        the obligation to the recourse rather than to a number
+      reason: >
+        Three years is this organisation's, derived from the recourse the Act points
+        at rather than chosen freely: a response can be complained of to the
+        Commissioner, the complaint produces a report, and s. 14 then allows an
+        application to the Federal Court within a year of that report. Three years
+        covers that chain with room for the Commissioner's own timetable, which the
+        organisation does not control.
     columns:
       - {key: reference, label: Request, type: relation, required: true,
          target: /registers/privacy-requests.md#records, display: reference}

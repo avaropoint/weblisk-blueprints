@@ -36,6 +36,22 @@ declares:
     layout: form
     review: required
     approvers: [senior-management]
+    retention:
+      keep: 6y
+      from: modified
+      authority: >-
+        WSIA s. 80 requires a Schedule 1 employer to keep accurate records of all
+        wages paid, to keep them in Ontario and to produce them when the Board
+        requires it, on pain of an administrative penalty. The Act states the duty
+        and leaves the period to the Board, whose requirement is the current year and
+        the five before it
+      reason: >
+        Six years is that requirement written down — the current year plus five — and
+        it is the reconciliation, not only the payroll, that answers a Board audit:
+        the audit compares insurable earnings reported against actual payroll, which
+        is exactly what this row records. The Income Tax Act s. 230(4) independently
+        keeps the books of account behind it for six years from the end of the last
+        taxation year they relate to, so the two periods agree rather than compete.
     columns:
       - {key: reconciled_on, label: Reconciled on, type: date, required: true}
       - {key: account, label: Account number, type: text, required: true}

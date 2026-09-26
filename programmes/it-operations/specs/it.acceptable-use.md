@@ -10,6 +10,13 @@ satisfies:
   - iso_27001:A.8.1
   - iso_27001:A.8.23
   - iso_27001:A.6.2
+  # A.7.7 and A.7.9 are physical controls that are kept or broken by a person
+  # rather than by a building: locking a screen, clearing a desk, and looking
+  # after a laptop that goes home. They belong in the document every user
+  # acknowledges, not in the facilities procedure that covers perimeters,
+  # entry controls and cabling — a rule nobody signed is a rule nobody read.
+  - iso_27001:A.7.7
+  - iso_27001:A.7.9
   - can_ciosc_104:CIOSC-L1-08
   - cis_controls:4.8
   - soc2:CC1.1
@@ -68,6 +75,13 @@ Employment Standards Act to have a written policy on electronic monitoring that
 says whether it monitors, how, in what circumstances, and for what purposes —
 that policy is in the employment programme, and this one must agree with it. Two
 documents describing the same monitoring differently is worse than one.
+
+It must cover what happens away from the office, because that is where most
+of the equipment now is: locking a screen when leaving it, what may be left
+on a desk or a printer overnight, and what is expected of somebody carrying a
+laptop or a phone through an airport, a coffee shop or a client's site. Say
+what to do when one is lost or taken, and how quickly — the reporting delay
+is what decides whether a remote wipe is worth attempting.
 
 It must state the consequence of breaking it, and connect that to the
 disciplinary process that already exists rather than inventing a parallel one.

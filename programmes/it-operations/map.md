@@ -38,6 +38,10 @@ artifacts:
   - {id: it.acceptable-use, tier: essential}
   - {id: it.asset-register, tier: essential}
   - {id: it.endpoint-security, tier: essential}
+  # From the information security programme. The recovery objectives in the
+  # backup regime are only defensible if somebody agreed them: this is where
+  # they are agreed, and where the authority to declare a disruption sits.
+  - {id: isec.continuity-policy, tier: essential}
   - {id: it.backup-recovery, tier: essential}
   - {id: it.change-requests, tier: essential}
   - {id: it.change-management, tier: essential}
@@ -50,7 +54,21 @@ artifacts:
   - {id: isec.access-control, tier: essential}
   # ── conformant ─────────────────────────────────────────────────────────────
   - {id: it.access-provisioning, tier: conformant}
+  # From the information security programme. Account provisioning here
+  # reconciles monthly; the departure is the event that has to be acted on
+  # the same day, and the equipment comes back through the same piece of
+  # work as the account closure.
+  - {id: isec.departures, tier: conformant}
+  - {id: isec.departure-actions, tier: conformant}
+  # The intervals, the register they are recorded against, and the work that
+  # closes a finding by its own deadline. The monthly review counted
+  # `critical_overdue` against a deadline nothing declared, and every
+  # remediation failure was therefore found by a sweep, up to a month late
+  # by construction.
+  - {id: it.vulnerability-policy, tier: conformant}
   - {id: it.vulnerability-management, tier: conformant}
+  - {id: it.vulnerabilities, tier: conformant}
+  - {id: it.vulnerability-remediation, tier: conformant}
   - {id: it.remote-access, tier: conformant}
   - {id: it.software-approval, tier: conformant}
   # ── certifiable ────────────────────────────────────────────────────────────

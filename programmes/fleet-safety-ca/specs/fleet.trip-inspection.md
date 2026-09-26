@@ -58,6 +58,11 @@ declares:
       no report to make and no obligation to discharge; record that with
       `not_driven` rather than filing an inspection nobody did.
     layout: form
+    retention:
+      keep: 6m
+      from: modified
+      authority: O. Reg. 199/07 — the operator keeps the inspection reports for six months at the place where the vehicle is based
+      reason: The reports are the evidence a facility audit asks for; an operator that lets them travel with the vehicle has done the inspections and cannot show it.
     columns:
       - {key: reference, label: Report number, type: text, required: true}
       - {key: inspected_on, label: Date of inspection, type: date, required: true}
@@ -85,10 +90,6 @@ declares:
       - {key: vehicle_driven_after, label: The vehicle was driven after the inspection, type: bool, required: true}
       - {key: in_service_defects, label: Defects found or reported during the day, type: longtext}
       - {key: declaration, label: Signed by the person who conducted the inspection, type: signature, required: true}
-    retention:
-      keep: 6m
-      authority: O. Reg. 199/07 — the operator keeps the inspection reports for six months at the place where the vehicle is based
-      reason: The reports are the evidence a facility audit asks for; an operator that lets them travel with the vehicle has done the inspections and cannot show it.
 ---
 
 What this document must establish for THIS organisation: who inspects what,

@@ -57,6 +57,16 @@ declares:
     layout: form
     review: required
     approvers: [senior-management]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >
+        No retention period is prescribed for an abstract or for an operator's
+        review of it. Seven years is this organisation's, chosen so that the
+        record covers more than one full turn of the rolling window the Ministry
+        measures over, and so a conduct review can be answered with the
+        organisation's own contemporaneous reading of the same events.
+      reason: A conduct review examines a period the organisation can no longer change; what it can produce is evidence that it was watching.
     columns:
       - {key: obtained_on, label: Abstract obtained on, type: date, required: true}
       - {key: abstract_type, label: Kind of abstract, type: select, required: true,
@@ -87,15 +97,6 @@ declares:
                    Not yet determined]}
       - {key: actions, label: Actions decided, with owners and dates, type: longtext, required: true}
       - {key: next_review, label: Next review due, type: date}
-    retention:
-      keep: 7y
-      authority: >
-        No retention period is prescribed for an abstract or for an operator's
-        review of it. Seven years is this organisation's, chosen so that the
-        record covers more than one full turn of the rolling window the Ministry
-        measures over, and so a conduct review can be answered with the
-        organisation's own contemporaneous reading of the same events.
-      reason: A conduct review examines a period the organisation can no longer change; what it can produce is evidence that it was watching.
 ---
 
 What this document must establish for THIS organisation: that somebody orders

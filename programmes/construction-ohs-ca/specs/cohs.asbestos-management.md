@@ -35,6 +35,23 @@ declares:
     layout: form
     review: required
     approvers: [senior-management]
+    retention:
+      keep: 40y
+      from: modified
+      authority: >-
+        O. Reg. 278/05 s. 21 requires an asbestos work report for every worker in a
+        Type 2 or Type 3 operation at least once every twelve months and immediately
+        on termination, forwarded to the Provincial Physician with a copy to the
+        worker, and s. 22 puts that worker on the Asbestos Workers Register. Neither
+        section prescribes how long the employer's own copy is kept
+      reason: >
+        Forty years is this organisation's, and it is set against the disease rather
+        than against any limitation period. Asbestos-related disease has a latency
+        measured in decades: the report is the worker's occupational exposure history
+        and it is asked for at a point when the employer may no longer exist, by the
+        worker or by their estate. Every clock that runs from an act — prosecution,
+        contract, the basic limitation period — expires long before the illness
+        appears, so none of them is the right one to use here.
     columns:
       - {key: reported_on, label: Report submitted on, type: date, required: true}
       - {key: period_from, label: Period from, type: date, required: true}

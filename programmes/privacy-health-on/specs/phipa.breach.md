@@ -43,6 +43,19 @@ declares:
     review: required
     approvers: [privacy-officer, senior-management]
     approval_order: sequential
+    retention:
+      keep: 10y
+      from: modified
+      authority: >-
+        PHIPA prescribes no keeping period for the notification record. O. Reg.
+        329/04 s. 6.4 requires the previous year's breaches to be reported to the
+        Commissioner by 1 March, which fixes a minimum of the reporting cycle and no
+        maximum
+      reason: >
+        Ten years is this organisation's, matched to the access audit and to the
+        health record the breach concerns. A notification record is the only evidence
+        that the individual was told at the first reasonable opportunity, and that is
+        contested long after the year the statistics were filed for.
     columns:
       - {key: reference, label: Breach, type: relation, required: true,
          target: /registers/privacy-breaches.md#records, display: reference}

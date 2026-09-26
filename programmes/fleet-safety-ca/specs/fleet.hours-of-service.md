@@ -73,6 +73,15 @@ declares:
     layout: form
     review: required
     approvers: [fleet-manager]
+    retention:
+      keep: 6m
+      from: modified
+      authority: >
+        O. Reg. 555/06 and SOR/2005-313 — the operator keeps daily logs, time
+        records and supporting documents for six months. This audit is the
+        operator's own record of having looked at them and is kept on the same
+        clock so that the audit and the records it read expire together.
+      reason: An audit surviving the records it examined cannot be checked; records surviving no audit cannot show the operator monitored anything.
     columns:
       - {key: driver, label: Driver, type: relation, required: true,
          target: /registers/drivers.md#records, display: driver_id}
@@ -111,14 +120,6 @@ declares:
       - {key: findings, label: Findings, type: longtext, required: true}
       - {key: actions, label: Actions, with owners and dates, type: longtext}
       - {key: driver_spoken_to, label: The driver was spoken to about the findings, type: bool, required: true}
-    retention:
-      keep: 6m
-      authority: >
-        O. Reg. 555/06 and SOR/2005-313 — the operator keeps daily logs, time
-        records and supporting documents for six months. This audit is the
-        operator's own record of having looked at them and is kept on the same
-        clock so that the audit and the records it read expire together.
-      reason: An audit surviving the records it examined cannot be checked; records surviving no audit cannot show the operator monitored anything.
 ---
 
 What this document must establish for THIS organisation: which of its drivers

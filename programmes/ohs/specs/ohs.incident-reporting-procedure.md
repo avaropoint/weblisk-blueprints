@@ -50,6 +50,21 @@ declares:
     layout: form
     review: required
     approvers: [health-safety-lead]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        ISO 45001 cl. 10.2 requires evidence of the nature of incidents, the action
+        taken and the results to be retained, and prescribes no period. The
+        occupational health and safety statute of the jurisdiction the work is done
+        in sets one, and where it requires longer it governs
+      reason: >
+        Seven years is this organisation's. A workplace injury does not close when
+        the investigation does: it becomes a compensation claim that can be reopened,
+        a prosecution, or a civil action whose limitation period runs from discovery
+        rather than from the event. The investigation is the organisation's only
+        contemporaneous account of what it knew and what it changed, and it is asked
+        for by somebody else.
     columns:
       - {key: reference, label: Reference, type: text, required: true}
       - {key: investigated_on, label: Investigated on, type: date, required: true}

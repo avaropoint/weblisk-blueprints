@@ -52,6 +52,26 @@ declares:
     layout: form
     review: required
     approvers: [senior-management]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        Construction Act s. 8.1 requires a trustee of construction trust funds to
+        maintain written records of what was received into and paid out of them, and
+        s. 39 entitles a lien claimant, a trust beneficiary or a mortgagee to require
+        that information at any time. Neither provision prescribes a keeping period.
+        Income Tax Act s. 230(4) independently requires the books and records behind
+        these rows to be kept for six years from the end of the last taxation year
+        they relate to
+      reason: >
+        Seven years is this organisation's, a year past the six the Income Tax Act
+        fixes, because the tax clock and the construction clock do not run together.
+        A trust claim under Part II is personal against the directors who received
+        the funds, s. 39's duty to answer has no end date, and a claim arising from a
+        project is commonly brought near the end of its limitation period — by which
+        time a record kept only for the tax period is gone. The clock runs from the
+        last entry because the register is cumulative and the newest row governs the
+        file.
     columns:
       - {key: lien_id, label: Lien, type: relation, required: true,
          target: /registers/construction-liens.md#records, display: lien_id}

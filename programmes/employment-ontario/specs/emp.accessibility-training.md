@@ -38,6 +38,18 @@ declares:
     layout: form
     review: required
     approvers: [hr-lead]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        IASR (O. Reg. 191/11) ss. 7 and 80.49 require a record of the dates on which
+        training was provided and the number of participants, and prescribe no
+        keeping period
+      reason: >
+        Seven years is this organisation's, chosen to span two full three-year
+        accessibility reporting cycles. A Director may ask for the records behind a
+        filed report, and a record that expires with the cycle it belongs to cannot
+        answer a question about the cycle before it.
     columns:
       - {key: delivered_on, label: Delivered on, type: date, required: true}
       - {key: audience, label: Audience, type: text, required: true}

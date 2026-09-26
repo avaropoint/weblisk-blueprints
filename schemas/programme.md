@@ -108,7 +108,7 @@ One file per programme: `map.md`, at the programme's own root.
 |---|---|---|---|
 | `id` | string | **yes** | stable identifier. What everything else cites, and what an override replaces |
 | `title` | string | no | display name. Defaults to `id` |
-| `domains` | string[] | no | the policy domains this programme operates in — the same catalogue the classifier uses, so a programme is measurable through machinery that already exists |
+| `domains` | string[] | no | the policy domains this programme operates in — the same catalogue the classifier uses, so a programme is measurable through machinery that already exists. Each one is defined in [`../policy-domains/`](../policy-domains/README.md), which also states **what claiming it requires**; a claim on a domain nothing declares is reported, and so is a claim nothing answers |
 | `conforms_to` | string[] | no | the standard `id`s this programme is built to answer. **Context, not a constraint**: a programme with no framework at all is valid |
 | `tiers` | array | no | the progression, below |
 | `artifacts` | array | no | `{id, tier}` placements, below |
@@ -458,6 +458,13 @@ A `from` naming something other than creation or modification — the end of an
 employment, the closure of a project — is **accepted and reported as
 unresolvable until that event is recorded**, which keeps the record rather than
 disposing of it early.
+
+**A cumulative register counts from `modified`.** The engine resolves `from`
+against the register's file, and a register is one file that rows are appended
+to — so `created`, the default, starts the clock at the first row ever written
+and disposes of a file holding last month's records. Every declaration in the
+shipped corpus therefore says `from: modified`; the newest entry governs the
+file. `created` is right only for a document written once and never added to.
 
 ### Columns
 
@@ -883,10 +890,77 @@ The allow-list is `obligation.due_soon`, `obligation.overdue`,
 string because dispatching an agent emits events of its own: a job triggered on
 machine chatter re-triggers itself, forever, spending money each time.
 
+`register.row_added` is **not** in it, and may only be *counted* — see `when:`.
+It fires once for each row a save adds to a document whose frontmatter says
+`kind: register` (an incident, an inspection finding, a corrective action), and
+carries the register's path, the row's key and the row's columns. A row that is
+**edited** emits nothing: the question these events answer is what has happened,
+and a correction to last week's entry is not a new incident.
+
+Reacting to each one is refused for the reason the list exists. An agent can
+*write* a register row — it stages one, an approval lands it — so an operation
+subscribed to every row that records a corrective action records one, hears
+about it, and records another. `on:` also has no way to say *which* register, so
+"react to incidents" is unsayable; the closest is "react to every row in every
+register", which is the loop. A counted condition names the register and latches.
+
 A burst **coalesces** — a sweep that finds forty lapsed obligations emits forty
 events and the job runs once — and the instruction the agent receives says so.
 An agent that believed it was handling a single item would report on one of
 forty and read as complete.
+
+### `when` — reacting to HOW MUCH happened
+
+`on:` fires on each occurrence, which is right for a lapse and wrong for a
+pattern. *"Alert me any time more than one type of incident occurs across
+projects"* is not a list of event names at all: it needs a count, a count of
+**distinct** values, a **window**, and the **level** the counting pools at.
+
+```yaml
+when:
+  - event: register.row_added
+    where: {register: registers/incidents.md}
+    within: 7d
+    across: org
+    count: {distinct: type, at_least: 2}
+```
+
+| field | required | accepted |
+|---|---|---|
+| `event` | **yes** | any `on:` event, plus `register.row_added`. Nothing outside that closed set |
+| `where` | no | exact, case-insensitive matches against the event's fields. Empty counts every event of the type |
+| `within` | **yes** | `<n>h`, `<n>d`, `<n>w`, up to `90d` |
+| `across` | no | `project` (default) · `org` · `tenant` — the level events are pooled at |
+| `count.distinct` | no | an event field whose **distinct values** are counted, instead of the events |
+| `count.at_least` | **yes** | the threshold, inclusive. "More than one" is `2` |
+
+**It fires on the edge, once.** The moment the count crosses the threshold, and
+not again until the window has emptied back below it. A condition that
+re-announced the same pattern on every subsequent event is the alert people
+learn to filter — the same reasoning notices follow, where a stage is announced
+when it *advances* and not while it merely persists.
+
+That latch is also the loop guard. A register row can be written by an agent, so
+a job reacting to a row whose agent writes a row would otherwise re-trigger
+itself; a latched condition cannot, because the count only goes up.
+
+**`across` is not a way to see more than the operation's own scope.** An
+operation only ever observes events at or below where its programme is
+installed. `across` says how the events it can *already* see are bucketed —
+`org` pools every project together, `project` counts each one separately. An
+operation installed at a project that asks to count across its org is **refused
+at install**, naming the level, because the alternative is one project's events
+in an org-shaped bucket reporting a pattern it looked at a fraction of.
+
+**A condition that cannot be evaluated says so.** `distinct:` naming a field no
+event carries counts zero forever, and zero renders identically to "nothing
+happened". The installation emits one warning naming the operation, the field
+and the event type, and says the condition will never fire while that is true.
+
+**`within` is capped at 90d** because the installation remembers one observation
+per event for the whole window. A question about a year is a question about a
+trend, and a register's own counts answer that from its bytes with no state at
+all.
 
 ### The refusals
 
@@ -894,7 +968,9 @@ forty and read as complete.
 |---|---|
 | an operation with no `id`, or two with one `id` | a `does:` this build does not have |
 | neither `does:` nor `agent:`, or both | an `on:` event outside the allow-list |
-| no `schedule` and no `on:` | — |
+| no `schedule`, no `on:` and no `when:` | a `when.event` outside the allow-list |
+| a `when` with no `event`, a `within` that is not `<n><h\|d\|w>`, an `across` outside `project`/`org`/`tenant`, or a `count.at_least` below 1 | a `when.across` broader than the level the programme is installed at |
+| a `within` longer than `90d` | — |
 | a `cadence` outside the closed set | — |
 | `weekly` with no `weekday`; a missing or malformed `at`; `monthly` outside 1–31 | — |
 | a `needs:` capability outside the closed set | — |
@@ -945,9 +1021,15 @@ that [`kinds.md`](kinds.md) does not declare, and nothing reports it. Kinds are
 open data by design, so this may be correct; it is at least undecided, and an
 author should not read the silence as approval.
 
-**`retention` is declarable and unused.** No shipped pack declares one, so the
-path from a declared keeping period to a disposal date is exercised by tests
-rather than by content.
+**`retention` is declared on a minority of registers.** Measured across the
+shipped corpus: **71 of 204** registers declare a keeping period, every one of
+them with an `authority` and a `reason`, and no policy domain now reports
+`retention` as missing. The remaining 133 are the honest gap — they are
+overwhelmingly registers whose period is genuinely somebody else's to set, and
+an invented number on them would be worse than the absence. Where a period was
+declared against no citation, the `authority` says so in those words rather
+than naming a statute that does not exist.
+
 
 ---
 
@@ -967,12 +1049,15 @@ rather than by content.
 - [ ] Every obligation with `per:` records into a register carrying a relation column onto the subject register
 - [ ] Every `interval_basis` is `required` or `chosen`, and every interval the organisation picked itself says `chosen` — an interval with a citation beside it and no basis reads as imposed
 - [ ] Every `for.due` matches `<n><h|d|w> (after|before) <field>`, and `<field>` names a column of the trigger register
+- [ ] Every operation has a `schedule`, an `on:` or a `when:`; every `when.within` is `<n><h|d|w>` and at most `90d`; every `when.across` is `project`, `org` or `tenant`; every `when.count.at_least` is 1 or more
+- [ ] Every `when.count.distinct` names a field the declared `event` actually carries — for `register.row_added` that is a **column of the register named in `where`**
 - [ ] Every `for.records` names a register **other than** the obligation's own `records:`
 - [ ] Every `escalate` declares both `after` — `<n><h|d|w>`, no months — and `to`
 - [ ] Every obligation names `records:`, and some artifact produces that document
 - [ ] Every declared register has at least one column, with unique keys, and a `target` on every `relation`
 - [ ] `review`, `approvers` and `approval_order` appear only with `layout: form`, and only with their declared values
 - [ ] Every `retention.keep` is `<n>y`, `<n>m` or `<n>d`, and declares its `authority`
+- [ ] Every `retention` on a register that is appended to says `from: modified`, and every `authority` either cites the instrument setting the period or says in words that none does
 - [ ] `responsible`, `approved_by`, `approvers` and `escalate.to` name positions, no individual is named anywhere
 - [ ] No spec declares `creates:`
 - [ ] Every operation declares an `id` unique within the programme, and a `does:` **or** an `agent:` — never both

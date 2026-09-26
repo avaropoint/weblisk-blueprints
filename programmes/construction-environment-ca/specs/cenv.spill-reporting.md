@@ -56,6 +56,7 @@ declares:
     approval_order: sequential
     retention:
       keep: 7y
+      from: modified
       authority: O. Reg. 675/98 requires a record of an unreported spill relied on as exempt to be kept for two years. Neither the Environmental Protection Act nor the Ontario Water Resources Act prescribes a period for the record of a reported spill
       reason: >
         Two years is the only prescribed figure and it applies to the weakest

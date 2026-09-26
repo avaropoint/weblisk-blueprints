@@ -37,6 +37,20 @@ declares:
     layout: form
     review: required
     approvers: [privacy-officer]
+    retention:
+      keep: 3y
+      from: modified
+      authority: >-
+        CASL s. 26 bars proceedings for a violation more than three years after the
+        day the subject matter of the proceedings arose. The Act prescribes no
+        keeping period for the sender's own records, and under s. 10(1) the burden
+        of proving consent falls on the person who alleges it
+      reason: >
+        Three years is the limitation period read as a keeping period, which is the
+        right reading here because of where the burden sits: the sender has to prove
+        consent for any message still within the window, and a review record
+        disposed of inside three years destroys the organisation's own evidence that
+        it was maintaining the list while the Commission can still ask.
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: reviewed_by, label: Reviewed by, type: user, required: true}

@@ -18,7 +18,7 @@ satisfies:
   - can_ciosc_104:CIOSC-L1-22
   - soc2:A1.2
 
-requires: [isec.policy, isec.risk-assessment]
+requires: [isec.continuity-policy, isec.risk-assessment]
 approved_by: [senior-management]
 
 declares:

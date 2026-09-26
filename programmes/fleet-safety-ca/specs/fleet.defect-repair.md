@@ -53,6 +53,15 @@ declares:
     layout: form
     review: required
     approvers: [maintenance-lead]
+    retention:
+      keep: 2y
+      from: modified
+      authority: >
+        No retention period is prescribed for a repair record in O. Reg. 199/07.
+        A facility audit under National Safety Code Standard 15 examines the
+        operator's records over a review period of up to two years, so two years
+        is this organisation's choice, set to cover it.
+      reason: The repair record is what shows that a defect reported on a trip inspection was actually answered.
     columns:
       - {key: defect, label: Defect, type: relation, required: true,
          target: /registers/vehicle-defects.md#records, display: reference}
@@ -80,14 +89,6 @@ declares:
       - {key: returned_to_service_by, label: Returned to service by, type: user}
       - {key: verification, label: How it was verified before the vehicle moved, type: longtext}
       - {key: attachment, label: Work order or invoice, type: attachment}
-    retention:
-      keep: 2y
-      authority: >
-        No retention period is prescribed for a repair record in O. Reg. 199/07.
-        A facility audit under National Safety Code Standard 15 examines the
-        operator's records over a review period of up to two years, so two years
-        is this organisation's choice, set to cover it.
-      reason: The repair record is what shows that a defect reported on a trip inspection was actually answered.
 ---
 
 What this document must establish for THIS organisation: what happens between a

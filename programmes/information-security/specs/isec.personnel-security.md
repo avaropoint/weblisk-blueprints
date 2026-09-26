@@ -37,6 +37,19 @@ declares:
     layout: form
     review: required
     approvers: [information-security-lead]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        No standard or statute prescribes a period for the verification that a
+        leaver's access was removed and their assets returned
+      reason: >
+        Seven years is this organisation's. Access left open to somebody who has left
+        is discovered long after the departure, and the Limitations Act, 2002 s. 5
+        runs the basic period from discovery rather than from the act — so the
+        quarterly verification has to outlive the departure by years to be worth
+        anything. It is also the only evidence that the leaver process was checked
+        rather than assumed.
     columns:
       - {key: verified_on, label: Verified on, type: date, required: true}
       - {key: period, label: Period covered, type: text, required: true}

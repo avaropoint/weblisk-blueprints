@@ -12,6 +12,7 @@ satisfies:
   - iso_45001:6.1.4
 
 requires: [cohs.daily-crew-assignments]
+template: pre-task-hazard-assessment
 
 declares:
   obligation:

@@ -47,6 +47,21 @@ declares:
       everywhere. `effectiveness` is the column most programmes omit and the only
       one that distinguishes an action taken from a problem solved: an action
       closed on time whose hazard recurred twice is a finding about the action.
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        OHSA s. 25(2)(h) requires the employer to take every precaution reasonable in
+        the circumstances and prescribes no keeping period for an investigation or
+        the actions arising from it. OHSA s. 69(2) bars a prosecution more than a
+        year after the act or default it is based on, which is a limitation on the
+        Crown and not a schedule for the employer
+      reason: >
+        Seven years is this organisation's. Reading the one-year prosecution limit as
+        the keeping period would be the expensive mistake: a compensation claim can
+        be reopened, a civil action runs two years from discovery under the
+        Limitations Act, 2002 s. 5, and the corrective action's effectiveness is only
+        visible across the years in which the hazard did or did not recur.
     columns:
       - {key: reference, label: Reference, type: text, required: true}
       - {key: arose_from, label: Arose from, type: select, required: true,

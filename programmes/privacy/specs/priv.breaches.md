@@ -21,6 +21,18 @@ register:
     A breach is a loss, unauthorised access, or unauthorised disclosure. An
     email sent to the wrong recipient is a breach; so is a laptop left on a
     train, whether or not anybody ever opened it.
+  retention:
+    keep: 24m
+    from: modified
+    authority: PIPEDA s. 10.3 and the Breach of Security Safeguards Regulations — a record of every breach kept for 24 months after the day the organisation determines the breach occurred
+    reason: >
+      The Commissioner may request the records of every breach, including the
+      ones assessed as not posing a real risk of significant harm. Twenty-four
+      months is the floor, not the ceiling: a breach that led to a claim, a
+      complaint or a regulatory file is kept under the legal hold register until
+      that matter ends. The clock runs from the last entry rather than from
+      creation because the register is cumulative: twenty-four months measured
+      from the first breach ever logged would dispose of rows a month old.
   columns:
     - {key: reference, label: Reference, type: text, required: true}
     - {key: discovered_on, label: Discovered on, type: date, required: true}
@@ -38,16 +50,6 @@ register:
     - {key: contained_on, label: Contained on, type: date}
     - {key: status, label: Status, type: select, required: true,
        options: [Open, Assessed, Notified, Closed]}
-  retention:
-    keep: 24m
-    from: created
-    authority: PIPEDA s. 10.3 and the Breach of Security Safeguards Regulations — a record of every breach kept for 24 months after the day the organisation determines the breach occurred
-    reason: >
-      The Commissioner may request the records of every breach, including the
-      ones assessed as not posing a real risk of significant harm. Twenty-four
-      months is the floor, not the ceiling: a breach that led to a claim, a
-      complaint or a regulatory file is kept under the legal hold register until
-      that matter ends.
 ---
 
 What this artifact must establish: every privacy breach, including the ones that

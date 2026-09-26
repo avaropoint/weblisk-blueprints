@@ -33,6 +33,21 @@ register:
     the length of employment plus a period afterwards are all common, and a
     schedule that measures everything from a file date will dispose of things
     early.
+  retention:
+    keep: 15y
+    from: modified
+    authority: >-
+      No statute prescribes how long a records schedule must itself be kept. The
+      Limitations Act, 2002 s. 15 bars a claim fifteen years after the act or
+      omission on which it is based, and a disposal carried out under this schedule
+      is such an act
+    reason: >
+      The schedule is the only document that can explain a destruction once the
+      records are gone, so it has to outlive the ability to sue over the
+      destruction. Fifteen years is this organisation's. It runs from the last
+      change rather than from creation because a schedule in use is amended
+      continually, and a clock started at the first entry would expire while the
+      schedule was still operating.
   columns:
     - {key: reference, label: Reference, type: text, required: true}
     - {key: record_class, label: Record class, type: text, required: true}

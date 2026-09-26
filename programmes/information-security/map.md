@@ -46,6 +46,11 @@ artifacts:
   - {id: isec.risk-register, tier: essential}
   - {id: isec.risk-treatment, tier: essential}
   - {id: isec.security-incidents, tier: essential}
+  # The decisions the response plan cannot make for itself: what counts as an
+  # incident, who may declare one, who decides who is told, and that
+  # reporting costs the reporter nothing. Six artifacts answered this
+  # domain and every one of them was a procedure.
+  - {id: isec.incident-policy, tier: essential}
   - {id: isec.incident-response, tier: essential}
   - {id: isec.security-awareness, tier: essential}
   # From the IT operations programme. Placed rather than restated: one artifact
@@ -55,12 +60,28 @@ artifacts:
   - {id: it.backup-recovery, tier: essential}
   - {id: it.asset-register, tier: essential}
   # ── conformant ─────────────────────────────────────────────────────────────
+  # The leaver process itself. The programme measured it quarterly and never
+  # declared it: the verification counted accounts still active for people
+  # who had gone, against no list of who went and no obligation to close
+  # anything on the day.
   - {id: isec.personnel-security, tier: conformant}
+  - {id: isec.departures, tier: conformant}
+  - {id: isec.departure-actions, tier: conformant}
+  # The position, before the steps. Supplier risk had a register and a review
+  # procedure and no statement of what the organisation is willing to put in
+  # somebody else's hands — so there was nothing for the procedure to be
+  # consistent with, and nothing anybody had put in force.
+  - {id: isec.supplier-policy, tier: conformant}
   - {id: isec.supplier-register, tier: conformant}
   - {id: isec.supplier-security, tier: conformant}
   - {id: isec.cryptography, tier: conformant}
   - {id: isec.logging-monitoring, tier: conformant}
   - {id: isec.physical-security, tier: conformant}
+  # 22301 clause 5.2 is a named control for a continuity POLICY and nothing
+  # answered it. The plan, the exercise and the backups all existed with no
+  # statement of what the organisation undertakes to keep running or who may
+  # declare that it has stopped.
+  - {id: isec.continuity-policy, tier: conformant}
   - {id: isec.business-continuity, tier: conformant}
   - {id: isec.compliance-obligations, tier: conformant}
   - {id: isec.incident-review, tier: conformant}
@@ -76,6 +97,11 @@ artifacts:
   - {id: it.configuration-standards, tier: certifiable}
   - {id: rec.policy, tier: certifiable}
   - {id: rec.retention-schedule, tier: certifiable}
+  # The third of the records trio, and the one the ISMS was missing. A
+  # schedule with no disposition is a list of dates nobody acts on: A.5.33
+  # protects records and A.8.10 requires information to be deleted when no
+  # longer required, and the second half was not declared anywhere here.
+  - {id: rec.disposition, tier: certifiable}
 ---
 
 An information security management system aligned to ISO/IEC 27001:2022, using

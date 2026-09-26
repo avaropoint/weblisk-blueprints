@@ -44,6 +44,7 @@ declares:
     approvers: [environmental-lead]
     retention:
       keep: 7y
+      from: modified
       authority: O. Reg. 406/19 s. 28 (1) — every document and record created or acquired under the Regulation is retained for at least seven years after it is created or acquired
       reason: >
         The filed notice and the declaration in it are the organisation's

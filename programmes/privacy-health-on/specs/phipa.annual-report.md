@@ -31,6 +31,17 @@ declares:
     layout: form
     review: required
     approvers: [senior-management]
+    retention:
+      keep: 10y
+      from: modified
+      authority: >-
+        O. Reg. 329/04 s. 6.4 requires the report and sets no keeping period for the
+        custodian's own copy of what was submitted
+      reason: >
+        Ten years is this organisation's, matched to the notification records the
+        report is derived from, so the submitted totals and the individual breaches
+        behind them are never kept for different lengths of time. A total nobody can
+        reconcile to its rows is a number, not a record.
     columns:
       - {key: reporting_year, label: Calendar year reported, type: text, required: true}
       - {key: submitted_on, label: Submitted on, type: date, required: true}

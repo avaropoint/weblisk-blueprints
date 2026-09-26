@@ -55,6 +55,15 @@ declares:
     layout: form
     review: required
     approvers: [senior-management]
+    retention:
+      keep: 2y
+      from: modified
+      authority: >
+        No retention period is prescribed. Two years is this organisation's, set
+        to cover the period a facility audit reviews over, so that the audit can
+        be answered with the organisation's own monthly account of the same
+        period.
+      reason: A facility audit's finding is usually an absence; a monthly record of having looked is the only thing that answers it in advance.
     columns:
       - {key: period_start, label: Period from, type: date, required: true}
       - {key: period_end, label: Period to, type: date, required: true}
@@ -85,14 +94,6 @@ declares:
       - {key: findings, label: Findings, type: longtext, required: true}
       - {key: actions, label: Actions, with owners and dates, type: longtext, required: true}
       - {key: escalated_to_management, label: Escalated to senior management, type: bool, required: true}
-    retention:
-      keep: 2y
-      authority: >
-        No retention period is prescribed. Two years is this organisation's, set
-        to cover the period a facility audit reviews over, so that the audit can
-        be answered with the organisation's own monthly account of the same
-        period.
-      reason: A facility audit's finding is usually an absence; a monthly record of having looked is the only thing that answers it in advance.
 ---
 
 What this document must establish for THIS organisation: who reads the whole

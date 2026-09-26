@@ -47,6 +47,7 @@ declares:
     approvers: [environmental-lead]
     retention:
       keep: 7y
+      from: modified
       authority: No instrument prescribes a retention period for a renewal record
       reason: >
         Seven years is this organisation's, matched to O. Reg. 406/19 s. 28 so

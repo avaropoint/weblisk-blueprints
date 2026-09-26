@@ -46,6 +46,19 @@ declares:
     layout: form
     review: required
     approvers: [privacy-officer]
+    retention:
+      keep: 3y
+      from: modified
+      authority: >-
+        PIPEDA Schedule 1 cl. 4.5.3 requires personal information that is no longer
+        required to be destroyed, erased or made anonymous, and prescribes no
+        keeping period for the review that decided it was still required
+      reason: >
+        Three years is this organisation's, matched to the privacy request response
+        and the CASL review so that the whole programme answers on one clock. The
+        review is what shows a collection was still needed and still on a lawful
+        basis on a particular date — the question a complaint puts — and the
+        complaint arrives after the collection has changed.
     columns:
       - {key: reference, label: Collection reviewed, type: relation, required: true,
          target: /registers/personal-information.md#records, display: information}

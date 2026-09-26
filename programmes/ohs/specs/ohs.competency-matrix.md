@@ -29,6 +29,18 @@ declares:
     layout: form
     review: required
     approvers: [training-coordinator]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        ISO 45001 cl. 7.2 requires evidence of competence to be retained and
+        prescribes no period. No jurisdiction-neutral instrument sets one
+      reason: >
+        Seven years is this organisation's, matched to the register of credentials
+        held so that the judgement that somebody was competent and the card it was
+        based on are never kept for different lengths of time. A review disposed of
+        first leaves the organisation able to show a ticket and unable to show that
+        anybody looked at the person.
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: person, label: Person, type: user, required: true}

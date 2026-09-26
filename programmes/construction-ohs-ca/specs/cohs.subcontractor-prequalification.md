@@ -13,6 +13,7 @@ satisfies:
   - iso_45001:8.1.4
 
 requires: [cohs.clearance-certificates]
+template: subcontractor-prequalification
 
 declares:
   obligation:

@@ -49,6 +49,19 @@ declares:
     review: required
     approvers: [records-manager, senior-management]
     approval_order: sequential
+    retention:
+      keep: 15y
+      from: modified
+      authority: >-
+        Nothing prescribes a keeping period for a certificate of destruction. The
+        Limitations Act, 2002 s. 15 bars a claim fifteen years after the act it is
+        based on, and the act here is the disposal this record describes
+      reason: >
+        This register is needed most in the years after the records it describes have
+        been destroyed: it is what separates routine disposition from spoliation, and
+        the question is asked by somebody who has just been told a document cannot be
+        produced. Fifteen years is this organisation's, from the last entry, because
+        the register is cumulative and the newest row governs.
     columns:
       - {key: reference, label: Record class, type: relation, required: true,
          target: /registers/retention-schedule.md#records, display: record_class}

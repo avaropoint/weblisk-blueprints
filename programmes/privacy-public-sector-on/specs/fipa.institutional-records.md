@@ -31,6 +31,25 @@ declares:
     layout: form
     review: required
     approvers: [records-manager]
+    retention:
+      keep: 7y
+      from: modified
+      authority: >-
+        FIPPA s. 40(1) requires personal information that has been used to be
+        retained after use for the period prescribed by regulation, and R.R.O. 1990,
+        Reg. 460 s. 5 sets that at one year unless the individual consents to earlier
+        disposal; MFIPPA and O. Reg. 823 do the same for a municipal institution.
+        Separately, a public body may not dispose of a public record except under a
+        records schedule approved under the Archives and Recordkeeping Act, 2006.
+        None of them prescribes a period for the institution's own confirmation of
+        what it holds
+      reason: >
+        The one year in Reg. 460 is a floor on the personal information so that the
+        individual can still reach it, and reading it as this register's period would
+        be the mistake. Seven years is this organisation's: whether a record is in an
+        institution's custody or control is a legal test that is argued when an
+        access request arrives and again on appeal to the Commissioner, and the
+        contemporaneous confirmation is what the institution has to answer with.
     columns:
       - {key: confirmed_on, label: Confirmed on, type: date, required: true}
       - {key: confirmed_by, label: Confirmed by, type: user, required: true}

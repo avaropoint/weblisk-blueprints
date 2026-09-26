@@ -57,6 +57,14 @@ declares:
     layout: form
     review: required
     approvers: [maintenance-lead]
+    retention:
+      keep: 2y
+      from: modified
+      authority: >
+        No retention period is prescribed. Two years is this organisation's,
+        chosen to cover the review period a facility audit works over, and the
+        maintenance record per vehicle is the first thing that audit asks for.
+      reason: A maintenance history the operator cannot produce is, at an audit, the same as no maintenance programme.
     columns:
       - {key: vehicle, label: Vehicle, type: relation, required: true,
          target: /registers/vehicles.md#records, display: unit_number}
@@ -82,13 +90,6 @@ declares:
       - {key: invoice_reference, label: Invoice or work order number, type: text}
       - {key: next_service_due, label: Next service due, type: date}
       - {key: attachment, label: Work order or invoice, type: attachment}
-    retention:
-      keep: 2y
-      authority: >
-        No retention period is prescribed. Two years is this organisation's,
-        chosen to cover the review period a facility audit works over, and the
-        maintenance record per vehicle is the first thing that audit asks for.
-      reason: A maintenance history the operator cannot produce is, at an audit, the same as no maintenance programme.
 ---
 
 What this document must establish for THIS organisation: the written
