@@ -228,6 +228,7 @@ tie-break and is therefore part of the declaration.
 
 | kind | stems |
 |---|---|
+| `specification` | specs, specification |
 | `evidence` | evidence, proof, attestation |
 | `register` | register, registers |
 | `sop` | sop, runbook, runbooks, playbook |
@@ -254,10 +255,69 @@ record of a review counted as the thing being reviewed, in a layer that counts
 as coverage. An unclassified node contributes nothing; a wrongly classified one
 contributes the wrong thing, which is worse.
 
+`specification` is the same fault, a second time, and the same shape of fix. A
+programme's artifact specifications live at `programmes/<p>/specs/<id>.md`.
+Nothing matched `specs`, so the path fell through to the FILENAME rule, where
+`cohs.policy.md` matched `policy` — **a specification OF a policy classified as
+the policy itself**, in a layer that counts as coverage. Measured over the 226
+specs shipped in this corpus and in Studio: 26 counted as coverage and 32
+entered an evidence chain, none of which is a document anybody has written.
+`specification` was already a declared kind; nothing mapped a path onto it.
+
+It is **first**, and that position is load-bearing. Every other stem names what
+a document IS; `specs` names what a document is ABOUT, and a specification's
+directory and filename routinely carry the name of the thing specified —
+`specs/cohs.policy.md`, `specs/cohs.credential-register.md`,
+`specs/it.configuration-standards.md` are all real. First is the only position
+that holds for every one of them at once.
+
+**The stem is `specs`, never `spec`.** `Contains` is a substring test, and
+`inspection` contains `spec`: the singular would have swept up
+`cohs.site-inspections.md`, `fleet.trip-inspection.md` and ten more files that
+are records of inspections, not specifications of anything. `specification`
+carries the plural by substring, so both spellings of the directory are covered
+without it.
+
+**`specification` is deliberately not `standard`.** The argument that fits
+`schemas` — it states a measurable requirement — does fit a spec's prose, and
+taking it would have been far worse than the bug. A spec is OUR description of
+an artifact a tenant has yet to write; the written artifact is the coverage, not
+the description of it. Measured on the same 226 files: mapping `specs` to
+`standard` (or to `blueprint`) takes the count that `counts-as-coverage` from 26
+to **226**, so a tenant who had merely adopted a programme would show
+standard-layer coverage in every domain without having authored a line.
+`specification` declares `versioned`, `has-custody` and `traces-to-code` and no
+chain membership at all, which is what a spec is: a thing that must be
+implemented, and is not itself evidence that it was.
+
+Declaring the kind in each spec's own frontmatter was the other candidate, and
+the files refute it: they already carry `kind:`, and it names the **artifact the
+spec produces** (`kind: policy` in `cohs.policy.md`). Honouring it would put 175
+of the 226 into a coverage-counting kind — worse than the bug, and with the
+authority of an author's own declaration behind it.
+
 **This is a weak signal and it is the one available before anything has been
-classified.** It decides a node's kind, never whether a control is answered —
-the control's own data does that — so a wrong guess mislabels a node rather than
-inventing or hiding coverage. A document that states its own kind overrides it.
+classified.** It decides a node's kind and nothing else — but a kind is what
+`counts-as-coverage` and `chain-member` are asked about, so a wrong guess is not
+confined to a label. This file used to say a wrong guess "mislabels a node rather
+than inventing or hiding coverage"; that was measured and is not true. Two
+consumers read the answer:
+
+- `relate.countsToward` gates an INFERRED edge on `CountsAsCoverage(e.From.Kind)`,
+  so a node the classifier promoted into a coverage-bearing kind answers controls
+  it was never written to answer. (A CONFIRMED edge is exempt: a person outranks
+  the taxonomy.)
+- the governance engine files each document into `layers[domain][kindToLayer(kind)]`,
+  so a promoted kind takes a position in an evidence chain, and an unpromoted one
+  has none.
+
+A misclassification therefore reaches a coverage figure by both routes. That is
+why a missing stem is a defect and not a cosmetic one, and why the direction of a
+guess matters: `document` contributes nothing, which is the honest answer when
+nothing matched.
+
+A document that states its own kind overrides it — but only where that key means
+the document itself. See `specification` above for a corpus where it does not.
 
 ### Content signals
 

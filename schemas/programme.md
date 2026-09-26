@@ -100,6 +100,217 @@ the pack loads.
 
 ---
 
+## Versioning
+
+A programme map and an artifact specification each carry a **`version:`** —
+`MAJOR.MINOR.PATCH`, the same field and the same three meanings
+[`common.md`](common.md#versioning) already gives every other blueprint. There
+is no second vocabulary here, deliberately: a family that classified its own
+changes differently from the rest of the corpus would be a fourth spelling of a
+question already answered three times.
+
+Programmes are the family a tenant **adopts**, and the only one that had no
+version. Measured against this corpus at `4778c25`:
+
+| family | carries `version:` |
+|---|---|
+| `architecture` · `patterns` · `platforms` · `protocol` · `agents` | **81 of 81** (the five `README.md` are the only files without one) |
+| `standards/*.json` | 61 of 61 — but see below |
+| programme maps | 0 of 12 |
+| artifact specs | 0 of 222 |
+
+So the one body of work an organisation takes on, is measured against, and is
+audited on was the one thing that could not say which version of itself it was.
+
+> **Two different things are called "standards" and only one of them is this.**
+> [`framework.md`](framework.md#versioning) says *"standards … are not versioned
+> in frontmatter … version tracking is by git history"*. That sentence is about
+> the **framework guidance documents** in `frameworks/<name>/` — the things a
+> project blueprint names in `extends: frameworks/weblisk/pages` — which were
+> called `standards/` before [`../CORPUS_SHAPE.md`](../CORPUS_SHAPE.md) renamed
+> them. It is **not** about the compliance standards in
+> [`../standards/`](../standards/README.md), and it is not an argument against
+> versioning a programme. "By git history" is in any case unavailable to the
+> people who need it: the corpus reaches an installation as a checkout, a path
+> in an environment variable, or a cache — and on a customer's machine it may be
+> none of those. A provenance scheme that needs the publisher's git history is
+> not provenance.
+
+> **A standard's `version:` is a different axis and must not be confused with
+> this one.** It records the **publisher's edition** — `"2022, incorporating
+> Amd 1:2024"`, `"R.S.O. 1990, c. O.1, consolidated to 27 November 2025"` — and
+> 59 of the 61 are not semver-shaped at all. We do not version somebody else's
+> published framework; we cite which edition of it we read. A programme is ours
+> (or the tenant's) to publish, so a programme's version is a claim we may
+> actually make.
+
+### What each part of the number means, for a programme
+
+`common.md` fixes the three classes — **MAJOR** breaking, **MINOR** additive,
+**PATCH** clarification — and [`framework.md`](framework.md#versioning) names
+the same three as *restrictive*, *additive* and *clarification*. What follows is
+only which programme edit falls where. It is the author's judgement to make; the
+table is what the judgement is made against.
+
+**On a map:**
+
+| class | edits |
+|---|---|
+| **MAJOR** | `id` changed · a tier removed or renamed · **any change to which artifacts a tier contains**, including moving one between tiers · an artifact dropped from the map · an `operations` entry removed or its `does` changed |
+| **MINOR** | a new tier **above** the current top · an artifact placed at an existing tier · a new operation · a new `domains` or `conforms_to` entry |
+| **PATCH** | `title` · `rationale` · the overview body · `order` |
+
+**Any change to a tier's membership is MAJOR**, in both directions, and that is
+the one rule here worth arguing with. A tier is a **threshold**: readiness is
+reported per tier, and an organisation that was 100% conformant is not
+conformant any more the moment the line moves, whether the line moved up or
+down. A threshold that moves without a major bump silently re-scores an
+organisation against a line it never agreed to, and the number it re-scores is
+the one somebody puts in front of an auditor.
+
+**On an artifact specification:**
+
+| class | edits |
+|---|---|
+| **MAJOR** | `id` changed · **an entry removed from `satisfies`** · **any change under `declares.obligation` other than the `activity`'s wording** — `cadence`, `applies_to`, `per`, `for`, `records`, `responsible`, `escalate`, `authority` · a register column removed, rekeyed or retyped · a `relation` target changed · `approved_by` gained or changed · `requires` gained · `kind` or `register.layout` changed |
+| **MINOR** | an entry added to `satisfies` · a register column added · `template` first named · a new optional field |
+| **PATCH** | the `brief` body · `title` · `path` · `structure` |
+
+Three of those deserve their reason stated, because each was measured in this
+corpus's own history rather than imagined:
+
+- **Withdrawing a `satisfies` entry is MAJOR.** It removes coverage of a control
+  the organisation is measured on. **22 specs** lost citations between their
+  first commit and `4778c25`; a tenant holding the earlier copy believes it
+  answers controls the corpus no longer claims.
+- **Changing `declares.obligation.records` is MAJOR.** The records path is where
+  occurrences land. **36 specs** moved theirs (`registers/construction/…` →
+  `registers/…`), and a tenant taking that change without noticing orphans every
+  record already written against the old path.
+- **Changing `applies_to` or adding `per` is MAJOR.** It changes *how many
+  occurrences exist*. **19 specs** went from `each project` to `the
+  organisation` and **15** gained a `per` block — the single most consequential
+  edit a programme can make: the amount of work owed changes, and every
+  readiness number computed from it changes with it.
+
+`approved_by` gaining an entry is restrictive for the same reason `common.md`
+calls a new required field restrictive — a document that was in force now needs
+a signature it did not need.
+
+### Unversioned is a real answer, and is never 1.0.0
+
+A file that declares no `version:` is **unversioned**. It is not `1.0.0`, not
+`0.0.0` and not "assume compatible". Nothing may be pinned against it, and an
+adoption of it is describable only by content hashes.
+
+This is the state of **every** programme file in this corpus today, and it is
+reported rather than defaulted. Studio's loader (`internal/program/version.go`) reads the field, and
+`Catalogue.Versions()` names every file that declares none — because a reader
+that filled the gap with a number would be inventing the one fact an adoption
+most depends on.
+
+A version that is present and **will not parse** is refused, and the file is
+named. That is the same treatment a malformed `satisfies` citation gets and for
+the same reason: an unverifiable claim that is admitted reads downstream as a
+claim that was checked. `1.0`, `v1.0.0` and `1.0.0-rc1` are all refused rather
+than repaired — a reader that completed them would be deciding what the author
+meant.
+
+### `version` and `version_hash` are not alternatives
+
+A tenant's adoption records **both**, because each answers what the other
+cannot.
+
+| | `version:` | `version_hash` |
+|---|---|---|
+| asserted by | the **author**, deliberately | the **bytes**, computably |
+| answers | *may I take this change?* | *is this the thing I took?* |
+| checked by | comparing against a declared range | `sha256sum`, no parser and no network |
+| can it be wrong | **yes** — an author forgets to bump | no |
+| cannot see | an edit nobody bumped for | the difference between a typo and a withdrawn control |
+
+The failure mode is not hypothetical. Measured in this corpus: **81 of 81
+blueprint files have been edited since `dea7caf` ("Set all blueprint versions to
+1.0.0 for v1 baseline", 2026-04-28), and three of them say so.** A version alone
+would report seventy-eight changed files as unchanged. A hash alone reports a
+reworded brief and a withdrawn control claim in identical words.
+
+Held together they also produce a third answer neither gives alone:
+
+| hash | version | what it means |
+|---|---|---|
+| same | same | current |
+| changed | changed | classify by the bump, and act on the declared `on_change` |
+| changed | **same** | **unmaintained** — upstream moved and made no claim about it. Never auto-adopt; report it and ask a person |
+| same | changed | the version moved with no content change. Harmless, and worth saying once |
+
+`unmaintained` is the row that makes the pair worth carrying. It is exactly the
+state 78 blueprint files are in, and neither field alone can name it.
+
+### What a tenant pins against
+
+The default is **a compatible range on the version, plus the hash of what was
+actually taken**:
+
+```yaml
+extends:
+  - blueprint: programmes/records-management
+    version: ">=1.0.0 <2.0.0"
+    resolved:
+      map.md:              sha256:…
+      specs/rec.policy.md: sha256:…
+    on_change:
+      compatible: validate-and-adopt
+      breaking:   version-bump
+      removed:    halt-immediately
+```
+
+The **range is the permission** — a compatible improvement flows in under
+`on_change.compatible`. The **hash is the record** — it says exactly what was
+taken, so *"did it move?"* is answerable without trusting that anyone bumped
+anything.
+
+A range is the default rather than an exact pin because a governance programme
+is pinned against a body of law that moves. An organisation that froze
+`construction-ohs-ca` in April would have missed forty-three statutory citations
+added since — and would have had no signal at all, because a frozen pin reports
+nothing. The default must permit improvement and **report** the rest.
+
+Freezing is legitimate and is already expressible with no new field: an exact
+`version: "1.4.0"`, or `on_change.compatible: validate` instead of
+`validate-and-adopt`. It is the right choice inside an audit window or a
+certification period, where the thing being measured must not move underneath
+the measurement. It is a decision made per adoption, by a person, with a reason.
+It is not a default, because a default nobody chose that quietly stops a safety
+programme from receiving a regulator's change is a default that will eventually
+hurt somebody.
+
+### When versioning began, and why nothing is back-filled
+
+This field was introduced after the corpus's programmes already existed. Every
+programme file's version therefore **opens at `1.0.0` when it is first
+declared**, and says nothing about what happened before.
+
+That is not a convenient fiction, and the alternative is the fiction. Measured
+across the programme corpus's eleven commits, **114 changes that this section
+classifies as MAJOR have already happened** — withdrawn citations, moved records
+paths, changed `applies_to`. Numbering a file `2.0.0` to describe them would
+assert that a `1.0.0` was published and could have been pinned against. None
+was. Inventing a release history to describe changes nobody could have depended
+on is a worse lie than an honest baseline.
+
+So the rule is:
+
+- A version claims compatibility **from the moment it is declared**, forward.
+- An adoption made **before** the file carried a version records
+  `version: unversioned` and its `resolved:` hashes. It is never back-filled to
+  `1.0.0`, because that would assert the tenant agreed to a number that did not
+  exist.
+- The hashes are what make those adoptions checkable at all, which is the
+  concrete reason the hash is not optional.
+
+---
+
 ## The programme map
 
 One file per programme: `map.md`, at the programme's own root.
@@ -107,6 +318,7 @@ One file per programme: `map.md`, at the programme's own root.
 | field | type | required | means |
 |---|---|---|---|
 | `id` | string | **yes** | stable identifier. What everything else cites, and what an override replaces |
+| `version` | string | no | `MAJOR.MINOR.PATCH` — the author's compatibility claim, and what a tenant's adoption pins a range against. Absent means **unversioned**, never `1.0.0`; present and unparseable is refused. See [Versioning](#versioning) |
 | `title` | string | no | display name. Defaults to `id` |
 | `domains` | string[] | no | the policy domains this programme operates in — the same catalogue the classifier uses, so a programme is measurable through machinery that already exists. Each one is defined in [`../policy-domains/`](../policy-domains/README.md), which also states **what claiming it requires**; a claim on a domain nothing declares is reported, and so is a claim nothing answers |
 | `conforms_to` | string[] | no | the standard `id`s this programme is built to answer. **Context, not a constraint**: a programme with no framework at all is valid |
@@ -182,6 +394,7 @@ programmes at once.
 | field | type | required | means |
 |---|---|---|---|
 | `id` | string | **yes** | stable identifier. What a map places and what other specs `require` |
+| `version` | string | no | `MAJOR.MINOR.PATCH`, as on a map. Withdrawing a `satisfies` entry and changing anything under `declares.obligation` are both MAJOR — see [Versioning](#versioning) |
 | `kind` | string | no | the artifact's own noun — what the created document declares about itself. The vocabulary is [`kinds.md`](kinds.md) |
 | `title` | string | no | display name. Defaults to `id` |
 | `structure` | string | no | the document structure it is **checked** against — `policy`, `procedure`, `standard`, `guideline` are seeded, and a tenant may add or remove them |
@@ -1021,6 +1234,27 @@ that [`kinds.md`](kinds.md) does not declare, and nothing reports it. Kinds are
 open data by design, so this may be correct; it is at least undecided, and an
 author should not read the silence as approval.
 
+**Nothing in the corpus carries a `version:` yet.** The field is declared
+[above](#versioning), is read by the loader, and is reported when absent —
+**0 of 12 maps and 0 of 222 specs declare one at `4778c25`**, so every one of
+them is reported `unversioned` and nothing may be pinned against them. That is
+the honest state and not a silent default. Versioning the corpus is a separate
+act of authorship: each file opens at `1.0.0`, and every release after that is
+classified against the tables above by the person making it.
+
+**A programme map and an artifact spec are not declared kinds, and one of them
+classifies wrongly.** [`kinds.md`](kinds.md) permits `extends` only
+`blueprint → blueprint` and declares no kind for either file, so an adoption's
+`extends` edge onto a programme would be skipped rather than recorded. Measured
+through the one classifier: `programmes/<p>/map.md` and most specs fall through
+to `document` (unclassified), but
+`programmes/construction-ohs-ca/specs/cohs.policy.md` matches the `policy`
+**filename** stem and classifies as a **policy** — a chain member with
+`counts-as-coverage` and `opens-gap`. A *specification of* a policy would count
+as the policy. Neither the missing kind nor the mis-classification is fixed
+here; both are one row in `kinds.md`, and both must be settled before an
+adoption's `extends` is built.
+
 **`retention` is declared on a minority of registers.** Measured across the
 shipped corpus: **71 of 204** registers declare a keeping period, every one of
 them with an `authority` and a `reason`, and no policy domain now reports
@@ -1037,6 +1271,9 @@ than naming a statute that does not exist.
 
 - [ ] The map is `map.md` at the programme's root, every spec is directly under `specs/`, every form directly under `templates/`, and nothing relies on a `type:` field to say which it is
 - [ ] Every map and every spec carries an `id`, unique within the pack
+- [ ] Every `version:` is `MAJOR.MINOR.PATCH` and nothing else — no `v`, no two-part number, no pre-release suffix
+- [ ] A file with no `version:` is reported as **unversioned**, and nothing anywhere reads it as `1.0.0`
+- [ ] Any edit this release makes that the [Versioning](#versioning) tables call MAJOR has a major bump beside it — most of all a moved tier boundary, a withdrawn `satisfies` entry, or a changed `declares.obligation`
 - [ ] No file declares `pack`, `source`, `builtin` or `derived_from`
 - [ ] Every `satisfies` entry is `framework:control` with exactly one colon and neither half empty
 - [ ] Every tier's `requires` names a declared tier; exactly one tier has none; there is no cycle

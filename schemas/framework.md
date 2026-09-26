@@ -204,6 +204,16 @@ When a project blueprint declares `extends: frameworks/<framework>/<name>`:
 
 ## Versioning
 
+> **"Standards" here means the framework guidance documents this schema
+> governs** — `pages.md`, `components.md`, `islands.md` and the rest of
+> `frameworks/<name>/`, which lived in a directory called `standards/` before
+> [`../CORPUS_SHAPE.md`](../CORPUS_SHAPE.md) renamed them. It does **not** mean
+> the compliance standards in [`../standards/`](../standards/README.md), every
+> one of which carries a `version` recording its publisher's edition, and it
+> says nothing about programmes — [`programme.md`](programme.md#versioning) is
+> the authority there and reaches the opposite conclusion for its own family,
+> with its reasons. This paragraph was read as governing all three.
+
 Standards follow semver in documentation but are not versioned in
 frontmatter (they are markdown guidance documents, not machine-parsed
 blueprints). Version tracking is by git history.
