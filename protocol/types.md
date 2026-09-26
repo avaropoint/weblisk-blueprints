@@ -322,7 +322,19 @@ types:
 - `content:read` — read entries and list a content repository
 - `content:write` — create, modify and remove entries
 - `content:describe` — read a repository's custody class, attestations and derived ceiling
+- `content:declare` — bring a store under governance: establish an empty repository, or adopt one that already holds bytes
 - `content:reconcile` — run custody reconciliation on a shared repository
+
+**Fabric capabilities:**
+- `fabric:read` — read relationships, coverage, impact, lineage and the ledger projection
+- `fabric:produce` — state a producer's full current view for one partition
+- `fabric:observe` — report one relationship incrementally
+- `fabric:attest` — assert, judge or re-anchor a relationship as a person
+
+`fabric:attest` is separate from `fabric:observe` for the reason
+`architecture/fabric` is built around: only a person reaches `confirmed`. One
+capability covering both would make that rule unenforceable at the boundary
+where it has to hold.
 
 A capability name is `family:verb`. A component that invents one is refused at
 registration with `INVALID_REQUEST` — which is correct, and is why a component's

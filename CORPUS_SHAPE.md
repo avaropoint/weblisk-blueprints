@@ -1,8 +1,10 @@
 # The shape of the corpus
 
-> **Status: proposal, for review. Nothing has moved.**
-> Written 2026-09-18. It records what each family is *for*, names three that are
-> currently misfiled, and sequences the work.
+> **Status: in progress. Steps 1, 2, 4, 7 and 8 are done; 3, 5 and 6 are not.**
+> Written 2026-09-18 as a proposal, and it was one until things started moving.
+> Each step below states its own state; the header no longer claims for all of
+> them. It records what each family is *for*, names three that were misfiled,
+> and sequences the work.
 
 ## The problem
 
@@ -100,6 +102,12 @@ Same dispatch, same verification gate, same conformance discipline. A programme
 blueprint declares what must exist and what it depends on, exactly as an
 architecture blueprint does; only the target differs.
 
+**Both lines describe growing a tenant that already exists.** A tenant is a set
+of components in one module, not one binary: `weblisk tenant create` produces
+the orchestrator, and every line above is run against that tenant afterwards.
+`architecture/orchestrator.md`, "What a tenant consists of", is the one home
+for that, and for why a sibling component is never a `requires:` entry.
+
 ### Two differences of form to reconcile
 
 - Packs use **YAML frontmatter**; corpus blueprints use a `<!-- blueprint -->`
@@ -178,6 +186,8 @@ a provider exactly as they do for generating a tenant.
 | **`frameworks/`** | **weblisk**, astro, next — what it is built *with* | mostly from `standards/` |
 | **`standards/`** | **industry standards** — ISO, SOC 2, NIST, CSA | repurposed |
 | **`programmes/`** | programme definitions: artifacts, obligations, registers, tiers — and, to be added, the agents, workflows, tasks and forms a programme needs | **moved out of Studio** |
+| **`positions/`** | the hand-written half of a role brief — the judgement a projection over `programmes/` cannot reach | new |
+| **`policy-domains/`** | the **domain catalogue** in `catalogue/` — which subject areas exist and the keywords that classify into them — and, beside it, what each one covers, where it stops, and what claiming it requires. **Not `domains/`**: that name is taken by domain *controllers* in `schemas/common.md` | new; catalogue **moved out of Studio** |
 | `intl/` | **reserved** — locale and spoken-language constructs | new, empty |
 
 `frameworks/weblisk` is Weblisk's own client framework, a peer to Astro and Next
@@ -196,18 +206,32 @@ MISSION and Studio's CLAUDE.md say:
 > content**… They ship with the platform and **do not live in its source**.
 
 Read literally, that forbids programmes moving here. It should not, and the
-reason is what this repository already is: blueprints resolve **local checkout →
-`WL_BLUEPRINT_SOURCES` → the shared cache at `~/.weblisk/blueprints`**. That is
-precisely the complimentary-content delivery model — shipped with the platform,
-overridable, replaceable.
+reason is what the sentence is *for*: content must be shipped with the platform,
+overridable by the customer, and authored somewhere a customer and the CLI can
+both see. This repository is where it is authored.
 
 So *"its source"* means **the product binary's source tree**, not the
 specification corpus. A programme map is a specification of what artifacts a
 compliance programme requires, which is the same shape as a blueprint specifying
 what a component must serve. It belongs here.
 
-The wording in CLAUDE.md should say so, or the next reader will reach the
-opposite conclusion from the same sentence.
+**Do not confuse authoring with delivery.** Studio does not resolve
+complimentary content through the blueprint order (`blueprints/` →
+`WL_BLUEPRINT_SOURCES` → `~/.weblisk/blueprints`); that is the CLI's, for
+blueprints. Content authored here is embedded in the Studio release as a floor,
+materialised into `<instance>/.weblisk/content/` on first start, and read back
+from there as an override. Same three-tier shape, different mechanism. The one
+home for that fact is Studio's MISSION.md — this file does not restate it.
+
+*(Resolved 2026-09-26: the wording in Studio's MISSION.md and CLAUDE.md now says
+so, and CLAUDE.md no longer keeps a second copy of the mechanism.)*
+
+**That reading does not excuse the product's own source tree**, and the domain
+catalogue was the case that proved it. `internal/governance/domains/core.json`
+had already stopped being Go — the file the sentence names explicitly, *domain
+catalogues* — and it was still inside the binary's source, where the CLI cannot
+see it and a customer cannot version it. Becoming data is half the move; the
+other half is arriving here. See step 8a.
 
 ## Sequence
 
@@ -431,6 +455,56 @@ every approver; an unresolvable programme id produced an empty brief that read
 as *"this position does nothing"*; and **143 of 151 registers in the corpus name
 exactly one approver**, so sole approval is how this corpus is written rather
 than a fact about any one position.
+
+**8 — `policy-domains/`, both halves. DONE.**
+
+The commentary half was written first: twenty-five `<domain-id>.md` files
+saying what each subject area covers, where it stops, and — the substance —
+what a programme claiming it must provide, from a closed vocabulary of seven
+things the engine can check. `studio domains` reports 72 claims across 13
+programmes against it.
+
+**8a — the catalogue followed it. DONE.** The declaration itself —
+`policy-domains/catalogue/core.json`, 25 domains with their categories, their
+four `requires_*` flags and the keywords the classifier matches on — was still
+in Studio's `internal/governance/domains/`, which is the case the rule above
+names in so many words: a **domain catalogue**, in the product's source.
+
+That it had already stopped being Go was the trap. The header on
+`domains_data.go` records exactly why it left — a compiled-in list meant
+onboarding an industry needing a subject nobody had declared required a
+release, *"which makes an industry programme impossible by definition"* — and
+having won that argument it moved one directory and stopped. JSON inside the
+binary is still invisible to the CLI and still unversionable by a customer.
+
+**The two halves are not merged, and the reason is `keywords`.** A matcher
+cannot be compiled from prose and a boundary statement cannot be reviewed as a
+keyword array, so they stay two files with two jobs joined on the domain id.
+`keywords` in particular must stay with the thing that classifies: a copy of it
+in the commentary half would drift, and the drift **silently reclassifies
+documents** — evidence attaching to the wrong subject with nothing to notice.
+
+**The embedded copy stays, as a floor.** Same arrangement as the 61 standards
+from step 4, guarded the same way, and for a reason specific to this file:
+`PolicyDomains()` is read by the classifier, the framework loader, the coverage
+engine and a dozen handlers, none of which has a corpus in reach. An absent
+catalogue classifies nothing and scores nothing — a confident zero across every
+governance surface at once, which is worse than the release cadence the move
+was for. The floor is also what "override" is defined against: the existing
+guard asserts a pack **adds** to the built-ins and keeps their positions, so
+tie-breaking does not shift under an existing tenant, and that needs built-ins.
+
+**Measured against a frozen corpus, because the live one was moving.** A
+parallel session was adding `retention:` blocks to programme specs throughout,
+taking the finding count 66 → 40 → 38 within the hour, so two binaries — one
+with this change and one without — were built from the same tree and run
+against the same snapshot. They agree byte-for-byte, at the original 66
+findings, 25 described and 25 declared.
+
+Dropping a throwaway JSON into `catalogue/` then moved the count to 26 declared
+with one `undescribed`, **with no rebuild** — and the binary without this change
+ignored the same file entirely and still said 25. That pair is the override
+path proven end to end, and the second fault demonstrated rather than argued.
 
 ## Refuted: there is no JavaScript blueprint to extract
 

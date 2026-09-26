@@ -258,6 +258,73 @@ declaration:
 
 ---
 
+## What a tenant consists of, and where that is declared
+
+The orchestrator is a tenant's **first** component. It is not the tenant, and
+this section exists because the two were read as the same thing for long enough
+that a fully specified sibling — [`architecture/content`](content.md) — had
+never been generated into one.
+
+**A tenant's components are siblings, not dependencies.** The content service,
+a gateway, each agent and each domain controller are separate components in one
+module, generated one at a time, each registering with this orchestrator on
+start.
+
+**The `requires:` list below is what the orchestrator is built from, not what a
+tenant contains.** Adding a sibling to it would be wrong in three separate
+ways, and each matters:
+
+1. **It means something else.** A `requires` entry is a statement that this
+   component binds types or behaviours from that blueprint at build time. The
+   orchestrator binds nothing from the content service. It learns that one
+   exists when it registers, at runtime, like every other member.
+2. **It would make an optional component mandatory.** A tenant that governs no
+   documents legitimately runs an orchestrator and no content service. A
+   `requires` entry cannot express *may have*.
+3. **It would enlarge every orchestrator build.** Requirements are resolved
+   into the generation prompt, so a sibling in this list puts that sibling's
+   whole graph in front of the model that is writing the trust anchor —
+   `architecture/generation.md`, "Scope discipline".
+
+**Two different facts, two homes, and they must not be confused.**
+
+| Question | Home | Why there |
+|---|---|---|
+| What is this tenant running, right now? | `GET /v1/services` | Derived from registration. A component that is not running is not in it, and no file can claim otherwise |
+| What should this tenant build and start? | `.weblisk/config.yaml`, per [`schemas/config`](../schemas/config.md) | An operator's intent, which is a declared fact and belongs in a declared file |
+
+The first is what a client asks. Treating the second as the answer is how a
+tenant comes to report a component it has never started, and the specification
+of the second is `schemas/config.md`'s, not this document's.
+
+### Composing a tenant
+
+Composition is a sequence of acts, each recorded, with nothing to restart:
+
+```
+weblisk tenant create "Acme Corp"      # the orchestrator, started and claimed
+weblisk component content init         # the content service, into the same module
+```
+
+`architecture/cli.md` specifies the verbs. `architecture/generation.md`
+specifies how a second component is generated into a tenant that already holds
+code — which is the part with the interesting failures, because the planner
+must be told what is already there.
+
+### A tenant that lacks a component MUST say so
+
+A client asking a tenant for content, when no content service is registered,
+MUST be able to tell that apart from a tenant whose content service holds
+nothing. The directory answers it: `content` is absent from `namespaces`, and
+no member claims the `content.*` namespace.
+
+An empty list returned for a capability the tenant does not have is a confident
+zero, and it is the worst answer available — it is indistinguishable from a
+true one, and the caller's next act is to report that the tenant governs
+nothing.
+
+---
+
 ## Architecture
 
 ```

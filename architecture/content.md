@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 1.0.0
+version: 1.1.0
 requires: [protocol/types, patterns/content-identity, patterns/scope, patterns/contract, architecture/enforcement]
 platform: any
 tier: free
@@ -178,6 +178,8 @@ converts an unexplained change from an alarm into a recorded fact.
 ### Owns
 - The content repository contract — list, read, write, delete, stat over a
   confined tree
+- Declaration: what it takes to bring a store under governance, and the
+  difference between establishing an empty one and adopting one that is not
 - The custody model: classification, attestation properties, and the scope
   ceiling derived from them
 - Precondition semantics for writes (digest match, refusal on mismatch)
@@ -208,6 +210,7 @@ converts an unexplained change from an alarm into a recorded fact.
 | DELETE | /v1/content/entry | Remove | yes | Remove one entry and retire its identity |
 | GET | /v1/content/stat | Stat | yes | Identity and metadata without transferring bytes |
 | GET | /v1/content/repositories | Repositories | yes | Repositories in scope, with custody and ceiling |
+| POST | /v1/content/repositories | DeclareRepository | yes | Bring a store under governance — establish an empty one, or adopt one that already holds bytes |
 | POST | /v1/content/reconcile | Reconcile | yes | Detect out-of-band change (shared custody only) |
 | GET | /v1/health | Health | no | Content service health. Served with or without an orchestrator |
 
@@ -234,9 +237,11 @@ interfaces:
       served_by: content-service
 
     - path: /v1/content/repositories
-      methods: [GET]
-      description: Repositories visible in the caller's scope, with custody,
-        attestations and derived ceiling
+      methods: [GET, POST]
+      description: GET lists repositories visible in the caller's scope, with
+        custody, attestations, derived ceiling, and the ones that were declined.
+        POST declares one, establishing an empty store or adopting an existing
+        one; adoption requires if_match over a census the service issued
       served_by: content-service
 
     - path: /v1/content/reconcile
@@ -271,12 +276,24 @@ interfaces:
       description: Custody, attestations and derived ceiling
       called_by: [gateway, agents, admin]
 
+    - name: DeclareRepository
+      signature: (declaration, if_match) → (ContentRepository, ContentAdoption)
+      description: Bring a store under governance. Establishes an empty one, or
+        adopts an existing one against a census the service issued. Returns the
+        census and declares nothing when adoption is attempted unseen
+      called_by: [admin, agents]
+
     - name: Reconcile
       signature: (repository, since_cursor) → [ContentObservation]
       description: Detect and record out-of-band change. Shared custody only
       called_by: [content-service, agents]
 
   events:
+    - topic: content.repository_declared
+      direction: publish
+      description: A store came under governance, with its disposition, derived
+        ceiling and — on adoption — how many entries it arrived holding
+
     - topic: content.changed
       direction: publish
       description: An entry's identity changed, with provenance authored or external
@@ -297,7 +314,7 @@ interfaces:
 
 | Code | Category | When | Behaviour |
 |---|---|---|---|
-| `CONTENT_PRECONDITION_FAILED` | conflict | `if_match` does not equal the stored digest | Refuse. Return both digests. Never merge, never overwrite |
+| `CONTENT_PRECONDITION_FAILED` | conflict | `if_match` does not equal the identity of what it names — an entry's stored digest on a write, a placement's census digest on an adoption | Refuse. Return both digests. Never merge, never overwrite, never adopt |
 | `CONTENT_IF_MATCH_REQUIRED` | validation | A write arrived without a precondition | Refuse. A write with no precondition is a blind overwrite |
 | `CONTENT_CUSTODY_CEILING_EXCEEDED` | policy | Declared scope exceeds the repository ceiling | Refuse, naming required and actual. Never downgrade the scope |
 | `CONTENT_CUSTODY_UNDECLARED` | policy | Repository has no declared custody | Treat as `opaque`, apply the `internal` ceiling, and record the degradation |
@@ -305,11 +322,45 @@ interfaces:
 | `CONTENT_RESERVED_PATH` | policy | Path resolves into installation state (`.weblisk/`) | Refuse. Installation keys and state are never content |
 | `CONTENT_UNREADABLE` | io | Bytes cannot be read | Identity is `unknown`, never `current` and never `stale` |
 | `CONTENT_REPOSITORY_UNKNOWN` | validation | No repository of that id in the caller's scope | Refuse without disclosing whether it exists elsewhere |
+| `CONTENT_DISPOSITION_REQUIRED` | validation | A declaration arrived without a disposition | Refuse. A declaration that does not say whether it expects bytes is a blind adoption |
+| `CONTENT_REPOSITORY_EXISTS` | conflict | The id is already declared at that `scope_path` | Refuse, naming the declared repository's placement. Never re-declare in place |
+| `CONTENT_ADOPTION_UNSEEN` | conflict | `disposition: adopt` with no `if_match` | Refuse and return the `ContentAdoption` census. Nothing is declared. The caller re-submits with the census digest |
+| `CONTENT_NOT_EMPTY` | conflict | `disposition: establish` and the placement already holds entries | Refuse. Establishing over bytes somebody else wrote is adoption under the wrong word |
+| `CONTENT_PRECONDITION_NOT_APPLICABLE` | validation | `if_match` supplied with `disposition: establish` | Refuse. There is nothing to have seen, and a precondition nothing can evaluate must not be accepted as though it held |
+| `CONTENT_PLACEMENT_DECLARED` | conflict | The placement is equal to, inside, or contains an already-declared repository | Refuse. Two ceilings over one set of bytes means the lower one is unenforceable |
 | `ENFORCEMENT_DATA_CONTRACT_VIOLATION` | enforcement | Path is outside the agent's declared operational data contract | Refuse via the storage proxy |
 
 ---
 
 ## Data Flow
+
+### Declaration Flow
+1. Caller submits a `RepositoryDeclaration`: an id, a `scope_path`, a claimed
+   custody, claimed attestations, and a required `disposition`
+2. Enforcement storage proxy intercepts with operation `create` and the declared
+   `scope_path` as the resource scope. An out-of-scope declaration is refused
+   there, not here — this service supplies the scope and does not make the
+   decision
+3. Registry checks: the id must be free at that `scope_path`
+   (`CONTENT_REPOSITORY_EXISTS`), and the placement must not be equal to, inside
+   or containing a placement already declared (`CONTENT_PLACEMENT_DECLARED`)
+4. `establish` — the placement must hold no entries. It does → refuse with
+   `CONTENT_NOT_EMPTY`
+5. `adopt` — the service computes a `ContentAdoption` census over the placement.
+   With no `if_match`, it returns the census, refuses with
+   `CONTENT_ADOPTION_UNSEEN`, and declares nothing. With an `if_match` that does
+   not equal the census digest it has just computed, it refuses with
+   `CONTENT_PRECONDITION_FAILED` and returns both digests
+6. Each claimed attestation is demonstrated. An undemonstrated claim becomes
+   `false`; a declaration with no custody is recorded `opaque` and the
+   degradation is recorded, per `CONTENT_CUSTODY_UNDECLARED`
+7. The ceiling is derived from what was demonstrated. It is never taken from the
+   request
+8. The repository is recorded. On adoption, every entry the census found is
+   recorded with provenance `unknown` — the service did not write them and
+   observed no change, so it can establish nothing about them
+9. `content.repository_declared` is published, carrying the disposition, the
+   derived ceiling and the adopted entry count
 
 ### Read Flow
 1. Caller requests an entry, naming a repository and a path
@@ -375,6 +426,7 @@ and these capabilities, which are the `content:` family that document declares:
 | `content:read` | `GET /v1/content`, `GET /v1/content/entry`, `GET /v1/content/stat` |
 | `content:write` | `PUT /v1/content/entry`, `DELETE /v1/content/entry` |
 | `content:describe` | `GET /v1/content/repositories` |
+| `content:declare` | `POST /v1/content/repositories` |
 | `content:reconcile` | `POST /v1/content/reconcile` |
 
 A capability name is `family:verb`. An invented name is refused at registration,
@@ -542,6 +594,140 @@ statement, and the system that made it cannot be trusted about the rest.
 
 ---
 
+## Declaring a Repository
+
+Everything above describes a repository the service already holds. This section
+is how one arrives, and it is the operation with the most to lose: a repository
+is the unit custody is declared on, so declaring one wrong misstates the
+protection of every byte inside it for as long as it exists.
+
+`POST /v1/content/repositories`, operation `DeclareRepository`, guarded by
+`content:declare`. It is a separate capability from `content:write` on purpose.
+Writing a document and deciding which stores a tenant governs are different
+acts by different people, and a single capability covering both would mean
+anyone who may edit a policy may also place the tenant's name over a directory
+nobody has looked at.
+
+### A declaration says what it expects to find
+
+`disposition` is required. There is no default, and a declaration without one
+is refused with `CONTENT_DISPOSITION_REQUIRED`.
+
+| Disposition | Means | Refused when |
+|---|---|---|
+| `establish` | This store holds nothing and the tenant is its first author | The placement already holds entries — `CONTENT_NOT_EMPTY` |
+| `adopt` | This store already holds bytes the tenant is taking responsibility for | The caller has not seen a census of them — `CONTENT_ADOPTION_UNSEEN` |
+
+The two cannot be one operation with a lenient default, because the lenient
+default is the failure. A create that finds bytes and proceeds is how a tenant
+comes to govern somebody else's files: nothing was declared about them, nobody
+read them, and from that moment the system reports them as governed content
+with a custody class and a ceiling that were decided for a store presumed
+empty.
+
+Refusing `establish` over a non-empty placement is not an inconvenience. The
+remedy is one word, and typing it is the act of saying *I know what is in
+there*.
+
+### `if_match` on a declaration
+
+`if_match` means the same thing here as it does on
+`PUT /v1/content/entry` — **the identity of the thing I believe I am acting
+on** — over a different subject. A write's subject is one entry's bytes. A
+declaration's subject is the set of entries the placement holds, and its
+identity is a **census digest**.
+
+- `establish` MUST NOT carry `if_match`, and one that does is refused with
+  `CONTENT_PRECONDITION_NOT_APPLICABLE`. There is nothing to have seen, and a
+  precondition over an empty set is one that always holds — which is the same
+  as none, and accepting it would let a caller believe it had a guarantee
+  nothing checked. A caller that supplied one expected bytes, which means
+  `adopt` is the word it wanted.
+- `adopt` MUST carry one, and a first adoption call can therefore never
+  succeed. The service computes the census, returns it, refuses with
+  `CONTENT_ADOPTION_UNSEEN`, and declares nothing. The caller re-submits with
+  the census digest it was given. If the placement changed in between — an
+  ordinary thing under shared custody — the digests differ and the declaration
+  is refused with `CONTENT_PRECONDITION_FAILED`, exactly as a write is.
+
+The census digest is computed per
+[`patterns/content-identity`](../patterns/content-identity.md) over the ordered
+list of `(path, entry digest)` pairs, so it changes when anything is added,
+removed or edited, and does not change when nothing is. It costs one full pass,
+which adoption earns exactly once.
+
+This is what makes silent adoption structurally impossible rather than
+discouraged. A caller cannot adopt without having been told what it is
+adopting, because the only way to obtain the precondition is to ask and read
+the answer.
+
+### What an adopted entry is, and is not
+
+Every entry the census finds is recorded with provenance `unknown`.
+
+Not `authored`: this service did not write it, and saying otherwise would put
+the tenant's name on authorship it cannot demonstrate. Not `external` either:
+`external` is the verdict of the reconciler, which compares a digest it
+recorded earlier against one it reads now. At adoption there is no earlier
+digest, so nothing has been observed to change. `unknown` is the only honest
+answer, and `ContentEntry.provenance` already carries it — *"unknown when it
+cannot be established"*.
+
+The consequence is deliberate and should not be smoothed away: a freshly
+adopted repository reports that it cannot establish the provenance of anything
+in it. That is the truth about a tree the tenant has just met, and it resolves
+itself as the tenant writes.
+
+### The ceiling is derived at declaration, not supplied
+
+`RepositoryDeclaration` has no `ceiling` and no `verified_at`. Both are
+outputs. Custody and attestations are **claims** in the request; each is
+demonstrated before it takes effect, per Design Principle 2, and the ceiling
+follows the demonstration. A declaration claiming three attestations and
+demonstrating one is recorded with one, and its ceiling says so.
+
+A declaration with no `custody` is recorded `opaque` with the `internal`
+ceiling and the degradation is recorded, per `CONTENT_CUSTODY_UNDECLARED`. It
+is not refused: declaring a store you can say little about is a legitimate act,
+and refusing it pushes the content somewhere the service cannot see at all.
+
+### One placement, one repository
+
+A declaration whose placement equals, contains or sits inside an
+already-declared repository's is refused with `CONTENT_PLACEMENT_DECLARED`. Two
+repositories reaching the same bytes means two ceilings over them, and the
+lower one is then unenforceable — a write refused through one id succeeds
+through the other, and the refusal was theatre.
+
+**This check sees only what has been declared.** The registry knows every
+placement it holds and can compare them; it cannot know that a backend reaches
+the same bytes by another route it was never told about. That limit is stated
+with the answer, per Design Principle 5, and is not closed by pretending the
+check is wider than it is.
+
+### A store that already exists is the normal case
+
+A tenant's policies, procedures and evidence usually predate the tenant. The
+expected first declaration is therefore an adoption, not an establishment, and
+the two-step exists because that is the common path rather than the exotic one.
+
+Whether the backing store is version controlled, on a share, or a directory
+somebody made this morning is not this document's business — Design Principle 6
+holds. What matters about it is already expressible: a backend exposing a
+history the service can traverse attests `tamper_evident`, and one that does
+not, does not. Nothing new is needed to say "this repository is under version
+control", and naming the system would be naming a product.
+
+> **Gap.** There is no verb that retires a repository. A declaration is
+> therefore permanent, and a store declared by mistake stays declared. Naming
+> that verb requires deciding what happens to the entries' recorded identities
+> — `patterns/content-identity` retires an identity rather than deleting it,
+> and a repository holding thousands is not the same act as one entry. It is
+> left unspecified rather than guessed at, and this line exists so the absence
+> is a known gap rather than an oversight.
+
+---
+
 ## Types
 
 ```yaml
@@ -585,6 +771,94 @@ types:
         required: true
       tamper_evident:
         type: boolean
+        required: true
+
+  RepositoryDeclaration:
+    description: A request to bring a store under governance. Claims only —
+      custody and attestations are demonstrated before they take effect, and
+      the ceiling is derived from what was demonstrated
+    fields:
+      id:
+        type: string
+        required: true
+        description: Stable identifier, chosen by the caller. Unique within
+          scope_path. Survives rename and re-placement
+      scope_path:
+        type: string
+        required: true
+        description: tenant/org/project confinement this repository will belong
+          to. Also the resource scope the enforcement decision is made on
+      disposition:
+        type: enum
+        values: [establish, adopt]
+        required: true
+        description: establish expects no entries; adopt expects entries and
+          requires if_match over a census the service issued. There is no
+          default — see CONTENT_DISPOSITION_REQUIRED
+      custody:
+        type: enum
+        values: [exclusive, shared, opaque]
+        required: false
+        description: What the caller claims. Absent is opaque, recorded as a
+          degradation. Never inferred from a path, URL or provider name
+      attestations:
+        type: CustodyAttestations
+        required: false
+        description: What the caller claims the backend can demonstrate. An
+          undemonstrated claim is recorded false
+      if_match:
+        type: string
+        required: false
+        description: The census digest this declaration is adopting against.
+          Required for adopt, refused for establish
+
+  ContentAdoption:
+    description: What a placement holds, issued by the service so a caller can
+      adopt it knowingly. Returned with CONTENT_ADOPTION_UNSEEN, and recorded
+      on the declaration that follows
+    fields:
+      scope_path:
+        type: string
+        required: true
+      digest:
+        type: string
+        required: true
+        description: Census digest over the ordered (path, entry digest) pairs.
+          The value a subsequent declaration passes as if_match
+      entries:
+        type: integer
+        required: true
+        description: How many entries the census found. Zero means the
+          placement is empty and establish is the correct disposition
+      unreadable:
+        type: integer
+        required: true
+        description: How many entries could not be read. Their identity is
+          unknown, and adopting them adopts content the service cannot digest
+      issued_at:
+        type: timestamp
+        required: true
+
+  DeclinedRepository:
+    description: A repository that was declared and could not be recorded. It
+      is reported rather than omitted, so a caller can tell a tenant with no
+      repositories from a tenant whose repositories were refused
+    fields:
+      id:
+        type: string
+        required: true
+      scope_path:
+        type: string
+        required: true
+      code:
+        type: string
+        required: true
+        description: The error code the declaration was refused with
+      reason:
+        type: string
+        required: true
+      declined_at:
+        type: timestamp
         required: true
 
   ContentEntry:
@@ -715,6 +989,22 @@ demonstrated before it takes effect: an attestation asserted here and not
 demonstrated at verification becomes `false`, and the ceiling follows the
 demonstration, not the claim.
 
+**A configuration entry is processed as `establish`, and that is a limit rather
+than a choice.** Adoption requires `if_match` over a census the service issued,
+and a static file cannot hold a value that did not exist when it was written.
+So a configured entry whose placement already holds entries is refused with
+`CONTENT_NOT_EMPTY`, and adopting it is an act somebody performs through
+`POST /v1/content/repositories` after reading what is in there. This is the
+whole point of the disposition rule and MUST NOT be relaxed for configuration:
+a file that could adopt would adopt on every fresh start, unread.
+
+**A refused entry is reported, never dropped.** It is recorded as a
+`DeclinedRepository`, `GET /v1/content/repositories` returns it beside the
+repositories that were recorded, and health reports `degraded` naming it. A
+caller must be able to tell a tenant with no repositories from a tenant whose
+repositories were refused — a listing that silently omits them is a confident
+zero, and the caller's next act is to conclude the tenant governs nothing.
+
 ---
 
 ## Security
@@ -751,6 +1041,22 @@ security:
         content.ceiling_exceeded
     - rule: An undeclared or unverified repository is treated as opaque
       mechanism: Registry default; attestation defaults to false
+    - rule: A declaration with no disposition is refused
+      mechanism: disposition is a required field of RepositoryDeclaration
+    - rule: A declaration adopting a placement is refused unless it carries the
+        census digest the service issued for that placement
+      mechanism: Two-step adoption; the first call returns the census and
+        declares nothing, so bytes cannot be adopted unseen
+    - rule: A declaration establishing over a placement that already holds
+        entries is refused, never adopted instead
+      mechanism: Emptiness check before the registry write
+    - rule: The ceiling on a new repository is derived from demonstrated
+        attestations and is never read from the request
+      mechanism: RepositoryDeclaration carries no ceiling field
+    - rule: Declaring a repository requires content:declare, which writing an
+        entry does not confer
+      mechanism: Separate capability; the orchestrator refuses an unregistered
+        capability name at registration
     - rule: A path containing a traversal segment or resolving outside the
         repository through a symlink is refused as written
       mechanism: Path Resolver; refusal rather than normalisation
@@ -808,6 +1114,17 @@ security:
   disqualified; it declares the corresponding attestation `false` and accepts
   the lower ceiling.
 
+- **Compute the census at adoption, not at the first read.** Deferring it
+  means the repository is governed before anything is known about what is in
+  it, and the window between the two is exactly when a report claims coverage
+  it does not have.
+
+- **A census of an unreadable entry is not a census without it.** An entry that
+  cannot be read is counted in `unreadable` and included in the digest by path
+  with its identity marked unknown, per `CONTENT_UNREADABLE`. Silently skipping
+  it would make the digest stable across a change in the one place the service
+  can see least.
+
 - **Retirement, not deletion.** A removed entry's identity is retired per
   `patterns/content-identity` Design Principle 6. A reference to it resolves to
   "removed at version N", never to nothing and never to a later entry that
@@ -833,7 +1150,20 @@ security:
 - [ ] An unreadable entry yields state `unknown`, never `stale`, `current` or `removed`
 - [ ] A repository whose re-verification lowers its ceiling publishes `content.custody_degraded` naming the content now above it, and no content is moved or reclassified
 - [ ] Every content operation appears in the enforcement audit trail with the correlation id recorded on the resulting `ContentChange`
+- [ ] A repository declaration appears in the enforcement audit trail with operation `create` and the declared `scope_path` as the resource scope, including the declaration that was refused
+- [ ] A declaration with `disposition: establish` carrying `if_match` is refused with `CONTENT_PRECONDITION_NOT_APPLICABLE`
 - [ ] With no orchestrator URL configured, the service starts, serves `GET /v1/health`, and does not exit
 - [ ] With no orchestrator URL configured, every protected endpoint refuses with `401` and a structured `ErrorResponse`
 - [ ] With no orchestrator URL configured, health reports `degraded` and names the absent orchestrator — never `healthy`, never `unhealthy`
+- [ ] A declaration with no `disposition` is refused with `CONTENT_DISPOSITION_REQUIRED`, and nothing is recorded
+- [ ] A declaration with `disposition: establish` over a placement holding entries is refused with `CONTENT_NOT_EMPTY`, and the entries are neither adopted nor touched
+- [ ] A first declaration with `disposition: adopt` and no `if_match` is refused with `CONTENT_ADOPTION_UNSEEN`, returns a `ContentAdoption`, and records no repository
+- [ ] A declaration with `disposition: adopt` whose `if_match` does not equal a freshly computed census digest is refused with `CONTENT_PRECONDITION_FAILED`
+- [ ] A declaration re-using an id already declared at that `scope_path` is refused with `CONTENT_REPOSITORY_EXISTS`, and the declared repository is unchanged
+- [ ] A declaration whose placement equals, contains or sits inside a declared repository's is refused with `CONTENT_PLACEMENT_DECLARED`
+- [ ] Every entry present at adoption is recorded with provenance `unknown`, never `authored` and never `external`
+- [ ] A declaration claiming attestations that are not demonstrated is recorded with the demonstrated set, and its ceiling follows the demonstrated set
+- [ ] A declaration carrying no `custody` is recorded `opaque` with the `internal` ceiling, and the degradation is recorded
+- [ ] A configured repository whose placement is not empty is refused, appears in `GET /v1/content/repositories` as a `DeclinedRepository`, and health reports `degraded` naming it
+- [ ] `content:declare` is required to declare a repository, and a caller holding only `content:write` is refused
 - [ ] With an orchestrator URL configured, a failed registration is fatal

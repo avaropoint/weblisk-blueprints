@@ -27,13 +27,13 @@ Named after the CLI verb they serve, not after a model.
 | Skill | Verb | Points at |
 |---|---|---|
 | [blueprints](blueprints/SKILL.md) | (every generate) | schemas, declaration blocks |
-| [tenants](tenants/SKILL.md) | `weblisk tenant` | `architecture/orchestrator.md` |
+| [tenants](tenants/SKILL.md) | `weblisk tenant` | `architecture/orchestrator.md` — including what a tenant consists of beyond it |
 | [hubs](hubs/SKILL.md) | `weblisk server` | `architecture/orchestrator.md`, `architecture/hub.md` |
 | [agents](agents/SKILL.md) | `weblisk agent` | `architecture/agent.md`, `agents/` |
 | [domains](domains/SKILL.md) | `weblisk domain` | `architecture/domain.md` |
 | [gateways](gateways/SKILL.md) | `weblisk gateway` | `architecture/gateway.md` |
 | [operators](operators/SKILL.md) | `weblisk operator` | `architecture/admin.md`, `protocol/identity.md` |
-| [changes](changes/SKILL.md) | `weblisk component`, `weblisk test` | `architecture/generation.md`, `architecture/testing.md` |
+| [changes](changes/SKILL.md) | `weblisk component`, `weblisk test` | `architecture/generation.md`, `architecture/testing.md`, `architecture/content.md` |
 | [kinds](kinds/SKILL.md) | (every tool that classifies or relates) | `schemas/kinds.md` |
 | [go](go/SKILL.md) | `--platform go` | `platforms/go.md` |
 | [node](node/SKILL.md) | `--platform node` | `platforms/node.md` |

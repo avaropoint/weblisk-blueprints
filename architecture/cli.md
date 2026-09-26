@@ -439,6 +439,78 @@ $ weblisk secret rotate email-send SMTP_PASSWORD
 
 ## Server Commands
 
+### `weblisk tenant create <name>`
+
+Turn a name into a running tenant with a first operator credential, in one
+command.
+
+```bash
+$ weblisk tenant create "Acme Corp"
+$ weblisk tenant create "Acme Corp" --platform go --dir ./acme --port 9860
+```
+
+| Flag | Description |
+|------|-------------|
+| `--dir <path>` | Where to create it (default: `./<name>`) |
+| `--platform <p>` | Which platform blueprint, skills and layout the tenant is built from. Default `go` |
+| `--provider <p>` | Model backend. Omitted means the highest-weighted one this machine actually has |
+| `--model <m>` | Model name, where the provider takes one |
+| `--operator <name>` | Who the first operator IS, as the hub records them |
+| `--identity <label>` | Which identity SIGNS. Decides who may administer this tenant, permanently |
+| `--keys-dir <path>` | Which identity signs, by location. Wins over `--identity` |
+| `--port <n>` | Orchestrator port |
+| `--resume` | Continue into a directory that already holds generated code |
+| `--json` | One progress object per line, for a GUI |
+
+The steps are a contract, because both front ends render them and a GUI that
+cannot show progress during a minutes-long generation grows its own
+implementation to get it:
+
+    provider · directory · generate · skills · provision · accept · done
+
+**`create` produces the orchestrator and nothing else.** A tenant is a set of
+components in one module; every other one is added afterwards with `weblisk
+component <name> init` or the matching `create` verb. See
+[`architecture/orchestrator`](orchestrator.md), "What a tenant consists of",
+for where a tenant's component set is declared — and for why it is not a file.
+
+**The first operator is auto-approved and every later one needs that first
+one's approval**, per [`architecture/admin`](admin.md). The bootstrap secret
+rule — a first grant is claimed by presenting a secret emitted to the process
+that started the tenant, never by reaching an unauthenticated endpoint first —
+is [`patterns/principal-identity`](../patterns/principal-identity.md)'s and is
+not restated here.
+
+**Security:** a tenant directory holds `.weblisk/keys/`, and creating one MUST
+write the same `.gitignore` `weblisk new` writes — `.weblisk/secrets/`,
+`.weblisk/keys/`, `.weblisk/token`, `.env`, `.env.*`. The rule was stated for
+the scaffolder and not for the operation that produces the directory holding
+the hub's ML-DSA private key, which is the one that needs it most. A tenant
+with no `.gitignore` is one `git init` away from a committed private key, and
+`weblisk doctor` correctly reports it as an error.
+
+The passphrase is read from stdin and never from argv, which every process on
+the machine can read.
+
+### `weblisk tenant accept`
+
+Ask a running tenant whether it works, over HTTP, the way its clients will.
+
+```bash
+$ weblisk tenant accept
+$ weblisk tenant accept --url http://localhost:9800 --json
+```
+
+The same pass `create` ends with, so it can be re-run. Probes are
+unauthenticated on purpose: the question is not *may I do this* but *does this
+tenant serve this*, and the auth middleware answers that first — `401` is a
+pass, `404` means the route is absent, `405` means the client and the tenant
+disagree about the method.
+
+A failed non-essential check does not fail the tenant. It is a capability that
+tenant does not have, and **saying so is the point** — "created" must not mean
+only that the generator returned without an error.
+
 ### `weblisk component <name> init`
 
 Generate one component into a tenant that already exists.
@@ -1955,6 +2027,12 @@ security:
 - [ ] `weblisk secret rotate` triggers the rotation handler or prompts for new value
 
 ### Server & Code Generation
+- [ ] `weblisk tenant create` ends with a hub running, a first grant issued, and an address to connect to
+- [ ] `weblisk tenant create` writes a `.gitignore` excluding `.weblisk/keys/`, `.weblisk/secrets/`, `.weblisk/token`, `.env` and `.env.*`, so the directory it just put a private key in is not one `git init` from committing it
+- [ ] `weblisk tenant create` emits the steps `provider · directory · generate · skills · provision · accept · done`, and renaming one breaks both front ends at once
+- [ ] `weblisk tenant create` generates the orchestrator only; every other component is added afterwards and the command does not claim otherwise
+- [ ] `weblisk tenant accept` reports a `404` as an absent route and a `401` as a pass, and a failed non-essential check does not fail the tenant
+- [ ] `weblisk component help` lists a component only when the pipeline will read that component's own blueprint, so a listed kind is never generated from the protocol alone
 - [ ] `weblisk server init` reads YAML specs and dispatches to the configured LLM for code generation
 - [ ] `weblisk server start` reads .weblisk/config.yaml and builds+starts all declared components
 - [ ] `weblisk server verify` confirms orchestrator health and all registered components

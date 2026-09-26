@@ -1,6 +1,6 @@
 ---
 name: changes
-description: How a tenant changes after it exists — adding a component, deciding what rebuilds, and what must pass before a change is accepted. Use when adding a component to a tenant, when a blueprint has moved and a tenant must catch up, or when a build regenerated more (or less) than expected.
+description: How a tenant changes after it exists — adding a component such as the content service, deciding what rebuilds, and what must pass before a change is accepted. Use when adding a component to a tenant, when a tenant needs to hold content, when a blueprint has moved and a tenant must catch up, or when a build regenerated more (or less) than expected.
 ---
 
 # Changing a tenant that already exists
@@ -15,8 +15,14 @@ which verb to run and which section to read.
 ## Add a component
 
 ```
+weblisk component help                   # what this installation can build
 weblisk component <kind> init [--platform go]
 ```
+
+**An orchestrator is a tenant's first component, not the tenant.** A tenant is
+a set of siblings in one module, each registering with the orchestrator on
+start. `architecture/orchestrator.md`, "What a tenant consists of", says where
+that set is declared — and it is `GET /v1/services`, not a file.
 
 Buildable kinds come from this installation's blueprints; the command lists
 them when the name is wrong. A tenant's second component is where the
@@ -25,6 +31,37 @@ the blueprints, or it plans a fresh module over an existing one.
 
 `--resume` continues a run that died on a provider limit. Only `server init`
 and `component <kind> init` are resumable; do not suggest it for other verbs.
+
+### Check the listed kind has a blueprint to generate from
+
+`component help` lists a kind when its architecture blueprint states an
+`## Endpoints` table and declares bindings. Whether the pipeline then *reads*
+that blueprint is a second question, and the two sets are not the same.
+
+Before running `component <kind> init` for a kind you have not built before,
+run it and read the announced blueprint list. **If the component's own
+blueprint is not in it, stop.** The run will otherwise plan from the protocol
+and the platform alone, produce a plausible file set, and pass its own checks —
+a component generated against nothing, reported as generated.
+
+### Content
+
+`weblisk component content init` builds the tenant's content service —
+the thing that lets a tenant hold authored text rather than only run code.
+What it serves, what custody means, and what declaring a repository requires
+are all `architecture/content.md`; none of it is repeated here.
+
+Two things about it are operational rather than specified, and are what an
+agent gets wrong:
+
+- **Generating it is not the end.** A content service with no repository
+  declared holds nothing, and a tenant that has one must still be told which
+  stores it governs.
+- **The first adoption call is meant to fail.** Adopting a store that already
+  holds bytes is two calls: the first returns a census and refuses, the second
+  passes that census digest back as `if_match`. Treat the first refusal as the
+  answer, not as an error to retry or work around — see `architecture/content.md`,
+  "Declaring a Repository".
 
 ## Decide before you build
 
@@ -88,6 +125,12 @@ produce different file sets, different file names and different conformance
 verdicts. Do not chase determinism — it is model-driven and variance is the
 medium. What follows is that **conformance is a per-build fact**: you cannot
 infer one tenant's correctness from another's, so the checks run every time.
+
+**A component a tenant does not have must be reported as absent, not as
+empty.** Ask the directory before you ask the capability. A tenant with no
+content service and a tenant whose content service is empty return the same
+thing to a caller that only asked for content, and the second answer is the one
+that gets written down.
 
 **A wrong check is more persuasive than no check.** Every defect found in this
 pipeline so far has been in a checking layer rather than in a model's output or
