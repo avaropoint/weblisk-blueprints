@@ -1,0 +1,517 @@
+{
+  "version": "1",
+  "domains": [
+    {
+      "id": "governance",
+      "name": "Governance & Organization",
+      "description": "Organizational structure, roles, responsibilities, oversight",
+      "category": "administrative",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": false,
+      "requires_evidence": true,
+      "keywords": [
+        "governance",
+        "organization",
+        "oversight",
+        "board",
+        "committee",
+        "charter",
+        "responsibility"
+      ]
+    },
+    {
+      "id": "risk_management",
+      "name": "Risk Management",
+      "description": "Risk identification, assessment, treatment, and monitoring",
+      "category": "administrative",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": false,
+      "requires_evidence": true,
+      "keywords": [
+        "risk",
+        "assessment",
+        "threat",
+        "likelihood",
+        "impact",
+        "mitigation",
+        "treatment"
+      ]
+    },
+    {
+      "id": "access_control",
+      "name": "Access Control",
+      "description": "Authentication, authorization, identity management, privilege",
+      "category": "technical",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": true,
+      "requires_evidence": true,
+      "keywords": [
+        "access",
+        "authentication",
+        "authorization",
+        "rbac",
+        "role",
+        "permission",
+        "identity",
+        "login",
+        "session",
+        "mfa",
+        "credential"
+      ]
+    },
+    {
+      "id": "encryption",
+      "name": "Cryptography & Key Management",
+      "description": "Encryption at rest/transit, key lifecycle, certificate management",
+      "category": "technical",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": true,
+      "requires_evidence": true,
+      "keywords": [
+        "encryption",
+        "cryptography",
+        "tls",
+        "ssl",
+        "certificate",
+        "key-management",
+        "hash",
+        "cipher",
+        "kms"
+      ]
+    },
+    {
+      "id": "network_security",
+      "name": "Network Security",
+      "description": "Segmentation, firewalls, boundary protection, TLS",
+      "category": "technical",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": true,
+      "requires_evidence": true,
+      "keywords": [
+        "network",
+        "firewall",
+        "segmentation",
+        "dmz",
+        "proxy",
+        "gateway",
+        "boundary",
+        "perimeter",
+        "vpn"
+      ]
+    },
+    {
+      "id": "data_protection",
+      "name": "Data Protection & Privacy",
+      "description": "Classification, handling, retention, disposal, privacy rights",
+      "category": "technical",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": true,
+      "requires_evidence": true,
+      "keywords": [
+        "data-protection",
+        "privacy",
+        "classification",
+        "retention",
+        "disposal",
+        "masking",
+        "anonymization",
+        "consent",
+        "gdpr"
+      ]
+    },
+    {
+      "id": "logging_monitoring",
+      "name": "Logging & Monitoring",
+      "description": "Audit logs, security monitoring, alerting, SIEM",
+      "category": "technical",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": true,
+      "requires_evidence": true,
+      "keywords": [
+        "logging",
+        "monitoring",
+        "audit",
+        "siem",
+        "alerting",
+        "observability",
+        "metrics",
+        "tracing",
+        "telemetry"
+      ]
+    },
+    {
+      "id": "incident_response",
+      "name": "Incident Response",
+      "description": "Detection, analysis, containment, eradication, recovery",
+      "category": "administrative",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": true,
+      "requires_evidence": true,
+      "keywords": [
+        "incident",
+        "response",
+        "detection",
+        "containment",
+        "eradication",
+        "recovery",
+        "forensics",
+        "breach"
+      ]
+    },
+    {
+      "id": "business_continuity",
+      "name": "Business Continuity & DR",
+      "description": "Backup, disaster recovery, failover, continuity planning",
+      "category": "administrative",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": true,
+      "requires_evidence": true,
+      "keywords": [
+        "continuity",
+        "disaster-recovery",
+        "backup",
+        "failover",
+        "redundancy",
+        "resilience",
+        "rto",
+        "rpo"
+      ]
+    },
+    {
+      "id": "change_management",
+      "name": "Change Management",
+      "description": "Change control, versioning, deployment, rollback",
+      "category": "administrative",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": true,
+      "requires_evidence": true,
+      "keywords": [
+        "change",
+        "deployment",
+        "release",
+        "version",
+        "ci-cd",
+        "pipeline",
+        "rollback",
+        "approval"
+      ]
+    },
+    {
+      "id": "secure_development",
+      "name": "Secure Development",
+      "description": "SDLC security, code review, testing, vulnerability management",
+      "category": "technical",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": true,
+      "requires_evidence": true,
+      "keywords": [
+        "sdlc",
+        "code-review",
+        "testing",
+        "vulnerability",
+        "sast",
+        "dast",
+        "dependency",
+        "supply-chain"
+      ]
+    },
+    {
+      "id": "asset_management",
+      "name": "Asset Management",
+      "description": "Inventory, classification, ownership, lifecycle",
+      "category": "administrative",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": false,
+      "requires_evidence": true,
+      "keywords": [
+        "asset",
+        "inventory",
+        "cmdb",
+        "ownership",
+        "lifecycle",
+        "classification"
+      ]
+    },
+    {
+      "id": "vendor_management",
+      "name": "Third-Party & Vendor Management",
+      "description": "Supplier assessment, contracts, ongoing monitoring",
+      "category": "administrative",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": false,
+      "requires_evidence": true,
+      "keywords": [
+        "vendor",
+        "supplier",
+        "third-party",
+        "contract",
+        "sla",
+        "due-diligence"
+      ]
+    },
+    {
+      "id": "physical_security",
+      "name": "Physical Security",
+      "description": "Facility access, environmental controls, media handling",
+      "category": "physical",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": false,
+      "requires_evidence": true,
+      "keywords": [
+        "physical",
+        "facility",
+        "badge",
+        "cctv",
+        "environmental",
+        "lock",
+        "datacenter"
+      ]
+    },
+    {
+      "id": "hr_security",
+      "name": "Human Resource Security",
+      "description": "Screening, awareness training, termination procedures",
+      "category": "administrative",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": false,
+      "requires_evidence": true,
+      "keywords": [
+        "personnel",
+        "screening",
+        "training",
+        "awareness",
+        "termination",
+        "onboarding",
+        "background-check"
+      ]
+    },
+    {
+      "id": "compliance_audit",
+      "name": "Compliance & Audit",
+      "description": "Internal audit, external audit, regulatory compliance monitoring",
+      "category": "administrative",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": false,
+      "requires_evidence": true,
+      "keywords": [
+        "compliance",
+        "audit",
+        "assessment",
+        "certification",
+        "attestation",
+        "report",
+        "finding"
+      ]
+    },
+    {
+      "id": "configuration_management",
+      "name": "Configuration Management",
+      "description": "Baseline configurations, hardening, drift detection",
+      "category": "technical",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": true,
+      "requires_evidence": true,
+      "keywords": [
+        "configuration",
+        "baseline",
+        "hardening",
+        "drift",
+        "patch",
+        "cis-benchmark",
+        "stig"
+      ]
+    },
+    {
+      "id": "vulnerability_management",
+      "name": "Vulnerability Management",
+      "description": "Scanning, patching, remediation, threat intelligence",
+      "category": "technical",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": true,
+      "requires_evidence": true,
+      "keywords": [
+        "vulnerability",
+        "scan",
+        "patch",
+        "cve",
+        "remediation",
+        "penetration",
+        "exploit"
+      ]
+    },
+    {
+      "id": "health_safety",
+      "name": "Occupational Health & Safety",
+      "description": "Hazard identification, safe work practices, PPE, JHSC, worker protection on site and in shop",
+      "category": "operational",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": false,
+      "requires_evidence": true,
+      "keywords": [
+        "ohsa",
+        "jhsc",
+        "hazard",
+        "ppe",
+        "fall-protection",
+        "whmis",
+        "lockout",
+        "confined-space",
+        "toolbox",
+        "safety",
+        "near-miss",
+        "competent-person",
+        "scaffold",
+        "arc-flash"
+      ]
+    },
+    {
+      "id": "trade_regulatory",
+      "name": "Trade Licensing & Code Compliance",
+      "description": "Contractor licences, permits, regulator notification and inspection, code-edition currency",
+      "category": "operational",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": false,
+      "requires_evidence": true,
+      "keywords": [
+        "licence",
+        "license",
+        "permit",
+        "tssa",
+        "esa",
+        "regulator",
+        "code-compliance",
+        "inspection-authority",
+        "notification",
+        "cwb",
+        "crn",
+        "field-approval",
+        "code-edition"
+      ]
+    },
+    {
+      "id": "training_competency",
+      "name": "Training & Competency",
+      "description": "Trade qualification, certification currency, apprenticeship, competency verification per task",
+      "category": "operational",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": false,
+      "requires_evidence": true,
+      "keywords": [
+        "competency",
+        "apprentice",
+        "journeyperson",
+        "qualification",
+        "ticket",
+        "certification-currency",
+        "refresher",
+        "skilled-trades"
+      ]
+    },
+    {
+      "id": "quality_management",
+      "name": "Quality Management",
+      "description": "Inspection and test, nonconformance, corrective action, calibration, commissioning and handover",
+      "category": "operational",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": false,
+      "requires_evidence": true,
+      "keywords": [
+        "quality",
+        "nonconformance",
+        "corrective-action",
+        "calibration",
+        "commissioning",
+        "handover",
+        "inspection-and-test",
+        "deficiency",
+        "rework"
+      ]
+    },
+    {
+      "id": "equipment_integrity",
+      "name": "Equipment & Pressure Integrity",
+      "description": "Pressure equipment registration, welding procedure qualification, refrigeration and backflow integrity",
+      "category": "operational",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": true,
+      "requires_evidence": true,
+      "keywords": [
+        "pressure-vessel",
+        "boiler",
+        "welding",
+        "weld-procedure",
+        "refrigeration",
+        "backflow",
+        "piping",
+        "registration-number",
+        "relief-valve",
+        "brazing"
+      ]
+    },
+    {
+      "id": "environmental",
+      "name": "Environmental Protection",
+      "description": "Refrigerant handling, emissions, designated substances, waste and spill control",
+      "category": "operational",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": false,
+      "requires_evidence": true,
+      "keywords": [
+        "refrigerant",
+        "emissions",
+        "designated-substance",
+        "asbestos",
+        "silica",
+        "waste",
+        "spill",
+        "halocarbon"
+      ]
+    },
+    {
+      "id": "records_management",
+      "name": "Records Management",
+      "description": "Statutory record retention for safety, WSIB, training, inspection and project records",
+      "category": "operational",
+      "requires_policy": true,
+      "requires_procedure": true,
+      "requires_technical": false,
+      "requires_evidence": true,
+      "keywords": [
+        "record-retention",
+        "records",
+        "archive",
+        "statutory-record",
+        "document-control",
+        "records management",
+        "document control",
+        "system of record",
+        "record retention",
+        "records retention"
+      ]
+    }
+  ]
+}
