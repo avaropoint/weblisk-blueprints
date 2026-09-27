@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 1.0.0
+version: 1.1.0
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -37,7 +37,7 @@ The CLI has two command surfaces:
 Operations commands authenticate with an operator's ML-DSA-65 identity — the
 one `--identity <label>` names, or the unnamed default.
 [Where an identity lives](#where-an-identity-lives) says where that is, and
-whether its private half is an encrypted file or held in a vault.
+whether its private half is an encrypted file or held by a secret source.
 
 ### The binary is named `weblisk`
 
@@ -214,8 +214,9 @@ act on local files, and **operator** commands that act on a running hub.
 
 **Responsibilities.** Scaffolding and building projects, generating components from
 blueprints and gating them on conformance, resolving where an identity lives,
-requesting signatures without handling private keys, and minting short-lived
-credentials per invocation.
+getting signatures from wherever the identity is held — a private key is in its
+memory only when that holder cannot sign — and minting short-lived credentials
+per invocation.
 
 **Not responsibilities.** Holding a long-lived secret of its own. Deciding what a
 blueprint requires — it reads the corpus. Administering a hub's data, which is
@@ -235,8 +236,8 @@ Studio's and the orchestrator's own surfaces.
 - Production builds (`weblisk build`)
 - Static framework vendoring (`weblisk vendor`)
 - Operator ML-DSA-65 identity creation, and resolving where a named identity
-  lives — an encrypted key file, or a reference to a vault that holds the
-  private half ([Where an identity lives](#where-an-identity-lives))
+  lives — an encrypted key file, or a holder reference naming the secret source
+  that holds the private half ([Where an identity lives](#where-an-identity-lives))
 - Operator registration and token management (the token is stored beside the
   identity that obtained it)
 - Human-readable table output and `--json` machine-readable output formatting
@@ -938,18 +939,22 @@ The private half is held in one of two ways:
 
 | Holder | On disk beside the identity | Passphrase |
 |---|---|---|
-| Encrypted file | `operator.key` in `weblisk-key-v1` format (Argon2id KDF + AES-256-GCM), and `operator.pub` | Required, and never stored. It is the only thing protecting the key |
-| Vault — 1Password is the one supported | `operator.pub` and a reference to where the private half is. No private key | None to type. The vault holds everything that unlocks the private half |
+| Encrypted file | `operator.key` in `weblisk-key-v1` format (Argon2id KDF + AES-256-GCM), and `operator.pub` | Required. The CLI never writes it down; it is the only thing protecting the key |
+| A secret source — a keychain, a vault, or any store a helper speaks for | `operator.pub` and `holder.json`, the holder reference. No private key | None to type. The source holds the passphrase with the private half |
 
-A vault is optional and always will be. `protocol/identity` rule 8 ranks a
-managed secret above an encrypted file, and that is a preference, not a
-requirement: a machine with no vault account must still be able to hold an
+[`protocol/secret-source`](../protocol/secret-source.md) is how the CLI finds a
+source and speaks to it, which sources it carries built in, what a holder
+reference records, and what a source holds for an identity.
+
+A secret source is optional and always will be. `protocol/identity` rule 8 ranks
+a managed secret above an encrypted file, and that is a preference, not a
+requirement: a machine with no vault or keychain must still be able to hold an
 identity.
 
 ### `weblisk operator init`
 
 Create an operator ML-DSA-65 identity — in an encrypted file protected by a
-passphrase, or with `--vault`, in a vault.
+passphrase, or with `--holder`, in a secret source.
 
 ```bash
 $ weblisk operator init
@@ -966,13 +971,21 @@ The passphrase is NOT stored — you must remember it.
 
 - Creates the identity where `--keys-dir`, `--identity` or the default selects
   (mode 0700 directory, 0600 key) — see [Where an identity lives](#where-an-identity-lives)
-- Without `--vault`, prompts for a passphrase, which cannot be skipped or
+- Without `--holder`, prompts for a passphrase, which cannot be skipped or
   supplied via flag. Minimum length 12 characters (enforced). The private key is
   stored in `weblisk-key-v1` format, and the passphrase is never written to
   disk and never in shell history
-- `--vault <vault>` keeps the private half in that vault instead: no private
-  key is written to disk and no passphrase is asked for. `--account <account>`
-  names the vault account where more than one is configured
+- `--holder <source>` keeps the private half in that secret source instead: no
+  private key is written beside the identity and no passphrase is asked for.
+  What the source then holds is
+  [`protocol/secret-source`](../protocol/secret-source.md#an-identity-held-by-a-source)'s
+  to say
+- `--holder-opt <key>=<value>` passes an option to the source and records it in
+  the holder reference — which vault, which account. Repeatable. An option is
+  never a secret
+- `--vault <vault>` means `--holder 1password --holder-opt vault=<vault>`, and
+  `--account <account>` with it means `--holder-opt account=<account>`. Both are
+  deprecated aliases
 - Never overwrites an identity that already exists there without `--force`
 - `--force` to regenerate (prints identity change warning; the new identity must be re-registered)
 - `--name <name>` sets the operator name a hub will record (default: system
@@ -980,18 +993,22 @@ The passphrase is NOT stored — you must remember it.
 
 ### `weblisk operator store`
 
-Map an identity whose private half is already in a vault, rather than creating
-one.
+Map an identity whose private half is already in a secret source, rather than
+creating one.
 
 ```bash
-$ weblisk operator store --identity alice --reference op://Vault/item/private_key
+$ weblisk operator store --identity alice --holder <source>:<reference>
 ```
 
-- Writes the public key and the reference beside the selected identity. The
-  private half stays in the vault
+- `--holder <source>:<reference>` is the holder reference in its flag form
+  ([`protocol/secret-source`](../protocol/secret-source.md#the-holder-reference))
+- Writes the public key, read from the source, and the holder reference beside
+  the selected identity. The private half stays in the source
 - Refuses where the selected location already holds a private key on disk: a
   subject holds one identity, and mapping over it would strand that one
-- `--account <account>` as for `operator init --vault`
+- `--holder-opt <key>=<value>` as for `operator init`
+- `--reference <reference>` means `--holder 1password:<reference>`, and
+  `--account` is as for `operator init`. Both are deprecated aliases
 
 `init` creates, `store` maps and `path` reports; no verb does two of those.
 
@@ -1071,8 +1088,8 @@ Flags:
 
 **The passphrase arrives on stdin and never in argv.** A passphrase in a
 command-line argument is readable by every process on the machine, so one is
-refused rather than accepted with a warning. A vault-held identity is not asked
-for one.
+refused rather than accepted with a warning. An identity whose passphrase a
+secret source holds is not asked for one.
 
 ### `weblisk operator token`
 
@@ -2072,7 +2089,7 @@ Every command that calls the orchestrator:
 1. Resolve which identity acts: --keys-dir, else --identity <label>, else the unnamed default
 2. Load the token stored beside that identity
 3. Check token expiry — if < 1 hour remaining, auto-refresh, signing with the
-   identity's holder (the encrypted key file, or the vault)
+   identity's holder (the encrypted key file, or a secret source)
 4. Set Authorization: Bearer <token> on request
 5. If 401 response → attempt token refresh → retry once
 6. If refresh fails → print "Session expired. Run: weblisk operator register"
@@ -2107,8 +2124,12 @@ security:
   boundaries:
     - boundary: Operator → CLI. The operator's identity authorises every
         privileged operation; the CLI holds no standing authority
-    - boundary: CLI → Identity holder. The private half may live in hardware or a
-        vault; the CLI asks for a signature and never for the key
+    - boundary: CLI → Identity holder. A secret source that can sign keeps the
+        private half and returns a signature. From one that cannot, the CLI gets
+        the encrypted private half and its passphrase, decrypts it in memory,
+        signs, and zeroises both (protocol/secret-source). An encrypted key file
+        is decrypted in memory for the invocation that asked for its passphrase,
+        and never written back in the clear
     - boundary: CLI → Orchestrator. Authenticated per request with a short-lived
         credential, over a transport the operator named
     - boundary: CLI → Local filesystem. Confined to the project and the
@@ -2195,12 +2216,14 @@ security:
 
 ### Identity & Operations
 - [ ] `weblisk operator init` creates the identity that `--keys-dir`, `--identity` or the unnamed default `~/.weblisk/keys/` selects, with 0700 directory and 0600 file permissions
-- [ ] `weblisk operator init` without `--vault` prompts for passphrase (min 12 chars), encrypts private key with Argon2id + AES-256-GCM
+- [ ] `weblisk operator init` without `--holder` prompts for passphrase (min 12 chars), encrypts private key with Argon2id + AES-256-GCM
 - [ ] `weblisk operator init` passphrase cannot be skipped or supplied as CLI argument
-- [ ] `weblisk operator init --vault` writes no private key to disk and asks for no passphrase
+- [ ] `weblisk operator init --holder <source>` writes no private key beside the identity and asks for no passphrase
+- [ ] `weblisk operator init --vault <vault>` behaves exactly as `--holder 1password --holder-opt vault=<vault>`
+- [ ] `weblisk operator store --holder <source>:<reference>` writes `operator.pub` and `holder.json` and no private key
 - [ ] `--identity <label>` resolves to the same location on every run, and `weblisk operator path --identity <label>` reports it
 - [ ] `--keys-dir` outranks `--identity` when both are given
-- [ ] `weblisk operator connect` asks for no passphrase when the identity is vault-held
+- [ ] `weblisk operator connect` asks for no passphrase when a secret source holds the identity's passphrase
 - [ ] `weblisk operator init` does not overwrite existing keys without --force flag
 - [ ] `weblisk operator register` signs the registration payload with the operator's private key and stores the returned token
 - [ ] `weblisk operator token` auto-refreshes the token when less than 1 hour remaining before expiry
