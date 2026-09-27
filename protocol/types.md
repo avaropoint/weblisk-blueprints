@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.0.0
+version: 1.0.1
 requires: []
 platform: any
 tier: free
@@ -1925,7 +1925,7 @@ types:
         name: PublicKey
         type: string
         required: true
-        description: "Base64url-encoded ML-DSA-65 public key. The credential — an operator holds no password"
+        description: "Base64url-encoded ML-DSA-65 identity public key — an operator holds no password. It verifies registration and the attestations of the operator's credentials; tokens are minted with a credential, never with this key (`architecture/admin`)"
       role:
         name: Role
         type: OperatorRole

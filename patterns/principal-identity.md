@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.1.1
+version: 1.2.0
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -268,6 +268,10 @@ contracts:
         - A credential public key that has ever been revoked at this hub MUST NOT
           be re-registered, even under a valid attestation. Otherwise replaying
           the original attestation resurrects a revoked credential
+        - A hub MAY require the identity's signature over a fresh,
+          replay-protected request before it accepts an attestation. What that
+          signature obtains MUST be limited to submitting attestations for that
+          identity. It is part of attesting, never a login
 
     - name: authentication
       description: Prove the credential at a hub
@@ -458,7 +462,10 @@ types:
       hub_id:
         type: string
         required: true
-        description: The ONE hub this credential may authenticate at
+        description: The ONE hub this credential may authenticate at, named by
+          the fingerprint (protocol/identity) of the key that hub signs its
+          tokens with — never by its address. A hub that moves is the same hub,
+          and a hub regenerated with a new key is a different one
       device_label:
         type: string
         required: false
@@ -469,10 +476,14 @@ types:
       signature:
         type: string
         required: true
-        description: ML-DSA-65 signature by the identity private key
+        description: ML-DSA-65 signature by the identity private key over the
+          RFC 8785 canonical form of every other field present, as
+          protocol/spec signs every JSON payload
 
   Credential:
-    description: What a hub stores and authenticates against
+    description: What a hub stores and authenticates against. A credential is
+      named by the fingerprint (protocol/identity) of its credential_public_key,
+      and a token minted with it carries that name as `cid`
     fields:
       credential_public_key:
         type: string
@@ -869,3 +880,5 @@ credential revocation, which costs nothing else.
 41. Revoking the subject's grant immediately stops every agent acting under it.
 42. An agent attempting to pass a capability to another agent is refused.
 43. Every agent action names both the subject and the agent run in the record.
+44. Whatever a hub issues on the strength of an identity signature submits an
+    attestation for that identity and is refused for every other request.

@@ -2,7 +2,7 @@
 type: architecture
 name: admin
 version: 2.0.0
-requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
+requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
 -->
@@ -61,9 +61,25 @@ requires:
     bindings:
       types:
         - name: WLToken
-          fields_used: [sub, iss, iat, exp, cap, role, type]
+          fields_used: [sub, iss, iat, exp, cap, cid, role, type]
         - name: SigningKeyPair
           fields_used: [public_key, private_key]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/principal-identity
+    version: ">=1.2.0 <2.0.0"
+    bindings:
+      types:
+        - name: Attestation
+          fields_used: [identity_id, identity_public_key, credential_public_key, hub_id, device_label, not_after, signature]
+        - name: Credential
+          fields_used: [credential_public_key, algorithm, form, device_bound, identity_id, attestation, status, last_used_at]
+      behaviors:
+        - name: credential-attestation
+        - name: authentication
+        - name: revocation
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -187,9 +203,10 @@ policy, which is `patterns/policy`.
 
 - Admin gateway process (separate listener, TLS, and domain from application gateway)
 - Operator identity lifecycle (registration, role assignment, suspension)
+- Operator credentials: one per client per hub, attested by the operator's identity, checked on every request
 - Admin dashboard SPA (overview, agents, approvals, workflows, federation, audit)
 - Admin API endpoints under `/v1/admin/*`
-- Operator token model (WLT with 4-hour TTL, exact IP binding, mandatory MFA)
+- Operator token model (WLT with a one-hour TTL, minted with a credential, exact IP binding, mandatory MFA)
 - Admin rate limiting and IP allowlist enforcement
 - 4-eyes approval for destructive actions
 
@@ -215,13 +232,33 @@ approval queue, federation management, audit/observability) and
 
 ## Error Handling
 
-The operator routes answer with these codes, in `ErrorResponse`
+The operator and credential routes answer with these codes, in `ErrorResponse`
 ([`protocol/types`](../protocol/types.md#errorresponse)). Each says what the
 client does next, so a client acts on the code and never on the message text.
+Where the last column names a
+[`patterns/principal-identity`](../patterns/principal-identity.md#error-handling)
+code, this is its wire form at this surface, and that pattern holds the rule.
 
-| Code | HTTP | Category | When | Behaviour |
-|---|---|---|---|---|
-| `OPERATOR_BOOTSTRAP_REFUSED` | 403 | auth | A registration at a hub with no operator carried no bootstrap secret, or a wrong one | Refuse, write nothing, audit. The caller needs the secret the orchestrator emitted |
+| Code | HTTP | Category | When | Behaviour | principal-identity |
+|---|---|---|---|---|---|
+| `OPERATOR_BOOTSTRAP_REFUSED` | 403 | auth | A registration at a hub with no operator carried no bootstrap secret, or a wrong one | Refuse, write nothing, audit. The caller needs the secret the orchestrator emitted | — |
+| `OPERATOR_UNKNOWN` | 401 | auth | No operator of that name here: never registered, removed, or lost with a hub that was regenerated | Refuse. The client registers again or stops; retrying changes nothing | `identity_unknown` |
+| `OPERATOR_NOT_APPROVED` | 403 | auth | The operator is registered and pending | Refuse. Not a failure: the client reports that an admin must approve | — |
+| `OPERATOR_REVOKED` | 401 | auth | The operator was removed | Refuse. Every credential and token resting on it ended with it | — |
+| `CREDENTIAL_REQUIRED` | 401 | auth | An operator token carries no `cid`, or an attestation token reached a route other than attestation | Refuse. The client mints an operator token with a credential | — |
+| `CREDENTIAL_UNKNOWN` | 401 | auth | The hub holds no credential with this id | Refuse. The client attests a credential | `identity_unknown` |
+| `CREDENTIAL_REVOKED` | 401 | auth | The credential was revoked, by its operator, by an admin, with its operator, or by a change of identity key | Refuse at once, not at the token's expiry. The client attests a new key | `credential_revoked`, `token_credential_revoked` |
+| `CREDENTIAL_EXPIRED` | 401 | auth | The attestation's `not_after` has passed | Refuse. The client re-attests, which needs the identity | `attestation_expired` |
+| `CREDENTIAL_CHALLENGE_INVALID` | 401 | auth | The nonce was not issued for this credential, was already used or has expired, or the signature does not verify | Refuse and spend the nonce. Log a signature failure as a security event | `replay_detected` |
+| `CREDENTIAL_ATTESTATION_INVALID` | 400 | validation | The attestation does not verify against the operator's recorded key, names another identity key, or is not ML-DSA-65 | Refuse. Log as a security event | `attestation_invalid`, `algorithm_not_permitted` |
+| `CREDENTIAL_FOREIGN_HUB` | 400 | validation | The attestation's `hub_id` is not this hub's | Refuse. Log as a security event | `credential_foreign_hub` |
+| `CREDENTIAL_IS_IDENTITY_KEY` | 400 | validation | The credential's public key is the operator's identity key | Refuse. Log as a security event | `identity_key_as_credential` |
+| `CREDENTIAL_LIFETIME_EXCEEDED` | 400 | validation | `not_after` has passed, or is more than 90 days after the hub receives it | Refuse, naming the cap | `attestation_expired` |
+| `CREDENTIAL_PREVIOUSLY_REVOKED` | 409 | conflict | The key was revoked here before | Refuse permanently. Log as a security event | `credential_previously_revoked` |
+| `OPERATOR_LAST_ADMINISTRATOR` | 409 | conflict | The request would revoke the last active credential of the last active admin | Refuse | `last_administrator` |
+
+`TOKEN_EXPIRED` ([`protocol/types`](../protocol/types.md#error-handling)) still
+answers a token past its `exp`. The client mints another, which asks nobody.
 
 ---
 
@@ -231,7 +268,9 @@ client does next, so a client acts on the code and never on the message text.
 2. Admin gateway runs IP allowlist check — reject if not allowed
 3. TLS termination with admin-specific certificate
 4. Rate limiting applied (per-operator read/write limits)
-5. Operator token (WLT) extracted and verified against orchestrator's public key
+5. Operator token (WLT) extracted and verified against orchestrator's public key,
+   and the operator, credential and grant it rests on checked live by the
+   orchestrator ([Every request checks what its token rests on](#every-request-checks-what-its-token-rests-on))
 6. MFA validation enforced (always required)
 7. Role authorization checked against endpoint minimum role
 8. Request forwarded to orchestrator's admin API with `X-Operator` and `X-Trace-Id` headers
@@ -258,8 +297,8 @@ different threat profiles:
 |---------|-------------------|---------------|
 | Audience | End users (untrusted, high volume) | Operators (trusted, low volume) |
 | Network | Public internet | Private network, VPN, or IP-restricted |
-| Auth model | User credentials → session cookie | Operator ML-DSA-65 key → operator token |
-| Session binding | Device fingerprint + IP/24 | Operator key + exact IP allowlist |
+| Auth model | User credentials → session cookie | Operator credential, attested by the operator's ML-DSA-65 identity → operator token |
+| Session binding | Device fingerprint + IP/24 | Operator credential + exact IP allowlist |
 | MFA | Policy-driven (optional for standard routes) | Always required, no exceptions |
 | Rate limits | High (accommodate user traffic) | Low (operators don't generate burst traffic) |
 | Compromise impact | User data exposure | Full system control |
@@ -358,9 +397,11 @@ Critical rules:
    ├── Extract token from Authorization: Bearer <WLT>
    ├── Verify WLT signature against orchestrator's public key
    ├── Verify token.type == "operator"
-   ├── Verify token expiry (4-hour TTL, not 24-hour)
+   ├── Verify token expiry (one-hour TTL)
    ├── Verify operator IP matches token's bound IP
-   └── 401 Unauthorized if any check fails
+   ├── The orchestrator checks the operator, the credential named by
+   │   token.cid and the grant are live — its records, not the token's word
+   └── 401 Unauthorized if any check fails, with the code that says which
 
 5. MFA VALIDATION (always required, not policy-optional)
    ├── Verify token.mfa == true
@@ -395,14 +436,14 @@ operator tokens (WLT) with stricter controls:
 |----------|--------------------------|---------------------|
 | Token type | `WLS` (Weblisk Session) | `WLT` (Weblisk Token) |
 | Signing key | Gateway's ML-DSA-65 key | Orchestrator's ML-DSA-65 key |
-| TTL | 24 hours | 4 hours |
+| TTL | 24 hours | 1 hour |
 | Idle timeout | 1 hour | 30 minutes |
 | IP binding | /24 subnet (allows roaming) | Exact IP (no roaming) |
 | MFA | Optional per policy | Always required |
 | Cookie | HttpOnly, Secure, SameSite=Strict | HttpOnly, Secure, SameSite=Strict |
 | Cookie domain | `app.example.com` | `admin.example.com` |
 | Concurrent sessions | Up to 5 per user | 1 per operator (new login kills old) |
-| Renewal | Silent sliding window | Explicit re-auth after TTL |
+| Renewal | Silent sliding window | A new token minted with the credential; the identity is not asked |
 
 ### Admin Network Deployment Options
 
@@ -423,9 +464,10 @@ acceptable for single-host deployments.
    observation: viewing agents, reading logs, monitoring workflows.
    Writes are limited to approvals, strategy management, and
    configuration.
-2. **ML-DSA-65 operator identity** — Operators authenticate using the
-   same ML-DSA-65 identity system as agents. The orchestrator issues
-   operator tokens with admin-scoped capabilities.
+2. **ML-DSA-65 operator identity, kept cold** — Operators are identified
+   by the same ML-DSA-65 identity system as agents. The identity signs to
+   register and to attest a credential, and nothing else. Tokens, with
+   admin-scoped capabilities, are minted with the credential.
 3. **Offline-capable** — The dashboard is a static SPA that works
    even when the orchestrator is degraded. It shows stale data with
    timestamps rather than failing entirely.
@@ -479,7 +521,8 @@ contracts:
         - The bootstrap secret MUST NOT appear in an audit entry or in any response
         - A registration at a hub whose operator store is empty MUST carry the bootstrap secret as bootstrap_secret, and the orchestrator MUST compare it in constant time
         - A registration there with no bootstrap secret, or a wrong one, MUST be refused with OPERATOR_BOOTSTRAP_REFUSED, write no record, and be audited
-        - The registration that presents the secret MUST be approved with the admin role, whatever role it asked for, and its response MUST carry a token
+        - The registration that presents the secret MUST be approved with the admin role, whatever role it asked for
+        - Its response MUST carry an attestation token and hub_id, and never an operator token. The first operator obtains operator tokens the way every operator does, with a credential
         - The secret MUST be destroyed when it is claimed, and MUST NOT be issued again while the operator store holds any record. The bootstrap reset in protocol/identity is the one way back
         - Every later registration MUST require an existing admin and MUST NOT return a token
         - A refusal for want of an admin MUST be distinguishable from a refusal for a bad signature, and from a refusal for a missing or wrong bootstrap secret
@@ -493,18 +536,85 @@ contracts:
         - It MUST require the `admin` role, because it grants authority
         - The list at `GET /v1/admin/operators` MUST report every operator including `pending` ones, so an admin can see who is waiting
         - Approving an operator already `approved` MUST succeed and change nothing, so a retried approval is not an error
-        - Approval MUST NOT return a token — the approved operator obtains their own from `POST /v1/admin/operators/token`
+        - Approval MUST NOT return a token — the approved operator attests a credential of their own and mints tokens with it
         - Approval MUST be audited with the name of the operator who granted it
 
-    - name: operator-token-issuance
-      description: Issue a short-lived operator token
+    - name: attestation-token-issuance
+      description: What an operator's identity signature obtains — the right to attest, and nothing else
       required: true
       rules:
-        - The endpoint MUST require no bearer token — it is what issues them
-        - The signed payload MUST be canonicalize({name, timestamp})
-        - The signature MUST be verified against the STORED public key for that operator
+        - The route `POST /v1/admin/operators/token` MUST require no bearer token
+        - The signed payload MUST be canonicalize({name, timestamp}), verified against the STORED public key for that operator, with the timestamp inside the 300-second replay window
+        - An operator with no record MUST be refused with OPERATOR_UNKNOWN, a pending one with OPERATOR_NOT_APPROVED and a revoked one with OPERATOR_REVOKED, and each refusal MUST be audited
+        - The token it issues MUST have type attestation, carry no capability and no cid, and expire within 300 seconds
+        - An attestation token MUST be accepted by `POST /v1/admin/operators/{name}/credentials` for its own subject, and refused by every other route with CREDENTIAL_REQUIRED
+        - The response MUST carry hub_id, so the client can name this hub in the attestation it is about to have signed
+        - It is the way to a first credential, and is deprecated as a way to an operator token. A hub built before the credential routes issues an operator token here, and a client MAY use one only from a hub that answers the credential routes with 404 or 405
+
+    - name: operator-credential-attestation
+      description: Bind a client's credential to an operator's identity at this hub
+      required: true
+      rules:
+        - The route `POST /v1/admin/operators/{name}/credentials` MUST accept an attestation token or an operator token whose subject is the operator named in the path, and nothing else
+        - The attestation MUST verify under ML-DSA-65 against the public key in that operator's OWN record, and its identity_public_key MUST equal that key, or it is refused with CREDENTIAL_ATTESTATION_INVALID. Registration is how this surface records the key principal-identity takes from an invitation
+        - Its identity_id MUST be the fingerprint of that key, and its hub_id the fingerprint of this orchestrator's public key. A different hub_id MUST be refused with CREDENTIAL_FOREIGN_HUB and logged as a security event
+        - Its credential_public_key MUST be an ML-DSA-65 public key and MUST NOT be the identity public key, or it is refused with CREDENTIAL_IS_IDENTITY_KEY and logged as a security event
+        - Its not_after MUST be in the future and no more than 90 days after the hub receives it, or it is refused with CREDENTIAL_LIFETIME_EXCEEDED
+        - A key that was ever revoked at this hub MUST be refused with CREDENTIAL_PREVIOUSLY_REVOKED
+        - An attestation for a key the operator already holds as an active credential MUST replace that credential's attestation and keep its id. That is re-attestation
+        - The hub MUST store the credential with algorithm ml-dsa-65, form key-file, device_bound false and status active, and return it with its id, the fingerprint of its public key
+        - Every attestation MUST be audited with the operator, the credential id and the device_label
+
+    - name: operator-token-issuance
+      description: Issue an operator token to a live credential — the ordinary way, and the only way to one
+      required: true
+      rules:
+        - The routes `POST /v1/admin/credentials/challenge` and `POST /v1/admin/credentials/token` MUST require no bearer token — they are what issue them
+        - A challenge for a cid this hub holds no credential for MUST be refused with CREDENTIAL_UNKNOWN. For any credential it does hold, whatever its status, it MUST answer with a nonce of at least 128 bits from a cryptographically secure random source, single-use, bound to that cid, expiring within 300 seconds, and this hub's hub_id
+        - The token request MUST carry cid, nonce and signature, and the signature MUST verify under the credential's STORED algorithm and public key over the bytes weblisk/credential-auth/v1, 0x00, hub_id, 0x00, nonce — never over the nonce alone
+        - The nonce MUST be one this hub issued for that cid, unexpired and unused, and the attempt MUST spend it whether or not the signature verifies. Otherwise CREDENTIAL_CHALLENGE_INVALID
+        - A token request naming a cid this hub holds no credential for MUST be refused with CREDENTIAL_UNKNOWN
+        - Only once the signature has verified may the hub disclose the credential's status or its operator's. The credential MUST be active and its attestation's not_after in the future, and its operator MUST be approved, and each failure MUST be refused with its own code
+        - The token MUST have type operator, carry cid, the operator's role and the capabilities that role carries, and expire one hour after issue and never after the attestation's not_after
         - Role and capabilities MUST come from the stored record, never from the request
-        - An unknown or unapproved operator MUST be refused and audited
+        - The response MUST carry the attestation's not_after, so the client can warn before it passes
+        - The credential's last_used_at MUST be updated
+        - A client MUST sign with the hub_id its credential was attested for, and MUST treat a challenge that answers a different hub_id as a hub it holds no credential for
+
+    - name: token-status-on-use
+      description: Every request re-checks what its token rests on
+      required: true
+      rules:
+        - On every request bearing an operator token, the orchestrator MUST look up the operator named by sub and the credential named by cid in its OWN records before the handler runs
+        - An operator token without a cid MUST be refused with CREDENTIAL_REQUIRED
+        - The request MUST be refused when the operator has no record, is pending, or is revoked, and when the credential is not that operator's, is revoked, or its attestation has expired, each with its own code
+        - The request MUST be authorised against the capabilities the operator's role carries now, and never beyond the token's cap. A role changed since the token was issued takes effect on the next request
+        - Removing an operator, revoking a credential or rotating an operator's identity key therefore ends every token resting on it at the next request, not when the token expires
+        - An admin gateway in front of the orchestrator MUST NOT stand in for this check. The orchestrator holds the records, and a signature check alone proves only that a token was once issued
+
+    - name: operator-credential-revocation
+      description: Withdraw one credential, or every credential an operator holds
+      required: true
+      rules:
+        - The route `DELETE /v1/admin/operators/{name}/credentials/{cid}` MUST be permitted to the operator named in the path and to an admin, and to nobody else
+        - A revoked credential MUST keep its record with status revoked, and its key MUST never be accepted again
+        - Removing an operator MUST revoke every credential it holds
+        - A change of an operator's identity public key MUST revoke every credential the old key attested
+        - The last active credential of the last active admin MUST NOT be revoked, and the refusal is OPERATOR_LAST_ADMINISTRATOR
+        - Every revocation MUST be audited with the actor, the credential id and the reason
+
+    - name: console-credential-use
+      description: How a console that acts for signed-in people holds and uses their credentials
+      required: true
+      rules:
+        - A console MUST hold a separate credential for each account at each hub, generate its key pair itself, and have it attested by that account's operator identity through the CLI, never by holding the identity itself
+        - It MUST ask for not_after 30 days ahead unless the person chooses another value within the 90-day cap, and MUST warn the person when fewer than 7 days remain
+        - It MUST use a person's credential only while that person holds a live session with the console at AAL2, and MUST NOT mint a token with it at any other time
+        - Work no signed-in person is present for, such as a schedule, a background job or an agent run, MUST use the console's own service identity and never a person's credential
+        - It MUST hold an operator token in memory only and never write one anywhere, encrypted or not. What it keeps at rest is the credential key, as an installation secret
+        - It MUST discard a person's tokens when that person's session ends, by sign-out, idle or absolute expiry, or the account's revocation, even where exp is later
+        - Removing an account from the console MUST revoke that account's credentials at each hub and then delete their keys
+        - When it drives the CLI to connect, it MUST ask the CLI not to store the token
 
     - name: operator-roles
       description: The role names and what each may do
@@ -528,9 +638,9 @@ operator-specific capabilities.
 
 **Scope: this deployment.** The registration flow below binds an operator to ONE
 orchestrator. A subject who operates several hubs holds one self-generated
-identity and a separate credential attested by each hub — the registration below
-is then how one of those credentials is established, not how the subject's
-identity is created. See
+identity, is registered at each hub, and holds a separate credential at each,
+attested by that identity. Registration records the identity and its grant at
+this hub. It does not create the identity, and it is not a credential. See
 [patterns/principal-identity](../patterns/principal-identity.md).
 
 Two consequences worth stating here, because this file is where operators are
@@ -568,16 +678,16 @@ defined:
 5. At a hub with no operator, the registration that presents the bootstrap
    secret is approved as admin (Bootstrap Flow, below)
 6. Any other registration is pending until an existing admin approves it
-7. An approved operator obtains a token (Obtaining a token)
+7. The operator attests a credential and mints tokens with it (Obtaining a token)
 ```
 
 #### The registration signing input
 
 The signature is over `canonicalize({name, public_key, role, timestamp})` —
-**the whole payload**, not the `{name, timestamp}` challenge the token request
-uses. RFC 8785 (JCS), as `protocol/spec` specifies for every signed payload.
-`bootstrap_secret` travels beside the signed fields and is not among them:
-whoever holds it may claim the hub, which is what it is for.
+**the whole payload**, not the `{name, timestamp}` challenge the attestation
+token request uses. RFC 8785 (JCS), as `protocol/spec` specifies for every
+signed payload. `bootstrap_secret` travels beside the signed fields and is not
+among them: whoever holds it may claim the hub, which is what it is for.
 
 This MUST be stated exactly, and it was not: this step read
 `"<signed registration payload>"` while the token request two sections below
@@ -602,12 +712,40 @@ same second — which is a fault that passes locally and fails under load.
 ### Obtaining a token
 
 Registration establishes an operator. It does not keep them signed in: tokens
-expire in four hours, so there MUST be a way to obtain a new one that does not
-require registering again.
+expire in an hour, so there MUST be a way to obtain a new one that does not
+require registering again, and that way MUST NOT be the operator's identity.
 
-`POST /v1/admin/operators/token` is that way, and it is **unauthenticated by
-token because it is what issues them**. The operator's private key is the
-credential:
+A client reaches a hub with a **credential**: an ML-DSA-65 key pair the client
+generates for that hub alone, bound to the operator's identity by an
+attestation the identity signs once
+([`patterns/principal-identity`](../patterns/principal-identity.md)). The
+identity key is cold. It signs to register and to attest, and nothing it signs
+is a login. Tokens come from the credential, at a challenge the hub issues, with
+nobody asked for a passphrase or a vault approval.
+
+```
+When a client holds no live credential at a hub — the only steps that need the identity
+  client ── sign {name, timestamp} with the identity ──▶ POST /v1/admin/operators/token
+         ◀── attestation token (type attestation, 300 s), hub_id
+  client ── Attestation, signed by the identity ───────▶ POST /v1/admin/operators/{name}/credentials
+         ◀── the credential, and its id
+
+Whenever a token is needed — nobody is asked
+  client ── cid ───────────────────────────────────────▶ POST /v1/admin/credentials/challenge
+         ◀── nonce, hub_id, expires_at
+  client ── cid, nonce, signature by the credential ───▶ POST /v1/admin/credentials/token
+         ◀── operator token (type operator, carries cid, one hour)
+```
+
+The behaviours that bind all of this are `attestation-token-issuance`,
+`operator-credential-attestation`, `operator-token-issuance`,
+`token-status-on-use` and `operator-credential-revocation`, in
+[Contracts](#contracts). What follows is the wire form.
+
+#### The identity signs only to attest
+
+`POST /v1/admin/operators/token` is unauthenticated by token because it is how
+an operator with no credential here starts. The identity signs the request:
 
 ```
 POST /v1/admin/operators/token
@@ -618,37 +756,146 @@ POST /v1/admin/operators/token
 }
 ```
 
-The orchestrator MUST:
-
-1. Look up the operator by `name` in its OWN records — never in a directory.
-2. Verify the signature against the public key in that record, over
-   `canonicalize({name, timestamp})` as received, per
-   [`protocol/spec`](../protocol/spec.md#signing-input).
-3. Refuse a `timestamp` outside the 300-second replay window.
-4. Refuse an operator whose status is not approved, with `403` — a registered
-   but unapproved operator is a different fact from an unknown one.
-5. Issue a token carrying that operator's role and capabilities.
+The orchestrator looks the operator up by `name` in its OWN records, never in a
+directory, and verifies the signature against the public key there, over
+`canonicalize({name, timestamp})` as received, per
+[`protocol/spec`](../protocol/spec.md#signing-input). It refuses a `timestamp`
+outside the 300-second replay window, and an operator who is not approved — a
+registered but unapproved operator is a different fact from an unknown one.
 
 ```
 200 {
-  "token": "<WLT>",
-  "expires_at": 1712174400,
-  "role": "operator",
-  "capabilities": ["admin:read", "admin:approve", "admin:strategy"]
+  "token": "<WLT, type attestation>",
+  "expires_at": 1712160300,
+  "hub_id": "<fingerprint of the orchestrator's public key>"
 }
 ```
 
-Refresh is the same call. A separate refresh endpoint would need a valid token
-to obtain a token, which fails exactly when it is needed — after expiry.
+The token does one thing: it submits an attestation for this operator. Every
+other route refuses it. So this endpoint is not the authentication by identity
+key that [`patterns/principal-identity`](../patterns/principal-identity.md)
+forbids: an identity signature here obtains the right to attest, which is the
+one thing an identity is for.
+
+**Obtaining an operator token here is deprecated.** A hub built before the
+credential routes issues one here. A client MUST use the credential routes
+wherever a hub serves them, and MAY accept an operator token from this endpoint
+only from a hub that answers `POST /v1/admin/credentials/challenge` with `404`
+or `405`.
+
+`hub_id` is the orchestrator's public key fingerprint
+([`protocol/identity`](../protocol/identity.md#key-fingerprint)), never its
+address, so a hub that moves keeps its credentials and a hub regenerated with a
+new key does not.
+
+#### Attesting a credential
+
+The client generates an ML-DSA-65 key pair for this hub and has the identity sign
+an [`Attestation`](../patterns/principal-identity.md#types) for its public half.
+The identity signs a typed statement the signer builds itself, never bytes a
+caller supplies — [`architecture/cli`](cli.md) gives a console that verb.
+
+```
+POST /v1/admin/operators/alice/credentials
+Authorization: Bearer <attestation token, or alice's operator token>
+{
+  "identity_id": "<fingerprint of alice's identity public key>",
+  "identity_public_key": "<alice's identity public key>",
+  "credential_public_key": "<ML-DSA-65 public key>",
+  "hub_id": "<this hub's hub_id>",
+  "device_label": "<for people reading a list of credentials>",
+  "not_after": 1714752000,
+  "signature": "<identity signature over the canonical form of every other field>"
+}
+
+200 { "credential": { ... }, "cid": "<fingerprint of credential_public_key>" }
+```
+
+**`not_after` is 30 days after attesting by default, is capped at 90, and a
+client warns its person when fewer than 7 remain.** The cap is the rotation
+interval [`protocol/identity`](../protocol/identity.md#recommended-rotation-schedule)
+recommends, and a hub refuses anything longer. The attestation lifetime is the
+revocation window for every verifier that is not this hub, so it is kept short.
+
+Re-attesting a key the operator already holds here replaces its attestation and
+keeps its id. It may be submitted with that operator's own operator token, so a
+client whose credential is still live re-attests with one identity signature and
+no attestation token.
+
+#### Minting a token with the credential
+
+```
+POST /v1/admin/credentials/challenge
+{ "cid": "<credential id>" }
+
+200 { "nonce": "<base64url>", "hub_id": "<this hub's hub_id>", "expires_at": 1712160300 }
+```
+
+A challenge for a credential the hub does not hold is refused with
+`CREDENTIAL_UNKNOWN`, so a client learns at once that it must attest. For one it
+does hold, revoked or expired included, the hub issues a nonce: whether a
+credential is still live is told only to its key, at the token request.
+
+```
+POST /v1/admin/credentials/token
+{
+  "cid": "<credential id>",
+  "nonce": "<the nonce>",
+  "signature": "<credential signature over the bytes below>"
+}
+
+    "weblisk/credential-auth/v1" 0x00 <hub_id> 0x00 <nonce>
+
+200 {
+  "token": "<WLT, type operator, carries cid>",
+  "expires_at": 1712163600,
+  "role": "operator",
+  "capabilities": ["admin:read", "admin:approve", "admin:strategy"],
+  "not_after": 1714752000
+}
+```
+
+The signed bytes are fixed and domain-separated. A credential never signs a
+caller's bytes, and a signature made here cannot be presented as a signature
+over a JSON payload, which begins with `{`. The client signs with the `hub_id`
+its credential was attested for. A challenge that answers with a different one
+is a hub the client holds no credential for.
+
+Refresh is the same pair of calls. A separate refresh endpoint would need a
+valid token to obtain a token, which fails exactly when it is needed — after
+expiry.
+
+#### Every request checks what its token rests on
+
+A WLT is self-contained: once issued, nothing about it can be recalled. The
+orchestrator holds the operator record, the credential and the grant, so it is
+the one party that can end a token before `exp`, and
+[`patterns/principal-identity`](../patterns/principal-identity.md) requires it
+to. On every request bearing an operator token it looks up the operator named
+by `sub` and the credential named by `cid` in its own records before the handler
+runs, and authorises against what the operator's role carries **now**.
+
+Removing an operator, revoking a credential or rotating an operator's identity
+therefore takes effect on the next request, not an hour later. A client told why
+([Error Handling](#error-handling)) knows what to do: attest again, wait for an
+approval, or stop.
+
+#### Revoking a credential
+
+`DELETE /v1/admin/operators/{name}/credentials/{cid}?reason=<text>` revokes one
+credential. The operator it belongs to may revoke it, and so may an admin. The
+identity, the grant and the operator's other credentials are untouched. Removing
+an operator revokes all of theirs, and so does a change of their identity key.
 
 ### The registration response
 
 `POST /v1/admin/operators/register` returns the operator record, and a token
 **only when registration also approved the operator** — the first-operator
-claim. Otherwise there is no token to give, and the response says so:
+claim. That token is an attestation token. Otherwise there is no token to give,
+and the response says so:
 
 ```
-200 { "operator": {...}, "status": "approved", "token": "<WLT>", "expires_at": ... }
+200 { "operator": {...}, "status": "approved", "token": "<WLT, type attestation>", "expires_at": ..., "hub_id": ... }
 200 { "operator": {...}, "status": "pending" }
 ```
 
@@ -660,7 +907,7 @@ and every `/v1/admin/*` call answered `401`. Each component behaved correctly
 against what it had been told, and the deployment could not be administered.
 
 **A client MUST NOT infer a token from a successful registration.** It reads
-`status`, and calls the token endpoint when none was issued.
+`status`, and asks for an attestation token when none was issued.
 
 ### Admitting the operators after the first
 
@@ -693,10 +940,10 @@ The orchestrator MUST:
 200 { "operator": {...}, "status": "approved", "approved_by": "bob", "approved_at": ... }
 ```
 
-The approved operator obtains their own token by signing the challenge at
-`POST /v1/admin/operators/token`, as any operator does. Handing a token back
-here would issue a credential to whoever ran the approval rather than to its
-subject.
+The approved operator attests a credential of their own and mints tokens with
+it, as any operator does ([Obtaining a token](#obtaining-a-token)). Handing a
+token back here would issue a credential to whoever ran the approval rather
+than to its subject.
 
 **Refusal is `DELETE /v1/admin/operators/:name`**, which already exists. There
 is no separate reject verb, because a rejected registration and a removed
@@ -743,15 +990,52 @@ operator-specific claims:
   "sub": "alice",
   "iss": "orchestrator",
   "iat": 1712160000,
-  "exp": 1712174400,
+  "exp": 1712163600,
   "cap": ["admin:read", "admin:approve", "admin:strategy"],
+  "cid": "<id of the credential that obtained it>",
   "role": "operator",
   "type": "operator"
 }
 ```
 
-Operator tokens have a 4-hour TTL. The CLI refreshes them
-automatically on each command.
+**Operator tokens have a one-hour TTL,** and never outlive the attestation of the
+credential that obtained them. A client mints the next one with that credential,
+and nobody is asked for anything. `cid` names the credential, which is what lets
+the orchestrator end the token early
+([Every request checks what its token rests on](#every-request-checks-what-its-token-rests-on)).
+
+`type` is `operator` for a token that administers, and `attestation` for the
+one an identity signature obtains. An attestation token carries `sub`, `iss`,
+`iat`, `exp` and `type`, no `cap` and no `cid`, and lives at most 300 seconds.
+
+### A console holds a credential, never a token
+
+A **console** is a client that acts for people who sign in to it rather than
+for the person at a terminal — Studio is one. It holds credentials for many
+people at many hubs, and that is exactly what makes a token at rest in it
+dangerous: an operator token carries `admin:*` for an admin, and whoever holds
+it may replay it. So a console keeps the thing that can **ask**, and never the
+**answer**.
+
+- **One credential per account per hub.** The console generates the key pair and
+  has the account's operator identity attest it through the CLI
+  ([`architecture/cli`](cli.md), `weblisk operator attest`). The console never
+  holds the identity: [`protocol/secret-source`](../protocol/secret-source.md#a-console-never-holds-the-secrets-of-an-identity-it-acts-for)
+  says so, and says how the console keeps the credential's key at rest.
+- **Only while the person is there.** A person's credential is used only while
+  that person has a live session with the console at AAL2 — NIST SP 800-63B
+  authenticator assurance level 2, proof of two distinct factors such as a
+  password and a one-time code. A token is discarded when the session that
+  minted it ends, even if its `exp` is later.
+- **Nobody present means a service.** A schedule, a background job or an agent
+  run that nobody is watching uses the console's own service identity, a service
+  subject under [`patterns/principal-identity`](../patterns/principal-identity.md),
+  and never a person's credential.
+- **Tokens stay in memory.** A console never writes an operator token anywhere,
+  encrypted or not. A console that drives the CLI to connect asks it not to
+  store one either (`--no-store`).
+
+`console-credential-use` in [Contracts](#contracts) is the rule.
 
 ---
 
@@ -794,7 +1078,12 @@ operator the system is quiet when it is simply not there.
 | Path | Method | Role | Purpose |
 |------|--------|------|---------|
 | `/v1/admin/operators/register` | POST | — | Register new operator (the first presents the bootstrap secret) |
-| `/v1/admin/operators/token` | POST | — | Obtain an operator token by signing a challenge |
+| `/v1/admin/operators/token` | POST | — | Obtain an attestation token by signing `{name, timestamp}` with the identity. Deprecated as a way to an operator token |
+| `/v1/admin/credentials/challenge` | POST | — | Issue a single-use nonce for a credential |
+| `/v1/admin/credentials/token` | POST | — | Obtain an operator token by signing the nonce with the credential |
+| `/v1/admin/operators/:name/credentials` | POST | the operator | Attest a credential (an attestation token, or the operator's own token) |
+| `/v1/admin/operators/:name/credentials` | GET | viewer+ | List an operator's credentials, revoked included |
+| `/v1/admin/operators/:name/credentials/:cid` | DELETE | the operator, or admin | Revoke one credential |
 | `/v1/admin/operators` | GET | admin | List all operators |
 | `/v1/admin/operators/:name` | GET | viewer+ | Get operator details |
 | `/v1/admin/operators/:name` | DELETE | admin | Remove an operator |
@@ -1110,6 +1399,24 @@ The orchestrator stores operator records alongside agent records:
 | DeleteOperator | `(name string) → error` | Remove operator |
 | ListOperators | `() → ([]Operator, error)` | List all operators |
 
+### Store: Credentials
+
+**Owner:** Orchestrator
+**Durability:** MUST survive restarts. A revoked credential is kept, so its key
+is never accepted again
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| PutCredential | `(c Credential) → error` | Create a credential, or replace an active one's attestation |
+| GetCredential | `(id string) → (Credential, error)` | Retrieve by id, the fingerprint of its public key |
+| ListCredentials | `(identityID string) → ([]Credential, error)` | Every credential one identity attested here, revoked included |
+| RevokeCredential | `(id string) → error` | Set status revoked, keeping the record |
+
+`Credential` is [`patterns/principal-identity`](../patterns/principal-identity.md)'s
+type. A challenge nonce is not stored here: it lives at most 300 seconds, and an
+orchestrator MAY keep it in memory only, so a restart discards the outstanding
+ones and a client asks again.
+
 ### Operator Record
 
 ```yaml
@@ -1161,7 +1468,8 @@ When an orchestrator starts with no registered operators:
    "Run: weblisk operator init && weblisk operator register --bootstrap <file>"
 4. The first POST /v1/admin/operators/register that carries the secret is
    approved as admin, and the secret is destroyed
-5. That operator receives an admin token
+5. That operator receives an attestation token, attests a credential, and mints
+   operator tokens with it
 6. Subsequent operator registrations require admin approval
 ```
 
@@ -1215,9 +1523,12 @@ An implementation MUST NOT collapse a missing endpoint into an authorisation
 state.
 
 **Asking for a token before attempting registration is required, not an
-optimisation.** A hub that already knows the operator needs no registration.
-At a hub with no operators, a registration without the bootstrap secret is
-refused, so connecting never claims a hub; only presenting the secret does.
+optimisation.** A client that holds a credential at the hub mints with it; one
+that holds none asks for an attestation token, and the answer says whether the
+hub knows this operator. A hub that already knows the operator needs no
+registration. At a hub with no operators, a registration without the bootstrap
+secret is refused, so connecting never claims a hub; only presenting the secret
+does.
 
 ### Bootstrap without a shell
 
@@ -1270,8 +1581,9 @@ Four rules govern it, and each exists because its absence is a disclosure:
    list the parent.
 
 3. **Provisioning MUST reuse an existing identity rather than replace one.** A
-   subject holds one identity and a separate credential attested by each hub, so
-   minting a new key while provisioning a second tenant would silently orphan
+   subject holds one identity and a separate credential at each hub, attested by
+   that identity, so minting a new key while provisioning a second tenant would
+   silently orphan
    the grant every earlier tenant recorded. A passphrase that does not open an
    existing identity is an error, not a reason to generate another.
 
@@ -1280,8 +1592,10 @@ Four rules govern it, and each exists because its absence is a disclosure:
    succeeded. Already-registered is reported as already-registered, and the
    action proceeds to obtain a token.
 
-A token is the only thing that persists. The passphrase is discarded with the
-process, per [`protocol/identity`](../protocol/identity.md) rule 4.
+Nothing it obtains persists except a credential's key. The passphrase is
+discarded with the process, per [`protocol/identity`](../protocol/identity.md)
+rule 4, and a console holds its tokens in memory
+([A console holds a credential, never a token](#a-console-holds-a-credential-never-a-token)).
 
 ---
 
@@ -1296,7 +1610,7 @@ types:
       operator_key:
         type: string
         format: base64url
-        description: The operator's public key, against which a signed challenge is verified
+        description: The operator's identity public key, against which registration and attestations are verified. Tokens are minted with credentials, never with this key
       mfa_required:
         type: bool
         description: Whether a second factor is required. The admin surface requires one without exception
@@ -1317,10 +1631,12 @@ security:
     description: |
       The admin surface is a separate listener from the application gateway,
       sharing no session store and no cookie domain, so compromising one does not
-      reach the other. Every request is authenticated against an operator
-      identity and authorised against a role; multi-factor authentication is
-      required without exception, because an operator credential is the most
-      valuable one in a deployment.
+      reach the other. Every request is authenticated by a token minted with a
+      credential the operator's identity attested, re-checked against the
+      orchestrator's records, and authorised against a role; multi-factor
+      authentication is required without exception, because an operator
+      credential is the most valuable one in a deployment. The identity key
+      signs to register and to attest, and is never a login.
 
   boundaries:
     - boundary: Operator browser → Admin gateway. A separate TLS entry point,
@@ -1333,10 +1649,16 @@ security:
         gate, by approvers who are distinct principals
 
   enforcement:
-    - rule: Every admin endpoint except operator registration requires a verified
-        operator token
+    - rule: Every admin endpoint requires a verified operator token, except
+        registration, the attestation token request and the two credential
+        routes that issue tokens. Attesting a credential also accepts an
+        attestation token for the same operator
       mechanism: Admin auth middleware verifies the token against the
         orchestrator's public key and checks `type == operator` before dispatch
+    - rule: A token is refused as soon as what it rests on is withdrawn
+      mechanism: The orchestrator looks up the operator and the credential named
+        by the token on every request, and authorises against the role the
+        operator holds now
     - rule: An endpoint is refused to a role below its declared minimum
       mechanism: Role compared against the endpoint's requirement; 403 rather
         than a partial result
@@ -1356,16 +1678,20 @@ security:
 ```
 ### Auth Middleware
 
-All `/v1/admin/*` endpoints (except operator registration) go through
-admin auth middleware:
+All `/v1/admin/*` endpoints go through admin auth middleware, except
+`POST /v1/admin/operators/register`, `POST /v1/admin/operators/token`,
+`POST /v1/admin/credentials/challenge` and `POST /v1/admin/credentials/token`:
 
 ```
 1. Extract token from Authorization: Bearer <token>
 2. Verify token against orchestrator's public key
-3. Check token.type == "operator"
-4. Check token.role against endpoint's minimum role requirement
-5. On failure → 401 or 403
-6. On success → pass operator claims to handler
+3. Check token.type == "operator" — or, on the attestation route only,
+   "attestation" for the operator named in the path
+4. Check the operator named by sub and the credential named by cid are live
+   in the orchestrator's own records (token-status-on-use)
+5. Check the role the operator holds now against the endpoint's minimum
+6. On failure → 401 or 403, with the code from Error Handling
+7. On success → pass operator claims to handler
 ```
 
 ### Role Hierarchy
@@ -1442,19 +1768,26 @@ Admin endpoints SHOULD be rate-limited:
 - [ ] The operator key location is parameterisable, so two signed-in accounts on one machine hold separate identities
 - [ ] Provisioning against an existing identity reuses it; a passphrase that does not open it is an error and no new key is generated
 - [ ] Provisioning is re-runnable: an already-registered operator proceeds to obtain a token rather than failing
-- [ ] The passphrase is never written to disk; only the token is
-- [ ] `POST /v1/admin/operators/token` issues a token to an approved operator who signs `{name, timestamp}` with their private key
+- [ ] The passphrase is never written to disk, and a console never writes an operator token anywhere
+- [ ] `POST /v1/admin/operators/token` issues an attestation token (`type` `attestation`, no `cap`, no `cid`, at most 300 seconds, with `hub_id`) to an approved operator who signs `{name, timestamp}` with their identity key, and every route but `POST /v1/admin/operators/{name}/credentials` refuses that token with `CREDENTIAL_REQUIRED`
 - [ ] The signature is verified against the public key in the orchestrator's OWN operator record, never a directory
 - [ ] A token request outside the 300-second replay window is refused
-- [ ] A token request for a pending operator is refused with 403, distinctly from an unknown operator
-- [ ] Registration that also approves returns a token and `status: approved`; registration that does not returns `status: pending` and no token
-- [ ] A four-hour-old token can be replaced without re-registering
+- [ ] A token request for a pending operator is refused with 403 `OPERATOR_NOT_APPROVED`, distinctly from an unknown operator (`OPERATOR_UNKNOWN`)
+- [ ] Registration that also approves returns an attestation token, `hub_id` and `status: approved`; registration that does not returns `status: pending` and no token
+- [ ] An expired operator token is replaced by a new challenge answered with the credential, without re-registering and without the identity
+- [ ] `POST /v1/admin/credentials/token` issues an operator token carrying `cid`, expiring one hour after issue and never after the attestation's `not_after`, only for a signature by the stored credential key over `weblisk/credential-auth/v1`, 0x00, `hub_id`, 0x00 and a nonce this hub issued for that credential
+- [ ] A nonce from `POST /v1/admin/credentials/challenge` is spent by the first token request that presents it, whether or not the signature verifies, and a revoked or expired credential's status is disclosed only after its signature verifies
+- [ ] An attestation whose `hub_id` is not this hub's, whose credential key is the identity key, whose `not_after` is more than 90 days away, or whose key was revoked here before is refused with `CREDENTIAL_FOREIGN_HUB`, `CREDENTIAL_IS_IDENTITY_KEY`, `CREDENTIAL_LIFETIME_EXCEEDED` or `CREDENTIAL_PREVIOUSLY_REVOKED`
+- [ ] Removing an operator, or revoking one of its credentials, refuses its next request with `OPERATOR_REVOKED` or `CREDENTIAL_REVOKED` without waiting for its token to expire
+- [ ] A role lowered after a token was issued limits that token from its next request
+- [ ] An operator token without `cid` is refused with `CREDENTIAL_REQUIRED`
+- [ ] A console uses a person's credential only while that person has a live AAL2 session with it, uses its own service identity for work nobody is present for, and discards a person's tokens when their session ends
 
 - [ ] Admin gateway is a separate process/listener from the application gateway with its own TLS certificate and domain
 - [ ] Admin gateway rejects requests from IPs not in the operator allowlist before any processing (403, no body)
 - [ ] The first operator is approved as admin only on presenting the bootstrap secret; a registration at an empty hub without it, or with a wrong one, is refused with `OPERATOR_BOOTSTRAP_REFUSED` and writes nothing; subsequent operators require existing admin approval
 - [ ] The bootstrap secret is destroyed when claimed, never appears in a response or an audit entry, and is not issued again while any operator record exists
-- [ ] Admin sessions use WLT tokens with 4-hour TTL, 30-minute idle timeout, exact IP binding, and max 1 concurrent session
+- [ ] Admin sessions use WLT tokens with a one-hour TTL, 30-minute idle timeout, exact IP binding, and max 1 concurrent session
 - [ ] MFA (TOTP or WebAuthn) is always required for admin session creation — no exceptions
 - [ ] Role hierarchy admin > operator > auditor > viewer is enforced server-side on every /v1/admin/* endpoint
 - [ ] Destructive actions (deregister agent, revoke federation, delete operator) require 4-eyes approval and X-Confirm HMAC
@@ -1463,7 +1796,7 @@ Admin endpoints SHOULD be rate-limited:
 - [ ] Each admin endpoint group is served by the component that owns its state; the admin service composes them and owns none of them
 - [ ] An admin endpoint whose provider is not deployed reports itself unavailable and never returns an empty result
 - [ ] All admin API responses include Cache-Control: no-store header
-- [ ] Admin auth middleware verifies token.type == "operator" and checks role against endpoint minimum
+- [ ] Admin auth middleware verifies `type` is `operator`, checks that the operator and credential the token names are live, and checks the role the operator holds now against the endpoint minimum
 - [ ] Bootstrap event (first operator registration) is permanently recorded in the audit log
 - [ ] WebSocket /v1/admin/ws provides real-time status updates for agent changes, approvals, and workflow completions
 - [ ] Admin gateway and application gateway share NO session state, cookie domain, or network listener

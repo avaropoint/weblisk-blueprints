@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: threat-model
-version: 1.1.1
+version: 1.1.2
 requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/content, architecture/data-security, architecture/admin, architecture/observability, architecture/enforcement, patterns/contract]
 platform: any
 tier: free
@@ -487,8 +487,8 @@ through the application gateway.
 | Concern | Application Gateway | Admin Gateway |
 |---------|-------------------|---------------|
 | Audience | End users (untrusted, high volume) | Operators (trusted, low volume) |
-| Auth model | User credentials → session cookie | Operator ML-DSA-65 key → operator token |
-| Session binding | Device fingerprint + IP/24 | Operator key + IP allowlist |
+| Auth model | User credentials → session cookie | Operator credential, attested by the operator's ML-DSA-65 identity → operator token |
+| Session binding | Device fingerprint + IP/24 | Operator credential + IP allowlist |
 | Network exposure | Public internet | Private network or VPN + IP allowlist |
 | MFA | Optional (policy-driven) | Always required |
 | Rate limits | High (accommodate user traffic) | Low (operators don't need burst) |
@@ -502,7 +502,7 @@ through the application gateway.
 | 4.1 | **Operator key theft** | Attacker steals ML-DSA-65 private key | Key stored encrypted on disk (passphrase-protected); MFA required even with valid key; key revocation via another admin | Operator identity + MFA |
 | 4.2 | **Admin portal discovery** | Attacker finds admin URL and probes it | Admin gateway on separate domain/port; not linked from application; IP allowlist rejects unknown sources before any processing | Network isolation |
 | 4.3 | **Privilege escalation** | Lower-role operator gains admin access | Role hierarchy enforced server-side; role changes require admin approval + audit log entry; no client-side role checks | Admin auth middleware |
-| 4.4 | **Admin session hijacking** | Steal admin session cookie | Admin sessions use strict IP binding (exact IP, not /24); sessions expire in 4 hours (not 24); MFA required for session creation | Admin session policy |
+| 4.4 | **Admin session hijacking** | Steal admin session cookie | Admin sessions use strict IP binding (exact IP, not /24); tokens expire in one hour and are refused sooner once the operator or credential they rest on is withdrawn; MFA required for session creation | Admin session policy |
 | 4.5 | **Destructive action abuse** | Compromised admin deletes agents or federation peers | Destructive actions require per-request HMAC confirmation; critical actions require two-operator approval (4-eyes principle); all actions in immutable audit log | Admin API + audit |
 | 4.6 | **Audit log tampering** | Attacker covers tracks by modifying audit log | Append-only storage; hash chain integrity (each entry includes hash of previous); external audit log shipping (cannot tamper remote copy) | Audit architecture |
 | 4.7 | **Bootstrap attack** | Attacker registers as first operator before legitimate admin | The first registration is admitted only with the bootstrap secret the orchestrator emitted where only whoever started it can read it, and the window closes when it is claimed; operator registration event fires alert to all configured channels | Bootstrap flow |

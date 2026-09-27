@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 1.0.1
+version: 1.1.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin]
 platform: any
 tier: free
@@ -67,7 +67,7 @@ declaration:
           - name: SignatureVerification
             fields_used: [verify_signature, check_replay]
           - name: WLToken
-            fields_used: [sub, iss, iat, exp, cap]
+            fields_used: [sub, iss, iat, exp, cap, cid]
       on_change:
         compatible: validate-and-adopt
         breaking: version-bump
@@ -130,7 +130,11 @@ declaration:
           - name: registration-signing-input
           - name: first-operator-claim
           - name: operator-approval
+          - name: attestation-token-issuance
+          - name: operator-credential-attestation
           - name: operator-token-issuance
+          - name: token-status-on-use
+          - name: operator-credential-revocation
           - name: operator-roles
       on_change:
         compatible: validate-and-adopt
@@ -173,6 +177,26 @@ declaration:
       path: "/v1/admin/operators/token"
       operation: OperatorToken
       auth: "none"
+    - method: POST
+      path: "/v1/admin/credentials/challenge"
+      operation: CredentialChallenge
+      auth: "none"
+    - method: POST
+      path: "/v1/admin/credentials/token"
+      operation: CredentialToken
+      auth: "none"
+    - method: POST
+      path: "/v1/admin/operators/{name}/credentials"
+      operation: CredentialAttest
+      auth: "token"
+    - method: GET
+      path: "/v1/admin/operators/{name}/credentials"
+      operation: CredentialList
+      auth: "admin:read"
+    - method: DELETE
+      path: "/v1/admin/operators/{name}/credentials/{cid}"
+      operation: CredentialRevoke
+      auth: "token"
     - method: GET
       path: "/v1/admin/operators"
       operation: OperatorList
@@ -240,6 +264,10 @@ declaration:
       endpoint: POST /v1/register
     - check: endpoint-routed
       endpoint: POST /v1/admin/operators/token
+    - check: endpoint-routed
+      endpoint: POST /v1/admin/credentials/challenge
+    - check: endpoint-routed
+      endpoint: POST /v1/admin/credentials/token
     - check: endpoint-routed
       endpoint: GET /v1/health
     - check: type-has-keys
@@ -479,8 +507,8 @@ everything it authorises and a second host is a second place to lose it from.
           ──channel───▶ │  ┌───────────────────────┐  │
                         │  │ Auth middleware       │  │  every endpoint except
    operators ─token───▶ │  │  token → capabilities │  │  /v1/health and
-             ─admin ──▶ │  └───────────┬───────────┘  │  the two that issue
-                        │              │              │  credentials
+             ─admin ──▶ │  └───────────┬───────────┘  │  those that issue
+                        │              │              │  tokens
                         │  ┌───────────▼───────────┐  │
                         │  │ Registry              │  │  agents, namespaces,
                         │  │  identity · ownership │  │  routing table
@@ -505,8 +533,13 @@ everything it authorises and a second host is a second place to lose it from.
 **Auth middleware** resolves a token to capabilities and refuses a request the
 endpoint's declared capability does not permit. It sits in front of everything
 except `GET /v1/health`, `POST /v1/register` — where the manifest signature is
-the credential — and `POST /v1/admin/operators/token`, which is what issues
-tokens and therefore cannot require one.
+the credential — and the operator routes that establish or issue tokens and
+therefore cannot require one: `POST /v1/admin/operators/register`,
+`POST /v1/admin/operators/token`, `POST /v1/admin/credentials/challenge` and
+`POST /v1/admin/credentials/token`. For an operator token it also looks up the
+operator and the credential the token names, in this orchestrator's own
+records, on every request — `token-status-on-use` in
+[`architecture/admin`](admin.md#contracts).
 
 **Registry** holds agent records, namespace ownership and the routing table. It
 records; it does not decide policy. Whether a claim is permitted is the
@@ -585,7 +618,12 @@ privileged position in the deployment.
 | Method | Path | Operation | Capability | Purpose |
 |--------|------|-----------|-----------|---------|
 | POST | /v1/admin/operators/register | OperatorRegister | — | Register an operator. The first presents the bootstrap secret this orchestrator emitted; every later one requires `admin:*`. Returns a token ONLY when registration also approved — see [`architecture/admin`](admin.md#the-registration-response) |
-| POST | /v1/admin/operators/token | OperatorToken | — | Issue an operator token to a caller who signs `{name, timestamp}` with the private key matching this orchestrator's record. Unauthenticated by token, because it is what issues them |
+| POST | /v1/admin/operators/token | OperatorToken | — | Issue an attestation token to a caller who signs `{name, timestamp}` with the private key matching this orchestrator's record. Unauthenticated by token, because it is what issues them. Deprecated as a way to an operator token — see [`architecture/admin`](admin.md#the-identity-signs-only-to-attest) |
+| POST | /v1/admin/credentials/challenge | CredentialChallenge | — | Issue a single-use nonce for a credential |
+| POST | /v1/admin/credentials/token | CredentialToken | — | Issue an operator token to a credential that signed the nonce. The ordinary way to an operator token |
+| POST | /v1/admin/operators/{name}/credentials | CredentialAttest | the operator's own token, or an attestation token for them | Attest a credential for that operator |
+| GET | /v1/admin/operators/{name}/credentials | CredentialList | `admin:read` | That operator's credentials, revoked included |
+| DELETE | /v1/admin/operators/{name}/credentials/{cid} | CredentialRevoke | the operator, or `admin:*` | Revoke one credential |
 | GET | /v1/admin/operators | OperatorList | `admin:*` | List operators |
 | GET | /v1/admin/operators/{name} | OperatorGet | `admin:read` | Operator detail |
 | DELETE | /v1/admin/operators/{name} | OperatorDelete | `admin:*` | Remove an operator |
@@ -862,15 +900,20 @@ never block.
 
 ## Auth Middleware
 
-Applied to all endpoints except `/v1/health` and `POST /v1/register`:
+Applied to all endpoints except `/v1/health`, `POST /v1/register` and the four
+operator routes that establish or issue tokens (see Architecture, above):
 
 ```
 1. Check Authorization header for "Bearer <token>"
 2. If no header, check request body for "token" field
 3. Verify token against orchestrator's signing key
 4. Check expiry
-5. On failure → 401 {"error": "valid token required — register first"}
-6. On success → pass TokenClaims to handler
+5. For an operator token, check the operator and the credential it names are
+   live in this orchestrator's own records (architecture/admin,
+   token-status-on-use)
+6. On failure → 401 {"error": "valid token required — register first"}, or the
+   operator code architecture/admin's Error Handling names
+7. On success → pass TokenClaims to handler
 ```
 
 ---
@@ -1098,7 +1141,8 @@ security:
         it to others
     - rule: A capability is never taken from a request
       mechanism: Role and capabilities are read from the stored record when a
-        token is minted; the request body supplies neither
+        token is minted, and again on every request that bears one; the request
+        body supplies neither
     - rule: Administration is a capability, not a position
       mechanism: Every admin endpoint states which admin capability it
         requires and the auth middleware checks the token for it, so an
@@ -1111,8 +1155,10 @@ security:
 ```
 
 **What a compromise reaches.** An agent's key reaches that agent's namespaces
-and capabilities, and no other agent's key. An operator's key reaches the
-capabilities of that operator's role. The orchestrator's signing key reaches
+and capabilities, and no other agent's key. An operator's credential reaches
+the capabilities of that operator's role until it is revoked or its attestation
+expires, and an operator's identity key reaches the right to attest new
+credentials. The orchestrator's signing key reaches
 every token it has issued and the ability to issue more — but not the data
 agents hold, which is theirs.
 
@@ -1130,9 +1176,11 @@ agents hold, which is theirs.
 ---
 
 ## Verification Checklist
-- [ ] `POST /v1/admin/operators/token` issues a token to an approved operator whose signature verifies against the stored public key
+- [ ] `POST /v1/admin/operators/token` issues a token to an approved operator whose signature verifies against the stored public key — an attestation token, per `architecture/admin`
 - [ ] `POST /v1/admin/operators/token` requires no bearer token — it is the endpoint that issues them
 - [ ] An operator token carries the role and capabilities from the orchestrator's own record, never from the request
+- [ ] `POST /v1/admin/credentials/challenge` and `POST /v1/admin/credentials/token` require no bearer token, and every other operator route refuses a token whose operator or credential is no longer live
+- [ ] The credential routes are served with the Operation names declared above: `CredentialChallenge`, `CredentialToken`, `CredentialAttest`, `CredentialList` and `CredentialRevoke`
 
 - [ ] `POST /v1/register` verifies ML-DSA-65 signature and replay protection
 - [ ] `POST /v1/register` enforces exclusive namespace ownership (409 on conflict)

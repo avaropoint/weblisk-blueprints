@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.1.1
+version: 1.2.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -147,6 +147,16 @@ requires:
 - Private key files MUST have restrictive permissions (readable only by the owning process)
 - Public key files contain the base64url-encoded public key
 - On startup: load existing keys if present, generate new ones if absent
+
+### Key Fingerprint
+
+A public key's **fingerprint** is the lowercase hexadecimal SHA-256 digest of
+the decoded public key bytes: 64 characters. It names a key without carrying it.
+A fingerprint changes only when the key does, and it is never derived from a
+name or an address.
+
+[`patterns/principal-identity`](../patterns/principal-identity.md) names a hub
+and a credential by fingerprint.
 
 ### Private Key Format
 
@@ -369,7 +379,7 @@ If ALL operator keys are lost (catastrophic scenario):
 3. Restart the orchestrator (enters bootstrap mode, and emits a new bootstrap secret)
 4. The operator who registers presenting that secret becomes admin, as at
    first start ([`architecture/admin`](../architecture/admin.md#bootstrap-flow))
-5. All existing operator tokens are invalidated
+5. All existing operator tokens and credentials are invalidated
 ```
 
 This is destructive — it resets the entire operator trust chain.
@@ -480,7 +490,12 @@ Fields:
 - `iat` (issued at): Unix timestamp
 - `exp` (expires at): Unix timestamp (0 = no expiry)
 - `cap` (capabilities): granted capability names (optional)
-- `cid` (channel ID): for channel-scoped tokens (optional)
+- `cid`: the id of the record the issuer minted this token under, and can
+  withdraw before `exp` (optional). A channel token carries its channel's id. An
+  operator token carries the id of the credential that obtained it
+  ([`architecture/admin`](../architecture/admin.md#obtaining-a-token)), and says
+  it is one in its `type` claim, so a verifier never takes a channel's id for a
+  credential's
 
 ### Token Creation
 ```
@@ -506,6 +521,7 @@ Fields:
 ### Token Lifetimes
 - Agent auth tokens: 24 hours (TokenTTL)
 - Channel tokens: 1 hour
+- Operator tokens: [`architecture/admin`](../architecture/admin.md#operator-token) states theirs
 
 ### ID Generation
 ```
@@ -575,7 +591,9 @@ types:
             required: false
           cid:
             type: string
-            description: Channel ID for channel-scoped tokens
+            description: The record the issuer minted this token under and can
+              withdraw — a channel for a channel token, a credential for an
+              operator token
             required: false
       signature:
         type: string
@@ -849,7 +867,7 @@ with deliberate deviations:
 |---------|-------------|------------|----------|
 | Algorithm | RS256, ES256, etc. | `"alg": "ML-DSA-65"` | ML-DSA-65 provides NIST Level 3 post-quantum security; single algorithm eliminates `alg` header confusion attacks |
 | Capabilities | Not in JWT | `"cap": [...]` claim | Core to Weblisk's capability-based auth model |
-| Channel scoping | Not in JWT | `"cid": "..."` claim | Agent-to-agent channel tokens |
+| Issuing record | Not in JWT | `"cid": "..."` claim | Names the channel or credential a token was minted under, so the issuer can end it before `exp` |
 | Algorithm agility | Multiple algorithms | Single algorithm (ML-DSA-65 only) | Eliminates downgrade attacks entirely; post-quantum from day one |
 
 ### Interoperability

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 1.2.0
+version: 2.0.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -193,6 +193,14 @@ requires:
       endpoints:
         - path: /v1/admin/operators/register
           methods: [POST]
+        - path: /v1/admin/operators/token
+          methods: [POST]
+        - path: /v1/admin/credentials/challenge
+          methods: [POST]
+        - path: /v1/admin/credentials/token
+          methods: [POST]
+        - path: /v1/admin/operators/{name}/credentials
+          methods: [POST]
         - path: /v1/admin/overview
           methods: [GET]
         - path: /v1/admin/agents
@@ -257,7 +265,10 @@ Studio's and the orchestrator's own surfaces.
   lives — an encrypted key file, or a holder reference naming the secret source
   that holds the private half ([Where an identity lives](#where-an-identity-lives))
 - Operator registration and token management (the token is stored beside the
-  identity that obtained it)
+  identity that obtained it, unless the caller asks for it not to be —
+  `--no-store`)
+- Attesting a credential another program holds, so a console never holds the
+  identity that attests it (`weblisk operator attest`)
 - Human-readable table output and `--json` machine-readable output formatting
 - Interactive confirmation for destructive actions
 - Connection management to orchestrator's admin API
@@ -296,7 +307,7 @@ the sections below: [Project Commands](#project-commands),
 2. CLI resolves which identity acts — `--keys-dir`, else `--identity <label>`, else the unnamed default
 3. CLI loads the auth token stored beside that identity (refreshes if near expiry)
 4. CLI constructs HTTP request to orchestrator admin API endpoint
-5. Request signed with operator's ML-DSA-65 key, token included in `Authorization: Bearer` header
+5. Token included in the `Authorization: Bearer` header
 6. Orchestrator validates token, checks operator role against endpoint minimum
 7. Orchestrator returns JSON response
 8. CLI formats response as human-readable table (or raw JSON with `--json`)
@@ -465,7 +476,7 @@ $ weblisk secret rotate email-send SMTP_PASSWORD
 
 ### `weblisk tenant create <name>`
 
-Turn a name into a running tenant with a first operator credential, in one
+Turn a name into a running tenant with its first operator admitted, in one
 command.
 
 ```bash
@@ -1073,13 +1084,15 @@ Registering operator 'alice' with http://localhost:9800...
   `--bootstrap <path>` names. The secret is never an argument, which every
   process on the machine can read. Without it, such a hub refuses the
   registration ([`architecture/admin`](admin.md#bootstrap-flow))
-- Stores the returned token beside the identity that signed
+- Obtains a token as the [Authentication Flow](#authentication-flow) says, and
+  stores it beside the identity that signed. `--no-store` returns it instead
+  (stdout, or the `--json` result) and writes no token
 - If not the first operator, prints "Registration pending admin approval"
 - `--role <role>` to request a specific role (admin may override)
 
 ### `weblisk operator connect`
 
-Obtain an operator credential from a hub that is already running.
+Obtain an operator token from a hub that is already running.
 
 ```bash
 $ weblisk operator connect --orch https://hub.example.com
@@ -1102,12 +1115,14 @@ Idempotent, because it is the ordinary way to connect and will be run
 repeatedly. It asks for a token FIRST: a hub that already knows the operator
 needs no registration. A hub with no operators refuses a registration that
 does not present its bootstrap secret, so connecting never claims a hub.
+`connect` obtains its token as the [Authentication Flow](#authentication-flow)
+says.
 
 Five outcomes, and they are told apart:
 
 | State | Meaning |
 |---|---|
-| `connected` | a token was issued and stored beside the identity |
+| `connected` | a token was issued, and stored beside the identity unless `--no-store` was given |
 | `pending_approval` | the hub will not issue one yet. **Not a failure** — the first operator of a hub is admitted by its bootstrap secret and every later one needs an existing admin. The message names who can act |
 | `refused` | the hub answered and said no in a way no approval changes, such as the operator name being registered to a different key |
 | `identity_unavailable` | this machine could not sign: the key file did not open, or the secret source holding the identity did not answer. Nothing is wrong with the hub. Where a source did not answer, `--json` output carries its name as `source` and its code as `code` ([`protocol/secret-source`](../protocol/secret-source.md#reporting-a-source-that-did-not-answer)) |
@@ -1122,6 +1137,7 @@ Flags:
 | `--identity <label>` | which identity signs, by label. The CLI resolves where it lives — see `architecture/admin` rule 2 |
 | `--keys-dir <path>` | which identity signs, by location. Outranks `--identity` |
 | `--json` | machine-readable result, for a console driving this |
+| `--no-store` | return the token — on stdout, or in the `--json` result — and write no token file |
 
 **The passphrase arrives on stdin and never in argv.** A passphrase in a
 command-line argument is readable by every process on the machine, so one is
@@ -1136,12 +1152,55 @@ Refresh or inspect the current operator token.
 $ weblisk operator token
 Operator: alice
 Role:     admin
-Expires:  2026-04-26T10:00:00Z (23h remaining)
+Expires:  2026-04-26T10:00:00Z (52m remaining)
 Orch:     http://localhost:9800
 
 $ weblisk operator token --refresh
-✓ Token refreshed. Expires: 2026-04-27T10:00:00Z
+✓ Token refreshed. Expires: 2026-04-26T11:00:00Z
 ```
+
+**Where a token is kept.** `connect`, `register` and `token --refresh` store
+the token they obtain beside the identity that obtained it, mode 0600, so the
+next command can use it. The token is a bearer credential: whoever holds the
+file may use it until it expires. **`--no-store` writes no token file.** The
+token goes to stdout, or into the `--json` result, and nowhere else. A caller
+that holds the token itself passes it — a console does, because a console
+never writes an operator token anywhere
+([`architecture/admin`](admin.md#a-console-holds-a-credential-never-a-token)).
+
+### `weblisk operator attest`
+
+Have an identity attest a credential that another program holds, at one hub.
+
+```bash
+$ weblisk operator attest --orch https://hub.example.com --identity alice \
+    --credential-key ./credential.pub --device-label "console on build-01" --json
+```
+
+For a console. The console generates the credential's key pair and keeps it;
+this verb is how the account's operator identity attests the public half
+without the console ever holding the identity
+([`protocol/secret-source`](../protocol/secret-source.md#a-console-never-holds-the-secrets-of-an-identity-it-acts-for)).
+The steps are [`architecture/admin`](admin.md#obtaining-a-token)'s:
+
+- Reads the credential's public key from the file `--credential-key` names
+- Asks the hub for an attestation token, signing `{name, timestamp}` with the
+  identity, and takes `hub_id` from the answer
+- Builds the `Attestation` itself — the identity's public key and its
+  fingerprint, the credential public key, `hub_id`, `--device-label` and
+  `not_after` — and signs its canonical form. It never signs bytes a caller
+  supplies, so it is not a way to get the identity's signature over anything
+  else
+- `--days <n>` sets `not_after` that many days ahead: 30 by default, and refused
+  above 90
+- Submits the attestation and prints the credential's id and its `not_after`.
+  `--json` gives them as `cid` and `not_after`
+- Writes nothing to disk, and unlocks the identity once for both signatures
+
+Its outcomes are `attested`, and `pending_approval`, `refused`,
+`identity_unavailable` and `unreachable` as `connect` reports them. With
+`--json`, a refusal carries the hub's error code as `code`. `--orch`, `--name`,
+`--identity` and `--keys-dir` mean what they mean for `connect`.
 
 ### `weblisk operator rotate`
 
@@ -2125,8 +2184,12 @@ Every command that calls the orchestrator:
 ```
 1. Resolve which identity acts: --keys-dir, else --identity <label>, else the unnamed default
 2. Load the token stored beside that identity
-3. Check token expiry — if < 1 hour remaining, auto-refresh, signing with the
-   identity's holder (the encrypted key file, or a secret source)
+3. If it has expired, or less than a fifth of its lifetime remains, obtain a
+   new one as architecture/admin's "Obtaining a token" says: a credential for
+   that hub answers a challenge, and the identity's holder (the encrypted key
+   file, or a secret source) signs only to attest one. A hub that does not
+   serve the credential routes still answers the identity-signed request with
+   an operator token, and that path is deprecated
 4. Set Authorization: Bearer <token> on request
 5. If 401 response → attempt token refresh → retry once
 6. If refresh fails → print "Session expired. Run: weblisk operator register"
@@ -2265,9 +2328,11 @@ security:
 - [ ] `weblisk operator connect` asks for no passphrase when a secret source holds the identity's passphrase
 - [ ] `weblisk operator connect` reports `connected`, `pending_approval`, `refused`, `identity_unavailable` or `unreachable`, and with `--json` an `identity_unavailable` result carries `source` and `code`
 - [ ] `weblisk operator init` does not overwrite existing keys without --force flag
-- [ ] `weblisk operator register` signs the registration payload with the operator's private key and stores the returned token
+- [ ] `weblisk operator register` signs the registration payload with the operator's private key and stores the token it obtains
 - [ ] `weblisk operator register --bootstrap <path>` sends the bootstrap secret read from that file, and the secret is never accepted as an argument
-- [ ] `weblisk operator token` auto-refreshes the token when less than 1 hour remaining before expiry
+- [ ] `weblisk operator token` refreshes the token when it has expired or less than a fifth of its lifetime remains, without asking the identity to sign anything but an attestation
+- [ ] `--no-store` on `weblisk operator connect`, `weblisk operator register` and `weblisk operator token --refresh` returns the token on stdout or in the `--json` result, and writes no token file
+- [ ] `weblisk operator attest` signs only an `Attestation` it builds itself, refuses `--days` above 90, submits it, reports the credential's `cid` and `not_after`, and writes nothing to disk
 - [ ] `weblisk operators revoke` invalidates target operator's public key and tokens (admin only)
 - [ ] `weblisk operators revoke` prevents self-revocation and revoking the last admin
 - [ ] `weblisk operators list` shows all registered operators with name, role, status, and registration date
