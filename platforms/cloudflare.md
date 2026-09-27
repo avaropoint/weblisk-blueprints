@@ -1,7 +1,7 @@
 <!-- blueprint
 type: platform
 name: cloudflare
-version: 1.0.0
+version: 1.1.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: cloudflare
 tier: free
@@ -129,9 +129,10 @@ It is not one, because **the requirement does not reach this platform.**
 
 The KDF exists to encrypt an *operator's* private key with a passphrase, for a human
 holding a key file. A component generated for this platform holds *service* keys,
-which `protocol/identity` covers through secure configuration instead — here, Workers
-Secrets. There is no passphrase to stretch, because there is no human at a component's
-start-up.
+which `protocol/identity` covers through a secret source instead. Here that source is
+Workers Secrets, carried by the platform itself, since a Worker cannot start a helper
+process ([`protocol/secret-source`](../protocol/secret-source.md)). There is no
+passphrase to stretch, because there is no human at a component's start-up.
 
 Operator keys remain the CLI's and Studio's concern, on platforms that have a person
 and a filesystem. Recording this as UNFILLED implied a Worker should be doing

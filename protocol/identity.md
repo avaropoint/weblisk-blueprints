@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.0.0
+version: 1.1.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -190,27 +190,37 @@ task — cannot, and a specification that says "prompt" has excluded it.
 When `kdf = none`:
 - The private key is stored as hex (no encryption)
 - Used ONLY for automated service keys in environments where passphrase
-  input is impossible (containers, CI, headless servers)
+  input is impossible (containers, CI, headless servers), and ONLY in
+  development (rule 6). Never for an operator key (rule 1)
 - Restrictive file permissions are the sole protection layer
 
 ### Key Categories
 
 | Category | KDF | Passphrase Source | Use Case |
 |----------|-----|------------------|----------|
-| **Operator keys** | `argon2id` | A non-echoing channel operated by a human | Human-operated tooling |
-| **Service keys** (orchestrator, gateway, agent) | `argon2id` or `none` | An injected credential channel, or none | Automated processes |
+| **Operator keys** | `argon2id`, never `none` | A non-echoing channel operated by a human, or generated and held by the secret source that holds the key (rule 1) | Human-operated tooling |
+| **Service keys** (orchestrator, gateway, agent) | `argon2id`, or `none` in development only (rule 6) | A secret source, or none | Automated processes |
 
 **Rules:**
 1. Operator key generation MUST require a passphrase. It cannot be skipped, and
    the minimum is 12 characters. The channel it arrives over is the platform
    blueprint's to name; a headless implementation uses rules 7 and 8 rather than
    asking a human who is not there.
-2. Service key generation defaults to `kdf = none` but SHOULD support
-   encrypted keys with passphrase supplied via secure configuration.
-3. Production deployments SHOULD encrypt service keys with passphrase
-   supplied via secure configuration or secrets manager at startup.
+   An operator's private key MUST NOT be stored unencrypted, whoever holds it —
+   a key file, a keychain or a vault. `kdf = none` is for service keys alone,
+   and for those only in development (rule 6). Where a secret source holds an
+   operator's key, its passphrase is generated rather than typed and is held
+   with it ([`protocol/secret-source`](secret-source.md#an-identity-held-by-a-source)).
+2. Service key generation defaults to `kdf = none`, which rule 6 confines to
+   development, but SHOULD support encrypted keys whose passphrase comes from a
+   secret source ([`protocol/secret-source`](secret-source.md)).
+3. Production deployments SHOULD encrypt service keys with a passphrase
+   supplied at startup by a secret source, such as a secrets manager or a
+   secret the platform mounts.
 4. The passphrase is NEVER stored on disk. It exists only in memory
-   during the decrypt operation.
+   during the decrypt operation. This binds the implementation, which never
+   writes a passphrase anywhere; a secret source MAY keep one under its own
+   protection, as [`protocol/secret-source`](secret-source.md) describes.
 5. Failed passphrase attempts log `security.key_decrypt_failed` and
    exit with code 2 (auth error). No retry loop — the operator
    re-runs the command.
@@ -255,10 +265,17 @@ to stop persisting one.
    | Managed secret | KMS or secrets manager, authenticated by platform identity, never materialised on disk |
    | Injected passphrase | Supplied at start via a credential channel, held in memory only |
 
-9. A key or passphrase MUST NOT be supplied through an environment
-   variable. Environment is readable via `/proc`, container
-   inspection, crash dumps and diagnostic output, and it is inherited
-   by every child process.
+   Where something other than the implementation holds the material — a
+   keychain, a vault, a hardware token — the implementation reaches it through
+   [`protocol/secret-source`](secret-source.md), which also says which of these
+   rows each way of holding it earns.
+
+9. An identity's private key, or the passphrase that opens it, MUST NOT be
+   supplied through an environment variable. Environment is readable via
+   `/proc`, container inspection, crash dumps and diagnostic output, and it is
+   inherited by every child process. An installation's master key is not an
+   identity's key; [`protocol/secret-source`](secret-source.md#an-installations-master-key)
+   states the one case in which it may arrive that way.
 
 10. In-memory key material MUST be zeroised after use, SHOULD be
     excluded from swap where the platform allows it, and MUST be
@@ -303,9 +320,9 @@ Operator keys can be rotated without losing hub access:
 7. Old key is marked as revoked (preserved for audit)
 ```
 
-Service keys follow the same rotation protocol but use
-secure configuration (secrets manager, environment) instead of
-interactive prompts.
+Service keys follow the same rotation protocol, with the passphrase from a
+secret source ([`protocol/secret-source`](secret-source.md)) instead of an
+interactive prompt — never from the environment (rule 9).
 
 ### Key Recovery
 
@@ -913,7 +930,9 @@ Implementation MUST:
 - [ ] Generate keys with cryptographically secure random source
 - [ ] Store private keys with restricted permissions (readable only by owning process)
 - [ ] Encrypt operator private keys with Argon2id + AES-256-GCM (passphrase required, min 12 chars)
-- [ ] Support encrypted service keys via secure configuration
+- [ ] Never store an operator's private key unencrypted — not with `kdf = none`, and not in any secret source
+- [ ] Support encrypted service keys whose passphrase comes from a secret source
+- [ ] Never accept an identity's private key or its passphrase from an environment variable
 - [ ] Parse weblisk-key-v1 format correctly (magic, algorithm=ml-dsa-65, kdf, params, ciphertext)
 - [ ] Never store passphrase on disk — only hold in memory during decrypt
 - [ ] A failed passphrase terminates the operation immediately — no retry loop, no passphrase enumeration. The platform blueprint states how termination is signalled

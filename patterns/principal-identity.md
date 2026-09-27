@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.0.0
+version: 1.1.0
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -109,10 +109,10 @@ requires:
 
 3. **A subject is a person or a service, treated identically** — Service
    accounts are identities. Same algorithm, same binding, same revocation, same
-   audit. They differ only in `kdf`: a person's key is protected by an
-   interactive passphrase; a headless service key MAY use `kdf: none` with file
-   permissions as its sole protection (`protocol/identity` Key Categories).
-   Nothing else about the model changes.
+   audit. They differ only in `kdf`: a person's key is always encrypted, and a
+   headless service key MAY use `kdf: none` with file permissions as its sole
+   protection, in development only (`protocol/identity` Key Categories, rules 1
+   and 6). Nothing else about the model changes.
 
 4. **A hub is entered by a credential, never by the identity** — A hub stores a
    credential's public key, not the identity's. The identity key is presented
@@ -210,8 +210,8 @@ contracts:
       rules:
         - The key pair MUST be generated on the subject's own system
         - The private key MUST NOT be transmitted to any party, ever
-        - A human subject's key MUST use kdf argon2id with an interactive passphrase
-        - A service subject's key MAY use kdf none where no passphrase can be prompted
+        - A human subject's key MUST use kdf argon2id, whoever holds it; protocol/identity rule 1 says where its passphrase comes from
+        - A service subject's key MAY use kdf none where no passphrase can be prompted, in development only (protocol/identity rule 6)
         - Only the public key is ever published
 
     - name: principal-invitation
@@ -427,7 +427,8 @@ types:
         required: true
         description: How the long-lived key is protected. `development-only` is
           file permissions alone and MUST NOT be accepted by a production hub —
-          see protocol/identity Service Key Protection
+          see protocol/identity Service Key Protection. protocol/secret-source
+          says which value each way of holding the key earns
       display_name:
         type: string
         required: false
@@ -744,18 +745,18 @@ the strongest practical argument for keeping the identity key backed up and cold
 it is the recovery path for every credential a subject holds anywhere.
 
 **A service key on disk is a permanent, silent compromise.** `protocol/identity`
-permits `kdf: none` where no passphrase can be prompted, protected only by file
-permissions. Anyone who reads that file — from a backup, a container image, a
-mounted volume, a compromised sidecar — holds that identity indefinitely, and
-nothing about the theft is observable: there is no second factor to fail and no
-presence check to miss. The fix is not stronger encryption of that file — it is
-to stop having one. A service's operating credential should be minted at process
-start, live in memory for hours, and never touch disk; the long-lived material
-that attests it belongs in hardware, a KMS, or nowhere at all where the platform
-can attest the workload directly. Mint one credential per workload, so a single
-compromised container carries its own authority and nothing else.
-`protocol/identity` Service Key Protection sets the conformance bar, and
-`development-only` protection is exactly that.
+permits `kdf: none` in development only, where no passphrase can be prompted,
+protected only by file permissions. Anyone who reads that file — from a backup,
+a container image, a mounted volume, a compromised sidecar — holds that identity
+indefinitely, and nothing about the theft is observable: there is no second
+factor to fail and no presence check to miss. The fix is not stronger encryption
+of that file — it is to stop having one. A service's operating credential should
+be minted at process start, live in memory for hours, and never touch disk; the
+long-lived material that attests it belongs in hardware, a KMS, or nowhere at
+all where the platform can attest the workload directly. Mint one credential per
+workload, so a single compromised container carries its own authority and
+nothing else. `protocol/identity` Service Key Protection sets the conformance
+bar, and `development-only` protection is exactly that.
 
 **Service accounts drift, because nobody notices them.** A person reports a lost
 laptop within the hour. A service key sits for years, outliving the project, the
