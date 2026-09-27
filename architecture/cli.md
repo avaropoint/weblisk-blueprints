@@ -34,8 +34,10 @@ The CLI has two command surfaces:
    orchestrator's admin API (`weblisk status`, `weblisk agents`,
    `weblisk domains`, `weblisk audit`, `weblisk federations`)
 
-Operations commands use the operator's ML-DSA-65 identity stored in
-`~/.weblisk/keys/` for authentication.
+Operations commands authenticate with an operator's ML-DSA-65 identity — the
+one `--identity <label>` names, or the unnamed default.
+[Where an identity lives](#where-an-identity-lives) says where that is, and
+whether its private half is an encrypted file or held in a vault.
 
 ### The binary is named `weblisk`
 
@@ -232,8 +234,11 @@ Studio's and the orchestrator's own surfaces.
 - Dev server with file watching (`weblisk dev`)
 - Production builds (`weblisk build`)
 - Static framework vendoring (`weblisk vendor`)
-- Operator ML-DSA-65 key pair generation and local key storage (`~/.weblisk/keys/`)
-- Operator registration and token management (`~/.weblisk/token`)
+- Operator ML-DSA-65 identity creation, and resolving where a named identity
+  lives — an encrypted key file, or a reference to a vault that holds the
+  private half ([Where an identity lives](#where-an-identity-lives))
+- Operator registration and token management (the token is stored beside the
+  identity that obtained it)
 - Human-readable table output and `--json` machine-readable output formatting
 - Interactive confirmation for destructive actions
 - Connection management to orchestrator's admin API
@@ -269,8 +274,8 @@ the sections below: [Project Commands](#project-commands),
 ## Data Flow
 
 1. Operator runs a CLI command (e.g., `weblisk agents list`)
-2. CLI loads operator identity from `~/.weblisk/keys/operator.key`
-3. CLI loads auth token from `~/.weblisk/token` (refreshes if near expiry)
+2. CLI resolves which identity acts — `--keys-dir`, else `--identity <label>`, else the unnamed default
+3. CLI loads the auth token stored beside that identity (refreshes if near expiry)
 4. CLI constructs HTTP request to orchestrator admin API endpoint
 5. Request signed with operator's ML-DSA-65 key, token included in `Authorization: Bearer` header
 6. Orchestrator validates token, checks operator role against endpoint minimum
@@ -772,15 +777,15 @@ $ weblisk gateway start
 Establish a tenant's FIRST operator against a hub this CLI started.
 
 ```bash
-$ weblisk server provision --operator lloyd
+$ weblisk server provision --operator alice
   Operator passphrase: ********
 
   orchestrator running at http://127.0.0.1:9800
-  operator identity created for lloyd
+  operator identity created for alice
   operator registered — first operator is auto-approved
   token issued, expires 2026-09-03T18:00:00Z
 
-  Connected to http://127.0.0.1:9800 as lloyd
+  Connected to http://127.0.0.1:9800 as alice
 ```
 
 This is BOOTSTRAP, not connect. It is local by necessity — it reads the run
@@ -844,9 +849,39 @@ resource context, and generates the pattern implementation.
 
 ## Identity Commands
 
+### Where an identity lives
+
+An identity belongs to a subject, not to a machine or a tenant, and one machine
+may hold several — [`architecture/admin`](admin.md) rule 2. The operator
+commands select one this way, and every other command that takes these flags
+means the same by them:
+
+| Flag | Selects |
+|---|---|
+| `--keys-dir <path>` | the identity at an explicit location. Outranks `--identity` |
+| `--identity <label>` | the identity with this label. The CLI resolves where it lives, and `weblisk operator path` reports it — a caller asks rather than deriving a path |
+| neither | the unnamed default, `~/.weblisk/keys/` |
+
+`--identity` is local: it chooses which key on this machine signs. It is not
+`--name`, the operator as a hub records them, and admin rule 2 forbids merging
+the two into one argument.
+
+The private half is held in one of two ways:
+
+| Holder | On disk beside the identity | Passphrase |
+|---|---|---|
+| Encrypted file | `operator.key` in `weblisk-key-v1` format (Argon2id KDF + AES-256-GCM), and `operator.pub` | Required, and never stored. It is the only thing protecting the key |
+| Vault — 1Password is the one supported | `operator.pub` and a reference to where the private half is. No private key | None to type. The vault holds everything that unlocks the private half |
+
+A vault is optional and always will be. `protocol/identity` rule 8 ranks a
+managed secret above an encrypted file, and that is a preference, not a
+requirement: a machine with no vault account must still be able to hold an
+identity.
+
 ### `weblisk operator init`
 
-Generate an operator ML-DSA-65 key pair, encrypted with a passphrase.
+Create an operator ML-DSA-65 identity — in an encrypted file protected by a
+passphrase, or with `--vault`, in a vault.
 
 ```bash
 $ weblisk operator init
@@ -861,14 +896,48 @@ Keep your private key safe. It is your identity.
 The passphrase is NOT stored — you must remember it.
 ```
 
-- Generates keys in `~/.weblisk/keys/` (mode 0700 directory, 0600 key)
-- ALWAYS prompts for passphrase — cannot be skipped or supplied via flag
-- Minimum passphrase length: 12 characters (enforced)
-- Private key stored in `weblisk-key-v1` format (Argon2id KDF + AES-256-GCM)
-- Passphrase is never written to disk, never in shell history
-- If keys already exist, prints the public key and exits (no overwrite)
-- `--force` to regenerate (prompts for new passphrase, prints identity change warning)
-- `--name <name>` to set operator name (default: system username)
+- Creates the identity where `--keys-dir`, `--identity` or the default selects
+  (mode 0700 directory, 0600 key) — see [Where an identity lives](#where-an-identity-lives)
+- Without `--vault`, prompts for a passphrase, which cannot be skipped or
+  supplied via flag. Minimum length 12 characters (enforced). The private key is
+  stored in `weblisk-key-v1` format, and the passphrase is never written to
+  disk and never in shell history
+- `--vault <vault>` keeps the private half in that vault instead: no private
+  key is written to disk and no passphrase is asked for. `--account <account>`
+  names the vault account where more than one is configured
+- Never overwrites an identity that already exists there without `--force`
+- `--force` to regenerate (prints identity change warning; the new identity must be re-registered)
+- `--name <name>` sets the operator name a hub will record (default: system
+  username). It does not choose where the identity lives — `--identity` does
+
+### `weblisk operator store`
+
+Map an identity whose private half is already in a vault, rather than creating
+one.
+
+```bash
+$ weblisk operator store --identity alice --reference op://Vault/item/private_key
+```
+
+- Writes the public key and the reference beside the selected identity. The
+  private half stays in the vault
+- Refuses where the selected location already holds a private key on disk: a
+  subject holds one identity, and mapping over it would strand that one
+- `--account <account>` as for `operator init --vault`
+
+`init` creates, `store` maps and `path` reports; no verb does two of those.
+
+### `weblisk operator path`
+
+Print where an identity lives.
+
+```bash
+$ weblisk operator path --identity alice
+```
+
+So a caller can ask where an identity lives instead of deriving the path. A
+console or script that derives it is a second implementation of admin rule 2,
+kept in step by luck. `--json` for machine-readable output.
 
 ### `weblisk operator register`
 
@@ -878,12 +947,12 @@ Register with a running orchestrator.
 $ weblisk operator register --orch http://localhost:9800
 Registering operator 'alice' with http://localhost:9800...
 ✓ Registered as admin (first operator — auto-approved)
-  Token stored: ~/.weblisk/token
+  Token stored: ~/.weblisk/keys/token
   Expires: 2026-04-26T10:00:00Z
 ```
 
 - Signs the registration payload with the operator's private key
-- Stores the returned token in `~/.weblisk/token`
+- Stores the returned token beside the identity that signed
 - If not the first operator, prints "Registration pending admin approval"
 - `--role <role>` to request a specific role (admin may override)
 
@@ -898,7 +967,7 @@ $ weblisk operator connect --orch https://hub.example.com
   existing operator identity unlocked
   token issued — this hub already knows this operator
 
-  [ok] Connected to https://hub.example.com as lloyd
+  [ok] Connected to https://hub.example.com as alice
 ```
 
 **Needs an address and an identity, and nothing else.** No project directory,
@@ -934,7 +1003,8 @@ Flags:
 
 **The passphrase arrives on stdin and never in argv.** A passphrase in a
 command-line argument is readable by every process on the machine, so one is
-refused rather than accepted with a warning.
+refused rather than accepted with a warning. A vault-held identity is not asked
+for one.
 
 ### `weblisk operator token`
 
@@ -971,7 +1041,7 @@ Registering new public key with orchestrator (signed by old key)...
 - Generates new ML-DSA-65 key pair
 - Encrypts new key with new passphrase
 - Registers new public key with orchestrator (signed by old key for proof of continuity)
-- Old key moved to `~/.weblisk/keys/operator.key.revoked` for audit
+- Old key moved to `operator.key.revoked` beside the identity, for audit
 
 ---
 
@@ -1931,9 +2001,10 @@ The CLI reads orchestrator connection details from (in priority order):
 Every command that calls the orchestrator:
 
 ```
-1. Load operator private key from ~/.weblisk/keys/operator.key
-2. Load token from ~/.weblisk/token
-3. Check token expiry — if < 1 hour remaining, auto-refresh
+1. Resolve which identity acts: --keys-dir, else --identity <label>, else the unnamed default
+2. Load the token stored beside that identity
+3. Check token expiry — if < 1 hour remaining, auto-refresh, signing with the
+   identity's holder (the encrypted key file, or the vault)
 4. Set Authorization: Bearer <token> on request
 5. If 401 response → attempt token refresh → retry once
 6. If refresh fails → print "Session expired. Run: weblisk operator register"
@@ -2051,9 +2122,13 @@ security:
 - [ ] Blueprint resolution follows priority: local → configured blueprint sources → core
 
 ### Identity & Operations
-- [ ] `weblisk operator init` generates ML-DSA-65 keys in ~/.weblisk/keys/ with 0700 directory and 0600 file permissions
-- [ ] `weblisk operator init` prompts for passphrase (min 12 chars), encrypts private key with Argon2id + AES-256-GCM
+- [ ] `weblisk operator init` creates the identity that `--keys-dir`, `--identity` or the unnamed default `~/.weblisk/keys/` selects, with 0700 directory and 0600 file permissions
+- [ ] `weblisk operator init` without `--vault` prompts for passphrase (min 12 chars), encrypts private key with Argon2id + AES-256-GCM
 - [ ] `weblisk operator init` passphrase cannot be skipped or supplied as CLI argument
+- [ ] `weblisk operator init --vault` writes no private key to disk and asks for no passphrase
+- [ ] `--identity <label>` resolves to the same location on every run, and `weblisk operator path --identity <label>` reports it
+- [ ] `--keys-dir` outranks `--identity` when both are given
+- [ ] `weblisk operator connect` asks for no passphrase when the identity is vault-held
 - [ ] `weblisk operator init` does not overwrite existing keys without --force flag
 - [ ] `weblisk operator register` signs the registration payload with the operator's private key and stores the returned token
 - [ ] `weblisk operator token` auto-refreshes the token when less than 1 hour remaining before expiry

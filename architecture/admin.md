@@ -533,7 +533,9 @@ defined:
 
 ```
 1. Operator generates ML-DSA-65 key pair (via CLI: weblisk operator init)
-2. CLI stores keys in ~/.weblisk/keys/operator.key and operator.pub
+2. CLI stores the identity where it resolves that identity to live (rule 2 of
+   "Bootstrap without a shell", below): the public key, and the private half
+   either as a passphrase-encrypted file or held by a vault
 3. Operator registers with orchestrator:
    POST /v1/admin/operators/register
    {
@@ -665,7 +667,7 @@ The orchestrator MUST:
 5. Return the operator record, **and no token**:
 
 ```
-200 { "operator": {...}, "status": "approved", "approved_by": "lloyd", "approved_at": ... }
+200 { "operator": {...}, "status": "approved", "approved_by": "bob", "approved_at": ... }
 ```
 
 The approved operator obtains their own token by signing the challenge at
