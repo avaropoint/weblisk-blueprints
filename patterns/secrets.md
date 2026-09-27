@@ -45,7 +45,7 @@ requires:
     bindings:
       types:
         - name: HolderReference
-          fields_used: [source, reference]
+          fields_used: [source, reference, options]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -549,6 +549,10 @@ types:
       key:
         type: string
         description: Identifier for the secret in whatever store holds it. Where that store is a secret source, this is a holder reference in its flag form, source:reference, as protocol/secret-source defines it
+      options:
+        type: object
+        required: false
+        description: Where key names a secret source, the string options that source needs on every request, such as which account, exactly as HolderReference options. Never a secret
       env_var:
         type: string
         description: Environment variable carrying the value, where a platform supplies secrets that way. MUST NOT carry a private key (an identity's or a credential's), other key material or a passphrase — protocol/identity rule 9 forbids that path, says what those are, and states the one exception

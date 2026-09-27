@@ -2,7 +2,7 @@
 type: architecture
 name: cli
 version: 1.1.0
-requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
+requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
 -->
@@ -145,6 +145,24 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
+  - blueprint: protocol/secret-source
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: HolderReference
+          fields_used: [version, source, reference, options, holds]
+        - name: SecretSourceRequest
+          fields_used: [version, action, reference, field, fields, label, alg, message, options]
+        - name: SecretSourceResponse
+          fields_used: [value, reference, actions, sign_algs, named_fields, withheld_fields, signature, error]
+        - name: SecretSourceError
+          fields_used: [code, message]
+        - name: SecretSourceRegistryEntry
+          fields_used: [command, timeout_s, interactive_timeout_s]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -205,11 +223,11 @@ act on local files, and **operator** commands that act on a running hub.
    │  operator: init · connect · token  │
    │  generation: dispatch · verify     │
    └────┬──────────────────────┬────────┘
-        │ signature requested  │ authenticated per request
+        │ signs through it     │ authenticated per request
         ▼                      ▼
    Identity holder        Orchestrator
-   (hardware, vault,      (over a transport
-    or key file)           the operator named)
+   (a secret source,      (over a transport
+    or a key file)         the operator named)
 ```
 
 **Responsibilities.** Scaffolding and building projects, generating components from
@@ -1082,12 +1100,14 @@ needs no registration, and registering first against a hub with no operators
 would silently make this identity the bootstrap admin of somebody else's
 tenant.
 
-Three outcomes, and they are told apart:
+Five outcomes, and they are told apart:
 
 | State | Meaning |
 |---|---|
 | `connected` | a token was issued and stored beside the identity |
 | `pending_approval` | the hub will not issue one yet. **Not a failure** — the first operator of a hub is auto-approved and every later one needs an existing admin. The message names who can act |
+| `refused` | the hub answered and said no in a way no approval changes, such as the operator name being registered to a different key |
+| `identity_unavailable` | this machine could not sign: the key file did not open, or the secret source holding the identity did not answer. Nothing is wrong with the hub. Where a source did not answer, `--json` output carries its name as `source` and its code as `code` ([`protocol/secret-source`](../protocol/secret-source.md#reporting-a-source-that-did-not-answer)) |
 | `unreachable` | nothing answered, or the hub does not serve `POST /v1/admin/operators/token` — reported distinctly, because telling somebody to await an approval that is never coming is worse than saying the hub is too old |
 
 Flags:
@@ -2240,6 +2260,7 @@ security:
 - [ ] `--identity <label>` resolves to the same location on every run, and `weblisk operator path --identity <label>` reports it
 - [ ] `--keys-dir` outranks `--identity` when both are given
 - [ ] `weblisk operator connect` asks for no passphrase when a secret source holds the identity's passphrase
+- [ ] `weblisk operator connect` reports `connected`, `pending_approval`, `refused`, `identity_unavailable` or `unreachable`, and with `--json` an `identity_unavailable` result carries `source` and `code`
 - [ ] `weblisk operator init` does not overwrite existing keys without --force flag
 - [ ] `weblisk operator register` signs the registration payload with the operator's private key and stores the returned token
 - [ ] `weblisk operator token` auto-refreshes the token when less than 1 hour remaining before expiry

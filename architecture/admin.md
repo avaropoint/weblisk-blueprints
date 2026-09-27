@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -535,7 +535,8 @@ defined:
 1. Operator generates ML-DSA-65 key pair (via CLI: weblisk operator init)
 2. CLI stores the identity where it resolves that identity to live (rule 2 of
    "Bootstrap without a shell", below): the public key, and the private half
-   either as a passphrase-encrypted file or held by a vault
+   either as a passphrase-encrypted file or held by a secret source
+   (protocol/secret-source)
 3. Operator registers with orchestrator:
    POST /v1/admin/operators/register
    {
