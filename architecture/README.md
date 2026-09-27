@@ -16,6 +16,10 @@ specifications that all implementations must satisfy.
 | [gateway.md](gateway.md) | Application gateway — auth, ABAC, rate limiting, route protection |
 | [client.md](client.md) | Client architecture — taxonomy, trust levels, sessions, data boundary |
 | [storage.md](storage.md) | Abstract persistence interface |
+| [content.md](content.md) | Content repository — authored text held as files whose bytes are their identity |
+| [fabric.md](fabric.md) | Relationship fabric — an append-only ledger of what implements what |
+| [tenancy.md](tenancy.md) | Many hubs on shared infrastructure, without the host joining any tenant's trust boundary |
+| [mcp.md](mcp.md) | Model Context Protocol surface — how an external AI agent reaches a hub's capabilities |
 
 ## Operations
 

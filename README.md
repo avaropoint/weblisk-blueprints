@@ -48,10 +48,10 @@ Weblisk is built on a zero-external-dependency principle:
   dependencies. Pure browser APIs.
 - **Server** (these blueprints) — Implementation-agnostic specs. No
   external databases, no runtime package requirements, no vendor SDKs.
-- **Go platform** — Standard library only. SQLite compiles into the
-  binary (embedded, not an external server).
-- **Rust platform** — Minimal curated crates (tokio, hyper, serde,
-  rusqlite). Compiles to a single static binary per agent.
+- **Go** and **Rust** — programming languages, in
+  [`languages/`](languages/README.md). Each states its own dependency
+  policy: [`languages/go.md`](languages/go.md),
+  [`languages/rust.md`](languages/rust.md).
 - **Cloudflare platform** — Platform-native APIs only (Workers KV,
   Durable Objects, Web Crypto). Zero runtime dependencies.
 - **Node.js platform** — Recommended libraries for each capability
@@ -71,124 +71,30 @@ and work agents from scratch.
 
 ## Structure
 
-```
-protocol/           Wire protocol specifications
-  spec.md             Full protocol specification (6 agent + 6 orchestrator endpoints)
-  identity.md         ML-DSA-65 crypto, tokens, signing, key rotation
-  types.md            Canonical type definitions (all JSON shapes)
-  federation.md       Multi-orchestrator federation and data boundaries
+Every folder has a README that indexes it, and this page links to them rather
+than keeping a second list. The file tree that used to be here was that second
+list, and measured on 2026-09-27 eleven of its paths no longer existed, 26
+blueprints, schemas and skills in the folders it did list were missing from it,
+and six folders were absent altogether.
 
-architecture/       System architecture
-  orchestrator.md     Trust anchor — registration, namespaces, security, directory
-  domain.md           Domain controller — workflow declarations, event-driven triggering
-  agent.md            Agent base — 6 endpoints, capabilities, pub/sub, retry/circuit breaker
-  lifecycle.md        Continuous optimization loop (event-driven)
-  storage.md          Abstract persistence interface
-  testing.md          Conformance test suite specification
-  hub.md              Collaborative hub — discovery, tiers, commerce
-  admin.md            Platform admin — operator identity, roles, separate admin gateway
-  cli.md              CLI operations — interrogation, management commands
-  observability.md    Structured logging, distributed tracing, metrics
-  gateway.md          Application gateway — auth, ABAC, rate limiting, route protection
-  client.md          Client architecture — taxonomy, trust levels, sessions, data boundary
-  data-security.md    Transport security, scope-aware boundaries, opt-in data primitives
-  enforcement.md      Non-bypassable boundary inspection, rogue agent detection
-  threat-model.md     Attack surface analysis — 5 boundaries, OWASP mapping
-  change-management.md  Versioning, migration, deprecation lifecycle
+| Folder | Holds |
+|---|---|
+| [`protocol/`](protocol/README.md) | Wire protocol — message formats, identity, endpoint contracts, federation |
+| [`architecture/`](architecture/README.md) | How the system operates — its components, boundaries, security model and operations |
+| [`agents/`](agents/README.md) | Infrastructure agents — system-level services every domain uses |
+| [`patterns/`](patterns/README.md) | Cross-cutting pattern contracts, inherited via `extends` |
+| [`languages/`](languages/README.md) | One blueprint per programming language |
+| [`platforms/`](platforms/README.md) | One blueprint per runtime |
+| [`frameworks/`](frameworks/README.md) | What building *with* a framework requires, including the Weblisk client framework's project guidance in `frameworks/weblisk/` |
+| [`schemas/`](schemas/README.md) | The schema each blueprint type conforms to, and `kinds.md` |
+| [`standards/`](standards/README.md) | Industry standards, as JSON catalogues. The Weblisk project standards it once held are now in [`frameworks/weblisk/`](frameworks/weblisk/README.md) |
+| [`programmes/`](programmes/README.md) | Programmes — what a body of work requires in order to exist and to keep running |
+| [`positions/`](positions/README.md) | The hand-written half of what can be said about a job somebody holds |
+| [`policy-domains/`](policy-domains/README.md) | What a subject area of governance covers, and what a programme claiming it must provide |
+| [`intl/`](intl/README.md) | Reserved for locale and spoken-language constructs |
+| [`skills/`](skills/README.md) | Guides for a coding agent — not specifications |
 
-platforms/          Implementation guidance per runtime
-  go.md               Go (stdlib only, local processes)
-  cloudflare.md       Cloudflare Workers (Durable Objects, KV)
-  node.md             Node.js/TypeScript (Fastify, ML-DSA-65, SQLite)
-  rust.md             Rust (tokio, hyper, serde, rusqlite)
-
-agents/             Infrastructure agents (system-level services)
-  workflow.md         Workflow execution engine — DAG resolution, phase coordination
-  task.md             Task dispatch and tracking — priority queue, concurrency control
-  lifecycle.md        Continuous optimization — strategies, observations, approvals
-  alerting.md         Notification routing and delivery
-  incident-response.md  Automated incident detection, runbooks, remediation
-  health-monitor.md   Internal hub health — agent liveness, storage, gateway
-  hub.md              Registry hub — indexing, search, metrics, verification, alerting
-  sync.md             Background data sync (client ↔ server)
-  cron.md             Scheduled task execution
-  webhook.md          Webhook processing (inbound + outbound)
-  email-send.md       Transactional email sending
-
-patterns/           Declarative API and cross-cutting pattern specifications
-  api-rest.md         REST API with CRUD, pagination, filtering, sorting
-  api-ai.md           AI gateway — chat, completions, extraction, embeddings
-  realtime-chat.md    WebSocket messaging with channels, presence, history
-  auth-session.md     Session-based auth with secure cookies, CSRF
-  auth-token.md       JWT and API key auth with refresh tokens, scopes
-  user-management.md  User lifecycle — profiles, roles, password reset, OAuth
-  file-upload.md      File upload, processing, CDN delivery, signed URLs
-  deployment.md       CI/CD pipelines, containerization, environment management
-  webhook.md          Webhook processing — inbound validation, outbound delivery
-  rate-limiting.md    Token bucket, sliding window — gateway and agent rate limits
-  retry.md            Retry strategies, circuit breaker, timeout management
-  command.md          Agent command interface — dispatch, routing, execution
-  contract.md         Collaboration agreements — schemas, scope, permissions, versioning
-  scope.md            Universal classification — 5-level scope, propagation, environment profiles
-  policy.md           Declarative rules engine — evaluation, composition, precedence
-  safety.md           Operation classification — protection gates, kill-switch, quarantine
-  approval.md         Intent-based approval — authority routing, multi-party, emergency override
-  privacy.md          Consent, masking, anonymization, minimization, erasure cascade
-  governance.md       Compliance profiles, evidence collection, governance directives
-  domain-controller.md  Domain controller base — dispatch, aggregation, lifecycle
-  logging.md          Structured JSON logging — levels, correlation, rotation
-  messaging.md        HTTP-based pub/sub — event envelopes, scoping, namespace ownership
-  notification.md     Multi-channel notification — email, webhook, Slack, SMS, push
-  observability.md    Health endpoints, metrics envelope, component state tracking
-  secrets.md          Secret lifecycle — storage, rotation, access control
-  security.md         Transport security, input validation, zero-trust, threat events
-  state-machine.md    Declarative state machines — transitions, guards, side effects
-  storage.md          Agent-level persistence — schema, migration, backup
-  caching.md          In-process caching — LRU, TTL, namespaces, AI response cache
-  interop.md          Framework adapters — LangChain, CrewAI, ADK, HTTP service wrappers
-  versioning.md       Semantic versioning, compatibility rules, deprecation
-  workflow.md         Workflow declaration, event-driven DAG execution, approval gates
-  expression.md       Expression language — guards, conditions, constraints, policy rules
-  task-dispatch.md    Task submission, priority queuing, dispatch protocol, dead-letter
-  alerting.md         Alert rule evaluation, severity routing, dedup, escalation, muting
-  scheduling.md       Cron expressions, overlap policy, missed-tick handling, distributed locking
-  offline.md          Offline operation — sync, client persistence, encryption, revocation
-  incident-response.md  Incident lifecycle, runbook execution, correlation, post-mortem
-
-schemas/            Blueprint schema governance
-  README.md           Schema governance overview
-  common.md           Common rules across all blueprint types
-  compliance.md       Automated compliance validation rules
-  agent.md            Agent blueprint schema (22 sections)
-  architecture.md     Architecture blueprint schema
-  domain.md           Domain controller blueprint schema
-  pattern.md          Pattern blueprint schema
-  platform.md         Platform blueprint schema
-  protocol.md         Protocol blueprint schema
-
-skills/             Guides for a coding agent — not specifications
-  README.md           Skills point at blueprints and CLI verbs; they do not restate them
-  blueprints/         How to read a blueprint
-  tenants/            `weblisk tenant`
-  hubs/               `weblisk server`
-  agents/             `weblisk agent`
-  domains/            `weblisk domain`
-  gateways/           `weblisk gateway`
-  operators/          `weblisk operator`
-  go/                 `--platform go`
-
-standards/          Project standards (best practices for blueprint-driven development)
-  README.md           Overview — what standards are, how to use them
-  project-structure.md  How to organize a blueprint-driven project
-  global.md           Project identity, brand, policies, dependencies
-  code.md             Code generation conventions and repeatability
-  theme.md            Design tokens, typography, spacing, breakpoints
-  pages.md            Describing routes, layouts, sections, SEO, structured data
-  components.md       Reusable UI: props, slots, variants, accessibility
-  islands.md          Interactive regions: agent binding, real-time, auth
-  assets.md           Static files, generated media, references
-  connections.md      External integrations, protocols, data sources
-```
+Why the corpus is divided this way is [`CORPUS_SHAPE.md`](CORPUS_SHAPE.md).
 
 ### Architecture Hierarchy
 
@@ -237,7 +143,7 @@ Hub (self-sovereign deployment)
        ├── Observability (health, metrics, state tracking, alerts)
        ├── Workflow (declaration, execution engine, approval gates)
        ├── Notification (multi-channel delivery, templates, throttling)
-       └── 26 more patterns (see patterns/ directory)
+       └── and the rest — see patterns/README.md
 ```
 
 ### Component Descriptions
@@ -255,7 +161,7 @@ Hub (self-sovereign deployment)
 - **Work Agents** — Perform specific tasks dispatched by the Task Agent (see the [starter template](https://github.com/avaropoint/weblisk-templates/tree/main/server/starter) for a working example)
 - **Infrastructure Agents** — Provide system services (workflow execution, task dispatch, lifecycle optimization, alerting, incident response, health monitoring, hub registry, sync, cron, email, webhooks) used by any domain
 - **Marketplace** — Built into the hub — buy, sell, and share capabilities, blueprints, agents, and templates. Supports live services (invoked over federation) and installable assets (generated into your own hub). [weblisk.dev](https://weblisk.dev) serves as the public directory
-- **Patterns** — 37 cross-cutting concerns (scope, policy, safety, approval, privacy, contract, security, governance, observability, workflow, task dispatch, alerting, scheduling, data sync, incident response, notification, HTTP-based pub/sub messaging, retry, rate limiting, storage, caching, state machines, secrets, logging, versioning, command, interop adapters) and API patterns (REST, AI, auth, webhooks, real-time, file upload, user management, deployment) that apply across all agents via `extends` inheritance. Every infrastructure agent has a matching pattern that formalizes its platform-wide contract — the pattern defines WHAT, the agent implements HOW
+- **Patterns** — Cross-cutting concerns (scope, policy, safety, approval, privacy, contract, security, governance, observability, workflow, task dispatch, alerting, scheduling, data sync, incident response, notification, HTTP-based pub/sub messaging, retry, rate limiting, storage, caching, state machines, secrets, logging, versioning, command, interop adapters) and API patterns (REST, AI, auth, webhooks, real-time, file upload, user management, deployment) that apply across all agents via `extends` inheritance. Every infrastructure agent has a matching pattern that formalizes its platform-wide contract — the pattern defines WHAT, the agent implements HOW. The full list is [patterns/README.md](patterns/README.md)
 - **Federation** — Hub-to-hub trust, data contracts, and cross-boundary task execution
 
 ### Free vs Pro
@@ -370,18 +276,9 @@ and verification checklist. See the schema file for details.
 ## Creating Domain Controllers
 
 Domain controllers own a business function. They define workflows, dispatch
-work to agents, aggregate results, and drive the feedback loop. They MUST include:
-
-1. **Domain Manifest** — Registration manifest with required agents and workflows
-2. **Required Agents** — Which work agents this domain dispatches to
-3. **Workflows** — Multi-phase processes with agent dispatch, reference expressions, and error handling
-4. **HandleMessage Actions** — All message types the controller responds to
-5. **Scoring** — Weighted formula for computing domain scores
-6. **Aggregation Rules** — How agent results are combined, with conflict resolution
-7. **Strategy Alignment** — How business objectives map to domain workflows
-8. **Observability** — Domain-specific metrics
-9. **Error Handling** — Failure modes and degradation behavior
-10. **Verification Checklist** — Testable compliance checks
+work to agents, aggregate results, and drive the feedback loop. The sections a
+domain blueprint MUST include, in order, are listed in
+[schemas/domain.md](schemas/domain.md#required-section-order).
 
 See the [starter template](https://github.com/avaropoint/weblisk-templates/tree/main/server/starter)
 for a reference showing a complete domain controller. See
@@ -391,28 +288,16 @@ for the full specification.
 ## Creating API Patterns
 
 API patterns define declarative specifications for common server-side
-functionality. They MUST include:
-
-1. **Pattern Format** — YAML structure the CLI consumes
-2. **Endpoints** — All generated HTTP endpoints
-3. **Request/Response Shapes** — JSON schemas for each endpoint
-4. **Types** — All data structures used
-5. **Verification Checklist** — Testable compliance checks
+functionality. The sections a pattern blueprint MUST include, in order, are
+listed in [schemas/pattern.md](schemas/pattern.md#required-section-order).
 
 See [patterns/api-rest.md](patterns/api-rest.md) for a complete example.
 
 ## Creating Agent Definitions
 
 Agent definitions describe work agents (domain-dispatched) or infrastructure
-agents (system-level services). They MUST include:
-
-1. **Kind** — `work` (dispatched by a domain) or `infrastructure` (independent)
-2. **Capabilities** — Resources the agent can access
-3. **Execute Workflow** — Step-by-step processing logic
-4. **HandleMessage Actions** — Message types the agent responds to
-5. **Observability** — Agent-specific metrics
-6. **Error Handling** — Failure modes and recovery
-7. **Verification Checklist** — Testable compliance checks
+agents (system-level services). The sections an agent blueprint MUST include,
+in order, are listed in [schemas/agent.md](schemas/agent.md#required-section-order).
 
 See the [starter template](https://github.com/avaropoint/weblisk-templates/tree/main/server/starter)
 for a working example including both a domain and a work agent. See

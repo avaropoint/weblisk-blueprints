@@ -26,6 +26,7 @@ frontmatter. A pattern is a dependency that provides a known contract.
 |---------|---------|
 | [auth-session.md](auth-session.md) | Session-based auth with secure cookies, CSRF |
 | [auth-token.md](auth-token.md) | JWT and API key auth with refresh tokens, scopes |
+| [auth-oauth.md](auth-oauth.md) | Delegated authorization — admitting a client acting for a person, bound to one resource |
 | [user-management.md](user-management.md) | User lifecycle — profiles, roles, password reset, OAuth |
 | [principal-identity.md](principal-identity.md) | Portable identity, hub grants, per-hub authentication policy |
 | [security.md](security.md) | Transport security, input validation, zero-trust, threat events |
@@ -79,6 +80,7 @@ frontmatter. A pattern is a dependency that provides a known contract.
 | [versioning.md](versioning.md) | Semantic versioning, compatibility rules, deprecation |
 | [domain-controller.md](domain-controller.md) | Domain controller base — dispatch, aggregation, lifecycle |
 | [interop.md](interop.md) | Framework adapters — LangChain, CrewAI, ADK, HTTP service wrappers |
+| [billing.md](billing.md) | Entitlement — what a subject may do now, when the record of what they paid for lives elsewhere |
 
 ## Schema
 
