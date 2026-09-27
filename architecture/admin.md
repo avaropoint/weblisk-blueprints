@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.3.0
+version: 2.4.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -249,9 +249,9 @@ as `architecture/content` and `architecture/fabric` do. It is not
 | Code | HTTP | Category | When | Behaviour | principal-identity |
 |---|---|---|---|---|---|
 | `OPERATOR_BOOTSTRAP_REFUSED` | 403 | auth | A registration at a hub with no operator carried no bootstrap secret, or a wrong one | Refuse, write nothing, audit. The caller needs the secret the orchestrator emitted | — |
-| `OPERATOR_UNKNOWN` | 401 | auth | No operator of that name here: never registered, removed, or lost with a hub that was regenerated | Refuse. The client registers again or stops; retrying changes nothing | `identity_unknown` |
+| `OPERATOR_UNKNOWN` | 401 | auth | No operator of that name here: never registered, or lost with a hub regenerated without its records | Refuse. The client registers again or stops; retrying changes nothing | `identity_unknown` |
 | `OPERATOR_NOT_APPROVED` | 403 | auth | The operator is registered and pending | Refuse. Not a failure: the client reports that an admin must approve | — |
-| `OPERATOR_REVOKED` | 401 | auth | The operator was removed | Refuse. Every credential and token resting on it ended with it | — |
+| `OPERATOR_REVOKED` | 401 | auth | The operator was removed. A removed operator keeps its record with status `revoked` ([`protocol/types`](../protocol/types.md#operatorstatus)), so removal is never mistaken for a name the hub has not seen | Refuse. Every credential and token resting on it ended with it | — |
 | `CREDENTIAL_REQUIRED` | 401 | auth | A route that needs an operator token carrying a `cid` got something else: an operator token with no `cid`, an attestation token anywhere but the attestation route, or an agent or channel token on a `/v1/admin/*` route | Refuse. The client mints an operator token with a credential | — |
 | `OPERATOR_SUBJECT_MISMATCH` | 403 | auth | The token's `sub` is not the operator the path names, on a route only that operator may use: an attestation token on another operator's attestation route, or a token without the admin role revoking another operator's credential | Refuse. Log an attestation token's attempt as a security event | — |
 | `CREDENTIAL_UNKNOWN` | 401 | auth | The hub holds no credential with this id | Refuse. The client attests a credential | `identity_unknown` |
@@ -265,7 +265,7 @@ as `architecture/content` and `architecture/fabric` do. It is not
 | `CREDENTIAL_IS_IDENTITY_KEY` | 400 | validation | The credential's public key is the operator's identity key | Refuse. Log as a security event | `identity_key_as_credential` |
 | `CREDENTIAL_LIFETIME_INVALID` | 400 | validation | `not_after` is not in the future, or is more than 90 days after the hub receives the attestation | Refuse, naming the cap | `attestation_expired`, where `not_after` has passed |
 | `CREDENTIAL_PREVIOUSLY_REVOKED` | 409 | conflict | The key was revoked here before | Refuse permanently. Log as a security event | `credential_previously_revoked` |
-| `OPERATOR_LAST_ADMINISTRATOR` | 409 | conflict | The request would revoke the last active credential of the last active admin | Refuse | `last_administrator` |
+| `OPERATOR_LAST_ADMINISTRATOR` | 409 | conflict | A request to revoke would end the last active credential of the last active admin. A change of that admin's identity key is not refused | Refuse | `last_administrator` |
 
 `TOKEN_EXPIRED` ([`protocol/types`](../protocol/types.md#error-handling)) still
 answers a token past its `exp`. The client mints another with its credential,
@@ -544,6 +544,8 @@ contracts:
         - The registration that presents the secret MUST be approved with the admin role, whatever role it asked for
         - Its response MUST carry an attestation token and hub_id, and never an operator token. The first operator obtains operator tokens the way every operator does, with a credential
         - The secret MUST be destroyed when it is claimed, and MUST NOT be issued again while the operator store holds any record. The bootstrap reset in protocol/identity is the one way back
+        - The claim MUST be atomic. Of registrations that present the secret concurrently, exactly one is approved, and every other is refused with OPERATOR_BOOTSTRAP_REFUSED
+        - An orchestrator that restarts while its operator store is still empty MUST generate a new secret and emit it in place of the last, so a secret read from an earlier start admits nothing
         - Every later registration MUST require an existing admin and MUST NOT return a token
         - A refusal for want of an admin MUST be distinguishable from a refusal for a bad signature, and from a refusal for a missing or wrong bootstrap secret
         - The response MUST state which case occurred, so a caller does not wait for an approval nobody needs to give
@@ -619,9 +621,10 @@ contracts:
       rules:
         - The route `DELETE /v1/admin/operators/{name}/credentials/{cid}` MUST be permitted to the operator named in the path and to an admin, and to nobody else. Another operator is refused with OPERATOR_SUBJECT_MISMATCH
         - A revoked credential MUST keep its record with status revoked, and its key MUST never be accepted again
-        - Removing an operator MUST revoke every credential it holds
+        - Removing an operator MUST set its status to revoked and keep its record, and MUST revoke every credential it holds
         - A change of an operator's identity public key MUST revoke every credential the old key attested
-        - The last active credential of the last active admin MUST NOT be revoked, and the refusal is OPERATOR_LAST_ADMINISTRATOR
+        - A request to revoke the last active credential of the last active admin MUST be refused with OPERATOR_LAST_ADMINISTRATOR
+        - A change of that admin's identity key MUST NOT be refused on that ground, and revokes the credential all the same (patterns/principal-identity, revocation)
         - Every revocation MUST be audited with the actor, the credential id and the reason
 
     - name: console-credential-use
@@ -634,7 +637,8 @@ contracts:
         - Work no signed-in person is present for, such as a schedule, a background job or an agent run, MUST use the console's own service identity and never a person's credential
         - It MUST hold an operator token in memory only and never write one anywhere, encrypted or not. What it keeps at rest is the credential key, as an installation secret
         - It MUST discard a person's tokens when that person's session ends, by sign-out, idle or absolute expiry, or the account's revocation, even where exp is later
-        - Removing an account from the console MUST revoke that account's credentials at each hub and then delete their keys
+        - Removing an account from the console MUST delete that account's credential keys. Before it does, it MUST revoke each credential at its hub where it can, with a token minted for a person signed in to the console at AAL2 whom that hub permits to revoke it — the account's own person, or one holding the admin role there
+        - Where no such person is signed in, it MUST still delete the key, and MUST report for each hub that the credential stays live there until its not_after unless an admin of that hub revokes it
         - When it drives the CLI to connect, it MUST ask the CLI not to store the token
 
     - name: operator-roles
@@ -949,6 +953,13 @@ credential. The operator it belongs to may revoke it, and so may an admin. The
 identity, the grant and the operator's other credentials are untouched. Removing
 an operator revokes all of theirs, and so does a change of their identity key.
 
+A hub refuses a request to revoke the last active credential of its last
+active admin, because that would leave nobody able to mint. It does not refuse a
+change of that admin's identity key, although that revokes the same credential:
+the new identity asks for an attestation token and attests a new one. The
+identity is the recovery path for every credential a subject holds
+([`patterns/principal-identity`](../patterns/principal-identity.md)).
+
 ### The registration response
 
 `POST /v1/admin/operators/register` returns the operator record, and a token
@@ -1151,7 +1162,7 @@ operator the system is quiet when it is simply not there.
 | `/v1/admin/operators/:name/credentials/:cid` | DELETE | the operator, or admin | Revoke one credential |
 | `/v1/admin/operators` | GET | admin | List all operators |
 | `/v1/admin/operators/:name` | GET | viewer+ | Get operator details |
-| `/v1/admin/operators/:name` | DELETE | admin | Remove an operator |
+| `/v1/admin/operators/:name` | DELETE | admin | Remove an operator: its status becomes `revoked`, its record stays, and its credentials are revoked |
 | `/v1/admin/operators/:name/approve` | POST | admin | Admit a registered operator (see *Admitting the operators after the first*) |
 | `/v1/admin/operators/:name/role` | PUT | admin | Change operator role |
 
@@ -1486,8 +1497,8 @@ The orchestrator stores operator records alongside agent records:
 |-----------|-----------|-------------|
 | PutOperator | `(op Operator) → error` | Create or update operator |
 | GetOperator | `(name string) → (Operator, error)` | Retrieve by name |
-| DeleteOperator | `(name string) → error` | Remove operator |
-| ListOperators | `() → ([]Operator, error)` | List all operators |
+| RevokeOperator | `(name string) → error` | Set status `revoked`, keeping the record. The name is not reused |
+| ListOperators | `() → ([]Operator, error)` | List all operators, revoked included |
 
 ### Store: Credentials
 
@@ -1509,39 +1520,11 @@ ones and a client asks again.
 
 ### Operator Record
 
-```yaml
-types:
-  Architecture:
-    fields:
-      name:
-        name: Name
-        type: string
-        description: "Operator identifier"
-      public_key:
-        name: PublicKey
-        type: string
-        description: "base64url-encoded ML-DSA-65 public key"
-      role:
-        name: Role
-        type: string
-        description: "`admin`, `operator`, `viewer`, `auditor`"
-      token:
-        name: Token
-        type: string
-        description: "Current auth token"
-      registered_at:
-        name: RegisteredAt
-        type: int64
-        description: "Unix epoch seconds"
-      last_seen:
-        name: LastSeen
-        type: int64
-        description: "Last authenticated request"
-      status:
-        name: Status
-        type: string
-        description: "`active`, `suspended`"
-```
+The record is [`protocol/types`](../protocol/types.md#operator)'s `Operator`,
+and its status is `pending`, `approved` or `revoked`
+([`OperatorStatus`](../protocol/types.md#operatorstatus)). It holds no token:
+nothing a hub issues is stored by the hub, and a credential is a record of its
+own, above.
 
 ---
 
@@ -1875,14 +1858,18 @@ Admin endpoints SHOULD be rate-limited:
 - [ ] A nonce from `POST /v1/admin/credentials/challenge` is spent by the first token request that presents it, whether or not the signature verifies, and a revoked or expired credential's status is disclosed only after its signature verifies
 - [ ] An attestation whose `hub_id` is not this hub's, whose credential key is not an ML-DSA-65 key, whose credential key is the identity key, whose `not_after` has passed or is more than 90 days away, or whose key was revoked here before is refused with `CREDENTIAL_FOREIGN_HUB`, `CREDENTIAL_FORM_UNSUPPORTED`, `CREDENTIAL_IS_IDENTITY_KEY`, `CREDENTIAL_LIFETIME_INVALID` or `CREDENTIAL_PREVIOUSLY_REVOKED`
 - [ ] Removing an operator, or revoking one of its credentials, refuses its next request with `OPERATOR_REVOKED` or `CREDENTIAL_REVOKED` without waiting for its token to expire
+- [ ] A removed operator keeps its record with status `revoked`, and a request naming it is refused with `OPERATOR_REVOKED`, never `OPERATOR_UNKNOWN`
+- [ ] The sole admin's change of identity key revokes their credentials and is not refused with `OPERATOR_LAST_ADMINISTRATOR`; the new identity then attests a credential and mints
 - [ ] A role lowered after a token was issued limits that token from its next request
 - [ ] An operator token without `cid` is refused with `CREDENTIAL_REQUIRED`
 - [ ] A console uses a person's credential only while that person has a live AAL2 session with it, uses its own service identity for work nobody is present for, and discards a person's tokens when their session ends
+- [ ] Removing an account from a console deletes its credential keys, revokes each credential first with the token of a signed-in person that hub permits to revoke it where there is one, and otherwise reports each credential live at its hub until its `not_after`
 
 - [ ] Admin gateway is a separate process/listener from the application gateway with its own TLS certificate and domain
 - [ ] Admin gateway rejects requests from IPs not in the operator allowlist before any processing (403, no body)
 - [ ] The first operator is approved as admin only on presenting the bootstrap secret; a registration at an empty hub without it, or with a wrong one, is refused with `OPERATOR_BOOTSTRAP_REFUSED` and writes nothing; subsequent operators require existing admin approval
 - [ ] The bootstrap secret is destroyed when claimed, never appears in a response or an audit entry, and is not issued again while any operator record exists
+- [ ] Two registrations presenting the bootstrap secret at once admit exactly one admin, and a restart before the claim replaces the emitted secret
 - [ ] Admin tokens are WLTs with a one-hour TTL and exact IP binding, and a console ends a person's tokens when that person's session with it goes idle
 - [ ] Two factors are required with no exception, where each key is opened: an identity key signs only once its passphrase or its secret source opens it, and a client keeps a credential key only in the `weblisk-key-v1` envelope, in a secret source, or behind a console session at AAL2, never in the clear. No gateway checks a factor claim in a token
 - [ ] Role hierarchy admin > operator > auditor > viewer is enforced server-side on every /v1/admin/* endpoint

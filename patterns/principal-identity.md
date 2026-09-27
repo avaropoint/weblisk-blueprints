@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.3.0
+version: 1.3.1
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -317,7 +317,11 @@ contracts:
           checked. Implementations MUST cap attestation lifetime and SHOULD keep
           it short — it is the revocation window for every verifier that is not
           the issuing hub
-        - A hub MUST refuse to revoke the last credential holding grant:issue
+        - A hub MUST refuse a request to revoke the last credential holding
+          grant:issue. Rotating that subject's identity is not such a request.
+          It voids the credential as identity-rotation requires, and the new
+          identity attests a new one, so the hub still has a subject able to
+          administer it
         - Every revocation MUST record actor, timestamp and reason
 
     - name: identity-rotation
