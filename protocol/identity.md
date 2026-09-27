@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.1.0
+version: 1.1.1
 requires: [protocol/types]
 platform: any
 tier: free
@@ -366,8 +366,9 @@ If ALL operator keys are lost (catastrophic scenario):
 ```
 1. Stop the orchestrator
 2. Delete the operator registry from orchestrator storage
-3. Restart the orchestrator (enters bootstrap mode)
-4. First operator to register becomes admin (same as initial setup)
+3. Restart the orchestrator (enters bootstrap mode, and emits a new bootstrap secret)
+4. The operator who registers presenting that secret becomes admin, as at
+   first start ([`architecture/admin`](../architecture/admin.md#bootstrap-flow))
 5. All existing operator tokens are invalidated
 ```
 

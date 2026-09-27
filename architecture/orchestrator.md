@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin]
 platform: any
 tier: free
@@ -123,12 +123,12 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/admin
-      version: ">=1.0.0 <2.0.0"
+      version: ">=2.0.0 <3.0.0"
       bindings:
         behaviors:
           - name: operator-registration
           - name: registration-signing-input
-          - name: first-operator-auto-approval
+          - name: first-operator-claim
           - name: operator-approval
           - name: operator-token-issuance
           - name: operator-roles
@@ -584,7 +584,7 @@ privileged position in the deployment.
 
 | Method | Path | Operation | Capability | Purpose |
 |--------|------|-----------|-----------|---------|
-| POST | /v1/admin/operators/register | OperatorRegister | — | Register an operator. The first is auto-approved; every later one requires `admin:*`. Returns a token ONLY when registration also approved — see [`architecture/admin`](admin.md#the-registration-response) |
+| POST | /v1/admin/operators/register | OperatorRegister | — | Register an operator. The first presents the bootstrap secret this orchestrator emitted; every later one requires `admin:*`. Returns a token ONLY when registration also approved — see [`architecture/admin`](admin.md#the-registration-response) |
 | POST | /v1/admin/operators/token | OperatorToken | — | Issue an operator token to a caller who signs `{name, timestamp}` with the private key matching this orchestrator's record. Unauthenticated by token, because it is what issues them |
 | GET | /v1/admin/operators | OperatorList | `admin:*` | List operators |
 | GET | /v1/admin/operators/{name} | OperatorGet | `admin:read` | Operator detail |

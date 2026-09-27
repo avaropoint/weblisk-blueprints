@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 1.0.1
+version: 2.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -210,6 +210,18 @@ The admin component's public API surface is defined in detail in
 agent management, domain/workflow management, strategy management,
 approval queue, federation management, audit/observability) and
 [Admin API Response Shapes](#admin-api-response-shapes).
+
+---
+
+## Error Handling
+
+The operator routes answer with these codes, in `ErrorResponse`
+([`protocol/types`](../protocol/types.md#errorresponse)). Each says what the
+client does next, so a client acts on the code and never on the message text.
+
+| Code | HTTP | Category | When | Behaviour |
+|---|---|---|---|---|
+| `OPERATOR_BOOTSTRAP_REFUSED` | 403 | auth | A registration at a hub with no operator carried no bootstrap secret, or a wrong one | Refuse, write nothing, audit. The caller needs the secret the orchestrator emitted |
 
 ---
 
@@ -459,13 +471,18 @@ contracts:
         - The role MUST be inside the signature, because it is a privilege claim
         - The timestamp sent MUST be the timestamp signed — a second clock read produces a signature over a payload the server never sees
 
-    - name: first-operator-auto-approval
-      description: How the first operator of a hub is admitted
+    - name: first-operator-claim
+      description: How the first operator of a hub is admitted — by a secret, never by arriving first
       required: true
       rules:
-        - A hub with no operators MUST approve its first registration and issue a token
+        - An orchestrator whose operator store is empty MUST generate a bootstrap secret of at least 256 bits from a cryptographically secure random source, and emit it once, where only whoever started the orchestrator can read it
+        - The bootstrap secret MUST NOT appear in an audit entry or in any response
+        - A registration at a hub whose operator store is empty MUST carry the bootstrap secret as bootstrap_secret, and the orchestrator MUST compare it in constant time
+        - A registration there with no bootstrap secret, or a wrong one, MUST be refused with OPERATOR_BOOTSTRAP_REFUSED, write no record, and be audited
+        - The registration that presents the secret MUST be approved with the admin role, whatever role it asked for, and its response MUST carry a token
+        - The secret MUST be destroyed when it is claimed, and MUST NOT be issued again while the operator store holds any record. The bootstrap reset in protocol/identity is the one way back
         - Every later registration MUST require an existing admin and MUST NOT return a token
-        - A refusal for want of an admin MUST be distinguishable from a refusal for a bad signature
+        - A refusal for want of an admin MUST be distinguishable from a refusal for a bad signature, and from a refusal for a missing or wrong bootstrap secret
         - The response MUST state which case occurred, so a caller does not wait for an approval nobody needs to give
 
     - name: operator-approval
@@ -520,7 +537,7 @@ Two consequences worth stating here, because this file is where operators are
 defined:
 
 - **Creating a hub grants nothing beyond that hub.** The first-operator
-  auto-approval below is a grant recorded in the orchestrator it was made
+  claim below is a grant recorded in the orchestrator it was made
   against. It is revocable, including revoking the creator, and it confers no
   standing at any other hub. A control plane that provisions hubs therefore
   accumulates grants, not privilege.
@@ -543,15 +560,24 @@ defined:
      "name": "alice",
      "public_key": "<ML-DSA-65 public key (base64url)>",
      "role": "admin",
-     "signature": "<sign(canonicalize({name, public_key, role, timestamp}))>"
+     "timestamp": 1712160000,
+     "signature": "<sign(canonicalize({name, public_key, role, timestamp}))>",
+     "bootstrap_secret": "<only at a hub with no operator yet>"
    }
 4. Orchestrator verifies signature
+5. At a hub with no operator, the registration that presents the bootstrap
+   secret is approved as admin (Bootstrap Flow, below)
+6. Any other registration is pending until an existing admin approves it
+7. An approved operator obtains a token (Obtaining a token)
+```
 
 #### The registration signing input
 
 The signature is over `canonicalize({name, public_key, role, timestamp})` —
 **the whole payload**, not the `{name, timestamp}` challenge the token request
 uses. RFC 8785 (JCS), as `protocol/spec` specifies for every signed payload.
+`bootstrap_secret` travels beside the signed fields and is not among them:
+whoever holds it may claim the hub, which is what it is for.
 
 This MUST be stated exactly, and it was not: this step read
 `"<signed registration payload>"` while the token request two sections below
@@ -563,19 +589,15 @@ neither side was wrong about anything it had been told.
 The four-field form is the correct one and the reason is not symmetry. The
 signature must **bind the public key to the name**. Over `{name, timestamp}`
 alone the key is unsigned data in a signed request, so anyone able to reach the
-endpoint could submit their own public key under any name — and at a hub with no
-operators yet, the first such registration is auto-approved as its bootstrap
-admin. `role` is included for the same reason: it is a privilege claim and it
-must not be substitutable in flight.
+endpoint could submit their own public key under any name — and a key
+substituted in flight on the registration that presents the bootstrap secret
+would take the whole hub. `role` is included for the same reason: it is a
+privilege claim and it must not be substitutable in flight.
 
 The timestamp MUST be the one sent in the payload. A client that reads the clock
 once to sign and again to build the request produces a signature over a payload
 the orchestrator never sees, and it verifies only when both reads land in the
 same second — which is a fault that passes locally and fails under load.
-5. If this is the FIRST operator → auto-approve (bootstrap)
-6. If not first → requires approval from existing admin
-7. Orchestrator issues operator token with admin capabilities
-```
 
 ### Obtaining a token
 
@@ -623,7 +645,7 @@ to obtain a token, which fails exactly when it is needed — after expiry.
 
 `POST /v1/admin/operators/register` returns the operator record, and a token
 **only when registration also approved the operator** — the first-operator
-bootstrap. Otherwise there is no token to give, and the response says so:
+claim. Otherwise there is no token to give, and the response says so:
 
 ```
 200 { "operator": {...}, "status": "approved", "token": "<WLT>", "expires_at": ... }
@@ -771,7 +793,7 @@ operator the system is quiet when it is simply not there.
 
 | Path | Method | Role | Purpose |
 |------|--------|------|---------|
-| `/v1/admin/operators/register` | POST | — | Register new operator (first is auto-approved) |
+| `/v1/admin/operators/register` | POST | — | Register new operator (the first presents the bootstrap secret) |
 | `/v1/admin/operators/token` | POST | — | Obtain an operator token by signing a challenge |
 | `/v1/admin/operators` | GET | admin | List all operators |
 | `/v1/admin/operators/:name` | GET | viewer+ | Get operator details |
@@ -1132,20 +1154,30 @@ When an orchestrator starts with no registered operators:
 
 ```
 1. Orchestrator starts and detects empty operator store
-2. Orchestrator prints to console:
-   "No operators registered. The first operator to register
-    will be auto-approved as admin."
-   "Run: weblisk operator init && weblisk operator register"
-3. First POST /v1/admin/operators/register is auto-approved
-4. Operator receives admin token
-5. Subsequent operator registrations require admin approval
+2. It generates a bootstrap secret and emits it once, where only whoever
+   started it can read it: on its console, and on a host in
+   .weblisk/bootstrap, readable only by the user it runs as
+3. It prints how to claim it:
+   "Run: weblisk operator init && weblisk operator register --bootstrap <file>"
+4. The first POST /v1/admin/operators/register that carries the secret is
+   approved as admin, and the secret is destroyed
+5. That operator receives an admin token
+6. Subsequent operator registrations require admin approval
 ```
 
 This is secure because:
-- The orchestrator is typically on a private network during initial setup
-- The first operator MUST have physical/network access to the machine
+- Reaching the endpoint first confers nothing. Only the secret admits, and it
+  was emitted only to whoever started the orchestrator
+  ([`patterns/principal-identity`](../patterns/principal-identity.md), *Bootstrap
+  is trust-on-first-use*, is the rule this satisfies)
+- The window closes when the secret is claimed, and does not reopen while any
+  operator record exists
 - All subsequent operators require explicit admin approval
 - The bootstrap event is permanently recorded in the audit log
+
+`first-operator-claim` in [Contracts](#contracts) is the rule. A tool that
+starts the orchestrator itself, as `weblisk tenant create` does, reads the
+secret from where it was emitted and claims it in the same action.
 
 ### Bootstrapping and connecting are different acts
 
@@ -1173,7 +1205,7 @@ Connecting therefore has three outcomes, and they MUST be told apart:
 | Outcome | When | What it means |
 |---|---|---|
 | **connected** | a token was issued | proceed |
-| **pending approval** | the hub knows this operator, or refuses to register a new one unauthenticated, and will not issue a token | **not a failure.** The first operator of a hub is auto-approved; every later one requires an existing admin. Somebody joining an established hub waits, and the report MUST name who can act |
+| **pending approval** | the hub knows this operator, or refuses to register a new one unauthenticated, and will not issue a token | **not a failure.** The first operator of a hub is admitted by the bootstrap secret; every later one requires an existing admin. Somebody joining an established hub waits, and the report MUST name who can act |
 | **unreachable** | nothing answered, or the hub does not serve the token endpoint | a fault, and the report MUST distinguish "no hub there" from "a hub that cannot issue tokens" |
 
 The last row matters. A hub that predates
@@ -1183,22 +1215,23 @@ An implementation MUST NOT collapse a missing endpoint into an authorisation
 state.
 
 **Asking for a token before attempting registration is required, not an
-optimisation.** A hub that already knows the operator needs no registration —
-and registering first against a hub with NO operators would silently make the
-caller's identity the bootstrap admin of a tenant somebody else runs.
+optimisation.** A hub that already knows the operator needs no registration.
+At a hub with no operators, a registration without the bootstrap secret is
+refused, so connecting never claims a hub; only presenting the secret does.
 
 ### Bootstrap without a shell
 
-Step 2 above tells a person to run two commands. A console provisioning a
+Step 3 above tells a person to run two commands. A console provisioning a
 tenant on behalf of a signed-in user has no shell to run them in, and
 [`protocol/identity`](../protocol/identity.md) already names this case: *"a
 runtime without [a terminal] cannot, and a specification that says prompt has
 excluded it."*
 
 The same steps MAY therefore be driven by one gated action instead of a person.
-Nothing about the trust model changes: the first operator is still
-auto-approved, every later one still requires an existing admin, and the
-bootstrap is still recorded in the audit log. What changes is who types.
+Nothing about the trust model changes: the first operator is still admitted
+by presenting the bootstrap secret, every later one still requires an existing
+admin, and the bootstrap is still recorded in the audit log. What changes is
+who types.
 
 Four rules govern it, and each exists because its absence is a disclosure:
 
@@ -1419,7 +1452,8 @@ Admin endpoints SHOULD be rate-limited:
 
 - [ ] Admin gateway is a separate process/listener from the application gateway with its own TLS certificate and domain
 - [ ] Admin gateway rejects requests from IPs not in the operator allowlist before any processing (403, no body)
-- [ ] Operator registration auto-approves the first operator as admin; subsequent operators require existing admin approval
+- [ ] The first operator is approved as admin only on presenting the bootstrap secret; a registration at an empty hub without it, or with a wrong one, is refused with `OPERATOR_BOOTSTRAP_REFUSED` and writes nothing; subsequent operators require existing admin approval
+- [ ] The bootstrap secret is destroyed when claimed, never appears in a response or an audit entry, and is not issued again while any operator record exists
 - [ ] Admin sessions use WLT tokens with 4-hour TTL, 30-minute idle timeout, exact IP binding, and max 1 concurrent session
 - [ ] MFA (TOTP or WebAuthn) is always required for admin session creation — no exceptions
 - [ ] Role hierarchy admin > operator > auditor > viewer is enforced server-side on every /v1/admin/* endpoint

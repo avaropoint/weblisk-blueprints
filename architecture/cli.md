@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 1.1.0
+version: 1.2.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -188,7 +188,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/admin
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/admin/operators/register
@@ -501,12 +501,12 @@ for the two homes a tenant's components have: what it is running, which
 which `.weblisk/config.yaml` states and [`weblisk server start`](#weblisk-server-start)
 reads.
 
-**The first operator is auto-approved and every later one needs that first
-one's approval**, per [`architecture/admin`](admin.md). The bootstrap secret
-rule — a first grant is claimed by presenting a secret emitted to the process
-that started the tenant, never by reaching an unauthenticated endpoint first —
-is [`patterns/principal-identity`](../patterns/principal-identity.md)'s and is
-not restated here.
+**The first operator is admitted by presenting the bootstrap secret the new
+orchestrator emitted, and every later one needs that first one's approval**, per
+[`architecture/admin`](admin.md#bootstrap-flow). `create` started the
+orchestrator, so it reads the secret from where it was emitted and claims it in
+the same action; nobody else can, because reaching the endpoint first confers
+nothing.
 
 **Security:** a tenant directory holds `.weblisk/keys/`, and creating one MUST
 write the same `.gitignore` `weblisk new` writes — `.weblisk/secrets/`,
@@ -869,17 +869,17 @@ $ weblisk server provision --operator alice
 
   orchestrator running at http://127.0.0.1:9800
   operator identity created for alice
-  operator registered — first operator is auto-approved
+  operator registered — bootstrap secret claimed, first operator is admin
   token issued, expires 2026-09-03T18:00:00Z
 
   Connected to http://127.0.0.1:9800 as alice
 ```
 
 This is BOOTSTRAP, not connect. It is local by necessity — it reads the run
-state of a hub this CLI started — and it is the one path that establishes a
-hub's first operator. To reach a hub that already runs, use
-[`weblisk operator connect`](#weblisk-operator-connect), which needs only an
-address.
+state of a hub this CLI started, and the bootstrap secret that hub emitted — and
+it is the one path that establishes a hub's first operator. To reach a hub
+that already runs, use [`weblisk operator connect`](#weblisk-operator-connect),
+which needs only an address.
 
 Generation is deliberately not folded in. It takes tens of minutes, streams
 progress and is resumable; wrapping it in a call that also handles a credential
@@ -1061,14 +1061,18 @@ kept in step by luck. `--json` for machine-readable output.
 Register with a running orchestrator.
 
 ```bash
-$ weblisk operator register --orch http://localhost:9800
+$ weblisk operator register --orch http://localhost:9800 --bootstrap ./acme/.weblisk/bootstrap
 Registering operator 'alice' with http://localhost:9800...
-✓ Registered as admin (first operator — auto-approved)
+✓ Registered as admin (first operator — bootstrap secret accepted)
   Token stored: ~/.weblisk/keys/token
   Expires: 2026-04-26T10:00:00Z
 ```
 
 - Signs the registration payload with the operator's private key
+- At a hub with no operator, sends the bootstrap secret read from the file
+  `--bootstrap <path>` names. The secret is never an argument, which every
+  process on the machine can read. Without it, such a hub refuses the
+  registration ([`architecture/admin`](admin.md#bootstrap-flow))
 - Stores the returned token beside the identity that signed
 - If not the first operator, prints "Registration pending admin approval"
 - `--role <role>` to request a specific role (admin may override)
@@ -1096,16 +1100,15 @@ for why that separation matters.
 
 Idempotent, because it is the ordinary way to connect and will be run
 repeatedly. It asks for a token FIRST: a hub that already knows the operator
-needs no registration, and registering first against a hub with no operators
-would silently make this identity the bootstrap admin of somebody else's
-tenant.
+needs no registration. A hub with no operators refuses a registration that
+does not present its bootstrap secret, so connecting never claims a hub.
 
 Five outcomes, and they are told apart:
 
 | State | Meaning |
 |---|---|
 | `connected` | a token was issued and stored beside the identity |
-| `pending_approval` | the hub will not issue one yet. **Not a failure** — the first operator of a hub is auto-approved and every later one needs an existing admin. The message names who can act |
+| `pending_approval` | the hub will not issue one yet. **Not a failure** — the first operator of a hub is admitted by its bootstrap secret and every later one needs an existing admin. The message names who can act |
 | `refused` | the hub answered and said no in a way no approval changes, such as the operator name being registered to a different key |
 | `identity_unavailable` | this machine could not sign: the key file did not open, or the secret source holding the identity did not answer. Nothing is wrong with the hub. Where a source did not answer, `--json` output carries its name as `source` and its code as `code` ([`protocol/secret-source`](../protocol/secret-source.md#reporting-a-source-that-did-not-answer)) |
 | `unreachable` | nothing answered, or the hub does not serve `POST /v1/admin/operators/token` — reported distinctly, because telling somebody to await an approval that is never coming is worse than saying the hub is too old |
@@ -2263,6 +2266,7 @@ security:
 - [ ] `weblisk operator connect` reports `connected`, `pending_approval`, `refused`, `identity_unavailable` or `unreachable`, and with `--json` an `identity_unavailable` result carries `source` and `code`
 - [ ] `weblisk operator init` does not overwrite existing keys without --force flag
 - [ ] `weblisk operator register` signs the registration payload with the operator's private key and stores the returned token
+- [ ] `weblisk operator register --bootstrap <path>` sends the bootstrap secret read from that file, and the secret is never accepted as an argument
 - [ ] `weblisk operator token` auto-refreshes the token when less than 1 hour remaining before expiry
 - [ ] `weblisk operators revoke` invalidates target operator's public key and tokens (admin only)
 - [ ] `weblisk operators revoke` prevents self-revocation and revoking the last admin

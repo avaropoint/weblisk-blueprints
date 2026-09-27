@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: threat-model
-version: 1.1.0
+version: 1.1.1
 requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/content, architecture/data-security, architecture/admin, architecture/observability, architecture/enforcement, patterns/contract]
 platform: any
 tier: free
@@ -139,7 +139,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/admin
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: OperatorAuth
@@ -505,7 +505,7 @@ through the application gateway.
 | 4.4 | **Admin session hijacking** | Steal admin session cookie | Admin sessions use strict IP binding (exact IP, not /24); sessions expire in 4 hours (not 24); MFA required for session creation | Admin session policy |
 | 4.5 | **Destructive action abuse** | Compromised admin deletes agents or federation peers | Destructive actions require per-request HMAC confirmation; critical actions require two-operator approval (4-eyes principle); all actions in immutable audit log | Admin API + audit |
 | 4.6 | **Audit log tampering** | Attacker covers tracks by modifying audit log | Append-only storage; hash chain integrity (each entry includes hash of previous); external audit log shipping (cannot tamper remote copy) | Audit architecture |
-| 4.7 | **Bootstrap attack** | Attacker registers as first operator before legitimate admin | Bootstrap window logged prominently; bootstrap requires physical/console access; operator registration event fires alert to all configured channels | Bootstrap flow |
+| 4.7 | **Bootstrap attack** | Attacker registers as first operator before legitimate admin | The first registration is admitted only with the bootstrap secret the orchestrator emitted where only whoever started it can read it, and the window closes when it is claimed; operator registration event fires alert to all configured channels | Bootstrap flow |
 | 4.8 | **Internal network lateral movement** | Attacker who compromised app gateway reaches admin gateway | Admin gateway and app gateway share NO network path; admin gateway binds to separate interface/VLAN; firewall rules prevent cross-gateway traffic | Network segmentation |
 
 ---

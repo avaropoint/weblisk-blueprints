@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.1.0
+version: 1.1.1
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -19,8 +19,9 @@ radius.
 
 `protocol/identity` specifies one ML-DSA-65 key pair per entity, registered by
 public key with an orchestrator. `architecture/admin` specifies operator
-registration against a single orchestrator, with the first operator
-auto-approved. Neither answers what happens when one subject works across
+registration against a single orchestrator, with the first operator admitted by
+presenting the bootstrap secret that orchestrator emitted (see *Bootstrap is
+trust-on-first-use* below). Neither answers what happens when one subject works across
 several hubs, and neither separates *being someone* from *being admitted
 somewhere*.
 
