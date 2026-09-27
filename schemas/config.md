@@ -54,8 +54,9 @@ agents:
     replicas: integer              # Instance count (default: 1)
     env: map[string, string]       # Additional environment variables
 
-# Optional — content repositories
+# Optional — the content service and its repositories
 content:
+  port: integer                    # Listen port (default: 9802)
   backends:                        # Stores this hub can reach. A placement names one
     - name: string                 # Backend name (lowercase, alphanumeric + hyphens)
                                    # Driver, root and credentials belong to the
@@ -147,7 +148,8 @@ observability:
 ### content
 
 `content` is optional: a hub that governs no authored text declares none of it.
-Where it is present, the keys and types are as below — but what a value
+Its presence is what declares the content service as one of this hub's
+components; an absent or null `content` declares none. Where it is present, the keys and types are as below — but what a value
 **means** is [`architecture/content`](../architecture/content.md), which is the
 authority and is not restated here. In particular, that a configured repository
 is processed as `establish`, that `establish` creates the store, what the
@@ -155,6 +157,7 @@ backend owes once it exists, and what is refused, all live there.
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
+| `port` | integer | no | `9802` | Listen port of the content service |
 | `backends` | list | cond | `[]` | Stores this hub can reach. Required when `repositories` is non-empty |
 | `repositories` | list | no | `[]` | Stores declared at startup |
 | `reconcile_interval` | duration | no | `15m` | Out-of-band change detection for shared-custody repositories. `0` disables |
@@ -220,6 +223,7 @@ protection level nobody verified.
 | 8080 | Gateway |
 | 9800 | Orchestrator |
 | 9801 | Federation |
+| 9802 | Content service |
 | 9700–9709 | Domain controllers |
 | 9710–9749 | Work agents |
 | 9750–9799 | Infrastructure agents |

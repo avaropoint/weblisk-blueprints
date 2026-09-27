@@ -35,6 +35,12 @@ weblisk server stop
 record, so `status`, `logs` and `stop` all report "not started" while it
 serves.
 
+`server start` starts what `.weblisk/config.yaml` declares — the orchestrator
+alone when there is no file — and `server stop` stops everything it recorded.
+One component at a time is `weblisk component <name> start|stop|status|logs`.
+A start that exits non-zero has said which declared component is not running;
+read that line rather than retrying.
+
 ## Verify
 
 ```

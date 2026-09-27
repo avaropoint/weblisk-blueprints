@@ -21,8 +21,10 @@ weblisk component <kind> init [--platform go]
 
 **An orchestrator is a tenant's first component, not the tenant.** A tenant is
 a set of siblings in one module, each registering with the orchestrator on
-start. `architecture/orchestrator.md`, "What a tenant consists of", says where
-that set is declared — and it is `GET /v1/services`, not a file.
+start. `architecture/orchestrator.md`, "What a tenant consists of", gives the set
+two homes: what a tenant is running is `GET /v1/services`, and what it should
+build and start is `.weblisk/config.yaml`. Ask the first when reporting; the
+second is an intention, and a declared component may not be running.
 
 Buildable kinds come from this installation's blueprints; the command lists
 them when the name is wrong. A tenant's second component is where the
@@ -57,6 +59,10 @@ agent gets wrong:
 - **Generating it is not the end.** A content service with no repository
   declared holds nothing, and a tenant that has one must still be told which
   stores it governs.
+- **Nor is it running.** `weblisk component content start --detach` runs it
+  against the tenant's orchestrator. Declaring `content:` in
+  `.weblisk/config.yaml` makes `weblisk server start` run it with the rest,
+  and `weblisk server stop` stops it with them.
 - **The first adoption call is meant to fail.** Adopting a store that already
   holds bytes is two calls: the first returns a census and refuses, the second
   passes that census digest back as `if_match`. Treat the first refusal as the
