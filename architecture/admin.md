@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.1.0
+version: 2.2.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -206,7 +206,7 @@ policy, which is `patterns/policy`.
 - Operator credentials: one per client per hub, attested by the operator's identity, checked on every request
 - Admin dashboard SPA (overview, agents, approvals, workflows, federation, audit)
 - Admin API endpoints under `/v1/admin/*`
-- Operator token model (WLT with a one-hour TTL, minted with a credential, exact IP binding, mandatory MFA)
+- Operator token model (WLT with a one-hour TTL, minted with a credential, exact IP binding, two factors required where each key is opened)
 - Admin rate limiting and IP allowlist enforcement
 - 4-eyes approval for destructive actions
 
@@ -260,7 +260,8 @@ code, this is its wire form at this surface, and that pattern holds the rule.
 | `OPERATOR_LAST_ADMINISTRATOR` | 409 | conflict | The request would revoke the last active credential of the last active admin | Refuse | `last_administrator` |
 
 `TOKEN_EXPIRED` ([`protocol/types`](../protocol/types.md#error-handling)) still
-answers a token past its `exp`. The client mints another, which asks nobody.
+answers a token past its `exp`. The client mints another with its credential,
+which does not ask the identity.
 
 ---
 
@@ -273,7 +274,9 @@ answers a token past its `exp`. The client mints another, which asks nobody.
 5. Operator token (WLT) extracted and verified against orchestrator's public key,
    and the operator, credential and grant it rests on checked live by the
    orchestrator ([Every request checks what its token rests on](#every-request-checks-what-its-token-rests-on))
-6. MFA validation enforced (always required)
+6. No factor is re-checked here: two were required where the credential was
+   attested and where its key was opened to mint this token
+   ([Where the second factor is](#where-the-second-factor-is))
 7. Role authorization checked against endpoint minimum role
 8. Request forwarded to orchestrator's admin API with `X-Operator` and `X-Trace-Id` headers
 9. Orchestrator processes request and returns response
@@ -301,7 +304,7 @@ different threat profiles:
 | Network | Public internet | Private network, VPN, or IP-restricted |
 | Auth model | User credentials → session cookie | Operator credential, attested by the operator's ML-DSA-65 identity → operator token |
 | Session binding | Device fingerprint + IP/24 | Operator credential + exact IP allowlist |
-| MFA | Policy-driven (optional for standard routes) | Always required, no exceptions |
+| MFA | Policy-driven (optional for standard routes) | Always required, no exceptions: at attestation and at every mint, never as a claim in a token |
 | Rate limits | High (accommodate user traffic) | Low (operators don't generate burst traffic) |
 | Compromise impact | User data exposure | Full system control |
 | Domain | `app.example.com` | `admin.example.com` (or `admin.internal:9443`) |
@@ -412,12 +415,12 @@ Critical rules:
    │   token.cid and the grant are live — its records, not the token's word
    └── 401 Unauthorized if any check fails, with the code that says which
 
-5. MFA VALIDATION (always required, not policy-optional)
-   ├── Verify token.mfa == true
-   ├── If false → 403 with X-MFA-Required: true
-   └── MFA must be TOTP or WebAuthn (no SMS)
-       (a WebAuthn passkey MAY instead be the primary credential —
-        see patterns/principal-identity)
+5. SECOND FACTOR (always required, never checked per request)
+   ├── Required where each key is opened: at attestation, and at every
+   │   mint (Where the second factor is). A token carries no claim of it,
+   │   and the gateway looks for none
+   └── A console's AAL2 session is opened with a one-time code or WebAuthn,
+       never a code sent by SMS
 
 6. ROLE AUTHORIZATION
    ├── Check token.role against endpoint's minimum role
@@ -446,12 +449,12 @@ operator tokens (WLT) with stricter controls:
 | Token type | `WLS` (Weblisk Session) | `WLT` (Weblisk Token) |
 | Signing key | Gateway's ML-DSA-65 key | Orchestrator's ML-DSA-65 key |
 | TTL | 24 hours | 1 hour |
-| Idle timeout | 1 hour | 30 minutes |
+| Idle timeout | 1 hour | None at the hub, where nothing tells use from idle. A console ends a person's tokens when that person's session with it goes idle (`console-credential-use`) |
 | IP binding | /24 subnet (allows roaming) | Exact IP (no roaming) |
-| MFA | Optional per policy | Always required |
+| MFA | Optional per policy | Always required, at attestation and at every mint ([Where the second factor is](#where-the-second-factor-is)) |
 | Cookie | HttpOnly, Secure, SameSite=Strict | HttpOnly, Secure, SameSite=Strict |
 | Cookie domain | `app.example.com` | `admin.example.com` |
-| Concurrent sessions | Up to 5 per user | 1 per operator (new login kills old) |
+| Concurrent sessions | Up to 5 per user | One credential per operator per client, each minting its own tokens. Revoking a credential ends every token it minted, at the next request |
 | Renewal | Silent sliding window | A new token minted with the credential; the identity is not asked |
 
 ### Admin Network Deployment Options
@@ -729,8 +732,8 @@ generates for that hub alone, bound to the operator's identity by an
 attestation the identity signs once
 ([`patterns/principal-identity`](../patterns/principal-identity.md)). The
 identity key is cold. It signs to register and to attest, and nothing it signs
-is a login. Tokens come from the credential, at a challenge the hub issues, with
-nobody asked for a passphrase or a vault approval.
+is a login. Tokens come from the credential, at a challenge the hub issues, and
+the identity is not asked.
 
 ```
 When a client holds no live credential at a hub — the only steps that need the identity
@@ -739,7 +742,7 @@ When a client holds no live credential at a hub — the only steps that need the
   client ── Attestation, signed by the identity ───────▶ POST /v1/admin/operators/{name}/credentials
          ◀── the credential, and its id
 
-Whenever a token is needed — nobody is asked
+Whenever a token is needed — the identity is not asked
   client ── cid ───────────────────────────────────────▶ POST /v1/admin/credentials/challenge
          ◀── nonce, hub_id, expires_at
   client ── cid, nonce, signature by the credential ───▶ POST /v1/admin/credentials/token
@@ -873,6 +876,33 @@ is a hub the client holds no credential for.
 Refresh is the same pair of calls. A separate refresh endpoint would need a
 valid token to obtain a token, which fails exactly when it is needed — after
 expiry.
+
+#### Where the second factor is
+
+The admin surface requires two factors, without exception. A hub verifies
+signatures. It cannot see what opened a key, as no verifier of a key-based
+authenticator can, so the rule sits where each key is opened, and the hub rests
+on it:
+
+- **Attesting.** A person's identity key never rests unencrypted
+  ([`protocol/identity`](../protocol/identity.md) rule 1). It signs only once a
+  passphrase opens its envelope, or once the secret source that holds it
+  answers the person's unlock. An attestation is a key the person has, opened
+  by something they know or unlock. It is the multi-factor act a credential
+  rests on.
+- **Minting.** A credential's signature proves possession of the credential key
+  and nothing more. A client MUST keep a person's credential key where it signs
+  only after that person's own act: in the `weblisk-key-v1` envelope with `kdf`
+  `argon2id`, opened by a passphrase the person types or one a secret source
+  they unlock remembers; in a secret source they unlock; or, in a console,
+  released only while the person holds a live AAL2 session with it
+  (`console-credential-use`). A key in the clear, under `kdf` `none`, or behind
+  a source nobody unlocks, such as `file:`, is not a person's credential.
+- **Not per request.** A token proves that a live credential minted it within
+  the hour, and every request re-checks that credential (below). A token
+  carries no claim that a factor was presented, and a gateway MUST NOT look for
+  one. The hub could not verify such a claim, so it would be set true on every
+  token and would prove nothing.
 
 #### Every request checks what its token rests on
 
@@ -1010,7 +1040,7 @@ declares:
 
 **Operator tokens have a one-hour TTL,** and never outlive the attestation of the
 credential that obtained them. A client mints the next one with that credential,
-and nobody is asked for anything. `cid` names the credential, which is what lets
+and the identity is not asked. `cid` names the credential, which is what lets
 the orchestrator end the token early
 ([Every request checks what its token rests on](#every-request-checks-what-its-token-rests-on)).
 
@@ -1625,7 +1655,7 @@ types:
         description: The operator's identity public key, against which registration and attestations are verified. Tokens are minted with credentials, never with this key
       mfa_required:
         type: bool
-        description: Whether a second factor is required. The admin surface requires one without exception
+        description: Whether a second factor is required. The admin surface requires one without exception, where each key is opened — see Where the second factor is — and never as a claim in a token
       ip_allowlist:
         type: array
         items: string
@@ -1646,9 +1676,10 @@ security:
       reach the other. Every request is authenticated by a token minted with a
       credential the operator's identity attested, re-checked against the
       orchestrator's records, and authorised against a role; multi-factor
-      authentication is required without exception, because an operator
-      credential is the most valuable one in a deployment. The identity key
-      signs to register and to attest, and is never a login.
+      authentication is required without exception, where the identity key
+      and the credential key are opened, because an operator credential is the
+      most valuable one in a deployment. The identity key signs to register and
+      to attest, and is never a login.
 
   boundaries:
     - boundary: Operator browser → Admin gateway. A separate TLS entry point,
@@ -1679,8 +1710,10 @@ security:
         approval or management capability — it is a branch of the hierarchy
         rather than a rank within it
     - rule: Multi-factor authentication cannot be disabled
-      mechanism: Required at session establishment, with no configuration that
-        removes it
+      mechanism: An identity key signs only once its passphrase or its secret
+        source opens it (protocol/identity rule 1), and a client keeps a
+        credential key only where it signs after the person's own act. No
+        configuration removes either
     - rule: A destructive action requires a second approver
       mechanism: The change gate holds the action pending, with ordered
         approvers who must differ from the requester
@@ -1801,8 +1834,8 @@ Admin endpoints SHOULD be rate-limited:
 - [ ] Admin gateway rejects requests from IPs not in the operator allowlist before any processing (403, no body)
 - [ ] The first operator is approved as admin only on presenting the bootstrap secret; a registration at an empty hub without it, or with a wrong one, is refused with `OPERATOR_BOOTSTRAP_REFUSED` and writes nothing; subsequent operators require existing admin approval
 - [ ] The bootstrap secret is destroyed when claimed, never appears in a response or an audit entry, and is not issued again while any operator record exists
-- [ ] Admin sessions use WLT tokens with a one-hour TTL, 30-minute idle timeout, exact IP binding, and max 1 concurrent session
-- [ ] MFA (TOTP or WebAuthn) is always required for admin session creation — no exceptions
+- [ ] Admin tokens are WLTs with a one-hour TTL and exact IP binding, and a console ends a person's tokens when that person's session with it goes idle
+- [ ] Two factors are required with no exception, where each key is opened: an identity key signs only once its passphrase or its secret source opens it, and a client keeps a credential key only in the `weblisk-key-v1` envelope, in a secret source, or behind a console session at AAL2, never in the clear. No gateway checks a factor claim in a token
 - [ ] Role hierarchy admin > operator > auditor > viewer is enforced server-side on every /v1/admin/* endpoint
 - [ ] Destructive actions (deregister agent, revoke federation, delete operator) require 4-eyes approval and X-Confirm HMAC
 - [ ] Application gateway returns 404 for any request to /v1/admin/* paths

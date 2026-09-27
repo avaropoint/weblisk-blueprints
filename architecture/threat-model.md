@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: threat-model
-version: 1.1.2
+version: 1.2.0
 requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/content, architecture/data-security, architecture/admin, architecture/observability, architecture/enforcement, patterns/contract]
 platform: any
 tier: free
@@ -249,7 +249,7 @@ defines security contracts that other components implement:
 | mTLS and agent identity verification | Orchestrator + Agents | 2.1–2.10 |
 | Component address provenance and the credential reach rule | Orchestrator + every caller | 2.11–2.15 |
 | Encryption at rest and key management | Agents + Data Security | 3.1–3.11 |
-| Admin gateway separation and MFA | Admin Gateway | 4.1–4.8 |
+| Admin gateway separation, MFA and console credential custody | Admin Gateway + console | 4.1–4.9 |
 | Federation data contracts and trust tiers | Federation Protocol | 5.1–5.8 |
 
 ---
@@ -499,14 +499,15 @@ through the application gateway.
 
 | # | Attack Vector | Description | Mitigation | Control |
 |---|--------------|-------------|------------|---------|
-| 4.1 | **Operator key theft** | Attacker steals ML-DSA-65 private key | Key stored encrypted on disk (passphrase-protected); MFA required even with valid key; key revocation via another admin | Operator identity + MFA |
+| 4.1 | **Operator key theft** | Attacker steals the operator's ML-DSA-65 identity private key | The key never rests unencrypted, so a copy signs nothing without its passphrase or the secret source that holds it; it signs only to register and to attest, never to log in, and each credential it attests is audited and listed at the hub; key revocation via another admin | Operator identity + attestation audit |
 | 4.2 | **Admin portal discovery** | Attacker finds admin URL and probes it | Admin gateway on separate domain/port; not linked from application; IP allowlist rejects unknown sources before any processing | Network isolation |
 | 4.3 | **Privilege escalation** | Lower-role operator gains admin access | Role hierarchy enforced server-side; role changes require admin approval + audit log entry; no client-side role checks | Admin auth middleware |
-| 4.4 | **Admin session hijacking** | Steal admin session cookie | Admin sessions use strict IP binding (exact IP, not /24); tokens expire in one hour and are refused sooner once the operator or credential they rest on is withdrawn; MFA required for session creation | Admin session policy |
+| 4.4 | **Admin session hijacking** | Steal admin session cookie | Admin sessions use strict IP binding (exact IP, not /24); tokens expire in one hour and are refused sooner once the operator or credential they rest on is withdrawn; the credential that minted a token signs only after the person's own act | Admin session policy |
 | 4.5 | **Destructive action abuse** | Compromised admin deletes agents or federation peers | Destructive actions require per-request HMAC confirmation; critical actions require two-operator approval (4-eyes principle); all actions in immutable audit log | Admin API + audit |
 | 4.6 | **Audit log tampering** | Attacker covers tracks by modifying audit log | Append-only storage; hash chain integrity (each entry includes hash of previous); external audit log shipping (cannot tamper remote copy) | Audit architecture |
 | 4.7 | **Bootstrap attack** | Attacker registers as first operator before legitimate admin | The first registration is admitted only with the bootstrap secret the orchestrator emitted where only whoever started it can read it, and the window closes when it is claimed; operator registration event fires alert to all configured channels | Bootstrap flow |
 | 4.8 | **Internal network lateral movement** | Attacker who compromised app gateway reaches admin gateway | Admin gateway and app gateway share NO network path; admin gateway binds to separate interface/VLAN; firewall rules prevent cross-gateway traffic | Network segmentation |
+| 4.9 | **Console credential store theft** | Attacker copies a console's installation state, which holds the credential keys of many accounts at many hubs | Each key is encrypted under a master key from a keychain, `file:` or `fd:`, never kept beside the state it protects; the console mints with a person's credential only during that person's AAL2 session; each credential authenticates at one hub, is revoked there without touching the identity, and lapses at its `not_after` | Console credential custody |
 
 ---
 
