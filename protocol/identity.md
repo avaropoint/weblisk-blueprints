@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.2.0
+version: 1.3.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -496,6 +496,15 @@ Fields:
   ([`architecture/admin`](../architecture/admin.md#obtaining-a-token)), and says
   it is one in its `type` claim, so a verifier never takes a channel's id for a
   credential's
+- `type`: what the token is for, where one issuer mints more than one kind
+  (optional). `operator` administers a hub. `attestation` does one thing: it
+  submits an attestation for its subject
+  ([`architecture/admin`](../architecture/admin.md#operator-token)). An agent
+  token and a channel token carry none, so a verifier that requires a `type`
+  refuses them
+- `role`: the operator's role when an operator token was issued (optional). A
+  verifier that holds the operator's record authorises against the role that
+  record holds now, never against this claim alone
 
 ### Token Creation
 ```
@@ -594,6 +603,18 @@ types:
             description: The record the issuer minted this token under and can
               withdraw — a channel for a channel token, a credential for an
               operator token
+            required: false
+          type:
+            type: string
+            description: What the token is for. Absent on agent and channel
+              tokens
+            required: false
+            constraints:
+              enum: [operator, attestation]
+          role:
+            type: string
+            description: The operator's role when an operator token was issued.
+              Authorisation reads the role the issuer's records hold now
             required: false
       signature:
         type: string

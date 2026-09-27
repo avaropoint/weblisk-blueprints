@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: change-management
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/spec, protocol/types, architecture/orchestrator, architecture/agent, architecture/lifecycle, patterns/messaging, patterns/versioning]
 platform: any
 tier: free
@@ -73,7 +73,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -319,7 +319,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/orchestrator
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/register

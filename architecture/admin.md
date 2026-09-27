@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.0.0
+version: 2.1.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -97,7 +97,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       endpoints:
         # The orchestrator-provided groups only. Strategies, approvals,
@@ -245,8 +245,10 @@ code, this is its wire form at this surface, and that pattern holds the rule.
 | `OPERATOR_UNKNOWN` | 401 | auth | No operator of that name here: never registered, removed, or lost with a hub that was regenerated | Refuse. The client registers again or stops; retrying changes nothing | `identity_unknown` |
 | `OPERATOR_NOT_APPROVED` | 403 | auth | The operator is registered and pending | Refuse. Not a failure: the client reports that an admin must approve | — |
 | `OPERATOR_REVOKED` | 401 | auth | The operator was removed | Refuse. Every credential and token resting on it ended with it | — |
-| `CREDENTIAL_REQUIRED` | 401 | auth | An operator token carries no `cid`, or an attestation token reached a route other than attestation | Refuse. The client mints an operator token with a credential | — |
+| `CREDENTIAL_REQUIRED` | 401 | auth | A route that needs an operator token carrying a `cid` got something else: an operator token with no `cid`, an attestation token anywhere but the attestation route, or an agent or channel token on a `/v1/admin/*` route | Refuse. The client mints an operator token with a credential | — |
+| `OPERATOR_SUBJECT_MISMATCH` | 403 | auth | The token's `sub` is not the operator the path names, on a route only that operator may use: an attestation token on another operator's attestation route, or a token without the admin role revoking another operator's credential | Refuse. Log an attestation token's attempt as a security event | — |
 | `CREDENTIAL_UNKNOWN` | 401 | auth | The hub holds no credential with this id | Refuse. The client attests a credential | `identity_unknown` |
+| `CREDENTIAL_OPERATOR_MISMATCH` | 401 | auth | The credential the token's `cid` names is held by an operator other than the token's `sub` | Refuse. Log as a security event: this hub never issues such a token | — |
 | `CREDENTIAL_REVOKED` | 401 | auth | The credential was revoked, by its operator, by an admin, with its operator, or by a change of identity key | Refuse at once, not at the token's expiry. The client attests a new key | `credential_revoked`, `token_credential_revoked` |
 | `CREDENTIAL_EXPIRED` | 401 | auth | The attestation's `not_after` has passed | Refuse. The client re-attests, which needs the identity | `attestation_expired` |
 | `CREDENTIAL_CHALLENGE_INVALID` | 401 | auth | The nonce was not issued for this credential, was already used or has expired, or the signature does not verify | Refuse and spend the nonce. Log a signature failure as a security event | `replay_detected` |
@@ -390,14 +392,21 @@ Critical rules:
 
 3. RATE LIMITING
    ├── Per-operator: 60 read/min, 20 write/min
-   ├── Auth endpoints: 5/min (very restrictive)
+   ├── Auth endpoints: 5/min (very restrictive) — the four routes that
+   │   issue tokens, credentials/challenge included, since it answers
+   │   anyone who names a credential and holds each nonce until it expires
    └── Export endpoints: 5/min
 
 4. OPERATOR AUTHENTICATION
+   ├── Skipped for the four routes that issue tokens, which carry none:
+   │   operators/register, operators/token, credentials/challenge and
+   │   credentials/token. They pass to the orchestrator as they arrived
    ├── Extract token from Authorization: Bearer <WLT>
    ├── Verify WLT signature against orchestrator's public key
-   ├── Verify token.type == "operator"
-   ├── Verify token expiry (one-hour TTL)
+   ├── Verify token.type == "operator" — or, on
+   │   POST /v1/admin/operators/{name}/credentials alone, "attestation"
+   │   with sub equal to {name} (Auth Middleware, below)
+   ├── Verify token expiry
    ├── Verify operator IP matches token's bound IP
    ├── The orchestrator checks the operator, the credential named by
    │   token.cid and the grant are live — its records, not the token's word
@@ -547,7 +556,7 @@ contracts:
         - The signed payload MUST be canonicalize({name, timestamp}), verified against the STORED public key for that operator, with the timestamp inside the 300-second replay window
         - An operator with no record MUST be refused with OPERATOR_UNKNOWN, a pending one with OPERATOR_NOT_APPROVED and a revoked one with OPERATOR_REVOKED, and each refusal MUST be audited
         - The token it issues MUST have type attestation, carry no capability and no cid, and expire within 300 seconds
-        - An attestation token MUST be accepted by `POST /v1/admin/operators/{name}/credentials` for its own subject, and refused by every other route with CREDENTIAL_REQUIRED
+        - An attestation token MUST be accepted by `POST /v1/admin/operators/{name}/credentials` for its own subject, refused there for any other operator with OPERATOR_SUBJECT_MISMATCH, and refused by every other route with CREDENTIAL_REQUIRED
         - The response MUST carry hub_id, so the client can name this hub in the attestation it is about to have signed
         - It is the way to a first credential, and is deprecated as a way to an operator token. A hub built before the credential routes issues an operator token here, and a client MAY use one only from a hub that answers the credential routes with 404 or 405
 
@@ -555,7 +564,7 @@ contracts:
       description: Bind a client's credential to an operator's identity at this hub
       required: true
       rules:
-        - The route `POST /v1/admin/operators/{name}/credentials` MUST accept an attestation token or an operator token whose subject is the operator named in the path, and nothing else
+        - The route `POST /v1/admin/operators/{name}/credentials` MUST accept an attestation token or an operator token whose subject is the operator named in the path, and nothing else. A token for another operator is refused with OPERATOR_SUBJECT_MISMATCH, and any other kind of token with CREDENTIAL_REQUIRED
         - The attestation MUST verify under ML-DSA-65 against the public key in that operator's OWN record, and its identity_public_key MUST equal that key, or it is refused with CREDENTIAL_ATTESTATION_INVALID. Registration is how this surface records the key principal-identity takes from an invitation
         - Its identity_id MUST be the fingerprint of that key, and its hub_id the fingerprint of this orchestrator's public key. A different hub_id MUST be refused with CREDENTIAL_FOREIGN_HUB and logged as a security event
         - Its credential_public_key MUST be an ML-DSA-65 public key and MUST NOT be the identity public key, or it is refused with CREDENTIAL_IS_IDENTITY_KEY and logged as a security event
@@ -587,7 +596,7 @@ contracts:
       rules:
         - On every request bearing an operator token, the orchestrator MUST look up the operator named by sub and the credential named by cid in its OWN records before the handler runs
         - An operator token without a cid MUST be refused with CREDENTIAL_REQUIRED
-        - The request MUST be refused when the operator has no record, is pending, or is revoked, and when the credential is not that operator's, is revoked, or its attestation has expired, each with its own code
+        - The request MUST be refused when the operator has no record (OPERATOR_UNKNOWN), is pending (OPERATOR_NOT_APPROVED) or is revoked (OPERATOR_REVOKED), and when the credential is not that operator's (CREDENTIAL_OPERATOR_MISMATCH), is revoked (CREDENTIAL_REVOKED) or its attestation has expired (CREDENTIAL_EXPIRED)
         - The request MUST be authorised against the capabilities the operator's role carries now, and never beyond the token's cap. A role changed since the token was issued takes effect on the next request
         - Removing an operator, revoking a credential or rotating an operator's identity key therefore ends every token resting on it at the next request, not when the token expires
         - An admin gateway in front of the orchestrator MUST NOT stand in for this check. The orchestrator holds the records, and a signature check alone proves only that a token was once issued
@@ -596,7 +605,7 @@ contracts:
       description: Withdraw one credential, or every credential an operator holds
       required: true
       rules:
-        - The route `DELETE /v1/admin/operators/{name}/credentials/{cid}` MUST be permitted to the operator named in the path and to an admin, and to nobody else
+        - The route `DELETE /v1/admin/operators/{name}/credentials/{cid}` MUST be permitted to the operator named in the path and to an admin, and to nobody else. Another operator is refused with OPERATOR_SUBJECT_MISMATCH
         - A revoked credential MUST keep its record with status revoked, and its key MUST never be accepted again
         - Removing an operator MUST revoke every credential it holds
         - A change of an operator's identity public key MUST revoke every credential the old key attested
@@ -982,8 +991,9 @@ it produces confident, well-commented, wrong code.
 
 ### Operator Token
 
-Operator tokens use the same WLT format as agent tokens with
-operator-specific claims:
+Operator tokens use the same WLT format as agent tokens, with the `cid`,
+`type` and `role` claims [`protocol/identity`](../protocol/identity.md#payload-claims)
+declares:
 
 ```json
 {
@@ -1007,6 +1017,8 @@ the orchestrator end the token early
 `type` is `operator` for a token that administers, and `attestation` for the
 one an identity signature obtains. An attestation token carries `sub`, `iss`,
 `iat`, `exp` and `type`, no `cap` and no `cid`, and lives at most 300 seconds.
+`role` records the role at issue. A request is authorised against the role the
+operator holds when it arrives (`token-status-on-use`).
 
 ### A console holds a credential, never a token
 
@@ -1686,7 +1698,9 @@ All `/v1/admin/*` endpoints go through admin auth middleware, except
 1. Extract token from Authorization: Bearer <token>
 2. Verify token against orchestrator's public key
 3. Check token.type == "operator" — or, on the attestation route only,
-   "attestation" for the operator named in the path
+   "attestation" for the operator named in the path. Any other type, or none,
+   is CREDENTIAL_REQUIRED, and an attestation token for another operator is
+   OPERATOR_SUBJECT_MISMATCH
 4. Check the operator named by sub and the credential named by cid are live
    in the orchestrator's own records (token-status-on-use)
 5. Check the role the operator holds now against the endpoint's minimum

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 1.1.0
+version: 2.0.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin]
 platform: any
 tier: free
@@ -67,7 +67,7 @@ declaration:
           - name: SignatureVerification
             fields_used: [verify_signature, check_replay]
           - name: WLToken
-            fields_used: [sub, iss, iat, exp, cap, cid]
+            fields_used: [sub, iss, iat, exp, cap, cid, type, role]
       on_change:
         compatible: validate-and-adopt
         breaking: version-bump
@@ -268,6 +268,12 @@ declaration:
       endpoint: POST /v1/admin/credentials/challenge
     - check: endpoint-routed
       endpoint: POST /v1/admin/credentials/token
+    - check: endpoint-routed
+      endpoint: POST /v1/admin/operators/{name}/credentials
+    - check: endpoint-routed
+      endpoint: GET /v1/admin/operators/{name}/credentials
+    - check: endpoint-routed
+      endpoint: DELETE /v1/admin/operators/{name}/credentials/{cid}
     - check: endpoint-routed
       endpoint: GET /v1/health
     - check: type-has-keys
@@ -901,20 +907,37 @@ never block.
 ## Auth Middleware
 
 Applied to all endpoints except `/v1/health`, `POST /v1/register` and the four
-operator routes that establish or issue tokens (see Architecture, above):
+operator routes that establish or issue tokens: `OperatorRegister`,
+`OperatorToken`, `CredentialChallenge` and `CredentialToken` (see
+[Administrative endpoints](#administrative-endpoints)):
 
 ```
 1. Check Authorization header for "Bearer <token>"
 2. If no header, check request body for "token" field
 3. Verify token against orchestrator's signing key
 4. Check expiry
-5. For an operator token, check the operator and the credential it names are
+5. Refuse a token whose type is "attestation" with CREDENTIAL_REQUIRED, on
+   every route but CredentialAttest. On CredentialAttest, refuse it with
+   OPERATOR_SUBJECT_MISMATCH unless its sub is the operator the path names
+6. On every /v1/admin/* route, refuse a token whose type is not "operator"
+   with CREDENTIAL_REQUIRED. CredentialAttest also takes the attestation
+   token step 5 let through. An agent token and a channel token carry no type,
+   so neither reaches an administrative handler
+7. For an operator token, check the operator and the credential it names are
    live in this orchestrator's own records (architecture/admin,
    token-status-on-use)
-6. On failure → 401 {"error": "valid token required — register first"}, or the
+8. On failure → 401 {"error": "valid token required — register first"}, or the
    operator code architecture/admin's Error Handling names
-7. On success → pass TokenClaims to handler
+9. On success → pass TokenClaims to handler
 ```
+
+Steps 5 and 6 run before any handler, because a route's `auth: "token"` in the
+declaration accepts any token this orchestrator signed. Without them, an
+attestation token, obtained with nothing but an identity signature, would read
+the audit log and broker channels, which is the login by identity key that
+[`patterns/principal-identity`](../patterns/principal-identity.md) forbids. And
+an agent token whose `sub` happened to match an operator's name would reach that
+operator's credentials.
 
 ---
 
@@ -1181,6 +1204,8 @@ agents hold, which is theirs.
 - [ ] An operator token carries the role and capabilities from the orchestrator's own record, never from the request
 - [ ] `POST /v1/admin/credentials/challenge` and `POST /v1/admin/credentials/token` require no bearer token, and every other operator route refuses a token whose operator or credential is no longer live
 - [ ] The credential routes are served with the Operation names declared above: `CredentialChallenge`, `CredentialToken`, `CredentialAttest`, `CredentialList` and `CredentialRevoke`
+- [ ] A token with `type` `attestation` is refused with `CREDENTIAL_REQUIRED` on every route but `CredentialAttest`, `GET /v1/audit` and `POST /v1/channel` included, and on `CredentialAttest` for any operator but its `sub`
+- [ ] A token whose `type` is not `operator`, an agent token included, is refused with `CREDENTIAL_REQUIRED` on every `/v1/admin/*` route that requires a token, before the handler runs
 
 - [ ] `POST /v1/register` verifies ML-DSA-65 signature and replay protection
 - [ ] `POST /v1/register` enforces exclusive namespace ownership (409 on conflict)

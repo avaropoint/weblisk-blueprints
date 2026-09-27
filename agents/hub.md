@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: hub
-version: 1.0.0
+version: 1.0.1
 port: 9770
 requires: [protocol/spec, protocol/identity, protocol/types, protocol/federation, architecture/hub, architecture/agent, architecture/orchestrator]
 extends: [patterns/messaging, patterns/caching, patterns/observability, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/privacy, patterns/security, patterns/interop]
@@ -239,7 +239,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/register
