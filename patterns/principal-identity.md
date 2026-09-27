@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.2.0
+version: 1.3.0
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -463,9 +463,10 @@ types:
         type: string
         required: true
         description: The ONE hub this credential may authenticate at, named by
-          the fingerprint (protocol/identity) of the key that hub signs its
-          tokens with — never by its address. A hub that moves is the same hub,
-          and a hub regenerated with a new key is a different one
+          the fingerprint (protocol/identity) of the first key that hub signed
+          its tokens with, which the hub records and keeps when it rotates that
+          key — never by its address. A hub that moves or rotates its key is the
+          same hub, and a hub regenerated without its records is a different one
       device_label:
         type: string
         required: false

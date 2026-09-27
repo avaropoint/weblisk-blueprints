@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.2.0
+version: 2.3.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -203,7 +203,7 @@ policy, which is `patterns/policy`.
 
 - Admin gateway process (separate listener, TLS, and domain from application gateway)
 - Operator identity lifecycle (registration, role assignment, suspension)
-- Operator credentials: one per client per hub, attested by the operator's identity, checked on every request
+- Operator credentials: one per operator, client and hub, attested by the operator's identity, checked on every request
 - Admin dashboard SPA (overview, agents, approvals, workflows, federation, audit)
 - Admin API endpoints under `/v1/admin/*`
 - Operator token model (WLT with a one-hour TTL, minted with a credential, exact IP binding, two factors required where each key is opened)
@@ -239,6 +239,13 @@ Where the last column names a
 [`patterns/principal-identity`](../patterns/principal-identity.md#error-handling)
 code, this is its wire form at this surface, and that pattern holds the rule.
 
+An orchestrator enters each code in its central error registry with the HTTP
+status given here, which is what `architecture/orchestrator`'s
+`error-codes-registered` check looks for. The Category column classes the fault,
+as `architecture/content` and `architecture/fabric` do. It is not
+`ErrorResponse.category`: there, each of these is `permanent` and not
+`retryable`, because sending the same request again changes nothing.
+
 | Code | HTTP | Category | When | Behaviour | principal-identity |
 |---|---|---|---|---|---|
 | `OPERATOR_BOOTSTRAP_REFUSED` | 403 | auth | A registration at a hub with no operator carried no bootstrap secret, or a wrong one | Refuse, write nothing, audit. The caller needs the secret the orchestrator emitted | — |
@@ -252,10 +259,11 @@ code, this is its wire form at this surface, and that pattern holds the rule.
 | `CREDENTIAL_REVOKED` | 401 | auth | The credential was revoked, by its operator, by an admin, with its operator, or by a change of identity key | Refuse at once, not at the token's expiry. The client attests a new key | `credential_revoked`, `token_credential_revoked` |
 | `CREDENTIAL_EXPIRED` | 401 | auth | The attestation's `not_after` has passed | Refuse. The client re-attests, which needs the identity | `attestation_expired` |
 | `CREDENTIAL_CHALLENGE_INVALID` | 401 | auth | The nonce was not issued for this credential, was already used or has expired, or the signature does not verify | Refuse and spend the nonce. Log a signature failure as a security event | `replay_detected` |
-| `CREDENTIAL_ATTESTATION_INVALID` | 400 | validation | The attestation does not verify against the operator's recorded key, names another identity key, or is not ML-DSA-65 | Refuse. Log as a security event | `attestation_invalid`, `algorithm_not_permitted` |
+| `CREDENTIAL_ATTESTATION_INVALID` | 400 | validation | The attestation's signature does not verify under ML-DSA-65 against the operator's recorded key, or the attestation names another identity key | Refuse. Log as a security event | `attestation_invalid`, `algorithm_not_permitted` |
+| `CREDENTIAL_FORM_UNSUPPORTED` | 400 | validation | The credential key is not an ML-DSA-65 public key, the one form these routes carry | Refuse. A form principal-identity permits beside it is admitted only by a route that declares its own registration and challenge | — |
 | `CREDENTIAL_FOREIGN_HUB` | 400 | validation | The attestation's `hub_id` is not this hub's | Refuse. Log as a security event | `credential_foreign_hub` |
 | `CREDENTIAL_IS_IDENTITY_KEY` | 400 | validation | The credential's public key is the operator's identity key | Refuse. Log as a security event | `identity_key_as_credential` |
-| `CREDENTIAL_LIFETIME_EXCEEDED` | 400 | validation | `not_after` has passed, or is more than 90 days after the hub receives it | Refuse, naming the cap | `attestation_expired` |
+| `CREDENTIAL_LIFETIME_INVALID` | 400 | validation | `not_after` is not in the future, or is more than 90 days after the hub receives the attestation | Refuse, naming the cap | `attestation_expired`, where `not_after` has passed |
 | `CREDENTIAL_PREVIOUSLY_REVOKED` | 409 | conflict | The key was revoked here before | Refuse permanently. Log as a security event | `credential_previously_revoked` |
 | `OPERATOR_LAST_ADMINISTRATOR` | 409 | conflict | The request would revoke the last active credential of the last active admin | Refuse | `last_administrator` |
 
@@ -569,12 +577,13 @@ contracts:
       rules:
         - The route `POST /v1/admin/operators/{name}/credentials` MUST accept an attestation token or an operator token whose subject is the operator named in the path, and nothing else. A token for another operator is refused with OPERATOR_SUBJECT_MISMATCH, and any other kind of token with CREDENTIAL_REQUIRED
         - The attestation MUST verify under ML-DSA-65 against the public key in that operator's OWN record, and its identity_public_key MUST equal that key, or it is refused with CREDENTIAL_ATTESTATION_INVALID. Registration is how this surface records the key principal-identity takes from an invitation
-        - Its identity_id MUST be the fingerprint of that key, and its hub_id the fingerprint of this orchestrator's public key. A different hub_id MUST be refused with CREDENTIAL_FOREIGN_HUB and logged as a security event
-        - Its credential_public_key MUST be an ML-DSA-65 public key and MUST NOT be the identity public key, or it is refused with CREDENTIAL_IS_IDENTITY_KEY and logged as a security event
-        - Its not_after MUST be in the future and no more than 90 days after the hub receives it, or it is refused with CREDENTIAL_LIFETIME_EXCEEDED
+        - Its identity_id MUST be the fingerprint of that key, and its hub_id this hub's hub_id. A different hub_id MUST be refused with CREDENTIAL_FOREIGN_HUB and logged as a security event
+        - Its credential_public_key MUST be an ML-DSA-65 public key, or it is refused with CREDENTIAL_FORM_UNSUPPORTED. These routes carry an ML-DSA-65 key-file credential and no other form. A form principal-identity permits beside it, such as a passkey, has its own registration and challenge, and a hub admits it only through a route that declares them
+        - Its credential_public_key MUST NOT be the identity public key, or it is refused with CREDENTIAL_IS_IDENTITY_KEY and logged as a security event
+        - Its not_after MUST be in the future and no more than 90 days after the hub receives it, or it is refused with CREDENTIAL_LIFETIME_INVALID
         - A key that was ever revoked at this hub MUST be refused with CREDENTIAL_PREVIOUSLY_REVOKED
         - An attestation for a key the operator already holds as an active credential MUST replace that credential's attestation and keep its id. That is re-attestation
-        - The hub MUST store the credential with algorithm ml-dsa-65, form key-file, device_bound false and status active, and return it with its id, the fingerprint of its public key
+        - The hub MUST store the credential with algorithm ml-dsa-65, form key-file, device_bound false (a key file can be copied, and no authenticator says otherwise) and status active, and return it with its id, the fingerprint of its public key
         - Every attestation MUST be audited with the operator, the credential id and the device_label
 
     - name: operator-token-issuance
@@ -583,7 +592,7 @@ contracts:
       rules:
         - The routes `POST /v1/admin/credentials/challenge` and `POST /v1/admin/credentials/token` MUST require no bearer token — they are what issue them
         - A challenge for a cid this hub holds no credential for MUST be refused with CREDENTIAL_UNKNOWN. For any credential it does hold, whatever its status, it MUST answer with a nonce of at least 128 bits from a cryptographically secure random source, single-use, bound to that cid, expiring within 300 seconds, and this hub's hub_id
-        - The token request MUST carry cid, nonce and signature, and the signature MUST verify under the credential's STORED algorithm and public key over the bytes weblisk/credential-auth/v1, 0x00, hub_id, 0x00, nonce — never over the nonce alone
+        - The token request MUST carry cid, nonce and signature, and the signature MUST verify under the credential's STORED algorithm and public key over exactly these bytes, and never over the nonce alone. The UTF-8 bytes of weblisk/credential-auth/v1, one 0x00 byte, the 64 lowercase hexadecimal characters of hub_id as ASCII, one 0x00 byte, and the nonce's base64url text exactly as the challenge returned it, as ASCII. The nonce is signed as text, never as the bytes it decodes to
         - The nonce MUST be one this hub issued for that cid, unexpired and unused, and the attempt MUST spend it whether or not the signature verifies. Otherwise CREDENTIAL_CHALLENGE_INVALID
         - A token request naming a cid this hub holds no credential for MUST be refused with CREDENTIAL_UNKNOWN
         - Only once the signature has verified may the hub disclose the credential's status or its operator's. The credential MUST be active and its attestation's not_after in the future, and its operator MUST be approved, and each failure MUST be refused with its own code
@@ -779,7 +788,7 @@ registered but unapproved operator is a different fact from an unknown one.
 200 {
   "token": "<WLT, type attestation>",
   "expires_at": 1712160300,
-  "hub_id": "<fingerprint of the orchestrator's public key>"
+  "hub_id": "<fingerprint of the orchestrator's first public key>"
 }
 ```
 
@@ -795,10 +804,14 @@ wherever a hub serves them, and MAY accept an operator token from this endpoint
 only from a hub that answers `POST /v1/admin/credentials/challenge` with `404`
 or `405`.
 
-`hub_id` is the orchestrator's public key fingerprint
-([`protocol/identity`](../protocol/identity.md#key-fingerprint)), never its
-address, so a hub that moves keeps its credentials and a hub regenerated with a
-new key does not.
+`hub_id` names this hub as an [`Attestation`](../patterns/principal-identity.md#types)
+does: the fingerprint ([`protocol/identity`](../protocol/identity.md#key-fingerprint))
+of the first public key the orchestrator signed tokens with. The orchestrator
+records it with its own state when it first generates that key, and keeps it
+when it rotates the key. So a hub that moves or rotates its key keeps its
+hub_id and every credential attested for it, and a client tells a rotation from
+a different hub by hub_id alone. A hub regenerated without its state has a new
+hub_id and holds no credentials.
 
 #### Attesting a credential
 
@@ -858,6 +871,9 @@ POST /v1/admin/credentials/token
 
     "weblisk/credential-auth/v1" 0x00 <hub_id> 0x00 <nonce>
 
+    <hub_id> is its 64 hex characters and <nonce> its base64url text as the
+    challenge returned it, both as ASCII (operator-token-issuance)
+
 200 {
   "token": "<WLT, type operator, carries cid>",
   "expires_at": 1712163600,
@@ -872,6 +888,13 @@ caller's bytes, and a signature made here cannot be presented as a signature
 over a JSON payload, which begins with `{`. The client signs with the `hub_id`
 its credential was attested for. A challenge that answers with a different one
 is a hub the client holds no credential for.
+
+Neither the challenge nor its `hub_id` is signed by the hub. `hub_id` in the
+signed bytes stops a signature made for one hub from being spent at another. It
+does not stop an impostor at the hub's address from relaying this hub's
+challenge to the client. The transport stops that: HTTPS to the hub's address,
+with its certificate verified, which this surface requires everywhere
+([Implementation Notes](#implementation-notes)).
 
 Refresh is the same pair of calls. A separate refresh endpoint would need a
 valid token to obtain a token, which fails exactly when it is needed — after
@@ -1423,6 +1446,31 @@ Supports export to JSON and CSV for compliance.
 }
 ```
 
+### GET /v1/admin/operators/{name}/credentials
+
+Every credential the operator's identity attested at this hub, revoked and
+expired included, so a person can tell which device a credential is before
+revoking it. Each entry is the stored
+[`Credential`](../patterns/principal-identity.md#types) with its `cid`, and the
+attestation's `device_label` and `not_after` lifted out for reading.
+
+```json
+{
+  "credentials": [
+    {
+      "cid": "<fingerprint of credential_public_key>",
+      "device_label": "console on build-01",
+      "algorithm": "ml-dsa-65",
+      "form": "key-file",
+      "device_bound": false,
+      "status": "active",
+      "not_after": 1714752000,
+      "last_used_at": 1712160000
+    }
+  ]
+}
+```
+
 ---
 
 ## Operator Storage
@@ -1822,9 +1870,10 @@ Admin endpoints SHOULD be rate-limited:
 - [ ] A token request for a pending operator is refused with 403 `OPERATOR_NOT_APPROVED`, distinctly from an unknown operator (`OPERATOR_UNKNOWN`)
 - [ ] Registration that also approves returns an attestation token, `hub_id` and `status: approved`; registration that does not returns `status: pending` and no token
 - [ ] An expired operator token is replaced by a new challenge answered with the credential, without re-registering and without the identity
-- [ ] `POST /v1/admin/credentials/token` issues an operator token carrying `cid`, expiring one hour after issue and never after the attestation's `not_after`, only for a signature by the stored credential key over `weblisk/credential-auth/v1`, 0x00, `hub_id`, 0x00 and a nonce this hub issued for that credential
+- [ ] `POST /v1/admin/credentials/token` issues an operator token carrying `cid`, expiring one hour after issue and never after the attestation's `not_after`, only for a signature by the stored credential key over `weblisk/credential-auth/v1`, 0x00, `hub_id` as its 64 hex characters, 0x00 and the base64url text of a nonce this hub issued for that credential
+- [ ] A hub that rotates its orchestrator key answers every challenge with the `hub_id` it had before, and every credential attested for that `hub_id` still mints
 - [ ] A nonce from `POST /v1/admin/credentials/challenge` is spent by the first token request that presents it, whether or not the signature verifies, and a revoked or expired credential's status is disclosed only after its signature verifies
-- [ ] An attestation whose `hub_id` is not this hub's, whose credential key is the identity key, whose `not_after` is more than 90 days away, or whose key was revoked here before is refused with `CREDENTIAL_FOREIGN_HUB`, `CREDENTIAL_IS_IDENTITY_KEY`, `CREDENTIAL_LIFETIME_EXCEEDED` or `CREDENTIAL_PREVIOUSLY_REVOKED`
+- [ ] An attestation whose `hub_id` is not this hub's, whose credential key is not an ML-DSA-65 key, whose credential key is the identity key, whose `not_after` has passed or is more than 90 days away, or whose key was revoked here before is refused with `CREDENTIAL_FOREIGN_HUB`, `CREDENTIAL_FORM_UNSUPPORTED`, `CREDENTIAL_IS_IDENTITY_KEY`, `CREDENTIAL_LIFETIME_INVALID` or `CREDENTIAL_PREVIOUSLY_REVOKED`
 - [ ] Removing an operator, or revoking one of its credentials, refuses its next request with `OPERATOR_REVOKED` or `CREDENTIAL_REVOKED` without waiting for its token to expire
 - [ ] A role lowered after a token was issued limits that token from its next request
 - [ ] An operator token without `cid` is refused with `CREDENTIAL_REQUIRED`
