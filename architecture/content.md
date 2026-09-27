@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 1.2.0
+version: 1.3.0
 requires: [protocol/types, patterns/content-identity, patterns/scope, patterns/contract, architecture/enforcement]
 platform: any
 tier: free
@@ -53,6 +53,8 @@ requires:
           fields_used: [name, capabilities]
         - name: AuditEntry
           fields_used: [id, timestamp, actor, action, target, status]
+        - name: ProposedChange
+          fields_used: [path, action, modified]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -129,12 +131,18 @@ requires:
 │  │  Path Resolver                                     │  │
 │  │  - scope confinement (tenant → org → project)      │  │
 │  │  - traversal and symlink refusal                   │  │
-│  │  - reserved-path refusal (.weblisk/)               │  │
+│  │  - reserved-path refusal (installation and         │  │
+│  │    control state)                                  │  │
 │  └────────────────────────────────────────────────────┘  │
 │  ┌────────────────────────────────────────────────────┐  │
 │  │  Precondition Gate                                 │  │
 │  │  - if_match digest compared before every write     │  │
 │  │  - refuses on mismatch; never merges               │  │
+│  └────────────────────────────────────────────────────┘  │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │  Proposal Store                                    │  │
+│  │  - changes staged for a person to decide           │  │
+│  │  - held in the service's own state, never content  │  │
 │  └────────────────────────────────────────────────────┘  │
 │  ┌────────────────────────────────────────────────────┐  │
 │  │  Custody Reconciler        (shared custody only)   │  │
@@ -168,6 +176,10 @@ requested, and silently answering a different question is worse than refusing.
 before writing. This is the whole of the concurrency model — there is no merge,
 no last-writer-wins and no lock.
 
+**Proposal Store** holds changes that were proposed and not yet decided. A
+proposal is not content until a person applies it, so its bytes live in the
+service's own state and never in the repository. See [Proposals](#proposals).
+
 **Custody Reconciler** exists only where a second authority can write. It
 converts an unexplained change from an alarm into a recorded fact.
 
@@ -186,8 +198,12 @@ converts an unexplained change from an alarm into a recorded fact.
 - The custody model: classification, attestation properties, and the scope
   ceiling derived from them
 - Precondition semantics for writes (digest match, refusal on mismatch)
+- Proposals: staging a change for a person to decide, the decision, and the
+  separation of duties it records
+- Who a change was for: the attribution a `ContentChange` carries, and which
+  party asserts each part of it
 - Out-of-band change detection and provenance recording for shared custody
-- Reserved-path refusal for installation state
+- Reserved-path refusal for installation state and control state
 - Declaration of what a repository cannot attest, as a first-class answer
 
 ### Does NOT Own
@@ -215,6 +231,10 @@ converts an unexplained change from an alarm into a recorded fact.
 | GET | /v1/content/repositories | Repositories | yes | Repositories in scope, with custody and ceiling |
 | POST | /v1/content/repositories | DeclareRepository | yes | Bring a store under governance — establish, which creates an empty one, or adopt one that already holds bytes |
 | POST | /v1/content/reconcile | Reconcile | yes | Detect out-of-band change (shared custody only) |
+| POST | /v1/content/proposals | Propose | yes | Stage a change to one entry for a person to decide. Writes no entry |
+| GET | /v1/content/proposals | Proposals | yes | List proposals in scope, cursor-paginated |
+| GET | /v1/content/proposals/{id} | Proposal | yes | Read one proposal, with the bytes it proposes |
+| POST | /v1/content/proposals/{id}/decision | Decide | yes | Apply or reject a proposal. Applying writes the entry |
 | GET | /v1/health | Health | no | Content service health. Served with or without an orchestrator |
 
 ---
@@ -252,6 +272,26 @@ interfaces:
       methods: [POST]
       description: Compare recorded digests against current bytes for a shared
         repository and record observations. Shared custody only
+      served_by: content-service
+
+    - path: /v1/content/proposals
+      methods: [GET, POST]
+      description: POST stages a change to one entry for a person to decide,
+        and writes nothing. GET lists proposals in the caller's scope,
+        cursor-paginated
+      served_by: content-service
+
+    - path: /v1/content/proposals/{id}
+      methods: [GET]
+      description: Read one proposal, with the bytes it proposes
+      served_by: content-service
+
+    - path: /v1/content/proposals/{id}/decision
+      methods: [POST]
+      description: Apply or reject a proposal. Applying writes the entry
+        through the Write Flow, against the bytes the proposal was made on. A
+        proposal whose base has moved on is recorded stale and nothing is
+        written
       served_by: content-service
 
   methods:
@@ -294,6 +334,28 @@ interfaces:
       description: Detect and record out-of-band change. Shared custody only
       called_by: [content-service, agents]
 
+    - name: ProposeChange
+      signature: ProposalRequest → ContentProposal
+      description: Record a change to one entry without making it
+      called_by: [gateway, agents]
+
+    - name: ListProposals
+      signature: ProposalQuery → ProposalPage
+      description: Proposals in the caller's scope, filtered by repository,
+        path and state
+      called_by: [gateway, agents]
+
+    - name: ReadProposal
+      signature: id → ContentProposal
+      description: One proposal, including the bytes it proposes
+      called_by: [gateway, agents]
+
+    - name: DecideProposal
+      signature: (id, DecisionRequest) → ContentProposal
+      description: Apply or reject a proposal. Called for a person, never for
+        an agent — content:decide is person only
+      called_by: [gateway]
+
   events:
     - topic: content.repository_declared
       direction: publish
@@ -312,6 +374,15 @@ interfaces:
     - topic: content.ceiling_exceeded
       direction: publish
       description: A write was refused because its scope exceeded the ceiling
+
+    - topic: content.proposed
+      direction: publish
+      description: A change to an entry was proposed. Nothing was written
+
+    - topic: content.proposal_decided
+      direction: publish
+      description: A proposal left open — applied, rejected or stale — naming
+        who decided it and, when applied, the separation recorded
 ```
 
 ---
@@ -320,12 +391,12 @@ interfaces:
 
 | Code | Category | When | Behaviour |
 |---|---|---|---|
-| `CONTENT_PRECONDITION_FAILED` | conflict | `if_match` does not equal the identity of what it names — an entry's stored digest on a write, a placement's census digest on an adoption | Refuse. Return both digests. Never merge, never overwrite, never adopt |
-| `CONTENT_IF_MATCH_REQUIRED` | validation | A write arrived without a precondition | Refuse. A write with no precondition is a blind overwrite |
+| `CONTENT_PRECONDITION_FAILED` | conflict | `if_match` does not equal the identity of what it names — an entry's stored digest on a write or a proposal, a placement's census digest on an adoption, a proposal's `before` on a decision to apply it. A proposal to create an entry that already exists | Refuse. Return both digests. Never merge, never overwrite, never adopt. On a decision to apply, record the proposal `stale` and write nothing |
+| `CONTENT_IF_MATCH_REQUIRED` | validation | A write, or a proposal to modify or remove an entry, arrived without a precondition | Refuse. A write with no precondition is a blind overwrite, and a proposal with none cannot be told stale |
 | `CONTENT_CUSTODY_CEILING_EXCEEDED` | policy | Declared scope exceeds the repository ceiling | Refuse, naming required and actual. Never downgrade the scope |
 | `CONTENT_CUSTODY_UNDECLARED` | policy | Repository has no declared custody | Treat as `opaque`, apply the `internal` ceiling, and record the degradation |
-| `CONTENT_PATH_REFUSED` | validation | Traversal segment, escaping symlink, or reserved path — including a placement locator that is absolute, carries a scheme or an authority, or climbs out of its backend's root | Refuse the request as written. Do not normalise and proceed |
-| `CONTENT_RESERVED_PATH` | policy | Path resolves into installation state (`.weblisk/`) | Refuse. Installation keys and state are never content |
+| `CONTENT_PATH_REFUSED` | validation | Traversal segment or escaping symlink — including a placement locator that is absolute, carries a scheme or an authority, or climbs out of its backend's root | Refuse the request as written. Do not normalise and proceed |
+| `CONTENT_RESERVED_PATH` | policy | A segment of the path, or of a placement's locator, is a reserved name — `.weblisk`, `.git`, or control state the backend declares — as the filesystem would resolve it. See [Reserved Paths](#reserved-paths) | Refuse, for every operation including list, stat, propose and declare. Installation state and control state are never content |
 | `CONTENT_UNREADABLE` | io | Bytes cannot be read | Identity is `unknown`, never `current` and never `stale` |
 | `CONTENT_REPOSITORY_UNKNOWN` | validation | No repository of that id in the caller's scope | Refuse without disclosing whether it exists elsewhere |
 | `CONTENT_DISPOSITION_REQUIRED` | validation | A declaration arrived without a disposition | Refuse. A declaration that does not say whether it expects bytes is a blind adoption |
@@ -335,8 +406,11 @@ interfaces:
 | `CONTENT_BACKEND_UNKNOWN` | validation | The placement names a backend this service does not hold for that `scope_path` | Refuse without disclosing whether the name exists under another scope |
 | `CONTENT_ESTABLISH_UNSUPPORTED` | policy | `disposition: establish` against a backend that cannot bring a store into existence, or cannot represent an empty one without an entry in it | Refuse. Never write a placeholder to make the store representable. `adopt` against the same backend is unaffected |
 | `CONTENT_ESTABLISH_INCOMPLETE` | partial | The declaration was reserved and the create or the custody demonstration did not finish | Report what completed, carrying the `ContentRepository` and its `RepositoryEstablishment`. Roll nothing back, claim no success, and do not report that nothing happened |
-| `CONTENT_PRECONDITION_NOT_APPLICABLE` | validation | `if_match` supplied with `disposition: establish` | Refuse. There is nothing to have seen, and a precondition nothing can evaluate must not be accepted as though it held |
+| `CONTENT_PRECONDITION_NOT_APPLICABLE` | validation | `if_match` supplied with `disposition: establish`, or with a proposal whose `action` is `create` | Refuse. There is nothing to have seen, and a precondition nothing can evaluate must not be accepted as though it held |
 | `CONTENT_PLACEMENT_DECLARED` | conflict | The placement is equal to, inside, or contains an already-declared repository | Refuse. Two ceilings over one set of bytes means the lower one is unenforceable |
+| `CONTENT_PROPOSAL_UNKNOWN` | validation | No proposal of that id in the caller's scope | Refuse without disclosing whether it exists elsewhere |
+| `CONTENT_PROPOSAL_DECIDED` | conflict | A decision arrived for a proposal that is no longer `open`, including the second of two decisions that raced | Refuse, returning the proposal as recorded. A proposal leaves `open` once |
+| `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the proposal's `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, or the repository declares none | Refuse, naming the scope and the ceiling. Nothing is recorded and the proposal stays `open` |
 | `ENFORCEMENT_DATA_CONTRACT_VIOLATION` | enforcement | Path is outside the agent's declared operational data contract | Refuse via the storage proxy |
 
 ---
@@ -411,9 +485,54 @@ interfaces:
    Mismatch → refuse with both digests. No merge is attempted
 6. Bytes are written durably; the new digest is computed from what was written,
    not from what was submitted
-7. A `ContentChange` is recorded with provenance `authored`, the acting
-   identity, and the correlation id of the enforcement decision
+7. A `ContentChange` is recorded with provenance `authored`, the subject the
+   request authenticated as for `actor`, and the correlation id of the
+   enforcement decision
 8. `content.changed` is published
+
+### Proposal Flow
+1. Caller submits a `ProposalRequest`: a repository, a `ProposedChange` naming
+   the path, the action and — for `create` and `modify` — the proposed bytes,
+   `if_match` for `modify` and `delete`, the declared scope for `create` and
+   `modify`, and optionally `on_behalf_of`, `agent`, `run` and a reason
+2. Path Resolver confines the path as for a write; traversal, escaping symlinks
+   and reserved paths are refused
+3. Ceiling check: declared scope against the repository's derived ceiling.
+   Exceeded → refuse, publish `content.ceiling_exceeded`
+4. Enforcement storage proxy intercepts with the operation the proposal would
+   perform — `create`, `modify` or `delete` — for the proposer
+5. Precondition Gate compares `if_match` to the entry's current digest, or for
+   `create` confirms no entry is there. Mismatch → refuse with
+   `CONTENT_PRECONDITION_FAILED`. A proposal that is stale when made is not
+   recorded
+6. The service holds the proposed bytes in its own state, computes `after`
+   over what it holds, and records a `ContentProposal` in state `open`, with
+   the subject the request authenticated as for `actor` and the correlation id
+   of the enforcement decision
+7. `content.proposed` is published. No entry is written
+
+### Decision Flow
+1. Caller submits a `DecisionRequest` for one proposal: `apply` or `reject`
+2. The proposal must be in the caller's scope (`CONTENT_PROPOSAL_UNKNOWN`) and
+   `open` (`CONTENT_PROPOSAL_DECIDED`)
+3. `reject` → the decision is recorded, the proposal becomes `rejected`, and
+   `content.proposal_decided` is published. Nothing else happens
+4. `apply` → separation is checked: a decider who is the proposal's `actor` or
+   its `on_behalf_of` is refused with `CONTENT_SEPARATION_REQUIRED` unless the
+   change's scope is at or below the repository's `self_decision_ceiling`
+5. Write Flow steps 2 to 6 run with the proposal's path, bytes and scope and
+   with its `before` as `if_match`, the enforcement storage proxy intercepting
+   for the decider
+6. `before` no longer matches → refuse with `CONTENT_PRECONDITION_FAILED` and
+   both digests, record the decision with the proposal `stale`, write nothing,
+   and publish `content.proposal_decided`. Any other refusal leaves the
+   proposal `open` and records nothing on it
+7. A `ContentChange` is recorded with provenance `authored`: `actor` and
+   `on_behalf_of` from the proposal, the decider in `approved_by`, the
+   proposal's id in `proposal`, the `separation` step 4 found, and the
+   correlation id of the decider's enforcement decision. The proposal becomes
+   `applied` in the same record write — neither is durable without the other
+8. `content.changed` and `content.proposal_decided` are published
 
 ### Reconciliation Flow (shared custody only)
 1. Reconcile is invoked for a repository, on a schedule or on demand
@@ -448,15 +567,19 @@ and these capabilities, which are the `content:` family that document declares:
 
 | Capability | Guards |
 |---|---|
-| `content:read` | `GET /v1/content`, `GET /v1/content/entry`, `GET /v1/content/stat` |
-| `content:write` | `PUT /v1/content/entry`, `DELETE /v1/content/entry` |
+| `content:read` | `GET /v1/content`, `GET /v1/content/entry`, `GET /v1/content/stat`, `GET /v1/content/proposals`, `GET /v1/content/proposals/{id}` |
+| `content:write` | `PUT /v1/content/entry`, `DELETE /v1/content/entry`. Person only |
+| `content:propose` | `POST /v1/content/proposals` |
+| `content:decide` | `POST /v1/content/proposals/{id}/decision`. Person only |
 | `content:describe` | `GET /v1/content/repositories` |
 | `content:declare` | `POST /v1/content/repositories` |
 | `content:establish` | `POST /v1/content/repositories` with `disposition: establish` — required **in addition to** `content:declare`, because creating a store is more than declaring one |
 | `content:reconcile` | `POST /v1/content/reconcile` |
 
 A capability name is `family:verb`. An invented name is refused at registration,
-so these MUST be the names `protocol/types` declares and no others.
+so these MUST be the names `protocol/types` declares and no others. *Person
+only* is `protocol/types`' marking too, and what it does to a grant is
+[Who may move an entry](#who-may-move-an-entry).
 
 ### Startup Sequence
 
@@ -548,7 +671,18 @@ does not work rather than a component that was not given a mesh.
    [`architecture/storage`](storage.md) Design Principle 6 requires, this
    document specifies operations and guarantees. It does not name a filesystem,
    a share protocol, a version control system or a vendor, and no implementation
-   is non-conformant for the backend it satisfies the contract with.
+   is non-conformant for the backend it satisfies the contract with. Naming a
+   path in order to refuse it is not naming a backend: `.git` is refused on
+   every backend (see [Reserved Paths](#reserved-paths)), and no backend is
+   required by that.
+
+7. **A person moves an entry; everything else proposes** — an agent, a service
+   or a schedule may stage a change to an entry, and only a person makes one,
+   by writing it or by deciding a proposal. This MUST hold at the tenant,
+   through capabilities no service and no agent can hold, and not in a
+   client's setting: a rule one client enforces is a rule the next client does
+   not. A proposal whose base has moved on MUST NOT be merged into what is
+   there now. Merged bytes are bytes nobody proposed and nobody decided.
 
 ---
 
@@ -1020,6 +1154,261 @@ control", and naming the system would be naming a product.
 
 ---
 
+## Reserved Paths
+
+Some paths in a store are not content. No operation of this service reaches
+them: not a read, a write, a removal, a stat, a listing or a proposal, and not
+a placement's locator on a declaration.
+
+| Reserved | What it holds | Declared by |
+|---|---|---|
+| `.weblisk` | Installation state: keys, secrets and run state | this document |
+| `.git` | A version-control tool's control state: its configuration, its hooks and its object store | this document |
+| A backend's control state | What a backend keeps beside the entries in order to do its job | the blueprint that specifies that backend |
+
+A path is reserved when **any** of its segments is a reserved name, at any
+depth. A store that holds several projects can hold several `.weblisk`
+directories, and a tree can hold a `.git` at any level. A name that only begins
+with a reserved name, such as `.gitignore`, is not reserved by this rule.
+
+**The comparison is on what the filesystem would open, not on the bytes of the
+name.** A segment is a reserved name when the filesystem that holds it could
+resolve it to one:
+
+- compared without regard to case;
+- ignoring trailing dots and spaces;
+- ignoring code points the filesystem ignores in a name;
+- treating a short name, or an alternate data stream, that resolves to a
+  reserved name as that name.
+
+A byte comparison says `.WEBLISK` and `.weblisk` differ. A case-insensitive
+filesystem opens the same directory for both, so a guard that compares bytes
+serves the key material to anyone who capitalises the path.
+
+A reserved path is refused **as written**, with `CONTENT_RESERVED_PATH`. It is
+not rewritten to a nearby name that is allowed.
+
+**A reserved path is not an entry.** A listing does not return one, a census
+neither counts nor digests one, and the reconciler never observes one. This
+hides no content, because none of it was ever content. A backend's control
+state is still a fact about custody. The blueprint that specifies the backend
+says how it is reported, and it is never reported as entries.
+
+### Why `.git` is named here
+
+`.git` is refused on every backend, not only on one under version control. A
+`.git` directory written into any tree makes that tree a repository to any
+version-control tool run inside it, and such a tool runs the hooks and applies
+the configuration it finds there. A service that let a caller write one would
+let the holder of `content:write` choose a command that runs as whoever next
+runs the tool in that tree. That is true whatever backend wrote the bytes, so
+it is not left to a version-controlled backend to declare.
+
+---
+
+## Proposals
+
+A **proposal** is a change to one entry that has been recorded and not made. It
+names the entry, the bytes it would write and the identity of the bytes it
+would replace. Recording it writes nothing. A person decides it: applying it
+writes the entry through the ordinary Write Flow, and rejecting it writes
+nothing.
+
+Proposals exist for Design Principle 7. An agent's work, a service's import and
+a scheduled job's output all reach an entry the same way: as a proposal a
+person applies.
+
+### Who may move an entry
+
+| Capability | Lets the holder | May be held by |
+|---|---|---|
+| `content:write` | Write or remove an entry directly | A person only |
+| `content:propose` | Record a proposal | A person, a service, or an agent through its subject's authorisation |
+| `content:decide` | Apply or reject a proposal | A person only |
+
+[`protocol/types`](../protocol/types.md) marks `content:write` and
+`content:decide` **person only**, and
+[`patterns/principal-identity`](../patterns/principal-identity.md) keeps every
+person-only capability out of a service subject's grant and out of an agent's
+authorisation (`service-subject-constraints` and `agent-delegation`). Those two
+rules are what make Design Principle 7 hold at the tenant rather than in a
+client:
+
+- An agent's authority is the intersection of its subject's grant, its own
+  declared capabilities and its subject's authorisation of it
+  (principal-identity Design Principle 13). The authorisation never holds
+  `content:write`, so the intersection never does. A subject that holds
+  `content:write` does not pass it to an agent acting under it, and the
+  agent's change arrives as a proposal.
+- A client that runs agents under its own service identity cannot write their
+  output directly either, because a service subject never holds
+  `content:write`.
+- A decision is judgement, and a service has none to exercise
+  (principal-identity Design Principle 11).
+
+Either rule alone leaves a way round. Without the grant rule, a client's
+service identity could write for every agent it runs. Without the authorisation
+rule, an agent acting under a person could write whatever that person can.
+
+`content:write` and `content:propose` do not imply each other. A person who
+holds both may still propose, to ask for a review.
+
+### A proposal is made against bytes
+
+A proposal says which bytes it replaces, as a write does. For `modify` and
+`delete`, `if_match` is the digest of the entry the proposal replaces or
+removes, and it is required. For `create` there is no entry to name, so
+`if_match` is refused with `CONTENT_PRECONDITION_NOT_APPLICABLE`: a proposal
+to create asserts that the path holds nothing.
+
+A proposal passes the checks a write passes, when it is made: the Path
+Resolver, the ceiling, the Precondition Gate and the enforcement storage proxy,
+for the proposer. A change its proposer could not be authorised to make is
+refused before anyone is asked to decide it. When the proposal is applied, the
+proxy runs again for the decider, so neither of them can cause a write beyond
+their own reach.
+
+The service holds the proposed bytes itself. `after` is computed over what it
+holds and never taken from the request. `ProposedChange.original` is not read:
+the service already holds the bytes the proposal was made against, and a copy
+the caller supplies is only a claim about them. The proposed bytes stay in the
+service's own state and never in the repository, because they are not content
+until a person applies them.
+
+### States
+
+| State | Means |
+|---|---|
+| `open` | Recorded and waiting for a decision |
+| `applied` | A person decided to apply it, and its change was written |
+| `rejected` | A person decided not to apply it. Nothing was written |
+| `stale` | A person decided to apply it, and the entry no longer held its `before`. Nothing was written |
+
+A proposal leaves `open` once, and every other state is final. It is never
+re-opened, and a `stale` proposal is never applied: the proposer proposes
+again, against the bytes that are there now. Of two decisions that race, one is
+recorded and the other is refused with `CONTENT_PROPOSAL_DECIDED`.
+
+There is no separate verb to withdraw a proposal. A person holding
+`content:decide` rejects it, and that person may be its requester, because a
+rejection writes nothing and needs no separation.
+
+### A proposal whose base has moved on is stale
+
+On a decision to apply, the proposal's `before` is the precondition. If the
+entry no longer holds it — somebody edited it, or, for a `create`, an entry has
+appeared at the path — the decision is refused with
+`CONTENT_PRECONDITION_FAILED` and both digests, the proposal is recorded
+`stale`, and nothing is written.
+
+It is never merged: not by a three-way merge, not by re-applying a patch to the
+new bytes, not by a rebase. Each of those produces bytes nobody proposed, and
+applying them would record a person's decision about text that person never
+saw.
+
+A decider can see this before deciding. While a proposal is `open`, reading or
+listing it reports `base`: `current` when the entry still holds `before`,
+`moved` when it does not, and `unknown` when the entry cannot be read. `base`
+is computed each time it is asked for and never stored, because the entry can
+change between one read and the next.
+
+### Separation of duties
+
+The **requester** of a proposal is its `actor` and, when present, its
+`on_behalf_of`. The person who dispatched an agent is a requester of the
+agent's proposal, as much as the service the agent ran under.
+
+A decision to apply is made by someone who is not a requester, and the
+resulting `ContentChange` records `separation: independent`. This is
+[`patterns/approval`](../patterns/approval.md) Design Principle 2, applied to a
+proposal.
+
+A repository MAY allow one person to decide their own change, up to a scope it
+declares. `self_decision_ceiling` on the repository's declaration is the
+highest `ScopeLevel` at which that is allowed:
+
+- **Absent**, the default: a requester's decision to apply is refused with
+  `CONTENT_SEPARATION_REQUIRED`.
+- **Present**: a requester may apply a change whose scope is at or below it —
+  the proposal's scope, or on a `delete` the scope of the entry it removes —
+  and the `ContentChange` records `separation: self`. Above it, the decision
+  is refused with `CONTENT_SEPARATION_REQUIRED`.
+
+This is the one difference from `patterns/approval`, which admits no exception.
+It exists so that an organisation of one person can use proposals at all.
+Without it, that person's only way to land an agent's work would be to write it
+directly, and a direct write records no decision, no proposal and no
+separation. `separation: self` records exactly what happened: one person asked,
+and the same person agreed.
+
+**It is declared on the repository.** Custody and ceiling are already decided
+per repository, and separation protects the same bytes. A register that names
+people beside their injuries and a programme's procedures sit in different
+stores with different ceilings, and one person's leave to decide alone over the
+second is no reason to extend it to the first.
+
+**It is not configurable.** Allowing a person to decide their own change
+weakens a control. That is an act somebody performs through
+`POST /v1/content/repositories`, under `content:declare`, and the audit trail
+shows who did it. It is never a line in a file read at boot with no caller. It is fixed when the
+repository is declared: this contract has no verb that amends a declaration,
+which is the same gap that leaves none to retire one (see
+[A store that already exists is the normal case](#a-store-that-already-exists-is-the-normal-case)).
+
+**It is no stronger than `on_behalf_of`.** The service witnessed `actor` and
+did not witness `on_behalf_of` (see below). A client that leaves out the person
+it acted for makes that person's own decision look independent. The record
+says which part was asserted, as Design Principle 5 requires.
+
+A rejection needs no separation, and records none.
+
+### Who a change was for
+
+A `ContentChange` says who made the change, who it was for and who let it
+land. Each part has a **basis**, which says what stands behind it:
+
+- **witnessed** — the service took it from the credential it verified on the
+  request, and never from a request body;
+- **asserted** — the caller stated it, and the service records the statement
+  as made and establishes nothing about it;
+- **recorded** — the service produced it itself.
+
+| Field | What it says | Present when | Basis |
+|---|---|---|---|
+| `actor` | The subject whose grant made the change | Always | witnessed |
+| `on_behalf_of` | The person the actor acted for | The caller stated one | asserted |
+| `approved_by` | The person whose decision applied the change | The change applied a proposal | witnessed |
+| `proposal` | The proposal the change applied | The change applied a proposal | recorded |
+| `separation` | Whether a requester decided: `independent` or `self` | The change applied a proposal | recorded |
+| `version` | The backend's own marker for the state the change produced | The backend keeps one | recorded |
+
+- **`actor`**, on a change that applied a proposal, is the proposal's `actor`
+  and not the decider. One subject prepared the change and another let it
+  land, and the record names both: the second is `approved_by`.
+- **`on_behalf_of`** is an identity id, never a name or an email address
+  (principal-identity Design Principle 10). A client that carries out a
+  person's instruction under its own service identity MUST send it; an agent
+  run that a person dispatched is the ordinary case. Without it that person is
+  absent from the record, and separation cannot see them. On a change that
+  applied a proposal, it is the proposal's.
+- **`approved_by`** is witnessed, not signed. The service authenticated the
+  person who decided, and that is all it can say. It is not a signature under
+  that person's sole control, and a consumer that reports an approval MUST NOT
+  report it as signed. It is a list, and under this contract it holds one
+  person.
+- **`proposal`** leads to the rest of the record. The proposal names the
+  `agent` and the `run` that prepared the change, which principal-identity
+  Design Principle 13 requires the record to name. Both are asserted.
+- **`version`** is a locator, never an identity. A backend under version
+  control records its revision id there, and what any backend records is for
+  the blueprint that specifies that backend to say. Nothing joins on it. The
+  join key is the entry's `ContentIdentity`, which
+  [`patterns/content-identity`](../patterns/content-identity.md) defines, so a
+  history rewritten on the backend changes `version` and leaves every digest
+  as it was.
+
+---
+
 ## Types
 
 ```yaml
@@ -1071,6 +1460,12 @@ types:
         type: timestamp
         required: false
         description: When attestations were last demonstrated. Absent means never
+      self_decision_ceiling:
+        type: ScopeLevel
+        required: false
+        description: The highest scope at which a requester may apply their own
+          proposal, recording separation self. Absent means no requester may.
+          Fixed at declaration
 
   CustodyAttestations:
     description: What a repository can demonstrate. Unknown is recorded as false
@@ -1187,6 +1582,12 @@ types:
         required: false
         description: The census digest this declaration is adopting against.
           Required for adopt, refused for establish
+      self_decision_ceiling:
+        type: ScopeLevel
+        required: false
+        description: The highest scope at which a requester may apply their own
+          proposal. Absent means no requester may. Not configurable — only a
+          caller declares it
 
   ContentAdoption:
     description: What a placement holds, issued by the service so a caller can
@@ -1285,6 +1686,41 @@ types:
       actor:
         type: string
         required: true
+        description: Witnessed. The subject whose grant made the change — on a
+          direct write the subject the request authenticated as, on a change
+          that applied a proposal the proposal's actor. Never taken from a
+          request body
+      on_behalf_of:
+        type: string
+        required: false
+        description: Asserted. The identity id of the person the actor acted
+          for. Present when the caller stated one; on a change that applied a
+          proposal, the proposal's
+      approved_by:
+        type: list
+        required: false
+        description: Witnessed. The identity ids of the persons whose decision
+          applied the change — one, under this contract. Present exactly when
+          proposal is. Not a signature
+      proposal:
+        type: string
+        required: false
+        description: Recorded. The id of the ContentProposal this change
+          applied. Absent on a direct write
+      separation:
+        type: enum
+        values: [independent, self]
+        required: false
+        description: Recorded. Present exactly when proposal is. self when the
+          person who decided was the proposal's actor or on_behalf_of, which
+          the repository's self_decision_ceiling allowed
+      version:
+        type: string
+        required: false
+        description: Recorded. The backend's own marker for the state this
+          change produced — a version-controlled backend's revision id. A
+          locator, never an identity, and nothing joins on it. Absent when the
+          backend keeps none
       correlation_id:
         type: string
         required: true
@@ -1339,6 +1775,195 @@ types:
         type: list
         required: false
         description: Present only when enumerable_principals is attested
+
+  ProposalRequest:
+    description: The body of POST /v1/content/proposals. A change to one entry,
+      staged for a person to decide. Writes nothing
+    fields:
+      repository:
+        type: string
+        required: true
+      change:
+        type: ProposedChange
+        required: true
+        description: path, action — create, modify or delete — and, for create
+          and modify, the proposed bytes in modified. original is not read
+      if_match:
+        type: string
+        required: false
+        description: The digest of the entry the proposal replaces or removes,
+          as PUT /v1/content/entry takes it. Required for modify and delete,
+          refused for create
+      scope:
+        type: ScopeLevel
+        required: false
+        description: The declared scope of the proposed bytes. Required for
+          create and modify, absent on delete
+      on_behalf_of:
+        type: string
+        required: false
+        description: Asserted. The identity id of the person the caller acted
+          for. A client carrying out a person's instruction under its own
+          service identity MUST send it
+      agent:
+        type: string
+        required: false
+        description: Asserted. The agent that prepared the change
+      run:
+        type: string
+        required: false
+        description: Asserted. The agent run that prepared the change
+      reason:
+        type: string
+        required: false
+        description: Asserted. Why, in the proposer's words
+
+  ContentProposal:
+    description: A change to one entry, recorded and not made. Returned by
+      every proposal route
+    fields:
+      id:
+        type: string
+        required: true
+        description: Assigned by the service. Stable and never reused
+      repository:
+        type: string
+        required: true
+      change:
+        type: ProposedChange
+        required: true
+        description: path and action always. modified — the proposed bytes —
+          only when one proposal is read by id; a listing omits it
+      before:
+        type: ContentIdentity
+        required: false
+        description: The identity of the entry the proposal was made against.
+          Absent on create
+      after:
+        type: ContentIdentity
+        required: false
+        description: Computed by the service over the bytes it holds for the
+          proposal, never taken from the request. Absent on delete
+      scope:
+        type: ScopeLevel
+        required: false
+        description: The declared scope of the proposed bytes. Absent on delete
+      state:
+        type: enum
+        values: [open, applied, rejected, stale]
+        required: true
+        description: open until a person decides. Every other state is final
+      base:
+        type: enum
+        values: [current, moved, unknown]
+        required: false
+        description: Present while state is open. Whether the entry still holds
+          before — for a create, whether the path still holds nothing. unknown
+          when the entry cannot be read. Computed on every read and listing,
+          never stored
+      actor:
+        type: string
+        required: true
+        description: Witnessed. The subject the proposal request authenticated
+          as
+      on_behalf_of:
+        type: string
+        required: false
+        description: Asserted, as the request stated it
+      agent:
+        type: string
+        required: false
+        description: Asserted, as the request stated it
+      run:
+        type: string
+        required: false
+        description: Asserted, as the request stated it
+      reason:
+        type: string
+        required: false
+        description: Asserted, as the request stated it
+      proposed_at:
+        type: timestamp
+        required: true
+      correlation_id:
+        type: string
+        required: true
+        description: The enforcement decision that admitted the proposal
+      decision:
+        type: ProposalDecision
+        required: false
+        description: Present once state is not open
+
+  ProposalDecision:
+    description: What a person decided about a proposal. Recorded once
+    fields:
+      decision:
+        type: enum
+        values: [apply, reject]
+        required: true
+      decided_by:
+        type: string
+        required: true
+        description: Witnessed. The identity id of the person the decision
+          request authenticated as
+      decided_at:
+        type: timestamp
+        required: true
+      reason:
+        type: string
+        required: false
+        description: Asserted, as the decision request stated it
+      change:
+        type: ContentChange
+        required: false
+        description: The change the decision wrote, carrying approved_by and
+          separation. Present when state is applied
+
+  DecisionRequest:
+    description: The body of POST /v1/content/proposals/{id}/decision
+    fields:
+      decision:
+        type: enum
+        values: [apply, reject]
+        required: true
+      reason:
+        type: string
+        required: false
+
+  ProposalQuery:
+    description: The query of GET /v1/content/proposals
+    fields:
+      repository:
+        type: string
+        required: false
+        description: Absent lists every repository in the caller's scope
+      path:
+        type: string
+        required: false
+        description: Proposals for this entry only
+      state:
+        type: enum
+        values: [open, applied, rejected, stale]
+        required: false
+        description: Absent lists every state
+      cursor:
+        type: string
+        required: false
+      limit:
+        type: integer
+        required: false
+
+  ProposalPage:
+    description: One page of GET /v1/content/proposals
+    fields:
+      proposals:
+        type: list
+        required: true
+        description: ContentProposal records, each without change.modified
+      next_cursor:
+        type: string
+        required: false
+        description: Absent on the last page
 ```
 
 ---
@@ -1377,6 +2002,10 @@ Configuration declares what a repository **claims**. Every claim is
 demonstrated before it takes effect: an attestation asserted here and not
 demonstrated at verification becomes `false`, and the ceiling follows the
 demonstration, not the claim.
+
+A configured repository carries no `self_decision_ceiling`, so nobody may
+decide their own proposal in it. See
+[Separation of duties](#separation-of-duties).
 
 **A configuration entry is processed as `establish`, and that is a limit rather
 than a choice.** Adoption requires `if_match` over a census the service issued,
@@ -1447,8 +2076,11 @@ security:
         and does not make the access decision
     - boundary: Content Service → Backend. The only boundary the service does
         not control on both sides. Everything beyond it is attested or unknown
-    - boundary: Content → Installation state. `.weblisk/` holds keys, secrets
-        and run state and is never reachable through this service
+    - boundary: Content → Reserved state. Installation state (`.weblisk`) and
+        control state (`.git`, and what the backend declares) are never
+        reachable through this service
+    - boundary: Proposal → Entry. Crossed only by a person's decision, and only
+        against the bytes the proposal was made on
 
   enforcement:
     - rule: A write without a precondition digest is refused
@@ -1506,8 +2138,30 @@ security:
     - rule: A path containing a traversal segment or resolving outside the
         repository through a symlink is refused as written
       mechanism: Path Resolver; refusal rather than normalisation
-    - rule: A path resolving into installation state is refused
-      mechanism: Reserved-path check in the resolver, applied to every operation
+    - rule: A path with a reserved segment is refused, on every backend
+      mechanism: Reserved-path check in the resolver, applied to every
+        operation and to a placement's locator, comparing each segment as the
+        filesystem would resolve it rather than byte for byte
+    - rule: Only a person moves an entry
+      mechanism: content:write and content:decide are person only in
+        protocol/types. A hub grants neither to a service subject and an agent's
+        authorisation names neither, so an agent or a service can only propose
+    - rule: A proposal writes nothing
+      mechanism: Proposed bytes are held in the service's own state, never in
+        the repository, until a decision applies them
+    - rule: A proposal whose base has moved on is never applied and never merged
+      mechanism: The proposal's before is the precondition of the write that
+        applies it. A mismatch refuses the decision and records the proposal
+        stale
+    - rule: A requester does not decide their own proposal above the scope the
+        repository allows
+      mechanism: Decider compared against the proposal's actor and on_behalf_of
+        before the write; self_decision_ceiling is declared by a caller and is
+        never configured
+    - rule: Who a change was for says what stands behind each part of it
+      mechanism: actor and approved_by are taken from verified credentials,
+        on_behalf_of, agent and run are recorded as asserted, and approved_by
+        is never reported as a signature
     - rule: An access statement from a shared or opaque repository is marked
         incomplete
       mechanism: access_complete is derived from custody and cannot be set by
@@ -1605,6 +2259,27 @@ security:
   "removed at version N", never to nothing and never to a later entry that
   reused the path.
 
+- **Compare reserved names the way the filesystem opens them.** Fold case,
+  drop trailing dots and spaces, drop code points the filesystem ignores, and
+  resolve short names and alternate data streams before comparing. Do it on
+  every segment, not on a prefix. A check that passes `.WEBLISK/secrets` on a
+  case-insensitive filesystem has checked the spelling and let the kernel open
+  the keys.
+
+- **Hold the proposed bytes, not a patch.** Applying a proposal writes exactly
+  the bytes that were proposed, over exactly the bytes they were proposed
+  against. A patch re-applied to whatever is there now is a merge by another
+  name, and it produces text the decider never saw.
+
+- **Record the change and the proposal's new state in one write.** A change
+  recorded without its proposal becoming `applied` leaves an open proposal
+  that can never be applied again; the reverse leaves an applied proposal with
+  no change to show for it.
+
+- **Compute `base` when asked, never store it.** An entry can change between
+  one listing and the next, and a stored `current` is a claim about a moment
+  that has passed.
+
 ---
 
 ## Verification Checklist
@@ -1657,3 +2332,30 @@ security:
 - [ ] A configured repository already `declared` with the same `id`, `scope_path` and `placement` is reconciled on every subsequent start — nothing is created, nothing is refused, and health does not report `degraded` for it
 - [ ] A configured repository left `establishing` by a crashed boot is resumed on the next start with no operator action
 - [ ] With an orchestrator URL configured, a failed registration is fatal
+- [ ] A read, write, stat, list or proposal naming `.git`, `.GIT`, `.git.`, `git~1` or `docs/.git/config` is refused with `CONTENT_RESERVED_PATH`, and nothing is written
+- [ ] A path naming `.WEBLISK/keys` is refused with `CONTENT_RESERVED_PATH`, exactly as `.weblisk/keys` is
+- [ ] A declaration whose `placement` `locator` has a `.git` or `.weblisk` segment is refused with `CONTENT_RESERVED_PATH`, and nothing is created
+- [ ] A path segment `.gitignore` is not refused as reserved
+- [ ] `GET /v1/content` over a directory that holds a `.git` directory returns no entry beneath it, and a `ContentAdoption` census over it neither counts nor digests one
+- [ ] `POST /v1/content/proposals` returns a `ContentProposal` with `state` `open`, and the entry's digest is unchanged
+- [ ] A `ProposalRequest` with `action` `modify` or `delete` and no `if_match` is refused with `CONTENT_IF_MATCH_REQUIRED`
+- [ ] A `ProposalRequest` with `action` `create` carrying `if_match` is refused with `CONTENT_PRECONDITION_NOT_APPLICABLE`
+- [ ] A `ProposalRequest` whose `if_match` differs from the entry's digest is refused with `CONTENT_PRECONDITION_FAILED`, and no proposal is recorded
+- [ ] A `ProposalRequest` whose `scope` exceeds the repository ceiling is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`, and no proposal is recorded
+- [ ] A proposal's `after` equals the digest of the bytes the service holds for it, whatever the request claimed
+- [ ] A caller holding `content:propose` and not `content:write` is refused `PUT /v1/content/entry`
+- [ ] A caller holding `content:propose` and not `content:decide` is refused `POST /v1/content/proposals/{id}/decision`
+- [ ] Applying a proposal whose entry changed after it was made is refused with `CONTENT_PRECONDITION_FAILED` returning both digests, the entry is unchanged, and the proposal's `state` is `stale`
+- [ ] Applying a `create` proposal after an entry has appeared at its path is refused with `CONTENT_PRECONDITION_FAILED`, and the proposal's `state` is `stale`
+- [ ] A proposal in `state` `applied`, `rejected` or `stale` refuses every further decision with `CONTENT_PROPOSAL_DECIDED`
+- [ ] Of two concurrent decisions on one `open` proposal, exactly one is recorded and the other is refused with `CONTENT_PROPOSAL_DECIDED`
+- [ ] An `open` proposal whose entry has changed is listed with `base` `moved`, and listing it changes neither the proposal nor the entry
+- [ ] A `ContentProposal` in a `ProposalPage` carries no `change.modified`, and `GET /v1/content/proposals/{id}` returns it
+- [ ] Applying a proposal records a `ContentChange` whose `actor` is the proposal's `actor`, whose `on_behalf_of` is the proposal's, whose `approved_by` holds the decider, and whose `proposal` is the proposal's `id`
+- [ ] A decision to apply by the proposal's `actor` or `on_behalf_of`, in a repository with no `self_decision_ceiling`, is refused with `CONTENT_SEPARATION_REQUIRED`, and the proposal stays `open`
+- [ ] With `self_decision_ceiling` `internal`, the proposal's `on_behalf_of` applying an `internal` proposal succeeds with `separation` `self`, and applying a `confidential` one is refused with `CONTENT_SEPARATION_REQUIRED`
+- [ ] A decision to apply by a person who is neither the proposal's `actor` nor its `on_behalf_of` records `separation` `independent`
+- [ ] The proposal's `on_behalf_of` may reject it with no `self_decision_ceiling` declared, and no `separation` is recorded
+- [ ] A `ContentChange` from `PUT /v1/content/entry` carries no `approved_by`, `proposal` or `separation`
+- [ ] A write or proposal whose body names an `actor` records the subject the request authenticated as, never the named one
+- [ ] `ContentChange.version` is absent when the backend keeps no version marker

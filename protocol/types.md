@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.0.1
+version: 1.1.0
 requires: []
 platform: any
 tier: free
@@ -319,12 +319,23 @@ types:
 - `realtime:publish` — publish to real-time channels
 
 **Content capabilities:**
-- `content:read` — read entries and list a content repository
-- `content:write` — create, modify and remove entries
+- `content:read` — read entries and list a content repository, and read the proposals made against it
+- `content:write` — create, modify and remove entries directly. *Person only*
+- `content:propose` — stage a change to one entry for a person to decide. Writes nothing
+- `content:decide` — apply or reject a proposed change. *Person only*
 - `content:describe` — read a repository's custody class, attestations and derived ceiling
 - `content:declare` — bring a store under governance. Sufficient to adopt one that already holds bytes; establishing a new one also needs `content:establish`
 - `content:establish` — create a store and declare it. Required in addition to `content:declare` for `disposition: establish`; adoption does not need it
 - `content:reconcile` — run custody reconciliation on a shared repository
+
+*Person only* marks a capability that stands for a person's judgement.
+[`patterns/principal-identity`](../patterns/principal-identity.md) keeps it out
+of a service subject's grant and out of an agent's authorisation
+(`service-subject-constraints` and `agent-delegation`). `content:propose` is
+separate from `content:write` for the reason `fabric:attest` is separate from
+`fabric:observe` below: agents propose and people apply, and one capability
+covering both would make that unenforceable at the tenant. What each does to a
+request is [`architecture/content`](../architecture/content.md#proposals).
 
 **Fabric capabilities:**
 - `fabric:read` — read relationships, coverage, impact, lineage and the ledger projection

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.3.1
+version: 1.4.0
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -166,8 +166,10 @@ requires:
     never satisfy user verification and MUST NOT be granted a scope whose policy
     requires it. It has no judgement, so it MUST NOT issue invitations, vouch for
     another subject, or provision another identity — a service that can mint
-    service accounts makes every boundary one call deep. And it has no one
-    watching it, so it MUST carry a named human owner and a mandatory expiry.
+    service accounts makes every boundary one call deep. For the same reason it
+    MUST NOT hold a capability `protocol/types` marks *person only*. And it has
+    no one watching it, so it MUST carry a named human owner and a mandatory
+    expiry.
 
 12. **Time is a security input** — Attestation validity, replay windows, token
     expiry and grant expiry are all decided by comparing clocks. A verifier MUST
@@ -193,10 +195,12 @@ requires:
 
     An agent MUST NOT widen its own authority, MUST NOT pass a capability to
     another agent that it did not itself receive, and MUST NOT act after the
-    authorisation expires. Where an agent acts for a person, the record MUST
-    name both — the subject whose authority was used, and the agent and run that
-    used it. An upstream system will show only the subject; the hub's ledger is
-    the only place the causal chain exists.
+    authorisation expires. An authorisation MUST NOT name a capability
+    `protocol/types` marks *person only*, so the intersection never holds one,
+    whatever the subject's grant holds. Where an agent acts for a person, the
+    record MUST name both — the subject whose authority was used, and the agent
+    and run that used it. An upstream system will show only the subject; the
+    hub's ledger is the only place the causal chain exists.
 
 ---
 
@@ -360,6 +364,9 @@ contracts:
           long-lived private key at all
         - Enrolment MUST be vouched by a subject holding grant:issue, and the
           voucher MUST be recorded on the grant
+        - A service subject MUST NOT be granted a capability protocol/types
+          marks person only, by any role. The hub refuses it at issue with
+          capability_person_only
         - Offboarding a human owner MUST surface every service identity they own
           rather than silently orphaning it
 
@@ -382,6 +389,9 @@ contracts:
           under it
         - An agent acting for a PERSON MUST NOT exceed what that person could do
           directly at the same hub, in the same scope, on the same resource
+        - An authorisation MUST NOT name a capability protocol/types marks person
+          only. The hub refuses it with capability_person_only, so a subject's
+          person-only capability never reaches an agent acting under it
 
     - name: cross-hub-isolation
       description: Confine a credential to the hub it was minted for
@@ -692,6 +702,7 @@ types:
 | `development_key_in_production` | validation | `development-only` protection at a production hub | Refuse outright. Log as a security event |
 | `credential_persisted` | integrity | A service credential was found written to disk | Refuse and revoke it — it must be memory-only |
 | `presence_unsatisfiable` | validation | Grant requires user verification; subject is a service | Refuse at ISSUE, not at first login |
+| `capability_person_only` | validation | A grant to a service subject, or an agent's authorisation, carries a capability `protocol/types` marks person only | Refuse at ISSUE. Log as a security event |
 | `clock_outside_tolerance` | auth | Timestamp beyond skew tolerance, or not yet valid | Deny. MUST NOT clamp into range |
 
 Every failure is fail-closed. An unreachable directory causes discovery to fail;
@@ -887,3 +898,8 @@ credential revocation, which costs nothing else.
 43. Every agent action names both the subject and the agent run in the record.
 44. Whatever a hub issues on the strength of an identity signature submits an
     attestation for that identity and is refused for every other request.
+45. A grant to a service subject carrying a person-only capability, such as
+    `content:write`, is refused at issue with `capability_person_only`.
+46. An `AgentAuthorization` naming `content:write` or `content:decide` is
+    refused with `capability_person_only`, so an agent acting under a subject
+    who holds `content:write` cannot write an entry directly.
