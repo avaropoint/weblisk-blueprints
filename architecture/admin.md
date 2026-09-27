@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.4.0
+version: 2.4.1
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -244,7 +244,8 @@ status given here, which is what `architecture/orchestrator`'s
 `error-codes-registered` check looks for. The Category column classes the fault,
 as `architecture/content` and `architecture/fabric` do. It is not
 `ErrorResponse.category`: there, each of these is `permanent` and not
-`retryable`, because sending the same request again changes nothing.
+`retryable`, because the client acts on the code rather than repeating the
+request.
 
 | Code | HTTP | Category | When | Behaviour | principal-identity |
 |---|---|---|---|---|---|
@@ -597,7 +598,7 @@ contracts:
         - The token request MUST carry cid, nonce and signature, and the signature MUST verify under the credential's STORED algorithm and public key over exactly these bytes, and never over the nonce alone. The UTF-8 bytes of weblisk/credential-auth/v1, one 0x00 byte, the 64 lowercase hexadecimal characters of hub_id as ASCII, one 0x00 byte, and the nonce's base64url text exactly as the challenge returned it, as ASCII. The nonce is signed as text, never as the bytes it decodes to
         - The nonce MUST be one this hub issued for that cid, unexpired and unused, and the attempt MUST spend it whether or not the signature verifies. Otherwise CREDENTIAL_CHALLENGE_INVALID
         - A token request naming a cid this hub holds no credential for MUST be refused with CREDENTIAL_UNKNOWN
-        - Only once the signature has verified may the hub disclose the credential's status or its operator's. The credential MUST be active and its attestation's not_after in the future, and its operator MUST be approved, and each failure MUST be refused with its own code
+        - Only once the signature has verified may the hub disclose the credential's status or its operator's. The credential MUST be active (else CREDENTIAL_REVOKED) and its attestation's not_after in the future (else CREDENTIAL_EXPIRED), and its operator MUST be approved (else OPERATOR_NOT_APPROVED, or OPERATOR_REVOKED for a removed one)
         - The token MUST have type operator, carry cid, the operator's role and the capabilities that role carries, and expire one hour after issue and never after the attestation's not_after
         - Role and capabilities MUST come from the stored record, never from the request
         - The response MUST carry the attestation's not_after, so the client can warn before it passes
