@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.0.1
+version: 2.1.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -241,8 +241,8 @@ act on local files, and **operator** commands that act on a running hub.
 **Responsibilities.** Scaffolding and building projects, generating components from
 blueprints and gating them on conformance, resolving where an identity lives,
 getting signatures from wherever the identity is held — a private key is in its
-memory only when that holder cannot sign — and minting short-lived credentials
-per invocation.
+memory only when that holder cannot sign — and minting short-lived tokens with
+a credential the identity attested once for each hub.
 
 **Not responsibilities.** Holding a long-lived secret of its own. Deciding what a
 blueprint requires — it reads the corpus. Administering a hub's data, which is
@@ -267,6 +267,8 @@ Studio's and the orchestrator's own surfaces.
 - Operator registration and token management (the token is stored beside the
   identity that obtained it, unless the caller asks for it not to be —
   `--no-store`)
+- One credential per identity per hub, attested once by that identity and kept
+  beside it ([A credential for each hub](#a-credential-for-each-hub))
 - Attesting a credential another program holds, so a console never holds the
   identity that attests it (`weblisk operator attest`)
 - Human-readable table output and `--json` machine-readable output formatting
@@ -981,6 +983,38 @@ a managed secret above an encrypted file, and that is a preference, not a
 requirement: a machine with no vault or keychain must still be able to hold an
 identity.
 
+### A credential for each hub
+
+The identity signs to register and to attest, and nothing else. Tokens come
+from a credential ([`architecture/admin`](admin.md#obtaining-a-token)), and the
+CLI holds one for each identity at each hub:
+
+- **Made once.** The first time `connect` or `register` obtains a token for an
+  identity at a hub, the CLI generates an ML-DSA-65 key pair for that hub, has
+  the identity attest it through an attestation token, and keeps it. Every
+  later token for that identity at that hub is minted with it, and the
+  identity is not asked.
+- **Named by the hub, never by its address.** Each credential is kept under the
+  `hub_id` it was attested for. A challenge that answers with another `hub_id`
+  is a hub this identity holds no credential for, and `connect` attests one
+  there.
+- **Kept as the identity is.** The private key sits beside the identity it
+  belongs to, encrypted in the `weblisk-key-v1` envelope with `kdf` `argon2id`
+  or held by a secret source, and it is opened the way the identity's own key
+  is: by a passphrase the person types, or by a secret source they unlock
+  ([Where an identity lives](#where-an-identity-lives)). It is never in the
+  clear and never under `kdf` `none`
+  ([`architecture/admin`](admin.md#where-the-second-factor-is)). Its public half
+  and its `cid` sit beside it.
+- **Replaced only when the hub refuses it.** When the hub answers
+  `CREDENTIAL_UNKNOWN`, `CREDENTIAL_REVOKED` or `CREDENTIAL_EXPIRED`, the CLI
+  discards that credential, and the next `connect` attests a new one, which
+  asks the identity once. Before `not_after`, the CLI gives the warning
+  [`architecture/admin`](admin.md#attesting-a-credential) requires.
+
+`--no-store` is about the token. The credential is kept either way, because
+keeping it is what spares the identity.
+
 ### `weblisk operator init`
 
 Create an operator ML-DSA-65 identity — in an encrypted file protected by a
@@ -1084,8 +1118,10 @@ Registering operator 'alice' with http://localhost:9800...
   `--bootstrap <path>` names. The secret is never an argument, which every
   process on the machine can read. Without it, such a hub refuses the
   registration ([`architecture/admin`](admin.md#bootstrap-flow))
-- Obtains a token as the [Authentication Flow](#authentication-flow) says, and
-  stores it beside the identity that signed. `--no-store` returns it instead
+- Once approved, attests a credential for this hub
+  ([A credential for each hub](#a-credential-for-each-hub)) and obtains a token
+  with it, as the [Authentication Flow](#authentication-flow) says. The token is
+  stored beside the identity that signed. `--no-store` returns it instead
   (stdout, or the `--json` result) and writes no token
 - If not the first operator, prints "Registration pending admin approval"
 - `--role <role>` to request a specific role (admin may override)
@@ -1116,7 +1152,8 @@ repeatedly. It asks for a token FIRST: a hub that already knows the operator
 needs no registration. A hub with no operators refuses a registration that
 does not present its bootstrap secret, so connecting never claims a hub.
 `connect` obtains its token as the [Authentication Flow](#authentication-flow)
-says.
+says, and attests a credential first where this identity holds none the hub
+accepts ([A credential for each hub](#a-credential-for-each-hub)).
 
 Five outcomes, and they are told apart:
 
@@ -1191,8 +1228,9 @@ The steps are [`architecture/admin`](admin.md#obtaining-a-token)'s:
   `not_after` — and signs its canonical form. It never signs bytes a caller
   supplies, so it is not a way to get the identity's signature over anything
   else
-- `--days <n>` sets `not_after` that many days ahead: 30 by default, and refused
-  above 90
+- `--days <n>` sets `not_after` that many days ahead, within the default and the
+  cap [`architecture/admin`](admin.md#attesting-a-credential) states, and is
+  refused beyond the cap
 - Submits the attestation and prints the credential's id and its `not_after`.
   `--json` gives them as `cid` and `not_after`
 - Writes nothing to disk, and unlocks the identity once for both signatures
@@ -1223,6 +1261,9 @@ Registering new public key with orchestrator (signed by old key)...
 - Encrypts new key with new passphrase
 - Registers new public key with orchestrator (signed by old key for proof of continuity)
 - Old key moved to `operator.key.revoked` beside the identity, for audit
+- The hub revokes every credential the old key attested, so the CLI discards its
+  credentials for that hub, and the next `connect` attests a new one with the
+  new identity
 
 ---
 
@@ -2185,14 +2226,16 @@ Every command that calls the orchestrator:
 1. Resolve which identity acts: --keys-dir, else --identity <label>, else the unnamed default
 2. Load the token stored beside that identity
 3. If it has expired, or less than a fifth of its lifetime remains, obtain a
-   new one as architecture/admin's "Obtaining a token" says: a credential for
-   that hub answers a challenge, and the identity's holder (the encrypted key
-   file, or a secret source) signs only to attest one. A hub that does not
-   serve the credential routes still answers the identity-signed request with
-   an operator token, and that path is deprecated
+   new one as architecture/admin's "Obtaining a token" says: the credential
+   this identity holds for that hub (A credential for each hub) answers a
+   challenge. The identity's holder (the encrypted key file, or a secret
+   source) signs only to attest a credential where there is none the hub
+   accepts. A hub that does not serve the credential routes still answers the
+   identity-signed request with an operator token, and that path is deprecated
 4. Set Authorization: Bearer <token> on request
 5. If 401 response → attempt token refresh → retry once
-6. If refresh fails → print "Session expired. Run: weblisk operator register"
+6. If the hub refused the credential → print that the identity must attest a
+   new one: "Run: weblisk operator connect". Otherwise print the hub's code
 ```
 
 ---
@@ -2218,9 +2261,10 @@ security:
     description: |
       The CLI runs with the full authority of the person invoking it, on their
       machine, and is therefore the most dangerous component in the framework to
-      get wrong. It holds no long-lived secret of its own: it signs with an
-      identity whose private half may never be extractable, and it mints
-      short-lived credentials rather than storing them.
+      get wrong. It holds no secret of its own. Beside each identity it keeps
+      one credential for each hub that identity attested, never in the clear,
+      and mints short-lived tokens with it. The identity, whose private half
+      may never be extractable, signs only to register and to attest.
   boundaries:
     - boundary: Operator → CLI. The operator's identity authorises every
         privileged operation; the CLI holds no standing authority
@@ -2231,7 +2275,8 @@ security:
         is decrypted in memory for one invocation, with the passphrase a person
         typed or a secret source remembers, and never written back in the clear
     - boundary: CLI → Orchestrator. Authenticated per request with a short-lived
-        credential, over a transport the operator named
+        token minted with the credential for that hub, over a transport the
+        operator named
     - boundary: CLI → Local filesystem. Confined to the project and the
         operator's own configuration directory
   enforcement:
@@ -2241,8 +2286,13 @@ security:
     - rule: A key or passphrase is never written to a log, a crash report or a
         cache
       mechanism: Redaction at the boundary of every diagnostic path
-    - rule: An operating credential is short-lived and held in memory
-      mechanism: Minted per invocation from the identity, never persisted
+    - rule: A token is short-lived, and never minted with the identity
+      mechanism: Minted with the credential for that hub and lasting an hour.
+        Kept beside the identity, mode 0600, or with --no-store not written at
+        all
+    - rule: A credential key is never in the clear
+      mechanism: Kept in the weblisk-key-v1 envelope or by a secret source, and
+        opened as the identity's own key is
     - rule: A destructive operation requires explicit confirmation
       mechanism: Confirmation is a distinct argument, never a default, and never
         satisfied by a non-interactive invocation unless declared
@@ -2332,7 +2382,8 @@ security:
 - [ ] `weblisk operator register --bootstrap <path>` sends the bootstrap secret read from that file, and the secret is never accepted as an argument
 - [ ] `weblisk operator token` refreshes the token when it has expired or less than a fifth of its lifetime remains, without asking the identity to sign anything but an attestation
 - [ ] `--no-store` on `weblisk operator connect`, `weblisk operator register` and `weblisk operator token --refresh` returns the token on stdout or in the `--json` result, and writes no token file
-- [ ] `weblisk operator attest` signs only an `Attestation` it builds itself, refuses `--days` above 90, submits it, reports the credential's `cid` and `not_after`, and writes nothing to disk
+- [ ] `weblisk operator attest` signs only an `Attestation` it builds itself, refuses a `--days` beyond admin's cap, submits it, reports the credential's `cid` and `not_after`, and writes nothing to disk
+- [ ] `connect` and `register` generate one ML-DSA-65 credential per identity per hub the first time they reach it, have the identity attest it once, keep its private key only in the `weblisk-key-v1` envelope or a secret source, and mint every later token with it without asking the identity
 - [ ] `weblisk operators revoke` invalidates target operator's public key and tokens (admin only)
 - [ ] `weblisk operators revoke` prevents self-revocation and revoking the last admin
 - [ ] `weblisk operators list` shows all registered operators with name, role, status, and registration date
