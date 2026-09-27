@@ -198,19 +198,22 @@ When `kdf = none`:
 
 | Category | KDF | Passphrase Source | Use Case |
 |----------|-----|------------------|----------|
-| **Operator keys** | `argon2id`, never `none` | A non-echoing channel operated by a human, or generated and held by the secret source that holds the key (rule 1) | Human-operated tooling |
+| **Operator keys** | `argon2id` wherever the key is written, never `none` (rule 1) | A non-echoing channel operated by a human, or a secret source (rule 1) | Human-operated tooling |
 | **Service keys** (orchestrator, gateway, agent) | `argon2id`, or `none` in development only (rule 6) | A secret source, or none | Automated processes |
 
 **Rules:**
-1. Operator key generation MUST require a passphrase. It cannot be skipped, and
-   the minimum is 12 characters. The channel it arrives over is the platform
-   blueprint's to name; a headless implementation uses rules 7 and 8 rather than
-   asking a human who is not there.
-   An operator's private key MUST NOT be stored unencrypted, whoever holds it —
-   a key file, a keychain or a vault. `kdf = none` is for service keys alone,
-   and for those only in development (rule 6). Where a secret source holds an
-   operator's key, its passphrase is generated rather than typed and is held
-   with it ([`protocol/secret-source`](secret-source.md#an-identity-held-by-a-source)).
+1. Every operator private key an implementation writes, hands to a secret
+   source, or receives from one MUST be the `weblisk-key-v1` envelope with
+   `kdf = argon2id`, opened by a passphrase of at least 12 characters that
+   cannot be skipped. It is never stored unencrypted, whoever holds it — a key
+   file, a keychain or a vault. A passphrase a person chooses arrives over a
+   channel the platform blueprint names; a headless implementation uses rules 7
+   and 8 rather than asking a human who is not there. Where a secret source
+   holds the key, [`protocol/secret-source`](secret-source.md#an-identity-held-by-a-source)
+   says where the passphrase comes from. A key that never leaves a secret source
+   that signs is never written, handed over or received, so this rule does not
+   reach it. `kdf = none` is for service keys alone, and for those only in
+   development (rule 6).
 2. Service key generation defaults to `kdf = none`, which rule 6 confines to
    development, but SHOULD support encrypted keys whose passphrase comes from a
    secret source ([`protocol/secret-source`](secret-source.md)).
@@ -388,6 +391,13 @@ output: base64url-encoded ML-DSA-65 signature (3309 bytes)
 process: sig = sign(privateKey, data)
 ```
 
+`sign` is pure ML-DSA-65, the `ML-DSA.Sign` of FIPS 204, with an empty context
+string. It is never the pre-hash variant, HashML-DSA, and never carries a
+context. [Verify Signature](#verify-signature) uses the same empty context, so a
+signature made any other way does not verify. Whatever holds the key signs this
+way, including a secret source that signs
+([`protocol/secret-source`](secret-source.md)).
+
 ### Sign JSON
 ```
 input: any JSON-serializable value
@@ -417,7 +427,7 @@ output: boolean
 process:
   1. Validate public key is 1952 bytes
   2. Validate signature is 3309 bytes
-  3. Return verify(publicKey, data, signature)
+  3. Return verify(publicKey, data, signature), with an empty context string
   4. Return false on any decode error
 ```
 
@@ -930,9 +940,10 @@ Implementation MUST:
 - [ ] Generate keys with cryptographically secure random source
 - [ ] Store private keys with restricted permissions (readable only by owning process)
 - [ ] Encrypt operator private keys with Argon2id + AES-256-GCM (passphrase required, min 12 chars)
-- [ ] Never store an operator's private key unencrypted — not with `kdf = none`, and not in any secret source
+- [ ] Every operator private key written, handed to a secret source or received from one is the `weblisk-key-v1` envelope with `kdf = argon2id` — never unencrypted, whoever holds it (rule 1)
 - [ ] Support encrypted service keys whose passphrase comes from a secret source
 - [ ] Never accept an identity's private key or its passphrase from an environment variable
+- [ ] Sign and verify with pure ML-DSA-65 and an empty context string, never HashML-DSA
 - [ ] Parse weblisk-key-v1 format correctly (magic, algorithm=ml-dsa-65, kdf, params, ciphertext)
 - [ ] Never store passphrase on disk — only hold in memory during decrypt
 - [ ] A failed passphrase terminates the operation immediately — no retry loop, no passphrase enumeration. The platform blueprint states how termination is signalled

@@ -935,12 +935,13 @@ means the same by them:
 `--name`, the operator as a hub records them, and admin rule 2 forbids merging
 the two into one argument.
 
-The private half is held in one of two ways:
+The private half is held in one of three ways:
 
 | Holder | On disk beside the identity | Passphrase |
 |---|---|---|
 | Encrypted file | `operator.key` in `weblisk-key-v1` format (Argon2id KDF + AES-256-GCM), and `operator.pub` | Required. The CLI never writes it down; it is the only thing protecting the key |
-| A secret source — a keychain, a vault, or any store a helper speaks for | `operator.pub` and `holder.json`, the holder reference. No private key | None to type. The source holds the passphrase with the private half |
+| Encrypted file, its passphrase remembered by a secret source | `operator.key`, `operator.pub`, and `holder.json` recording `holds: ["passphrase"]` | None to type. The source remembers the passphrase the person chose, and the key file still opens without the source. Only on request: `--remember-passphrase` |
+| A secret source — a keychain, a vault, a hardware token, or any store a helper speaks for | `operator.pub` and `holder.json`, the holder reference. No private key | None to type. The source holds what unlocks the private half, or signs with it and never releases it |
 
 [`protocol/secret-source`](../protocol/secret-source.md) is how the CLI finds a
 source and speaks to it, which sources it carries built in, what a holder
@@ -971,15 +972,19 @@ The passphrase is NOT stored — you must remember it.
 
 - Creates the identity where `--keys-dir`, `--identity` or the default selects
   (mode 0700 directory, 0600 key) — see [Where an identity lives](#where-an-identity-lives)
-- Without `--holder`, prompts for a passphrase, which cannot be skipped or
-  supplied via flag. Minimum length 12 characters (enforced). The private key is
-  stored in `weblisk-key-v1` format, and the passphrase is never written to
-  disk and never in shell history
-- `--holder <source>` keeps the private half in that secret source instead: no
-  private key is written beside the identity and no passphrase is asked for.
+- Without `--holder`, or with `--remember-passphrase`, prompts for a
+  passphrase, which cannot be skipped or supplied via flag. Minimum length 12
+  characters (enforced). The private key is stored in `weblisk-key-v1` format,
+  and the passphrase is never written to disk and never in shell history
+- `--holder <source>`, without `--remember-passphrase`, keeps the private half
+  in that secret source instead: no private key is written beside the identity
+  and no passphrase is asked for.
   What the source then holds is
   [`protocol/secret-source`](../protocol/secret-source.md#an-identity-held-by-a-source)'s
   to say
+- `--remember-passphrase`, with `--holder <source>`, writes the encrypted key
+  file as without `--holder`, and has the source keep only the passphrase the
+  person typed. `holder.json` then records `holds: ["passphrase"]`
 - `--holder-opt <key>=<value>` passes an option to the source and records it in
   the holder reference — which vault, which account. Repeatable. An option is
   never a secret
@@ -993,19 +998,28 @@ The passphrase is NOT stored — you must remember it.
 
 ### `weblisk operator store`
 
-Map an identity whose private half is already in a secret source, rather than
-creating one.
+Map an identity to a secret source, rather than creating one: an identity whose
+private half is already in the source, or, with `--remember-passphrase`, one
+whose encrypted key file is here and whose passphrase the source is to remember.
 
 ```bash
 $ weblisk operator store --identity alice --holder <source>:<reference>
+$ weblisk operator store --identity alice --holder <source> --remember-passphrase
 ```
 
 - `--holder <source>:<reference>` is the holder reference in its flag form
   ([`protocol/secret-source`](../protocol/secret-source.md#the-holder-reference))
 - Writes the public key, read from the source, and the holder reference beside
-  the selected identity. The private half stays in the source
+  the selected identity, once a signature made through the reference verifies
+  against that key. The private half stays in the source
 - Refuses where the selected location already holds a private key on disk: a
-  subject holds one identity, and mapping over it would strand that one
+  subject holds one identity, and mapping over it would strand that one.
+  `--remember-passphrase` is the exception, because the key file is what it
+  keeps
+- `--remember-passphrase`, with `--holder <source>`, is for an identity already
+  in an encrypted key file at the selected location. Asks for its passphrase on
+  stdin, checks that it opens the key, has the source keep it, and writes
+  `holder.json` recording `holds: ["passphrase"]`
 - `--holder-opt <key>=<value>` as for `operator init`
 - `--reference <reference>` means `--holder 1password:<reference>`, and
   `--account` is as for `operator init`. Both are deprecated aliases
@@ -2128,8 +2142,8 @@ security:
         private half and returns a signature. From one that cannot, the CLI gets
         the encrypted private half and its passphrase, decrypts it in memory,
         signs, and zeroises both (protocol/secret-source). An encrypted key file
-        is decrypted in memory for the invocation that asked for its passphrase,
-        and never written back in the clear
+        is decrypted in memory for one invocation, with the passphrase a person
+        typed or a secret source remembers, and never written back in the clear
     - boundary: CLI → Orchestrator. Authenticated per request with a short-lived
         credential, over a transport the operator named
     - boundary: CLI → Local filesystem. Confined to the project and the
@@ -2220,7 +2234,9 @@ security:
 - [ ] `weblisk operator init` passphrase cannot be skipped or supplied as CLI argument
 - [ ] `weblisk operator init --holder <source>` writes no private key beside the identity and asks for no passphrase
 - [ ] `weblisk operator init --vault <vault>` behaves exactly as `--holder 1password --holder-opt vault=<vault>`
-- [ ] `weblisk operator store --holder <source>:<reference>` writes `operator.pub` and `holder.json` and no private key
+- [ ] `weblisk operator store --holder <source>:<reference>` writes `operator.pub` and `holder.json` and no private key, and only once a signature made through the reference verifies against the public key
+- [ ] `weblisk operator init --holder <source> --remember-passphrase` writes an encrypted `operator.key`, asks for the passphrase, and has the source keep only that passphrase; `holder.json` records `holds: ["passphrase"]`
+- [ ] `weblisk operator store --holder <source> --remember-passphrase` keeps the existing key file, and has the source keep its passphrase only after checking that it opens the key
 - [ ] `--identity <label>` resolves to the same location on every run, and `weblisk operator path --identity <label>` reports it
 - [ ] `--keys-dir` outranks `--identity` when both are given
 - [ ] `weblisk operator connect` asks for no passphrase when a secret source holds the identity's passphrase

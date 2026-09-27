@@ -154,6 +154,13 @@ This ruling is stated here because a conformance check cannot infer it. Without 
 the guidance to use `wrangler secret put` reads as a violation of the very
 specification it satisfies.
 
+For the same reason this blueprint declares Workers Secrets to be a source the
+platform carries, releasing a key only to the running workload and never writing
+it to a filesystem. A service key held there earns `key_protection:
+secrets-manager`, by that row of
+[`protocol/secret-source`](../protocol/secret-source.md#protection)'s Protection
+table.
+
 ---
 
 ## Service Mapping

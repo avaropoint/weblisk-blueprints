@@ -109,10 +109,10 @@ requires:
 
 3. **A subject is a person or a service, treated identically** — Service
    accounts are identities. Same algorithm, same binding, same revocation, same
-   audit. They differ only in `kdf`: a person's key is always encrypted, and a
-   headless service key MAY use `kdf: none` with file permissions as its sole
-   protection, in development only (`protocol/identity` Key Categories, rules 1
-   and 6). Nothing else about the model changes.
+   audit. They differ only in `kdf`: a person's key is never stored
+   unencrypted, and a headless service key MAY use `kdf: none` with file
+   permissions as its sole protection, in development only (`protocol/identity`
+   Key Categories, rules 1 and 6). Nothing else about the model changes.
 
 4. **A hub is entered by a credential, never by the identity** — A hub stores a
    credential's public key, not the identity's. The identity key is presented
@@ -210,7 +210,7 @@ contracts:
       rules:
         - The key pair MUST be generated on the subject's own system
         - The private key MUST NOT be transmitted to any party, ever
-        - A human subject's key MUST use kdf argon2id, whoever holds it; protocol/identity rule 1 says where its passphrase comes from
+        - A human subject's private key, wherever it is written or whatever secret source returns it, MUST be the weblisk-key-v1 envelope with kdf argon2id. A key that never leaves a secret source that signs has no such form (protocol/identity rule 1)
         - A service subject's key MAY use kdf none where no passphrase can be prompted, in development only (protocol/identity rule 6)
         - Only the public key is ever published
 

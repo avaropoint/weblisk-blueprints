@@ -120,8 +120,8 @@ Every source answers the same actions, however it is reached:
 
 | Action | Asks for | Answers with | Required of a source |
 |---|---|---|---|
-| `capabilities` | what this source can do | `actions`, `sign_algs`, `named_fields` | Yes |
-| `get` | one secret, by reference and field | `value` | Yes |
+| `capabilities` | what this source can do | `actions`, `sign_algs`, `named_fields`, `withheld_fields` | Yes |
+| `get` | one secret, by reference and field | `value` | Yes, for every field the source does not withhold |
 | `store` | keep these fields, somewhere the source chooses | `reference` | No |
 | `erase` | forget what a reference names | an empty object | No |
 | `sign` | an ML-DSA-65 signature from a key that never leaves the source | `signature` | No — OPTIONAL |
@@ -134,6 +134,14 @@ answer an action it did not list with `unsupported`.
 item holds fields, or exactly one. An identity held whole needs a source with
 named fields. A source without them holds one value per reference — a
 passphrase, or a master key.
+
+`withheld_fields` names the fields a source holds and never releases through
+`get`, whatever the reference. A hardware token that signs lists `private_key`.
+A source MUST answer `get` of a withheld field with `unsupported`. Every field
+not listed is one the source releases.
+
+A `capabilities` response that leaves a field out is read as the smaller claim:
+`named_fields` false, `sign_algs` empty, `withheld_fields` empty.
 
 A source is reached in one of two ways, and a caller cannot tell them apart on
 the wire:
@@ -201,14 +209,17 @@ deadlines, never a secret.
 
 ### The holder reference
 
-A **holder reference** records where an identity's private half is held. It
-names a source and says where in that source to look. It never contains a
+A **holder reference** records where an identity's private half, or only its
+passphrase, is held. It names a source and says where in that source to look. It never contains a
 secret, so it may be written to disk, logged and printed.
 
 It is written as `holder.json` beside the identity's public key, in the place
 the identity lives ([`architecture/cli`](../architecture/cli.md#where-an-identity-lives)).
-An identity with no `holder.json` is held in an encrypted key file, and no
-source is asked.
+An identity with no `holder.json` is held in an encrypted key file whose
+passphrase a person types, and no source is asked. An identity whose
+`holder.json` records `holds: ["passphrase"]` is held in an encrypted key file
+too, and the source remembers only its passphrase
+([An identity held by a source](#an-identity-held-by-a-source)).
 
 ```json
 {
@@ -223,14 +234,17 @@ source is asked.
 - `reference` says where the identity is within that source. **A reference is
   opaque outside its source:** no caller parses it, splits it or builds one.
   Only the source reads it. A source MUST return a reference that keeps naming
-  the same item when a person renames that item — a name moves, and what a
-  record joins on must not.
+  the same item when a person renames that item, and SHOULD return one that
+  survives renaming what holds the item, such as a vault or a folder — a name
+  moves, and what a record joins on must not.
 - `options` are strings the source needs on every request, such as which
   account or which vault. They pass to the source unchanged and are never
   secrets.
-- `holds`, when present, lists which of the identity's fields the source holds
-  ([An identity held by a source](#an-identity-held-by-a-source)). Absent means
-  all of them.
+- `holds` says what the source holds. Absent, the source holds the identity's
+  private half. `["passphrase"]` means the source remembers only the passphrase
+  of the encrypted key file beside the reference
+  ([An identity held by a source](#an-identity-held-by-a-source)). A caller
+  refuses any other value, naming it.
 
 **The flag form** is `<source>:<reference>`, split at the first colon. So
 `team-vault:weblisk/identity-7f3a9c` names the source `team-vault` and the
@@ -243,7 +257,8 @@ with `source` set to `1password`, the same `reference`, and `options.account`
 set from `account` when it is present. It is read and never rewritten on read: a
 record changed by opening it acquires a history nobody made. An implementation
 writes version 2 only. A version-1 record whose `kind` is anything other than
-`1password` is refused, naming the kind.
+`1password` is refused, naming the kind, and so is a record whose `version` is
+anything other than 2, naming the version.
 
 ### Actions
 
@@ -253,12 +268,12 @@ A request names its action. Examples below show one request and its response.
 
 ```json
 { "version": 1, "action": "capabilities", "options": {} }
-{ "actions": ["capabilities", "get", "store", "erase"], "sign_algs": [], "named_fields": true }
+{ "actions": ["capabilities", "get", "store", "erase"], "sign_algs": [], "named_fields": true, "withheld_fields": [] }
 ```
 
 **`get`** returns one value. `field` names which, and is omitted for a source
 without named fields. A reference that names nothing, or a field the item does
-not have, is `not_found`.
+not have, is `not_found`. A field the source withholds is `unsupported`.
 
 ```json
 { "version": 1, "action": "get", "reference": "weblisk/identity-7f3a9c", "field": "public_key", "options": { "account": "operations" } }
@@ -270,7 +285,8 @@ source chooses where from `options`. `label` is a name a person will recognise
 in the source's own interface; it is never a secret and never used to find the
 item again — the returned reference is. A source without named fields accepts
 exactly one field, named `value`. A store that fails part way MUST NOT return a
-reference, and the caller then records nothing.
+reference, and the caller then records nothing. `store` keeps what a caller
+gives it. No action of this protocol creates a key inside a source.
 
 ```json
 { "version": 1, "action": "store", "label": "weblisk identity alice", "fields": { "private_key": "<base64url>", "passphrase": "<base64url>", "public_key": "<base64url>" }, "options": { "vault": "operations" } }
@@ -288,8 +304,10 @@ reference, and the caller then records nothing.
 **`sign`** is OPTIONAL. A source lists it only if the key the reference names
 can sign without leaving the source. `alg` is `ml-dsa-65`, the one signing
 algorithm [`protocol/identity`](identity.md) permits, and a source that can sign
-lists it in `sign_algs`. The signature is over `message` exactly as given.
-Whether it is deterministic is the source's own; a caller MUST NOT depend on it.
+lists it in `sign_algs`. The signature is over `message` exactly as given, made
+as [`protocol/identity`](identity.md#sign) defines a signature, so it verifies
+wherever any other Weblisk signature does. Whether it is deterministic is the
+source's own; a caller MUST NOT depend on it.
 
 ```json
 { "version": 1, "action": "sign", "reference": "weblisk/identity-7f3a9c", "alg": "ml-dsa-65", "message": "<base64url>", "options": {} }
@@ -305,7 +323,18 @@ both.
 
 ### An identity held by a source
 
-An identity held by a source is three named fields under one reference:
+A source holds an identity in one of three ways. The holder reference's `holds`
+tells the last apart from the other two, and the source's `capabilities` tell
+the first two apart.
+
+| Way | The source holds | Beside the holder reference | `holds` |
+|---|---|---|---|
+| **Whole** | the private key as a `weblisk-key-v1` envelope, the passphrase that opens it, and the public key | the public key | absent |
+| **Signing** | a key it signs with and never releases, and the public key | the public key | absent |
+| **Passphrase only** | the passphrase of an encrypted key file | the public key and the encrypted key file | `["passphrase"]` |
+
+**Whole.** A source with named fields holds the identity as three fields under
+one reference:
 
 | Field | Value |
 |---|---|
@@ -313,29 +342,46 @@ An identity held by a source is three named fields under one reference:
 | `passphrase` | the passphrase that opens that envelope |
 | `public_key` | the identity's public key, so the identity can be rebuilt from the source alone |
 
-When a caller creates an identity in a source, it generates the passphrase from
-a cryptographically secure random source. Nobody types it, because nobody needs
-to. The envelope stays encrypted even though its passphrase sits beside it: a
-field shown on a screen, copied, or exported on its own is then not a key, and
-an identity has one stored form wherever it lives. An operator's key is never
-stored unencrypted, in a source or anywhere else
+When a caller creates an identity in a source, it generates the passphrase: at
+least 256 bits from a cryptographically secure random source, encoded as text.
+Nobody types it, because nobody needs to. The envelope stays encrypted even
+though its passphrase sits beside it: a field shown on a screen, copied, or
+exported on its own is then not a key, and a private key has one form wherever
+it is written. Every private key a caller hands to a source, or receives from
+one, is that envelope with `kdf = argon2id`
 ([`protocol/identity`](identity.md) rule 1).
 
-**Whole, unless the operator asks otherwise.** A caller stores all three fields
-together. A source MAY instead hold only the `passphrase` of an identity whose
-encrypted key file stays where it is — a remembered passphrase — and a caller
-does that only when the operator asks for it. The holder reference then records
-`holds: ["passphrase"]`.
+A caller stores the three fields together unless the operator asks for the
+passphrase alone to be kept.
+
+**Signing.** A source that signs with `ml-dsa-65` and withholds `private_key`
+keeps the key in whatever form it uses, releases `public_key`, and signs when
+asked. No caller ever sees that key, so it has no envelope and no passphrase,
+and nothing a caller writes or receives holds it. No action of this protocol
+creates such a key. The source's own tools generate it, under
+[`patterns/principal-identity`](../patterns/principal-identity.md) Design
+Principle 1, and a caller then maps it.
+
+**Passphrase only — a remembered passphrase.** A source MAY hold only the
+`passphrase` of an identity whose encrypted key file stays where it is. A caller
+does that only when the operator asks for it;
+[`architecture/cli`](../architecture/cli.md#where-an-identity-lives) says how
+they ask. The passphrase is the one the person chose, so the key file still
+opens without the source. Before a caller has a source keep a passphrase, it
+checks that the passphrase opens the key file.
 
 Where a source holds an identity's passphrase, the caller does not ask a person
 for one.
 
 **Mapping an identity that is already in a source.** A caller reads
-`public_key` from the source and writes it beside the holder reference. Before
-it records the reference, it MUST prove the reference works — by reading
-`public_key`, and `private_key` too unless the source signs. A reference that
-cannot be read is a mapping that does not work, and finding that out at the
-first signature means finding it out in the middle of something else.
+`public_key` from the source. Before it records the holder reference, or writes
+the public key beside it, it MUST prove that the reference works and names that
+key. It signs a fresh random message through the reference, as
+[Signing with a held identity](#signing-with-a-held-identity) describes, and
+verifies the signature against the `public_key` it read. A reference that cannot
+be read, or whose key does not match its `public_key`, is refused. Finding that
+out at the first real signature means finding it out in the middle of something
+else.
 
 ### Signing with a held identity
 
@@ -349,6 +395,8 @@ source for `capabilities` first.
   decrypts the envelope in memory, signs, and zeroises the key and the
   passphrase ([`protocol/identity`](identity.md) rule 10). Neither is written
   anywhere.
+- **The source remembers the passphrase only.** The caller gets `passphrase`,
+  decrypts the key file in memory, signs, and zeroises both.
 
 An identity kept in an encrypted key file is decrypted in memory the same way,
 with the passphrase from a person or from a source that remembers it. It is
@@ -361,19 +409,26 @@ never written anywhere in the clear, and is zeroised after use
 ([`patterns/principal-identity`](../patterns/principal-identity.md)) says how the
 identity's long-lived key is protected, using the ranking of
 [`protocol/identity`](identity.md) rule 8. A caller derives it from where the
-key is held and from what a source lists in `capabilities`, never from what a
-source says about itself:
+key is held and from how the source answers `capabilities` — the actions it
+answers and the fields it withholds. It never derives it from a name, label or
+description a source gives itself:
 
 | Where the private half is held | `key_protection` |
 |---|---|
-| A source that lists `sign` for `ml-dsa-65` and does not list `get` — it can sign and cannot hand the key out | `hardware` |
-| A source holding the identity whole, or a source that signs and also lists `get` | `secrets-manager` |
+| A source that lists `sign` with `ml-dsa-65` in `sign_algs`, and lists `private_key` in `withheld_fields` — it signs, and will not hand the key out | `hardware` |
+| A source that holds the identity whole and releases `private_key`, whether or not it can also sign | `secrets-manager` |
+| A service's key held by a source its platform carries, which releases the key only to the running workload and never writes it to a filesystem. The platform blueprint declares that its source is one | `secrets-manager` |
 | An encrypted key file, its passphrase typed by a person or remembered by a source | `passphrase` |
 | An encrypted key file, its passphrase delivered by `file` or `fd` | `passphrase`. It is `platform-attestation` only where the deployment declares that its platform releases that secret to an attested workload alone — a caller cannot observe that, so it is never inferred |
 | A key file with `kdf = none` | `development-only`. Refused for an operator identity, and for a service anywhere but development ([`protocol/identity`](identity.md) rules 1 and 6) |
 
 A caller MUST NOT report a stronger value than this table gives. Where it cannot
 tell which row applies, it reports the weaker.
+
+`hardware` still rests on what a source answers. A caller can see that a source
+signs and refuses to release the key, and cannot see inside it. The value is
+trusted exactly as far as the person trusts the program they chose to speak for
+that source ([Security](#security)).
 
 ### Headless references: `file` and `fd`
 
@@ -436,8 +491,10 @@ encrypted key file, is not something a source returned. It is governed by
 
 ### Where a secret is never stored
 
-- **Unencrypted, for an operator's key** — not in a key file, and not in any
-  source ([`protocol/identity`](identity.md) rule 1).
+- **Unencrypted, for an operator's key.** Every operator private key a caller
+  writes, hands to a source, or receives from one is the `weblisk-key-v1`
+  envelope ([`protocol/identity`](identity.md) rule 1). A key that never leaves
+  a source that signs is never written or received, so it has no such form.
 - **Anywhere the caller writes, in the clear.** A caller never writes a
   passphrase down, and writes any other secret value only encrypted. Only a
   source keeps a passphrase, under its own protection
@@ -485,14 +542,17 @@ what to show from them rather than by matching the words of a message.
 types:
   HolderReference:
     description: >-
-      Where an identity's private half is held, written as holder.json beside
-      the identity's public key. Never a secret
+      Where an identity's private half, or only its passphrase, is held,
+      written as holder.json beside the identity's public key. Never a secret
     fields:
       version:
         type: int
         required: true
         enum: [2]
-        description: The record's version. Version 1 is read as a legacy form and never written
+        description: >-
+          The record's version. A record with no version field is version 1,
+          read as a legacy form and never written. Any other version is refused,
+          naming it
       source:
         type: string
         required: true
@@ -510,9 +570,9 @@ types:
         type: "list<string>"
         required: false
         description: >-
-          Which of private_key, passphrase and public_key the source holds.
-          Absent means all three. A list of passphrase alone means the source
-          remembers the passphrase of an encrypted key file
+          What the source holds. Absent means the identity's private half.
+          ["passphrase"] means only the passphrase of the encrypted key file
+          beside this reference. Any other value is refused, naming it
 
   SecretSourceRequest:
     description: One request to a source, and the whole of a helper's standard input
@@ -579,11 +639,18 @@ types:
       sign_algs:
         type: "list<string>"
         required: false
-        description: For capabilities, the algorithms sign accepts. Empty or absent when the source cannot sign
+        description: For capabilities, the algorithms sign accepts. Empty or absent when the source cannot sign, and absent means empty
       named_fields:
         type: bool
         required: false
-        description: For capabilities, whether one reference holds several named values
+        description: For capabilities, whether one reference holds several named values. Absent means false
+      withheld_fields:
+        type: "list<string>"
+        required: false
+        description: >-
+          For capabilities, the fields this source holds and never releases
+          through get, whatever the reference. Absent means none. A get of a
+          withheld field is answered unsupported
       signature:
         type: string
         format: base64url
@@ -733,7 +800,9 @@ security:
     process: >-
       A source that can sign is asked to sign, and the key never leaves it. From
       any other source the caller gets the encrypted envelope and its
-      passphrase, decrypts in memory, signs, and zeroises both.
+      passphrase, or the passphrase of a key file, decrypts in memory, signs,
+      and zeroises both. Every signature is made as protocol/identity Sign
+      defines it
   timeouts:
     - >-
       Every deadline is the caller's. When one passes, the caller terminates
@@ -752,10 +821,13 @@ security:
       sign. Which program that is must therefore be the person's own choice,
       made in the registry or by what is installed, and nobody else may change
       it; that is why the registry and its commands are refused when another
-      user can write them. A source is trusted to keep what it is given. It is
-      never trusted to say how well it keeps it, so key_protection is derived
-      from what the caller observes and never from a source's description of
-      itself.
+      user can write them. A source is trusted to keep what it is given and to
+      answer truly what it will do. key_protection is derived from those
+      answers, the actions a source answers and the fields it withholds, and
+      never from a name or description a source gives itself. The answers are
+      still the source's own. A caller cannot look inside a source, so hardware
+      means a source that answered as a non-extractable holder answers, trusted
+      as far as the person trusts the program they chose.
 ```
 
 ---
@@ -793,8 +865,10 @@ security:
 - [ ] A helper's environment carries no variable holding a secret the caller was given
 - [ ] A helper answers a request whose `version` it does not speak with `unsupported`
 - [ ] A caller asks for `capabilities` before using `store`, `erase` or `sign`, and a source answers an unlisted action with `unsupported`
+- [ ] A source answers `get` of a field it lists in `withheld_fields` with `unsupported`, and a `capabilities` response missing a field is read as `named_fields` false, `sign_algs` empty and `withheld_fields` empty
 - [ ] A `holder.json` with no `version` and `kind: 1password` is read as `source: 1password` with `options.account` from `account`, and the file is not rewritten
-- [ ] A version-1 `holder.json` with any other `kind` is refused, naming the kind
+- [ ] A version-1 `holder.json` with any other `kind` is refused, naming the kind, and a `holder.json` with a `version` other than 2 is refused, naming the version
+- [ ] A `holds` other than absent or `["passphrase"]` is refused
 - [ ] A caller never parses a `reference` outside its source
 - [ ] A caller creates an identity, a master key or any secret in place of one it could not read only when the source answered `not_found`
 - [ ] A caller never reports an identity, a key or a secret as missing for `locked`, `denied`, `timeout`, `not_installed`, `invalid_reference` or `unsupported`
@@ -802,9 +876,10 @@ security:
 - [ ] When a caller's deadline passes, the helper and every process it started are terminated and `timeout` is reported
 - [ ] A source that lists `sign` with `ml-dsa-65` in `sign_algs` is asked to sign and is never asked for `private_key`
 - [ ] From a source that cannot sign, the caller gets `private_key` and `passphrase`, decrypts in memory, signs, and zeroises both
-- [ ] An identity created in a source is stored as the `weblisk-key-v1` envelope with a generated `passphrase` and its `public_key`, never as a raw key
-- [ ] A holder reference is recorded only after `public_key`, and `private_key` unless the source signs, have been read through it
-- [ ] `key_protection` is `hardware` only for a source that lists `sign` and does not list `get`, and is never reported stronger than the Protection table gives
+- [ ] An identity created in a source is stored as the `weblisk-key-v1` envelope with `kdf = argon2id`, a generated `passphrase` of at least 256 bits from a cryptographically secure random source, and its `public_key`, never as a raw key
+- [ ] A source keeps only an identity's passphrase only when the operator asked for it, and only after the caller checked that the passphrase opens the key file
+- [ ] A holder reference is recorded only after a signature made through it verifies against the `public_key` read from it
+- [ ] `key_protection` is `hardware` only for a source that lists `sign` with `ml-dsa-65` and lists `private_key` in `withheld_fields`, and is never reported stronger than the Protection table gives
 - [ ] `file:` with a relative path answers `invalid_reference`, and `file:` naming a file another user can write is refused
 - [ ] An installation whose master key came from an environment variable reports that it did
 - [ ] A console never receives a value a source returned for an identity
