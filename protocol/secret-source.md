@@ -95,6 +95,12 @@ requires:
 - A helper MUST read exactly one request from its standard input, as one JSON
   object (RFC 8259) in UTF-8, write exactly one response to its standard output
   as one JSON object, and then exit.
+- **The response governs, never the exit status.** When a helper has written a
+  valid `SecretSourceResponse`, that response is its answer, and the caller
+  ignores how the helper exited. A helper that writes
+  `{"error": {"code": "not_found", …}}` and exits 1 has answered `not_found`.
+  A helper that wrote no valid response has not spoken this protocol
+  ([Error Handling](#error-handling)).
 - Every secret value, message and signature on the wire is base64url without
   padding (RFC 4648 §5), the encoding [`protocol/identity`](identity.md) uses for
   every key and signature. A value is carried as bytes; how a source stores it
@@ -178,7 +184,9 @@ order and uses the first it finds:
    the user the caller runs as. Each entry is a `SecretSourceRegistryEntry`,
    keyed by source name.
 2. **A built-in source** of that name.
-3. **A program on the search path** named `weblisk-secret-<name>`.
+3. **A program on the search path** named `weblisk-secret-<name>`. An empty or
+   relative entry in the search path is skipped. Each names the current
+   directory, which is wherever the caller happened to be started.
 
 The registry comes first because it is a person's explicit choice. A built-in
 comes before the search path so that a program which happens to appear on the
@@ -201,11 +209,19 @@ the program name it looked for.
 }
 ```
 
-The registry decides which programs receive a person's secrets. A caller MUST
-refuse a registry file that any user other than its owner can write, and MUST
-refuse to run a registered command whose program any user other than its owner
-or the system administrator can write. The registry holds commands and
-deadlines, never a secret.
+A registered `command` names its program by an absolute path. The registry
+holds commands and deadlines, never a secret.
+
+**Who may change what a caller runs.** The registry and the search path decide
+which programs receive a person's secrets, so nobody but that person, or the
+machine's administrators, may be able to change either. A caller **trusts** a
+file only when the file and the directory that holds it are each owned by the
+user the caller runs as or by an administrator, and nobody else can write
+either. A caller MUST refuse a registry file it does not trust. It MUST refuse
+to run a helper program it does not trust, whether the registry named it or the
+search path found it. It reports the refusal as `denied`, naming the file and
+the reason, and uses nothing in its place: falling back to another program would
+run one the person did not choose.
 
 ### The holder reference
 
@@ -449,9 +465,9 @@ is one. Each answers `get` without a `field`, and every other action with
 A relative path, or a descriptor that is not a number, is `invalid_reference`. A
 file the caller may not read is `denied`.
 
-A caller MUST refuse a `file:` reference to a file that any user other than its
-own or the system administrator can write. A secret somebody else can replace
-is not one the caller can trust.
+A caller MUST refuse a `file:` reference to a file it does not trust
+([Discovery](#discovery) says when it does), and reports that as `denied`. A
+secret somebody else can replace is not one the caller can rely on.
 
 ### An installation's master key
 
@@ -712,7 +728,8 @@ attested for the old identity, every secret encrypted under the old master key.
 
 A helper that exits without writing a response, or writes one that is not a
 `SecretSourceResponse`, has not spoken this protocol. The caller reports that as
-`unsupported`, naming the helper.
+`unsupported`, naming the helper. A helper's exit status decides nothing either
+way ([Conventions](#conventions)).
 
 ```yaml
 error_format:
@@ -738,7 +755,8 @@ error_codes:
   - code: denied
     description: >-
       The source refused. A person declined the request, or this caller may not
-      read that item
+      read that item. Also produced by the caller when it refuses a registry
+      file, a helper program or a file: reference that it does not trust
     retryable: false
     may_create: false
   - code: timeout
@@ -820,14 +838,15 @@ security:
       trusts the source, because it hands that program the secret or asks it to
       sign. Which program that is must therefore be the person's own choice,
       made in the registry or by what is installed, and nobody else may change
-      it; that is why the registry and its commands are refused when another
-      user can write them. A source is trusted to keep what it is given and to
-      answer truly what it will do. key_protection is derived from those
-      answers, the actions a source answers and the fields it withholds, and
-      never from a name or description a source gives itself. The answers are
-      still the source's own. A caller cannot look inside a source, so hardware
-      means a source that answered as a non-extractable holder answers, trusted
-      as far as the person trusts the program they chose.
+      it. That is why a caller reads only a registry, and runs only a helper,
+      that no other user can write, and skips empty and relative entries in the
+      search path. A source is trusted to keep what it is given and to answer
+      truly what it will do. key_protection is derived from those answers, the
+      actions a source answers and the fields it withholds, and never from a
+      name or description a source gives itself. The answers are still the
+      source's own. A caller cannot look inside a source, so hardware means a
+      source that answered as a non-extractable holder answers, trusted as far
+      as the person trusts the program they chose.
 ```
 
 ---
@@ -858,12 +877,14 @@ security:
 
 ## Verification Checklist
 
-- [ ] A caller resolves a source from the registry `~/.weblisk/secret-sources.json` first, then from its built-in sources, then from `weblisk-secret-<name>` on the search path
+- [ ] A caller resolves a source from the registry `~/.weblisk/secret-sources.json` first, then from its built-in sources, then from `weblisk-secret-<name>` on the search path, skipping empty and relative search-path entries
 - [ ] `file` and `fd` are read by the caller itself, and a registry entry or program on the path with either name is ignored
-- [ ] A registry file that another user can write is refused, and so is a registered command whose program another user can write
+- [ ] A registry file, a helper program, registered or found on the search path, and a `file:` reference are each refused as `denied` unless the file and its directory are owned by the caller's user or an administrator and nobody else can write them; nothing is used in a refused program's place
+- [ ] A registered command names its program by an absolute path
 - [ ] No field of a `SecretSourceRequest` appears on a helper's command line or in its environment
 - [ ] A helper's environment carries no variable holding a secret the caller was given
 - [ ] A helper answers a request whose `version` it does not speak with `unsupported`
+- [ ] A valid response is the helper's answer whatever its exit status, and only a helper that wrote no valid response is reported as `unsupported`
 - [ ] A caller asks for `capabilities` before using `store`, `erase` or `sign`, and a source answers an unlisted action with `unsupported`
 - [ ] A source answers `get` of a field it lists in `withheld_fields` with `unsupported`, and a `capabilities` response missing a field is read as `named_fields` false, `sign_algs` empty and `withheld_fields` empty
 - [ ] A `holder.json` with no `version` and `kind: 1password` is read as `source: 1password` with `options.account` from `account`, and the file is not rewritten
@@ -880,6 +901,6 @@ security:
 - [ ] A source keeps only an identity's passphrase only when the operator asked for it, and only after the caller checked that the passphrase opens the key file
 - [ ] A holder reference is recorded only after a signature made through it verifies against the `public_key` read from it
 - [ ] `key_protection` is `hardware` only for a source that lists `sign` with `ml-dsa-65` and lists `private_key` in `withheld_fields`, and is never reported stronger than the Protection table gives
-- [ ] `file:` with a relative path answers `invalid_reference`, and `file:` naming a file another user can write is refused
+- [ ] `file:` with a relative path answers `invalid_reference`
 - [ ] An installation whose master key came from an environment variable reports that it did
 - [ ] A console never receives a value a source returned for an identity
