@@ -273,12 +273,19 @@ to stop persisting one.
    [`protocol/secret-source`](secret-source.md), which also says which of these
    rows each way of holding it earns.
 
-9. An identity's private key, or the passphrase that opens it, MUST NOT be
-   supplied through an environment variable. Environment is readable via
-   `/proc`, container inspection, crash dumps and diagnostic output, and it is
-   inherited by every child process. An installation's master key is not an
-   identity's key; [`protocol/secret-source`](secret-source.md#an-installations-master-key)
-   states the one case in which it may arrive that way.
+9. No private key (an identity's, a credential's or any other), no other key
+   material, and no passphrase MAY be supplied through an environment variable.
+   Environment is readable via `/proc`, container inspection, crash dumps and
+   diagnostic output, and it is inherited by every child process. **Key
+   material** here is a private key or the seed it is derived from, and any
+   symmetric key that encrypts data at rest or protects another key. A
+   **passphrase** is a secret that opens key material. The one exception is an
+   installation's master key on a hosted deployment, and only a master key that
+   protects no private key, as
+   [`protocol/secret-source`](secret-source.md#an-installations-master-key)
+   states. A secret shared with another system — an API key, a password, a
+   webhook's shared secret — is neither key material nor a passphrase in this
+   rule; [`patterns/secrets`](../patterns/secrets.md) says how it is delivered.
 
 10. In-memory key material MUST be zeroised after use, SHOULD be
     excluded from swap where the platform allows it, and MUST be
@@ -942,7 +949,7 @@ Implementation MUST:
 - [ ] Encrypt operator private keys with Argon2id + AES-256-GCM (passphrase required, min 12 chars)
 - [ ] Every operator private key written, handed to a secret source or received from one is the `weblisk-key-v1` envelope with `kdf = argon2id` — never unencrypted, whoever holds it (rule 1)
 - [ ] Support encrypted service keys whose passphrase comes from a secret source
-- [ ] Never accept an identity's private key or its passphrase from an environment variable
+- [ ] Never accept a private key, other key material or a passphrase from an environment variable, except an installation's master key on a hosted deployment that protects no private key (rule 9)
 - [ ] Sign and verify with pure ML-DSA-65 and an empty context string, never HashML-DSA
 - [ ] Parse weblisk-key-v1 format correctly (magic, algorithm=ml-dsa-65, kdf, params, ciphertext)
 - [ ] Never store passphrase on disk — only hold in memory during decrypt

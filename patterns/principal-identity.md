@@ -342,9 +342,9 @@ contracts:
           start, held in memory only, and never written to disk
         - A production hub MUST refuse a grant to a subject whose key_protection
           is development-only
-        - Key material and passphrases MUST NOT be passed through environment
-          variables, which are readable via /proc, container inspection and crash
-          dumps, and are inherited by every child process
+        - No private key (an identity's or a credential's), other key material or
+          passphrase MAY be passed through an environment variable
+          (protocol/identity rule 9, which states the one exception)
         - In-memory key material MUST be zeroised after use and excluded from core
           dumps
         - Where the runtime can attest the workload, a service SHOULD hold no
@@ -851,7 +851,9 @@ credential revocation, which costs nothing else.
     `development_key_in_production`, at any scope.
 33. A service's operating credential never appears on disk — a filesystem scan
     during and after a run finds no credential material.
-34. Key material supplied through an environment variable is refused.
+34. A private key (an identity's or a credential's), other key material or a
+    passphrase supplied through an environment variable is refused
+    (`protocol/identity` rule 9, which states the one exception).
 35. A suspended grant denies exactly as a revoked one does — it confers no
     read-only residue.
 36. Restoring or widening a grant requires the same authority as issuing it, and

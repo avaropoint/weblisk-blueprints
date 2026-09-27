@@ -140,9 +140,10 @@ something it never does.
 
 ### Workers Secrets are a managed secret, not an environment variable
 
-`protocol/identity` forbids supplying a key or passphrase through an environment
-variable, and states why: environment is readable via `/proc`, container inspection,
-crash dumps and diagnostic output, and is inherited by every child process.
+`protocol/identity` rule 9 forbids supplying a private key, other key material or a
+passphrase through an environment variable, and states why: environment is readable
+via `/proc`, container inspection, crash dumps and diagnostic output, and is
+inherited by every child process.
 
 **A V8 isolate has none of those.** There is no `/proc`, no container to inspect, no
 core dump, and no child process to inherit anything. A Workers Secret is delivered

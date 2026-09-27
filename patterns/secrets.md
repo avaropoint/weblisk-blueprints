@@ -551,7 +551,7 @@ types:
         description: Identifier for the secret in whatever store holds it. Where that store is a secret source, this is a holder reference in its flag form, source:reference, as protocol/secret-source defines it
       env_var:
         type: string
-        description: Environment variable carrying the value, where a platform supplies secrets that way. MUST NOT be used for an identity's private key or its passphrase — protocol/identity rule 9 forbids that path and states why. An installation's master key is not an identity's key, and protocol/secret-source says when it may arrive this way
+        description: Environment variable carrying the value, where a platform supplies secrets that way. MUST NOT carry a private key (an identity's or a credential's), other key material or a passphrase — protocol/identity rule 9 forbids that path, says what those are, and states the one exception
 ```
 
 ---

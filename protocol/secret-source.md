@@ -473,33 +473,61 @@ secret somebody else can replace is not one the caller can rely on.
 
 An **installation's master key** is the symmetric key under which an
 installation — a console, or a service that keeps secrets of its own at rest —
-encrypts those secrets. It is not an identity's key. It signs nothing and
-attests nothing, and [`protocol/identity`](identity.md) rule 9 does not govern
-it.
+encrypts those secrets. It is not an identity's key, and it signs nothing. It is
+key material, so [`protocol/identity`](identity.md) rule 9 governs it, and this
+section states the one exception that rule allows.
 
 It comes from a secret source: a keychain where the installation runs as a
 person's program, and `file:` or `fd:` where it runs unattended.
 
-**On a hosted deployment it MAY come from an environment variable.** A hosted
-deployment is one whose platform starts the installation and delivers its
-configuration, with no person present and no keychain to ask. Some such
-platforms deliver a secret only as an environment variable. Where the master key
-arrives that way, the installation MUST say so wherever it reports how its
-secrets are protected, so anyone reading that report knows the key can be read
-wherever the environment can. `file:` and `fd:` are the alternatives, and an
-installation SHOULD use one where its platform offers it.
+**A master key is the one secret an installation keeps that is not encrypted
+under a master key**, since nothing can be encrypted under itself. A `file:`
+master key therefore lives outside the installation's state: in a file the
+platform mounts, or in a directory that the state's backups and replicas do not
+include.
+A master key kept beside what it encrypts is copied wherever they are, and
+protects nothing from anyone who holds the copy.
+
+**A master key that protects a private key never arrives through an environment
+variable.** That holds whether it encrypts the private key directly or through a
+key derived from it, such as a key bound to one purpose. An installation keeps
+private keys at rest — its own credential's key, an attestation signing key —
+only under a master key from a keychain, `file:` or `fd:`.
+
+**On a hosted deployment, a master key that protects no private key MAY come
+from an environment variable.** A hosted deployment is one whose platform starts
+the installation and delivers its configuration, with no person present and no
+keychain to ask. Some such platforms deliver a secret only as an environment
+variable. Where the master key arrives that way, the installation MUST say so
+wherever it reports how its secrets are protected, so anyone reading that report
+knows the key can be read wherever the environment can. `file:` and `fd:` are
+the alternatives, and an installation SHOULD use one where its platform offers
+it. An installation that must take one master key from the environment and also
+keeps a private key at rest has two master keys, and the one from the
+environment protects no private key.
 
 The rule that only `not_found` may lead to creating something
 ([Error Handling](#error-handling)) matters most here. A master key that could
 not be read is not a missing one, and generating a replacement makes every
 secret encrypted under the old key unreadable.
 
-### A console never holds an identity's secrets
+### A console never holds the secrets of an identity it acts for
 
-A console that uses this protocol for its own installation's secrets MUST NOT
-use it to reach an identity's. For an identity, the console asks the CLI to act
-— to connect, or to sign — and the CLI asks the source. Nothing a source returns
-for an identity is ever given to a console.
+A console's own keys are its installation's secrets: the key of its own service
+identity, where it has one, and the key of each credential it holds at a hub. A
+credential is not an identity
+([`patterns/principal-identity`](../patterns/principal-identity.md) Design
+Principle 4), so a credential a person's identity attested to the console is
+among them. The console keeps them at rest under a master key it reaches through
+this protocol, as [An installation's master key](#an-installations-master-key)
+says.
+
+What a console never reaches is the identity of anyone it acts for, a person's
+or another service's. A console that uses this protocol for its own
+installation's secrets MUST NOT use it to reach such an identity's. For those,
+the console asks the CLI to act — to connect, or to sign — and the CLI asks the
+source. Nothing a source returns for such an identity is ever given to a
+console.
 
 A passphrase a person types into a console, for an identity kept in an
 encrypted key file, is not something a source returned. It is governed by
@@ -511,20 +539,22 @@ encrypted key file, is not something a source returned. It is governed by
   writes, hands to a source, or receives from one is the `weblisk-key-v1`
   envelope ([`protocol/identity`](identity.md) rule 1). A key that never leaves
   a source that signs is never written or received, so it has no such form.
-- **Anywhere the caller writes, in the clear.** A caller never writes a
-  passphrase down, and writes any other secret value only encrypted. Only a
+- **Kept by a caller.** A caller never persists a secret it obtained from a
+  source — `public_key` is not one — and never persists a passphrase. Only a
   source keeps a passphrase, under its own protection
   ([`protocol/identity`](identity.md) rule 4).
 - **In anything this protocol records or passes along in the clear** — a holder
   reference, the registry, a request's `options` or `label`, a helper's command
   line or environment, or a helper's standard error.
-- **In an environment variable, for an identity's key or passphrase**
-  ([`protocol/identity`](identity.md) rule 9). An installation's master key is
-  the one bounded exception, stated [above](#an-installations-master-key).
+- **In an environment variable** — no private key, no other key material and no
+  passphrase ([`protocol/identity`](identity.md) rule 9). An installation's
+  master key is the one bounded exception, stated
+  [above](#an-installations-master-key).
 - **In a tenant's content or records.** A holder reference belongs to the
   machine that holds the identity, not to any tenant.
 - **In a console's own state, in the clear.** What a console keeps at rest is
-  encrypted under its master key.
+  encrypted under a master key. A master key itself is kept as
+  [An installation's master key](#an-installations-master-key) says.
 
 ### Passkeys are not a secret source
 
@@ -902,5 +932,7 @@ security:
 - [ ] A holder reference is recorded only after a signature made through it verifies against the `public_key` read from it
 - [ ] `key_protection` is `hardware` only for a source that lists `sign` with `ml-dsa-65` and lists `private_key` in `withheld_fields`, and is never reported stronger than the Protection table gives
 - [ ] `file:` with a relative path answers `invalid_reference`
+- [ ] A master key that protects a private key, directly or through a key derived from it, never comes from an environment variable
 - [ ] An installation whose master key came from an environment variable reports that it did
-- [ ] A console never receives a value a source returned for an identity
+- [ ] A `file:` master key is outside the installation's state and outside that state's backups and replicas
+- [ ] A console never receives a value a source returned for the identity of anyone it acts for
