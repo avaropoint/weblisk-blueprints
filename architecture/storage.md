@@ -11,8 +11,8 @@ tier: free
 
 Abstract storage contract for all persistent data in the Weblisk system.
 This document defines WHAT must be stored and the operations available —
-not HOW storage is implemented. Platform documents
-([go.md](../platforms/go.md), [cloudflare.md](../platforms/cloudflare.md))
+not HOW storage is implemented. Language and platform documents
+([go.md](../languages/go.md), [cloudflare.md](../platforms/cloudflare.md))
 map this interface to concrete backends.
 
 > **Scope boundary:** This file defines **system-level store interfaces**

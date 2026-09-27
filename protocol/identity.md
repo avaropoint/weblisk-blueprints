@@ -32,13 +32,13 @@ each other's signatures and read each other's key files, which is only true if
 what they conform to is the algorithm and the format rather than one platform's
 way of reaching them.
 
-Where a platform's standard library does not provide a primitive named here, the
-**platform blueprint** names what does. That is a platform blueprint's entire
-purpose: translating these requirements into the native terms of one language or
-runtime. Concretely, `platforms/go.md` carries a Primitive Mapping table because
-Go ships neither a post-quantum signature implementation nor a memory-hard
-key-derivation function, and something has to say where a Go implementation gets
-them.
+Where a language's or platform's standard library does not provide a primitive
+named here, the **language or platform blueprint** names what does. That is such
+a blueprint's entire purpose: translating these requirements into the native
+terms of one language or runtime. Concretely, `languages/go.md` carries a
+Primitive Mapping table because Go ships neither a post-quantum signature
+implementation nor a memory-hard key-derivation function, and something has to
+say where a Go implementation gets them.
 
 Two rules follow, and both have been broken already:
 
@@ -46,10 +46,10 @@ Two rules follow, and both have been broken already:
   checklist item once read *"verify all signatures … using ML_DSA_65.Verify"*,
   which is an identifier, not a requirement — and no Rust or JavaScript
   implementation has a symbol by that name.
-- A platform blueprint MUST NOT restate a requirement from here. `platforms/go.md`
-  once carried the key-derivation algorithm with its RFC number and its
-  parameters, which made a second normative copy of this section, free to drift
-  from it. It may name the module that provides the primitive; it may not
+- A language or platform blueprint MUST NOT restate a requirement from here.
+  `platforms/go.md` once carried the key-derivation algorithm with its RFC number
+  and its parameters, which made a second normative copy of this section, free to
+  drift from it. It may name the module that provides the primitive; it may not
   redefine the primitive.
 
 **Notation.** Where a process below reads `sign(privateKey, data)` or

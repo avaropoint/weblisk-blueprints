@@ -160,14 +160,17 @@ remove.
 
 | | Answers | Examples |
 |---|---|---|
-| **platform** | what is this written in, and where does it execute? | Go, Node, Rust, Cloudflare Workers |
+| **platform** | where does this execute, and what does that offer? | Node, Cloudflare Workers |
 | **provider** | whose service is this, and does its configuration satisfy our policy? | Microsoft 365, Google Workspace, AWS, Cloudflare |
 | **integration** | what data crosses this boundary, under what contract? | the connection to any of them |
 
-**`platform` is NOT a kind.** It is the language-and-runtime binding a component
-is generated for — `platforms/go.md`, `platforms/cloudflare.md`, the `--platform`
-flag. It answers what code looks like, not what an organisation governs, and
-nothing in this file declares it.
+**`platform` is NOT a kind, and neither is `language`.** Each is a binding a
+component is generated for — a platform is the runtime (`platforms/node.md`,
+`platforms/cloudflare.md`), a language is what the code is written in
+(`languages/go.md`, `languages/rust.md`); the `--platform` flag selects either
+today. They answer what code looks like, not what an organisation governs, and
+nothing in this file declares them. Why the two are separate is
+[`languages/README.md`](../languages/README.md).
 
 **One vendor may be both.** Cloudflare is a *platform* when you build Workers for
 it and a *provider* when you govern the account; AWS likewise. That is two

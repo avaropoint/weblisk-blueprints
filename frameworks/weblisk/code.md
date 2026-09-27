@@ -6,8 +6,8 @@
 
 **Scope.** Every convention here is about client output. Server-side components —
 an orchestrator, an agent, a domain controller — take their conventions from
-[`platforms/<language>`](../platforms/) instead, because naming, file size,
-imports and structure are properties of the language.
+[`languages/<language>`](../../languages/README.md) instead, because naming, file
+size, imports and structure are properties of the language.
 
 `file_naming: kebab-case` below is the clearest illustration: correct for a
 stylesheet, wrong for Go, where files are lowercase and a hyphen is not valid in

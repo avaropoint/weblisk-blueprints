@@ -21,7 +21,7 @@ type-specific schema governs the blueprint.
 | `architecture` | [architecture.md](architecture.md) | `architecture/` | System architecture components |
 | `language` | [language.md](language.md) | `languages/` | Programming language bindings |
 | `platform` | [platform.md](platform.md) | `platforms/` | Platform implementation bindings |
-| `standard` | [standard.md](standard.md) | `standards/` | Framework standards and conventions |
+| `standard` | [standard.md](standard.md) | `standards/` | Industry standards, as JSON |
 
 ---
 
@@ -416,11 +416,12 @@ in the YAML form above, one form, parsed by a parser.
 
 A field TABLE remains correct for two things that are not types:
 
-- **A document's own fields.** `standards/global`'s `### Top-Level` describes
-  what a global blueprint may declare. It is a schema, and nothing binds
-  `TopLevel.name`.
-- **Configuration options.** `standards/code`'s `| Field | Values | Effect |`
-  tables list the settings a standard accepts.
+- **A document's own fields.** `frameworks/weblisk/global`'s `### Top-Level`
+  describes what a global blueprint may declare. It is a schema, and nothing
+  binds `TopLevel.name`.
+- **Configuration options.** `frameworks/weblisk/code`'s
+  `| Field | Values | Effect |` tables list the settings a framework document
+  accepts.
 
 The distinction is not cosmetic. Rendering either as a `types:` block would
 claim they are types that a binding may reference, and the field-binding check
@@ -1104,7 +1105,8 @@ true, false
 | `protocol` | `protocol/` | `<name>.md` | `protocol/spec.md` |
 | `pattern` | `patterns/` | `<name>.md` | `patterns/messaging.md` |
 | `architecture` | `architecture/` | `<name>.md` | `architecture/agent.md` |
-| `platform` | `platforms/` | `<name>.md` | `platforms/go.md` |
+| `language` | `languages/` | `<name>.md` | `languages/go.md` |
+| `platform` | `platforms/` | `<name>.md` | `platforms/cloudflare.md` |
 
 Files must be lowercase, hyphen-separated, with `.md` extension.
 The filename (without extension) MUST match the `name` field in frontmatter.

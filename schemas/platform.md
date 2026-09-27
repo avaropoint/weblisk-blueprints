@@ -15,7 +15,7 @@ type: platform
 name: <platform-name>
 version: <semver>
 requires: [protocol/types, <type/name>, ...]
-platform: <go|cloudflare|node|rust>
+platform: <cloudflare|node>
 tier: free|pro
 -->
 ```
@@ -38,7 +38,7 @@ Platform blueprints do NOT use: `kind`, `port`, `extends`, `depends_on`.
 ### Special Constraint
 
 The `platform` field MUST match the `name` field. A platform blueprint
-describes itself — `name: go` implies `platform: go`.
+describes itself — `name: node` implies `platform: node`.
 
 ---
 
@@ -174,8 +174,8 @@ runtime:
       purpose: <what-it-does>
 ```
 
-If the platform achieves zero external dependencies (like Go), state this
-explicitly and list only standard library packages used.
+If the platform achieves zero external dependencies, state this explicitly and
+list only standard library packages used.
 
 ### Build and Run (`## Build and Run`)
 

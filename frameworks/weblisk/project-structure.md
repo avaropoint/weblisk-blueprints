@@ -43,8 +43,8 @@ my-project/
     <component>/
       agent.yaml            # the blueprint this tenant adopted
       ...                   # and the code generated from it
-                            # Server-side CODE follows the platform blueprint's
-                            # layout — see platforms/<language>. Every package is
+                            # Server-side CODE follows the language blueprint's
+                            # layout — see languages/<language>. Every package is
                             # named after the blueprint that specifies it.
   public/                   # Generated output (build artifact)
     index.html
@@ -59,15 +59,15 @@ A tenant holds both, and they follow different conventions:
 
 | | Governed by | In this listing |
 |---|---|---|
-| **Client** — pages, components, islands, theme, assets | `standards/` | `blueprints/`, `assets/`, `public/` |
-| **Server** — orchestrator, agents, domain controllers | `platforms/<language>` | the adopted `*.yaml`, and the code layout the platform defines |
+| **Client** — pages, components, islands, theme, assets | `frameworks/weblisk/` | `blueprints/`, `assets/`, `public/` |
+| **Server** — orchestrator, agents, domain controllers | `languages/<language>` | the adopted `*.yaml`, and the code layout the language blueprint defines |
 
 `blueprints/` is client source; `public/` is client output. Server components are
 declared by the blueprints a tenant adopts, and their code is laid out by the
-platform blueprint — every package named after the blueprint that specifies it.
+language blueprint — every package named after the blueprint that specifies it.
 
 This document says what a tenant *contains*. What a browser page should look like
-is `standards/`; what a Go binary should look like is `platforms/go`.
+is `frameworks/weblisk/`; what a Go binary should look like is `languages/go`.
 
 ## Key Conventions
 
@@ -96,7 +96,7 @@ responsive images, what favicon set to produce, etc.
 ### A Package Is Named After The Blueprint That Specifies It
 
 `agents/<component>/agent.yaml` is the blueprint this tenant adopted. The code
-generated from it lives where the platform blueprint says — for Go, a binary at
+generated from it lives where the language blueprint says — for Go, a binary at
 `cmd/<component>` and its logic at `internal/agents/<component>`.
 
 The two are connected by **name**, not by adjacency: every package is named after
@@ -111,8 +111,8 @@ same `AgentManifest` under `type: "domain"`, serving the same protocol endpoints
 domain orchestrates work across agents — not because they are different species.
 
 The language-specific part of a component's layout, and where shared code lives,
-belongs to the platform blueprint. This document says what a tenant contains;
-`platforms/<language>` says what a binary for it looks like.
+belongs to the language blueprint. This document says what a tenant contains;
+`languages/<language>` says what a binary for it looks like.
 
 ### `.weblisk/config.yaml` Is Runtime Config
 

@@ -8,7 +8,8 @@ does not exist in the framework.
 This directory contains the authoritative schema definitions for every
 blueprint type. Together they form the **governance layer** of the platform —
 the contract that ensures every agent, protocol, pattern, architecture,
-platform binding, and domain controller is built to a verifiable standard.
+language or platform binding, and domain controller is built to a verifiable
+standard.
 
 ## Why Strict Schemas
 
@@ -64,7 +65,8 @@ This applies to:
 | [protocol.md](protocol.md) | Wire protocol specifications | `protocol/` directory |
 | [pattern.md](pattern.md) | Cross-cutting patterns | `patterns/` directory |
 | [architecture.md](architecture.md) | System architecture components | `architecture/` directory |
-| [platform.md](platform.md) | Platform implementation bindings | `platforms/` directory |
+| [language.md](language.md) | Programming language bindings — what is essential when building in one language | `languages/` directory |
+| [platform.md](platform.md) | Platform implementation bindings — what a runtime offers | `platforms/` directory |
 | [framework.md](framework.md) | Framework blueprints — what building *with* a framework requires | `frameworks/<name>/` directories |
 | [standard.md](standard.md) | Industry standards — ISO, SOC 2, NIST, CSA — as JSON | `standards/` directory |
 | [programme.md](programme.md) | Programmes — which artifacts a body of work requires, what each answers, and the recurring work it commits an organisation to | `programmes/` directory |
@@ -96,7 +98,8 @@ common.md (inherited by all)
 ├── protocol.md (type: protocol)
 ├── pattern.md (type: pattern)
 ├── architecture.md (type: architecture)
-├── platform.md (type: platform — platforms/ and languages/)
+├── language.md (type: language — languages/)
+├── platform.md (type: platform — platforms/)
 ├── framework.md (frameworks/<name>/ — building WITH a framework)
 ├── standard.md (standards/ — industry standards, as JSON)
 ├── programme.md (programmes/ — programme maps and artifact specifications)
@@ -145,7 +148,7 @@ Running agents are periodically audited against their blueprint:
 ## Creating a New Blueprint
 
 1. Identify the blueprint type (`agent`, `domain`, `protocol`, `pattern`,
-   `architecture`, `platform`)
+   `architecture`, `language`, `platform`)
 2. Open the corresponding schema file in `schemas/`
 3. Copy the **Complete Template** section from that schema
 4. Fill in every required section — do not skip or stub out sections

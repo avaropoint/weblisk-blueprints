@@ -778,7 +778,7 @@ work that does not exist.
 An assertion whose obligation depends on a choice MUST be written `IF premise:
 obligation` and MUST be evaluated only when the premise holds.
 
-platforms/go.md: *"IF SQLite was chosen: WAL journal mode, `user_version` pragma
+languages/go.md: *"IF SQLite was chosen: WAL journal mode, `user_version` pragma
 for migrations, tables created with `CREATE TABLE IF NOT EXISTS`"*. Evaluated
 unconditionally, that assertion fails every implementation that took the JSONL
 default the same blueprint recommends — a failure for making the recommended

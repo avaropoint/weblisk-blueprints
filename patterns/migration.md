@@ -1991,7 +1991,7 @@ All migration errors follow the standard `ErrorResponse` from
 
 - **Platform-specific execution**: The *how* of executing migration
   steps (which SQL dialect, which ORM, which migration tool) is
-  defined by the platform (`platforms/node.md`, `platforms/go.md`,
+  defined by the platform or language (`platforms/node.md`, `languages/go.md`,
   etc.). This pattern defines the governance model, not the DDL.
 
 - **Checksum computation**: The SHA-256 checksum algorithm (sort by

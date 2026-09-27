@@ -138,7 +138,7 @@ its code.
 ```
 <tenant>/                     # the tenant IS the root, and the module root
   .weblisk/                   # configuration, keys, grants, data
-  blueprints/                 # SOURCE — per standards/project-structure
+  blueprints/                 # SOURCE — per frameworks/weblisk/project-structure
   assets/                     # physical media
   agents/<name>/agent.yaml    # the blueprints this tenant adopted
   domains/<name>/domain.yaml
