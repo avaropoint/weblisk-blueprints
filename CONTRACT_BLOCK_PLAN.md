@@ -139,10 +139,12 @@ old requirements exactly, the idea is wrong and it has cost two files.
 | `ExtractContract` | One parser. Reads `contract:`, returns requires, declares, serves, verifies |
 | `GatherRequirements` | Prefers the contract when present, falls back to the existing parsers |
 | `weblisk validate` | Gains "does the contract match the schema"; loses form, construct and declared-name rules as blueprints migrate |
-| Deletions, at phase 4 | `ExtractTableEndpoints`, `ExtractEndpointOperations`, `ExtractTypes`, `ExtractStoreContracts`, `declaredNames`, `SchemaSections`, `SectionConstructs`, the `Form` column |
+| Deletions, at phase 4 | `ExtractTableEndpoints`, `ExtractEndpointOperations`, `ExtractTypes`, `ExtractStoreContracts`, `declaredNames`, `SchemaSections`, the `Form` column |
 
 The old parsers are **kept until phase 4** so a partially migrated corpus still
-builds.
+builds. `SectionConstructs` is no longer on the list: it had no caller, so it
+could not help a partially migrated corpus build, and weblisk-cli deleted it
+in 86a5d3a.
 
 ---
 
