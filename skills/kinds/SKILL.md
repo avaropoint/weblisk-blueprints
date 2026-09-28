@@ -85,13 +85,16 @@ One word was doing two jobs; this is the ambiguity the taxonomy exists to remove
 
 | | Answers | Examples |
 |---|---|---|
-| **platform** | what is this written in, and where does it execute? | Go, Node, Rust, Cloudflare Workers |
+| **platform** | where does this execute, and what does that offer? | Node, Cloudflare Workers |
 | **provider** | whose service is this, and does its configuration satisfy our policy? | Microsoft 365, Google Workspace, AWS, Cloudflare |
 | **integration** | what data crosses this boundary, under what contract? | the connection to any of them |
 
-**`platform` is NOT a kind.** It is the language-and-runtime binding a component
-is generated for — `platforms/go.md`, `--platform cloudflare`. Nothing in
-`schemas/kinds.md` declares it.
+**`platform` is NOT a kind, and neither is `language`.** A platform is the
+runtime a component is generated for — `platforms/node.md`,
+`platforms/cloudflare.md`; a language is what its code is written in —
+`languages/go.md`, `languages/rust.md`. `--platform` selects either today.
+Nothing in `schemas/kinds.md` declares them; why the two are separate is
+`languages/README.md`.
 
 **One vendor may be both.** Cloudflare is a platform when you build Workers for
 it and a provider when you govern the account. Two relationships with one

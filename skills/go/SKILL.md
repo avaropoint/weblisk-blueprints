@@ -5,7 +5,7 @@ description: Go-only facts for a tenant generated with --platform go — module 
 
 # Go
 
-`platforms/go.md` is the specification. This skill is the two facts that
+`languages/go.md` is the specification. This skill is the two facts that
 panic at process start if broken, plus the module layout the generator
 already followed.
 
