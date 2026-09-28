@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 1.4.0
+version: 1.5.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, architecture/enforcement]
 platform: any
 tier: free
@@ -54,7 +54,7 @@ requires:
         - name: AuditEntry
           fields_used: [id, timestamp, actor, action, target, status]
         - name: ProposedChange
-          fields_used: [path, action, modified]
+          fields_used: [path, action]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -208,13 +208,19 @@ caller's scope. It refuses traversal segments outright rather than normalising
 them: rewriting `/../x` to `/x` yields an in-bounds path that is not the one
 requested, and silently answering a different question is worse than refusing.
 
-**Precondition Gate** compares a caller-supplied digest against the stored bytes
-before writing. This is the whole of the concurrency model — there is no merge,
-no last-writer-wins and no lock.
+**Precondition Gate** compares a caller-supplied `if_match` against the stored
+bytes before writing. `if_match` is the digest of the bytes the caller believes
+the path holds, or the empty string when it believes the path holds nothing.
+Both are preconditions, and either can fail: a digest where nothing is there,
+or the empty string where an entry is. An absent `if_match` is no
+precondition, and no value matches whatever is there. This is the whole of the
+concurrency model — there is no merge, no last-writer-wins and no lock.
 
 **Proposal Store** holds changes that were proposed and not yet decided. A
 proposal is not content until a person applies it, so its bytes live in the
-service's own state and never in the repository. See [Proposals](#proposals).
+service's own record store, under exclusive custody, and never in the
+repository. They are read only through the Proposal Read Flow, under the same
+check as the entry they would change. See [Proposals](#proposals).
 
 **Custody Reconciler** exists only where a second authority can write. It
 converts an unexplained change from an alarm into a recorded fact.
@@ -269,9 +275,18 @@ converts an unexplained change from an alarm into a recorded fact.
 | POST | /v1/content/reconcile | Reconcile | yes | Detect out-of-band change (shared custody only) |
 | POST | /v1/content/proposals | Propose | yes | Stage a change to one entry for a person to decide. Writes no entry |
 | GET | /v1/content/proposals | Proposals | yes | List proposals in scope, cursor-paginated |
-| GET | /v1/content/proposals/{id} | Proposal | yes | Read one proposal, with the bytes it proposes |
+| GET | /v1/content/proposals/{id} | Proposal | yes | Read one proposal, with the bytes it proposes, under the entry's own read check |
 | POST | /v1/content/proposals/{id}/decision | Decide | yes | Apply or reject a proposal. Applying writes the entry |
 | GET | /v1/health | Health | no | Content service health. Served with or without an orchestrator |
+
+**An entry's bytes travel as base64.** Wherever a JSON body carries an entry's
+bytes — the response of `GET /v1/content/entry`, the request of
+`PUT /v1/content/entry`, and the `bytes` of a proposal — they are one string
+of standard base64 (RFC 4648 §4, with padding). They are never carried as
+text. An entry is any bytes, and a JSON parser may replace bytes that are not
+valid UTF-8 before the service sees them, so a digest computed after it would
+be the digest of bytes nobody sent. A string that is not valid base64 is
+refused with `INVALID_REQUEST` ([`protocol/spec`](../protocol/spec.md)).
 
 ---
 
@@ -319,7 +334,8 @@ interfaces:
 
     - path: /v1/content/proposals/{id}
       methods: [GET]
-      description: Read one proposal, with the bytes it proposes
+      description: Read one proposal, with the bytes it proposes, for a caller
+        the enforcement storage proxy allows to read the entry it would change
       served_by: content-service
 
     - path: /v1/content/proposals/{id}/decision
@@ -380,12 +396,13 @@ interfaces:
     - name: ListProposals
       signature: ProposalQuery → ProposalPage
       description: Proposals in the caller's scope, filtered by repository,
-        path and state
+        path and state. Omits, and counts, any the caller may not read
       called_by: [gateway, agents]
 
     - name: ReadProposal
       signature: id → ContentProposal
-      description: One proposal, including the bytes it proposes
+      description: One proposal, including the bytes it proposes, for a caller
+        who may read the entry it would change
       called_by: [gateway, agents]
 
     - name: DecideProposal
@@ -415,12 +432,15 @@ interfaces:
 
     - topic: content.proposed
       direction: publish
-      description: A change to an entry was proposed. Nothing was written
+      description: A change to an entry was proposed. Nothing was written.
+        Carries the proposal's id, repository, path and action, never the
+        proposed bytes
 
     - topic: content.proposal_decided
       direction: publish
       description: A proposal left open — applied, rejected or stale — naming
-        who decided it and, when applied, the separation recorded
+        who decided it and, when applied, the separation recorded. Never
+        carries the proposed bytes
 ```
 
 ---
@@ -429,8 +449,8 @@ interfaces:
 
 | Code | Category | When | Behaviour |
 |---|---|---|---|
-| `CONTENT_PRECONDITION_FAILED` | conflict | `if_match` does not equal the identity of what it names — an entry's stored digest on a write or a proposal, a placement's census digest on an adoption, a proposal's `before` on a decision to apply it. A proposal to create an entry that already exists | Refuse. Return both digests. Never merge, never overwrite, never adopt. On a decision to apply, record the proposal `stale` and write nothing |
-| `CONTENT_IF_MATCH_REQUIRED` | validation | A write, or a proposal to modify or remove an entry, arrived without a precondition | Refuse. A write with no precondition is a blind overwrite, and a proposal with none cannot be told stale |
+| `CONTENT_PRECONDITION_FAILED` | conflict | `if_match` does not equal the identity of what it names — an entry's stored digest on a write or a proposal, a placement's census digest on an adoption, a proposal's `before` on a decision to apply it. The empty string where an entry exists, on a write, a proposal to create, or a decision to apply one | Refuse. Return both digests. Never merge, never overwrite, never adopt. On a decision to apply, record the proposal `stale` and write nothing |
+| `CONTENT_IF_MATCH_REQUIRED` | validation | A write, a removal or a proposal arrived with no `if_match`. The empty string is a precondition, not its absence | Refuse. A write with no precondition is a blind overwrite, and a proposal with none cannot be told stale |
 | `CONTENT_CUSTODY_CEILING_EXCEEDED` | policy | Declared scope exceeds the repository ceiling | Refuse, naming required and actual. Never downgrade the scope |
 | `CONTENT_CUSTODY_UNDECLARED` | policy | Repository has no declared custody | Treat as `opaque`, apply the `internal` ceiling, and record the degradation |
 | `CONTENT_PATH_REFUSED` | validation | Traversal segment or escaping symlink — including a placement locator that is absolute, carries a scheme or an authority, or climbs out of its backend's root | Refuse the request as written. Do not normalise and proceed |
@@ -444,7 +464,7 @@ interfaces:
 | `CONTENT_BACKEND_UNKNOWN` | validation | The placement names a backend this service does not hold for that `scope_path` | Refuse without disclosing whether the name exists under another scope |
 | `CONTENT_ESTABLISH_UNSUPPORTED` | policy | `disposition: establish` against a backend that cannot bring a store into existence, or cannot represent an empty one without an entry in it | Refuse. Never write a placeholder to make the store representable. `adopt` against the same backend is unaffected |
 | `CONTENT_ESTABLISH_INCOMPLETE` | partial | The declaration was reserved and the create or the custody demonstration did not finish | Report what completed, carrying the `ContentRepository` and its `RepositoryEstablishment`. Roll nothing back, claim no success, and do not report that nothing happened |
-| `CONTENT_PRECONDITION_NOT_APPLICABLE` | validation | `if_match` supplied with `disposition: establish`, or with a proposal whose `action` is `create` | Refuse. There is nothing to have seen, and a precondition nothing can evaluate must not be accepted as though it held |
+| `CONTENT_PRECONDITION_NOT_APPLICABLE` | validation | `if_match` does not fit the act: any `if_match` with `disposition: establish`; the empty string on a removal, or on a proposal to modify or remove; a digest on a proposal to create | Refuse. A precondition that contradicts the act, or that nothing can evaluate, must not be accepted as though it held |
 | `CONTENT_PLACEMENT_DECLARED` | conflict | The placement is equal to, inside, or contains an already-declared repository | Refuse. Two ceilings over one set of bytes means the lower one is unenforceable |
 | `CONTENT_PROPOSAL_UNKNOWN` | validation | No proposal of that id in the caller's scope | Refuse without disclosing whether it exists elsewhere |
 | `CONTENT_PROPOSAL_DECIDED` | conflict | A decision arrived for a proposal that is no longer `open`, including the second of two decisions that raced | Refuse, returning the proposal as recorded. A proposal leaves `open` once |
@@ -517,11 +537,13 @@ interfaces:
 
 ### Write Flow
 1. Caller submits bytes, a declared scope, and `if_match` — the identity it
-   believes it is replacing
+   believes it is replacing, or the empty string for an entry it believes does
+   not exist yet
 2. Path Resolver confines the path as above
 3. Ceiling check: declared scope against the repository's derived ceiling.
    Exceeded → refuse, publish `content.ceiling_exceeded`
-4. Enforcement storage proxy intercepts with operation `modify` or `create`
+4. Enforcement storage proxy intercepts with operation `create` when `if_match`
+   is the empty string, and `modify` otherwise
 5. Precondition Gate reads the current digest and compares it to `if_match`.
    Mismatch → refuse with both digests. No merge is attempted
 6. Bytes are written durably; the new digest is computed from what was written,
@@ -533,24 +555,50 @@ interfaces:
 
 ### Proposal Flow
 1. Caller submits a `ProposalRequest`: a repository, a `ProposedChange` naming
-   the path, the action and — for `create` and `modify` — the proposed bytes,
-   `if_match` for `modify` and `delete`, the declared scope for `create` and
-   `modify`, and optionally `on_behalf_of`, `agent`, `run` and a reason
+   the path and the action, `if_match`, and — for `create` and `modify` — the
+   proposed `bytes` and their declared scope, with `on_behalf_of`, `agent`,
+   `run` and a reason where they apply. An `action` other than `create`,
+   `modify` or `delete`, or `bytes` or `scope` missing on a `create` or
+   `modify` or present on a `delete`, is refused with `INVALID_REQUEST`
+   ([`protocol/spec`](../protocol/spec.md)). `bytes` longer than
+   `max_entry_bytes` are refused as a write of that length would be
 2. Path Resolver confines the path as for a write; traversal, escaping symlinks
    and reserved paths are refused
 3. Ceiling check: declared scope against the repository's derived ceiling.
    Exceeded → refuse, publish `content.ceiling_exceeded`
 4. Enforcement storage proxy intercepts with the operation the proposal would
    perform — `create`, `modify` or `delete` — for the proposer
-5. Precondition Gate compares `if_match` to the entry's current digest, or for
-   `create` confirms no entry is there. Mismatch → refuse with
+5. Precondition Gate compares `if_match` to the entry's current digest — for
+   `create`, the empty string to a path that holds nothing. An `if_match` that
+   does not fit the action is refused with
+   `CONTENT_PRECONDITION_NOT_APPLICABLE`, and a mismatch with
    `CONTENT_PRECONDITION_FAILED`. A proposal that is stale when made is not
    recorded
-6. The service holds the proposed bytes in its own state, computes `after`
-   over what it holds, and records a `ContentProposal` in state `open`, with
-   the token's `identity_id` for `actor` and the correlation id of the
-   enforcement decision
-7. `content.proposed` is published. No entry is written
+6. The service decodes the proposed bytes, holds them in its own state,
+   computes `after` over what it holds, and records a `ContentProposal` in
+   state `open`, with the token's `identity_id` for `actor` and the
+   correlation id of the enforcement decision
+7. `content.proposed` is published, carrying no proposed bytes. No entry is
+   written
+
+### Proposal Read Flow
+1. Caller asks for one proposal by id, or for a page of proposals
+2. A proposal must be in the caller's scope (`CONTENT_PROPOSAL_UNKNOWN`)
+3. Path Resolver confines the proposal's path to its repository within the
+   caller's scope, as for reading the entry. A path it refuses is refused here
+4. Enforcement storage proxy intercepts with operation `read`, the proposal's
+   path, and for the resource scope the higher of the proposal's `scope` and
+   the scope recorded for the entry — the proposal's alone on a `create`, the
+   entry's alone on a `delete`. It runs for every caller, the proposer and the
+   decider alike: having made a proposal gives no standing to read it later,
+   and a decider reads what they are asked to decide only if they may read
+   what it would change
+5. By id, a denial refuses the request as the Read Flow would refuse the
+   entry. In a page, a proposal the check denies is omitted, and `withheld`
+   counts the proposals omitted, so a page with nothing to show can be told
+   from a page that hid something
+6. `base` is computed for each open proposal returned and never stored.
+   Proposed bytes are returned only by id
 
 ### Decision Flow
 1. Caller submits a `DecisionRequest` for one proposal: `apply` or `reject`
@@ -562,9 +610,12 @@ interfaces:
    the proposal's `actor` or its `on_behalf_of` is refused with
    `CONTENT_SEPARATION_REQUIRED` unless the change's scope is at or below the
    repository's `self_decision_ceiling`
-5. Write Flow steps 2 to 6 run with the proposal's path, bytes and scope and
-   with its `before` as `if_match`, the enforcement storage proxy intercepting
-   for the decider
+5. The write runs for the decider, with the proposal's `before` as `if_match`,
+   or the empty string when it has none. For a `create` or `modify`, Write
+   Flow steps 2 to 6 run with the proposal's path, bytes and scope. For a
+   `delete`, the same steps run as a removal: no bytes and no ceiling check,
+   the enforcement storage proxy intercepting with operation `delete`, and the
+   entry is removed and its identity retired
 6. `before` no longer matches → refuse with `CONTENT_PRECONDITION_FAILED` and
    both digests, record the decision with the proposal `stale`, write nothing,
    and publish `content.proposal_decided`. Any other refusal leaves the
@@ -575,7 +626,8 @@ interfaces:
    found, and the correlation id of the decider's enforcement decision. The
    proposal becomes `applied` in the same record write — neither is durable
    without the other
-8. `content.changed` and `content.proposal_decided` are published
+8. `content.changed` and `content.proposal_decided` are published. Neither
+   carries the proposed bytes
 
 ### Reconciliation Flow (shared custody only)
 1. Reconcile is invoked for a repository, on a schedule or on demand
@@ -1097,7 +1149,8 @@ on** — over a different subject. A write's subject is one entry's bytes. A
 declaration's subject is the set of entries the placement holds, and its
 identity is a **census digest**.
 
-- `establish` MUST NOT carry `if_match`, and one that does is refused with
+- `establish` MUST NOT carry `if_match`, the empty string included, and one
+  that does is refused with
   `CONTENT_PRECONDITION_NOT_APPLICABLE`. There is nothing to have seen, and a
   precondition over an empty set is one that always holds — which is the same
   as none, and accepting it would let a caller believe it had a guarantee
@@ -1332,11 +1385,14 @@ holds both may still propose, to ask for a review.
 
 ### A proposal is made against bytes
 
-A proposal says which bytes it replaces, as a write does. For `modify` and
-`delete`, `if_match` is the digest of the entry the proposal replaces or
-removes, and it is required. For `create` there is no entry to name, so
-`if_match` is refused with `CONTENT_PRECONDITION_NOT_APPLICABLE`: a proposal
-to create asserts that the path holds nothing.
+A proposal says which bytes it replaces, as a write does, and `if_match` is
+required on every proposal. It means what it means on a write (see the
+Precondition Gate under [Architecture](#architecture)): for `modify` and
+`delete`, the digest of the entry the proposal replaces or removes; for
+`create`, the empty string, which asserts that the path holds nothing. An
+`if_match` that contradicts the action — the empty string on a `modify` or
+`delete`, a digest on a `create` — is refused with
+`CONTENT_PRECONDITION_NOT_APPLICABLE`.
 
 A proposal passes the checks a write passes, when it is made: the Path
 Resolver, the ceiling, the Precondition Gate and the enforcement storage proxy,
@@ -1345,12 +1401,20 @@ refused before anyone is asked to decide it. When the proposal is applied, the
 proxy runs again for the decider, so neither of them can cause a write beyond
 their own reach.
 
-The service holds the proposed bytes itself. `after` is computed over what it
-holds and never taken from the request. `ProposedChange.original` is not read:
-the service already holds the bytes the proposal was made against, and a copy
-the caller supplies is only a claim about them. The proposed bytes stay in the
-service's own state and never in the repository, because they are not content
-until a person applies them.
+The service holds the proposed bytes itself. They arrive in `bytes`, as base64
+(see [Endpoints](#endpoints)), and `after` is computed over the decoded bytes
+it holds, never taken from the request. `ProposedChange` names the path and the
+action. Its text fields — `original`, `modified` and `diffs` — are not read: an
+entry is bytes, and a text field cannot carry them exactly. The service already
+holds the bytes the proposal was made against, and a copy the caller supplies
+is only a claim about them. `max_entry_bytes` bounds a proposal's bytes as it
+bounds a write's. The proposed bytes stay in the service's own state and never
+in the repository, because they are not content until a person applies them.
+
+A proposal's bytes are read under the check that guards the entry they would
+change, whoever asks (see the Proposal Read Flow). A proposal to change a
+restricted entry is restricted reading, and holding `content:read` for the
+repository does not open it.
 
 ### States
 
@@ -1907,14 +1971,20 @@ types:
       change:
         type: ProposedChange
         required: true
-        description: path, action — create, modify or delete — and, for create
-          and modify, the proposed bytes in modified. original is not read
-      if_match:
+        description: path, and action — create, modify or delete. Its text
+          fields, original, modified and diffs, are not read
+      bytes:
         type: string
         required: false
-        description: The digest of the entry the proposal replaces or removes,
-          as PUT /v1/content/entry takes it. Required for modify and delete,
-          refused for create
+        description: The proposed bytes, as standard base64 (RFC 4648 §4), the
+          encoding PUT /v1/content/entry carries them in. Required for create
+          and modify, absent on delete
+      if_match:
+        type: string
+        required: true
+        description: As PUT /v1/content/entry takes it. The digest of the entry
+          the proposal replaces or removes for modify and delete; the empty
+          string for create
       scope:
         type: ScopeLevel
         required: false
@@ -1957,8 +2027,13 @@ types:
       change:
         type: ProposedChange
         required: true
-        description: path and action always. modified — the proposed bytes —
-          only when one proposal is read by id; a listing omits it
+        description: path and action
+      bytes:
+        type: string
+        required: false
+        description: The proposed bytes, as base64. Present only when one
+          proposal is read by id, by a caller the Proposal Read Flow allows. A
+          listing omits it. Absent on delete
       before:
         type: ContentIdentity
         required: false
@@ -2079,12 +2154,21 @@ types:
         required: false
 
   ProposalPage:
-    description: One page of GET /v1/content/proposals
+    description: One page of GET /v1/content/proposals, in the order the
+      proposals were recorded, oldest first, so a cursor survives proposals
+      made while paging
     fields:
       proposals:
         type: list
         required: true
-        description: ContentProposal records, each without change.modified
+        description: ContentProposal records the caller may read, each without
+          bytes
+      withheld:
+        type: integer
+        required: true
+        description: How many proposals this page omitted because the caller
+          may not read the entry they would change. Zero means none was
+          omitted
       next_cursor:
         type: string
         required: false
@@ -2208,8 +2292,9 @@ security:
         against the bytes the proposal was made on
 
   enforcement:
-    - rule: A write without a precondition digest is refused
-      mechanism: Precondition Gate; if_match is a required parameter
+    - rule: A write, a removal or a proposal without a precondition is refused
+      mechanism: Precondition Gate; if_match is required. The empty string is
+        the precondition that nothing is there, and no value matches anything
     - rule: A write whose scope exceeds the repository ceiling is refused, never
         downgraded
       mechanism: Ceiling check before the storage proxy, publishing
@@ -2281,6 +2366,14 @@ security:
     - rule: A proposal writes nothing
       mechanism: Proposed bytes are held in the service's own state, never in
         the repository, until a decision applies them
+    - rule: A proposal's bytes are read only by a caller who may read the entry
+        it would change
+      mechanism: Proposal Read Flow; the storage proxy runs read at the higher
+        of the proposal's scope and the entry's, for proposer and decider
+        alike, and a page omits and counts what it denies
+    - rule: Proposed bytes arrive exactly as sent
+      mechanism: bytes travel as base64 and after is computed over the decoded
+        bytes. No text field is read
     - rule: A proposal whose base has moved on is never applied and never merged
       mechanism: The proposal's before is the precondition of the write that
         applies it. A mismatch refuses the decision and records the proposal
@@ -2409,6 +2502,16 @@ security:
   that can never be applied again; the reverse leaves an applied proposal with
   no change to show for it.
 
+- **Decode, then digest; never read bytes as text.** A proposal's bytes, like
+  a write's, are decoded from base64 and digested as decoded. Reading them
+  through a text field lets a parser replace what is not valid UTF-8, and the
+  digest then describes bytes the proposer never sent.
+
+- **Check the entry's scope on every proposal read.** A proposal carries the
+  bytes of a change to an entry, so reading it is reading that entry. A check
+  made once, when the proposal was recorded, has nothing to say about a caller
+  who asks today.
+
 - **Compute `base` when asked, never store it.** An entry can change between
   one listing and the next, and a stored `current` is a claim about a moment
   that has passed.
@@ -2471,8 +2574,13 @@ security:
 - [ ] A path segment `.gitignore` is not refused as reserved
 - [ ] `GET /v1/content` over a directory that holds a `.git` directory returns no entry beneath it, and a `ContentAdoption` census over it neither counts nor digests one
 - [ ] `POST /v1/content/proposals` returns a `ContentProposal` with `state` `open`, and the entry's digest is unchanged
-- [ ] A `ProposalRequest` with `action` `modify` or `delete` and no `if_match` is refused with `CONTENT_IF_MATCH_REQUIRED`
-- [ ] A `ProposalRequest` with `action` `create` carrying `if_match` is refused with `CONTENT_PRECONDITION_NOT_APPLICABLE`
+- [ ] A `ProposalRequest` with no `if_match` is refused with `CONTENT_IF_MATCH_REQUIRED`, whatever its `action`
+- [ ] A `ProposalRequest` with `action` `create` and an `if_match` other than `""`, or with `action` `modify` or `delete` and `if_match` `""`, is refused with `CONTENT_PRECONDITION_NOT_APPLICABLE`
+- [ ] A `ProposalRequest` with `action` `create` and `if_match` `""` at a path that holds an entry is refused with `CONTENT_PRECONDITION_FAILED`, and no proposal is recorded
+- [ ] A `ProposalRequest` whose `action` is not `create`, `modify` or `delete`, whose `bytes` or `scope` is missing on `create` or `modify` or present on `delete`, or whose `bytes` is not valid base64, is refused with `INVALID_REQUEST`, and no proposal is recorded
+- [ ] A proposal of bytes that are not valid UTF-8 records an `after` equal to the digest of exactly those bytes, and applying it writes exactly those bytes
+- [ ] `PUT /v1/content/entry` with `if_match` `""` creates the entry at a path that holds none, and is refused with `CONTENT_PRECONDITION_FAILED` at a path that holds one
+- [ ] `DELETE /v1/content/entry` with `if_match` `""` is refused with `CONTENT_PRECONDITION_NOT_APPLICABLE`
 - [ ] A `ProposalRequest` whose `if_match` differs from the entry's digest is refused with `CONTENT_PRECONDITION_FAILED`, and no proposal is recorded
 - [ ] A `ProposalRequest` whose `scope` exceeds the repository ceiling is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`, and no proposal is recorded
 - [ ] A proposal's `after` equals the digest of the bytes the service holds for it, whatever the request claimed
@@ -2483,7 +2591,12 @@ security:
 - [ ] A proposal in `state` `applied`, `rejected` or `stale` refuses every further decision with `CONTENT_PROPOSAL_DECIDED`
 - [ ] Of two concurrent decisions on one `open` proposal, exactly one is recorded and the other is refused with `CONTENT_PROPOSAL_DECIDED`
 - [ ] An `open` proposal whose entry has changed is listed with `base` `moved`, and listing it changes neither the proposal nor the entry
-- [ ] A `ContentProposal` in a `ProposalPage` carries no `change.modified`, and `GET /v1/content/proposals/{id}` returns it
+- [ ] A `ContentProposal` in a `ProposalPage` carries no `bytes`, and `GET /v1/content/proposals/{id}` returns them
+- [ ] A caller holding `content:read` whom the storage proxy refuses a `restricted` entry is refused `GET /v1/content/proposals/{id}` for a proposal to modify it, and `GET /v1/content/proposals` omits that proposal and counts it in `withheld`
+- [ ] A proposer refused `read` on the entry after proposing is refused `GET /v1/content/proposals/{id}` for their own proposal
+- [ ] A `ProposalPage` lists proposals oldest first, and a proposal recorded while a caller pages appears on a later page, never on one already returned
+- [ ] `content.proposed` and `content.proposal_decided` carry no proposed bytes
+- [ ] Applying a `delete` proposal removes the entry and retires its identity, with the storage proxy intercepting `delete` for the decider
 - [ ] Applying a proposal records a `ContentChange` whose `actor` is the proposal's `actor`, whose `on_behalf_of` is the proposal's, whose `approved_by` holds the decider's `identity_id`, whose `proposal` is the proposal's `id`, and whose `correlation_id` is the decider's enforcement decision
 - [ ] A decision to apply by the proposal's `actor` or `on_behalf_of`, in a repository with no `self_decision_ceiling`, is refused with `CONTENT_SEPARATION_REQUIRED`, and the proposal stays `open`
 - [ ] With `self_decision_ceiling` `internal`, the proposal's `on_behalf_of` applying an `internal` proposal succeeds with `separation` `self`, and applying a `confidential` one is refused with `CONTENT_SEPARATION_REQUIRED`
