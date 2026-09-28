@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.5.0
+version: 1.5.1
 requires: [protocol/types]
 platform: any
 tier: free
@@ -82,9 +82,8 @@ Principle 6 says why: it proves one live session and signs nothing that
 outlives it, so it may be classical. That includes a transport credential a hub
 presents to a third party's service in that service's own protocol, such as the
 SSH key a content replica is pushed with
-([`patterns/content-git`](../patterns/content-git.md)). The key exchange of such
-a transport MUST include ML-KEM-768, so that traffic recorded now cannot be read
-once classical key exchange is broken.
+([`patterns/content-git`](../patterns/content-git.md)). The blueprint that
+specifies such a transport states what its key exchange must be.
 
 **Why ML-DSA-65?** ML-DSA is a lattice-based digital signature scheme
 selected by NIST after an 8-year international evaluation process
@@ -1035,4 +1034,4 @@ Implementation MUST:
 - [ ] Production deployments have minimum 2 registered operators for recovery
 - [ ] Backup operator can revoke and re-register a compromised operator
 - [ ] Bootstrap reset (all keys lost) requires orchestrator restart and re-registration
-- [ ] No identity, token, attestation or signed record uses a quantum-vulnerable algorithm (Ed25519, ECDSA, RSA), and a transport to a third party's service negotiates a key exchange that includes ML-KEM-768
+- [ ] No identity, token, attestation or signed record uses a quantum-vulnerable algorithm (Ed25519, ECDSA, RSA)

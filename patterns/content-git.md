@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: content-git
-version: 1.2.0
-requires: [architecture/content, patterns/content-identity]
+version: 1.3.0
+requires: [architecture/content, patterns/content-identity, protocol/identity, patterns/secrets, patterns/principal-identity]
 platform: any
 tier: free
 adoption: opt-in
@@ -105,6 +105,35 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
+
+  # Rules 6 to 10, which hold the replica's private key, and the scope of the
+  # quantum-vulnerable ban, which allows it to be classical
+  - blueprint: protocol/identity
+    version: ">=1.5.0 <2.0.0"
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/secrets
+    version: ">=1.1.0 <2.0.0"
+    bindings:
+      behaviors:
+        # Where the replica's private key is held
+        - name: secret-access
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  # Design Principle 6, which forbids git signing and allows a classical
+  # transport credential
+  - blueprint: patterns/principal-identity
+    version: ">=1.5.0 <2.0.0"
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
 ```
 
 ---
@@ -133,7 +162,9 @@ requires:
 4. **History names a person by a pseudonym** — History is what a replica
    later publishes. An identity id is the same at every hub its person joins,
    so publishing one lets anyone link that person across tenants. A commit
-   names each person by a pseudonym, and only the tenant can map it back.
+   names each person by a pseudonym, and only the tenant can map it back. A
+   service it names is named the same way, so no rule depends on telling the
+   two apart.
 
 5. **The store's control state is somebody else's input** — Where another
    authority can reach the store, its configuration, hooks and attributes are
@@ -173,7 +204,7 @@ contracts:
         - Each ContentChange is exactly one commit whose tree differs from its parent's at that change's path and nowhere else
         - The commit is built on a private index, never the person's. The blob is written with hash-object --no-filters, so no attribute can change the bytes recorded. An existing entry keeps its mode, and a new one is 100644
         - The line is moved with update-ref naming the head the commit was built on as the old value, or the empty value on an unborn line. A move that fails means the line moved. If the new head does not descend from the old one, the repository is diverted. Otherwise, if the path on the new head still holds the change's before, the commit is rebuilt on the new head; if it does not, the write is refused with CONTENT_PRECONDITION_FAILED. Nothing is ever merged
-        - In a store with a working tree, when the path's bytes in the working tree differ from the line's, the difference is dealt with first. Under shared custody it is recorded as a ContentObservation and committed on its own with Provenance external. Under exclusive custody the write is refused, because a second writer is an anomaly there
+        - In a store with a working tree, when the path's bytes in the working tree differ from the line's, the difference is dealt with first. Under shared custody it is recorded as a ContentObservation and committed on its own with Provenance external. Under exclusive custody the write is refused with CONTENT_PRECONDITION_FAILED, returning the line's digest and the working tree's, and nothing is written or committed. A second writer is an anomaly there, which is architecture/data-security's to report, never an observation
         - In a store with a working tree, the file is written after the line has moved, by an atomic replace, and only while it still holds the change's before. A file that no longer does is left alone, and the person's bytes are observed as an external change on top of the commit
         - The person's index is updated for that path only, and only where it recorded the line's previous blob. It is skipped while git's index lock is held
         - The write is durable when the line names the commit, with objects and references synced to stable storage
@@ -187,7 +218,7 @@ contracts:
       rules:
         - The committer is the content service, under the name it registered with and the address <identity id>@service.invalid, where the identity id is the fingerprint of its key
         - The author of a commit for a ContentChange is the change's actor. The author of a commit for an observation is the content service, and Provenance external says the bytes were not written through it
-        - A person is named in a commit only by their pseudonym, as author, in On-Behalf-Of and in Approved-By. An identity id, a name or an email address is never written into a commit
+        - Every identity a commit names other than the content service - the author of a change, On-Behalf-Of and each Approved-By, whether a person's or a service's - is named only by its pseudonym. An identity id, a name or an email address is never written into a commit for one
         - A pseudonym is 16 bytes from a cryptographically secure random source, written as 32 lowercase hexadecimal characters. It is minted the first time an identity is named in a repository, recorded, and never changed or reused. The address beside it is <pseudonym>@pseudonym.invalid
         - The mapping from pseudonym to identity id is held in the content service's own record store, under exclusive custody. It is never written into a store, a commit, the record mirror or a replica
         - Author and committer dates are the time the commit was made, in UTC with a +0000 offset
@@ -222,8 +253,8 @@ contracts:
         - The environment is built from empty. It holds GIT_CONFIG_NOSYSTEM=1, GIT_CONFIG_GLOBAL=/dev/null, a HOME that is an empty directory of the service's own, GIT_TERMINAL_PROMPT=0, GIT_NO_REPLACE_OBJECTS=1, GIT_LITERAL_PATHSPECS=1 and LC_ALL=C, with GIT_OPTIONAL_LOCKS=0 on every process that only reads
         - The repository is always named with --git-dir, and the working tree with --work-tree where there is one, so git never discovers a repository by walking up the directory tree
         - Every process carries these -c settings, which outrank the store's own configuration - core.hooksPath=/dev/null, core.fsmonitor=false, credential.helper set empty, commit.gpgsign=false, tag.gpgsign=false, protocol.allow=never, transfer.fsckObjects=true, safe.directory set to that repository's exact path, core.fsync=objects,reference, gc.auto=0, core.protectNTFS=true and core.protectHFS=true
-        - A process that must reach another repository allows only the transport it needs, on that process alone - file, to feed the record mirror; ssh, to push to a replica or ask a replica's head; and, with no credential, the transports of a replica's read addresses, to test anonymous read
-        - The service runs only these git commands - init, rev-parse, symbolic-ref, for-each-ref, cat-file, ls-tree, ls-files, check-ignore, hash-object, read-tree, update-index, write-tree, commit-tree, update-ref, merge-base, rev-list, diff-tree with --no-ext-diff and --no-textconv, config reading the store's own file, push or fetch between a store and its record mirror, push from the record mirror to a replica, and ls-remote against a replica
+        - A process that must reach another repository allows only the transport it needs, on that process alone - file, for the record mirror to fetch from its store; ssh, to push to a replica or ask a replica's head; and, with no credential, the transports of a replica's read addresses, to test anonymous read
+        - The service runs only these git commands - init, rev-parse, symbolic-ref, for-each-ref, cat-file, ls-tree, ls-files, check-ignore, hash-object, read-tree, update-index, write-tree, commit-tree, update-ref, merge-base, rev-list, diff-tree with --no-ext-diff and --no-textconv, config reading the store's own file, fetch run in the record mirror from its store, push from the record mirror to a replica, and ls-remote against a replica
         - The service never runs gc, repack or prune on a store, and never checks out, resets, merges, rebases or stashes
         - The git binary is found once, at start, by absolute path. Below version 2.36.0, the release that added core.fsync for references, or where no git is found, the backend is unavailable. The service does not exit, health reports degraded naming the backend and what was found, and every operation on the backend's repositories answers CONTENT_UNREADABLE
 
@@ -260,11 +291,14 @@ contracts:
         - A git-remote backend is a replica destination and nothing else. A repository declaration whose placement names one is refused with CONTENT_BACKEND_UNKNOWN, because the service holds no store backend of that name
         - Only a repository on a git backend replicates to a git-remote backend, and a git repository replicates to nothing else. Any other pairing is refused with CONTENT_REPLICA_UNSUPPORTED
         - Its root is an ssh URL naming a host and a directory. A replica's locator names a bare repository under it, which a person creates. The service never creates one there
-        - The replica's credential is an ssh-ed25519 key pair the service generates for that replica alone. ContentReplica.credential is its public key in OpenSSH form, and credential_fingerprint is its SHA256 fingerprint in the form ssh-keygen prints. The private key is held through patterns/secrets, and is given to ssh only for one process, in a file only the service's own user can read, removed when the process ends
+        - The replica's credential is an ssh-ed25519 key pair the service generates for that replica alone. ContentReplica.credential is its public key in OpenSSH form, and credential_fingerprint is its SHA256 fingerprint in the form ssh-keygen prints
         - The key is classical, and protocol/identity allows that for a transport credential - it authenticates one session and signs no record
-        - ssh runs with no configuration file, in batch mode, offering only the replica's key, with no agent and no forwarding, checking the host key strictly against the backend's host_keys alone and never learning a new one, and with KexAlgorithms set to mlkem768x25519-sha256 alone, the ML-KEM-768 hybrid protocol/identity requires of such a transport
+        - The private key is a long-lived private key, and is held as protocol/identity rules 6 to 10 require of one. Outside development it is never protected by file permissions alone, so patterns/secrets holds it in a store that meets rule 8, never in its default file store. In memory it is zeroised after use
+        - The private key is never written to a file, not even for one process. For each git process that reaches a replica, the service starts an ssh-agent of its own, listening on a socket in a directory only the service's own user can reach, loads the key into it from memory with ssh-add reading standard input, and stops the agent when the process ends. ssh selects the key by its public half, which may be written to a file because it is public
+        - ssh runs with no configuration file, in batch mode, offering only the replica's key, with no agent but the one the service started for that process, no forwarding, and the host key checked strictly against the backend's host_keys alone, never learning a new one
+        - ssh runs with KexAlgorithms set to mlkem768x25519-sha256 alone - ML-KEM-768, from protocol/identity's algorithm table, combined with X25519 - so that a push recorded now cannot be read once classical key exchange is broken
         - A destination whose host key is not among host_keys, or that does not offer that key exchange, cannot be reached. Nothing is presented to it and nothing is sent
-        - This driver demonstrates no attestation for a destination. A key registered at a destination cannot list who else can read it, and a destination's history is not the service's to vouch for. A git-remote replica's ceiling is therefore internal at most
+        - This driver demonstrates neither exclusive nor shared custody for a destination, and no attestation. A key registered at a destination cannot show who else can read it, and a destination's history is not the service's to vouch for. A replica on a git-remote backend is therefore recorded opaque whatever its declaration claimed, and architecture/content's Derived Scope Ceiling table gives it internal at most
 
     - name: git-replica-send
       description: How a git store is sent to a replica
@@ -637,7 +671,9 @@ owns is `tenant`.
 
 A diverted repository, and one whose backend is unavailable, answers with
 architecture/content's `CONTENT_UNREADABLE`. A move of the line that loses to a
-change at the same path answers with its `CONTENT_PRECONDITION_FAILED`.
+change at the same path answers with its `CONTENT_PRECONDITION_FAILED`, and so
+does a write under exclusive custody to a path whose working-tree bytes differ
+from the line's, returning both of those digests.
 
 ---
 
@@ -704,7 +740,11 @@ change at the same path answers with its `CONTENT_PRECONDITION_FAILED`.
 - [ ] A path inside a nested repository, and a path the line records as a symbolic link, are refused with `CONTENT_RESERVED_PATH`
 - [ ] With git below 2.36.0 on the host, the service starts, health reports degraded naming the backend, and reads of its repositories answer `CONTENT_UNREADABLE`
 - [ ] `tamper_evident` is false after an anchored commit is removed from the record mirror, and the ceiling is recomputed
-- [ ] A replica on a `git-remote` backend returns `credential` as an OpenSSH `ssh-ed25519` public key, and the private key appears in no response, log, event or file that outlives one push
+- [ ] A replica on a `git-remote` backend returns `credential` as an OpenSSH `ssh-ed25519` public key, and the private key appears in no response, log or event, and in no file at any time, including while a push runs
+- [ ] Outside development, a replica's private key is held in a store that meets `protocol/identity` rule 8, never under file permissions alone
+- [ ] A replica on a `git-remote` backend whose declaration claims `exclusive` custody and every attestation is recorded `custody` `opaque`, with every attestation `false` and a `ceiling` no higher than `internal`
+- [ ] Under exclusive custody with a working tree, a write to a path a person edited in the working tree is refused with `CONTENT_PRECONDITION_FAILED` returning the line's and the working tree's digests, and no commit is made
+- [ ] A change whose `actor` is a service's identity id names that service by its pseudonym as author, never by its identity id
 - [ ] A push to a replica is made from the record mirror, names one refspec for the line, is never forced, and sends no tag
 - [ ] A destination whose host key is not in `host_keys`, or that does not offer `mlkem768x25519-sha256`, is sent nothing and is not presented the key
 - [ ] A destination whose line was moved to a commit not on the record mirror's line makes the replica `diverged`, records the destination's head in `backend_report`, and receives nothing more until its line again names a commit on the mirror's line
