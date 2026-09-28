@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: content-git
-version: 1.3.0
+version: 1.3.1
 requires: [architecture/content, patterns/content-identity, protocol/identity, patterns/secrets, patterns/principal-identity]
 platform: any
 tier: free
@@ -643,7 +643,7 @@ content:
     - name: <backend-name>
       driver: git-remote
       root: ssh://<host>[:<port>]/<directory>/
-      held_by: tenant            # tenant | third-party. Absent is third-party
+      held_by: tenant            # tenant | third-party, per architecture/content
       options:                   # GitRemoteOptions
         host_keys:
           - <known_hosts line>
@@ -656,9 +656,8 @@ each store's record mirror, pseudonyms and anchors in its own state, never under
 `root`.
 
 A `git-remote` backend's `root` names a host and a directory on it, and a
-replica's locator names a bare repository in that directory. `held_by` is the
-operator's statement of who holds that host; a copy on a machine the tenant
-owns is `tenant`.
+replica's locator names a bare repository in that directory. A copy on a
+machine the tenant owns is `held_by: tenant`.
 
 ---
 

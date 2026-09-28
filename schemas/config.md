@@ -60,8 +60,11 @@ content:
   backends:                        # Stores this hub can reach. A placement names one
     - name: string                 # Backend name (lowercase, alphanumeric + hyphens)
       driver: string               # Driver name the specifying blueprint declares,
-                                   # e.g. "git". Root, options and credentials
-                                   # belong to that blueprint
+                                   # e.g. "git"
+      root: string                 # What a placement's locator is confined to.
+                                   # Its form is the driver's blueprint's
+      options: object              # Shape declared by the driver's blueprint,
+                                   # e.g. GitBackendOptions
       held_by: enum                # "tenant" | "third-party" (default third-party)
   repositories:                    # Stores brought under governance at startup
     - id: string                   # Stable repository id, unique within scope_path
@@ -173,8 +176,10 @@ backend owes once it exists, and what is refused, all live there.
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `name` | string | yes | — | What a placement names. Unique within the hub |
-| `driver` | string | no | — | Which blueprint specifies this backend, by the driver name that blueprint declares: `git` for [`patterns/content-git`](../patterns/content-git.md). The backend's root, options and credentials are specified by that blueprint, not by this file. Absent means no blueprint specifies the backend |
-| `held_by` | enum | no | `third-party` | `"tenant"` or `"third-party"`: who holds the store this backend reaches. It decides whether a replica sent there is a third party's ([`architecture/content`](../architecture/content.md#a-third-partys-replica-waits-for-classification)). Never inferred from a host name |
+| `driver` | string | no | — | Which blueprint specifies this backend, by the driver name that blueprint declares: `git` or `git-remote` for [`patterns/content-git`](../patterns/content-git.md). The form of `root` and the shape of `options` are that blueprint's, and so are the backend's credentials. Absent means no blueprint specifies the backend |
+| `root` | string | yes | — | What every placement's locator on this backend is confined to. Its form is declared by the blueprint `driver` names: for `git`, an absolute directory on the content service's host; for `git-remote`, an `ssh://` URL naming a host and a directory. This is the one place a root is named |
+| `options` | object | no | — | Driver options, in the shape the blueprint `driver` names declares, such as `GitBackendOptions` or `GitRemoteOptions` in [`patterns/content-git`](../patterns/content-git.md). That blueprint says which are required and what the others default to |
+| `held_by` | enum | no | `third-party` | `"tenant"` or `"third-party"`: who holds the store this backend reaches. What it decides, and why it is never inferred, is [`architecture/content`](../architecture/content.md#a-third-partys-replica-waits-for-classification)'s |
 
 #### content.repositories[]
 

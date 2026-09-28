@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 1.9.0
+version: 1.9.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement]
 platform: any
 tier: free
@@ -3042,12 +3042,15 @@ content:
   backends:
     - name: <backend-name>       # what a placement names
       driver: <driver-name>      # the blueprint that specifies this backend, by
-                                 # the driver name that blueprint declares. Its
-                                 # root, options and credentials are that
+                                 # the driver name that blueprint declares
+      root: <root>               # what every locator on it is confined to, in
+                                 # the form the driver's blueprint declares
+      options: {}                # in the shape the driver's blueprint declares.
+                                 # Root, options and credentials are that
                                  # blueprint's, per Design Principle 6
-      held_by: tenant|third-party  # who holds the store it reaches. Absent is
-                                 # third-party. Read when it is a replica's
-                                 # destination
+      held_by: tenant|third-party  # who holds the store it reaches; see
+                                 # A third party's replica waits for
+                                 # classification
   repositories:
     - id: <stable-id>
       scope_path: <tenant>/<org>[/<project>]
@@ -3066,11 +3069,9 @@ content:
   max_entry_bytes: 10485760
 ```
 
-`held_by` is an operator's statement about a host, made where the host is
-named. It decides whether a replica sent there is a third party's (see
-[A third party's replica waits for classification](#a-third-partys-replica-waits-for-classification)),
-and it is never inferred from the host's name. No key declares a replica: see
-[Declaring a replica](#declaring-a-replica).
+`held_by` is stated where the host is named, and what it decides is under
+[A third party's replica waits for classification](#a-third-partys-replica-waits-for-classification).
+No key declares a replica: see [Declaring a replica](#declaring-a-replica).
 
 The placement rule is the same in configuration as it is in a request, and it
 is not a formality here either: `backends` is where a root is named, and a
