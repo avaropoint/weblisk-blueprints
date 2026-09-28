@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 1.6.0
+version: 1.6.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, architecture/enforcement]
 platform: any
 tier: free
@@ -1541,9 +1541,9 @@ land. Each part has a **basis**, which says what stands behind it:
   as made and establishes nothing about it;
 - **recorded** — the service produced it itself.
 
-**Every party is named by identity id**: the `id` of a principal-identity
-`Identity`, and never a name, an email address or a token's `sub`
-(principal-identity Design Principle 10). This service takes the caller's
+**Every party is named by identity id**: the identifier the issuing hub
+records for the subject's identity, and never a name, an email address or a
+token's `sub` (principal-identity Design Principle 10). This service takes the caller's
 identity id from the `identity_id` claim of the token it verified
 ([`protocol/identity`](../protocol/identity.md#payload-claims)). On a person's
 token that is the identity that attested the credential the token's `cid`
