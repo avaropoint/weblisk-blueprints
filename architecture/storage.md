@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: storage
-version: 1.0.1
-requires: [protocol/types, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
+version: 1.1.0
+requires: [protocol/types, protocol/identity, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 tier: free
 -->
@@ -57,6 +57,25 @@ requires:
           fields_used: [id, recommendation_id, signal, metric_before, metric_after]
         - name: AuditEntry
           fields_used: [id, timestamp, actor, action, target, status, previous_hash]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  # ML-DSA-65, the key fingerprint, rules 6 to 8 and fixed-form statements, which
+  # Sealing a Chained Log signs with
+  - blueprint: protocol/identity
+    version: ">=1.6.0 <2.0.0"
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/principal-identity
+    version: ">=1.5.0 <2.0.0"
+    bindings:
+      types:
+        # A key entry names the protection of the key that signed it
+        - name: Identity
+          fields_used: [key_protection]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -156,9 +175,14 @@ Encrypting data in motion, which is `architecture/data-security`.
 - Pagination contract (cursor-based, opaque cursors)
 - Retention policy definitions (observations: 90d, feedback: 180d, audit: 90d)
 - Concurrency safety requirements for all store operations
+- The hash chain every chained log uses, and how a chained log is sealed: its
+  key and checkpoint entries, the statements they sign, and how a verifier
+  checks them offline
 
 ### Does NOT Own
 - Concrete storage implementations (owned by platform documents: go.md, cloudflare.md, node.md)
+- Whether a given log is sealed, and what its own entries hold (owned by the
+  blueprint that owns the log)
 - Agent-level schema declarations (owned by patterns/storage)
 - Encryption key management (owned by architecture/data-security)
 - Backup scheduling and execution (platform-specific, out of scope)
@@ -277,6 +301,19 @@ contracts:
         - A backup MUST capture a consistent point, not a smear across writes
         - A restore MUST return the store to exactly the captured state
         - The format is the platform's; the guarantee is not
+
+    - name: sealed-log
+      description: A chained log its owner signs, which anyone can verify
+        offline. Bound by the blueprint of a log that is sealed
+      required: false
+      rules:
+        - Every entry MUST be stored as its RFC 8785 canonical bytes and one line feed, and MUST NOT be re-serialised
+        - seq MUST start at 1 and rise by one. previous_digest MUST be the SHA-256 of the previous stored line without its line feed, and 64 zeros on the first entry
+        - Checkpoints MUST be signed by a log key, an ML-DSA-65 key minted at process start and held in memory only, whose key entry, signed by the owner's long-lived key, is in the log before the log key signs
+        - A checkpoint MUST be issued whenever the tip has moved, every checkpoint_interval, at clean shutdown and on request
+        - An unavailable log key MUST stop sealing and MUST NOT stop appending. Unsealed entries MUST be counted wherever the log is reported
+        - A key entry MUST NOT be removed or replaced. A checkpoint is judged against the key entries before it
+        - A break in the chain MUST be reported where it is and MUST NOT be repaired, truncated or re-chained
 ```
 
 ---
@@ -1005,6 +1042,160 @@ types:
 
 ---
 
+## Sealing a Chained Log
+
+A chained log ([Hash Chain Integrity](#hash-chain-integrity)) shows that no
+entry was changed or removed after a later one was written. It does not show
+who wrote it: anyone who can write the file can write a new chain that is just
+as consistent. **Sealing** closes that gap. The log's owner signs the log's tip
+from time to time, with ML-DSA-65, so a verifier can tell the log its owner
+signed from any other.
+
+This section says how any chained log is sealed. The blueprint that owns a log
+says whether it is sealed, and binds `sealed-log` when it is.
+
+### What a sealed log holds
+
+A sealed log keeps the chain rules above, under these field names and in this
+stored form:
+
+- **One line per entry.** An entry is stored as its RFC 8785 canonical bytes
+  followed by one line feed (0x0A). Canonical JSON holds no raw line feed, so a
+  line is exactly one entry. The stored bytes are never re-serialised: what was
+  written is what is hashed, served and verified.
+- **Position.** Every entry carries `seq`, `previous_digest` and `recorded_at`.
+  The first entry has `seq` 1, and each later entry's `seq` is one more than the
+  one before it. `previous_digest` is the lowercase hex SHA-256 of the previous
+  entry's stored line, without its line feed. On the first entry it is 64
+  zeros.
+- **Log id.** A log is named by its **log id**: the SHA-256 of its first
+  entry's stored line. The first entry records what the log is for and when it
+  began, so no two logs share an id.
+- **Two kinds of entry of its own.** Beside the owner's entries, a sealed log
+  holds **key entries** (`LogKey`), each of which introduces a key that signs
+  checkpoints, and **checkpoint entries** (`LogCheckpoint`), each of which signs
+  the tip. Both are ordinary entries in the chain, so the next checkpoint covers
+  them too.
+
+An append is serialised, as rule 6 of Hash Chain Integrity requires, and is
+durable before it is reported written.
+
+Every key named here is ML-DSA-65.
+[`patterns/principal-identity`](../patterns/principal-identity.md) Design
+Principle 6 lets a classical key prove a live session and nothing more, and a
+seal is meant to outlive every session.
+
+### The log key
+
+The owner does not sign checkpoints with its long-lived key. It signs them with
+a **log key**: an ML-DSA-65 key pair it mints when its process starts, holds in
+memory only and never writes anywhere. That is what
+[`protocol/identity`](../protocol/identity.md) rule 7 requires of a service's
+operating credential, and the log key's lifetime is that rule's. The long-lived
+key stays where rule 8 protects it, and signs one statement for each log key
+and each log that key will seal:
+
+```
+"weblisk/log-key/v1" 0x00 <log id> 0x00 <key id> 0x00 <not_after> 0x00 <key_protection>
+
+<log id>          the log's id, as 64 lowercase hex characters
+<key id>          the fingerprint (protocol/identity, Key Fingerprint) of the
+                  log key's public key
+<not_after>       the last second the log key may sign, in decimal Unix
+                  seconds, UTC
+<key_protection>  how the long-lived key is protected, as the key_protection
+                  value patterns/principal-identity gives it
+```
+
+The owner appends the statement, the log key's public key and the long-lived
+public key that signed it as a key entry, before the log key signs anything in
+that log. A key entry is never removed and never replaced. A new log key gets a
+new key entry.
+
+A long-lived key whose `key_protection` is `development-only` is a key under
+`kdf = none`. `protocol/identity` rule 6 requires such a key to be reported as
+development-only, and a verifier reports every checkpoint sealed under it that
+way.
+
+### The checkpoint
+
+```
+"weblisk/log-checkpoint/v1" 0x00 <log id> 0x00 <seq> 0x00 <tip> 0x00 <issued_at>
+
+<seq>        the seq of the last entry the checkpoint covers, in decimal
+<tip>        the SHA-256 of that entry's stored line, as 64 lowercase hex
+             characters
+<issued_at>  when the checkpoint was signed, in decimal Unix seconds, UTC
+```
+
+A decimal field has no sign and no leading zeros. Both statements are
+fixed-form statements ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)).
+
+The owner issues a checkpoint whenever the tip has moved since the last one:
+every `checkpoint_interval` its blueprint configures, when it shuts down
+cleanly, and when a caller asks for one in order to export the log. A
+checkpoint entry does not count as moving the tip. A checkpoint covers entries
+before its own, and is signed with a log key whose key entry is already in the
+log and whose `not_after` has not passed.
+
+An entry is **sealed** once a checkpoint covers it, and **unsealed** until then.
+A log key that is unavailable stops sealing and nothing else. Entries are still
+appended, and the next checkpoint seals all of them at once. Wherever the owner
+reports a log, it reports how many entries are unsealed, so a pause in sealing
+is visible and never read as a sealed log.
+
+### Verifying a sealed log
+
+A verifier needs three things:
+
+- the log's stored lines, exactly as stored, from the first to the checkpoint
+  being checked;
+- the fingerprint of every long-lived key the owner has signed log keys with,
+  from a source other than the log. The log names those keys, and cannot vouch
+  for them;
+- SHA-256, and an ML-DSA-65 verifier that behaves as `protocol/identity`'s
+  Verify Signature does.
+
+It needs no canonicaliser, no service and no network. Every digest is over
+stored bytes, and every signed statement is rebuilt from fields the log holds.
+
+1. **Chain.** Line 1 has `seq` 1 and a `previous_digest` of 64 zeros. Each
+   later line has a `seq` one more than the line before it, and a
+   `previous_digest` equal to the SHA-256 of that line. The log id is the
+   SHA-256 of line 1.
+2. **Keys.** For each key entry: the fingerprint of `attesting_key` equals
+   `attested_by` and is one the verifier trusts; the fingerprint of
+   `public_key` equals `key_id`; and `signature` verifies under
+   `attesting_key` over the log-key statement rebuilt from the log id,
+   `key_id`, `not_after` and `key_protection`.
+3. **Checkpoint.** `tip` equals the SHA-256 of line `seq`, and `seq` is below
+   the checkpoint entry's own; the key entry whose `key_id` is the checkpoint's
+   `key` comes earlier in the log, passed step 2, and has a `not_after` no
+   earlier than `issued_at`; and `signature` verifies under that key's
+   `public_key` over the checkpoint statement rebuilt from the log id, `seq`,
+   `tip` and `issued_at`.
+
+What a verifier reports is computed from the log each time and never stored:
+
+| Verdict | Values |
+|---|---|
+| Chain | `continuous`; `broken`, at the first `seq` that fails step 1; `unreadable`, where a line cannot be parsed |
+| Sealing | sealed through `seq` N, with the number of entries after N that are unsealed; `unsealed` where no checkpoint passes step 3 |
+| Key protection | `development-only`, for each checkpoint signed under a log key whose key entry says so |
+
+A break is reported where it is. It is never repaired, truncated or re-chained.
+A line that cannot be parsed is `unreadable`, not `broken`: a verifier that
+could not read a line has refuted nothing.
+
+**A checkpoint is the owner's own statement.** An owner holding its keys can
+write a different log and seal it. What exposes that is an earlier checkpoint
+somebody else kept: the log must still hold, at that `seq`, a line whose
+SHA-256 is that `tip`. A verifier SHOULD keep each checkpoint it verifies,
+with the log id. Nothing in this contract has a third party countersign a
+checkpoint.
+
+---
+
 ## Types
 
 ```yaml
@@ -1022,6 +1213,75 @@ types:
       delete:
         type: string
         description: Remove one record. Deleting an absent record succeeds, so a retry is safe
+
+  LogKey:
+    description: The payload of a sealed log's key entry. Introduces a log key,
+      signed by the owner's long-lived key. Never removed and never replaced.
+      See Sealing a Chained Log
+    fields:
+      key_id:
+        type: string
+        required: true
+        description: The fingerprint of public_key, as protocol/identity defines
+          a fingerprint. What a checkpoint's key names
+      public_key:
+        type: string
+        required: true
+        description: The log key's ML-DSA-65 public key, base64url
+      not_after:
+        type: int64
+        required: true
+        description: The last second the log key may sign, in Unix seconds, UTC
+      key_protection:
+        type: enum
+        values: [hardware, platform-attestation, secrets-manager, passphrase,
+                 development-only]
+        required: true
+        description: How the long-lived key that signed this entry is protected,
+          as patterns/principal-identity's Identity.key_protection names it
+      attested_by:
+        type: string
+        required: true
+        description: The fingerprint of attesting_key
+      attesting_key:
+        type: string
+        required: true
+        description: The owner's long-lived ML-DSA-65 public key, base64url. A
+          verifier trusts it only when its fingerprint is one the verifier
+          obtained from somewhere other than the log
+      signature:
+        type: string
+        required: true
+        description: ML-DSA-65 signature by attesting_key over the
+          weblisk/log-key/v1 statement, base64url
+
+  LogCheckpoint:
+    description: The payload of a sealed log's checkpoint entry. A signature
+      over the log's tip. See Sealing a Chained Log
+    fields:
+      seq:
+        type: integer
+        required: true
+        description: The seq of the last entry the checkpoint covers. Below the
+          checkpoint entry's own seq
+      tip:
+        type: string
+        required: true
+        description: The SHA-256 of entry seq's stored line, lowercase hex
+      issued_at:
+        type: int64
+        required: true
+        description: When the checkpoint was signed, in Unix seconds, UTC
+      key:
+        type: string
+        required: true
+        description: The key_id of the log key that signed it, introduced by a
+          key entry earlier in the log
+      signature:
+        type: string
+        required: true
+        description: ML-DSA-65 signature by that log key over the
+          weblisk/log-checkpoint/v1 statement, base64url
 ```
 
 ---
@@ -1061,6 +1321,15 @@ security:
     - rule: Absence is not an error
       mechanism: Get reports absence distinctly from failure, so a caller does not
         treat a missing record as a fault
+    - rule: A sealed log can be told from any other log, by anyone, without the
+        owner
+      mechanism: Checkpoints signed with ML-DSA-65 by a log key its owner's
+        long-lived key introduced in the log itself, over statements a verifier
+        rebuilds from stored fields. The long-lived key's fingerprint comes from
+        somewhere other than the log
+    - rule: No key that seals a log is ever written to disk
+      mechanism: The log key is minted at start and held in memory only, per
+        protocol/identity rule 7
 ```
 
 ---
@@ -1113,3 +1382,8 @@ security:
 - [ ] Session expiry is enforced: CleanExpired removes stale sessions; GetSession rejects expired records
 - [ ] DeleteUserSessions invalidates all sessions for a user (logout everywhere)
 - [ ] Audit log entries include a `previous_hash` field forming a hash chain: `SHA-256(previous_entry_bytes)` — the first entry uses a zero hash
+- [ ] A sealed log stores each entry as its RFC 8785 bytes and one line feed, and every `previous_digest` after the first is the SHA-256 of the stored line before it
+- [ ] A checkpoint verifies with nothing but the log's lines, the fingerprint of the owner's long-lived key and an ML-DSA-65 verifier, over a `weblisk/log-checkpoint/v1` statement rebuilt from `seq`, `tip` and `issued_at`
+- [ ] A key entry signed by the owner's long-lived key precedes every checkpoint its log key signs, and the log key is found in no file
+- [ ] With the log key unavailable, appends continue, no checkpoint is written, and the reported count of unsealed entries rises
+- [ ] Changing one byte of an entry a checkpoint covers fails verification — the chain is `broken` at the next entry's `seq`, or, for the entry the checkpoint names, its `tip` no longer matches — and the failure is reported rather than repaired

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.5.1
+version: 1.6.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -459,6 +459,43 @@ process:
   3. Return verify(publicKey, data, signature), with an empty context string
   4. Return false on any decode error
 ```
+
+### Fixed-Form Statements
+
+A signer that signs a JSON value uses [Sign JSON](#sign-json). A signer that
+signs a statement it builds from a few named fields, so that a verifier can
+rebuild the bytes without a canonicaliser, uses a **fixed-form statement**:
+
+```
+<prefix> 0x00 <field> 0x00 <field> ... 0x00 <field>
+```
+
+- `<prefix>` is ASCII text from the registry below. One 0x00 byte follows it,
+  and one separates each field from the next. Nothing follows the last field.
+- A field is UTF-8 text in the form the defining document gives it. An empty
+  field is zero bytes. No field may contain a 0x00 byte, so the bytes split
+  back into their fields in exactly one way.
+- The signature is [Sign](#sign) over those bytes.
+
+**The prefix is the domain separation.** Every registered prefix begins with
+`weblisk/`. A canonical JSON value begins with `{`, `[`, `"`, a digit, `-`,
+`t`, `f` or `n`. So no fixed-form statement is a JSON value, and no two kinds of
+statement share bytes. One key can sign more than one kind of statement, and a
+signature made for one kind is never valid as another.
+
+A signer MUST build a statement's bytes itself, from fields it has checked. It
+MUST NOT sign bytes a caller hands it. A key that signs whatever it is given is
+an oracle for every statement that key can make.
+
+| Prefix | Signed by | Defined in |
+|---|---|---|
+| `weblisk/credential-auth/v1` | A credential, to obtain an operator token | [`architecture/admin`](../architecture/admin.md#minting-a-token-with-the-credential) |
+| `weblisk/log-key/v1` | A log owner's long-lived key, introducing the key that signs the log's checkpoints | [`architecture/storage`](../architecture/storage.md#sealing-a-chained-log) |
+| `weblisk/log-checkpoint/v1` | A log key, over the log's tip | [`architecture/storage`](../architecture/storage.md#sealing-a-chained-log) |
+
+A kind of statement is registered here before any implementation signs it. A
+prefix names one layout for good. A changed layout gets a new prefix and a new
+row, and a verifier refuses a prefix it does not know.
 
 ## Token System
 
@@ -1018,6 +1055,7 @@ Implementation MUST:
 - [ ] Support encrypted service keys whose passphrase comes from a secret source
 - [ ] Never accept a private key, other key material or a passphrase from an environment variable, except an installation's master key on a hosted deployment that protects no private key (rule 9)
 - [ ] Sign and verify with pure ML-DSA-65 and an empty context string, never HashML-DSA
+- [ ] Every fixed-form statement an implementation signs begins with a prefix the Fixed-Form Statements registry lists, followed by one `0x00` byte, and its bytes are built by the signer, never taken from a caller
 - [ ] Parse weblisk-key-v1 format correctly (magic, algorithm=ml-dsa-65, kdf, params, ciphertext)
 - [ ] Never store passphrase on disk — only hold in memory during decrypt
 - [ ] A failed passphrase terminates the operation immediately — no retry loop, no passphrase enumeration. The platform blueprint states how termination is signalled
