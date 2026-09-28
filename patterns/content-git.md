@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: content-git
-version: 1.1.0
+version: 1.2.0
 requires: [architecture/content, patterns/content-identity]
 platform: any
 tier: free
@@ -66,11 +66,11 @@ all of what this blueprint says about it.
 ```yaml
 requires:
   - blueprint: architecture/content
-    version: ">=1.8.0 <2.0.0"
+    version: ">=1.9.0 <2.0.0"
     bindings:
       types:
         - name: ContentChange
-          fields_used: [repository, path, operation, before, after, actor, on_behalf_of, approved_by, proposal, separation, version, correlation_id]
+          fields_used: [repository, path, operation, before, after, scope, actor, on_behalf_of, approved_by, proposal, separation, version, correlation_id]
         - name: ContentObservation
           fields_used: [repository, path, current_digest, state]
         - name: ContentRepository
@@ -78,9 +78,11 @@ requires:
         - name: ContentAdoption
           fields_used: [digest, entries, backend_report]
         - name: ContentReplica
-          fields_used: [destination, state, anonymous_read, attestations, credential, credential_fingerprint, backend_report]
+          fields_used: [destination, state, custody, anonymous_read, attestations, credential, credential_fingerprint, held_path, held_reason, backend_report]
         - name: ReplicaCensus
-          fields_used: [digest, backend_report]
+          fields_used: [digest, unclassified, above_ceiling, reserved, backend_report]
+        - name: CensusPath
+          fields_used: [path, version]
         - name: Placement
           fields_used: [backend, locator]
         - name: CustodyAttestations
@@ -271,6 +273,9 @@ contracts:
         - What a git store sends is its line. A destination holds only what the service sent when its line is absent or names a commit on the record mirror's line
         - Pushes come from the record mirror, never from the store, and send only commits the service has anchored
         - Each push names one refspec, the commit to send and refs/heads/<line> at the destination. It is never forced and sends no tag and no other ref
+        - A commit is a version. It is classified when it is the commit of a ContentChange, found by ContentChange.version, that carries scope or that removes an entry. Every other commit is unclassified - one from before adoption, one the service made for an observation, one a person made on the line
+        - The commits a push could send are those reachable from the record mirror's newest anchored commit and not from the destination's head. Before each push, every one of them is checked, oldest first in topological order, as architecture/content's Replica Send Flow requires - every path its whole tree holds, recursively, against architecture/content's reserved names and this blueprint's reserved paths, every gitlink and symbolic link included, and not only the paths it changes; whether it is unclassified and the replica's census did not count it; and whether its scope is above the replica's ceiling
+        - The first commit that fails holds the replica, with held_reason reserved-path, unclassified or above-ceiling. held_path is the reserved path it holds, or else the first path, in git's order, that it changes from its first parent. The commit to send is then the newest anchored commit on the record mirror's line that does not descend from it, and nothing is pushed when the destination already holds that commit
         - Before each push the service asks the destination for its line's head with ls-remote, over the same transport. That is the only thing it reads there. It never fetches
         - A destination whose line names a commit that is not on the record mirror's line makes the replica diverged. Its head is recorded in backend_report, and pushing resumes by itself once the destination's line again names a commit on the mirror's line
         - A destination's refs other than its line are not the replica. They are counted in backend_report, and never sent, fetched or removed
@@ -280,7 +285,8 @@ contracts:
       description: What a replica census binds for a git store
       required: true
       rules:
-        - The replica census's backend_report names the line, the record mirror's head, and every distinct author and committer, by name and address, recorded on the commits that would leave
+        - The versions a replica census counts are the commits reachable from the record mirror's head. Each is checked as a push checks it, and unclassified, above_ceiling and reserved are computed from them. CensusPath.version is the commit id
+        - The replica census's backend_report names the line, the record mirror's head, and every distinct author and committer recorded on the commits that would leave, as GitIdentity records
         - A commit a person made on the line carries whatever name and address they gave git, and a replica publishes it. The census lists it so the person confirming has seen it
         - The census digest covers the report without its observed_at, per architecture/content
 ```
@@ -525,13 +531,28 @@ types:
           line
       authors:
         type: list
+        items: GitIdentity
         required: true
-        description: Every distinct author and committer, by the name and
-          address recorded on the commits that would leave
+        description: Every distinct author and committer recorded on the
+          commits that would leave
       observed_at:
         type: timestamp
         required: true
         description: The census digest does not cover it
+
+  GitIdentity:
+    description: A name and address as a commit records them, for an author
+      or a committer
+    fields:
+      name:
+        type: string
+        required: true
+      address:
+        type: string
+        required: true
+        description: What the commit holds between the angle brackets, as it
+          holds it. For a commit the service made, a pseudonym's or its own
+          .invalid address
 
   GitReplicaReport:
     description: The backend_report of a ContentReplica on a git-remote backend
@@ -689,5 +710,7 @@ change at the same path answers with its `CONTENT_PRECONDITION_FAILED`.
 - [ ] A destination whose line was moved to a commit not on the record mirror's line makes the replica `diverged`, records the destination's head in `backend_report`, and receives nothing more until its line again names a commit on the mirror's line
 - [ ] No operation fetches from a replica
 - [ ] A replica census over a store whose history holds a commit a person made with a real address lists that name and address in `backend_report`
+- [ ] A person's commit on the line, made after a replica was confirmed, that adds `.weblisk/secrets/x`, a gitlink or a symbolic link holds the replica `behind` with `held_reason` `reserved-path` naming the path; the commit is never pushed, and neither is any anchored commit that descends from it
+- [ ] A commit the service made for an observation after a replica's census holds the replica `behind` with `held_reason` `unclassified`, and the push sends the newest anchored commit before it
 - [ ] A repository declaration whose placement names a `git-remote` backend is refused with `CONTENT_BACKEND_UNKNOWN`
 - [ ] A store with a configured remote reports a `remote` finding, and its repository's `effective_custody` is `opaque`

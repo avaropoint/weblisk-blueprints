@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: threat-model
-version: 1.2.0
+version: 1.2.1
 requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/content, architecture/data-security, architecture/admin, architecture/observability, architecture/enforcement, patterns/contract]
 platform: any
 tier: free
@@ -453,7 +453,7 @@ is not a distributed deployment, it is an unexplained address.
 | 3.11 | **Undeclared resource access** | Agent accesses storage resources outside its declared operational data contract | Enforcement storage proxy verifies every storage operation against agent's declared operational data contract; undeclared resource access denied with ENFORCEMENT_DATA_CONTRACT_VIOLATION (see patterns/contract operational data contracts) | Enforcement + contract |
 | 3.12 | **Backend permission exceeds contract** | The storage backend's own ACL grants access to principals the data contract never authorised, so content is reachable without passing enforcement | Custody classification at declaration; scope ceiling derived from what the backend can attest; content above the ceiling refused rather than downgraded | Content service + scope |
 | 3.13 | **Out-of-band write** | A second authority modifies content directly on the backend, bypassing every boundary | Digest reconciliation detects the change and records it as `external` provenance; the change is surfaced, not silently absorbed. Under shared custody this is expected behaviour, not an attack | Content service reconciler |
-| 3.14 | **Out-of-band read invisible to audit** | Content is read directly from the backend, so no access record exists and the audit trail implies nobody read it | Cannot be prevented where a second authority holds the bytes. Every access statement from shared or opaque custody is marked `access_complete: false`; principals are enumerated where the backend attests them | Content service + audit honesty |
+| 3.14 | **Out-of-band read invisible to audit** | Content is read directly from the backend, so no access record exists and the audit trail implies nobody read it | Cannot be prevented where a second authority holds the bytes. Every access statement from a repository whose effective custody is shared or opaque — its store's, or any replica's — is marked `access_complete: false`; principals are enumerated where the backend attests them | Content service + audit honesty |
 | 3.15 | **Custody misdeclaration** | A repository is declared `exclusive` when a second authority in fact holds access, so the full integrity model is applied to storage that cannot support it | Attestations must be demonstrated, not asserted; an undemonstrated property is `false` and an undeclared repository is `opaque`; re-verification on a schedule lowers the ceiling and publishes `content.custody_degraded` | Content service registry |
 
 
