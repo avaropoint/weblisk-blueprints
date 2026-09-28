@@ -59,8 +59,9 @@ content:
   port: integer                    # Listen port (default: 9802)
   backends:                        # Stores this hub can reach. A placement names one
     - name: string                 # Backend name (lowercase, alphanumeric + hyphens)
-                                   # Driver, root and credentials belong to the
-                                   # blueprint that specifies that backend
+      driver: string               # Driver name the specifying blueprint declares,
+                                   # e.g. "git". Root, options and credentials
+                                   # belong to that blueprint
   repositories:                    # Stores brought under governance at startup
     - id: string                   # Stable repository id, unique within scope_path
       scope_path: string           # <tenant>/<org>[/<project>]
@@ -168,7 +169,8 @@ backend owes once it exists, and what is refused, all live there.
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `name` | string | yes | — | What a placement names. Unique within the hub. Its driver, root and credentials are specified by the blueprint for that backend, not by this file |
+| `name` | string | yes | — | What a placement names. Unique within the hub |
+| `driver` | string | no | — | Which blueprint specifies this backend, by the driver name that blueprint declares: `git` for [`patterns/content-git`](../patterns/content-git.md). The backend's root, options and credentials are specified by that blueprint, not by this file. Absent means no blueprint specifies the backend |
 
 #### content.repositories[]
 

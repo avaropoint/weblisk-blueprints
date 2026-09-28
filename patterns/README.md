@@ -56,6 +56,7 @@ frontmatter. A pattern is a dependency that provides a known contract.
 | [observability.md](observability.md) | Health endpoints, metrics envelope, component state tracking |
 | [rate-limiting.md](rate-limiting.md) | Token bucket, sliding window — gateway and agent rate limits |
 | [retry.md](retry.md) | Retry strategies, circuit breaker, timeout management |
+| [content-git.md](content-git.md) | Content backend in git — one commit per change, pseudonymous authors, sha256 joins, nothing git-signed |
 
 ## Workflows & Orchestration
 

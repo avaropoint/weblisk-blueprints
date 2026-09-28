@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 1.6.1
+version: 1.7.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, architecture/enforcement]
 platform: any
 tier: free
@@ -1173,6 +1173,17 @@ list of `(path, entry digest)` pairs, so it changes when anything is added,
 removed or edited, and does not change when nothing is. It costs one full pass,
 which adoption earns exactly once.
 
+**A backend may bind more than its entries.** The blueprint that specifies a
+backend MAY name facts about a store, beyond its entries, that a person
+adopting it must have seen: for a store under version control, which history it
+follows and what its control state would do. The census carries them in
+`backend_report`, and the digest covers them. After the `(path, entry digest)`
+pairs comes one more pair, whose path is empty and whose digest is that of the
+report in RFC 8785 canonical form, without any field that blueprint names as a
+time of observation. No entry has an empty path, so that pair is never mistaken
+for one. A store whose report changed since the census is refused with
+`CONTENT_PRECONDITION_FAILED`, as one whose entries changed is.
+
 This is what makes silent adoption structurally impossible rather than
 discouraged. A caller cannot adopt without having been told what it is
 adopting, because the only way to obtain the precondition is to ask and read
@@ -1324,7 +1335,8 @@ not rewritten to a nearby name that is allowed.
 neither counts nor digests one, and the reconciler never observes one. This
 hides no content, because none of it was ever content. A backend's control
 state is still a fact about custody. The blueprint that specifies the backend
-says how it is reported, and it is never reported as entries.
+says how it is reported, in `ContentRepository.backend_report`, and it is never
+reported as entries.
 
 ### Why `.git` is named here
 
@@ -1661,6 +1673,13 @@ types:
         description: The highest scope at which a requester may apply their own
           proposal, recording separation self. Absent means no requester may.
           Fixed at declaration
+      backend_report:
+        type: object
+        required: false
+        description: What the blueprint that specifies the repository's backend
+          says it reports about the store — its control state, and whether the
+          store is as the service left it — in the form that blueprint
+          declares. Absent when that blueprint declares none
 
   CustodyAttestations:
     description: What a repository can demonstrate. Unknown is recorded as false
@@ -1809,6 +1828,12 @@ types:
         required: true
         description: How many entries could not be read. Their identity is
           unknown, and adopting them adopts content the service cannot digest
+      backend_report:
+        type: object
+        required: false
+        description: The facts beyond its entries that the blueprint specifying
+          the placement's backend binds into the census, in the form that
+          blueprint declares. When present, digest covers it
       issued_at:
         type: timestamp
         required: true
@@ -2196,9 +2221,11 @@ types:
 ```yaml
 content:
   backends:
-    - name: <backend-name>       # what a placement names. Its driver, root and
-                                 # credentials belong to the blueprint that
-                                 # specifies that backend, per Design Principle 6
+    - name: <backend-name>       # what a placement names
+      driver: <driver-name>      # the blueprint that specifies this backend, by
+                                 # the driver name that blueprint declares. Its
+                                 # root, options and credentials are that
+                                 # blueprint's, per Design Principle 6
   repositories:
     - id: <stable-id>
       scope_path: <tenant>/<org>[/<project>]
@@ -2630,3 +2657,4 @@ security:
 - [ ] The service's own manifest declares neither `content:write` nor `content:decide`, and its registration succeeds
 - [ ] A declaration carrying `self_decision_ceiling` from a caller holding `content:declare` and not `content:decide` is refused, and no repository is recorded
 - [ ] `ContentChange.version` is absent when the backend keeps no version marker
+- [ ] A census over a placement whose backend's blueprint binds a `backend_report` covers that report in its `digest`, and an adoption whose store's report changed since the census is refused with `CONTENT_PRECONDITION_FAILED`
