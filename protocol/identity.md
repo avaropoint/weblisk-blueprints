@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.4.0
+version: 1.5.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -70,9 +70,21 @@ August 2024) to protect against future quantum computing threats.
 | Symmetric encryption | **AES-256-GCM** | FIPS 197 |
 | Key derivation | **Argon2id** | RFC 9106 |
 
-All algorithms are quantum-resistant. Weblisk does not use any
-quantum-vulnerable algorithms (no RSA, no ECDSA, no Ed25519, no
-classical Diffie-Hellman).
+All algorithms are quantum-resistant. Weblisk does not use a
+quantum-vulnerable algorithm (no RSA, no ECDSA, no Ed25519, no
+classical Diffie-Hellman) for an identity, a token, an attestation or a
+signed record. Whoever breaks the algorithm of one of those can forge it,
+at any time afterwards.
+
+A **credential** is different, and
+[`patterns/principal-identity`](../patterns/principal-identity.md) Design
+Principle 6 says why: it proves one live session and signs nothing that
+outlives it, so it may be classical. That includes a transport credential a hub
+presents to a third party's service in that service's own protocol, such as the
+SSH key a content replica is pushed with
+([`patterns/content-git`](../patterns/content-git.md)). The key exchange of such
+a transport MUST include ML-KEM-768, so that traffic recorded now cannot be read
+once classical key exchange is broken.
 
 **Why ML-DSA-65?** ML-DSA is a lattice-based digital signature scheme
 selected by NIST after an 8-year international evaluation process
@@ -83,8 +95,8 @@ and quantum attacks. ML-DSA-65 provides NIST Security Level 3
 **Why not Ed25519?** Ed25519 (elliptic curve) is vulnerable to Shor's
 algorithm on quantum computers. Per NIST IR 8547, all elliptic curve
 and RSA algorithms will be deprecated by 2030 and removed from NIST
-standards by 2035. Weblisk eliminates this class of vulnerability
-entirely by using only post-quantum algorithms.
+standards by 2035. Weblisk removes this class of vulnerability from
+everything it signs by using only post-quantum algorithms there.
 
 **Why AES-256-GCM?** Grover's algorithm reduces AES-256 to ~128-bit
 equivalent security against quantum attacks. 128-bit security remains
@@ -1023,4 +1035,4 @@ Implementation MUST:
 - [ ] Production deployments have minimum 2 registered operators for recovery
 - [ ] Backup operator can revoke and re-register a compromised operator
 - [ ] Bootstrap reset (all keys lost) requires orchestrator restart and re-registration
-- [ ] No quantum-vulnerable algorithms (Ed25519, ECDSA, RSA) are used anywhere
+- [ ] No identity, token, attestation or signed record uses a quantum-vulnerable algorithm (Ed25519, ECDSA, RSA), and a transport to a third party's service negotiates a key exchange that includes ML-KEM-768

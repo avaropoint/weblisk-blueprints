@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 1.0.0
+version: 1.1.0
 requires: [protocol/types, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement]
 platform: any
 tier: free
@@ -102,13 +102,13 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/content
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.8.0 <2.0.0"
     bindings:
       types:
         - name: ContentEntry
           fields_used: [path, identity, scope, modified_at, provenance]
         - name: ContentRepository
-          fields_used: [id, scope_path, custody, attestations, ceiling]
+          fields_used: [id, scope_path, custody, effective_custody, attestations, ceiling]
         - name: CustodyAttestations
           fields_used: [enumerable_principals, attributable_writes, tamper_evident]
         - name: ContentObservation
@@ -627,7 +627,9 @@ endpoint.
 
 **Custody flows from the endpoint to the claim, and never the other way.** The
 ledger being exclusive says nothing about what may be asserted through it. An
-edge citing content in a `shared` or `opaque` repository inherits that
+edge citing content in a repository whose `effective_custody` is `shared` or
+`opaque` — its store's custody, or any replica's
+([`architecture/content`](content.md#effective-custody)) — inherits that
 repository's limits: every answer quoting it MUST carry that access is
 incomplete, and that flag MUST survive into every export and evidence package
 downstream. A consumer that drops it has turned a qualified statement into a
@@ -1163,8 +1165,8 @@ types:
       access_complete:
         type: boolean
         required: true
-        description: False whenever any cited repository is shared or opaque.
-          Derived, and no caller may set it
+        description: False whenever any cited repository's effective custody
+          is shared or opaque. Derived, and no caller may set it
 
   CoverageAnswer:
     description: What answers a criterion, and what the answer rests on
@@ -1445,8 +1447,8 @@ security:
     - rule: An unreadable endpoint never reports as covered
       mechanism: Health is unreachable; coverage counts it as needing review
     - rule: An answer citing shared or opaque content is marked incomplete
-      mechanism: Completeness is derived from the custody of every repository
-        cited and cannot be set by a caller
+      mechanism: Completeness is derived from the effective custody of every
+        repository cited and cannot be set by a caller
     - rule: The ledger never holds content
       mechanism: Only address, identity and size are recorded; version resolution
         uses the content service's identity lookup, which transfers no bytes
@@ -1554,7 +1556,7 @@ security:
 - [ ] A producer pass writes one batch, and a person's act writes alone
 - [ ] Every answer carries an `AnswerCompleteness`, and a coverage result of zero states how many partitions have never been scanned
 - [ ] An answer whose traversal limit was reached says so on its completeness rather than returning a trimmed result as whole
-- [ ] Every answer citing a shared or opaque repository carries `access_complete` false, and no caller can set it true
+- [ ] Every answer citing a repository whose `effective_custody` is shared or opaque carries `access_complete` false, and no caller can set it true
 - [ ] No fabric code path transfers content bytes; version resolution and relocation use identity lookup and listing only
 - [ ] A content service whose `ServiceEntry` is on another host is reached only with a grant for that address; absent one the repository is `unreachable` and no credential is sent
 - [ ] The fabric's manifest declares no `agent:message`, and a remote content service does not cause it to be added

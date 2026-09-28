@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 1.7.0
-requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, architecture/enforcement]
+version: 1.8.0
+requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement]
 platform: any
 tier: free
 -->
@@ -137,6 +137,17 @@ requires:
       breaking: version-bump
       removed: halt-immediately
 
+  - blueprint: patterns/secrets
+    version: ">=1.1.0 <2.0.0"
+    bindings:
+      behaviors:
+        # How a replica's credential is held (see Declaring a replica)
+        - name: secret-access
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
   - blueprint: architecture/enforcement
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -186,6 +197,12 @@ requires:
 │  │  - records provenance: authored | external         │  │
 │  │  - never classifies external change as tampering   │  │
 │  └────────────────────────────────────────────────────┘  │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │  Replica Sender            (push-only)             │  │
+│  │  - sends each replica what it lacks, in order      │  │
+│  │  - from the service's own record, never the store  │  │
+│  │  - never reads from a replica                      │  │
+│  └────────────────────────────────────────────────────┘  │
 │                          │                               │
 │                          ▼                               │
 │              ┌────────────────────────┐                  │
@@ -225,6 +242,9 @@ check as the entry they would change. See [Proposals](#proposals).
 **Custody Reconciler** exists only where a second authority can write. It
 converts an unexplained change from an alarm into a recorded fact.
 
+**Replica Sender** sends each of a repository's replicas what it has not yet
+received, and takes nothing back. See [Replicas](#replicas).
+
 ---
 
 ## Responsibilities
@@ -239,6 +259,8 @@ converts an unexplained change from an alarm into a recorded fact.
   create which did not finish recoverable rather than orphaned
 - The custody model: classification, attestation properties, and the scope
   ceiling derived from them
+- Replicas: copies of a repository sent to a second place, the census that
+  precedes one, and the effective custody every copy adds to
 - Precondition semantics for writes (digest match, refusal on mismatch)
 - Proposals: staging a change for a person to decide, the decision, and the
   separation of duties it records
@@ -273,6 +295,9 @@ converts an unexplained change from an alarm into a recorded fact.
 | GET | /v1/content/stat | Stat | yes | Identity and metadata without transferring bytes |
 | GET | /v1/content/repositories | Repositories | yes | Repositories in scope, with custody and ceiling |
 | POST | /v1/content/repositories | DeclareRepository | yes | Bring a store under governance — establish, which creates an empty one, or adopt one that already holds bytes |
+| POST | /v1/content/repositories/{repository}/replicas | DeclareReplica | yes | Declare a replica of a repository. Without `if_match`, returns the census of what would leave and declares nothing |
+| GET | /v1/content/repositories/{repository}/replicas | Replicas | yes | A repository's replicas, retired ones included, with state and ceiling |
+| DELETE | /v1/content/repositories/{repository}/replicas/{replica} | RetireReplica | yes | Stop sending to a replica. Deletes nothing at its destination |
 | POST | /v1/content/reconcile | Reconcile | yes | Detect out-of-band change (shared custody only) |
 | POST | /v1/content/proposals | Propose | yes | Stage a change to one entry for a person to decide. Writes no entry |
 | GET | /v1/content/proposals | Proposals | yes | List proposals in scope, cursor-paginated |
@@ -318,6 +343,21 @@ interfaces:
         POST declares one. establish creates an empty store at the placement
         and declares it; adopt takes on one that already holds bytes and
         requires if_match over a census the service issued
+      served_by: content-service
+
+    - path: /v1/content/repositories/{repository}/replicas
+      methods: [GET, POST]
+      description: GET lists a repository's replicas, retired ones included.
+        POST declares one. Without if_match it returns the census of what
+        would leave and declares nothing; with it, it reserves the replica,
+        creates its credential, demonstrates the destination and confirms
+      served_by: content-service
+
+    - path: /v1/content/repositories/{repository}/replicas/{replica}
+      methods: [DELETE]
+      description: Retire a replica. Nothing more is sent to it, its
+        credential is destroyed, its record stays, and nothing at its
+        destination is deleted
       served_by: content-service
 
     - path: /v1/content/reconcile
@@ -384,6 +424,25 @@ interfaces:
         rolling it back
       called_by: [admin, agents]
 
+    - name: DeclareReplica
+      signature: (repository, ReplicaDeclaration) → (ContentReplica, ReplicaCensus)
+      description: Declare a replica. Returns the census and declares nothing
+        when attempted unseen, and reports a declaration that did not finish
+        rather than rolling it back. Called for a person, never for an agent —
+        content:replicate and content:connect are person only
+      called_by: [gateway]
+
+    - name: ListReplicas
+      signature: repository → [ContentReplica]
+      description: A repository's replicas, retired ones included
+      called_by: [gateway, agents, admin]
+
+    - name: RetireReplica
+      signature: (repository, replica) → ContentReplica
+      description: Stop sending to a replica and destroy its credential.
+        Called for a person — content:replicate is person only
+      called_by: [gateway]
+
     - name: Reconcile
       signature: (repository, since_cursor) → [ContentObservation]
       description: Detect and record out-of-band change. Shared custody only
@@ -424,8 +483,26 @@ interfaces:
 
     - topic: content.custody_degraded
       direction: publish
-      description: A repository's attestations were re-verified and are weaker
-        than when declared; its ceiling has dropped
+      description: A repository's ceiling has dropped — its store's
+        attestations or a replica's were re-verified weaker than before, a
+        replica was confirmed with a lower ceiling, or its backend found a
+        copy nobody declared — naming the content now above the ceiling
+
+    - topic: content.replica_declared
+      direction: publish
+      description: A replica was confirmed, with who holds its destination,
+        its ceiling and the repository's ceiling as it now stands
+
+    - topic: content.replica_state
+      direction: publish
+      description: A replica's state changed — behind, diverged, unreachable,
+        current — naming a held version's path and why it is held. Never
+        carries bytes
+
+    - topic: content.replica_retired
+      direction: publish
+      description: A replica was retired, naming who retired it. Its
+        destination still holds what was sent
 
     - topic: content.ceiling_exceeded
       direction: publish
@@ -450,27 +527,32 @@ interfaces:
 
 | Code | Category | When | Behaviour |
 |---|---|---|---|
-| `CONTENT_PRECONDITION_FAILED` | conflict | `if_match` does not equal the identity of what it names — an entry's stored digest on a write or a proposal, a placement's census digest on an adoption, a proposal's `before` on a decision to apply it. The empty string where an entry exists, on a write, a proposal to create, or a decision to apply one | Refuse. Return both digests. Never merge, never overwrite, never adopt. On a decision to apply, record the proposal `stale` and write nothing |
+| `CONTENT_PRECONDITION_FAILED` | conflict | `if_match` does not equal the identity of what it names — an entry's stored digest on a write or a proposal, a placement's census digest on an adoption, a replica census's digest on a replica declaration, a proposal's `before` on a decision to apply it. The empty string where an entry exists, on a write, a proposal to create, or a decision to apply one | Refuse. Return both digests. Never merge, never overwrite, never adopt. On a decision to apply, record the proposal `stale` and write nothing |
 | `CONTENT_IF_MATCH_REQUIRED` | validation | A write, a removal or a proposal arrived with no `if_match`. The empty string is a precondition, not its absence | Refuse. A write with no precondition is a blind overwrite, and a proposal with none cannot be told stale |
-| `CONTENT_CUSTODY_CEILING_EXCEEDED` | policy | Declared scope exceeds the repository ceiling | Refuse, naming required and actual. Never downgrade the scope |
+| `CONTENT_CUSTODY_CEILING_EXCEEDED` | policy | Declared scope exceeds the repository ceiling, or something a replica would receive exceeds that replica's ceiling | Refuse, naming required and actual, and on a replica each path above it. Never downgrade the scope |
 | `CONTENT_CUSTODY_UNDECLARED` | policy | Repository has no declared custody | Treat as `opaque`, apply the `internal` ceiling, and record the degradation |
 | `CONTENT_PATH_REFUSED` | validation | Traversal segment or escaping symlink — including a placement locator that is absolute, carries a scheme or an authority, or climbs out of its backend's root | Refuse the request as written. Do not normalise and proceed |
-| `CONTENT_RESERVED_PATH` | policy | A segment of the path, or of a placement's locator, is a reserved name — `.weblisk` or `.git` — as any filesystem could resolve it, or the backend's blueprint reserves the path. See [Reserved Paths](#reserved-paths) | Refuse, for every operation including list, stat, propose and declare. Installation state and control state are never content |
+| `CONTENT_RESERVED_PATH` | policy | A segment of the path, or of a placement's locator, is a reserved name — `.weblisk` or `.git` — as any filesystem could resolve it, or the backend's blueprint reserves the path — including a path in anything a replica would receive. See [Reserved Paths](#reserved-paths) | Refuse, for every operation including list, stat, propose, declare and declaring a replica. Installation state and control state are never content, and never leave |
 | `CONTENT_UNREADABLE` | io | Bytes cannot be read | Identity is `unknown`, never `current` and never `stale` |
 | `CONTENT_REPOSITORY_UNKNOWN` | validation | No repository of that id in the caller's scope | Refuse without disclosing whether it exists elsewhere |
 | `CONTENT_DISPOSITION_REQUIRED` | validation | A declaration arrived without a disposition | Refuse. A declaration that does not say whether it expects bytes is a blind adoption |
 | `CONTENT_REPOSITORY_EXISTS` | conflict | The id is already declared at that `scope_path`, or is reserved there by an unfinished establish whose arguments differ from this request's | Refuse, naming the declared repository's placement. Never re-declare in place. An identical retry against an unfinished establish is a resumption, not this |
 | `CONTENT_ADOPTION_UNSEEN` | conflict | `disposition: adopt` with no `if_match` | Refuse and return the `ContentAdoption` census. Nothing is declared. The caller re-submits with the census digest |
-| `CONTENT_NOT_EMPTY` | conflict | `disposition: establish` and the placement already holds entries, including on a resumed establish whose store has since been written to | Refuse. Establishing over bytes somebody else wrote is adoption under the wrong word |
+| `CONTENT_NOT_EMPTY` | conflict | `disposition: establish` and the placement already holds entries, including on a resumed establish whose store has since been written to; or a replica's destination holds something this service would not send | Refuse. Establishing over bytes somebody else wrote is adoption under the wrong word, and sending over them would overwrite them |
 | `CONTENT_BACKEND_UNKNOWN` | validation | The placement names a backend this service does not hold for that `scope_path` | Refuse without disclosing whether the name exists under another scope |
 | `CONTENT_ESTABLISH_UNSUPPORTED` | policy | `disposition: establish` against a backend that cannot bring a store into existence, or cannot represent an empty one without an entry in it | Refuse. Never write a placeholder to make the store representable. `adopt` against the same backend is unaffected |
-| `CONTENT_ESTABLISH_INCOMPLETE` | partial | The declaration was reserved and the create or the custody demonstration did not finish | Report what completed, carrying the `ContentRepository` and its `RepositoryEstablishment`. Roll nothing back, claim no success, and do not report that nothing happened |
+| `CONTENT_ESTABLISH_INCOMPLETE` | partial | The declaration was reserved and the create or the custody demonstration did not finish; or a replica was reserved and its credential, or the demonstration of its destination, did not finish | Report what completed, carrying the `ContentRepository` and its `RepositoryEstablishment`, or the `ContentReplica` with its `ReplicaEstablishment` and credential. Roll nothing back, claim no success, and do not report that nothing happened |
 | `CONTENT_PRECONDITION_NOT_APPLICABLE` | validation | `if_match` does not fit the act: any `if_match` with `disposition: establish`; the empty string on a removal, or on a proposal to modify or remove; a digest on a proposal to create | Refuse. A precondition that contradicts the act, or that nothing can evaluate, must not be accepted as though it held |
-| `CONTENT_PLACEMENT_DECLARED` | conflict | The placement is equal to, inside, or contains an already-declared repository | Refuse. Two ceilings over one set of bytes means the lower one is unenforceable |
+| `CONTENT_PLACEMENT_DECLARED` | conflict | The placement is equal to, inside, or contains an already-declared repository; or a replica's destination is equal to, inside or contains a declared repository's placement or another replica's destination | Refuse. Two ceilings over one set of bytes means the lower one is unenforceable, and a replica sent into a store would make a copy a source |
 | `CONTENT_PROPOSAL_UNKNOWN` | validation | No proposal of that id in the caller's scope | Refuse without disclosing whether it exists elsewhere |
 | `CONTENT_PROPOSAL_DECIDED` | conflict | A decision arrived for a proposal that is no longer `open`, including the second of two decisions that raced | Refuse, returning the proposal as recorded. A proposal leaves `open` once |
 | `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the identity the proposal names as its `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, or the repository declares none | Refuse, naming the scope and the ceiling. Nothing is recorded and the proposal stays `open` |
-| `CONTENT_IDENTITY_REQUIRED` | auth | A write, removal, proposal or decision arrived on a token that carries no `identity_id` | Refuse. Never record a name, an address or a token's `sub` in its place |
+| `CONTENT_IDENTITY_REQUIRED` | auth | A write, removal, proposal, decision, replica declaration or retirement arrived on a token that carries no `identity_id` | Refuse. Never record a name, an address or a token's `sub` in its place |
+| `CONTENT_REPLICA_UNSEEN` | conflict | A replica declaration with no `if_match` | Refuse and return the `ReplicaCensus`. Nothing is recorded and nothing is sent. The caller re-submits with the census digest |
+| `CONTENT_REPLICA_UNCLASSIFIED` | policy | A replica declaration whose destination a third party holds, where the classification gate is not present or does not pass. See [A third party's replica waits for classification](#a-third-partys-replica-waits-for-classification) | Refuse. Nothing is recorded and nothing is sent |
+| `CONTENT_REPLICA_EXISTS` | conflict | The replica id is taken in that repository, by a replica that is not `establishing` or whose recorded arguments differ from this request's | Refuse, naming the recorded destination. An identical retry against an `establishing` replica is a resumption, not this |
+| `CONTENT_REPLICA_UNKNOWN` | validation | No replica of that id in that repository | Refuse |
+| `CONTENT_REPLICA_UNSUPPORTED` | policy | The destination's backend cannot receive a replica, or cannot receive one of the repository's backend | Refuse. Nothing is recorded |
 | `ENFORCEMENT_DATA_CONTRACT_VIOLATION` | enforcement | Path is outside the agent's declared operational data contract | Refuse via the storage proxy |
 
 ---
@@ -643,12 +725,72 @@ interfaces:
    an integrity anomaly**; that classification belongs to exclusive custody
 
 ### Custody Re-verification Flow
-1. On declaration and on a schedule, each attestation property is tested
+1. On declaration and on a schedule, each attestation property is tested — the
+   store's, and each replica's that is not retired, with its `anonymous_read`
 2. A property that cannot be demonstrated becomes `false`
-3. The ceiling is recomputed
-4. If the ceiling dropped, `content.custody_degraded` is published naming the
+3. The backend reports any copy of the store it can see that no replica
+   declares
+4. The ceiling is recomputed from every place the bytes live (see
+   [Effective custody](#effective-custody))
+5. If the ceiling dropped, `content.custody_degraded` is published naming the
    content now sitting above it. Existing content is not moved and not
    reclassified — it is reported
+
+### Replica Declaration Flow
+1. Caller submits a `ReplicaDeclaration` for a repository: an id, a
+   `destination`, a claimed custody, claimed attestations, and `if_match`
+2. Enforcement storage proxy intercepts with operation `create` and the
+   repository's `scope_path` as the resource scope
+3. The caller must hold `content:replicate` and `content:connect`, both on a
+   person's token (see [Who may declare a replica](#who-may-declare-a-replica))
+4. The destination is resolved as a placement is: its backend must be one this
+   service holds for that `scope_path` (`CONTENT_BACKEND_UNKNOWN`) and able to
+   receive a replica of the repository's backend
+   (`CONTENT_REPLICA_UNSUPPORTED`), and its locator is confined to that
+   backend's root (`CONTENT_PATH_REFUSED`, `CONTENT_RESERVED_PATH`). It must not
+   be equal to, inside or containing a declared repository's placement or
+   another replica's destination (`CONTENT_PLACEMENT_DECLARED`)
+5. The id must be free in that repository (`CONTENT_REPLICA_EXISTS`). A replica
+   in `establishing` whose recorded id, destination, custody and attestations
+   equal this request's is resumed at step 9
+6. The service computes a `ReplicaCensus` of what would leave. With no
+   `if_match`, it returns the census, refuses with `CONTENT_REPLICA_UNSEEN`, and
+   records nothing
+7. Checked in order: an `if_match` that does not equal the census digest just
+   computed → `CONTENT_PRECONDITION_FAILED`; a reserved path in anything that
+   would leave → `CONTENT_RESERVED_PATH`; a destination a third party holds,
+   without the classification gate present and passing →
+   `CONTENT_REPLICA_UNCLASSIFIED`; anything that would leave above the
+   census's prospective replica ceiling → `CONTENT_CUSTODY_CEILING_EXCEEDED`
+8. The replica is **reserved** — recorded durably with `state: establishing`,
+   sending nothing and counting toward nothing
+9. The credential is created and held, unless the reservation already has one
+10. The destination is demonstrated with that credential: it holds nothing
+    this service would not send (`CONTENT_NOT_EMPTY`); each claimed custody
+    property and attestation; and `anonymous_read`. The replica's ceiling is
+    derived from what was demonstrated. Anything that would leave above it →
+    `CONTENT_CUSTODY_CEILING_EXCEEDED`, and the replica stays `establishing`
+11. Effective custody and the repository's ceiling are recomputed, the replica
+    becomes `behind`, or `current` when there is nothing to send, and
+    `content.replica_declared` is published. Sending begins
+12. Should step 9 or 10 not finish, nothing is sent and nothing is rolled back:
+    the caller is answered with `CONTENT_ESTABLISH_INCOMPLETE` carrying the
+    replica, its `ReplicaEstablishment` and its credential
+
+### Replica Send Flow
+1. After each version is recorded, and every `replica_retry_interval`, each
+   replica that is neither `establishing` nor `retired` is sent what it lacks,
+   oldest first
+2. Before sending, the service checks that the destination holds only what the
+   service sent it. If it holds anything else, the replica becomes
+   `diverged`, what was found is recorded, and nothing is sent
+3. A version above the replica's ceiling is held: the replica is `behind`, it
+   names the version's path and why, and nothing recorded after it is sent
+4. A destination that cannot be reached, or that refuses the credential, makes
+   the replica `unreachable` until the next attempt succeeds
+5. What was sent is recorded with `checked_at`. With nothing left to send, the
+   replica is `current`
+6. Each change of state publishes `content.replica_state`
 
 ---
 
@@ -668,10 +810,12 @@ Its routes are guarded by the `content:` family that document declares:
 | `content:write` | `PUT /v1/content/entry`, `DELETE /v1/content/entry`. Person only |
 | `content:propose` | `POST /v1/content/proposals` |
 | `content:decide` | `POST /v1/content/proposals/{id}/decision`. Person only |
-| `content:describe` | `GET /v1/content/repositories` |
+| `content:describe` | `GET /v1/content/repositories`, `GET /v1/content/repositories/{repository}/replicas` |
 | `content:declare` | `POST /v1/content/repositories` |
 | `content:establish` | `POST /v1/content/repositories` with `disposition: establish` — required **in addition to** `content:declare`, because creating a store is more than declaring one |
 | `content:reconcile` | `POST /v1/content/reconcile` |
+| `content:replicate` | `POST /v1/content/repositories/{repository}/replicas`, with `content:connect`; `DELETE /v1/content/repositories/{repository}/replicas/{replica}`. Person only |
+| `content:connect` | `POST /v1/content/repositories/{repository}/replicas` — required **in addition to** `content:replicate`, because it gives the tenant a credential that reaches outside its store. Person only |
 
 A capability name is `family:verb`. An invented name is refused at registration,
 so these MUST be the names `protocol/types` declares and no others. *Person
@@ -682,13 +826,14 @@ only* is `protocol/types`' marking too, and what it does to a grant is
 declares become the `cap` of the token the orchestrator issues the service at
 registration ([`protocol/spec`](../protocol/spec.md), `POST /v1/register`), so
 they are what the service may do as a caller as well as what it serves. Its
-manifest therefore declares every capability in the table except
-`content:write` and `content:decide`. It checks those two on the requests it
-serves and never holds them: they are person only, and registration refuses a
-manifest that declares one, with `capability_person_only`. For the same reason
-no channel grant to this service can carry one, because a grant is the
-intersection of what the requester holds and what the target's manifest
-declares ([`architecture/orchestrator`](orchestrator.md)).
+manifest therefore declares every capability in the table except the four
+that are person only: `content:write`, `content:decide`, `content:replicate`
+and `content:connect`. It checks those on the requests it serves and never
+holds them, and registration refuses a manifest that declares one, with
+`capability_person_only`. For the same reason no channel grant to this service
+can carry one, because a grant is the intersection of what the requester
+holds and what the target's manifest declares
+([`architecture/orchestrator`](orchestrator.md)).
 
 ### Startup Sequence
 
@@ -797,6 +942,12 @@ does not work rather than a component that was not given a mesh.
    moved on MUST NOT be merged into what is there now. Merged bytes are bytes
    nobody proposed and nobody decided.
 
+8. **A copy is a place** — a repository is only as protected as the most
+   exposed place a copy of it lives. A replica therefore lowers what the
+   repository may hold and never raises it, and bytes that have left are never
+   counted as returned. A replica is only ever sent to. What comes back from a
+   place this service does not control is somebody's write, never the truth.
+
 ---
 
 ## The Custody Model
@@ -852,6 +1003,10 @@ the system quietly lowered is a classification nobody made.
 **The ceiling is a property of placement, not of intent.** Moving a document
 from an exclusive repository to a shared one is a scope event, and the service
 MUST refuse the move rather than silently reclassify the document.
+
+**Every place a copy lives counts.** The table derives the ceiling of one
+place. A repository with replicas lives in more than one, and its ceiling is
+the lowest of them (see [Effective custody](#effective-custody)).
 
 ### What Shared Custody Changes
 
@@ -1038,8 +1193,9 @@ is written *before* the irreversible act, never after.
 ```
 
 A repository in `establishing` is **recorded and not governed**. It reports
-`custody: opaque`, every attestation `false`, `ceiling: internal` and no
-`verified_at` — the fail-closed values, because nothing has been demonstrated
+`custody` and `effective_custody` `opaque`, every attestation `false`,
+`ceiling` and `store_ceiling` `internal`, and no `verified_at` — the
+fail-closed values, because nothing has been demonstrated
 about a store that may not exist. It serves no read and accepts no write. It
 appears in `GET /v1/content/repositories` with its `state` and its
 `RepositoryEstablishment`, and health reports `degraded` naming it. It is never
@@ -1285,6 +1441,228 @@ control", and naming the system would be naming a product.
 > configured repository, cannot be given one. Naming an amending verb needs the
 > same care as retiring, because an amendment that lowered separation would
 > weaken a control over bytes already written under the stronger one.
+
+---
+
+## Replicas
+
+A **replica** is a copy of a repository that this service keeps at a second
+place, its **destination**. The service sends the repository's entries there
+and, where the backend keeps versions, every version it has recorded. It takes
+nothing back.
+
+A replica is how a tenant keeps a copy of its content off the machine that holds
+the store, and how it publishes one. Both put the tenant's bytes somewhere its
+own service does not control. So a replica is declared the way a repository is
+adopted, by a person who has seen what would leave, and the place it names
+lowers what the repository may hold.
+
+### A replica is sent to, and never read from
+
+- **Push-only.** The service sends to a replica. It never reads an entry, a
+  digest, a version or a history from one, and never takes a change made there
+  into the repository. The one thing it asks a destination is whether it still
+  holds only what the service sent.
+- **Never a source of truth.** Nothing this service answers comes from a
+  replica: not a read, a census or a recovery. A store rebuilt from a replica's
+  copy is a new store. It comes under governance by adoption, with a census, and
+  every entry in it is recorded with provenance `unknown`.
+- **A replica that diverged is reported, never pulled.** A destination that
+  holds something this service did not send makes the replica `diverged`. The
+  service records what it found, sends nothing more, and never overwrites the
+  destination to make it match. Sending resumes by itself once the destination
+  again holds only what the service sent. A change somebody made at the
+  destination reaches the repository only as that person's own write or
+  proposal.
+- **Sending never holds up a write.** A write is complete when the repository
+  holds it. Sending follows, in the order the versions were recorded.
+- **What is sent comes from the service's own record.** It is never read from
+  the store at the moment of sending, because another authority can change the
+  store. The blueprint that specifies the backend says where that record is
+  kept.
+
+### Declaring a replica
+
+`POST /v1/content/repositories/{repository}/replicas`, operation
+`DeclareReplica`. The steps and their order are the
+[Replica Declaration Flow](#replica-declaration-flow).
+
+**Nothing leaves unseen.** Declaring a replica is adoption's two-step, over what
+would leave rather than over what a placement holds. A first call carries no
+`if_match`: the service returns a `ReplicaCensus`, refuses with
+`CONTENT_REPLICA_UNSEEN`, and records nothing. The caller re-submits with the
+census `digest`. The digest is computed as an adoption census's is (see
+[`if_match` on a declaration](#if_match-on-a-declaration)), over the ordered
+`(path, entry digest)` pairs of every version that would leave, and it covers
+the backend's report where the backend's blueprint declares one. A version
+recorded between the two calls changes it, and the declaration is then refused
+with `CONTENT_PRECONDITION_FAILED`. There is no other way to obtain the
+precondition, so a replica cannot be declared by somebody who has not been told
+what it would receive.
+
+**It is reserved before anything is made, as a store is.** A confirmed
+declaration follows establish's order, for the reason given under
+[A create that does not finish](#a-create-that-does-not-finish): the durable
+record comes before the act that cannot be undone. The replica is reserved
+first, in `establishing`, sending nothing. Only then is its credential created,
+and only then is the destination demonstrated. A repeated declaration with
+identical arguments against a replica in `establishing` resumes where it
+stopped and creates no second credential. A completed declaration is not
+idempotent: repeating it is `CONTENT_REPLICA_EXISTS`.
+
+**The credential is the tenant's, for one destination.** A replica is reached
+with a credential the service creates for that replica alone and holds through
+[`patterns/secrets`](../patterns/secrets.md). Its secret part never leaves the
+service. `ContentReplica.credential` carries the part a person registers at
+the destination. The service presents it only there
+([`architecture/orchestrator`](orchestrator.md), *Presenting a credential to a
+component*). Retiring the replica destroys it. A credential that a person or a
+client brought would be one the tenant does not control, and could be presented
+anywhere it was valid.
+
+**The destination is demonstrated, not claimed.** The declaration's custody and
+attestations are claims, demonstrated against the destination before they take
+effect, exactly as a repository's are. The service also demonstrates that the
+destination holds nothing it would not send, which is otherwise refused with
+`CONTENT_NOT_EMPTY`, and it tests `anonymous_read` by trying to read the
+destination with no credential. A destination that cannot be reached yet —
+the ordinary case, before a person has registered the credential there —
+answers `CONTENT_ESTABLISH_INCOMPLETE`, carrying the replica and its credential.
+Nothing has been sent.
+
+**Not in configuration.** A replica is never declared in a configuration file,
+for the reason adoption is not: a file cannot hold a census digest that did not
+exist when it was written, and a file that could send a repository's history
+would send it on every fresh start, unread.
+
+### Who may declare a replica
+
+| Capability | Lets the holder | Worst case in the wrong hands |
+|---|---|---|
+| `content:replicate` | Declare a replica, with `content:connect`. Retire one | every version of a repository sent to a destination of their choosing |
+| `content:connect` | Have the service create and hold a credential that reaches outside the tenant's store | the tenant holding a key to a place outside itself |
+
+Declaring a replica requires both. Neither alone sends a byte anywhere: a
+replica with no credential reaches nothing, and a credential with no replica is
+sent nothing. Sending a repository outside the tenant therefore takes two
+grants, the rule `content:establish` already follows beside `content:declare`
+(see [Creating is not declaring](#creating-is-not-declaring)). Retiring a replica
+needs `content:replicate` alone, because it only ever reduces where bytes go.
+
+Both are *person only* in [`protocol/types`](../protocol/types.md). Sending a
+tenant's history to another place is a judgement, and a service has none to
+exercise (principal-identity Design Principle 11). The rules that keep a
+person-only capability with people are stated once, under
+[Who may move an entry](#who-may-move-an-entry), and hold here unchanged.
+
+### What would leave
+
+The census reports, for the repository and the destination:
+
+- the entries now, and every earlier version that would leave with them;
+- the paths an earlier version holds and no entry holds now, because a person
+  looking at today's entries cannot see them;
+- the highest scope recorded for anything that would leave;
+- how many versions carry no scope a person declared, as `unclassified`. They
+  are counted and never assumed to be at any level;
+- each path that would leave above the replica's prospective ceiling, and each
+  reserved path that would leave. Either refuses the declaration, and the census
+  names them so the person can see why before confirming;
+- who holds the destination, and the ceilings the replica and the repository
+  would have, computed from the claims. The demonstration can only lower them;
+- what the backend's blueprint binds in `backend_report` — for a store under
+  version control, the names every earlier version was recorded under.
+
+A reserved path refuses the declaration even where it appears only in an
+earlier version, put there by somebody out of band. Installation state and
+control state never leave.
+
+### A third party's replica waits for classification
+
+Every backend says who holds the store it reaches: the tenant, or a third party
+(`held_by`, under [Configuration](#configuration)). A backend that does not say
+is a third party's. It is never inferred from a host, a URL or a provider name,
+as custody is not.
+
+A replica whose destination a third party holds is refused with
+`CONTENT_REPLICA_UNCLASSIFIED` unless the classification gate is present and
+passes for everything that would leave. The gate is present when this contract
+classifies every version a replica would receive, so that each carries a scope
+a person declared, and applies the plain-replica cap: a replica that holds the
+bytes readably is capped at `confidential`, whatever its custody would
+otherwise allow. Where the gate is not present, every such replica is refused.
+
+A replica the tenant holds is not refused by this rule. A copy on a machine the
+tenant owns, away from the machine that holds the store, gives durability
+without disclosure, and it exercises every other rule in this section before a
+third party is involved.
+
+### Effective custody
+
+A repository's bytes live wherever a copy of them lives. Its **effective
+custody** is the most permissive custody of any place they live, in the order
+`exclusive`, `shared`, `opaque`: its store, and every replica that has been
+sent anything, retired or not. Its **ceiling** is the lowest ceiling of those
+places.
+
+- `custody` stays the store's. It says who else can write the bytes this
+  service reads, and reconciliation and the anomaly rules of
+  `architecture/data-security` depend on exactly that. A replica writes
+  nothing here, so it does not change it.
+- `effective_custody` says who else can read a copy. Every statement about
+  access is made from it: an `AccessStatement` carries `access_complete: false`
+  unless effective custody is `exclusive`.
+- `ceiling` is the effective ceiling, and the ceiling check of every write and
+  every proposal uses it. `store_ceiling` is what the store alone allows. A
+  consumer that reads only `ceiling` gets the safer answer.
+- A replica's own ceiling is derived from what was demonstrated about its
+  destination, by the [Derived Scope Ceiling](#derived-scope-ceiling) table.
+  `anonymous_read` comes first: a destination that anyone can read, or whose
+  anonymous read was not demonstrated to be refused, has the ceiling `public`.
+- **Bytes that have left have left.** Retiring a replica never raises the
+  ceiling and never narrows effective custody.
+- **An undeclared copy counts.** A backend that can see a copy of the store
+  that no replica declares MUST report it. It counts as a place whose custody
+  is `opaque`, with the `internal` ceiling the table gives that custody; its
+  anonymous read is not tested, because the service does not reach it.
+  Effective custody becomes `opaque`, the ceiling is `internal` at most, and
+  `content.custody_degraded` is published naming the content now above it.
+
+A replica in `establishing` has been sent nothing and counts toward nothing.
+Only confirming it lowers the ceiling, so what is written while a person
+registers its credential is checked again when the replica is confirmed
+(Replica Declaration Flow, step 10).
+
+### States
+
+| State | Means |
+|---|---|
+| `establishing` | Reserved and not yet confirmed. Nothing has been sent |
+| `current` | The destination held every recorded version when last checked |
+| `behind` | Versions are recorded and not yet sent. `held_path` and `held_reason` name a version the service will not send, if there is one |
+| `diverged` | The destination holds something this service did not send. Nothing is sent |
+| `unreachable` | The last attempt could not reach the destination, or its credential was refused |
+| `retired` | A person retired it. Nothing is sent, its credential is destroyed, and its record stays |
+
+A version above the replica's ceiling is held, never skipped. Nothing recorded
+after it is sent either, because a destination that received later versions
+without it would hold a history with a hole in it.
+
+Every count a replica reports is as of its `checked_at`, and is absent when it
+cannot be established. `behind_by` is never 0 for a replica the service could
+not check.
+
+### Retiring a replica
+
+`DELETE /v1/content/repositories/{repository}/replicas/{replica}`, operation
+`RetireReplica`. The replica becomes `retired`: nothing more is sent, its
+credential is destroyed, and its record stays, naming who retired it. Nothing
+at the destination is deleted, because the service never writes there except to
+send. The response says that the destination still holds what was sent and
+that the credential registered there is for a person to remove.
+
+A replica in `establishing` may be retired too. It was sent nothing, so it never
+counted toward effective custody.
 
 ---
 
@@ -1655,14 +2033,30 @@ types:
         type: enum
         values: [exclusive, shared, opaque]
         required: true
-        description: Who else can reach the bytes. Undeclared is opaque
+        description: Who else can reach the bytes in the store. Undeclared is
+          opaque. A replica does not change it — see effective_custody
+      effective_custody:
+        type: enum
+        values: [exclusive, shared, opaque]
+        required: true
+        description: The most permissive custody of any place the bytes live
+          — the store, every replica that has been sent anything, and any copy
+          the backend reports that no replica declares. Equal to custody for a
+          repository with no replica
       attestations:
         type: CustodyAttestations
         required: true
       ceiling:
         type: ScopeLevel
         required: true
-        description: Derived from custody and attestations. Never configured
+        description: The effective ceiling — the lowest of store_ceiling and
+          the ceiling of every place effective_custody counts. Every ceiling
+          check uses it. Derived, never configured
+      store_ceiling:
+        type: ScopeLevel
+        required: true
+        description: What the store alone allows, derived from custody and
+          attestations. Never configured
       verified_at:
         type: timestamp
         required: false
@@ -1838,6 +2232,263 @@ types:
         type: timestamp
         required: true
 
+  ReplicaDeclaration:
+    description: The body of POST /v1/content/repositories/{repository}/replicas.
+      Claims only — custody, attestations and anonymous read are demonstrated
+      against the destination before they take effect
+    fields:
+      id:
+        type: string
+        required: true
+        description: Stable identifier, chosen by the caller. Unique within the
+          repository
+      destination:
+        type: Placement
+        required: true
+        description: Which backend, and where within it, the replica is sent
+          to. Resolved and confined as a repository's placement is
+      custody:
+        type: enum
+        values: [exclusive, shared, opaque]
+        required: false
+        description: What the caller claims about who else can reach the
+          destination. Absent is opaque
+      attestations:
+        type: CustodyAttestations
+        required: false
+        description: What the caller claims the destination can demonstrate.
+          An undemonstrated claim is recorded false
+      if_match:
+        type: string
+        required: false
+        description: The digest of the ReplicaCensus this declaration confirms.
+          Absent returns the census and declares nothing
+
+  ReplicaCensus:
+    description: What a replica would receive, issued by the service so a
+      person can declare it knowingly. Returned with CONTENT_REPLICA_UNSEEN
+    fields:
+      repository:
+        type: string
+        required: true
+      digest:
+        type: string
+        required: true
+        description: Computed as an adoption census digest is, over the ordered
+          (path, entry digest) pairs of every version that would leave,
+          followed by the pair that binds backend_report where there is one.
+          The value a confirming declaration passes as if_match
+      entries:
+        type: integer
+        required: true
+        description: How many entries the repository holds now
+      versions:
+        type: integer
+        required: true
+        description: How many versions would leave, the entries now included.
+          Equal to entries where the backend keeps no versions
+      history_only:
+        type: list
+        required: true
+        description: Paths an earlier version holds and no entry holds now
+      unreadable:
+        type: integer
+        required: true
+        description: How many versions could not be read. Their identity is
+          unknown
+      highest_scope:
+        type: ScopeLevel
+        required: false
+        description: The highest scope recorded for anything that would leave.
+          Absent when none is recorded
+      unclassified:
+        type: integer
+        required: true
+        description: How many versions carry no scope a person declared. Never
+          assumed to be at any level
+      above_ceiling:
+        type: list
+        required: true
+        description: Each path, with its scope, that would leave above the
+          prospective replica ceiling. Non-empty refuses the declaration
+      reserved:
+        type: list
+        required: true
+        description: Each reserved path in anything that would leave. Non-empty
+          refuses the declaration
+      held_by:
+        type: enum
+        values: [tenant, third-party]
+        required: true
+        description: Who holds the destination, as its backend declares
+      prospective_ceiling:
+        type: ScopeLevel
+        required: true
+        description: The replica's ceiling as its claims would derive it. The
+          demonstration can only lower it
+      prospective_repository_ceiling:
+        type: ScopeLevel
+        required: true
+        description: The repository's ceiling once the replica counts, as its
+          claims would derive it
+      backend_report:
+        type: object
+        required: false
+        description: What the blueprint specifying the repository's backend
+          binds into the census about what would leave, in the form that
+          blueprint declares. When present, digest covers it
+      issued_at:
+        type: timestamp
+        required: true
+
+  ContentReplica:
+    description: A copy of a repository kept at a destination, sent to and
+      never read from
+    fields:
+      repository:
+        type: string
+        required: true
+      id:
+        type: string
+        required: true
+        description: Stable identifier, unique within the repository
+      destination:
+        type: Placement
+        required: true
+        description: As resolved at declaration and recorded
+      state:
+        type: enum
+        values: [establishing, current, behind, diverged, unreachable, retired]
+        required: true
+      establishment:
+        type: ReplicaEstablishment
+        required: false
+        description: Present while state is establishing, and on a replica
+          whose declaration did not finish
+      held_by:
+        type: enum
+        values: [tenant, third-party]
+        required: true
+        description: Who holds the destination, as its backend declared it when
+          the replica was declared
+      custody:
+        type: enum
+        values: [exclusive, shared, opaque]
+        required: true
+        description: Who else can reach the destination, as demonstrated.
+          Undeclared is opaque
+      attestations:
+        type: CustodyAttestations
+        required: true
+        description: What the destination demonstrated. Unknown is false
+      anonymous_read:
+        type: enum
+        values: [refused, readable, unknown]
+        required: true
+        description: Whether the destination can be read with no credential.
+          readable and unknown both give the replica the ceiling public
+      ceiling:
+        type: ScopeLevel
+        required: true
+        description: Derived from what the destination demonstrated. Never
+          configured
+      credential:
+        type: string
+        required: false
+        description: The part of the replica's credential a person registers at
+          the destination, in the form the backend's blueprint declares. The
+          secret part is never returned. Absent once retired
+      credential_fingerprint:
+        type: string
+        required: false
+        description: Names the credential without carrying it, in the form the
+          backend's blueprint declares
+      first_sent_at:
+        type: timestamp
+        required: false
+        description: When the destination was first sent anything. From then on
+          the replica counts toward effective custody, retired or not
+      behind_by:
+        type: integer
+        required: false
+        description: Versions recorded and not yet sent, as of checked_at.
+          Absent when it cannot be established, never 0 then
+      held_path:
+        type: string
+        required: false
+        description: The path of the version the service will not send, while
+          state is behind because of it
+      held_reason:
+        type: enum
+        values: [above-ceiling]
+        required: false
+        description: Why held_path is held
+      checked_at:
+        type: timestamp
+        required: false
+        description: When the destination was last checked. Absent means never
+      verified_at:
+        type: timestamp
+        required: false
+        description: When custody, attestations and anonymous read were last
+          demonstrated
+      declared_by:
+        type: string
+        required: true
+        description: Witnessed. The identity id of the person who declared it
+      declared_at:
+        type: timestamp
+        required: true
+      correlation_id:
+        type: string
+        required: true
+        description: The enforcement decision that admitted the declaration
+      retired_by:
+        type: string
+        required: false
+        description: Witnessed. The identity id of the person who retired it
+      retired_at:
+        type: timestamp
+        required: false
+      backend_report:
+        type: object
+        required: false
+        description: What the blueprint specifying the destination's backend
+          says it reports about the destination — for a diverged replica, what
+          was found there — in the form that blueprint declares
+
+  ReplicaEstablishment:
+    description: What a replica declaration did and did not complete. Written
+      durably before the credential is created, and updated as each step
+      succeeds, in the manner of RepositoryEstablishment
+    fields:
+      reserved_at:
+        type: timestamp
+        required: true
+      credential_created:
+        type: boolean
+        required: true
+        description: Whether the replica's credential exists
+      destination_verified:
+        type: boolean
+        required: true
+        description: Whether the destination was demonstrated. False while
+          state is establishing
+      attempts:
+        type: integer
+        required: true
+        description: How many declarations have run against this reservation.
+          More than one is a resumption, never a second credential
+      last_attempt_at:
+        type: timestamp
+        required: false
+      last_error_code:
+        type: string
+        required: false
+      last_error:
+        type: string
+        required: false
+
   DeclinedRepository:
     description: A repository that was declared and could not be recorded. It
       is reported rather than omitted, so a caller can tell a tenant with no
@@ -1993,8 +2644,8 @@ types:
       access_complete:
         type: boolean
         required: true
-        description: False whenever custody is shared or opaque. The service
-          cannot see the path around itself
+        description: False unless effective_custody is exclusive. The service
+          cannot see the path around itself, or a reader of a copy
       principals:
         type: list
         required: false
@@ -2226,6 +2877,9 @@ content:
                                  # the driver name that blueprint declares. Its
                                  # root, options and credentials are that
                                  # blueprint's, per Design Principle 6
+      held_by: tenant|third-party  # who holds the store it reaches. Absent is
+                                 # third-party. Read when it is a replica's
+                                 # destination
   repositories:
     - id: <stable-id>
       scope_path: <tenant>/<org>[/<project>]
@@ -2238,9 +2892,17 @@ content:
         attributable_writes: <bool>
         tamper_evident: <bool>
   reconcile_interval: 15m        # shared custody only; 0 disables scheduled runs
-  reverify_custody_interval: 24h
+  reverify_custody_interval: 24h # the store's, and each replica's
+  replica_retry_interval: 15m    # how often a replica that lacks versions is
+                                 # sent them, besides after each version
   max_entry_bytes: 10485760
 ```
+
+`held_by` is an operator's statement about a host, made where the host is
+named. It decides whether a replica sent there is a third party's (see
+[A third party's replica waits for classification](#a-third-partys-replica-waits-for-classification)),
+and it is never inferred from the host's name. No key declares a replica: see
+[Declaring a replica](#declaring-a-replica).
 
 The placement rule is the same in configuration as it is in a request, and it
 is not a formality here either: `backends` is where a root is named, and a
@@ -2331,8 +2993,36 @@ security:
         reachable through this service
     - boundary: Proposal → Entry. Crossed only by a person's decision, and only
         against the bytes the proposal was made on
+    - boundary: Content Service → Replica. Crossed outward only. Nothing a
+        destination holds is read back as content, history or truth
 
   enforcement:
+    - rule: A replica is declared only by a person who has seen what would
+        leave
+      mechanism: Two-step declaration; the first call returns the census and
+        records nothing. content:replicate and content:connect are both
+        required and both person only
+    - rule: A replica is never read from, and a diverged one is never
+        overwritten
+      mechanism: Replica Sender sends from the service's own record and asks a
+        destination only whether it holds just what was sent; a destination
+        holding anything else stops sending
+    - rule: A replica whose destination a third party holds is refused unless
+        the classification gate is present and passes
+      mechanism: held_by on the destination's backend, absent meaning
+        third-party; CONTENT_REPLICA_UNCLASSIFIED
+    - rule: A repository's ceiling is the lowest of every place its bytes live,
+        and retiring a replica never raises it
+      mechanism: ceiling is derived from the store and every replica sent
+        anything, retired or not, and from any copy the backend reports that no
+        replica declares
+    - rule: A replica's credential is the tenant's, for one destination
+      mechanism: Created by the service at declaration, held through
+        patterns/secrets, presented only at that destination, destroyed at
+        retirement. Its secret part is never returned
+    - rule: A replica is never configured
+      mechanism: No configuration key declares one; the census digest a
+        declaration needs cannot exist in a file
     - rule: A write, a removal or a proposal without a precondition is refused
       mechanism: Precondition Gate; if_match is required. The empty string is
         the precondition that nothing is there, and no value matches anything
@@ -2430,10 +3120,10 @@ security:
         of the verified token, never its sub; on_behalf_of, agent and run are
         recorded as asserted; approved_by is never reported as a signature. A
         token without identity_id cannot write, remove, propose or decide
-    - rule: An access statement from a shared or opaque repository is marked
-        incomplete
-      mechanism: access_complete is derived from custody and cannot be set by
-        a caller
+    - rule: An access statement from a repository whose effective custody is
+        shared or opaque is marked incomplete
+      mechanism: access_complete is derived from effective_custody and cannot
+        be set by a caller
     - rule: An out-of-band change under shared custody is recorded as external
         provenance, not as an integrity anomaly
       mechanism: Custody Reconciler; the anomaly rules of
@@ -2562,6 +3252,25 @@ security:
   one listing and the next, and a stored `current` is a claim about a moment
   that has passed.
 
+- **Send a replica from the service's own record, never from the store.** A
+  store under shared custody can be changed between the moment a version was
+  recorded and the moment it is sent, and so can the store's own idea of where
+  its copies go. What a replica receives is what the service recorded.
+
+- **Ask a destination one question.** Before sending, the service checks that
+  the destination holds only what it sent. That is the only thing it ever
+  reads there, and the answer is used to stop, never to take anything in.
+
+- **An unknown anonymous read is `public`.** A test that could not finish has
+  not shown that strangers are refused, and Design Principle 2 counts what was
+  not shown as false. The remedy is to make the test finish, not to assume it
+  would have passed.
+
+- **Hold, do not skip.** A version that may not be sent stops everything after
+  it. Sending the later versions past it would leave the destination with a
+  history that silently lacks one, which is worse than a destination that is
+  visibly behind.
+
 ---
 
 ## Verification Checklist
@@ -2575,7 +3284,7 @@ security:
 - [ ] A write declaring a scope above the repository ceiling is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED` naming both levels, and the scope is not downgraded
 - [ ] An out-of-band change under shared custody produces a `ContentObservation` with provenance `external` and raises no tampering alert
 - [ ] An out-of-band change under exclusive custody is not produced by the reconciler, which is absent for exclusive repositories
-- [ ] An `AccessStatement` from a shared or opaque repository carries `access_complete: false`, and no caller can set it to true
+- [ ] An `AccessStatement` from a repository whose `effective_custody` is shared or opaque carries `access_complete: false`, and no caller can set it to true
 - [ ] A path containing a `..` segment is refused as written rather than normalised
 - [ ] A symlink inside a repository pointing outside it is refused
 - [ ] A path resolving into `.weblisk/` is refused for every operation including list and stat
@@ -2654,7 +3363,21 @@ security:
 - [ ] A write or proposal whose body names an `actor` records the verified token's `identity_id`, never the named one and never the token's `sub`
 - [ ] A write, removal, proposal or decision on a token that carries no `identity_id` is refused with `CONTENT_IDENTITY_REQUIRED`, and nothing is recorded
 - [ ] A token whose `type` is not `operator` and whose `cap` holds `content:write` is refused `PUT /v1/content/entry` as though it did not hold it
-- [ ] The service's own manifest declares neither `content:write` nor `content:decide`, and its registration succeeds
+- [ ] The service's own manifest declares none of `content:write`, `content:decide`, `content:replicate` and `content:connect`, and its registration succeeds
 - [ ] A declaration carrying `self_decision_ceiling` from a caller holding `content:declare` and not `content:decide` is refused, and no repository is recorded
 - [ ] `ContentChange.version` is absent when the backend keeps no version marker
 - [ ] A census over a placement whose backend's blueprint binds a `backend_report` covers that report in its `digest`, and an adoption whose store's report changed since the census is refused with `CONTENT_PRECONDITION_FAILED`
+- [ ] A first `POST /v1/content/repositories/{repository}/replicas` with no `if_match` is refused with `CONTENT_REPLICA_UNSEEN`, returns a `ReplicaCensus`, records no replica, creates no credential and sends nothing
+- [ ] A replica declaration whose `if_match` differs from a freshly computed census `digest`, because a version was recorded between the two calls, is refused with `CONTENT_PRECONDITION_FAILED`
+- [ ] A caller holding `content:replicate` and not `content:connect`, or `content:connect` and not `content:replicate`, is refused a replica declaration; a token whose `type` is not `operator` is refused it whatever its `cap` holds
+- [ ] A replica declaration whose destination backend has no `held_by`, or `held_by: third-party`, is refused with `CONTENT_REPLICA_UNCLASSIFIED` where the classification gate is not present, and nothing is recorded or sent
+- [ ] A replica declaration where an earlier version holds a path under `.weblisk` is refused with `CONTENT_RESERVED_PATH`, though no entry holds that path now
+- [ ] A replica declaration against a destination that holds something this service did not send is refused with `CONTENT_NOT_EMPTY`, and nothing at the destination is changed
+- [ ] A confirmed declaration against a destination that has not yet registered the credential answers `CONTENT_ESTABLISH_INCOMPLETE` carrying `credential`, the replica is `establishing`, and nothing has been sent; the same declaration repeated after registration completes it with no second credential
+- [ ] Confirming, on an `exclusive` repository, a replica whose destination demonstrates no attestation and refuses anonymous read makes the repository's `ceiling` `internal` and its `effective_custody` `opaque`, leaves `store_ceiling` `critical` and `custody` `exclusive`, and a write declaring `confidential` is then refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
+- [ ] A replica whose destination can be read with no credential, or whose anonymous read could not be tested, has `ceiling` `public`
+- [ ] Retiring a replica that was sent anything leaves the repository's `ceiling` and `effective_custody` unchanged, destroys its credential, and deletes nothing at the destination
+- [ ] A destination changed by somebody else makes its replica `diverged`; nothing is sent to it, nothing from it enters the repository, and sending resumes by itself once the destination again holds only what was sent
+- [ ] A version above a replica's ceiling holds the replica `behind` with `held_path` naming it, and no version recorded after it is sent
+- [ ] A backend's report of a copy of the store that no replica declares makes `effective_custody` `opaque`, lowers `ceiling` to `internal` at most, and publishes `content.custody_degraded`
+- [ ] No configuration key declares a replica, and a configuration file naming one declares nothing

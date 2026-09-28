@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: content-git
-version: 1.0.0
+version: 1.1.0
 requires: [architecture/content, patterns/content-identity]
 platform: any
 tier: free
@@ -17,9 +17,15 @@ records every change the content service makes there as exactly one commit.
 
 [`architecture/content`](../architecture/content.md) specifies the content
 service and names no backend, as its Design Principle 6 requires. This
-blueprint specifies one: the `git` driver. A backend whose `driver` is `git`
-keeps each repository it holds as one git repository, and the content service
-records each `ContentChange` it makes there as one commit.
+blueprint specifies two drivers:
+
+- `git`, a store. A backend whose `driver` is `git` keeps each repository it
+  holds as one git repository, and the content service records each
+  `ContentChange` it makes there as one commit.
+- `git-remote`, a replica destination and nothing else. A backend whose
+  `driver` is `git-remote` reaches bare git repositories on another host over
+  SSH, and the content service pushes a git store's history there, as
+  architecture/content's Replicas section describes.
 
 Three terms are used throughout:
 
@@ -44,11 +50,12 @@ What this blueprint changes, and what it does not:
   [`patterns/content-identity`](content-identity.md) requires, and every
   commit carries that digest.
 
-`adoption: opt-in` means a deployment that configures no `driver: git` backend
-serves none of this, and is complete. One that does owes all of it.
+`adoption: opt-in` means a deployment that configures no `git` or `git-remote`
+backend serves none of this, and is complete. One that configures either owes
+all of what this blueprint says about it.
 
 > **Scope boundary:** this blueprint specifies the content service's git
-> driver. It does not specify a repository any other component keeps, the
+> drivers. It does not specify a repository any other component keeps, the
 > CLI's blueprint cache, or how a person uses git in a working tree the service
 > shares with them.
 
@@ -59,7 +66,7 @@ serves none of this, and is complete. One that does owes all of it.
 ```yaml
 requires:
   - blueprint: architecture/content
-    version: ">=1.7.0 <2.0.0"
+    version: ">=1.8.0 <2.0.0"
     bindings:
       types:
         - name: ContentChange
@@ -70,6 +77,10 @@ requires:
           fields_used: [placement, custody, attestations, backend_report]
         - name: ContentAdoption
           fields_used: [digest, entries, backend_report]
+        - name: ContentReplica
+          fields_used: [destination, state, anonymous_read, attestations, credential, credential_fingerprint, backend_report]
+        - name: ReplicaCensus
+          fields_used: [digest, backend_report]
         - name: Placement
           fields_used: [backend, locator]
         - name: CustodyAttestations
@@ -209,8 +220,8 @@ contracts:
         - The environment is built from empty. It holds GIT_CONFIG_NOSYSTEM=1, GIT_CONFIG_GLOBAL=/dev/null, a HOME that is an empty directory of the service's own, GIT_TERMINAL_PROMPT=0, GIT_NO_REPLACE_OBJECTS=1, GIT_LITERAL_PATHSPECS=1 and LC_ALL=C, with GIT_OPTIONAL_LOCKS=0 on every process that only reads
         - The repository is always named with --git-dir, and the working tree with --work-tree where there is one, so git never discovers a repository by walking up the directory tree
         - Every process carries these -c settings, which outrank the store's own configuration - core.hooksPath=/dev/null, core.fsmonitor=false, credential.helper set empty, commit.gpgsign=false, tag.gpgsign=false, protocol.allow=never, transfer.fsckObjects=true, safe.directory set to that repository's exact path, core.fsync=objects,reference, gc.auto=0, core.protectNTFS=true and core.protectHFS=true
-        - A process that must move objects between repositories allows only the transport it needs, on that process alone - file, to feed the record mirror
-        - The service runs only these git commands - init, rev-parse, symbolic-ref, for-each-ref, cat-file, ls-tree, ls-files, check-ignore, hash-object, read-tree, update-index, write-tree, commit-tree, update-ref, merge-base, rev-list, diff-tree with --no-ext-diff and --no-textconv, config reading the store's own file, and push or fetch between a store and its record mirror
+        - A process that must reach another repository allows only the transport it needs, on that process alone - file, to feed the record mirror; ssh, to push to a replica or ask a replica's head; and, with no credential, the transports of a replica's read addresses, to test anonymous read
+        - The service runs only these git commands - init, rev-parse, symbolic-ref, for-each-ref, cat-file, ls-tree, ls-files, check-ignore, hash-object, read-tree, update-index, write-tree, commit-tree, update-ref, merge-base, rev-list, diff-tree with --no-ext-diff and --no-textconv, config reading the store's own file, push or fetch between a store and its record mirror, push from the record mirror to a replica, and ls-remote against a replica
         - The service never runs gc, repack or prune on a store, and never checks out, resets, merges, rebases or stashes
         - The git binary is found once, at start, by absolute path. Below version 2.36.0, the release that added core.fsync for references, or where no git is found, the backend is unavailable. The service does not exit, health reports degraded naming the backend and what was found, and every operation on the backend's repositories answers CONTENT_UNREADABLE
 
@@ -221,6 +232,7 @@ contracts:
         - The census reports the line, the head it names, whether the store has a working tree, its object format, and each finding in Control State
         - The report is the census's backend_report, and the census digest covers it without its observed_at, per architecture/content
         - Custody re-verification re-runs the census's control part. A new finding is reported in ContentRepository.backend_report. A condition that would refuse adoption, appearing after it, diverts the repository
+        - A remote finding, whether present at adoption or found later, is a copy of the store that no replica declares, and is reported as architecture/content's Effective custody requires
 
     - name: git-custody
       description: What a git store can demonstrate, per architecture/content's attestation properties
@@ -238,6 +250,39 @@ contracts:
         - A repository with a working tree is also diverted when HEAD does not name the line, when a merge, rebase, cherry-pick, revert or bisect is in progress, or when the index has unmerged entries
         - While a repository is diverted, every read and write answers CONTENT_UNREADABLE, with identity unknown, never current and never stale. Health reports degraded naming the repository and the reason, and backend_report carries it
         - Nothing is repaired automatically. A diverted repository is served again once the condition has cleared, which is checked on each request and at re-verification
+
+    - name: git-remote-destination
+      description: What a git-remote backend is, and how the service reaches it
+      required: true
+      rules:
+        - A git-remote backend is a replica destination and nothing else. A repository declaration whose placement names one is refused with CONTENT_BACKEND_UNKNOWN, because the service holds no store backend of that name
+        - Only a repository on a git backend replicates to a git-remote backend, and a git repository replicates to nothing else. Any other pairing is refused with CONTENT_REPLICA_UNSUPPORTED
+        - Its root is an ssh URL naming a host and a directory. A replica's locator names a bare repository under it, which a person creates. The service never creates one there
+        - The replica's credential is an ssh-ed25519 key pair the service generates for that replica alone. ContentReplica.credential is its public key in OpenSSH form, and credential_fingerprint is its SHA256 fingerprint in the form ssh-keygen prints. The private key is held through patterns/secrets, and is given to ssh only for one process, in a file only the service's own user can read, removed when the process ends
+        - The key is classical, and protocol/identity allows that for a transport credential - it authenticates one session and signs no record
+        - ssh runs with no configuration file, in batch mode, offering only the replica's key, with no agent and no forwarding, checking the host key strictly against the backend's host_keys alone and never learning a new one, and with KexAlgorithms set to mlkem768x25519-sha256 alone, the ML-KEM-768 hybrid protocol/identity requires of such a transport
+        - A destination whose host key is not among host_keys, or that does not offer that key exchange, cannot be reached. Nothing is presented to it and nothing is sent
+        - This driver demonstrates no attestation for a destination. A key registered at a destination cannot list who else can read it, and a destination's history is not the service's to vouch for. A git-remote replica's ceiling is therefore internal at most
+
+    - name: git-replica-send
+      description: How a git store is sent to a replica
+      required: true
+      rules:
+        - What a git store sends is its line. A destination holds only what the service sent when its line is absent or names a commit on the record mirror's line
+        - Pushes come from the record mirror, never from the store, and send only commits the service has anchored
+        - Each push names one refspec, the commit to send and refs/heads/<line> at the destination. It is never forced and sends no tag and no other ref
+        - Before each push the service asks the destination for its line's head with ls-remote, over the same transport. That is the only thing it reads there. It never fetches
+        - A destination whose line names a commit that is not on the record mirror's line makes the replica diverged. Its head is recorded in backend_report, and pushing resumes by itself once the destination's line again names a commit on the mirror's line
+        - A destination's refs other than its line are not the replica. They are counted in backend_report, and never sent, fetched or removed
+        - anonymous_read is tested with ls-remote against the replica's locator at each of the backend's read_addresses, presenting no credential, and with an attempt over the replica's own ssh transport presenting no key. It is refused when every attempt is refused, readable when any lists a ref, and unknown when any cannot finish
+
+    - name: git-replica-census
+      description: What a replica census binds for a git store
+      required: true
+      rules:
+        - The replica census's backend_report names the line, the record mirror's head, and every distinct author and committer, by name and address, recorded on the commits that would leave
+        - A commit a person made on the line carries whatever name and address they gave git, and a replica publishes it. The census lists it so the person confirming has seen it
+        - The census digest covers the report without its observed_at, per architecture/content
 ```
 
 ---
@@ -328,7 +373,8 @@ them and takes them on knowingly.
 | `replace` | A ref under `refs/replace/` | The service ignores it, and a person's git does not, so the two see different history |
 | `hook` | An executable in the store's hooks directory | The service never runs it. A person's git runs it |
 | `config` | A key in the store's own configuration outside the allowlist in Implementation Notes | Somebody configured the store to do something the service does not expect |
-| `remote` | A configured remote, or a `url.*` rewrite | A copy of the store may exist that the tenant never declared |
+| `remote` | A configured remote | A copy of the store may exist that no replica declares, and it counts toward the repository's effective custody as architecture/content requires |
+| `config` for `url.*` | A URL rewrite | It changes where a person's git sends the store, so it is reported whether or not a remote exists yet |
 
 ---
 
@@ -450,6 +496,60 @@ types:
         type: timestamp
         required: true
 
+  GitRemoteOptions:
+    description: The options of a backend whose driver is git-remote
+    fields:
+      host_keys:
+        type: list
+        required: true
+        description: The destination host's public keys, in known_hosts form.
+          The only keys ssh accepts from it. Never learned on first use
+      read_addresses:
+        type: list
+        required: false
+        description: Every other address at which a stranger could read a
+          repository under this root, as a URL the locator is appended to.
+          anonymous_read is tested at each. An address not listed is one the
+          service cannot know of
+
+  GitReplicaCensusReport:
+    description: The backend_report of a ReplicaCensus for a git store
+    fields:
+      line:
+        type: string
+        required: true
+      head:
+        type: string
+        required: false
+        description: The record mirror's head. A locator. Absent on an unborn
+          line
+      authors:
+        type: list
+        required: true
+        description: Every distinct author and committer, by the name and
+          address recorded on the commits that would leave
+      observed_at:
+        type: timestamp
+        required: true
+        description: The census digest does not cover it
+
+  GitReplicaReport:
+    description: The backend_report of a ContentReplica on a git-remote backend
+    fields:
+      destination_head:
+        type: string
+        required: false
+        description: What the destination's line named when last asked. Absent
+          when it has none. A locator
+      other_refs:
+        type: integer
+        required: false
+        description: How many refs other than the line the destination holds,
+          when last asked. Absent when unknown
+      observed_at:
+        type: timestamp
+        required: true
+
   RecordAnchor:
     description: The sha256 of one recorded commit object, kept by the service
       so the commit can be recognised without trusting its id
@@ -484,11 +584,26 @@ content:
         default_line: main
         worktree: none           # none | attached
         object_format: sha1      # sha1 | sha256
+
+    - name: <backend-name>
+      driver: git-remote
+      root: ssh://<host>[:<port>]/<directory>/
+      held_by: tenant            # tenant | third-party. Absent is third-party
+      options:                   # GitRemoteOptions
+        host_keys:
+          - <known_hosts line>
+        read_addresses: []
 ```
 
-`root` is a directory. A placement's locator names a store inside it, as
-architecture/content's Placement rule requires. The service keeps each store's
-record mirror, pseudonyms and anchors in its own state, never under `root`.
+A `git` backend's `root` is a directory. A placement's locator names a store
+inside it, as architecture/content's Placement rule requires. The service keeps
+each store's record mirror, pseudonyms and anchors in its own state, never under
+`root`.
+
+A `git-remote` backend's `root` names a host and a directory on it, and a
+replica's locator names a bare repository in that directory. `held_by` is the
+operator's statement of who holds that host; a copy on a machine the tenant
+owns is `tenant`.
 
 ---
 
@@ -568,3 +683,11 @@ change at the same path answers with its `CONTENT_PRECONDITION_FAILED`.
 - [ ] A path inside a nested repository, and a path the line records as a symbolic link, are refused with `CONTENT_RESERVED_PATH`
 - [ ] With git below 2.36.0 on the host, the service starts, health reports degraded naming the backend, and reads of its repositories answer `CONTENT_UNREADABLE`
 - [ ] `tamper_evident` is false after an anchored commit is removed from the record mirror, and the ceiling is recomputed
+- [ ] A replica on a `git-remote` backend returns `credential` as an OpenSSH `ssh-ed25519` public key, and the private key appears in no response, log, event or file that outlives one push
+- [ ] A push to a replica is made from the record mirror, names one refspec for the line, is never forced, and sends no tag
+- [ ] A destination whose host key is not in `host_keys`, or that does not offer `mlkem768x25519-sha256`, is sent nothing and is not presented the key
+- [ ] A destination whose line was moved to a commit not on the record mirror's line makes the replica `diverged`, records the destination's head in `backend_report`, and receives nothing more until its line again names a commit on the mirror's line
+- [ ] No operation fetches from a replica
+- [ ] A replica census over a store whose history holds a commit a person made with a real address lists that name and address in `backend_report`
+- [ ] A repository declaration whose placement names a `git-remote` backend is refused with `CONTENT_BACKEND_UNKNOWN`
+- [ ] A store with a configured remote reports a `remote` finding, and its repository's `effective_custody` is `opaque`

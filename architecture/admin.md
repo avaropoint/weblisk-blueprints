@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.5.0
+version: 2.6.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -650,7 +650,7 @@ contracts:
         - The role names are exactly `viewer`, `auditor`, `operator` and `admin`
         - Capabilities MUST be derived from the role, never stored per operator
         - The `operator` role MUST carry `admin:read`, `admin:approve` and `admin:strategy` — it is the role every `operator+` endpoint in this document is gated on
-        - Each `content:` capability MUST be carried by the roles the Operator Roles table gives it, and `content:write` and `content:decide` by no role a service subject holds
+        - Each `content:` capability MUST be carried by the roles the Operator Roles table gives it, and a capability `protocol/types` marks person only by no role a service subject holds
         - Every capability this document names MUST be carried by some role; a capability no role holds is a constant, not a permission
         - The last active admin MUST NOT be removable or demotable
         - A role change MUST be audited with the previous and new role
@@ -1035,15 +1035,16 @@ a failed registration.
 
 | Role | Capabilities | Description |
 |------|-------------|-------------|
-| **admin** | `admin:*`, and every `content:` capability | Full access — manage operators, agents, federation, strategies, and declare and establish content repositories |
+| **admin** | `admin:*`, and every `content:` capability | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, and declare their replicas |
 | **operator** | `admin:read`, `admin:approve`, `admin:strategy`, `content:read`, `content:describe`, `content:write`, `content:propose`, `content:decide`, `content:reconcile` | Day-to-day operations — view everything, approve recommendations, manage strategies, write documents and decide proposals |
 | **viewer** | `admin:read`, `content:read`, `content:describe` | Read-only — view dashboards, logs, status and documents. Cannot modify anything |
 | **auditor** | `admin:read`, `admin:audit`, `content:read`, `content:describe` | Read-only plus full audit log access with export capability |
 
 A role is held by an operator, and an operator is a person, so a role may carry
 a capability [`protocol/types`](../protocol/types.md) marks *person only*.
-`content:write` and `content:decide` reach a person this way and reach a
-service by no route: a service subject is granted no role that carries one
+`content:write`, `content:decide`, `content:replicate` and `content:connect`
+reach a person this way and reach a service by no route: a service subject is
+granted no role that carries one
 ([`patterns/principal-identity`](../patterns/principal-identity.md),
 `service-subject-constraints`).
 
@@ -1886,6 +1887,7 @@ Admin endpoints SHOULD be rate-limited:
 - [ ] A console runs every agent under its own service identity, including a run a signed-in person is watching, and never under a person's credential
 - [ ] An operator token carries `identity_id`, the `identity_id` of the credential its `cid` names
 - [ ] A `viewer` token carries `content:read` and `content:describe` and no other `content:` capability, and an `operator` token carries `content:write` and `content:decide`
+- [ ] An `admin` token carries `content:replicate` and `content:connect`, an `operator` token carries neither, and no token minted for a service subject carries either
 - [ ] Removing an account from a console deletes its credential keys, revokes each credential first with the token of a signed-in person that hub permits to revoke it where there is one, and otherwise reports each credential live at its hub until its `not_after`
 
 - [ ] Admin gateway is a separate process/listener from the application gateway with its own TLS certificate and domain

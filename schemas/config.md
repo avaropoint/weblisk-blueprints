@@ -62,6 +62,7 @@ content:
       driver: string               # Driver name the specifying blueprint declares,
                                    # e.g. "git". Root, options and credentials
                                    # belong to that blueprint
+      held_by: enum                # "tenant" | "third-party" (default third-party)
   repositories:                    # Stores brought under governance at startup
     - id: string                   # Stable repository id, unique within scope_path
       scope_path: string           # <tenant>/<org>[/<project>]
@@ -75,6 +76,7 @@ content:
         tamper_evident: boolean
   reconcile_interval: duration     # Shared custody only. 0 disables scheduled runs
   reverify_custody_interval: duration
+  replica_retry_interval: duration # How often a replica that lacks versions is sent them
   max_entry_bytes: integer         # Largest entry the service will write
 
 # Optional — federation configuration
@@ -162,7 +164,8 @@ backend owes once it exists, and what is refused, all live there.
 | `backends` | list | cond | `[]` | Stores this hub can reach. Required when `repositories` is non-empty |
 | `repositories` | list | no | `[]` | Stores declared at startup |
 | `reconcile_interval` | duration | no | `15m` | Out-of-band change detection for shared-custody repositories. `0` disables |
-| `reverify_custody_interval` | duration | no | `24h` | How often attestations are re-demonstrated |
+| `reverify_custody_interval` | duration | no | `24h` | How often attestations are re-demonstrated, the store's and each replica's |
+| `replica_retry_interval` | duration | no | `15m` | How often a replica that lacks versions is sent them, besides after each version is recorded |
 | `max_entry_bytes` | integer | no | `10485760` | Largest entry the service will write |
 
 #### content.backends[]
@@ -171,6 +174,7 @@ backend owes once it exists, and what is refused, all live there.
 |-------|------|----------|---------|-------------|
 | `name` | string | yes | — | What a placement names. Unique within the hub |
 | `driver` | string | no | — | Which blueprint specifies this backend, by the driver name that blueprint declares: `git` for [`patterns/content-git`](../patterns/content-git.md). The backend's root, options and credentials are specified by that blueprint, not by this file. Absent means no blueprint specifies the backend |
+| `held_by` | enum | no | `third-party` | `"tenant"` or `"third-party"`: who holds the store this backend reaches. It decides whether a replica sent there is a third party's ([`architecture/content`](../architecture/content.md#a-third-partys-replica-waits-for-classification)). Never inferred from a host name |
 
 #### content.repositories[]
 
@@ -202,6 +206,10 @@ person decide their own change weakens a control, so a person declares it
 through the content service's API
 ([`architecture/content`](../architecture/content.md#separation-of-duties)),
 and a configured repository has none.
+
+**No key declares a replica.** A person declares one through the content
+service's API after reading a census of what would leave
+([`architecture/content`](../architecture/content.md#declaring-a-replica)).
 
 ### federation
 

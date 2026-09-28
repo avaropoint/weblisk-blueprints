@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.1.1
+version: 1.2.0
 requires: []
 platform: any
 tier: free
@@ -323,10 +323,12 @@ types:
 - `content:write` — create, modify and remove entries directly. *Person only*
 - `content:propose` — stage a change to one entry for a person to decide. Writes nothing
 - `content:decide` — apply or reject a proposed change. *Person only*
-- `content:describe` — read a repository's custody class, attestations and derived ceiling
+- `content:describe` — read a repository's custody class, attestations and derived ceiling, and its replicas
 - `content:declare` — bring a store under governance. Sufficient to adopt one that already holds bytes; establishing a new one also needs `content:establish`
 - `content:establish` — create a store and declare it. Required in addition to `content:declare` for `disposition: establish`; adoption does not need it
 - `content:reconcile` — run custody reconciliation on a shared repository
+- `content:replicate` — declare a replica of a repository, and retire one. Declaring one also needs `content:connect`. *Person only*
+- `content:connect` — have the content service create and hold a credential that reaches a destination outside the tenant's store. Required in addition to `content:replicate` to declare a replica. *Person only*
 
 *Person only* marks a capability that no service and no agent may hold.
 [`patterns/principal-identity`](../patterns/principal-identity.md) keeps it out
@@ -338,6 +340,10 @@ separate from `content:write` for the reason `fabric:attest` is separate from
 `fabric:observe` below: agents propose and people apply, and one capability
 covering both would make that unenforceable at the tenant. What each does to a
 request is [`architecture/content`](../architecture/content.md#proposals).
+`content:replicate` and `content:connect` are two capabilities so that sending
+a repository outside the tenant takes two grants: a replica with no credential
+reaches nothing, and a credential with no replica is sent nothing
+([`architecture/content`](../architecture/content.md#who-may-declare-a-replica)).
 
 **Fabric capabilities:**
 - `fabric:read` — read relationships, coverage, impact, lineage and the ledger projection
