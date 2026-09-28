@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.4.0
+version: 1.5.0
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -367,6 +367,13 @@ contracts:
         - A service subject MUST NOT be granted a capability protocol/types
           marks person only, by any role. The hub refuses it at issue with
           capability_person_only
+        - A token minted for a service subject MUST NOT carry a person-only
+          capability, whatever its roles have come to hold since the grant was
+          issued. The hub refuses to mint it, with capability_person_only, and
+          never strips the capability and mints the rest
+        - A component that registers with an orchestrator is a service subject.
+          A registration whose manifest declares a person-only capability is
+          refused with capability_person_only (protocol/spec, POST /v1/register)
         - Offboarding a human owner MUST surface every service identity they own
           rather than silently orphaning it
 
@@ -702,7 +709,7 @@ types:
 | `development_key_in_production` | validation | `development-only` protection at a production hub | Refuse outright. Log as a security event |
 | `credential_persisted` | integrity | A service credential was found written to disk | Refuse and revoke it — it must be memory-only |
 | `presence_unsatisfiable` | validation | Grant requires user verification; subject is a service | Refuse at ISSUE, not at first login |
-| `capability_person_only` | validation | A grant to a service subject, or an agent's authorisation, carries a capability `protocol/types` marks person only | Refuse at ISSUE. Log as a security event |
+| `capability_person_only` | validation | A grant to a service subject, a token minted for one, a registration manifest, or an agent's authorisation carries a capability `protocol/types` marks person only | Refuse at ISSUE. Log as a security event |
 | `clock_outside_tolerance` | auth | Timestamp beyond skew tolerance, or not yet valid | Deny. MUST NOT clamp into range |
 
 Every failure is fail-closed. An unreachable directory causes discovery to fail;
@@ -903,3 +910,8 @@ credential revocation, which costs nothing else.
 46. An `AgentAuthorization` naming `content:write` or `content:decide` is
     refused with `capability_person_only`, so an agent acting under a subject
     who holds `content:write` cannot write an entry directly.
+47. A service subject whose role comes to carry `content:write` after its grant
+    was issued is refused a token with `capability_person_only`, and is never
+    issued one with the capability removed.
+48. A registration whose manifest declares `content:write` is refused with
+    `capability_person_only`, and no token is issued.

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.4.1
+version: 2.5.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -45,7 +45,7 @@ interacting with a Weblisk deployment.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -599,7 +599,7 @@ contracts:
         - The nonce MUST be one this hub issued for that cid, unexpired and unused, and the attempt MUST spend it whether or not the signature verifies. Otherwise CREDENTIAL_CHALLENGE_INVALID
         - A token request naming a cid this hub holds no credential for MUST be refused with CREDENTIAL_UNKNOWN
         - Only once the signature has verified may the hub disclose the credential's status or its operator's. The credential MUST be active (else CREDENTIAL_REVOKED) and its attestation's not_after in the future (else CREDENTIAL_EXPIRED), and its operator MUST be approved (else OPERATOR_NOT_APPROVED, or OPERATOR_REVOKED for a removed one)
-        - The token MUST have type operator, carry cid, the operator's role and the capabilities that role carries, and expire one hour after issue and never after the attestation's not_after
+        - The token MUST have type operator, carry cid, the identity_id of the credential cid names, the operator's role and the capabilities that role carries, and expire one hour after issue and never after the attestation's not_after
         - Role and capabilities MUST come from the stored record, never from the request
         - The response MUST carry the attestation's not_after, so the client can warn before it passes
         - The credential's last_used_at MUST be updated
@@ -635,7 +635,8 @@ contracts:
         - A console MUST hold a separate credential for each account at each hub, generate its key pair itself, and have it attested by that account's operator identity through the CLI, never by holding the identity itself
         - It MUST ask for not_after 30 days ahead unless the person chooses another value within the 90-day cap, and MUST warn the person when fewer than 7 days remain
         - It MUST use a person's credential only while that person holds a live session with the console at AAL2, and MUST NOT mint a token with it at any other time
-        - Work no signed-in person is present for, such as a schedule, a background job or an agent run, MUST use the console's own service identity and never a person's credential
+        - Work no signed-in person is present for, such as a schedule or a background job, MUST use the console's own service identity and never a person's credential
+        - Every agent run MUST use the console's own service identity, whether or not a signed-in person is watching it, and never a person's credential. A credential that runs agents holds no person-only capability (architecture/content, Who may move an entry)
         - It MUST hold an operator token in memory only and never write one anywhere, encrypted or not. What it keeps at rest is the credential key, as an installation secret
         - It MUST discard a person's tokens when that person's session ends, by sign-out, idle or absolute expiry, or the account's revocation, even where exp is later
         - Removing an account from the console MUST delete that account's credential keys. Before it does, it MUST revoke each credential at its hub where it can, with a token minted for a person signed in to the console at AAL2 whom that hub permits to revoke it — the account's own person, or one holding the admin role there
@@ -649,6 +650,7 @@ contracts:
         - The role names are exactly `viewer`, `auditor`, `operator` and `admin`
         - Capabilities MUST be derived from the role, never stored per operator
         - The `operator` role MUST carry `admin:read`, `admin:approve` and `admin:strategy` — it is the role every `operator+` endpoint in this document is gated on
+        - Each `content:` capability MUST be carried by the roles the Operator Roles table gives it, and `content:write` and `content:decide` by no role a service subject holds
         - Every capability this document names MUST be carried by some role; a capability no role holds is a constant, not a permission
         - The last active admin MUST NOT be removable or demotable
         - A role change MUST be audited with the previous and new role
@@ -880,7 +882,7 @@ POST /v1/admin/credentials/token
     challenge returned it, both as ASCII (operator-token-issuance)
 
 200 {
-  "token": "<WLT, type operator, carries cid>",
+  "token": "<WLT, type operator, carries cid and identity_id>",
   "expires_at": 1712163600,
   "role": "operator",
   "capabilities": ["admin:read", "admin:approve", "admin:strategy"],
@@ -1033,10 +1035,17 @@ a failed registration.
 
 | Role | Capabilities | Description |
 |------|-------------|-------------|
-| **admin** | `admin:*` | Full access — manage operators, agents, federation, strategies |
-| **operator** | `admin:read`, `admin:approve`, `admin:strategy` | Day-to-day operations — view everything, approve recommendations, manage strategies |
-| **viewer** | `admin:read` | Read-only — view dashboards, logs, status. Cannot modify anything |
-| **auditor** | `admin:read`, `admin:audit` | Read-only plus full audit log access with export capability |
+| **admin** | `admin:*`, and every `content:` capability | Full access — manage operators, agents, federation, strategies, and declare and establish content repositories |
+| **operator** | `admin:read`, `admin:approve`, `admin:strategy`, `content:read`, `content:describe`, `content:write`, `content:propose`, `content:decide`, `content:reconcile` | Day-to-day operations — view everything, approve recommendations, manage strategies, write documents and decide proposals |
+| **viewer** | `admin:read`, `content:read`, `content:describe` | Read-only — view dashboards, logs, status and documents. Cannot modify anything |
+| **auditor** | `admin:read`, `admin:audit`, `content:read`, `content:describe` | Read-only plus full audit log access with export capability |
+
+A role is held by an operator, and an operator is a person, so a role may carry
+a capability [`protocol/types`](../protocol/types.md) marks *person only*.
+`content:write` and `content:decide` reach a person this way and reach a
+service by no route: a service subject is granted no role that carries one
+([`patterns/principal-identity`](../patterns/principal-identity.md),
+`service-subject-constraints`).
 
 `operator` sits between `auditor` and `admin` deliberately: it is the role that
 does the day-to-day work — approving recommendations and managing strategies —
@@ -1057,8 +1066,8 @@ it produces confident, well-commented, wrong code.
 ### Operator Token
 
 Operator tokens use the same WLT format as agent tokens, with the `cid`,
-`type` and `role` claims [`protocol/identity`](../protocol/identity.md#payload-claims)
-declares:
+`identity_id`, `type` and `role` claims
+[`protocol/identity`](../protocol/identity.md#payload-claims) declares:
 
 ```json
 {
@@ -1068,6 +1077,7 @@ declares:
   "exp": 1712163600,
   "cap": ["admin:read", "admin:approve", "admin:strategy"],
   "cid": "<id of the credential that obtained it>",
+  "identity_id": "<fingerprint of alice's identity public key>",
   "role": "operator",
   "type": "operator"
 }
@@ -1078,6 +1088,8 @@ credential that obtained them. A client mints the next one with that credential,
 and the identity is not asked. `cid` names the credential, which is what lets
 the orchestrator end the token early
 ([Every request checks what its token rests on](#every-request-checks-what-its-token-rests-on)).
+`identity_id` is the identity that credential was attested by. A component that
+records who acted records it, never `sub`, which is the operator's name.
 
 `type` is `operator` for a token that administers, and `attestation` for the
 one an identity signature obtains. An attestation token carries `sub`, `iss`,
@@ -1104,10 +1116,17 @@ it may replay it. So a console keeps the thing that can **ask**, and never the
   authenticator assurance level 2, proof of two distinct factors such as a
   password and a one-time code. A token is discarded when the session that
   minted it ends, even if its `exp` is later.
-- **Nobody present means a service.** A schedule, a background job or an agent
-  run that nobody is watching uses the console's own service identity, a service
-  subject under [`patterns/principal-identity`](../patterns/principal-identity.md),
-  and never a person's credential.
+- **Nobody present means a service.** A schedule or a background job uses the
+  console's own service identity, a service subject under
+  [`patterns/principal-identity`](../patterns/principal-identity.md), and never a
+  person's credential.
+- **An agent always runs as a service.** Every agent run uses the console's own
+  service identity, whether or not anybody is watching it. A credential that
+  runs agents holds no capability `protocol/types` marks *person only*, so an
+  agent's change to a document reaches the tenant as a proposal a person
+  decides ([`architecture/content`](content.md#who-may-move-an-entry)). A person
+  who dispatched the run is named on it as the person it acted for, never by
+  lending it their credential.
 - **Tokens stay in memory.** A console never writes an operator token anywhere,
   encrypted or not. A console that drives the CLI to connect asks it not to
   store one either (`--no-store`).
@@ -1864,6 +1883,9 @@ Admin endpoints SHOULD be rate-limited:
 - [ ] A role lowered after a token was issued limits that token from its next request
 - [ ] An operator token without `cid` is refused with `CREDENTIAL_REQUIRED`
 - [ ] A console uses a person's credential only while that person has a live AAL2 session with it, uses its own service identity for work nobody is present for, and discards a person's tokens when their session ends
+- [ ] A console runs every agent under its own service identity, including a run a signed-in person is watching, and never under a person's credential
+- [ ] An operator token carries `identity_id`, the `identity_id` of the credential its `cid` names
+- [ ] A `viewer` token carries `content:read` and `content:describe` and no other `content:` capability, and an `operator` token carries `content:write` and `content:decide`
 - [ ] Removing an account from a console deletes its credential keys, revokes each credential first with the token of a signed-in person that hub permits to revoke it where there is one, and otherwise reports each credential live at its hub until its `not_after`
 
 - [ ] Admin gateway is a separate process/listener from the application gateway with its own TLS certificate and domain

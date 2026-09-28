@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.0.0
+version: 2.1.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin]
 platform: any
 tier: free
@@ -746,7 +746,9 @@ for the authoritative registration contract.
 **Orchestrator implementation notes:**
 
 ```
-1.  Parse and validate per spec.md contract
+1.  Parse and validate per spec.md contract. A manifest whose capabilities
+    name one protocol/types marks person only → 403 capability_person_only,
+    before anything is recorded
 2.  Verify signature and replay protection (see protocol/identity.md)
 3.  Validate namespace claims:
     a. For each namespace in manifest.publishes:
@@ -764,7 +766,8 @@ for the authoritative registration contract.
 5.  Generate agent ID and auth token (WLT format — see
     [protocol/identity.md Token System](../protocol/identity.md#token-system)):
     - Token type: WLT (Weblisk Token) with ML-DSA-65 signature
-    - Claims: sub=agent_name, iss="orchestrator", cap=manifest.capabilities
+    - Claims: sub=agent_name, iss="orchestrator", cap=manifest.capabilities,
+      identity_id=fingerprint(manifest.public_key)
     - Expiry: 24 hours (configurable via token TTL setting)
 6.  Store agent in registry:
     {manifest, agentID, token, registeredAt, lastSeen, status: "online"}
@@ -1210,6 +1213,8 @@ agents hold, which is theirs.
 - [ ] `POST /v1/register` verifies ML-DSA-65 signature and replay protection
 - [ ] `POST /v1/register` enforces exclusive namespace ownership (409 on conflict)
 - [ ] `POST /v1/register` rejects reserved namespace claims (403)
+- [ ] `POST /v1/register` refuses a manifest naming `content:write` or `content:decide` with 403 `capability_person_only`, records no agent and issues no token
+- [ ] A registration token carries `identity_id`, the fingerprint of `manifest.public_key`
 - [ ] `POST /v1/register` validates subscription scopes (event:observe for "*")
 - [ ] `POST /v1/register` returns `RegisterResponse` with agent ID, token, and service directory
 - [ ] `DELETE /v1/register` releases owned namespaces and routing table entries

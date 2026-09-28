@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: change-management
-version: 1.0.1
+version: 1.0.2
 requires: [protocol/spec, protocol/types, architecture/orchestrator, architecture/agent, architecture/lifecycle, patterns/messaging, patterns/versioning]
 platform: any
 tier: free
@@ -49,7 +49,7 @@ The protocol is built on three principles:
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -292,7 +292,7 @@ contract_schema:
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/register

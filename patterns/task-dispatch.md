@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: task-dispatch
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/spec, protocol/types, patterns/messaging, patterns/retry]
 platform: any
 tier: free
@@ -43,7 +43,7 @@ through the event and type contracts defined here.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/execute

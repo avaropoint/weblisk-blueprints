@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 1.3.0
-requires: [protocol/types, patterns/content-identity, patterns/scope, patterns/contract, architecture/enforcement]
+version: 1.4.0
+requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, architecture/enforcement]
 platform: any
 tier: free
 -->
@@ -60,6 +60,18 @@ requires:
       breaking: version-bump
       removed: halt-immediately
 
+  - blueprint: protocol/identity
+    version: ">=1.4.0 <2.0.0"
+    bindings:
+      types:
+        # identity_id is who a change names; type says whose token it is
+        - name: WLToken
+          fields_used: [cap, identity_id, type]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
   - blueprint: patterns/content-identity
     version: ">=1.0.0 <2.0.0"
     bindings:
@@ -96,6 +108,30 @@ requires:
     bindings:
       behaviors:
         - name: contract-validation
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/principal-identity
+    version: ">=1.5.0 <2.0.0"
+    bindings:
+      behaviors:
+        # What keeps a person-only capability away from a service and an agent
+        - name: service-subject-constraints
+        - name: agent-delegation
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/approval
+    version: ">=1.1.0 <2.0.0"
+    bindings:
+      behaviors:
+        # Its self-approval rejection, and the one exception it names for a
+        # content proposal (see Separation of duties)
+        - name: approval-decision
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -307,13 +343,15 @@ interfaces:
 
     - name: WriteEntry
       signature: (repository, path, bytes, if_match, scope) → (ContentIdentity, ContentChange)
-      description: Replace bytes when the precondition holds; refuse otherwise
-      called_by: [gateway, agents]
+      description: Replace bytes when the precondition holds; refuse otherwise.
+        Called for a person, never for an agent — content:write is person only
+      called_by: [gateway]
 
     - name: DeleteEntry
       signature: (repository, path, if_match) → ContentChange
-      description: Remove an entry and retire its identity
-      called_by: [gateway, agents]
+      description: Remove an entry and retire its identity. Called for a
+        person, never for an agent — content:write is person only
+      called_by: [gateway]
 
     - name: DescribeRepository
       signature: repository → ContentRepository
@@ -410,7 +448,8 @@ interfaces:
 | `CONTENT_PLACEMENT_DECLARED` | conflict | The placement is equal to, inside, or contains an already-declared repository | Refuse. Two ceilings over one set of bytes means the lower one is unenforceable |
 | `CONTENT_PROPOSAL_UNKNOWN` | validation | No proposal of that id in the caller's scope | Refuse without disclosing whether it exists elsewhere |
 | `CONTENT_PROPOSAL_DECIDED` | conflict | A decision arrived for a proposal that is no longer `open`, including the second of two decisions that raced | Refuse, returning the proposal as recorded. A proposal leaves `open` once |
-| `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the proposal's `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, or the repository declares none | Refuse, naming the scope and the ceiling. Nothing is recorded and the proposal stays `open` |
+| `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the identity the proposal names as its `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, or the repository declares none | Refuse, naming the scope and the ceiling. Nothing is recorded and the proposal stays `open` |
+| `CONTENT_IDENTITY_REQUIRED` | auth | A write, removal, proposal or decision arrived on a token that carries no `identity_id` | Refuse. Never record a name, an address or a token's `sub` in its place |
 | `ENFORCEMENT_DATA_CONTRACT_VIOLATION` | enforcement | Path is outside the agent's declared operational data contract | Refuse via the storage proxy |
 
 ---
@@ -431,7 +470,9 @@ interfaces:
    refused as written rather than normalised (`CONTENT_PATH_REFUSED`)
 4. Registry checks: the id must be free at that `scope_path`
    (`CONTENT_REPOSITORY_EXISTS`), and the placement must not be equal to, inside
-   or containing a placement already declared (`CONTENT_PLACEMENT_DECLARED`)
+   or containing a placement already declared (`CONTENT_PLACEMENT_DECLARED`).
+   A declaration carrying `self_decision_ceiling` MUST come from a caller
+   holding `content:decide` as well as `content:declare`
 5. `establish` — the caller MUST hold `content:establish` as well as
    `content:declare`; a backend that cannot create is refused with
    `CONTENT_ESTABLISH_UNSUPPORTED`; a placement already holding entries is
@@ -485,9 +526,9 @@ interfaces:
    Mismatch → refuse with both digests. No merge is attempted
 6. Bytes are written durably; the new digest is computed from what was written,
    not from what was submitted
-7. A `ContentChange` is recorded with provenance `authored`, the subject the
-   request authenticated as for `actor`, and the correlation id of the
-   enforcement decision
+7. A `ContentChange` is recorded with provenance `authored`, the token's
+   `identity_id` for `actor`, and the correlation id of the enforcement
+   decision
 8. `content.changed` is published
 
 ### Proposal Flow
@@ -507,8 +548,8 @@ interfaces:
    recorded
 6. The service holds the proposed bytes in its own state, computes `after`
    over what it holds, and records a `ContentProposal` in state `open`, with
-   the subject the request authenticated as for `actor` and the correlation id
-   of the enforcement decision
+   the token's `identity_id` for `actor` and the correlation id of the
+   enforcement decision
 7. `content.proposed` is published. No entry is written
 
 ### Decision Flow
@@ -517,9 +558,10 @@ interfaces:
    `open` (`CONTENT_PROPOSAL_DECIDED`)
 3. `reject` → the decision is recorded, the proposal becomes `rejected`, and
    `content.proposal_decided` is published. Nothing else happens
-4. `apply` → separation is checked: a decider who is the proposal's `actor` or
-   its `on_behalf_of` is refused with `CONTENT_SEPARATION_REQUIRED` unless the
-   change's scope is at or below the repository's `self_decision_ceiling`
+4. `apply` → separation is checked: a decider whose token's `identity_id` equals
+   the proposal's `actor` or its `on_behalf_of` is refused with
+   `CONTENT_SEPARATION_REQUIRED` unless the change's scope is at or below the
+   repository's `self_decision_ceiling`
 5. Write Flow steps 2 to 6 run with the proposal's path, bytes and scope and
    with its `before` as `if_match`, the enforcement storage proxy intercepting
    for the decider
@@ -528,10 +570,11 @@ interfaces:
    and publish `content.proposal_decided`. Any other refusal leaves the
    proposal `open` and records nothing on it
 7. A `ContentChange` is recorded with provenance `authored`: `actor` and
-   `on_behalf_of` from the proposal, the decider in `approved_by`, the
-   proposal's id in `proposal`, the `separation` step 4 found, and the
-   correlation id of the decider's enforcement decision. The proposal becomes
-   `applied` in the same record write — neither is durable without the other
+   `on_behalf_of` from the proposal, the decider's `identity_id` in
+   `approved_by`, the proposal's id in `proposal`, the `separation` step 4
+   found, and the correlation id of the decider's enforcement decision. The
+   proposal becomes `applied` in the same record write — neither is durable
+   without the other
 8. `content.changed` and `content.proposal_decided` are published
 
 ### Reconciliation Flow (shared custody only)
@@ -562,8 +605,8 @@ orchestrator, claims the `content.*` namespace exclusively, and verifies caller
 tokens against the orchestrator's public key.
 
 Its manifest declares `protocol_version` `"1"` — the wire protocol version from
-[`protocol/types`](../protocol/types.md), **not** the component's own semver —
-and these capabilities, which are the `content:` family that document declares:
+[`protocol/types`](../protocol/types.md), **not** the component's own semver.
+Its routes are guarded by the `content:` family that document declares:
 
 | Capability | Guards |
 |---|---|
@@ -580,6 +623,18 @@ A capability name is `family:verb`. An invented name is refused at registration,
 so these MUST be the names `protocol/types` declares and no others. *Person
 only* is `protocol/types`' marking too, and what it does to a grant is
 [Who may move an entry](#who-may-move-an-entry).
+
+**Guarding a capability is not holding it.** The capabilities a manifest
+declares become the `cap` of the token the orchestrator issues the service at
+registration ([`protocol/spec`](../protocol/spec.md), `POST /v1/register`), so
+they are what the service may do as a caller as well as what it serves. Its
+manifest therefore declares every capability in the table except
+`content:write` and `content:decide`. It checks those two on the requests it
+serves and never holds them: they are person only, and registration refuses a
+manifest that declares one, with `capability_person_only`. For the same reason
+no channel grant to this service can carry one, because a grant is the
+intersection of what the requester holds and what the target's manifest
+declares ([`architecture/orchestrator`](orchestrator.md)).
 
 ### Startup Sequence
 
@@ -678,11 +733,15 @@ does not work rather than a component that was not given a mesh.
 
 7. **A person moves an entry; everything else proposes** — an agent, a service
    or a schedule may stage a change to an entry, and only a person makes one,
-   by writing it or by deciding a proposal. This MUST hold at the tenant,
-   through capabilities no service and no agent can hold, and not in a
-   client's setting: a rule one client enforces is a rule the next client does
-   not. A proposal whose base has moved on MUST NOT be merged into what is
-   there now. Merged bytes are bytes nobody proposed and nobody decided.
+   by writing it or by deciding a proposal. This MUST hold at the tenant, and
+   not in a client's setting: a rule one client enforces is a rule the next
+   client does not. The tenant holds it for every service and every registered
+   component, through capabilities none of them can hold. It cannot see
+   software that uses a person's own credential, and that limit is stated
+   with the rule, per Design Principle 5 (see
+   [Who may move an entry](#who-may-move-an-entry)). A proposal whose base has
+   moved on MUST NOT be merged into what is there now. Merged bytes are bytes
+   nobody proposed and nobody decided.
 
 ---
 
@@ -1151,6 +1210,13 @@ control", and naming the system would be naming a product.
 > now needs one more answer than it did — whether retiring a repository the
 > tenant created also destroys what it created, and who may decide that — and
 > guessing that here would be worse than leaving it unnamed.
+>
+> **Nor is there a verb that amends a declaration.** What a declaration fixed
+> stays as declared: its placement, and its `self_decision_ceiling` or the
+> absence of one. A repository declared without that ceiling, and every
+> configured repository, cannot be given one. Naming an amending verb needs the
+> same care as retiring, because an amendment that lowered separation would
+> weaken a control over bytes already written under the stronger one.
 
 ---
 
@@ -1223,32 +1289,43 @@ person applies.
 | Capability | Lets the holder | May be held by |
 |---|---|---|
 | `content:write` | Write or remove an entry directly | A person only |
-| `content:propose` | Record a proposal | A person, a service, or an agent through its subject's authorisation |
+| `content:propose` | Record a proposal | A person, a service, or an agent acting under either |
 | `content:decide` | Apply or reject a proposal | A person only |
 
 [`protocol/types`](../protocol/types.md) marks `content:write` and
-`content:decide` **person only**, and
-[`patterns/principal-identity`](../patterns/principal-identity.md) keeps every
-person-only capability out of a service subject's grant and out of an agent's
-authorisation (`service-subject-constraints` and `agent-delegation`). Those two
-rules are what make Design Principle 7 hold at the tenant rather than in a
-client:
+`content:decide` **person only**. Three rules keep them with people:
 
-- An agent's authority is the intersection of its subject's grant, its own
-  declared capabilities and its subject's authorisation of it
-  (principal-identity Design Principle 13). The authorisation never holds
-  `content:write`, so the intersection never does. A subject that holds
-  `content:write` does not pass it to an agent acting under it, and the
-  agent's change arrives as a proposal.
-- A client that runs agents under its own service identity cannot write their
-  output directly either, because a service subject never holds
-  `content:write`.
-- A decision is judgement, and a service has none to exercise
-  (principal-identity Design Principle 11).
+- **No service holds one.** A hub refuses a person-only capability in a
+  service subject's grant and in every token minted for one
+  ([`patterns/principal-identity`](../patterns/principal-identity.md),
+  `service-subject-constraints`), and refuses a registration whose manifest
+  declares one ([`protocol/spec`](../protocol/spec.md), `POST /v1/register`).
+  Both refusals carry `capability_person_only`. A client that runs agents under
+  its own service identity can therefore only propose their output.
+- **This service honours one only on a person's token.** A person-only
+  capability counts only on a token whose `type` is `operator`, which a hub
+  mints for an operator, a person, through a credential that person's identity
+  attested ([`architecture/admin`](admin.md#operator-token)). On any other
+  token — a registered component's, a channel's — this service treats it as
+  absent. A hub that issued one by mistake has still opened no route.
+- **An agent runs under a credential that holds neither.** A console runs every
+  agent under its own service identity, whether or not anybody is watching
+  ([`architecture/admin`](admin.md), `console-credential-use`), so the
+  credential the run uses holds neither capability. An agent's authorisation
+  never names one either (principal-identity, `agent-delegation`).
 
-Either rule alone leaves a way round. Without the grant rule, a client's
-service identity could write for every agent it runs. Without the authorisation
-rule, an agent acting under a person could write whatever that person can.
+A decision is judgement, and a service has none to exercise
+(principal-identity Design Principle 11).
+
+**What the tenant cannot see.** A token is a bearer credential. This service can
+tell whose credential a request used. It cannot tell whether that person sent
+the request or software they run sent it with their credential. The first two
+rules hold at the tenant for every service and every registered component, and
+no client can loosen them. The third holds at the tenant for a console's
+service identity, and in the console for a person's credential. A console that
+ran an agent under a person's credential would produce a change recorded as
+that person's direct write. This limit is stated here, as Design Principle 5
+requires, rather than hidden behind the two rules that do hold.
 
 `content:write` and `content:propose` do not imply each other. A person who
 holds both may still propose, to ask for a review.
@@ -1318,14 +1395,22 @@ The **requester** of a proposal is its `actor` and, when present, its
 `on_behalf_of`. The person who dispatched an agent is a requester of the
 agent's proposal, as much as the service the agent ran under.
 
+Requester and decider are compared by identity id and by nothing else (see
+[Who a change was for](#who-a-change-was-for)). A name, an email address or a
+token's `sub` is never compared: the same person can appear under several of
+them, and a comparison across two of them finds two people where there is one
+(principal-identity Design Principle 10).
+
 A decision to apply is made by someone who is not a requester, and the
 resulting `ContentChange` records `separation: independent`. This is
 [`patterns/approval`](../patterns/approval.md) Design Principle 2, applied to a
 proposal.
 
 A repository MAY allow one person to decide their own change, up to a scope it
-declares. `self_decision_ceiling` on the repository's declaration is the
-highest `ScopeLevel` at which that is allowed:
+declares. This is the one exception `patterns/approval` names to its separation
+of duties, and it is bounded there as it is here. `self_decision_ceiling` on
+the repository's declaration is the highest `ScopeLevel` at which it is
+allowed:
 
 - **Absent**, the default: a requester's decision to apply is refused with
   `CONTENT_SEPARATION_REQUIRED`.
@@ -1334,10 +1419,11 @@ highest `ScopeLevel` at which that is allowed:
   and the `ContentChange` records `separation: self`. Above it, the decision
   is refused with `CONTENT_SEPARATION_REQUIRED`.
 
-This is the one difference from `patterns/approval`, which admits no exception.
-It exists so that an organisation of one person can use proposals at all.
-Without it, that person's only way to land an agent's work would be to write it
-directly, and a direct write records no decision, no proposal and no
+It never lets a service or an agent decide. A decider holds `content:decide`,
+which is person only, so the exception can only ever let a person agree with
+themselves. It exists so that an organisation of one person can use proposals
+at all. Without it, that person's only way to land an agent's work would be to
+write it directly, and a direct write records no decision, no proposal and no
 separation. `separation: self` records exactly what happened: one person asked,
 and the same person agreed.
 
@@ -1347,13 +1433,18 @@ people beside their injuries and a programme's procedures sit in different
 stores with different ceilings, and one person's leave to decide alone over the
 second is no reason to extend it to the first.
 
-**It is not configurable.** Allowing a person to decide their own change
-weakens a control. That is an act somebody performs through
-`POST /v1/content/repositories`, under `content:declare`, and the audit trail
-shows who did it. It is never a line in a file read at boot with no caller. It is fixed when the
-repository is declared: this contract has no verb that amends a declaration,
-which is the same gap that leaves none to retire one (see
+**It is not configurable, and only a person declares it.** Allowing a person to
+decide their own change weakens a control. That is an act somebody performs
+through `POST /v1/content/repositories`, and a declaration that carries
+`self_decision_ceiling` requires `content:decide` as well as `content:declare`.
+`content:decide` is person only, so no service and no agent can weaken a
+control whose purpose is a person's decision. The audit trail shows who did it.
+It is never a line in a file read at boot with no caller. It is fixed when the
+repository is declared, because this contract has no verb that amends a
+declaration (see the gap under
 [A store that already exists is the normal case](#a-store-that-already-exists-is-the-normal-case)).
+A repository declared without one, and every configured repository, stays
+without one until that verb exists.
 
 **It is no stronger than `on_behalf_of`.** The service witnessed `actor` and
 did not witness `on_behalf_of` (see below). A client that leaves out the person
@@ -1364,7 +1455,7 @@ A rejection needs no separation, and records none.
 
 ### Who a change was for
 
-A `ContentChange` says who made the change, who it was for and who let it
+A `ContentChange` says who prepared the change, who it was for and who let it
 land. Each part has a **basis**, which says what stands behind it:
 
 - **witnessed** — the service took it from the credential it verified on the
@@ -1373,32 +1464,59 @@ land. Each part has a **basis**, which says what stands behind it:
   as made and establishes nothing about it;
 - **recorded** — the service produced it itself.
 
+**Every party is named by identity id**: the `id` of a principal-identity
+`Identity`, and never a name, an email address or a token's `sub`
+(principal-identity Design Principle 10). This service takes the caller's
+identity id from the `identity_id` claim of the token it verified
+([`protocol/identity`](../protocol/identity.md#payload-claims)). On a person's
+token that is the identity that attested the credential the token's `cid`
+names. On a registered component's token it is the fingerprint of the key the
+component registered. The hub that issued the token sets the claim from its own
+records and signs it, so the service reads it and resolves nothing itself. A
+write, removal, proposal or decision whose token carries no `identity_id` is
+refused with `CONTENT_IDENTITY_REQUIRED`. It is never recorded under a name
+instead. The service passes the same identity id as the actor of the
+enforcement request each of those routes makes, so the audit entry and the
+record name the same party.
+
 | Field | What it says | Present when | Basis |
 |---|---|---|---|
-| `actor` | The subject whose grant made the change | Always | witnessed |
-| `on_behalf_of` | The person the actor acted for | The caller stated one | asserted |
+| `actor` | The subject who prepared the change: the writer on a direct write, the proposer on an applied proposal | Always | witnessed |
+| `on_behalf_of` | The person the proposer acted for | The change applied a proposal whose request stated one | asserted |
 | `approved_by` | The person whose decision applied the change | The change applied a proposal | witnessed |
 | `proposal` | The proposal the change applied | The change applied a proposal | recorded |
 | `separation` | Whether a requester decided: `independent` or `self` | The change applied a proposal | recorded |
 | `version` | The backend's own marker for the state the change produced | The backend keeps one | recorded |
 
-- **`actor`**, on a change that applied a proposal, is the proposal's `actor`
-  and not the decider. One subject prepared the change and another let it
-  land, and the record names both: the second is `approved_by`.
-- **`on_behalf_of`** is an identity id, never a name or an email address
-  (principal-identity Design Principle 10). A client that carries out a
-  person's instruction under its own service identity MUST send it; an agent
-  run that a person dispatched is the ordinary case. Without it that person is
-  absent from the record, and separation cannot see them. On a change that
-  applied a proposal, it is the proposal's.
+- **`actor`** is who prepared the change, which is not always whose grant let
+  it land. On a direct write it is the writer. On a change that applied a
+  proposal it is the proposal's `actor` and not the decider: one subject
+  prepared the change and another let it land, and the record names both. The
+  second is `approved_by`.
+- **`on_behalf_of`** is absent on a direct write. A direct write needs
+  `content:write`, which only a person's token carries, so the writer acts for
+  themselves and `actor` already names them. On a proposal, a client that
+  carries out a person's instruction under its own service identity MUST send
+  it; an agent run that a person dispatched is the ordinary case. Without it
+  that person is absent from the record, and separation cannot see them. A
+  scheduled job is not a person and is never `on_behalf_of`. It names itself
+  in `run`, and `on_behalf_of` names the person it acts for, where there is
+  one.
+- **`agent` and `run`**: a client submitting a change that an agent prepared
+  MUST send `agent` and `run` with the proposal, as well as `on_behalf_of`.
+  principal-identity Design Principle 13 requires the record to name the agent
+  and the run that used a subject's authority, and the proposal is where the
+  record holds them. Both are asserted. `proposal` leads from the change to
+  them.
 - **`approved_by`** is witnessed, not signed. The service authenticated the
   person who decided, and that is all it can say. It is not a signature under
   that person's sole control, and a consumer that reports an approval MUST NOT
   report it as signed. It is a list, and under this contract it holds one
   person.
-- **`proposal`** leads to the rest of the record. The proposal names the
-  `agent` and the `run` that prepared the change, which principal-identity
-  Design Principle 13 requires the record to name. Both are asserted.
+- **`correlation_id`** names the enforcement decision that authorised the
+  write. On a change that applied a proposal that is the decider's decision,
+  and its audit entry names the same identity as `approved_by`. The
+  proposer's decision is on the proposal, as its own `correlation_id`.
 - **`version`** is a locator, never an identity. A backend under version
   control records its revision id there, and what any backend records is for
   the blueprint that specifies that backend to say. Nothing joins on it. The
@@ -1586,8 +1704,9 @@ types:
         type: ScopeLevel
         required: false
         description: The highest scope at which a requester may apply their own
-          proposal. Absent means no requester may. Not configurable — only a
-          caller declares it
+          proposal. Absent means no requester may. Declaring it requires
+          content:decide as well as content:declare, so only a person declares
+          it. Not configurable
 
   ContentAdoption:
     description: What a placement holds, issued by the service so a caller can
@@ -1686,22 +1805,22 @@ types:
       actor:
         type: string
         required: true
-        description: Witnessed. The subject whose grant made the change — on a
-          direct write the subject the request authenticated as, on a change
-          that applied a proposal the proposal's actor. Never taken from a
-          request body
+        description: Witnessed. The identity id of the subject who prepared
+          the change — the writer on a direct write, the proposer on a change
+          that applied a proposal. Taken from the verified token's identity_id
+          claim, never from sub and never from a request body
       on_behalf_of:
         type: string
         required: false
-        description: Asserted. The identity id of the person the actor acted
-          for. Present when the caller stated one; on a change that applied a
-          proposal, the proposal's
+        description: Asserted. The identity id of the person the proposer acted
+          for, as the proposal stated it. Absent on a direct write, whose
+          writer is a person acting for themselves
       approved_by:
         type: list
         required: false
         description: Witnessed. The identity ids of the persons whose decision
-          applied the change — one, under this contract. Present exactly when
-          proposal is. Not a signature
+          applied the change — one, under this contract, taken from the
+          decider's token. Present exactly when proposal is. Not a signature
       proposal:
         type: string
         required: false
@@ -1724,7 +1843,9 @@ types:
       correlation_id:
         type: string
         required: true
-        description: The enforcement decision that authorised this change
+        description: The enforcement decision that authorised this change — on
+          a change that applied a proposal, the decider's, whose audit entry
+          names the identity in approved_by
       recorded_at:
         type: timestamp
         required: true
@@ -1804,15 +1925,19 @@ types:
         required: false
         description: Asserted. The identity id of the person the caller acted
           for. A client carrying out a person's instruction under its own
-          service identity MUST send it
+          service identity MUST send it. Never a scheduled job, which names
+          itself in run
       agent:
         type: string
         required: false
-        description: Asserted. The agent that prepared the change
+        description: Asserted. The agent that prepared the change. A client
+          submitting a change an agent prepared MUST send it
       run:
         type: string
         required: false
-        description: Asserted. The agent run that prepared the change
+        description: Asserted. The run that prepared the change — an agent's
+          run, or a scheduled job's. A client submitting a change an agent or a
+          schedule prepared MUST send it
       reason:
         type: string
         required: false
@@ -1864,8 +1989,8 @@ types:
       actor:
         type: string
         required: true
-        description: Witnessed. The subject the proposal request authenticated
-          as
+        description: Witnessed. The identity id of the proposer, from the
+          verified token's identity_id claim
       on_behalf_of:
         type: string
         required: false
@@ -1904,8 +2029,8 @@ types:
       decided_by:
         type: string
         required: true
-        description: Witnessed. The identity id of the person the decision
-          request authenticated as
+        description: Witnessed. The identity id of the person who decided,
+          from the verified token's identity_id claim
       decided_at:
         type: timestamp
         required: true
@@ -2144,8 +2269,15 @@ security:
         filesystem would resolve it rather than byte for byte
     - rule: Only a person moves an entry
       mechanism: content:write and content:decide are person only in
-        protocol/types. A hub grants neither to a service subject and an agent's
-        authorisation names neither, so an agent or a service can only propose
+        protocol/types. A hub grants neither to a service subject, mints no
+        token for one that carries either, and refuses a registration that
+        declares either. This service honours them only on a token of type
+        operator. A console runs every agent under its own service identity.
+        What the tenant cannot see, a person's credential used by software, is
+        stated with the rule
+    - rule: Only a person allows self-decision
+      mechanism: A declaration carrying self_decision_ceiling requires
+        content:decide as well as content:declare
     - rule: A proposal writes nothing
       mechanism: Proposed bytes are held in the service's own state, never in
         the repository, until a decision applies them
@@ -2159,9 +2291,10 @@ security:
         before the write; self_decision_ceiling is declared by a caller and is
         never configured
     - rule: Who a change was for says what stands behind each part of it
-      mechanism: actor and approved_by are taken from verified credentials,
-        on_behalf_of, agent and run are recorded as asserted, and approved_by
-        is never reported as a signature
+      mechanism: actor, approved_by and decided_by are the identity_id claim
+        of the verified token, never its sub; on_behalf_of, agent and run are
+        recorded as asserted; approved_by is never reported as a signature. A
+        token without identity_id cannot write, remove, propose or decide
     - rule: An access statement from a shared or opaque repository is marked
         incomplete
       mechanism: access_complete is derived from custody and cannot be set by
@@ -2351,11 +2484,16 @@ security:
 - [ ] Of two concurrent decisions on one `open` proposal, exactly one is recorded and the other is refused with `CONTENT_PROPOSAL_DECIDED`
 - [ ] An `open` proposal whose entry has changed is listed with `base` `moved`, and listing it changes neither the proposal nor the entry
 - [ ] A `ContentProposal` in a `ProposalPage` carries no `change.modified`, and `GET /v1/content/proposals/{id}` returns it
-- [ ] Applying a proposal records a `ContentChange` whose `actor` is the proposal's `actor`, whose `on_behalf_of` is the proposal's, whose `approved_by` holds the decider, and whose `proposal` is the proposal's `id`
+- [ ] Applying a proposal records a `ContentChange` whose `actor` is the proposal's `actor`, whose `on_behalf_of` is the proposal's, whose `approved_by` holds the decider's `identity_id`, whose `proposal` is the proposal's `id`, and whose `correlation_id` is the decider's enforcement decision
 - [ ] A decision to apply by the proposal's `actor` or `on_behalf_of`, in a repository with no `self_decision_ceiling`, is refused with `CONTENT_SEPARATION_REQUIRED`, and the proposal stays `open`
 - [ ] With `self_decision_ceiling` `internal`, the proposal's `on_behalf_of` applying an `internal` proposal succeeds with `separation` `self`, and applying a `confidential` one is refused with `CONTENT_SEPARATION_REQUIRED`
 - [ ] A decision to apply by a person who is neither the proposal's `actor` nor its `on_behalf_of` records `separation` `independent`
+- [ ] A person whose token's `identity_id` is a proposal's `on_behalf_of`, deciding to apply it in a repository with no `self_decision_ceiling`, is refused with `CONTENT_SEPARATION_REQUIRED` whatever the token's `sub` says
 - [ ] The proposal's `on_behalf_of` may reject it with no `self_decision_ceiling` declared, and no `separation` is recorded
-- [ ] A `ContentChange` from `PUT /v1/content/entry` carries no `approved_by`, `proposal` or `separation`
-- [ ] A write or proposal whose body names an `actor` records the subject the request authenticated as, never the named one
+- [ ] A `ContentChange` from `PUT /v1/content/entry` carries no `on_behalf_of`, `approved_by`, `proposal` or `separation`
+- [ ] A write or proposal whose body names an `actor` records the verified token's `identity_id`, never the named one and never the token's `sub`
+- [ ] A write, removal, proposal or decision on a token that carries no `identity_id` is refused with `CONTENT_IDENTITY_REQUIRED`, and nothing is recorded
+- [ ] A token whose `type` is not `operator` and whose `cap` holds `content:write` is refused `PUT /v1/content/entry` as though it did not hold it
+- [ ] The service's own manifest declares neither `content:write` nor `content:decide`, and its registration succeeds
+- [ ] A declaration carrying `self_decision_ceiling` from a caller holding `content:declare` and not `content:decide` is refused, and no repository is recorded
 - [ ] `ContentChange.version` is absent when the backend keeps no version marker

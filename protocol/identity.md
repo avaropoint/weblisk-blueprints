@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.3.0
+version: 1.4.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -480,7 +480,8 @@ with any other `alg` value MUST be rejected.
   "iat": 1712160000,
   "exp": 1712246400,
   "cap": ["file:read", "llm:chat", "agent:message"],
-  "cid": ""
+  "cid": "",
+  "identity_id": "<fingerprint of the public key seo registered>"
 }
 ```
 
@@ -505,6 +506,14 @@ Fields:
 - `role`: the operator's role when an operator token was issued (optional). A
   verifier that holds the operator's record authorises against the role that
   record holds now, never against this claim alone
+- `identity_id`: the identity id of the subject the token was minted for
+  (optional). An operator token carries the `identity_id` of the credential
+  named by `cid`. A registration token carries the fingerprint of the public
+  key its manifest registered. It is the issuer's statement, under its
+  signature, of who the subject is. A verifier that records who acted records
+  this claim and never `sub`, which is a name
+  ([`patterns/principal-identity`](../patterns/principal-identity.md) Design
+  Principle 10). A token that carries none names nobody a record can join on
 
 ### Token Creation
 ```
@@ -615,6 +624,13 @@ types:
             type: string
             description: The operator's role when an operator token was issued.
               Authorisation reads the role the issuer's records hold now
+            required: false
+          identity_id:
+            type: string
+            description: The identity id of the subject. On an operator token,
+              the identity_id of the credential cid names. On a registration
+              token, the fingerprint of the key the manifest registered. What a
+              verifier records as who acted, never sub
             required: false
       signature:
         type: string
@@ -997,6 +1013,7 @@ Implementation MUST:
 - [ ] Verify all signatures before trusting data, using the signature algorithm's verification primitive
 - [ ] Verify token `alg` header is exactly `ML-DSA-65` — reject all other values
 - [ ] Check token expiry on every verification
+- [ ] A record of who acted names the token's `identity_id`, never its `sub`
 - [ ] Enforce replay protection window (300 seconds) on registration
 - [ ] Validate public key size (1952 bytes) and signature size (3309 bytes)
 - [ ] Use constant-time comparison for signature verification

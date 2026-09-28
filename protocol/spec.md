@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 1.0.0
+version: 2.0.0
 requires: [protocol/types, protocol/identity]
 platform: any
 tier: free
@@ -356,7 +356,12 @@ Agent registration. No auth required (this is how agents GET auth).
 **Response:** `RegisterResponse`
 
 The orchestrator MUST:
-1. Validate: `manifest.name`, `manifest.url`, `manifest.public_key` are non-empty
+1. Validate: `manifest.name`, `manifest.url`, `manifest.public_key` are non-empty.
+   Refuse with 403 `capability_person_only` if `manifest.capabilities` names a
+   capability [`protocol/types`](types.md) marks *person only*. A registered
+   component is a service, and a service never holds one
+   ([`patterns/principal-identity`](../patterns/principal-identity.md),
+   `service-subject-constraints`). The token of step 7 would otherwise carry it
 2. Verify `signature` against `manifest.public_key` over `canonicalize(manifest)` per RFC 8785,
    canonicalizing the manifest **as received** — see [Signing input](#signing-input) below
 3. Reject if `|server_time - timestamp|` > 300 seconds (replay protection)
@@ -373,7 +378,9 @@ The orchestrator MUST:
         the named agent must list this agent in its collaborators → 403 otherwise
    b. Add subscription entries to the routing table
 6. Generate unique `agent_id` (32 hex chars)
-7. Issue auth token (WLT format) with capabilities from manifest, 24-hour TTL
+7. Issue auth token (WLT format) with capabilities from manifest, `identity_id`
+   the fingerprint of `manifest.public_key`
+   ([`protocol/identity`](identity.md#payload-claims)), 24-hour TTL
 8. Store agent in registry
 9. Log audit entry: actor=orchestrator, action=register, target=agent_name
 10. Respond with `RegisterResponse` (includes routing table)
@@ -383,7 +390,7 @@ The orchestrator MUST:
 **Error responses:**
 - 400: Missing required fields
 - 401: Invalid signature or stale timestamp
-- 403: Reserved namespace or unauthorized scope
+- 403: Reserved namespace, unauthorized scope, or a person-only capability
 - 409: Namespace already owned by another agent
 - 500: Internal error
 
@@ -945,6 +952,10 @@ error_codes:
     raised_by: POST /v1/register, where the namespace is already owned
   - code: NAMESPACE_RESERVED
     raised_by: POST /v1/register, for a reserved namespace
+  - code: capability_person_only
+    raised_by: POST /v1/register, where the manifest declares a capability
+      protocol/types marks person only
+    declared_by: patterns/principal-identity
   - code: SCOPE_UNAUTHORIZED
     raised_by: subscription, where the scope exceeds the caller's capability
   - code: EVENT_REJECTED
@@ -958,7 +969,8 @@ error_codes:
 ```
 
 Status, category and description for each code are declared once, in
-[protocol/types](types.md). This section says which endpoints raise them.
+[protocol/types](types.md), or in the blueprint a code's `declared_by` names.
+This section says which endpoints raise them.
 All errors MUST return JSON using the `ErrorResponse` format
 (see [types.md](types.md)). At minimum, the `error` field is required.
 Implementations SHOULD include `code`, `category`, and `retryable`
@@ -1112,6 +1124,8 @@ security:
 - [ ] Orchestrator `POST /v1/register` validates subscription scopes (403 on unauthorized)
 - [ ] Orchestrator `POST /v1/register` enforces replay protection (300s window)
 - [ ] Orchestrator `POST /v1/register` rejects `system.*` namespace claims (403)
+- [ ] Orchestrator `POST /v1/register` refuses a manifest whose `capabilities` names `content:write` or `content:decide` with 403 `capability_person_only`, and issues no token
+- [ ] The token `POST /v1/register` issues carries `identity_id`, the fingerprint of `manifest.public_key`
 - [ ] Orchestrator `DELETE /v1/register` releases namespaces and routing entries
 - [ ] Orchestrator `GET /v1/services` returns service directory with routing table and namespace map
 - [ ] Orchestrator `POST /v1/channel` verifies `agent:message` capability

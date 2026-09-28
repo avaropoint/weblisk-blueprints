@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.1.0
+version: 1.1.1
 requires: []
 platform: any
 tier: free
@@ -328,10 +328,12 @@ types:
 - `content:establish` — create a store and declare it. Required in addition to `content:declare` for `disposition: establish`; adoption does not need it
 - `content:reconcile` — run custody reconciliation on a shared repository
 
-*Person only* marks a capability that stands for a person's judgement.
+*Person only* marks a capability that no service and no agent may hold.
 [`patterns/principal-identity`](../patterns/principal-identity.md) keeps it out
-of a service subject's grant and out of an agent's authorisation
-(`service-subject-constraints` and `agent-delegation`). `content:propose` is
+of a service subject's grant and every token minted for one, and out of an
+agent's authorisation (`service-subject-constraints` and `agent-delegation`).
+[`protocol/spec`](spec.md) refuses a registration whose manifest declares one,
+because a registered component is a service. `content:propose` is
 separate from `content:write` for the reason `fabric:attest` is separate from
 `fabric:observe` below: agents propose and people apply, and one capability
 covering both would make that unenforceable at the tenant. What each does to a
