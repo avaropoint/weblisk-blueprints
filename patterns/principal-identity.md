@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.5.0
+version: 1.6.0
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -410,6 +410,43 @@ contracts:
         - Enumerating a subject's hubs MUST be answered by a directory, never by
           asking hubs to disclose their grants
 
+    - name: record-signing
+      description: A credential that signs records meant to outlive the
+        session, and how a verifier that is not the hub checks one
+      required: false
+      rules:
+        - An attestation's purpose is authenticate, the default when the field
+          is absent, or sign-records. An authenticate credential proves a live
+          session at the hub it names. A sign-records credential signs records
+          for that hub
+        - A sign-records credential MUST be an ML-DSA-65 key file. Design
+          Principle 6 lets a classical key prove a session and nothing more. A
+          passkey or any classical key attested for sign-records is refused with
+          algorithm_not_permitted
+        - A sign-records credential MUST NOT authenticate. A hub refuses to
+          record one as a credential, and never mints a token with one, with
+          credential_purpose_mismatch
+        - An authenticate credential MUST NOT sign a record. A verifier refuses
+          a record signature made by one with credential_purpose_mismatch. So
+          the key a client holds in order to sign in is never a key that signs a
+          record
+        - A sign-records credential MUST be generated on the device where its
+          subject signs, and MUST NOT be generated or held by a party that acts
+          for people who sign in to it
+        - A verifier of a signed record is not the issuing hub, so it checks the
+          attestation itself - its signature under identity_public_key, the
+          fingerprint of that key against the identity id the record names, its
+          purpose, and its hub_id against the hub the record belongs to where
+          the verifier knows it - and treats not_after as the revocation window
+          it has, as revocation states
+        - Revocation and rotation are prospective. A signature a log recorded
+          while its attestation was live stays as it was recorded, and the
+          log's order says what came before and what came after. Nothing
+          un-signs a record. A verifier refuses a signature presented after its
+          attestation's not_after. A revoked or rotated identity reaches a
+          verifier that is not the hub only as the hub's refusal of that
+          identity's tokens, and no sooner
+
   guarantees:
     - No platform ever holds a subject's identity private key
     - A hub can authenticate its subjects with no directory reachable
@@ -483,11 +520,19 @@ types:
       hub_id:
         type: string
         required: true
-        description: The ONE hub this credential may authenticate at, named by
+        description: The ONE hub this credential may authenticate at, or, for a
+          sign-records credential, the one hub whose records it signs. Named by
           the fingerprint (protocol/identity) of the first key that hub signed
           its tokens with, which the hub records and keeps when it rotates that
           key — never by its address. A hub that moves or rotates its key is the
           same hub, and a hub regenerated without its records is a different one
+      purpose:
+        type: enum
+        values: [authenticate, sign-records]
+        required: false
+        description: What the credential is for. Absent means authenticate. A
+          sign-records credential never authenticates, and an authenticate
+          credential never signs a record (record-signing)
       device_label:
         type: string
         required: false
@@ -692,7 +737,8 @@ types:
 | `user_verification_absent` | auth | Policy requires UV; the UV flag is unset | Deny. MUST NOT infer UV from a valid signature |
 | `credential_syncable_refused` | validation | Policy requires device-bound; the passkey is syncable | Refuse at REGISTRATION, so the subject learns before relying on it |
 | `authenticator_untrusted` | validation | AAGUID outside `accepted_authenticators` | Refuse registration |
-| `algorithm_not_permitted` | validation | A classical key offered as an identity or to sign an attestation | Refuse. Log as a security event |
+| `algorithm_not_permitted` | validation | A classical key offered as an identity, to sign an attestation, or as a sign-records credential | Refuse. Log as a security event |
+| `credential_purpose_mismatch` | auth | A credential used for what its attestation's `purpose` excludes: a sign-records credential offered to authenticate or recorded as a hub credential, or an authenticate credential's signature offered on a record | Refuse. Log as a security event |
 | `credential_previously_revoked` | validation | Re-registering a key revoked here before | Refuse permanently. Log as a security event |
 | `identity_key_as_credential` | auth | The identity key was offered to authenticate | Deny. Log as a security event |
 | `scope_exceeds_issuer` | validation | Invitation offers more than the issuer holds | Refuse |
@@ -915,3 +961,13 @@ credential revocation, which costs nothing else.
     issued one with the capability removed.
 48. A registration whose manifest declares `content:write` is refused with
     `capability_person_only`, and no token is issued.
+49. An attestation with `purpose` `sign-records` submitted as a hub credential
+    is refused with `credential_purpose_mismatch`, and no token is ever minted
+    with that key.
+50. An attestation with `purpose` `sign-records` for a passkey or any classical
+    key is refused with `algorithm_not_permitted`.
+51. A record signature made by a credential whose attestation has no `purpose`,
+    or `purpose` `authenticate`, is refused with `credential_purpose_mismatch`.
+52. A signature a log recorded while its attestation was live still verifies
+    after the attestation's `not_after` has passed, and the same signature
+    presented after that is refused.

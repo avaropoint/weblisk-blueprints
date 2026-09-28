@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.6.0
+version: 2.7.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -69,17 +69,20 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/principal-identity
-    version: ">=1.2.0 <2.0.0"
+    version: ">=1.6.0 <2.0.0"
     bindings:
       types:
         - name: Attestation
-          fields_used: [identity_id, identity_public_key, credential_public_key, hub_id, device_label, not_after, signature]
+          fields_used: [identity_id, identity_public_key, credential_public_key, hub_id, purpose, device_label, not_after, signature]
         - name: Credential
           fields_used: [credential_public_key, algorithm, form, device_bound, identity_id, attestation, status, last_used_at]
       behaviors:
         - name: credential-attestation
         - name: authentication
         - name: revocation
+        # Only for what it refuses: a sign-records credential is never one of
+        # a hub's, and a console never holds one
+        - name: record-signing
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -264,6 +267,7 @@ request.
 | `CREDENTIAL_FORM_UNSUPPORTED` | 400 | validation | The credential key is not an ML-DSA-65 public key, the one form these routes carry | Refuse. A form principal-identity permits beside it is admitted only by a route that declares its own registration and challenge | — |
 | `CREDENTIAL_FOREIGN_HUB` | 400 | validation | The attestation's `hub_id` is not this hub's | Refuse. Log as a security event | `credential_foreign_hub` |
 | `CREDENTIAL_IS_IDENTITY_KEY` | 400 | validation | The credential's public key is the operator's identity key | Refuse. Log as a security event | `identity_key_as_credential` |
+| `CREDENTIAL_PURPOSE_REFUSED` | 400 | validation | The attestation's `purpose` is `sign-records`. A key that signs records is never a credential a hub mints tokens with | Refuse. Log as a security event. The client attests a separate key to sign in | `credential_purpose_mismatch` |
 | `CREDENTIAL_LIFETIME_INVALID` | 400 | validation | `not_after` is not in the future, or is more than 90 days after the hub receives the attestation | Refuse, naming the cap | `attestation_expired`, where `not_after` has passed |
 | `CREDENTIAL_PREVIOUSLY_REVOKED` | 409 | conflict | The key was revoked here before | Refuse permanently. Log as a security event | `credential_previously_revoked` |
 | `OPERATOR_LAST_ADMINISTRATOR` | 409 | conflict | A request to revoke would end the last active credential of the last active admin. A change of that admin's identity key is not refused | Refuse | `last_administrator` |
@@ -583,6 +587,7 @@ contracts:
         - Its identity_id MUST be the fingerprint of that key, and its hub_id this hub's hub_id. A different hub_id MUST be refused with CREDENTIAL_FOREIGN_HUB and logged as a security event
         - Its credential_public_key MUST be an ML-DSA-65 public key, or it is refused with CREDENTIAL_FORM_UNSUPPORTED. These routes carry an ML-DSA-65 key-file credential and no other form. A form principal-identity permits beside it, such as a passkey, has its own registration and challenge, and a hub admits it only through a route that declares them
         - Its credential_public_key MUST NOT be the identity public key, or it is refused with CREDENTIAL_IS_IDENTITY_KEY and logged as a security event
+        - Its purpose MUST be absent or authenticate. An attestation whose purpose is sign-records MUST be refused with CREDENTIAL_PURPOSE_REFUSED and logged as a security event. A key that signs records never mints a token (patterns/principal-identity, record-signing)
         - Its not_after MUST be in the future and no more than 90 days after the hub receives it, or it is refused with CREDENTIAL_LIFETIME_INVALID
         - A key that was ever revoked at this hub MUST be refused with CREDENTIAL_PREVIOUSLY_REVOKED
         - An attestation for a key the operator already holds as an active credential MUST replace that credential's attestation and keep its id. That is re-attestation
@@ -637,6 +642,7 @@ contracts:
         - It MUST use a person's credential only while that person holds a live session with the console at AAL2, and MUST NOT mint a token with it at any other time
         - Work no signed-in person is present for, such as a schedule or a background job, MUST use the console's own service identity and never a person's credential
         - Every agent run MUST use the console's own service identity, whether or not a signed-in person is watching it, and never a person's credential. A credential that runs agents holds no person-only capability (architecture/content, Who may move an entry)
+        - It MUST NOT generate, hold or ask an identity to attest a sign-records credential, for anyone. A signature on a record means the person signed it, and a key a console holds signs whenever the console does (patterns/principal-identity, record-signing)
         - It MUST hold an operator token in memory only and never write one anywhere, encrypted or not. What it keeps at rest is the credential key, as an installation secret
         - It MUST discard a person's tokens when that person's session ends, by sign-out, idle or absolute expiry, or the account's revocation, even where exp is later
         - Removing an account from the console MUST delete that account's credential keys. Before it does, it MUST revoke each credential at its hub where it can, with a token minted for a person signed in to the console at AAL2 whom that hub permits to revoke it — the account's own person, or one holding the admin role there
@@ -1878,6 +1884,8 @@ Admin endpoints SHOULD be rate-limited:
 - [ ] A hub that rotates its orchestrator key answers every challenge with the `hub_id` it had before, and every credential attested for that `hub_id` still mints
 - [ ] A nonce from `POST /v1/admin/credentials/challenge` is spent by the first token request that presents it, whether or not the signature verifies, and a revoked or expired credential's status is disclosed only after its signature verifies
 - [ ] An attestation whose `hub_id` is not this hub's, whose credential key is not an ML-DSA-65 key, whose credential key is the identity key, whose `not_after` has passed or is more than 90 days away, or whose key was revoked here before is refused with `CREDENTIAL_FOREIGN_HUB`, `CREDENTIAL_FORM_UNSUPPORTED`, `CREDENTIAL_IS_IDENTITY_KEY`, `CREDENTIAL_LIFETIME_INVALID` or `CREDENTIAL_PREVIOUSLY_REVOKED`
+- [ ] An attestation with `purpose` `sign-records` is refused with `CREDENTIAL_PURPOSE_REFUSED`, is stored as no credential, and a challenge for its key answers `CREDENTIAL_UNKNOWN`
+- [ ] A console holds no key attested with `purpose` `sign-records`, for any account
 - [ ] Removing an operator, or revoking one of its credentials, refuses its next request with `OPERATOR_REVOKED` or `CREDENTIAL_REVOKED` without waiting for its token to expire
 - [ ] A removed operator keeps its record with status `revoked`, and a request naming it is refused with `OPERATOR_REVOKED`, never `OPERATOR_UNKNOWN`
 - [ ] The sole admin's change of identity key revokes their credentials and is not refused with `OPERATOR_LAST_ADMINISTRATOR`; the new identity then attests a credential and mints

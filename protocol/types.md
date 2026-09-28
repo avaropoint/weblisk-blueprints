@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.2.0
+version: 1.3.0
 requires: []
 platform: any
 tier: free
@@ -319,11 +319,11 @@ types:
 - `realtime:publish` — publish to real-time channels
 
 **Content capabilities:**
-- `content:read` — read entries and list a content repository, and read the proposals made against it
+- `content:read` — read entries and list a content repository, read the proposals made against it, and read its change log
 - `content:write` — create, modify and remove entries directly. *Person only*
 - `content:propose` — stage a change to one entry for a person to decide. Writes nothing
 - `content:decide` — apply or reject a proposed change. *Person only*
-- `content:describe` — read a repository's custody class, attestations and derived ceiling, and its replicas
+- `content:describe` — read a repository's custody class, attestations and derived ceiling, its replicas, and its change log's head, and have that log sealed
 - `content:declare` — bring a store under governance. Sufficient to adopt one that already holds bytes; establishing a new one also needs `content:establish`
 - `content:establish` — create a store and declare it. Required in addition to `content:declare` for `disposition: establish`; adoption does not need it
 - `content:reconcile` — run custody reconciliation on a shared repository

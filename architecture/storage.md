@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: storage
-version: 1.1.0
+version: 1.1.1
 requires: [protocol/types, protocol/identity, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 tier: free
@@ -1053,6 +1053,8 @@ signed from any other.
 
 This section says how any chained log is sealed. The blueprint that owns a log
 says whether it is sealed, and binds `sealed-log` when it is.
+[`architecture/content`](content.md#the-change-log) seals each repository's
+change log.
 
 ### What a sealed log holds
 

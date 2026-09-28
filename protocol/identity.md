@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.6.0
+version: 1.6.1
 requires: [protocol/types]
 platform: any
 tier: free
@@ -492,6 +492,7 @@ an oracle for every statement that key can make.
 | `weblisk/credential-auth/v1` | A credential, to obtain an operator token | [`architecture/admin`](../architecture/admin.md#minting-a-token-with-the-credential) |
 | `weblisk/log-key/v1` | A log owner's long-lived key, introducing the key that signs the log's checkpoints | [`architecture/storage`](../architecture/storage.md#sealing-a-chained-log) |
 | `weblisk/log-checkpoint/v1` | A log key, over the log's tip | [`architecture/storage`](../architecture/storage.md#sealing-a-chained-log) |
+| `weblisk/content-change/v1` | A person's sign-records credential, over a change to a content entry | [`architecture/content`](../architecture/content.md#the-change-statement) |
 
 A kind of statement is registered here before any implementation signs it. A
 prefix names one layout for good. A changed layout gets a new prefix and a new

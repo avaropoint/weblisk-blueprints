@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 1.9.1
-requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement]
+version: 1.10.0
+requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
 -->
@@ -61,12 +61,13 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.4.0 <2.0.0"
+    version: ">=1.6.0 <2.0.0"
     bindings:
       types:
         # identity_id is who a change names; type says whose token it is
         - name: WLToken
           fields_used: [cap, identity_id, type]
+    # The change statement is a fixed-form statement, registered there
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -114,12 +115,18 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/principal-identity
-    version: ">=1.5.0 <2.0.0"
+    version: ">=1.6.0 <2.0.0"
     bindings:
+      types:
+        # What a change statement carries, so a verifier needs no hub
+        - name: Attestation
+          fields_used: [identity_id, identity_public_key, credential_public_key, hub_id, purpose, not_after, signature]
       behaviors:
         # What keeps a person-only capability away from a service and an agent
         - name: service-subject-constraints
         - name: agent-delegation
+        # Who may sign a change statement, and how it is checked
+        - name: record-signing
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -158,6 +165,22 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
+
+  - blueprint: architecture/storage
+    version: ">=1.1.0 <2.0.0"
+    bindings:
+      types:
+        # The change log's own key and checkpoint entries
+        - name: LogKey
+          fields_used: [key_id, public_key, not_after, key_protection, attested_by, attesting_key, signature]
+        - name: LogCheckpoint
+          fields_used: [seq, tip, issued_at, key, signature]
+      behaviors:
+        - name: sealed-log
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
 ```
 
 ---
@@ -189,6 +212,12 @@ requires:
 │  ┌────────────────────────────────────────────────────┐  │
 │  │  Proposal Store                                    │  │
 │  │  - changes staged for a person to decide           │  │
+│  │  - held in the service's own state, never content  │  │
+│  └────────────────────────────────────────────────────┘  │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │  Change Log                (one per repository)    │  │
+│  │  - every change made or observed, in order         │  │
+│  │  - chained, and sealed with ML-DSA-65 checkpoints  │  │
 │  │  - held in the service's own state, never content  │  │
 │  └────────────────────────────────────────────────────┘  │
 │  ┌────────────────────────────────────────────────────┐  │
@@ -239,6 +268,10 @@ service's own record store, under exclusive custody, and never in the
 repository. They are read only through the Proposal Read Flow, under the same
 check as the entry they would change. See [Proposals](#proposals).
 
+**Change Log** records every change this service makes to a repository and
+every change it observes made around it, one entry each, in order. It is the
+evidence of record, and it is signed. See [The Change Log](#the-change-log).
+
 **Custody Reconciler** exists only where a second authority can write. It
 converts an unexplained change from an alarm into a recorded fact.
 
@@ -266,6 +299,8 @@ received, and takes nothing back. See [Replicas](#replicas).
   separation of duties it records
 - Who a change was for: the attribution a `ContentChange` carries, and which
   party asserts each part of it
+- The change log: what each entry covers, who signs it, and what a verifier
+  checks without this service
 - Out-of-band change detection and provenance recording for shared custody
 - Reserved-path refusal for installation state and control state
 - Declaration of what a repository cannot attest, as a first-class answer
@@ -303,6 +338,9 @@ received, and takes nothing back. See [Replicas](#replicas).
 | GET | /v1/content/proposals | Proposals | yes | List proposals in scope, cursor-paginated |
 | GET | /v1/content/proposals/{id} | Proposal | yes | Read one proposal, with the bytes it proposes, under the entry's own read check |
 | POST | /v1/content/proposals/{id}/decision | Decide | yes | Apply or reject a proposal. Applying writes the entry |
+| GET | /v1/content/repositories/{repository}/log | Log | yes | A repository's change log, its lines exactly as stored, from a sequence number. Whole or refused, never filtered |
+| GET | /v1/content/repositories/{repository}/log/head | LogHead | yes | The log's id, its tip, its latest checkpoint and the key entry that introduced its key, and how many entries are unsealed. Names no path |
+| POST | /v1/content/repositories/{repository}/log/checkpoint | SealLog | yes | Seal the log now, where the tip has moved since the last checkpoint, and return its head |
 | GET | /v1/health | Health | no | Content service health. Served with or without an orchestrator |
 
 **An entry's bytes travel as base64.** Wherever a JSON body carries an entry's
@@ -385,6 +423,26 @@ interfaces:
         through the Write Flow, against the bytes the proposal was made on. A
         proposal whose base has moved on is recorded stale and nothing is
         written
+      served_by: content-service
+
+    - path: /v1/content/repositories/{repository}/log
+      methods: [GET]
+      description: A repository's change log, its lines byte for byte as
+        stored, from a sequence number. Refused whole unless the caller may
+        read the highest scope the log records, and never filtered
+      served_by: content-service
+
+    - path: /v1/content/repositories/{repository}/log/head
+      methods: [GET]
+      description: The log id, the tip, the latest checkpoint with the key
+        entry that introduced its key, and the count of unsealed entries.
+        Names no path
+      served_by: content-service
+
+    - path: /v1/content/repositories/{repository}/log/checkpoint
+      methods: [POST]
+      description: Issue a checkpoint now, where the tip has moved since the
+        last one, and return the log's head
       served_by: content-service
 
   methods:
@@ -471,6 +529,22 @@ interfaces:
         an agent — content:decide is person only
       called_by: [gateway]
 
+    - name: ReadLog
+      signature: (repository, from, limit) → lines
+      description: The change log's stored lines from seq from, byte for byte
+      called_by: [gateway, agents, admin]
+
+    - name: ReadLogHead
+      signature: repository → LogHead
+      description: The log id, tip, latest checkpoint and unsealed count
+      called_by: [gateway, agents, admin]
+
+    - name: SealLog
+      signature: repository → LogHead
+      description: Issue a checkpoint where the tip has moved, then report the
+        head
+      called_by: [gateway, agents, admin]
+
   events:
     - topic: content.repository_declared
       direction: publish
@@ -548,6 +622,7 @@ interfaces:
 | `CONTENT_PROPOSAL_DECIDED` | conflict | A decision arrived for a proposal that is no longer `open`, including the second of two decisions that raced | Refuse, returning the proposal as recorded. A proposal leaves `open` once |
 | `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the identity the proposal names as its `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, or the repository declares none | Refuse, naming the scope and the ceiling. Nothing is recorded and the proposal stays `open` |
 | `CONTENT_IDENTITY_REQUIRED` | auth | A write, removal, proposal, decision, replica declaration or retirement arrived on a token that carries no `identity_id` | Refuse. Never record a name, an address or a token's `sub` in its place |
+| `CONTENT_STATEMENT_INVALID` | auth | A write, removal or decision carried a `ChangeStatement` that does not verify: the token is not a person's; the attestation's `purpose` is not `sign-records`, its identity key is not the token's `identity_id`, its signature fails, its credential key is not ML-DSA-65, or its `not_after` has passed; `signed_at` is more than 300 seconds from the service's clock; or the signature does not verify over the statement rebuilt from the change. See [The change statement](#the-change-statement) | Refuse, naming the check that failed. Nothing is written and a proposal stays `open`. The change is never recorded unsigned instead. Log as a security event |
 | `CONTENT_REPLICA_UNSEEN` | conflict | A replica declaration with no `if_match` | Refuse and return the `ReplicaCensus`. Nothing is recorded and nothing is sent. The caller re-submits with the census digest |
 | `CONTENT_REPLICA_UNCLASSIFIED` | policy | A replica declaration whose destination a third party holds, where the classification gate is not present or does not pass. See [A third party's replica waits for classification](#a-third-partys-replica-waits-for-classification) | Refuse. Nothing is recorded and nothing is sent |
 | `CONTENT_SCOPE_UNDECLARED` | policy | A replica declaration where a version that would leave is unclassified, and the declaration carries no `history_scope`. See [What would leave](#what-would-leave) | Refuse, naming how many versions are unclassified. Nothing is recorded and nothing is sent. No version is assumed to be at any level |
@@ -599,7 +674,9 @@ interfaces:
    request
 9. The repository is recorded `state: declared`. On adoption, every entry the
    census found is recorded with provenance `unknown` — the service did not
-   write them and observed no change, so it can establish nothing about them
+   write them and observed no change, so it can establish nothing about them.
+   The repository's change log begins, with its `declare` entry (see
+   [The Change Log](#the-change-log))
 10. `content.repository_declared` is published, carrying the disposition, the
     derived ceiling and the adopted entry count
 11. Should step 5's create or step 7's demonstration fail, nothing is rolled
@@ -623,7 +700,8 @@ interfaces:
 ### Write Flow
 1. Caller submits bytes, a declared scope, and `if_match` — the identity it
    believes it is replacing, or the empty string for an entry it believes does
-   not exist yet
+   not exist yet — and, where the person signs, a `ChangeStatement` as
+   `statement`
 2. Path Resolver confines the path as above
 3. Ceiling check: declared scope against the repository's derived ceiling.
    Exceeded → refuse, publish `content.ceiling_exceeded`
@@ -631,12 +709,19 @@ interfaces:
    is the empty string, and `modify` otherwise
 5. Precondition Gate reads the current digest and compares it to `if_match`.
    Mismatch → refuse with both digests. No merge is attempted
-6. Bytes are written durably; the new digest is computed from what was written,
+6. A statement, where one was sent, is verified against the change this write
+   would record ([The change statement](#the-change-statement)). One that does
+   not verify refuses the write with `CONTENT_STATEMENT_INVALID`
+7. The change is reserved
+   ([A change is reserved before it is made](#a-change-is-reserved-before-it-is-made))
+8. Bytes are written durably; the new digest is computed from what was written,
    not from what was submitted
-7. A `ContentChange` is recorded with provenance `authored`, the declared
-   scope, the token's `identity_id` for `actor`, and the correlation id of the
-   enforcement decision
-8. `content.changed` is published
+9. A `ContentChange` is appended to the repository's change log as a `change`
+   entry, with provenance `authored`, the declared scope, the token's
+   `identity_id` for `actor`, the correlation id of the enforcement decision,
+   and the statement where one verified. The reservation is released in the
+   same write
+10. `content.changed` is published
 
 ### Proposal Flow
 1. Caller submits a `ProposalRequest`: a repository, a `ProposedChange` naming
@@ -686,7 +771,8 @@ interfaces:
    Proposed bytes are returned only by id
 
 ### Decision Flow
-1. Caller submits a `DecisionRequest` for one proposal: `apply` or `reject`
+1. Caller submits a `DecisionRequest` for one proposal: `apply` or `reject`,
+   and, where the person signs an `apply`, a `ChangeStatement`
 2. The proposal must be in the caller's scope (`CONTENT_PROPOSAL_UNKNOWN`) and
    `open` (`CONTENT_PROPOSAL_DECIDED`)
 3. `reject` → the decision is recorded, the proposal becomes `rejected`, and
@@ -697,20 +783,22 @@ interfaces:
    repository's `self_decision_ceiling`
 5. The write runs for the decider, with the proposal's `before` as `if_match`,
    or the empty string when it has none. For a `create` or `modify`, Write
-   Flow steps 2 to 6 run with the proposal's path, bytes and scope. For a
-   `delete`, the same steps run as a removal: no bytes and no ceiling check,
-   the enforcement storage proxy intercepting with operation `delete`, and the
-   entry is removed and its identity retired
+   Flow steps 2 to 8 run with the proposal's path, bytes and scope, and with
+   the decider's statement where one was sent, verified against the proposal.
+   For a `delete`, the same steps run as a removal: no bytes and no ceiling
+   check, the enforcement storage proxy intercepting with operation `delete`,
+   and the entry is removed and its identity retired
 6. `before` no longer matches → refuse with `CONTENT_PRECONDITION_FAILED` and
    both digests, record the decision with the proposal `stale`, write nothing,
    and publish `content.proposal_decided`. Any other refusal leaves the
    proposal `open` and records nothing on it
-7. A `ContentChange` is recorded with provenance `authored`: `scope`, `actor`
-   and `on_behalf_of` from the proposal, the decider's `identity_id` in
-   `approved_by`, the proposal's id in `proposal`, the `separation` step 4
-   found, and the correlation id of the decider's enforcement decision. The
-   proposal becomes `applied` in the same record write — neither is durable
-   without the other
+7. A `ContentChange` is appended to the repository's change log as a `change`
+   entry, with provenance `authored`: `scope`, `actor` and `on_behalf_of` from
+   the proposal, the decider's `identity_id` in `approved_by`, the proposal's
+   id in `proposal`, the `separation` step 4 found, the correlation id of the
+   decider's enforcement decision, and the decider's statement where one
+   verified. The proposal becomes `applied` in the same record write, and the
+   reservation is released — none of them is durable without the others
 8. `content.changed` and `content.proposal_decided` are published. Neither
    carries the proposed bytes
 
@@ -722,8 +810,10 @@ interfaces:
    `external`, and the writing identity when `attributable_writes` is attested
 5. An unreadable entry produces an observation with state `unknown` — never
    `stale`, never `current`, and never a deletion
-6. Observations are recorded and surfaced. **No observation from this flow is
-   an integrity anomaly**; that classification belongs to exclusive custody
+6. Observations are recorded and surfaced. One of state `changed` or `removed`
+   is appended to the repository's change log as an `observe` entry. **No
+   observation from this flow is an integrity anomaly**; that classification
+   belongs to exclusive custody
 
 ### Custody Re-verification Flow
 1. On declaration and on a schedule, each attestation property is tested — the
@@ -822,11 +912,11 @@ Its routes are guarded by the `content:` family that document declares:
 
 | Capability | Guards |
 |---|---|
-| `content:read` | `GET /v1/content`, `GET /v1/content/entry`, `GET /v1/content/stat`, `GET /v1/content/proposals`, `GET /v1/content/proposals/{id}` |
+| `content:read` | `GET /v1/content`, `GET /v1/content/entry`, `GET /v1/content/stat`, `GET /v1/content/proposals`, `GET /v1/content/proposals/{id}`, `GET /v1/content/repositories/{repository}/log` |
 | `content:write` | `PUT /v1/content/entry`, `DELETE /v1/content/entry`. Person only |
 | `content:propose` | `POST /v1/content/proposals` |
 | `content:decide` | `POST /v1/content/proposals/{id}/decision`. Person only |
-| `content:describe` | `GET /v1/content/repositories`, `GET /v1/content/repositories/{repository}/replicas` |
+| `content:describe` | `GET /v1/content/repositories`, `GET /v1/content/repositories/{repository}/replicas`, `GET /v1/content/repositories/{repository}/log/head`, `POST /v1/content/repositories/{repository}/log/checkpoint` |
 | `content:declare` | `POST /v1/content/repositories` |
 | `content:establish` | `POST /v1/content/repositories` with `disposition: establish` — required **in addition to** `content:declare`, because creating a store is more than declaring one |
 | `content:reconcile` | `POST /v1/content/reconcile` |
@@ -858,17 +948,18 @@ in the registration response:
 
 ```
 1. Load configuration and open storage
-2. Load or generate the ML-DSA-65 key pair
-3. Reconcile the configured repositories against the registry — establish
-   the ones not yet recorded, verify the custody attestations of the ones that
-   are. Nothing here is fatal
+2. Load or generate the ML-DSA-65 key pair, and mint the log key it
+   introduces into each change log (architecture/storage, The log key)
+3. Settle every reserved change, then reconcile the configured repositories
+   against the registry — establish the ones not yet recorded, verify the
+   custody attestations of the ones that are. Nothing here is fatal
 4. Construct the authenticator WITHOUT an issuer key — it refuses every token
    until one arrives, which is the correct standalone behaviour
 5. Register HTTP routes and start listening
 6. Register with the orchestrator, if an orchestrator URL is configured
 7. On the registration response, set the issuer public key on the authenticator
-8. Start the reconcile and re-verify loops
-9. Serve until signalled
+8. Start the reconcile, re-verify and checkpoint loops
+9. Serve until signalled, then seal every change log whose tip has moved
 ```
 
 Step 3 is fatal in neither direction: a configured repository that could not be
@@ -964,6 +1055,15 @@ does not work rather than a component that was not given a mesh.
    repository may hold and never raises it, and bytes that have left are never
    counted as returned. A replica is only ever sent to. What comes back from a
    place this service does not control is somebody's write, never the truth.
+
+9. **The log is the evidence, and the log is what is signed** — What a claim
+   cites about a repository's history is its change log, signed with ML-DSA-65
+   by this service and, where they choose, by the people who moved its
+   entries. A backend's history, a commit and a signature on a commit are
+   copies and conveniences, never evidence. A verifier needs the log, the
+   public keys and ordinary tools, and nothing of this service's: the service
+   MUST NOT be the trust anchor for its own record, as
+   [`architecture/fabric`](fabric.md) Design Principle 9 says of the fabric.
 
 ---
 
@@ -2013,6 +2113,11 @@ A rejection needs no separation, and records none.
 A `ContentChange` says who prepared the change, who it was for and who let it
 land. Each part has a **basis**, which says what stands behind it:
 
+- **signed** — the person's own record-signing credential signed a statement
+  of the change, and the service verified it before writing
+  ([The change statement](#the-change-statement)). Only the person who moved
+  the entry can be signed: the writer on a direct write, the decider on an
+  applied proposal;
 - **witnessed** — the service took it from the credential it verified on the
   request, and never from a request body;
 - **asserted** — the caller stated it, and the service records the statement
@@ -2036,11 +2141,12 @@ record name the same party.
 
 | Field | What it says | Present when | Basis |
 |---|---|---|---|
-| `actor` | The subject who prepared the change: the writer on a direct write, the proposer on an applied proposal | Always | witnessed |
+| `actor` | The subject who prepared the change: the writer on a direct write, the proposer on an applied proposal | Always | witnessed; signed on a direct write that carries the writer's `statement` |
 | `on_behalf_of` | The person the proposer acted for | The change applied a proposal whose request stated one | asserted |
-| `approved_by` | The person whose decision applied the change | The change applied a proposal | witnessed |
+| `approved_by` | The person whose decision applied the change | The change applied a proposal | witnessed; signed when the change carries the decider's `statement` |
 | `proposal` | The proposal the change applied | The change applied a proposal | recorded |
 | `separation` | Whether a requester decided: `independent` or `self` | The change applied a proposal | recorded |
+| `statement` | The signature of the person who moved the entry, with the attestation that binds their key to them | They sent one, and it verified | recorded. It is what makes that person's part signed |
 | `version` | The backend's own marker for the state the change produced | The backend keeps one | recorded |
 
 - **`actor`** is who prepared the change, which is not always whose grant let
@@ -2063,11 +2169,20 @@ record name the same party.
   and the run that used a subject's authority, and the proposal is where the
   record holds them. Both are asserted. `proposal` leads from the change to
   them.
-- **`approved_by`** is witnessed, not signed. The service authenticated the
-  person who decided, and that is all it can say. It is not a signature under
-  that person's sole control, and a consumer that reports an approval MUST NOT
-  report it as signed. It is a list, and under this contract it holds one
-  person.
+- **`approved_by`** is witnessed. The service authenticated the person who
+  decided, and without a statement that is all it can say: it is not a
+  signature under that person's sole control. It is signed only when the
+  change carries that person's `statement`. It is a list, and under this
+  contract it holds one person.
+- **An approval is reported with its basis.** A consumer that reports an
+  approval MUST say `signed` only where the change carries a verified
+  `statement` by the approver, and `witnessed` otherwise. An approval somebody
+  says was given outside the Decision Flow — in a client's own workflow, or by
+  a person a client names — reached this service as nobody's decision. This
+  service records no such approval, and a consumer that shows one MUST label
+  it `asserted`. Whether an approval was `independent` rests on
+  `on_behalf_of`, which is asserted (see
+  [Separation of duties](#separation-of-duties)).
 - **`correlation_id`** names the enforcement decision that authorised the
   write. On a change that applied a proposal that is the decider's decision,
   and its audit entry names the same identity as `approved_by`. The
@@ -2079,6 +2194,296 @@ record name the same party.
   [`patterns/content-identity`](../patterns/content-identity.md) defines, so a
   history rewritten on the backend changes `version` and leaves every digest
   as it was.
+
+---
+
+## The Change Log
+
+Every declared repository has a **change log**: one entry for each change this
+service made to the repository's entries, and one for each change it observed
+made around it, in the order it recorded them. The log is the evidence of
+record. What a claim, an export or an audit cites about a repository's history
+is its log.
+
+The log is an owned record under exclusive custody. It is held in the service's
+own record store and never in a store a placement names, so it is never
+content, never an entry and never sent to a replica. It shares its chain with no
+other log, for the reason [`architecture/fabric`](fabric.md) Design Principle 6
+gives: two writers on one chain fork it, and a fork cannot be told from
+tampering.
+
+It is a sealed log, as
+[`architecture/storage`](storage.md#sealing-a-chained-log) defines one. That
+section says how its entries are stored and chained, how the service's log key
+is introduced, what a checkpoint signs and how a verifier checks both. This
+section says what the content log's own entries hold, who signs what, and what
+a verifier checks beyond the chain.
+
+### What an entry covers
+
+Each entry records one act, once:
+
+| `act` | Appended when | Holds |
+|---|---|---|
+| `declare` | The repository is recorded `declared`. Always the first entry, so its digest is the log id | `LogDeclaration`: the repository's id, scope, disposition, custody, store ceiling and `self_decision_ceiling`, and on adoption every entry the census found |
+| `change` | This service made a change: a write, a removal, or a decision that applied a proposal | `ContentChange`, with the person's `ChangeStatement` where one verified |
+| `observe` | This service observed a change it did not make — an observation of state `changed` or `removed`, from the Custody Reconciler or from a read | `ContentObservation` |
+| `key` | This service introduced a log key | `LogKey`, from [`architecture/storage`](storage.md#types) |
+| `checkpoint` | This service sealed the log | `LogCheckpoint`, from [`architecture/storage`](storage.md#types) |
+
+**Every change this service makes is exactly one `change` entry.** Nothing else
+is recorded as one. An observation of state `unknown` changes nothing and is not
+appended. A proposal that is `open`, `rejected` or `stale` changed no entry and
+is not in the log; the proposal is its record ([Proposals](#proposals)). Reads,
+replica sends and custody re-verification change no entry either.
+
+**An entry cites; it never copies.** It records paths, content identities and
+the identity ids of the parties. It never holds an entry's bytes or a
+proposal's: a digest binds the bytes without holding them. This is
+[`architecture/fabric`](fabric.md) Design Principle 7, for the same reason. A
+log that held bytes would be a copy of the repository, readable around the
+access decision.
+
+**Paths are in plaintext.** A path is a name, and a name can identify a
+person, such as a record filed under somebody's name. The log records each path
+as it is, and not as a keyed digest that would hide the name and keep the join.
+That choice is bounded twice. The log is read whole or not at all, and only by
+a caller who may read everything the repository has held
+([Reading the log](#reading-the-log)). And a copy of the log carries its paths
+wherever it goes: an export that includes log lines discloses every name in
+them.
+
+### A change is reserved before it is made
+
+A crash between writing the bytes and appending the entry would leave the
+service's own write unrecorded. Under shared custody the reconciler would then
+record it as `external`, and under exclusive custody it would be an integrity
+anomaly: the tenant's own write reported as somebody else's. So every change is
+**reserved** before the backend is touched:
+
+1. The service records, in its own state and not in the log, the repository,
+   path and operation, `before`, the `after` of the bytes it is about to write,
+   and everything the `change` entry will carry.
+2. It writes the bytes and reads them back, as the Write Flow does.
+3. It appends the `change` entry and releases the reservation in one record
+   write — for a decision, with the proposal becoming `applied`.
+
+Before it serves anything, the service settles every reservation it finds.
+Where the path holds the reserved `after`, or nothing for a removal, it appends
+the `change` entry the crash interrupted, with `version` as the backend reports
+it, and applies the proposal where there is one. Where the path still holds
+`before`, nothing was written and the reservation is released. Anything else is
+handled as a change the service did not make: an `observe` entry under shared
+custody, and under exclusive custody an integrity anomaly, reported as
+[`architecture/data-security`](data-security.md) reports one.
+
+### Who signs
+
+Two parties sign, and nobody else.
+
+- **This service, as witness.** It seals the log with checkpoints, signed by a
+  log key its registered ML-DSA-65 key introduces
+  ([`architecture/storage`](storage.md#the-log-key)). A checkpoint says that
+  these entries, in this order, are what this service recorded. It covers every
+  entry before it. It vouches for what the service witnessed and recorded, and
+  for nothing a caller asserted.
+- **The person who moved the entry, where they send a statement.** A person who
+  writes or removes an entry, or decides to apply a proposal, may send a
+  `ChangeStatement` with the request: a signature by their own record-signing
+  credential over the change this service is about to record
+  ([The change statement](#the-change-statement)). Where it verifies, the entry
+  carries it, and that person's part in the change is `signed`.
+
+An agent, a schedule and a service sign nothing here. Only a person moves an
+entry (Design Principle 7), and an agent runs under a service
+([Who may move an entry](#who-may-move-an-entry)). Their part is witnessed,
+where the token that carried it names them, or asserted.
+
+The service's registered key is the long-lived key `architecture/storage`
+names, and the tenant's directory lists it (`ServiceEntry.public_key`,
+[`protocol/types`](../protocol/types.md)). A verifier takes its fingerprint
+from the tenant, never from the log.
+
+### The change statement
+
+```
+"weblisk/content-change/v1" 0x00 <log id> 0x00 <role> 0x00 <path> 0x00 <operation> 0x00 <before> 0x00 <after> 0x00 <scope> 0x00 <proposal> 0x00 <signed_at>
+
+<log id>     the repository's log id, as 64 lowercase hex characters
+<role>       write, for a person who wrote or removed the entry directly;
+             apply, for a person who decided to apply a proposal
+<path>       the entry's path, as ContentChange records it
+<operation>  create, modify or delete
+<before>     the identity the change replaces, written <algorithm>:<digest>,
+             such as sha256:<64 hex>; empty on create
+<after>      the identity of the bytes the change writes, in the same form;
+             empty on delete
+<scope>      the scope the change declares; empty on delete
+<proposal>   the id of the proposal applied; empty on write
+<signed_at>  when the person signed, in decimal Unix seconds, UTC
+```
+
+It is a fixed-form statement
+([`protocol/identity`](../protocol/identity.md#fixed-form-statements)). The
+person's own client builds it from what it has checked itself: the bytes it
+read and hashed, and the proposal it showed its person. It never signs bytes
+this service or anybody else hands it.
+
+**The service rebuilds the statement; it never takes one.** From the change it
+is about to record, it rebuilds the bytes — on a write, `if_match` as `before`
+and the digest of the decoded bytes as `after`; on a decision, the proposal's
+path, scope, `before`, `after` and id — and verifies the signature over those.
+A signature over anything else does not verify, so a signature never attaches
+to bytes its signer did not sign.
+
+A `ChangeStatement` verifies when all of these hold. They are checked before
+anything is written:
+
+1. The token is a person's, of `type` `operator`, and its `identity_id` is the
+   fingerprint of the attestation's `identity_public_key`. Only a person signs
+   here, and only for themselves.
+2. The attestation's `purpose` is `sign-records`, and its signature verifies
+   under `identity_public_key`
+   ([`patterns/principal-identity`](../patterns/principal-identity.md),
+   `record-signing`).
+3. Its `credential_public_key` is an ML-DSA-65 public key, and its `not_after`
+   has not passed.
+4. `signed_at` is within 300 seconds of the service's clock, the replay window
+   `protocol/identity` sets for registration. Replaying a statement therefore
+   needs the same person's live token, within five minutes, against the same
+   `before`, and on a decision a proposal that can be decided only once.
+5. The signature verifies under `credential_public_key` over the rebuilt
+   statement.
+
+A statement that fails any check refuses the request with
+`CONTENT_STATEMENT_INVALID`, naming the check. Nothing is written, and a
+proposal stays `open`. The change is never recorded unsigned instead: a person
+who meant to sign would otherwise find an unsigned change recorded as their
+act.
+
+The service does not check the attestation's `hub_id`, because a registered
+component is not told its hub's. The statement is bound to one log by its log
+id, which is what stops it being spent anywhere else. A verifier who knows the
+tenant's hub_id checks the attestation against it.
+
+A statement is optional. A write, removal or decision without one is recorded
+as it always was, and that person's part is `witnessed`.
+
+### Design Principle 6, strictly
+
+[`patterns/principal-identity`](../patterns/principal-identity.md) Design
+Principle 6 lets a classical key prove a live session, and forbids it to sign
+any record meant to outlive one. The log is meant to outlive every session, so
+the principle holds here with no exception:
+
+- Every signature in the log is ML-DSA-65: each key entry, each checkpoint,
+  each change statement and the attestation it carries.
+- A signature made with a classical key — a passkey assertion, or an SSH,
+  OpenPGP or X.509 signature — is never recorded as a signature and never makes
+  a party `signed`. A statement under one is refused.
+- A backend's own signatures are not evidence. This service signs no commit
+  ([`patterns/content-git`](../patterns/content-git.md) Design Principle 1). A
+  signature a person puts on their own commit is theirs, and the log records it
+  nowhere.
+- There is no transport exception. A transport credential authenticates one
+  session to a third party's service, which is why `protocol/identity` lets it
+  be classical, and it signs nothing this log holds.
+
+### Approvals and separation in the log
+
+An applied change records who approved it and whether they were separate from
+its requester. Those fields, and the rules that set them, are
+[Who a change was for](#who-a-change-was-for) and
+[Separation of duties](#separation-of-duties). The log adds no rule to them. It
+lets a verifier check them without this service:
+
+- The `declare` entry records the repository's `self_decision_ceiling`, which is
+  fixed at declaration.
+- A `change` entry recording `separation: independent` names an `approved_by`
+  that is neither its `actor` nor its `on_behalf_of`.
+- A `change` entry recording `separation: self` names an `approved_by` that is
+  one of them, with a scope at or below that ceiling: the change's `scope`, or
+  for a removal the `scope` the log last recorded for that path.
+
+A change whose separation does not fit its own parties is reported as
+inconsistent. Where the log records no scope for a removed path — an entry that
+arrived with adoption and was never changed — the check is `unknown`. The check
+is only as strong as `on_behalf_of`, which is asserted.
+
+### Reading the log
+
+`GET /v1/content/repositories/{repository}/log` returns the log's stored lines,
+byte for byte, each with its line feed, from `from` (1 when absent) for at most
+`limit` lines. A caller continues from the last `seq` it received, plus one.
+Nothing is re-serialised, so what a caller receives is what it verifies.
+
+**The log is read whole or refused, and never filtered.** A log with lines left
+out cannot be verified, because each missing line breaks the chain at the next.
+The enforcement storage proxy intercepts with operation `read`, the
+repository's `scope_path`, and as the resource scope the highest scope the log
+records: the `store_ceiling` in its `declare` entry and the `scope` of every
+`change`. A caller who may not read everything the repository has held reads
+none of its log.
+
+`GET /v1/content/repositories/{repository}/log/head` returns a `LogHead`: the
+log id, the tip, the latest checkpoint with the key entry that introduced its
+key, and how many entries are unsealed. It names no path, so `content:describe`
+is enough. A person's client reads it to learn the log id it signs with. A
+verifier keeps it as its own copy of a checkpoint, which is what exposes a log
+rewritten later ([`architecture/storage`](storage.md#verifying-a-sealed-log)).
+`POST /v1/content/repositories/{repository}/log/checkpoint` issues a checkpoint
+first, where the tip has moved, so an export can be sealed to its last entry.
+
+### Verifying a log without this service
+
+A verifier needs what `architecture/storage` lists for any sealed log: the
+log's lines, the fingerprint of the content service's registered key from the
+tenant, SHA-256, and an ML-DSA-65 verifier. To check what people signed, it
+also needs:
+
+- the tenant's hub_id, to check that each attestation names it;
+- which identity id belongs to each person it wants to name, from the tenant's
+  own records. The log names people by identity id and never by name, and it
+  cannot vouch for whose an identity is;
+- an RFC 8785 canonicaliser, for one purpose: an attestation's signature is
+  over its canonical JSON (`Attestation` in principal-identity). Everything
+  else is a digest of stored bytes or a fixed-form statement.
+
+After storage's three steps — chain, keys, checkpoint — it checks:
+
+4. **Statements.** For each `change` entry that carries a `statement`: rebuild
+   the `weblisk/content-change/v1` bytes from the entry, with `role` `apply`
+   where the entry records a `proposal` and `write` where it does not. Check
+   the attestation as the service did, with `signed_at` no later than
+   `not_after` in place of the service's clock, and its `hub_id` against the
+   tenant's. Check that `signer` is the fingerprint of the attestation's
+   identity key, and is the `actor` on a write or in `approved_by` on an apply.
+   Then verify the signature.
+5. **Separation.** As [Approvals and separation in the log](#approvals-and-separation-in-the-log)
+   says.
+6. **A file.** Compute the SHA-256 of its bytes. The last `change` or `observe`
+   entry for its path — or, where there is none, the `declare` entry — records
+   the identity the path held last. A file that equals it is that version. One
+   that equals an earlier entry for the path is an earlier version, and one
+   that equals none is not a version this log knows.
+
+For each party to each change, the verifier reports a basis, computed from the
+log and never stored:
+
+| Basis | When |
+|---|---|
+| `signed` | The entry carries that party's `statement`, and it passed step 4 |
+| `witnessed` | The service took the party from the token it verified — `actor`, and each `approved_by` — and no statement of theirs passed step 4 |
+| `asserted` | A caller or the backend stated it: `on_behalf_of`, an `observe` entry's `writer` |
+| `unknown` | No party can be named: an `observe` entry with no `writer`, and every entry the `declare` entry adopted |
+
+**A verified log proves what this service recorded, in order, and nothing it
+did not see.** Under shared or opaque `effective_custody`, a change made around
+the service appears only once it is observed, and until then a file can differ
+from its last entry with nothing in the log to say so (Design Principle 5). An
+unsealed entry is recorded and not yet signed. A statement proves that a
+record-signing key attested by that identity signed the change. It does not
+prove who held the key.
 
 ---
 
@@ -2742,7 +3147,8 @@ types:
         required: false
         description: Witnessed. The identity ids of the persons whose decision
           applied the change — one, under this contract, taken from the
-          decider's token. Present exactly when proposal is. Not a signature
+          decider's token. Present exactly when proposal is. Not a signature,
+          unless statement is the decider's
       proposal:
         type: string
         required: false
@@ -2755,6 +3161,12 @@ types:
         description: Recorded. Present exactly when proposal is. self when the
           person who decided was the proposal's actor or on_behalf_of, which
           the repository's self_decision_ceiling allowed
+      statement:
+        type: ChangeStatement
+        required: false
+        description: Recorded. The signature of the person who moved the entry
+          — the writer on a direct write, the decider on an applied proposal —
+          present when they sent one and it verified. See The change statement
       version:
         type: string
         required: false
@@ -2987,6 +3399,12 @@ types:
       reason:
         type: string
         required: false
+      statement:
+        type: ChangeStatement
+        required: false
+        description: The decider's signature over the change applying the
+          proposal would record. Only on apply. Without signer, which the
+          service sets from the token
 
   ProposalQuery:
     description: The query of GET /v1/content/proposals
@@ -3031,6 +3449,172 @@ types:
         type: string
         required: false
         description: Absent on the last page
+
+  ContentLogEntry:
+    description: One line of a repository's change log, stored as its RFC 8785
+      bytes and a line feed, and chained as architecture/storage's Sealing a
+      Chained Log requires. Holds exactly one payload, the one act names. Paths
+      in it are plaintext (see What an entry covers)
+    fields:
+      seq:
+        type: integer
+        required: true
+        description: 1 for the declare entry, then one more for each entry
+      previous_digest:
+        type: string
+        required: true
+        description: The SHA-256 of the previous stored line, lowercase hex. 64
+          zeros on the declare entry
+      recorded_at:
+        type: timestamp
+        required: true
+      act:
+        type: enum
+        values: [declare, change, observe, key, checkpoint]
+        required: true
+      declaration:
+        type: LogDeclaration
+        required: false
+        description: Present when act is declare
+      change:
+        type: ContentChange
+        required: false
+        description: Present when act is change
+      observation:
+        type: ContentObservation
+        required: false
+        description: Present when act is observe. Never of state unknown
+      key:
+        type: LogKey
+        required: false
+        description: Present when act is key
+      checkpoint:
+        type: LogCheckpoint
+        required: false
+        description: Present when act is checkpoint
+
+  LogDeclaration:
+    description: The first entry of a change log. What the repository was when
+      it was declared, including everything a verifier needs to check a
+      separation later
+    fields:
+      repository:
+        type: string
+        required: true
+      scope_path:
+        type: string
+        required: true
+      disposition:
+        type: enum
+        values: [establish, adopt]
+        required: true
+      custody:
+        type: enum
+        values: [exclusive, shared, opaque]
+        required: true
+        description: As demonstrated at declaration
+      attestations:
+        type: CustodyAttestations
+        required: true
+        description: As demonstrated at declaration
+      store_ceiling:
+        type: ScopeLevel
+        required: true
+        description: As derived at declaration. The least resource scope at
+          which the log may be read
+      self_decision_ceiling:
+        type: ScopeLevel
+        required: false
+        description: As declared. Absent means no requester may apply their own
+          proposal
+      adoption:
+        type: ContentAdoption
+        required: false
+        description: The census the declaration adopted against. Present on
+          adopt
+      adopted:
+        type: list
+        items: AdoptedEntry
+        required: false
+        description: Every entry the census found, in census order. Present on
+          adopt. Each has provenance unknown
+
+  AdoptedEntry:
+    description: One entry a repository held when it was adopted
+    fields:
+      path:
+        type: string
+        required: true
+      identity:
+        type: ContentIdentity
+        required: false
+        description: Absent when the entry could not be read, which the census
+          counted in unreadable
+
+  ChangeStatement:
+    description: A person's signature over a change, by their record-signing
+      credential. Sent with a write, a removal or a decision to apply, and
+      recorded on the ContentChange when it verifies. See The change statement
+    fields:
+      signer:
+        type: string
+        required: false
+        description: Recorded. The identity id whose statement this is — the
+          token's identity_id. Set by the service and never taken from a
+          request. Always present on a recorded statement
+      signed_at:
+        type: int64
+        required: true
+        description: When the person signed, in Unix seconds, UTC. Within 300
+          seconds of the service's clock when received
+      attestation:
+        type: Attestation
+        required: true
+        description: The attestation binding the signing key to the signer's
+          identity, with purpose sign-records (patterns/principal-identity)
+      signature:
+        type: string
+        required: true
+        description: ML-DSA-65 signature by the attestation's
+          credential_public_key over the weblisk/content-change/v1 statement,
+          base64url
+
+  LogHead:
+    description: The response of the log head and checkpoint routes. Names no
+      path
+    fields:
+      repository:
+        type: string
+        required: true
+      log:
+        type: string
+        required: true
+        description: The log id — the SHA-256 of the declare entry's stored
+          line
+      seq:
+        type: integer
+        required: true
+        description: The seq of the tip
+      sealed_through:
+        type: integer
+        required: false
+        description: The seq the latest checkpoint covers. Absent when no
+          checkpoint has been issued
+      unsealed:
+        type: integer
+        required: true
+        description: How many entries after sealed_through no checkpoint
+          covers yet, checkpoint entries excluded
+      checkpoint:
+        type: LogCheckpoint
+        required: false
+        description: The latest checkpoint. What a verifier keeps
+      key:
+        type: LogKey
+        required: false
+        description: The key entry that introduced the latest checkpoint's key.
+          Its key_protection is how the service's registered key is protected,
+          development-only included
 ```
 
 ---
@@ -3066,6 +3650,9 @@ content:
   reverify_custody_interval: 24h # the store's, and each replica's
   replica_retry_interval: 15m    # how often a replica that lacks versions is
                                  # sent them, besides after each version
+  checkpoint_interval: 15m       # how often a change log whose tip has moved
+                                 # is sealed; 0 seals only at shutdown and on
+                                 # request (architecture/storage)
   max_entry_bytes: 10485760
 ```
 
@@ -3164,8 +3751,40 @@ security:
         against the bytes the proposal was made on
     - boundary: Content Service → Replica. Crossed outward only. Nothing a
         destination holds is read back as content, history or truth
+    - boundary: Content Service → Change Log. Only the service appends. The
+        log is in its own state, reached through no content route and sent to
+        no replica, and read only whole
 
   enforcement:
+    - rule: Every change this service makes is one entry in its repository's
+        change log, and a crash loses none of them
+      mechanism: Reserve, write, read back, then append the entry and release
+        the reservation in one record write. Reservations are settled before
+        the service serves anything
+    - rule: A change log is read whole or not at all
+      mechanism: The storage proxy runs read at the highest scope the log
+        records, the declare entry's store_ceiling and every change's scope.
+        The route never filters, because a filtered log cannot be verified
+    - rule: A person's signature covers the change this service records, never
+        what a request says
+      mechanism: The service rebuilds the weblisk/content-change/v1 statement
+        from if_match and the digest of the decoded bytes, or from the proposal,
+        and verifies it before anything is written. A statement that fails
+        refuses the request, and the change is never recorded unsigned instead
+    - rule: Nothing in a change log is signed with a classical key, and no
+        backend signature is evidence
+      mechanism: Every key entry, checkpoint and change statement is ML-DSA-65.
+        A classical signature makes no party signed. No commit is signed by
+        this service (patterns/content-git)
+    - rule: A key a console holds never makes a change signed
+      mechanism: A change statement needs a sign-records credential. A hub
+        never mints a token with one, and a console never holds one
+        (architecture/admin, console-credential-use)
+    - rule: A change log verifies without this service
+      mechanism: Sealed per architecture/storage. A verifier needs the lines,
+        the service's registered key from the tenant, SHA-256, an ML-DSA-65
+        verifier, and for a statement the tenant's hub_id and an RFC 8785
+        canonicaliser
     - rule: A replica is declared only by a person who has seen what would
         leave, where it would go, and who holds that place
       mechanism: Two-step declaration; the first call returns the census and
@@ -3295,8 +3914,9 @@ security:
     - rule: Who a change was for says what stands behind each part of it
       mechanism: actor, approved_by and decided_by are the identity_id claim
         of the verified token, never its sub; on_behalf_of, agent and run are
-        recorded as asserted; approved_by is never reported as a signature. A
-        token without identity_id cannot write, remove, propose or decide
+        recorded as asserted; approved_by is reported as a signature only when
+        the change carries the decider's verified statement. A token without
+        identity_id cannot write, remove, propose or decide
     - rule: An access statement from a repository whose effective custody is
         shared or opaque is marked incomplete
       mechanism: access_complete is derived from effective_custody and cannot
@@ -3448,6 +4068,28 @@ security:
   history that silently lacks one, which is worse than a destination that is
   visibly behind.
 
+- **Hash the line you stored, not the object you meant.** An entry is
+  canonicalised once, when it is written, and those bytes are what is chained,
+  served and verified. Re-serialising an entry in order to hash it or serve it
+  changes nothing only until two libraries format one number differently, and
+  then every verifier holding the stored bytes finds a break the service
+  cannot see.
+
+- **Rebuild the statement, never accept one.** A request carries a signature,
+  never the bytes it signs. The service builds those bytes from what it is
+  about to record, so the only signature that verifies is one over exactly
+  that change.
+
+- **Settle reservations before serving.** A reservation left from a crash is
+  a change that may have happened. Serving before settling it lets the
+  reconciler, or the next write's precondition, meet those bytes first and
+  record the tenant's own write as somebody else's.
+
+- **A `declare` entry is one line however large the adoption.** It lists every
+  adopted entry, because a file adopted and never changed is in the log
+  nowhere else. Splitting it across entries would give the log a state in which
+  it has begun and does not yet say what it began with.
+
 ---
 
 ## Verification Checklist
@@ -3564,3 +4206,21 @@ security:
 - [ ] A version recorded after a replica was confirmed that holds a path under `.weblisk`, anywhere in what it holds, holds the replica `behind` with `held_reason` `reserved-path` naming that path; it is never sent, and nothing recorded after it is sent
 - [ ] A backend's report of a copy of the store that no replica declares makes `effective_custody` `opaque`, lowers `ceiling` to `internal` at most, and publishes `content.custody_degraded`
 - [ ] No configuration key declares a replica, and a configuration file naming one declares nothing
+- [ ] Every write, removal and applied proposal appends exactly one `change` entry to its repository's change log, and every observation of state `changed` or `removed` one `observe` entry; an observation of state `unknown` appends nothing
+- [ ] A repository's first log entry has `act` `declare` and `seq` 1, records its `self_decision_ceiling` and, on adoption, every entry the census found; the SHA-256 of its stored line is the `log` its `LogHead` reports
+- [ ] Killing the service after an entry's bytes are written and before its `change` entry is appended, then restarting it, appends that `change` entry with provenance `authored` before anything is served, and records no `observe` entry for those bytes
+- [ ] The lines `GET /v1/content/repositories/{repository}/log` returns are byte for byte the stored lines, and their `previous_digest` chain verifies with SHA-256 alone
+- [ ] A caller whom the storage proxy refuses `read` at the highest scope the log records is refused the whole log, and is never served part of it
+- [ ] `GET /v1/content/repositories/{repository}/log/head` names no path, and a caller holding `content:describe` and not `content:read` is served it
+- [ ] No log entry holds an entry's bytes or a proposal's bytes
+- [ ] A write carrying a `statement` that verifies records it on its `ContentChange` with `signer` set to the token's `identity_id`, and an offline verifier rebuilding `weblisk/content-change/v1` from the entry verifies it
+- [ ] A write whose `statement` was signed over other bytes, another path or another `before` is refused with `CONTENT_STATEMENT_INVALID`, and nothing is written or recorded
+- [ ] A `statement` whose attestation has no `purpose`, or `purpose` `authenticate`, is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] A `statement` whose `signed_at` is more than 300 seconds from the service's clock is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] A `statement` on a token whose `type` is not `operator`, or whose attestation's identity key does not have the token's `identity_id` as its fingerprint, is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] A decision to apply that carries the decider's `statement` records it, and an offline verifier reports that approval `signed`; the same decision without one is reported `witnessed`
+- [ ] A decision whose `statement` fails is refused with `CONTENT_STATEMENT_INVALID`, and the proposal stays `open`
+- [ ] An offline verifier reports inconsistent a `change` entry recording `separation` `independent` whose `approved_by` is its `actor`, and one recording `separation` `self` whose `scope` is above the `self_decision_ceiling` in the `declare` entry
+- [ ] Every signature in a change log is ML-DSA-65, and a signature on a commit in a version-controlled store appears nowhere in the log
+- [ ] With the log key unavailable, writes still succeed, their entries are appended, and `LogHead.unsealed` counts them; the next checkpoint covers them all
+- [ ] `POST /v1/content/repositories/{repository}/log/checkpoint` on a log whose tip has moved appends a `checkpoint` entry covering the tip, and on one whose tip has not moved appends nothing

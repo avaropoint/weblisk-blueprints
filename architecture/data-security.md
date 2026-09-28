@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: data-security
-version: 1.2.1
+version: 1.2.2
 requires: [protocol/types, protocol/spec, protocol/identity, protocol/federation, architecture/content, architecture/gateway, architecture/observability, architecture/enforcement, patterns/scope, patterns/policy, patterns/privacy, patterns/contract]
 platform: any
 tier: free
@@ -563,6 +563,14 @@ d7a8fbb307d7809469ca9abcb0082e4f  patterns/secrets.md
 For high-security deployments, blueprint repositories SHOULD require
 signed commits (GPG or SSH signatures). The CLI can optionally verify
 commit signatures before generation:
+
+> **Blueprint repositories only, and a check, never evidence.** A GPG or SSH
+> signature is classical. [`patterns/principal-identity`](../patterns/principal-identity.md)
+> Design Principle 6 forbids a classical key to sign any record meant to
+> outlive the session, so a commit signature is at most a check made before
+> generation. Nothing cites it. A tenant's content is never evidenced by a
+> commit signature at all: its evidence is the content service's change log,
+> signed with ML-DSA-65 ([`architecture/content`](content.md#the-change-log)).
 
 ```bash
 $ weblisk server init --platform go --verify-signatures

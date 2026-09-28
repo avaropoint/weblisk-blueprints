@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: content-git
-version: 1.3.1
+version: 1.3.2
 requires: [architecture/content, patterns/content-identity, protocol/identity, patterns/secrets, patterns/principal-identity]
 platform: any
 tier: free
@@ -44,7 +44,7 @@ What this blueprint changes, and what it does not:
 - The evidence of record is the content service's own record, the
   `ContentChange`. A commit repeats that record for a reader who has only git.
   Nothing here is signed. Signing belongs to the service's change log, not to
-  git.
+  git ([`architecture/content`](../architecture/content.md#the-change-log)).
 - Git names its objects by SHA-1. Nothing joins on an object id. Every join is
   on the sha256 of the bytes, as
   [`patterns/content-identity`](content-identity.md) requires, and every
