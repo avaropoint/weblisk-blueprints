@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 1.5.0
+version: 1.6.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, architecture/enforcement]
 platform: any
 tier: free
@@ -251,7 +251,8 @@ converts an unexplained change from an alarm into a recorded fact.
 ### Does NOT Own
 - Digest algorithm or reference semantics (owned by `patterns/content-identity`)
 - Concrete backends — filesystem, share, object store, version control (owned
-  by platform blueprints, per `architecture/storage` Design Principle 6)
+  by the blueprint that specifies each backend, per `architecture/storage`
+  Design Principle 6)
 - Binary asset upload, processing and delivery (owned by `patterns/file-upload`)
 - Record stores (owned by `architecture/storage`)
 - The access decision itself (owned by `architecture/enforcement`; this service
@@ -454,7 +455,7 @@ interfaces:
 | `CONTENT_CUSTODY_CEILING_EXCEEDED` | policy | Declared scope exceeds the repository ceiling | Refuse, naming required and actual. Never downgrade the scope |
 | `CONTENT_CUSTODY_UNDECLARED` | policy | Repository has no declared custody | Treat as `opaque`, apply the `internal` ceiling, and record the degradation |
 | `CONTENT_PATH_REFUSED` | validation | Traversal segment or escaping symlink — including a placement locator that is absolute, carries a scheme or an authority, or climbs out of its backend's root | Refuse the request as written. Do not normalise and proceed |
-| `CONTENT_RESERVED_PATH` | policy | A segment of the path, or of a placement's locator, is a reserved name — `.weblisk`, `.git`, or control state the backend declares — as the filesystem would resolve it. See [Reserved Paths](#reserved-paths) | Refuse, for every operation including list, stat, propose and declare. Installation state and control state are never content |
+| `CONTENT_RESERVED_PATH` | policy | A segment of the path, or of a placement's locator, is a reserved name — `.weblisk` or `.git` — as any filesystem could resolve it, or the backend's blueprint reserves the path. See [Reserved Paths](#reserved-paths) | Refuse, for every operation including list, stat, propose and declare. Installation state and control state are never content |
 | `CONTENT_UNREADABLE` | io | Bytes cannot be read | Identity is `unknown`, never `current` and never `stale` |
 | `CONTENT_REPOSITORY_UNKNOWN` | validation | No repository of that id in the caller's scope | Refuse without disclosing whether it exists elsewhere |
 | `CONTENT_DISPOSITION_REQUIRED` | validation | A declaration arrived without a disposition | Refuse. A declaration that does not say whether it expects bytes is a blind adoption |
@@ -487,7 +488,8 @@ interfaces:
 3. The placement is resolved: its backend must be one this service holds for
    that `scope_path` (`CONTENT_BACKEND_UNKNOWN`), and its locator is confined to
    that backend's root by the same Path Resolver every entry passes through,
-   refused as written rather than normalised (`CONTENT_PATH_REFUSED`)
+   refused as written rather than normalised (`CONTENT_PATH_REFUSED`, or
+   `CONTENT_RESERVED_PATH` for a reserved segment)
 4. Registry checks: the id must be free at that `scope_path`
    (`CONTENT_REPOSITORY_EXISTS`), and the placement must not be equal to, inside
    or containing a placement already declared (`CONTENT_PLACEMENT_DECLARED`).
@@ -956,6 +958,8 @@ passes through.
 - A locator that is absolute, carries a scheme or an authority, contains a
   traversal segment, or resolves outside the root through a link is refused **as
   written**, with `CONTENT_PATH_REFUSED`. It is not normalised and then created.
+- A locator with a reserved segment (see [Reserved Paths](#reserved-paths)) is
+  refused as written, with `CONTENT_RESERVED_PATH`.
 
 The rule is the same one reading and writing already obey. It matters more here,
 and the reason is worth stating without euphemism: **a create that accepts a
@@ -1283,26 +1287,35 @@ a placement's locator on a declaration.
 |---|---|---|
 | `.weblisk` | Installation state: keys, secrets and run state | this document |
 | `.git` | A version-control tool's control state: its configuration, its hooks and its object store | this document |
-| A backend's control state | What a backend keeps beside the entries in order to do its job | the blueprint that specifies that backend |
+| What a backend cannot let this service reach | Its own control state, kept beside the entries in order to do its job, and paths it cannot write safely, such as those inside a second store of its own kind nested in this one | the blueprint that specifies that backend |
 
 A path is reserved when **any** of its segments is a reserved name, at any
-depth. A store that holds several projects can hold several `.weblisk`
-directories, and a tree can hold a `.git` at any level. A name that only begins
-with a reserved name, such as `.gitignore`, is not reserved by this rule.
+depth, or when the blueprint that specifies its backend reserves it. A store
+that holds several projects can hold several `.weblisk` directories, and a tree
+can hold a `.git` at any level. A name that only begins with a reserved name,
+such as `.gitignore`, is not reserved by this rule.
 
-**The comparison is on what the filesystem would open, not on the bytes of the
-name.** A segment is a reserved name when the filesystem that holds it could
-resolve it to one:
+**The comparison is on every name a filesystem could open, not on the bytes of
+the name, and it is the same on every backend.** A store can be read later on a
+filesystem other than the one that holds it now — through a synced drive, a
+share or a copy — so a name that is harmless where it was written can open a
+reserved directory where it is read. A segment is a reserved name when any of
+these makes it one, whatever filesystem holds the store:
 
 - compared without regard to case;
-- ignoring trailing dots and spaces;
-- ignoring code points the filesystem ignores in a name;
-- treating a short name, or an alternate data stream, that resolves to a
-  reserved name as that name.
+- with trailing dots and spaces removed;
+- with the code points any filesystem ignores in a name removed;
+- read as a short name that a filesystem could give a reserved name — up to
+  its first six characters without the leading dot, then `~` and a digit, such
+  as `git~1` for `.git` and `weblis~1` for `.weblisk`;
+- with an alternate data stream suffix removed, such as the one in
+  `.git::$INDEX_ALLOCATION`.
 
 A byte comparison says `.WEBLISK` and `.weblisk` differ. A case-insensitive
 filesystem opens the same directory for both, so a guard that compares bytes
-serves the key material to anyone who capitalises the path.
+serves the key material to anyone who capitalises the path. A guard that folds
+only where its own filesystem folds is no better: bytes written as `.GIT` where
+case is distinguished are opened as `.git` by the next machine that syncs them.
 
 A reserved path is refused **as written**, with `CONTENT_RESERVED_PATH`. It is
 not rewritten to a nearby name that is allowed.
@@ -1680,7 +1693,8 @@ types:
         description: Path relative to that backend's root, in the same form as
           ContentEntry.path. Absolute, scheme-bearing, authority-bearing and
           traversing locators are refused as written with CONTENT_PATH_REFUSED,
-          never normalised and then created
+          never normalised and then created. A locator with a reserved segment
+          is refused with CONTENT_RESERVED_PATH
 
   RepositoryEstablishment:
     description: What a create did and did not complete. Written durably before
@@ -2183,8 +2197,8 @@ types:
 content:
   backends:
     - name: <backend-name>       # what a placement names. Its driver, root and
-                                 # credentials belong to the platform blueprint
-                                 # that implements it, per Design Principle 6
+                                 # credentials belong to the blueprint that
+                                 # specifies that backend, per Design Principle 6
   repositories:
     - id: <stable-id>
       scope_path: <tenant>/<org>[/<project>]
@@ -2350,8 +2364,9 @@ security:
       mechanism: Path Resolver; refusal rather than normalisation
     - rule: A path with a reserved segment is refused, on every backend
       mechanism: Reserved-path check in the resolver, applied to every
-        operation and to a placement's locator, comparing each segment as the
-        filesystem would resolve it rather than byte for byte
+        operation and to a placement's locator, comparing each segment as any
+        filesystem could resolve it rather than byte for byte, the same way on
+        every backend
     - rule: Only a person moves an entry
       mechanism: content:write and content:decide are person only in
         protocol/types. A hub grants neither to a service subject, mints no
@@ -2485,10 +2500,14 @@ security:
   "removed at version N", never to nothing and never to a later entry that
   reused the path.
 
-- **Compare reserved names the way the filesystem opens them.** Fold case,
-  drop trailing dots and spaces, drop code points the filesystem ignores, and
-  resolve short names and alternate data streams before comparing. Do it on
-  every segment, not on a prefix. A check that passes `.WEBLISK/secrets` on a
+- **Compare reserved names the way any filesystem could open them.** Fold
+  case, drop trailing dots and spaces, drop code points a filesystem ignores,
+  and read short names and alternate data streams as the names they resolve
+  to, before comparing. Do it on every backend, whether or not the filesystem
+  under this one does any of it, and on every segment, not on a prefix. Git
+  applies the same comparison to its own control path when both
+  `core.protectNTFS` and `core.protectHFS` are set, and those checks are a
+  reference for the full set. A check that passes `.WEBLISK/secrets` on a
   case-insensitive filesystem has checked the spelling and let the kernel open
   the keys.
 
@@ -2572,7 +2591,8 @@ security:
 - [ ] A path naming `.WEBLISK/keys` is refused with `CONTENT_RESERVED_PATH`, exactly as `.weblisk/keys` is
 - [ ] A declaration whose `placement` `locator` has a `.git` or `.weblisk` segment is refused with `CONTENT_RESERVED_PATH`, and nothing is created
 - [ ] A path segment `.gitignore` is not refused as reserved
-- [ ] `GET /v1/content` over a directory that holds a `.git` directory returns no entry beneath it, and a `ContentAdoption` census over it neither counts nor digests one
+- [ ] `GET /v1/content` over a directory that holds a `.git` directory returns no entry for that `.git` directory or anything inside it, and lists the entries beside it unless the backend's blueprint reserves them; a `ContentAdoption` census over it neither counts nor digests anything inside the `.git`
+- [ ] A path whose segment is `.GIT`, `.git.`, `.git ` or `git~1` is refused with `CONTENT_RESERVED_PATH` on a backend whose filesystem distinguishes case and keeps trailing dots, exactly as on one that does not
 - [ ] `POST /v1/content/proposals` returns a `ContentProposal` with `state` `open`, and the entry's digest is unchanged
 - [ ] A `ProposalRequest` with no `if_match` is refused with `CONTENT_IF_MATCH_REQUIRED`, whatever its `action`
 - [ ] A `ProposalRequest` with `action` `create` and an `if_match` other than `""`, or with `action` `modify` or `delete` and `if_match` `""`, is refused with `CONTENT_PRECONDITION_NOT_APPLICABLE`

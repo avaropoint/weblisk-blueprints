@@ -60,7 +60,7 @@ content:
   backends:                        # Stores this hub can reach. A placement names one
     - name: string                 # Backend name (lowercase, alphanumeric + hyphens)
                                    # Driver, root and credentials belong to the
-                                   # platform blueprint that implements it
+                                   # blueprint that specifies that backend
   repositories:                    # Stores brought under governance at startup
     - id: string                   # Stable repository id, unique within scope_path
       scope_path: string           # <tenant>/<org>[/<project>]
@@ -168,7 +168,7 @@ backend owes once it exists, and what is refused, all live there.
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `name` | string | yes | — | What a placement names. Unique within the hub. Its driver, root and credentials are the platform blueprint's, not this file's |
+| `name` | string | yes | — | What a placement names. Unique within the hub. Its driver, root and credentials are specified by the blueprint for that backend, not by this file |
 
 #### content.repositories[]
 
@@ -185,7 +185,7 @@ backend owes once it exists, and what is refused, all live there.
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `backend` | string | yes | — | Must match a `content.backends[].name` declared in this file |
-| `locator` | string | yes | — | Path **relative** to that backend's root. Absolute paths, URLs and `..` segments are refused |
+| `locator` | string | yes | — | Path **relative** to that backend's root. Absolute paths, URLs and `..` segments are refused with `CONTENT_PATH_REFUSED`, and a reserved segment such as `.git` or `.weblisk` with `CONTENT_RESERVED_PATH` |
 
 **A repository is never given a location, only a backend and a locator inside
 it.** The root is named once, in `backends`, where an operator sets it
@@ -195,7 +195,11 @@ with no caller and no capability to check against.
 
 **Neither `ceiling` nor `verified_at` is configurable.** Both are derived from
 what the service demonstrates at startup, and a configured ceiling would be a
-protection level nobody verified.
+protection level nobody verified. **Nor is `self_decision_ceiling`.** Letting a
+person decide their own change weakens a control, so a person declares it
+through the content service's API
+([`architecture/content`](../architecture/content.md#separation-of-duties)),
+and a configured repository has none.
 
 ### federation
 
