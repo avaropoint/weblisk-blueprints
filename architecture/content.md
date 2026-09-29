@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 1.12.0
+version: 1.13.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -355,6 +355,14 @@ valid UTF-8 before the service sees them, so a digest computed after it would
 be the digest of bytes nobody sent. A string that is not valid base64 is
 refused with `INVALID_REQUEST` ([`protocol/spec`](../protocol/spec.md)).
 
+**A write and a removal carry their request as a JSON body.**
+`PUT /v1/content/entry` carries an `EntryWrite`, and `DELETE /v1/content/entry`
+carries an `EntryRemoval`. A person's `statement` sits in that body in both. A
+removal's request is a body, and not a query string or a header, because a
+`ChangeStatement` carries a whole attestation, several kilobytes, and neither
+has room for it. Anything between a client and this service passes a DELETE
+body through unchanged.
+
 ---
 
 ## Interfaces
@@ -460,13 +468,13 @@ interfaces:
       called_by: [gateway, agents]
 
     - name: WriteEntry
-      signature: (repository, path, bytes, if_match, scope) → (ContentIdentity, ContentChange)
+      signature: (repository, path, bytes, if_match, scope, statement) → (ContentIdentity, ContentChange)
       description: Replace bytes when the precondition holds; refuse otherwise.
         Called for a person, never for an agent — content:write is person only
       called_by: [gateway]
 
     - name: DeleteEntry
-      signature: (repository, path, if_match) → ContentChange
+      signature: (repository, path, if_match, statement) → ContentChange
       description: Remove an entry and retire its identity. Called for a
         person, never for an agent — content:write is person only
       called_by: [gateway]
@@ -533,8 +541,9 @@ interfaces:
       called_by: [gateway]
 
     - name: ReadLog
-      signature: (repository, from, limit) → lines
-      description: The change log's stored lines from seq from, byte for byte
+      signature: (repository, LogQuery) → LogPage
+      description: The change log's stored lines from seq from, each exactly
+        as stored
       called_by: [gateway, agents, admin]
 
     - name: ReadLogHead
@@ -545,7 +554,7 @@ interfaces:
     - name: SealLog
       signature: repository → LogHead
       description: Issue a checkpoint where the tip has moved, then report the
-        head
+        head. Refused with CONTENT_SEALING_PAUSED while no log key can sign
       called_by: [gateway, agents, admin]
 
   events:
@@ -626,6 +635,9 @@ interfaces:
 | `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the identity the proposal names as its `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, or the repository declares none | Refuse, naming the scope and the ceiling. Nothing is recorded and the proposal stays `open` |
 | `CONTENT_IDENTITY_REQUIRED` | auth | A write, removal, proposal, decision, replica declaration or retirement arrived on a token that carries no `identity_id` | Refuse. Never record a name, an address or a token's `sub` in its place |
 | `CONTENT_STATEMENT_INVALID` | auth | A write, removal or decision carried a `ChangeStatement` that does not verify: the token is not a person's; the attestation's `purpose` is not `sign-records`, its identity key is not the token's `identity_id`, its signature fails, its credential key is not ML-DSA-65, or its `not_after` has passed or is more than 90 days ahead; its credential key is not one of the token's `record_keys`, or is the credential the token's `cid` names; `signed_at` is more than 300 seconds from the service's clock; or the signature does not verify over the statement rebuilt from the change. See [The change statement](#the-change-statement) | Refuse, naming the check that failed. Nothing is written and a proposal stays `open`. The change is never recorded unsigned instead. Log as a security event |
+| `CONTENT_WRITE_UNCONFIRMED` | io | The digest of the bytes read back after a write is not the digest of the decoded bytes submitted | Refuse. The reservation is settled as one whose path holds neither `before` nor the reserved `after`: an `observe` entry under shared custody, an integrity anomaly under exclusive custody. No `change` entry records the write, because a statement over the submitted bytes could not be checked against other ones. See [Write Flow](#write-flow) |
+| `CONTENT_LOG_NOT_BEGUN` | conflict | A log route named a repository that is `establishing`. Its log begins with the `declare` entry when it is recorded `declared` | Refuse. The caller learns the repository's state from `GET /v1/content/repositories` |
+| `CONTENT_SEALING_PAUSED` | io | A checkpoint was asked for and no log key can sign one: none is live and the long-lived key cannot introduce another | Refuse, carrying the `LogHead`, whose `unsealed` counts what waits. Nothing is appended. The request may be repeated once sealing resumes |
 | `CONTENT_LOG_BROKEN` | integrity | The repository's change log failed this service's check from its latest checkpoint, because a line breaks the chain or cannot be read, and the request would append to it: a write, a removal, a decision to apply, a reconcile or a checkpoint. See [A log that does not verify](#a-log-that-does-not-verify) | Refuse, naming the `seq` where the check failed. Nothing is written to the store and nothing is appended. Reads, the log's included, are still served |
 | `CONTENT_REPLICA_UNSEEN` | conflict | A replica declaration with no `if_match` | Refuse and return the `ReplicaCensus`. Nothing is recorded and nothing is sent. The caller re-submits with the census digest |
 | `CONTENT_REPLICA_UNCLASSIFIED` | policy | A replica declaration whose destination a third party holds, where the classification gate is not present or does not pass. See [A third party's replica waits for classification](#a-third-partys-replica-waits-for-classification) | Refuse. Nothing is recorded and nothing is sent |
@@ -696,16 +708,19 @@ interfaces:
    path, and the entry's resource scope
 4. On `allow`, bytes are read and the digest computed over the exact stored
    bytes — no normalisation, no reformatting
-5. Under shared custody, the digest is compared against the last recorded
-   digest; a difference produces a `ContentObservation` with provenance
-   `external` and does **not** fail the read
+5. Under shared custody, the digest is compared against the path's recorded
+   digest ([What an entry covers](#what-an-entry-covers)); a difference
+   produces a `ContentObservation` with provenance `external`, appended to the
+   change log as an `observe` entry, and does **not** fail the read
 6. Bytes and `ContentIdentity` are returned; the read leaves the bytes unchanged
 
 ### Write Flow
-1. Caller submits bytes, a declared scope, and `if_match` — the identity it
-   believes it is replacing, or the empty string for an entry it believes does
-   not exist yet — and, where the person signs, a `ChangeStatement` as
-   `statement`
+1. Caller submits an `EntryWrite`: bytes, a declared scope, and `if_match` —
+   the identity it believes it is replacing, or the empty string for an entry
+   it believes does not exist yet — and, where the person signs, a
+   `ChangeStatement` as `statement`. A removal submits an `EntryRemoval`
+   instead, and runs the same steps with no bytes and no ceiling check, the
+   storage proxy intercepting with operation `delete`
 2. Path Resolver confines the path as above
 3. Ceiling check: declared scope against the repository's derived ceiling.
    Exceeded → refuse, publish `content.ceiling_exceeded`
@@ -719,7 +734,10 @@ interfaces:
 7. The change is reserved
    ([A change is reserved before it is made](#a-change-is-reserved-before-it-is-made))
 8. Bytes are written durably; the new digest is computed from what was written,
-   not from what was submitted
+   not from what was submitted. Where it differs from the digest of the decoded
+   bytes, the write fails with `CONTENT_WRITE_UNCONFIRMED` and the reservation
+   is settled as one whose path holds neither `before` nor the reserved
+   `after`
 9. A `ContentChange` is appended to the repository's change log as a `change`
    entry, with provenance `authored`, the declared scope, the token's
    `identity_id` for `actor`, the correlation id of the enforcement decision,
@@ -2239,7 +2257,7 @@ Each entry records one act, once:
 
 | `act` | Appended when | Holds |
 |---|---|---|
-| `declare` | The repository is recorded `declared`. Always the first entry, so its digest is the log id | `LogDeclaration`: the repository's id, scope, disposition, custody, store ceiling and `self_decision_ceiling`, and on adoption every entry the census found |
+| `declare` | The repository is recorded `declared`. Always the first entry, so its digest is the log id | `LogDeclaration`: the repository's id, `scope_path`, disposition, custody, store ceiling and `self_decision_ceiling`, and on adoption every entry the census found |
 | `change` | This service made a change: a write, a removal, or a decision that applied a proposal | `ContentChange`, with the person's `ChangeStatement` where one verified |
 | `observe` | This service observed a change it did not make — an observation of state `changed` or `removed`, from the Custody Reconciler or from a read | `ContentObservation` |
 | `key` | This service introduced a log key | `LogKey`, from [`architecture/storage`](storage.md#types) |
@@ -2251,6 +2269,13 @@ is recorded as one. An observation of state `unknown` changes nothing and is not
 appended. A proposal that is `open`, `rejected` or `stale` changed no entry and
 is not in the log; the proposal is its record ([Proposals](#proposals)). Reads,
 replica sends and custody re-verification change no entry either.
+
+**A path's recorded digest is its last entry.** The last `change` or `observe`
+entry that names a path, or, where there is none, the `declare` entry, records
+the identity the path holds as far as this service knows. It is what the Read
+Flow and the Custody Reconciler compare the current bytes against, so a change
+made around the service is observed once, and every read after it compares
+against what was observed.
 
 **An entry cites; it never copies.** It records paths, content identities and
 the identity ids of the parties. It never holds an entry's bytes or a
@@ -2264,9 +2289,14 @@ person, such as a record filed under somebody's name. The log records each path
 as it is, and not as a keyed digest that would hide the name and keep the join.
 That choice is bounded twice. The log is read whole or not at all, and only by
 a caller who may read everything the repository has held
-([Reading the log](#reading-the-log)). And a copy of the log carries its paths
-wherever it goes: an export that includes log lines discloses every name in
-them.
+([Reading the log](#reading-the-log)). And a copy of the log carries what it
+holds wherever it goes. An export that includes log lines discloses every path
+in them, the identity id of every party they name, and, in each statement, the
+signer's identity public key and any `device_label` their attestation carries.
+An identity id is the same at every hub its person joins, so those lines also
+link a person across tenants, which is why
+[`patterns/content-git`](../patterns/content-git.md) keeps identity ids out of
+a store's history.
 
 ### A change is reserved before it is made
 
@@ -2436,7 +2466,10 @@ recorded changes
 `record-signing`).
 
 A statement is optional. A write, removal or decision without one is recorded
-as it always was, and that person's part is `witnessed`.
+as it always was, and that person's part is `witnessed`. So a client that
+relays a person's statement can drop it and still have the change recorded. A
+client that sent a statement MUST check that the `ContentChange` it gets back
+carries it, and report the change as unsigned where it does not.
 
 ### Design Principle 6, strictly
 
@@ -2481,10 +2514,22 @@ is only as strong as `on_behalf_of`, which is asserted.
 
 ### Reading the log
 
-`GET /v1/content/repositories/{repository}/log` returns the log's stored lines,
-byte for byte, each with its line feed, from `from` (1 when absent) for at most
-`limit` lines. A caller continues from the last `seq` it received, plus one.
-Nothing is re-serialised, so what a caller receives is what it verifies.
+`GET /v1/content/repositories/{repository}/log` takes a `LogQuery` and returns
+a `LogPage`, as `application/json` like every other route. Its `lines` are the
+stored lines from `seq` `from` on, at most `limit` of them, in order. Each is
+one stored line's text without its line feed, as a JSON string. A stored line
+is RFC 8785 output, which is valid UTF-8 and holds no raw line feed, so the
+string decodes to exactly the stored bytes. Nothing is re-serialised: what a
+caller decodes is what it hashes and verifies, and writing each line with one
+line feed after it holds the log as this service stores it.
+
+A caller continues from `next`. A page without `next` ended at the tip as it
+stood when the page was read, which `tip` reports, and a `from` beyond the tip
+returns no lines and no `next`. The log is paged by `seq`, not by the opaque
+cursor a store's list operations use
+([`architecture/storage`](storage.md#implementation-notes)), because `seq` is
+part of what a verifier checks, and a caller resuming from the last `seq` it
+holds needs nothing else from the service.
 
 **The log is read whole or refused, and never filtered.** A log with lines left
 out cannot be verified, because each missing line breaks the chain at the next.
@@ -2492,17 +2537,31 @@ The enforcement storage proxy intercepts with operation `read`, the
 repository's `scope_path`, and as the resource scope the highest scope the log
 records: the `store_ceiling` in its `declare` entry and the `scope` of every
 `change`. A caller who may not read everything the repository has held reads
-none of its log.
+none of its log, and is refused with the code the storage proxy gives
+([`architecture/enforcement`](enforcement.md)).
 
 `GET /v1/content/repositories/{repository}/log/head` returns a `LogHead`: the
 log id, the tip, the latest checkpoint with the key entry that introduced its
 key, how many entries are unsealed, and what the service's own check of the
-chain found. It names no path, so `content:describe`
-is enough. A person's client reads it to learn the log id it signs with. A
+chain found. It names no path, so `content:describe` is enough. A person's
+client reads it to learn the log id it signs with, so a client that signs for a
+person needs `content:describe` beside `content:write` or `content:decide`. A
 verifier keeps it as its own copy of a checkpoint, which is what exposes a log
 rewritten later ([`architecture/storage`](storage.md#verifying-a-sealed-log)).
+
 `POST /v1/content/repositories/{repository}/log/checkpoint` issues a checkpoint
-first, where the tip has moved, so an export can be sealed to its last entry.
+first, where the tip has moved, and returns the head, so an export can be
+sealed to its last entry. Where sealing is paused, because no log key can sign,
+it appends nothing and refuses with `CONTENT_SEALING_PAUSED`, carrying the head,
+whose `unsealed` counts what is not sealed. An export made then says that its
+tail is unsealed.
+
+All three routes refuse a repository not in the caller's scope with
+`CONTENT_REPOSITORY_UNKNOWN`, and one still `establishing` with
+`CONTENT_LOG_NOT_BEGUN`: its log begins when it is recorded `declared`
+([Declaration Flow](#declaration-flow)). A query whose `from` or `limit` is not
+an integer or is below 1, or whose `limit` is above 10000, is refused with
+`INVALID_REQUEST` ([`protocol/spec`](../protocol/spec.md)).
 
 ### Verifying a log without this service
 
@@ -3305,6 +3364,58 @@ types:
         required: false
         description: Present only when enumerable_principals is attested
 
+  EntryWrite:
+    description: The body of PUT /v1/content/entry. One entry's new bytes, and
+      the precondition they are written under
+    fields:
+      repository:
+        type: string
+        required: true
+      path:
+        type: string
+        required: true
+      bytes:
+        type: string
+        required: true
+        description: The bytes to write, as standard base64 (RFC 4648 §4)
+      if_match:
+        type: string
+        required: true
+        description: The digest of the entry the write replaces, or the empty
+          string where the caller believes the path holds nothing. Absent is
+          refused with CONTENT_IF_MATCH_REQUIRED
+      scope:
+        type: ScopeLevel
+        required: true
+        description: The declared scope of the bytes
+      statement:
+        type: ChangeStatement
+        required: false
+        description: The writer's signature over the change this write would
+          record. Without signer, which the service sets from the token
+
+  EntryRemoval:
+    description: The body of DELETE /v1/content/entry, carried as JSON as a
+      write's is. One entry to remove, and the precondition it is removed under
+    fields:
+      repository:
+        type: string
+        required: true
+      path:
+        type: string
+        required: true
+      if_match:
+        type: string
+        required: true
+        description: The digest of the entry the removal retires. Absent is
+          refused with CONTENT_IF_MATCH_REQUIRED, and the empty string with
+          CONTENT_PRECONDITION_NOT_APPLICABLE
+      statement:
+        type: ChangeStatement
+        required: false
+        description: The remover's signature over the change this removal would
+          record. Without signer, which the service sets from the token
+
   ProposalRequest:
     description: The body of POST /v1/content/proposals. A change to one entry,
       staged for a person to decide. Writes nothing
@@ -3657,6 +3768,47 @@ types:
           credential_public_key over the weblisk/content-change/v1 statement,
           base64url
 
+  LogQuery:
+    description: The query of GET /v1/content/repositories/{repository}/log.
+      Paged by seq, not by an opaque cursor, because seq is part of what a
+      verifier checks (Reading the log)
+    fields:
+      from:
+        type: integer
+        required: false
+        description: The seq of the first line to return. 1 when absent, and
+          at least 1. Beyond the tip returns no lines
+      limit:
+        type: integer
+        required: false
+        description: The most lines to return. 1000 when absent, at least 1 and
+          at most 10000
+
+  LogPage:
+    description: The response of GET /v1/content/repositories/{repository}/log
+    fields:
+      repository:
+        type: string
+        required: true
+      log:
+        type: string
+        required: true
+        description: The log id
+      tip:
+        type: integer
+        required: true
+        description: The seq of the tip when the page was read
+      lines:
+        type: list
+        items: string
+        required: true
+        description: The stored lines from seq from, in order, each its text
+          without the line feed. Empty when from is beyond the tip
+      next:
+        type: integer
+        required: false
+        description: The seq to ask for next. Absent when the page ended at tip
+
   LogHead:
     description: The response of the log head and checkpoint routes. Names no
       path
@@ -3693,6 +3845,13 @@ types:
         description: The key entry that introduced the latest checkpoint's key.
           Its key_protection is how the service's registered key is protected,
           development-only included
+      sealing:
+        type: enum
+        values: [active, paused]
+        required: true
+        description: paused while no log key can sign a checkpoint for this
+          log, because none is live and the long-lived key cannot introduce
+          another. unsealed then counts what waits
       chain:
         type: enum
         values: [continuous, broken, unreadable]
@@ -4306,7 +4465,13 @@ security:
 - [ ] Every write, removal and applied proposal appends exactly one `change` entry to its repository's change log, and every observation of state `changed` or `removed` one `observe` entry; an observation of state `unknown` appends nothing
 - [ ] A repository's first log entry has `act` `declare` and `seq` 1, records its `self_decision_ceiling` and, on adoption, every entry the census found; the SHA-256 of its stored line is the `log` its `LogHead` reports
 - [ ] Killing the service after an entry's bytes are written and before its `change` entry is appended, then restarting it, appends that `change` entry with provenance `authored` before anything is served, and records no `observe` entry for those bytes
-- [ ] The lines `GET /v1/content/repositories/{repository}/log` returns are byte for byte the stored lines, and their `previous_digest` chain verifies with SHA-256 alone
+- [ ] The `lines` of a `LogPage` decode to exactly the stored lines, and their `previous_digest` chain verifies with SHA-256 alone
+- [ ] `GET /v1/content/repositories/{repository}/log` with no query returns at most 1000 lines from `seq` 1; a page that reaches the tip has no `next`; a `from` beyond the tip returns no lines; a `limit` above 10000, or a `from` or `limit` below 1 or not an integer, is refused with `INVALID_REQUEST`
+- [ ] Each log route answers an `establishing` repository with `CONTENT_LOG_NOT_BEGUN` and one outside the caller's scope with `CONTENT_REPOSITORY_UNKNOWN`
+- [ ] With the log key unavailable, `POST /v1/content/repositories/{repository}/log/checkpoint` appends nothing and is refused with `CONTENT_SEALING_PAUSED` carrying a `LogHead` whose `sealing` is `paused`
+- [ ] `DELETE /v1/content/entry` reads an `EntryRemoval` from its JSON body, and a `statement` in it is verified and recorded as a write's is
+- [ ] A write whose read-back digest differs from the digest of its decoded bytes is refused with `CONTENT_WRITE_UNCONFIRMED`, and no `change` entry records it
+- [ ] An `observe` entry becomes its path's recorded digest: a second read of the same changed bytes under shared custody appends nothing
 - [ ] A caller whom the storage proxy refuses `read` at the highest scope the log records is refused the whole log, and is never served part of it
 - [ ] `GET /v1/content/repositories/{repository}/log/head` names no path, and a caller holding `content:describe` and not `content:read` is served it
 - [ ] No log entry holds an entry's bytes or a proposal's bytes
