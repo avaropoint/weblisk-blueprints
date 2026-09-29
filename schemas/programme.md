@@ -804,7 +804,10 @@ the one that holds the programme's other documents, whose ceiling
 ([`architecture/content`](../architecture/content.md#derived-scope-ceiling)) is
 `restricted` or higher. The ceiling that counts is the effective one, over
 every place a copy of the repository lives
-([`architecture/content`](../architecture/content.md#effective-custody)).
+([`architecture/content`](../architecture/content.md#effective-custody)), so a
+records repository has no plain replica: a plain replica holds nothing above
+`confidential`. Nothing `restricted` in it is ever sent to a model provider
+either ([`patterns/scope`](../patterns/scope.md#model-providers)).
 
 It is kept apart because the programme's other documents are policies and
 procedures that people edit where they work, often in a shared store, and that

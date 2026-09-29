@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: enforcement
-version: 1.0.1
+version: 1.1.0
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, patterns/privacy, architecture/orchestrator, architecture/gateway]
 platform: any
 tier: free
@@ -118,7 +118,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.2.0 <2.0.0"
     bindings:
       types:
         - name: ScopeLevel
@@ -278,7 +278,9 @@ protocol (HTTP, SMTP, webhook), and payload scope. Verifies that the
 agent has declared the external capability and that the target is not
 on a blocked list. Evaluates payload scope to prevent scope leakage
 — restricted-scope data cannot be sent to unclassified external
-endpoints.
+endpoints, and nothing above its ceiling, or undeclared, is sent to a
+destination [`patterns/scope`](../patterns/scope.md#destination-ceilings)
+gives a ceiling, such as a model provider.
 
 **Response Boundary** — Intercepts every response produced by an
 agent before it is delivered to the calling party (gateway, another
@@ -534,6 +536,7 @@ external_proxy:
       - Verify agent has declared external capability for the protocol
       - Check target against blocked endpoint list
       - Evaluate payload scope — restricted+ data to unclassified endpoints → deny
+      - A target patterns/scope gives a ceiling (Destination Ceilings), such as a model provider, is classified by that ceiling — payload scope above it → deny; payload scope undeclared → deny with SCOPE_MISSING. Deny before any masking below, never mask to fit
       - Build PolicyContext from agent, target, scope
       - Evaluate policies via patterns/policy
       - Apply privacy controls:
@@ -550,7 +553,9 @@ external_proxy:
       - code: ENFORCEMENT_BLOCKED_TARGET
         when: Target is on the blocked endpoint list
       - code: ENFORCEMENT_SCOPE_LEAKAGE
-        when: Payload scope exceeds target endpoint classification
+        when: Payload scope exceeds target endpoint classification — for a target patterns/scope gives a ceiling, that ceiling
+      - code: SCOPE_MISSING
+        when: Payload scope is undeclared and the target has a ceiling in patterns/scope
       - code: ENFORCEMENT_CAPABILITY_MISMATCH
         when: Agent lacks declared external capability
       - code: ENFORCEMENT_CONSENT_REQUIRED
@@ -1574,6 +1579,7 @@ in the relevant `platforms/*.md` blueprint. All platforms MUST satisfy:
 - [ ] Message boundary intercepts all messages — enforcement evaluates policies and logs decisions before delivery
 - [ ] Storage boundary blocks scope violations — agent with `internal` scope cannot write to `restricted` resource (ENFORCEMENT_SCOPE_VIOLATION)
 - [ ] External boundary prevents scope leakage — `restricted`-scope data cannot be sent to unclassified external endpoints (ENFORCEMENT_SCOPE_LEAKAGE)
+- [ ] A model provider with no current agreement attestation is sent nothing above `internal`, and nothing undeclared (SCOPE_MISSING); the call is denied before any masking, never masked to fit ([`patterns/scope`](../patterns/scope.md#destination-ceilings))
 - [ ] Response boundary blocks output contract violations — agent cannot return fields outside its declared output contract (ENFORCEMENT_OUTPUT_CONTRACT_VIOLATION)
 - [ ] Response boundary blocks output scope exceeded — agent cannot return data at a scope higher than its declared operational scope (ENFORCEMENT_OUTPUT_SCOPE_EXCEEDED)
 - [ ] Quarantine blocks all four boundaries — quarantined agent's messages, storage writes, external calls, and responses are all rejected

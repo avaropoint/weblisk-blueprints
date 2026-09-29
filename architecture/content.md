@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.0.0
+version: 2.1.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -91,7 +91,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/scope
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.2.0 <2.0.0"
     bindings:
       types:
         # An enum: it declares values, not fields, so nothing is bound FROM it.
@@ -644,7 +644,6 @@ interfaces:
 | `CONTENT_SEALING_PAUSED` | io | A checkpoint was asked for and no log key can sign one: none is live and the long-lived key cannot introduce another | Refuse, carrying the `LogHead`, whose `unsealed` counts what waits. Nothing is appended. The request may be repeated once sealing resumes |
 | `CONTENT_LOG_BROKEN` | integrity | The repository's change log failed this service's check from its latest checkpoint, because a line breaks the chain or cannot be read, and the request would append to it: a write, a removal, a decision to apply, a reconcile or a checkpoint. See [A log that does not verify](#a-log-that-does-not-verify) | Refuse, naming the `seq` where the check failed. Nothing is written to the store and nothing is appended. Reads, the log's included, are still served |
 | `CONTENT_REPLICA_UNSEEN` | conflict | A replica declaration with no `if_match` | Refuse and return the `ReplicaCensus`. Nothing is recorded and nothing is sent. The caller re-submits with the census digest |
-| `CONTENT_REPLICA_UNCLASSIFIED` | policy | A replica declaration whose destination a third party holds, where the classification gate is not present or does not pass. See [A third party's replica waits for classification](#a-third-partys-replica-waits-for-classification) | Refuse. Nothing is recorded and nothing is sent |
 | `CONTENT_SCOPE_UNDECLARED` | policy | A replica declaration where a version that would leave is unclassified, and the declaration carries no `history_scope`. See [What would leave](#what-would-leave) | Refuse, naming how many versions are unclassified. Nothing is recorded and nothing is sent. No version is assumed to be at any level |
 | `CONTENT_REPLICA_EXISTS` | conflict | The replica id is taken in that repository, by a replica that is not `establishing` or whose recorded arguments differ from this request's | Refuse, naming the recorded destination. An identical retry against an `establishing` replica is a resumption, not this |
 | `CONTENT_REPLICA_UNKNOWN` | validation | No replica of that id in that repository | Refuse |
@@ -891,10 +890,9 @@ interfaces:
    destination, who holds it, or the claims differ from those of the census
    the caller saw; a reserved path in anything that would leave →
    `CONTENT_RESERVED_PATH`; an unclassified version that would leave, with no
-   `history_scope` → `CONTENT_SCOPE_UNDECLARED`; a destination a third party
-   holds, without the classification gate present and passing →
-   `CONTENT_REPLICA_UNCLASSIFIED`; anything that would leave above the
-   census's prospective replica ceiling → `CONTENT_CUSTODY_CEILING_EXCEEDED`
+   `history_scope` → `CONTENT_SCOPE_UNDECLARED`; anything that would leave
+   above the census's prospective replica ceiling →
+   `CONTENT_CUSTODY_CEILING_EXCEEDED`
 8. The replica is **reserved** — recorded durably with `state: establishing`,
    sending nothing and counting toward nothing
 9. The credential is created and held, unless the reservation already has one
@@ -1170,6 +1168,16 @@ MUST refuse the move rather than silently reclassify the document.
 **Every place a copy lives counts.** The table derives the ceiling of one
 place. A repository with replicas lives in more than one, and its ceiling is
 the lowest of them (see [Effective custody](#effective-custody)).
+
+**A plain replica is capped at `confidential`.** A replica is **plain** when
+its destination holds the bytes as they are, so that whoever can read the
+destination reads them. The `restricted` row rests on approval and masking
+remaining enforceable, and nobody reading a destination passes through either.
+So a plain replica's ceiling is the lower of the table's and `confidential`,
+whatever custody its destination demonstrated and whoever holds it. A replica
+is not plain only where the blueprint that specifies its destination's backend
+demonstrates that the destination holds nothing but ciphertext under a key the
+tenant alone holds.
 
 ### What Shared Custody Changes
 
@@ -1719,7 +1727,9 @@ A replica is how a tenant keeps a copy of its content off the machine that holds
 the store, and how it publishes one. Both put the tenant's bytes somewhere its
 own service does not control. So a replica is declared the way a repository is
 adopted, by a person who has seen what would leave, and the place it names
-lowers what the repository may hold.
+lowers what the repository may hold. It is a destination as
+[`patterns/scope`](../patterns/scope.md#destination-ceilings) defines one, and
+this section is where its ceiling and its gate are specified.
 
 ### A replica is sent to, and never read from
 
@@ -1898,7 +1908,7 @@ earlier version, put there by somebody out of band. One that appears after the
 census holds the replica (Replica Send Flow, step 3). Installation state and
 control state never leave.
 
-### A third party's replica waits for classification
+### Who holds a destination
 
 Every backend says who holds the store it reaches: the tenant, or a third party
 (`held_by`, under [Configuration](#configuration)). A backend that does not say
@@ -1906,25 +1916,25 @@ is a third party's. It is never inferred from a host, a URL or a provider name,
 as custody is not.
 
 `held_by` is an operator's statement, and nothing this service does
-demonstrates it. A backend marked `tenant` that a third party in fact holds
-passes this rule, which is exactly as strong as that line of configuration.
-That limit is stated here, as Design Principle 5 requires. The census reports
-`held_by` and its digest binds it, so the person confirming has seen what the
-operator said.
+demonstrates it. That limit is stated here, as Design Principle 5 requires. The
+census reports `held_by` and its digest binds it, so the person confirming has
+seen what the operator said, and `content.replica_declared` carries it.
 
-A replica whose destination a third party holds is refused with
-`CONTENT_REPLICA_UNCLASSIFIED` unless the classification gate is present and
-passes for everything that would leave. The gate is present when this contract
-classifies every version a replica would receive, so that each carries a scope
-a person declared, and when its [Derived Scope Ceiling](#derived-scope-ceiling)
-table carries the plain-replica cap, capping a replica that holds the bytes
-readably at `confidential` whatever its custody would otherwise allow. Where
-the gate is not present, every such replica is refused.
+A replica whose destination a third party holds is declared, checked and sent
+to by every rule in this section, and by no rule of its own. Two of those rules
+are what make it safe to declare:
 
-A replica the tenant holds is not refused by this rule. A copy on a machine the
-tenant owns, away from the machine that holds the store, gives durability
-without disclosure, and it exercises every other rule in this section before a
-third party is involved.
+- **Nothing leaves unclassified.** Every version a replica receives is at a
+  scope declared for it ([What would leave](#what-would-leave)). A version that
+  is not is held, never sent.
+- **A plain replica holds nothing above `confidential`**
+  ([Derived Scope Ceiling](#derived-scope-ceiling)), wherever it is and
+  whoever holds it.
+
+A copy on a machine the tenant owns, away from the machine that holds the
+store, gives durability without disclosure. It is capped the same way, because
+whoever can read that machine reads the copy without passing through this
+service.
 
 ### Effective custody
 
@@ -1945,7 +1955,8 @@ places.
   every proposal uses it. `store_ceiling` is what the store alone allows. A
   consumer that reads only `ceiling` gets the safer answer.
 - A replica's own ceiling is derived from what was demonstrated about its
-  destination, by the [Derived Scope Ceiling](#derived-scope-ceiling) table.
+  destination, by the [Derived Scope Ceiling](#derived-scope-ceiling) table,
+  and is `confidential` at most while the replica is plain.
   `anonymous_read` comes first: a destination that anyone can read, or whose
   anonymous read was not demonstrated to be refused, has the ceiling `public`.
 - **Bytes that have left have left.** Retiring a replica never raises the
@@ -3118,8 +3129,9 @@ types:
       prospective_ceiling:
         type: ScopeLevel
         required: true
-        description: The replica's ceiling as its claims would derive it. The
-          demonstration can only lower it
+        description: The replica's ceiling as its claims would derive it, and
+          confidential at most while it is plain. The demonstration can only
+          lower it
       prospective_repository_ceiling:
         type: ScopeLevel
         required: true
@@ -3201,8 +3213,8 @@ types:
       ceiling:
         type: ScopeLevel
         required: true
-        description: Derived from what the destination demonstrated. Never
-          configured
+        description: Derived from what the destination demonstrated, and
+          confidential at most while the replica is plain. Never configured
       credential:
         type: string
         required: false
@@ -4027,8 +4039,7 @@ content:
                                  # Root, options and credentials are that
                                  # blueprint's, per Design Principle 6
       held_by: tenant|third-party  # who holds the store it reaches; see
-                                 # A third party's replica waits for
-                                 # classification
+                                 # Who holds a destination
   repositories:
     - id: <stable-id>
       scope_path: <tenant>/<org>[/<project>]
@@ -4050,8 +4061,8 @@ content:
   max_entry_bytes: 10485760
 ```
 
-`held_by` is stated where the host is named, and what it decides is under
-[A third party's replica waits for classification](#a-third-partys-replica-waits-for-classification).
+`held_by` is stated where the host is named, and what it means is under
+[Who holds a destination](#who-holds-a-destination).
 No key declares a replica: see [Declaring a replica](#declaring-a-replica).
 
 The placement rule is the same in configuration as it is in a request, and it
@@ -4204,10 +4215,12 @@ security:
       mechanism: Replica Sender sends from the service's own record and asks a
         destination only whether it holds just what was sent; a destination
         holding anything else stops sending
-    - rule: A replica whose destination a third party holds is refused unless
-        the classification gate is present and passes
-      mechanism: held_by on the destination's backend, absent meaning
-        third-party; CONTENT_REPLICA_UNCLASSIFIED
+    - rule: A plain replica never holds anything above confidential, whoever
+        holds its destination
+      mechanism: The Derived Scope Ceiling caps every plain replica at
+        confidential, the census refuses what would leave above that, and the
+        Replica Sender holds any later version above it. held_by is reported
+        and bound by the census, and decides nothing
     - rule: A repository's ceiling is the lowest of every place its bytes live,
         and retiring a replica never raises it
       mechanism: ceiling is derived from the store and every replica confirmed,
@@ -4611,7 +4624,8 @@ security:
 - [ ] A first `POST /v1/content/repositories/{repository}/replicas` with no `if_match` is refused with `CONTENT_REPLICA_UNSEEN`, returns a `ReplicaCensus`, records no replica, creates no credential and sends nothing
 - [ ] A replica declaration whose `if_match` differs from a freshly computed census `digest`, because a version was recorded between the two calls, is refused with `CONTENT_PRECONDITION_FAILED`
 - [ ] A caller holding `content:replicate` and not `content:connect`, or `content:connect` and not `content:replicate`, is refused a replica declaration; a token whose `type` is not `operator` is refused it whatever its `cap` holds
-- [ ] A replica declaration whose destination backend has no `held_by`, or `held_by: third-party`, is refused with `CONTENT_REPLICA_UNCLASSIFIED` where the classification gate is not present, and nothing is recorded or sent
+- [ ] A replica declaration whose destination backend has no `held_by`, or `held_by: third-party`, is confirmed like any other replica when everything that would leave is classified and at or below its ceiling, and its census reports `held_by: third-party`
+- [ ] A plain replica whose destination demonstrates `shared` custody with all three attestations, and refuses anonymous read, has the ceiling `confidential`, whoever holds it; declaring it for a repository holding a `restricted` version is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED` naming that version's path
 - [ ] A replica declaration where an earlier version holds a path under `.weblisk` is refused with `CONTENT_RESERVED_PATH`, though no entry holds that path now
 - [ ] A replica declaration against a destination that holds something this service did not send is refused with `CONTENT_NOT_EMPTY`, and nothing at the destination is changed
 - [ ] A confirmed declaration against a destination that has not yet registered the credential answers `CONTENT_ESTABLISH_INCOMPLETE` carrying `credential`, the replica is `establishing`, and nothing has been sent; the same declaration repeated after registration completes it with no second credential
