@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 1.10.0
+version: 1.11.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -167,12 +167,14 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/storage
-    version: ">=1.1.0 <2.0.0"
+    version: ">=1.2.0 <2.0.0"
     bindings:
       types:
-        # The change log's own key and checkpoint entries
+        # The change log's own key, succession and checkpoint entries
         - name: LogKey
           fields_used: [key_id, public_key, not_after, key_protection, attested_by, attesting_key, signature]
+        - name: LogSuccession
+          fields_used: [outgoing, outgoing_key, incoming, incoming_key, outgoing_signature, incoming_signature]
         - name: LogCheckpoint
           fields_used: [seq, tip, issued_at, key, signature]
       behaviors:
@@ -623,6 +625,7 @@ interfaces:
 | `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the identity the proposal names as its `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, or the repository declares none | Refuse, naming the scope and the ceiling. Nothing is recorded and the proposal stays `open` |
 | `CONTENT_IDENTITY_REQUIRED` | auth | A write, removal, proposal, decision, replica declaration or retirement arrived on a token that carries no `identity_id` | Refuse. Never record a name, an address or a token's `sub` in its place |
 | `CONTENT_STATEMENT_INVALID` | auth | A write, removal or decision carried a `ChangeStatement` that does not verify: the token is not a person's; the attestation's `purpose` is not `sign-records`, its identity key is not the token's `identity_id`, its signature fails, its credential key is not ML-DSA-65, or its `not_after` has passed; `signed_at` is more than 300 seconds from the service's clock; or the signature does not verify over the statement rebuilt from the change. See [The change statement](#the-change-statement) | Refuse, naming the check that failed. Nothing is written and a proposal stays `open`. The change is never recorded unsigned instead. Log as a security event |
+| `CONTENT_LOG_BROKEN` | integrity | The repository's change log failed this service's check from its latest checkpoint, because a line breaks the chain or cannot be read, and the request would append to it: a write, a removal, a decision to apply, a reconcile or a checkpoint. See [A log that does not verify](#a-log-that-does-not-verify) | Refuse, naming the `seq` where the check failed. Nothing is written to the store and nothing is appended. Reads, the log's included, are still served |
 | `CONTENT_REPLICA_UNSEEN` | conflict | A replica declaration with no `if_match` | Refuse and return the `ReplicaCensus`. Nothing is recorded and nothing is sent. The caller re-submits with the census digest |
 | `CONTENT_REPLICA_UNCLASSIFIED` | policy | A replica declaration whose destination a third party holds, where the classification gate is not present or does not pass. See [A third party's replica waits for classification](#a-third-partys-replica-waits-for-classification) | Refuse. Nothing is recorded and nothing is sent |
 | `CONTENT_SCOPE_UNDECLARED` | policy | A replica declaration where a version that would leave is unclassified, and the declaration carries no `history_scope`. See [What would leave](#what-would-leave) | Refuse, naming how many versions are unclassified. Nothing is recorded and nothing is sent. No version is assumed to be at any level |
@@ -950,9 +953,11 @@ in the registration response:
 1. Load configuration and open storage
 2. Load or generate the ML-DSA-65 key pair, and mint the log key it
    introduces into each change log (architecture/storage, The log key)
-3. Settle every reserved change, then reconcile the configured repositories
-   against the registry — establish the ones not yet recorded, verify the
-   custody attestations of the ones that are. Nothing here is fatal
+3. Check every change log from its latest checkpoint (A log that does not
+   verify), then settle every reserved change in each log that passed, then
+   reconcile the configured repositories against the registry — establish the
+   ones not yet recorded, verify the custody attestations of the ones that
+   are. Nothing here is fatal
 4. Construct the authenticator WITHOUT an issuer key — it refuses every token
    until one arrives, which is the correct standalone behaviour
 5. Register HTTP routes and start listening
@@ -963,8 +968,9 @@ in the registration response:
 ```
 
 Step 3 is fatal in neither direction: a configured repository that could not be
-established is left `establishing` or recorded as a `DeclinedRepository`, health
-reports `degraded` naming it, and the service serves everything else. A backend
+established is left `establishing` or recorded as a `DeclinedRepository`, a
+repository whose log fails its check is broken, health reports `degraded`
+naming each, and the service serves everything else. A backend
 that is briefly unreachable at boot MUST NOT stop a hub from starting, and MUST
 NOT be reported as though the repository were fine.
 
@@ -1061,9 +1067,15 @@ does not work rather than a component that was not given a mesh.
    by this service and, where they choose, by the people who moved its
    entries. A backend's history, a commit and a signature on a commit are
    copies and conveniences, never evidence. A verifier needs the log, the
-   public keys and ordinary tools, and nothing of this service's: the service
-   MUST NOT be the trust anchor for its own record, as
+   public keys and ordinary tools, and nothing of this service's, in order to
+   check the log: the service MUST NOT be needed to check its own record, as
    [`architecture/fabric`](fabric.md) Design Principle 9 says of the fabric.
+   What the verifier checks is still, in part, this service's word. A
+   checkpoint is the service's own statement that the log is what it recorded,
+   and it stays `unwitnessed` until somebody else keeps it
+   ([`architecture/storage`](storage.md#verifying-a-sealed-log)). A person's
+   statement is that person's; the order, the completeness and everything the
+   service witnessed rest on its seal.
 
 ---
 
@@ -2215,7 +2227,8 @@ tampering.
 It is a sealed log, as
 [`architecture/storage`](storage.md#sealing-a-chained-log) defines one. That
 section says how its entries are stored and chained, how the service's log key
-is introduced, what a checkpoint signs and how a verifier checks both. This
+is introduced, how a change of the service's own key is recorded, what a
+checkpoint signs and how a verifier checks all of it. This
 section says what the content log's own entries hold, who signs what, and what
 a verifier checks beyond the chain.
 
@@ -2229,6 +2242,7 @@ Each entry records one act, once:
 | `change` | This service made a change: a write, a removal, or a decision that applied a proposal | `ContentChange`, with the person's `ChangeStatement` where one verified |
 | `observe` | This service observed a change it did not make — an observation of state `changed` or `removed`, from the Custody Reconciler or from a read | `ContentObservation` |
 | `key` | This service introduced a log key | `LogKey`, from [`architecture/storage`](storage.md#types) |
+| `succession` | This service's registered key changed while it still held the one before | `LogSuccession`, from [`architecture/storage`](storage.md#types) |
 | `checkpoint` | This service sealed the log | `LogCheckpoint`, from [`architecture/storage`](storage.md#types) |
 
 **Every change this service makes is exactly one `change` entry.** Nothing else
@@ -2277,6 +2291,35 @@ handled as a change the service did not make: an `observe` entry under shared
 custody, and under exclusive custody an integrity anomaly, reported as
 [`architecture/data-security`](data-security.md) reports one.
 
+### A log that does not verify
+
+This service checks each change log as `architecture/storage` requires of an
+owner: from its latest checkpoint to the tip, before its first append after it
+starts and before each checkpoint
+([`architecture/storage`](storage.md#an-owner-checks-its-own-log)). At start it
+checks every log before it settles any reservation, so no reservation is ever
+settled onto a log that fails.
+
+A repository whose log fails the check is **broken**, and stays so:
+
+- Every act that would append to its log is refused with `CONTENT_LOG_BROKEN`,
+  naming the `seq` where the check failed: a write, a removal, a decision to
+  apply a proposal, a reconcile and a checkpoint. Nothing is written to the
+  repository's store, so no change is made that the log cannot record. A
+  reservation found at start is left as it is.
+- Everything else is served. Reads of entries, of proposals and of the log
+  itself go on, because refusing them would hide the evidence somebody now
+  needs. A proposal may still be made or rejected, since neither appends. A
+  difference a read finds under shared custody is reported with the read and
+  not appended.
+- Health reports `degraded`, naming the repository and that `seq`, and the
+  log's `LogHead` says the same in `chain` and `broken_at`.
+
+Nothing repairs, truncates or re-chains the log. The log is held under
+exclusive custody, so a failure means its stored lines changed after they were
+written, and it is also an integrity anomaly, reported as
+[`architecture/data-security`](data-security.md) reports one.
+
 ### Who signs
 
 Two parties sign, and nobody else.
@@ -2301,8 +2344,16 @@ where the token that carried it names them, or asserted.
 
 The service's registered key is the long-lived key `architecture/storage`
 names, and the tenant's directory lists it (`ServiceEntry.public_key`,
-[`protocol/types`](../protocol/types.md)). A verifier takes its fingerprint
-from the tenant, never from the log.
+[`protocol/types`](../protocol/types.md)). Its fingerprint is the one a
+verifier brings ([`architecture/storage`](storage.md#verifying-a-sealed-log)),
+and it takes it from the tenant, never from the log. When the service rotates
+that key, it appends a succession entry to every change log
+([`architecture/storage`](storage.md#a-change-of-long-lived-key)), so the key
+the directory lists now vouches for every key the log used before it. A key
+generated afresh because the one before it was lost has no succession entry.
+A verifier holding only the directory's key then reports every earlier
+authority `unvouched`, and the service's latest checkpoint still seals
+everything before it.
 
 ### The change statement
 
@@ -2427,7 +2478,8 @@ none of its log.
 
 `GET /v1/content/repositories/{repository}/log/head` returns a `LogHead`: the
 log id, the tip, the latest checkpoint with the key entry that introduced its
-key, and how many entries are unsealed. It names no path, so `content:describe`
+key, how many entries are unsealed, and what the service's own check of the
+chain found. It names no path, so `content:describe`
 is enough. A person's client reads it to learn the log id it signs with. A
 verifier keeps it as its own copy of a checkpoint, which is what exposes a log
 rewritten later ([`architecture/storage`](storage.md#verifying-a-sealed-log)).
@@ -2436,10 +2488,9 @@ first, where the tip has moved, so an export can be sealed to its last entry.
 
 ### Verifying a log without this service
 
-A verifier needs what `architecture/storage` lists for any sealed log: the
-log's lines, the fingerprint of the content service's registered key from the
-tenant, SHA-256, and an ML-DSA-65 verifier. To check what people signed, it
-also needs:
+A verifier needs what `architecture/storage` lists for any sealed log, with the
+content service's registered key, from the tenant, as the fingerprint it brings
+([Who signs](#who-signs)). To check what people signed, it also needs:
 
 - the tenant's hub_id, to check that each attestation names it;
 - which identity id belongs to each person it wants to name, from the tenant's
@@ -3470,7 +3521,7 @@ types:
         required: true
       act:
         type: enum
-        values: [declare, change, observe, key, checkpoint]
+        values: [declare, change, observe, key, succession, checkpoint]
         required: true
       declaration:
         type: LogDeclaration
@@ -3488,6 +3539,10 @@ types:
         type: LogKey
         required: false
         description: Present when act is key
+      succession:
+        type: LogSuccession
+        required: false
+        description: Present when act is succession
       checkpoint:
         type: LogCheckpoint
         required: false
@@ -3615,6 +3670,18 @@ types:
         description: The key entry that introduced the latest checkpoint's key.
           Its key_protection is how the service's registered key is protected,
           development-only included
+      chain:
+        type: enum
+        values: [continuous, broken, unreadable]
+        required: true
+        description: What the service's own check of the log found, from its
+          latest checkpoint to the tip (A log that does not verify). Not a
+          verification of the whole log, which is a verifier's
+      broken_at:
+        type: integer
+        required: false
+        description: The seq where that check failed. Present exactly when
+          chain is broken or unreadable
 ```
 
 ---
@@ -3781,10 +3848,16 @@ security:
         never mints a token with one, and a console never holds one
         (architecture/admin, console-credential-use)
     - rule: A change log verifies without this service
-      mechanism: Sealed per architecture/storage. A verifier needs the lines,
-        the service's registered key from the tenant, SHA-256, an ML-DSA-65
-        verifier, and for a statement the tenant's hub_id and an RFC 8785
-        canonicaliser
+      mechanism: Sealed per architecture/storage, which lists what a verifier
+        needs. The one fingerprint it brings is the service's registered key,
+        from the tenant's directory, and a rotation of that key is recorded in
+        every log by a succession entry both keys sign. Checking a person's
+        statement needs what Verifying a log without this service adds
+    - rule: Nothing is appended to a change log that does not verify
+      mechanism: The service checks each log from its latest checkpoint at
+        start, before settling reservations, and before each checkpoint. A
+        broken log refuses every act that would append, with
+        CONTENT_LOG_BROKEN, and still serves reads; health is degraded
     - rule: A replica is declared only by a person who has seen what would
         leave, where it would go, and who holds that place
       mechanism: Two-step declaration; the first call returns the census and
@@ -4224,3 +4297,5 @@ security:
 - [ ] Every signature in a change log is ML-DSA-65, and a signature on a commit in a version-controlled store appears nowhere in the log
 - [ ] With the log key unavailable, writes still succeed, their entries are appended, and `LogHead.unsealed` counts them; the next checkpoint covers them all
 - [ ] `POST /v1/content/repositories/{repository}/log/checkpoint` on a log whose tip has moved appends a `checkpoint` entry covering the tip, and on one whose tip has not moved appends nothing
+- [ ] A service started over a change log whose lines after its latest checkpoint were altered settles no reservation in it, refuses writes, removals, decisions to apply, reconciles and checkpoints on that repository with `CONTENT_LOG_BROKEN` naming the `seq`, still serves its entries and its log, reports health `degraded` naming it, and reports `chain` `broken` with that `broken_at` in its `LogHead`
+- [ ] Rotating the service's registered key appends a succession entry to every change log, and a verifier that brings only the key the tenant's directory now lists verifies checkpoints sealed before the rotation
