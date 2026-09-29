@@ -5,7 +5,7 @@ description: Rust-only facts for a tenant generated with --platform rust — the
 
 # Rust
 
-`platforms/rust.md` is the specification. This skill is the facts that
+`languages/rust.md` is the specification. This skill is the facts that
 fail a build or a review, plus the workspace the generator already
 followed.
 
