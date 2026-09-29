@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: content-git
-version: 1.4.0
+version: 1.5.0
 requires: [architecture/content, patterns/content-identity, protocol/identity, patterns/secrets, patterns/principal-identity]
 platform: any
 tier: free
@@ -298,7 +298,7 @@ contracts:
         - ssh runs with no configuration file, in batch mode, offering only the replica's key, with no agent but the one the service started for that process, no forwarding, and the host key checked strictly against the backend's host_keys alone, never learning a new one
         - ssh runs with KexAlgorithms set to mlkem768x25519-sha256 alone - ML-KEM-768, from protocol/identity's algorithm table, combined with X25519 - so that a push recorded now cannot be read once classical key exchange is broken
         - A destination whose host key is not among host_keys, or that does not offer that key exchange, cannot be reached. Nothing is presented to it and nothing is sent
-        - This driver demonstrates neither exclusive nor shared custody for a destination, and no attestation. A key registered at a destination cannot show who else can read it, and a destination's history is not the service's to vouch for. A replica on a git-remote backend is therefore recorded opaque whatever its declaration claimed, and architecture/content's Derived Scope Ceiling table gives it internal at most
+        - This driver demonstrates neither exclusive nor shared custody for a destination, and no attestation. A key registered at a destination cannot show who else can read it, and a destination's history is not the service's to vouch for. A replica on a git-remote backend is therefore recorded opaque whatever its declaration claimed, and architecture/content's Derived Scope Ceiling gives it the ceiling of a replica that demonstrated nothing
 
     - name: git-replica-send
       description: How a git store is sent to a replica
@@ -307,7 +307,7 @@ contracts:
         - What a git store sends is its line. A destination holds only what the service sent when its line is absent or names a commit on the record mirror's line
         - Pushes come from the record mirror, never from the store, and send only commits the service has anchored
         - Each push names one refspec, the commit to send and refs/heads/<line> at the destination. It is never forced and sends no tag and no other ref
-        - A commit is a version, classified as architecture/content's What would leave classifies one. The commit of a ContentChange, found by ContentChange.version, is at that change's scope, and needs none when the change removes an entry. Any other commit - one from before adoption, one the service made for an observation, one a person made on the line - is classified by each path it adds or changes against its first parent, from the scope that path's bytes in the commit declare and the path's recorded scope, and is unclassified when one of those paths has neither
+        - A commit is a version, classified as architecture/content's What would leave classifies one. The commit of a ContentChange, found by ContentChange.version, is at that change's scope, and needs none when the change removes an entry. Any other commit - one from before adoption, one the service made for an observation, one a person made on the line - is classified by each path it adds or changes against its first parent, from the scope that path's bytes in the commit declare and the path's recorded scope as last recorded, which a removal never clears, and is unclassified when one of those paths has neither
         - The commits a push could send are those reachable from the record mirror's newest anchored commit and not from the destination's head. Before each push, every one of them is checked, oldest first in topological order, as architecture/content's Replica Send Flow requires - every path its whole tree holds, recursively, against architecture/content's reserved names and this blueprint's reserved paths, every gitlink and symbolic link included, and not only the paths it changes; whether it is unclassified and the replica's census did not count it; and whether its scope is above the replica's ceiling
         - The first commit that fails holds the replica, with held_reason reserved-path, unclassified or above-ceiling. held_path is the reserved path it holds, or else the first path, in git's order, that it changes from its first parent. The commit to send is then the newest anchored commit on the record mirror's line that does not descend from it, and nothing is pushed when the destination already holds that commit
         - Before each push the service asks the destination for its line's head with ls-remote, over the same transport. That is the only thing it reads there. It never fetches
@@ -741,7 +741,7 @@ from the line's, returning both of those digests.
 - [ ] `tamper_evident` is false after an anchored commit is removed from the record mirror, and the ceiling is recomputed
 - [ ] A replica on a `git-remote` backend returns `credential` as an OpenSSH `ssh-ed25519` public key, and the private key appears in no response, log or event, and in no file at any time, including while a push runs
 - [ ] Outside development, a replica's private key is held in a store that meets `protocol/identity` rule 8, never under file permissions alone
-- [ ] A replica on a `git-remote` backend whose declaration claims `exclusive` custody and every attestation is recorded `custody` `opaque`, with every attestation `false` and a `ceiling` no higher than `internal`
+- [ ] A replica on a `git-remote` backend whose declaration claims `exclusive` custody and every attestation is recorded `custody` `opaque`, with every attestation `false` and the `ceiling` `public`
 - [ ] Under exclusive custody with a working tree, a write to a path a person edited in the working tree is refused with `CONTENT_PRECONDITION_FAILED` returning the line's and the working tree's digests, and no commit is made
 - [ ] A change whose `actor` is a service's identity id names that service by its pseudonym as author, never by its identity id
 - [ ] A push to a replica is made from the record mirror, names one refspec for the line, is never forced, and sends no tag

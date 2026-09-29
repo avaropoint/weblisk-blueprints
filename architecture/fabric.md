@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 1.1.1
+version: 1.1.2
 requires: [protocol/types, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement]
 platform: any
 tier: free
@@ -1414,7 +1414,10 @@ security:
         fabric never opens a repository and never transfers entry bytes
     - boundary: Fabric Service → Enforcement. Every operation passes the boundary
         proxy; the fabric supplies the resource scope and does not make the
-        access decision
+        access decision. For a content entry that is its ContentEntry.scope,
+        and for an unclassified entry the default_level architecture/content
+        gives the storage proxy (The recorded scope), never a level of the
+        fabric's own
     - boundary: Producer → Ledger. A producer's reach is bounded by its own
         declared partitions; it can retire nothing outside them
     - boundary: Machine → Person. A confirmation is reachable only through a

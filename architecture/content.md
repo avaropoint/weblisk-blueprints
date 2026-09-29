@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.1.0
+version: 2.2.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -618,7 +618,7 @@ interfaces:
 | `CONTENT_PRECONDITION_FAILED` | conflict | `if_match` does not equal the identity of what it names — an entry's stored digest on a write or a proposal, a placement's census digest on an adoption, a replica census's digest, over what would leave and where it would go, on a replica declaration, a proposal's `before` on a decision to apply it. The empty string where an entry exists, on a write, a proposal to create, or a decision to apply one | Refuse. Return both digests. Never merge, never overwrite, never adopt. On a decision to apply, record the proposal `stale` and write nothing |
 | `CONTENT_IF_MATCH_REQUIRED` | validation | A write, a removal or a proposal arrived with no `if_match`. The empty string is a precondition, not its absence | Refuse. A write with no precondition is a blind overwrite, and a proposal with none cannot be told stale |
 | `CONTENT_CUSTODY_CEILING_EXCEEDED` | policy | Declared scope exceeds the repository ceiling, or something a replica would receive exceeds that replica's ceiling | Refuse, naming required and actual, and on a replica each path above it. Never downgrade the scope |
-| `CONTENT_SCOPE_LOWERED` | policy | A write or a proposal declares a scope below its path's recorded scope, or below the scope its own bytes declare; or its bytes declare a scope below the path's recorded scope. See [An Entry's Scope](#an-entrys-scope) | Refuse, naming both levels and where each was declared. Never record the lower scope, and never raise the declared one to fit |
+| `CONTENT_SCOPE_LOWERED` | policy | A write or a proposal declares a scope below its path's recorded scope, or below the scope its own bytes declare, or declares none where either exists; or its bytes declare a scope below the path's recorded scope. A removal never ends a recorded scope, so this also refuses a path created again below the scope last recorded for it. See [An Entry's Scope](#an-entrys-scope) | Refuse, naming both levels and where each was declared. Never record the lower scope, and never raise the declared one to fit |
 | `SCOPE_INVALID_LEVEL` | validation | A write or a proposal declares a scope, on the change or under `scope:` or `classification:` in its bytes, that is not a `ScopeLevel`. The code is [`patterns/scope`](../patterns/scope.md#scope-related-errors)'s | Refuse, naming where the value was found and the value |
 | `CONTENT_CUSTODY_UNDECLARED` | policy | Repository has no declared custody | Treat as `opaque`, apply the `internal` ceiling, and record the degradation |
 | `CONTENT_PATH_REFUSED` | validation | Traversal segment or escaping symlink — including a placement locator that is absolute, carries a scheme or an authority, or climbs out of its backend's root | Refuse the request as written. Do not normalise and proceed |
@@ -722,7 +722,8 @@ interfaces:
 6. Bytes and `ContentIdentity` are returned; the read leaves the bytes unchanged
 
 ### Write Flow
-1. Caller submits an `EntryWrite`: bytes, a declared scope, and `if_match` —
+1. Caller submits an `EntryWrite`: bytes, a declared scope where one applies
+   ([Where a scope is declared](#where-a-scope-is-declared)), and `if_match` —
    the identity it believes it is replacing, or the empty string for an entry
    it believes does not exist yet — and, where the person signs, a
    `ChangeStatement` as `statement`. A removal submits an `EntryRemoval`
@@ -730,12 +731,14 @@ interfaces:
    check, the storage proxy intercepting with operation `delete`
 2. Path Resolver confines the path as above
 3. Scope and ceiling check. First the declared scope against the rules of
-   [A scope only rises](#a-scope-only-rises): below the path's recorded scope
-   or below the scope the bytes declare, or bytes declaring a scope below the
-   recorded one → refuse with `CONTENT_SCOPE_LOWERED`; a scope that is not a
-   `ScopeLevel` → refuse with `SCOPE_INVALID_LEVEL`. Nothing is raised to fit.
-   Then the declared scope against the repository's derived ceiling.
-   Exceeded → refuse, publish `content.ceiling_exceeded`
+   [A scope only rises](#a-scope-only-rises): none, or one below the path's
+   recorded scope or below the scope the bytes declare, where either exists,
+   or bytes declaring a scope below the recorded one → refuse with
+   `CONTENT_SCOPE_LOWERED`; a scope that is not a `ScopeLevel` → refuse with
+   `SCOPE_INVALID_LEVEL`. Nothing is raised to fit. Then the declared scope
+   against the repository's derived ceiling; a change that declares none is
+   checked at `patterns/scope`'s `default_level`, the level it is decided at in
+   place. Exceeded → refuse, publish `content.ceiling_exceeded`
 4. Enforcement storage proxy intercepts with operation `create` when `if_match`
    is the empty string, and `modify` otherwise
 5. Precondition Gate reads the current digest and compares it to `if_match`.
@@ -751,7 +754,8 @@ interfaces:
    is settled as one whose path holds neither `before` nor the reserved
    `after`
 9. A `ContentChange` is appended to the repository's change log as a `change`
-   entry, with provenance `authored`, the declared scope, the token's
+   entry, with provenance `authored`, the declared scope and its
+   `scope_basis` where the change declared one, the token's
    `identity_id` for `actor`, the correlation id of the enforcement decision,
    and the statement where one verified. The reservation is released in the
    same write
@@ -760,10 +764,11 @@ interfaces:
 ### Proposal Flow
 1. Caller submits a `ProposalRequest`: a repository, a `ProposedChange` naming
    the path and the action, `if_match`, and — for `create` and `modify` — the
-   proposed `bytes` and their declared scope, with `on_behalf_of`, `agent`,
-   `run` and a reason where they apply. An `action` other than `create`,
-   `modify` or `delete`, or `bytes` or `scope` missing on a `create` or
-   `modify` or present on a `delete`, is refused with `INVALID_REQUEST`
+   proposed `bytes` and, where one applies, their declared scope, with
+   `on_behalf_of`, `agent`, `run` and a reason where they apply. An `action`
+   other than `create`, `modify` or `delete`, `bytes` missing on a `create` or
+   `modify`, or `bytes` or `scope` present on a `delete`, is refused with
+   `INVALID_REQUEST`
    ([`protocol/spec`](../protocol/spec.md)). `bytes` longer than
    `max_entry_bytes` are refused as a write of that length would be
 2. Path Resolver confines the path as for a write; traversal, escaping symlinks
@@ -828,7 +833,8 @@ interfaces:
    proposal `open` and records nothing on it
 7. A `ContentChange` is appended to the repository's change log as a `change`
    entry, with provenance `authored`: `scope`, `actor` and `on_behalf_of` from
-   the proposal, the decider's `identity_id` in `approved_by`, the proposal's
+   the proposal, `scope_basis` as step 5 found it, the decider's
+   `identity_id` in `approved_by`, the proposal's
    id in `proposal`, the `separation` step 4 found, the correlation id of the
    decider's enforcement decision, and the decider's statement where one
    verified. The proposal becomes `applied` in the same record write, and the
@@ -1169,15 +1175,23 @@ MUST refuse the move rather than silently reclassify the document.
 place. A repository with replicas lives in more than one, and its ceiling is
 the lowest of them (see [Effective custody](#effective-custody)).
 
-**A plain replica is capped at `confidential`.** A replica is **plain** when
-its destination holds the bytes as they are, so that whoever can read the
-destination reads them. The `restricted` row rests on approval and masking
-remaining enforceable, and nobody reading a destination passes through either.
-So a plain replica's ceiling is the lower of the table's and `confidential`,
-whatever custody its destination demonstrated and whoever holds it. A replica
-is not plain only where the blueprint that specifies its destination's backend
-demonstrates that the destination holds nothing but ciphertext under a key the
-tenant alone holds.
+**A replica's ceiling** starts from the same table, applied to what was
+demonstrated about its destination. The first of these rows that applies then
+lowers it:
+
+| The replica's destination | Ceiling |
+|---|---|
+| Anyone can read it, or its refusal of a read with no credential (`anonymous_read`) was not demonstrated | `public` |
+| Its custody is not `exclusive`, and it has not demonstrated `enumerable_principals` | `public` |
+| It is **plain**: it holds the bytes as they are, so whoever can read it reads them | the lower of the table's and `confidential` |
+| It holds nothing but ciphertext under a key the tenant alone holds, as the blueprint that specifies its backend demonstrates | the table's |
+
+The first two rows give `public` because, away from the store, a place nobody
+can say who reads cannot be told apart from a place anyone reads (Design
+Principle 2). The third holds whoever holds the destination and whatever
+custody it demonstrated. The `restricted` row of the table rests on approval
+and masking remaining enforceable, and nobody reading a destination passes
+through either.
 
 ### What Shared Custody Changes
 
@@ -1218,8 +1232,11 @@ An entry's scope is declared in two places, and nowhere else. A replica's
 ([What would leave](#what-would-leave)).
 
 - **On the change.** A write, and a proposal to create or modify an entry,
-  carries `scope` (`EntryWrite`, `ProposalRequest`): what the person writing,
-  or the proposer, says the bytes deserve.
+  may carry `scope` (`EntryWrite`, `ProposalRequest`). It is a level a person
+  chose for the bytes, or the level the bytes or the path's recorded scope
+  already give. A client sends no other. It never fills one in by default, and
+  a model never chooses one. A change that carries none declares nothing on
+  the change.
 - **In the bytes.** A document whose first line is `---` opens with a YAML
   frontmatter block, which ends at the next line that is `---`. A top-level
   `scope:` key in that block is the document's own declaration of its level.
@@ -1248,9 +1265,11 @@ The change log records a scope each time this service learns one for a path:
 - on each `change` that writes bytes (`ContentChange.scope`);
 - on each `observe` whose bytes are at one (`ContentObservation.scope`).
 
-A path's **recorded scope** is the last one the log recorded for it. A
-removal ends it, whether this service made the removal or observed it, so a
-path created again starts with none.
+A path's **recorded scope** is the last one the log recorded for it. Because a
+scope only rises, it is also the highest. A removal does not end it, whether
+this service made the removal or observed it: a path created again starts at
+the last scope recorded for it. A version the log recorded keeps the scope
+recorded with it, whatever happens to its path afterwards.
 
 An entry's scope, as `ContentEntry.scope` reports it, is the higher of its
 path's recorded scope and the scope its bytes declare. An entry with neither
@@ -1268,7 +1287,9 @@ makes a classification permanent, and nothing in this contract lowers one.
 
 1. A write or a proposal is refused with `CONTENT_SCOPE_LOWERED` when the
    scope it declares is below its path's recorded scope, or below the scope
-   its own bytes declare. The refusal names both levels.
+   its own bytes declare. It is refused the same way when it declares no scope
+   and either of those exists. The refusal names both levels, or the one level
+   and that the change declared none.
 2. It is refused the same way when its bytes declare a scope below the path's
    recorded scope, whatever the change declares. A file that understates its
    own level misstates it wherever a copy of it goes.
@@ -1282,13 +1303,35 @@ scope higher than the one the change declared: it refuses, and the person
 declares the level. So the scope a change records is the highest declaration
 that applies to it, a person's statement signs that scope
 ([The change statement](#the-change-statement)), and the ceiling is checked
-against it (Write Flow, step 3).
+against it (Write Flow, step 3). A change that declares none, on a path with
+no recorded scope and bytes that declare none, records none. The version it
+produces is unclassified.
+
+**The log says where a change's scope came from.** `ContentChange.scope_basis`
+is `bytes` when the bytes declare the recorded scope, `recorded` when the
+path's recorded scope gives it and the bytes declare less, and `chosen` when
+neither gives it, so that the change's own declaration is all that stands
+behind it. `chosen` is asserted, unless the person's statement signs the
+change: this service cannot tell a level a person chose from one a client
+filled in, which is why a client never fills one in.
 
 The rules run again when a proposal is applied, because the Write Flow runs
 for the decider. A path whose recorded scope rose after the proposal was made
 refuses the decision, and the proposal stays `open`. A removal declares no
-scope and is checked against none. A lower level is reached only by removing
-the entry and creating another, and the log records both acts.
+scope and is checked against none. It does not lower the path's recorded
+scope, so a write that creates the path again is checked against it.
+
+**No route lowers a scope.** Lowering a path's recorded scope is
+**declassification**, and this contract has no operation for it. Every
+request that would lower one is refused by the rules above. A level set too
+high stays on the path it was set on, and on every version recorded under it.
+
+**A copy is a new entry.** Bytes written to another path carry the level they
+declare in themselves, and nothing else of the entry they were copied from. An
+entry whose level was declared only on its changes arrives, copied, at
+whatever the new change declares, or unclassified. Declaring the level in the
+bytes is what makes it travel with them. This limit is stated here, as Design
+Principle 5 requires.
 
 ### A change this service did not make
 
@@ -1813,9 +1856,10 @@ anywhere it was valid.
 attestations are claims, demonstrated against the destination before they take
 effect. The blueprint that specifies the destination's backend says how its
 custody is demonstrated. A destination whose custody that blueprint does not
-demonstrate is recorded `opaque`, whatever was claimed, with the ceiling the
-[Derived Scope Ceiling](#derived-scope-ceiling) table gives that custody. The
-service also demonstrates that the
+demonstrate is recorded `opaque`, whatever was claimed, and its ceiling is
+derived from that as every replica's is
+([Derived Scope Ceiling](#derived-scope-ceiling)). The service also
+demonstrates that the
 destination holds nothing it would not send, which is otherwise refused with
 `CONTENT_NOT_EMPTY`, and it tests `anonymous_read` by trying to read the
 destination with no credential. A destination that cannot be reached yet —
@@ -1854,12 +1898,17 @@ Wherever a replica is concerned, a version's **scope** is what was declared
 for it ([An Entry's Scope](#an-entrys-scope)):
 
 - A version a `ContentChange` recorded is at that change's `scope`, which the
-  Write Flow has made the highest declaration that applies to it.
+  Write Flow has made the highest declaration that applies to it. A change
+  that recorded none leaves its version unclassified.
 - Any other version — one the store held before it was adopted, one recorded
   for an observation, one a person made in the store directly — takes, for
   each entry it adds or changes, the higher of the scope that entry's bytes
   declare and its path's recorded scope. The version is at the highest of
   those.
+
+A path's recorded scope is never cleared by a removal
+([The recorded scope](#the-recorded-scope)), so an earlier version of a path
+that no entry holds now is still classified by it.
 
 A version that only removes entries needs no scope, because it adds no bytes.
 A version is **unclassified** when an entry it adds or changes has no scope by
@@ -1897,8 +1946,9 @@ An unclassified version recorded after the census is not covered. It is held,
 never sent (Replica Send Flow, step 3).
 
 > **Gap.** Nothing in this contract classifies a version after it is recorded.
-> Under shared custody, an entry a person creates in the store directly, with
-> no scope in its bytes, makes such a version, and a replica held on it stays
+> A write that declares no scope for a path that has none, and, under shared
+> custody, an entry a person creates in the store directly with no scope in
+> its bytes, each make such a version, and a replica held on it stays
 > `behind`, and says so. An edit to an entry that already has a recorded
 > scope does not, because the recorded scope carries to it. The remedy is left
 > unspecified rather than guessed at.
@@ -1927,9 +1977,10 @@ are what make it safe to declare:
 - **Nothing leaves unclassified.** Every version a replica receives is at a
   scope declared for it ([What would leave](#what-would-leave)). A version that
   is not is held, never sent.
-- **A plain replica holds nothing above `confidential`**
-  ([Derived Scope Ceiling](#derived-scope-ceiling)), wherever it is and
-  whoever holds it.
+- **A replica's ceiling does not depend on who holds it.** Its destination's
+  ceiling is derived from what was demonstrated about it, and a plain one is
+  capped, wherever it is and whoever holds it
+  ([Derived Scope Ceiling](#derived-scope-ceiling)).
 
 A copy on a machine the tenant owns, away from the machine that holds the
 store, gives durability without disclosure. It is capped the same way, because
@@ -1955,10 +2006,8 @@ places.
   every proposal uses it. `store_ceiling` is what the store alone allows. A
   consumer that reads only `ceiling` gets the safer answer.
 - A replica's own ceiling is derived from what was demonstrated about its
-  destination, by the [Derived Scope Ceiling](#derived-scope-ceiling) table,
-  and is `confidential` at most while the replica is plain.
-  `anonymous_read` comes first: a destination that anyone can read, or whose
-  anonymous read was not demonstrated to be refused, has the ceiling `public`.
+  destination, as [Derived Scope Ceiling](#derived-scope-ceiling) derives a
+  replica's.
 - **Bytes that have left have left.** Retiring a replica never raises the
   ceiling and never narrows effective custody.
 - **An undeclared copy counts.** A backend that can see a copy of the store
@@ -2536,7 +2585,8 @@ everything before it.
              such as sha256:<64 hex>; empty on create
 <after>      the identity of the bytes the change writes, in the same form;
              empty on delete
-<scope>      the scope the change declares; empty on delete
+<scope>      the scope the change declares; empty on delete, and on a
+             change that declares none
 <proposal>   the id of the proposal applied; empty on write
 <signed_at>  when the person signed, in decimal Unix seconds, UTC
 ```
@@ -3129,9 +3179,8 @@ types:
       prospective_ceiling:
         type: ScopeLevel
         required: true
-        description: The replica's ceiling as its claims would derive it, and
-          confidential at most while it is plain. The demonstration can only
-          lower it
+        description: The replica's ceiling as its claims would derive it (see
+          Derived Scope Ceiling). The demonstration can only lower it
       prospective_repository_ceiling:
         type: ScopeLevel
         required: true
@@ -3213,8 +3262,8 @@ types:
       ceiling:
         type: ScopeLevel
         required: true
-        description: Derived from what the destination demonstrated, and
-          confidential at most while the replica is plain. Never configured
+        description: Derived from what the destination demonstrated, as
+          Derived Scope Ceiling derives a replica's. Never configured
       credential:
         type: string
         required: false
@@ -3403,8 +3452,19 @@ types:
         description: Recorded. The scope the change declared — the write's, or
           the applied proposal's — against which its ceiling check was made.
           Never below the path's recorded scope or the scope the bytes declare
-          (see A scope only rises). Absent on delete. It is what classifies
+          (see A scope only rises). Absent on delete, and on a change that
+          declared none, whose version is unclassified. It is what classifies
           the version the change produced (see What would leave)
+      scope_basis:
+        type: enum
+        values: [bytes, recorded, chosen]
+        required: false
+        description: Recorded. Where scope came from — bytes when the bytes
+          declare it, recorded when the path's recorded scope gives it and the
+          bytes declare less, chosen when neither gives it and the change's
+          own declaration is all that stands behind it. chosen is asserted
+          unless the change carries the person's statement. Present exactly
+          when scope is
       actor:
         type: string
         required: true
@@ -3535,10 +3595,13 @@ types:
           refused with CONTENT_IF_MATCH_REQUIRED
       scope:
         type: ScopeLevel
-        required: true
-        description: The declared scope of the bytes. At least the path's
-          recorded scope and the scope the bytes declare, or the write is
-          refused with CONTENT_SCOPE_LOWERED. See A scope only rises
+        required: false
+        description: The declared scope of the bytes — a level a person chose,
+          or the one the bytes or the path's recorded scope give. Never filled
+          in by default. At least the path's recorded scope and the scope the
+          bytes declare, and present whenever either exists, or the write is
+          refused with CONTENT_SCOPE_LOWERED. Absent where neither exists and
+          nobody chose one. See Where a scope is declared
       statement:
         type: ChangeStatement
         required: false
@@ -3594,8 +3657,8 @@ types:
       scope:
         type: ScopeLevel
         required: false
-        description: The declared scope of the proposed bytes. Required for
-          create and modify, absent on delete. Checked as EntryWrite's is
+        description: The declared scope of the proposed bytes, as
+          EntryWrite's is, and checked as EntryWrite's is. Absent on delete
       on_behalf_of:
         type: string
         required: false
@@ -4215,12 +4278,13 @@ security:
       mechanism: Replica Sender sends from the service's own record and asks a
         destination only whether it holds just what was sent; a destination
         holding anything else stops sending
-    - rule: A plain replica never holds anything above confidential, whoever
-        holds its destination
-      mechanism: The Derived Scope Ceiling caps every plain replica at
-        confidential, the census refuses what would leave above that, and the
-        Replica Sender holds any later version above it. held_by is reported
-        and bound by the census, and decides nothing
+    - rule: A replica holds nothing above the ceiling its destination
+        demonstrated, and a plain one is capped, whoever holds its destination
+      mechanism: The Derived Scope Ceiling derives every replica's ceiling from
+        what was demonstrated, lowers it for a plain replica and for one that
+        demonstrated no enumerable_principals; the census refuses what would
+        leave above it, and the Replica Sender holds any later version above
+        it. held_by is reported and bound by the census, and decides nothing
     - rule: A repository's ceiling is the lowest of every place its bytes live,
         and retiring a replica never raises it
       mechanism: ceiling is derived from the store and every replica confirmed,
@@ -4240,12 +4304,15 @@ security:
         downgraded
       mechanism: Ceiling check before the storage proxy, publishing
         content.ceiling_exceeded
-    - rule: A scope only rises, and is never raised on a person's behalf
+    - rule: A scope only rises, is never raised on a person's behalf, and is
+        never lowered by any route
       mechanism: Write Flow step 3 refuses a declared scope below the path's
-        recorded scope or the scope the bytes declare, and bytes that declare
-        less than the recorded scope, with CONTENT_SCOPE_LOWERED. The change
-        records the scope it declared, which a person's statement signs. An
-        observation keeps the recorded scope whatever the bytes say
+        recorded scope or the scope the bytes declare, no declared scope where
+        either exists, and bytes that declare less than the recorded scope,
+        with CONTENT_SCOPE_LOWERED. A removal leaves the recorded scope in
+        place. The change records the scope it declared and where it came
+        from, which a person's statement signs. An observation keeps the
+        recorded scope whatever the bytes say. No operation declassifies
     - rule: An undeclared or unverified repository is treated as opaque
       mechanism: Registry default; attestation defaults to false
     - rule: A declaration with no disposition is refused
@@ -4534,7 +4601,11 @@ security:
 - [ ] A `scope:` line inside a fenced block, or anywhere but a frontmatter block that begins on the first line, declares nothing
 - [ ] An adopted entry whose bytes declare `scope: confidential` is recorded with that scope on the `declare` entry, and an out-of-band edit that removes the line is observed at `confidential`
 - [ ] An entry with no recorded scope and no scope in its bytes reports no `scope`, never `internal`
-- [ ] After a removal, a write creating the same path is checked against no recorded scope
+- [ ] After a removal of an entry recorded at `restricted`, a write creating the same path that declares `internal`, or declares no scope, is refused with `CONTENT_SCOPE_LOWERED`, and one declaring `restricted` is recorded at `restricted`
+- [ ] A write that declares no scope, to a path with no recorded scope whose bytes declare none, records a `ContentChange` with no `scope` and no `scope_basis`, and the version it produces is counted `unclassified` by a replica census
+- [ ] A write declaring `confidential` to a path with no recorded scope, whose bytes declare none, records `scope_basis` `chosen`; one whose bytes declare `scope: confidential` records `bytes`; one declaring the path's recorded scope, with bytes that declare less, records `recorded`
+- [ ] No request lowers a path's recorded scope: every write, proposal and decision that would is refused with `CONTENT_SCOPE_LOWERED`
+- [ ] A replica census counts an earlier version of a path that no entry holds now at the scope the log recorded for it
 - [ ] A proposal whose path's recorded scope rose above the proposal's scope after it was made is refused with `CONTENT_SCOPE_LOWERED` when applied, and stays `open`
 - [ ] An out-of-band change under shared custody produces a `ContentObservation` with provenance `external` and raises no tampering alert
 - [ ] An out-of-band change under exclusive custody is not produced by the reconciler, which is absent for exclusive repositories
@@ -4587,7 +4658,7 @@ security:
 - [ ] A `ProposalRequest` with no `if_match` is refused with `CONTENT_IF_MATCH_REQUIRED`, whatever its `action`
 - [ ] A `ProposalRequest` with `action` `create` and an `if_match` other than `""`, or with `action` `modify` or `delete` and `if_match` `""`, is refused with `CONTENT_PRECONDITION_NOT_APPLICABLE`
 - [ ] A `ProposalRequest` with `action` `create` and `if_match` `""` at a path that holds an entry is refused with `CONTENT_PRECONDITION_FAILED`, and no proposal is recorded
-- [ ] A `ProposalRequest` whose `action` is not `create`, `modify` or `delete`, whose `bytes` or `scope` is missing on `create` or `modify` or present on `delete`, or whose `bytes` is not valid base64, is refused with `INVALID_REQUEST`, and no proposal is recorded
+- [ ] A `ProposalRequest` whose `action` is not `create`, `modify` or `delete`, whose `bytes` is missing on `create` or `modify`, whose `bytes` or `scope` is present on `delete`, or whose `bytes` is not valid base64, is refused with `INVALID_REQUEST`, and no proposal is recorded
 - [ ] A proposal of bytes that are not valid UTF-8 records an `after` equal to the digest of exactly those bytes, and applying it writes exactly those bytes
 - [ ] `PUT /v1/content/entry` with `if_match` `""` creates the entry at a path that holds none, and is refused with `CONTENT_PRECONDITION_FAILED` at a path that holds one
 - [ ] `DELETE /v1/content/entry` with `if_match` `""` is refused with `CONTENT_PRECONDITION_NOT_APPLICABLE`
@@ -4629,8 +4700,9 @@ security:
 - [ ] A replica declaration where an earlier version holds a path under `.weblisk` is refused with `CONTENT_RESERVED_PATH`, though no entry holds that path now
 - [ ] A replica declaration against a destination that holds something this service did not send is refused with `CONTENT_NOT_EMPTY`, and nothing at the destination is changed
 - [ ] A confirmed declaration against a destination that has not yet registered the credential answers `CONTENT_ESTABLISH_INCOMPLETE` carrying `credential`, the replica is `establishing`, and nothing has been sent; the same declaration repeated after registration completes it with no second credential
-- [ ] Confirming, on an `exclusive` repository, a replica whose destination demonstrates neither its custody nor any attestation, and refuses anonymous read, records the replica `opaque` whatever its declaration claimed, and makes the repository's `ceiling` `internal` and its `effective_custody` `opaque`, leaves `store_ceiling` `critical` and `custody` `exclusive`, and a write declaring `confidential` is then refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
+- [ ] Confirming, on an `exclusive` repository, a replica whose destination demonstrates neither its custody nor any attestation, and refuses anonymous read, records the replica `opaque` whatever its declaration claimed, and makes the repository's `ceiling` `public` and its `effective_custody` `opaque`, leaves `store_ceiling` `critical` and `custody` `exclusive`, and a write declaring `internal` is then refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
 - [ ] A replica whose destination can be read with no credential, or whose anonymous read could not be tested, has `ceiling` `public`
+- [ ] A replica whose destination demonstrates `shared` custody with `attributable_writes` and `tamper_evident` but not `enumerable_principals`, and refuses anonymous read, has `ceiling` `public`
 - [ ] Retiring a confirmed replica, whether or not it was sent anything, leaves the repository's `ceiling` and `effective_custody` unchanged, destroys its credential, and deletes nothing at the destination
 - [ ] A replica confirmed while its destination is unreachable, and sent nothing, lowers the repository's `ceiling` at confirmation, and a write declaring a scope above the replica's ceiling is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
 - [ ] Retiring a replica that is already `retired` changes nothing and returns it with the first `retired_by`
