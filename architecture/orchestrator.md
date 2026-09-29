@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.1.0
+version: 2.2.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin]
 platform: any
 tier: free
@@ -251,6 +251,26 @@ declaration:
     - method: POST
       path: "/v1/admin/complete"
       operation: AdminComplete
+      auth: "admin:read"
+      provided: platform
+    - method: POST
+      path: "/v1/admin/model/agreements"
+      operation: AdminModelAgreementRecord
+      auth: "model:attest"
+      provided: platform
+    - method: GET
+      path: "/v1/admin/model/agreements"
+      operation: AdminModelAgreementList
+      auth: "admin:read"
+      provided: platform
+    - method: DELETE
+      path: "/v1/admin/model/agreements/{id}"
+      operation: AdminModelAgreementWithdraw
+      auth: "model:attest"
+      provided: platform
+    - method: GET
+      path: "/v1/admin/model/ceiling"
+      operation: AdminModelCeiling
       auth: "admin:read"
       provided: platform
   checks:
@@ -615,8 +635,10 @@ Lifecycle Agent, workflows to domain controllers, and peers to the federation
 layer; each provider specifies and serves its own, and
 [`architecture/admin`](admin.md) composes them behind one operator surface.
 
-Every endpoint here requires the stated `admin:` capability from
-[`protocol/types`](../protocol/types.md), carried in the caller's token.
+Every endpoint here requires the stated capability from
+[`protocol/types`](../protocol/types.md), carried in the caller's token: an
+`admin:` capability, or, for recording and withdrawing a model provider
+agreement, `model:attest`.
 Administration is a capability like any other, which is what allows an
 administrative interface to be a service holding a grant rather than a
 privileged position in the deployment.
@@ -642,21 +664,82 @@ privileged position in the deployment.
 | GET | /v1/admin/model | AdminModelGet | `admin:read` | This tenant's model backend — Studio is a client of it (platform-provided) |
 | PUT | /v1/admin/model | AdminModelPut | `admin:*` | Set this tenant's model backend (platform-provided) |
 | GET | /v1/admin/model/providers | AdminModelProviders | `admin:read` | Discovery on **this hub's host** (platform-provided) |
-| POST | /v1/admin/complete | AdminComplete | `admin:read` | Run a completion under this tenant's model policy (platform-provided) |
+| POST | /v1/admin/complete | AdminComplete | `admin:read` | Run a completion under this tenant's model policy, behind the destination gate (platform-provided) |
+| POST | /v1/admin/model/agreements | AdminModelAgreementRecord | `model:attest` | Record a model provider agreement (platform-provided) |
+| GET | /v1/admin/model/agreements | AdminModelAgreementList | `admin:read` | Every agreement, withdrawn and lapsed ones included (platform-provided) |
+| DELETE | /v1/admin/model/agreements/{id} | AdminModelAgreementWithdraw | `model:attest` | Withdraw an agreement (platform-provided) |
+| GET | /v1/admin/model/ceiling | AdminModelCeiling | `admin:read` | What a model backend may be sent now (platform-provided) |
 
-The four model routes are marked `provided: platform` in the declaration. The
-hub serves them and a client may rely on them; they are NOT generated. The CLI
+The model routes are marked `provided: platform` in the declaration. The hub
+serves them and a client may rely on them; they are NOT generated. The CLI
 installs them after generation, and they intercept their own paths ahead of the
 generated router.
 
 They are the CLI's surface rather than the tenant's: they read the model
 backend this workstation is configured with, discover which provider binaries
 are on its PATH, and run a completion through them. A generated component
-cannot implement that without reproducing the CLI's provider catalogue, and
-this document specifies no behaviour for them precisely because it is not the
-tenant's to specify. Asking a model for them produced four handlers against an
-unspecified contract, all of them shadowed the moment the gateway was
-installed.
+cannot implement that without reproducing the CLI's provider catalogue.
+Asking a model for them produced four handlers against an unspecified
+contract, all of them shadowed the moment the gateway was installed. So this
+document specifies one thing about them and nothing else of their behaviour:
+what a model destination requires, below.
+
+### A model is a destination
+
+A completion sends what it carries to a model provider, which is a destination
+with a ceiling ([`patterns/scope`](../patterns/scope.md#destination-ceilings)).
+The model routes are where the tenant applies that gate, holds the agreements
+that raise a ceiling, and answers what a ceiling is.
+
+**`POST /v1/admin/complete` applies the gate before it runs anything.** Its
+request carries `scope`: the highest scope of what the prompt carries, as the
+tenant reported it to the caller. A caller whose prompt carries nothing the
+tenant holds says `public`. The route finds the ceiling of the backend it would
+run, as `GET /v1/admin/model/ceiling` answers it, and refuses:
+
+- with `SCOPE_MISSING` when `scope` is absent;
+- with `SCOPE_CEILING_EXCEEDED` when `scope` is above the ceiling, or is
+  `restricted` or above whatever the ceiling.
+
+Each refusal carries a `DestinationRefusal` naming the backend and its ceiling,
+and runs nothing. The route never runs another backend instead. It cannot see
+where the text in a prompt came from, so `scope` is the caller's statement and
+the gate here is as good as the caller: that is why
+[`patterns/scope`](../patterns/scope.md#the-gate) binds every sender, a client
+included.
+
+**Agreements.** A `ProviderAgreement`
+([`patterns/scope`](../patterns/scope.md#model-providers)) is recorded and
+withdrawn only on a person's operator token holding `model:attest`, which
+[`protocol/types`](../protocol/types.md) marks *person only*.
+
+- `POST /v1/admin/model/agreements` takes the agreement's `party`, `backends`,
+  `component` where there is one, `agreement`, `agreement_digest`, `level` and
+  `not_after`. The route sets `id`, `recorded_by` from the token's
+  `identity_id`, and `recorded_at`, and never takes them from the body. It
+  returns the agreement as recorded.
+- `DELETE /v1/admin/model/agreements/{id}` withdraws it, setting
+  `withdrawn_by` and `withdrawn_at` the same way. Withdrawing one already
+  withdrawn changes nothing and returns it as recorded.
+- `GET /v1/admin/model/agreements` lists every agreement, withdrawn and lapsed
+  ones included, so a person can see what was attested and when it ended.
+- `GET /v1/admin/model/ceiling` returns a `ProviderCeiling` for the backend
+  `GET /v1/admin/model` reports, or for the backend `?backend=` names. It is
+  what a client reads before it sends.
+
+| Code | HTTP | When |
+|---|---|---|
+| `CREDENTIAL_REQUIRED` | 401 | The token is not a person's operator token ([`architecture/admin`](admin.md#error-handling)) |
+| `FORBIDDEN` | 403 | The token does not carry `model:attest` ([`protocol/spec`](../protocol/spec.md)) |
+| `INVALID_REQUEST` | 400 | A required field is missing, `backends` is empty, or `agreement_digest` is not `sha256:` and 64 lowercase hex characters |
+| `MODEL_AGREEMENT_LEVEL_REFUSED` | 400 | `level` is not `internal` or `confidential` |
+| `MODEL_AGREEMENT_LAPSE_INVALID` | 400 | `not_after` is not in the future, or is more than 90 days after the request |
+| `MODEL_AGREEMENT_EXISTS` | 409 | A name in `backends` is listed by an agreement that is current. The response names that agreement |
+| `NOT_FOUND` | 404 | No agreement of that `id` |
+
+Recording one publishes `system.model.agreement_recorded`, and withdrawing one
+`system.model.agreement_withdrawn`. Each is audited, recording who acted by
+identity id.
 
 `/v1/admin/overview` reports what the orchestrator knows — agent counts,
 namespace count, audit depth, health. Figures owned by components that are not
@@ -953,6 +1036,8 @@ events that all agents may subscribe to:
 |-------|-------|----------------|
 | `system.agent.registered` | `*` | New agent successfully registered |
 | `system.agent.deregistered` | `*` | Agent deregistered |
+| `system.model.agreement_recorded` | `*` | A person recorded a model provider agreement. Carries its `id`, `party`, `backends`, `level`, `not_after` and `recorded_by` |
+| `system.model.agreement_withdrawn` | `*` | A person withdrew one. Carries its `id`, `backends` and `withdrawn_by` |
 | `system.shutdown` | `*` | Orchestrator is shutting down gracefully |
 
 System events are published via the same HTTP-based pub/sub mechanism.
@@ -987,6 +1072,8 @@ Every operation creates an AuditEntry:
 | `namespace_grant` | Namespace ownership granted |
 | `namespace_release` | Namespace ownership released |
 | `event` | System event published |
+| `model_agreement_record` | A model provider agreement recorded |
+| `model_agreement_withdraw` | A model provider agreement withdrawn |
 
 Log to stderr in real-time AND persist to append-only flat-file
 storage (JSONL).
@@ -1235,6 +1322,11 @@ agents hold, which is theirs.
 - [ ] Every operation creates an `AuditEntry` logged to stderr and persisted to JSONL
 - [ ] Domain dependency status recalculated on registration/deregistration
 - [ ] Orchestrator does NOT handle tasks, strategies, context, observations, or approvals
-- [ ] Administrative endpoints are gated on `admin:` capabilities carried in the caller's token, not on a separate role model
+- [ ] Administrative endpoints are gated on the capability each declares — an `admin:` capability, or `model:attest` — carried in the caller's token, not on a separate role model
 - [ ] The orchestrator serves only the administrative endpoints backed by state it owns — operators, agents, and its own overview
 - [ ] `/v1/admin/overview` reports figures owned by undeployed components as unavailable, never as zero
+- [ ] `POST /v1/admin/complete` with no `scope` is refused with `SCOPE_MISSING`, one above the ceiling `GET /v1/admin/model/ceiling` reports for the backend is refused with `SCOPE_CEILING_EXCEEDED`, and one at `restricted` is refused whatever the ceiling; none of them runs a backend
+- [ ] `POST /v1/admin/model/agreements` and `DELETE /v1/admin/model/agreements/{id}` refuse a token without `model:attest` with `FORBIDDEN`, including one holding `admin:*`, and a service's or an agent's token with `CREDENTIAL_REQUIRED`
+- [ ] A recorded agreement's `recorded_by` is the token's `identity_id`, whatever the body says
+- [ ] An agreement whose `level` is `restricted` is refused with `MODEL_AGREEMENT_LEVEL_REFUSED`, one whose `not_after` is 91 days ahead with `MODEL_AGREEMENT_LAPSE_INVALID`, and one listing a backend a current agreement lists with `MODEL_AGREEMENT_EXISTS`
+- [ ] `GET /v1/admin/model/ceiling` answers `internal` for a backend no current agreement lists, and `internal` again once the agreement that listed it lapses or is withdrawn

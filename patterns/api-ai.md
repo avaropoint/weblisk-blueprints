@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: api-ai
-version: 1.0.0
-requires: [protocol/types, architecture/agent, architecture/gateway]
+version: 2.0.0
+requires: [protocol/types, patterns/scope, architecture/agent, architecture/gateway]
 platform: any
 tier: free
 -->
@@ -41,6 +41,20 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
+  - blueprint: patterns/scope
+    version: ">=2.0.0 <3.0.0"
+    bindings:
+      types:
+        # An enum: it declares values, not fields, so nothing is bound FROM it.
+        - name: ScopeLevel
+        - name: ProviderCeiling
+          fields_used: [backend, ceiling]
+        - name: DestinationRefusal
+          fields_used: [destination, ceiling, items]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
   - blueprint: architecture/agent
     version: ">=1.0.0 <2.0.0"
     on_change:
@@ -65,8 +79,9 @@ requires:
 
 1. **Provider-agnostic** — All intelligence access flows through a universal contract that abstracts provider-specific details. Switching between local and remote is a configuration change, not a code change.
 2. **Local-first** — The default configuration uses local models (Ollama) with no external API keys, no external dependencies, and no data leaving the deployment.
-3. **Centralized gateway** — Rather than each agent implementing its own provider integration, the api-ai pattern provides a single gateway that enforces rate limits, tracks usage, and routes to the configured provider.
+3. **Centralized gateway** — Rather than each agent implementing its own provider integration, the api-ai pattern provides a single gateway that enforces rate limits, tracks usage, applies the destination gate, and routes to the configured provider.
 4. **Structured extraction** — Beyond free-form chat, the pattern supports schema-validated data extraction, ensuring AI outputs conform to expected shapes.
+5. **A provider is a destination** — Every provider is a model provider with a ceiling ([`patterns/scope`](scope.md#model-providers)). Nothing reaches a provider above its ceiling, and no routing decision — resolution, fallback, failover, downgrade or override — moves a request to one whose ceiling is below it. See [Destination Ceilings](#destination-ceilings).
 
 ---
 
@@ -86,13 +101,17 @@ contracts:
           type: "[]Message"
           required: true
           description: Conversation history
+        - name: scope
+          type: ScopeLevel
+          required: false
+          description: The highest scope of what the request carries. Absent is refused with SCOPE_MISSING — see Destination Ceilings
         - name: temperature
           type: float
           required: false
           description: Sampling temperature (0.0–2.0)
-      inherits: ChatRequest/ChatResponse shape
+      inherits: ChatRequest/ChatResponse shape, and the destination gate on every provider it reaches
       overridable: true
-      override_constraints: Must preserve Message schema and Usage reporting
+      override_constraints: Must preserve Message schema and Usage reporting. The destination gate is not overridable
 
     - name: structured-extraction
       description: Extract typed data from text using a JSON schema
@@ -105,9 +124,13 @@ contracts:
           type: object
           required: true
           description: JSON Schema defining output shape
-      inherits: ExtractRequest/ExtractResponse shape
+        - name: scope
+          type: ScopeLevel
+          required: false
+          description: As for conversational-inference
+      inherits: ExtractRequest/ExtractResponse shape, and the destination gate on every provider it reaches
       overridable: true
-      override_constraints: Must validate output against provided schema
+      override_constraints: Must validate output against provided schema. The destination gate is not overridable
 
   types:
     - name: ChatRequest
@@ -164,7 +187,7 @@ local and remote is a configuration change, not a code change.
 
 ```yaml
 name: api-ai
-version: 1.0.0
+version: 2.0.0
 description: AI-first communication with language models and intelligence services
 
 providers:
@@ -218,6 +241,7 @@ Multi-turn conversational inference with optional tool use.
 ```json
 {
   "model": "llama3",
+  "scope": "internal",
   "messages": [
     {"role": "system", "content": "You are an SEO expert."},
     {"role": "user", "content": "Analyze this title tag: <title>Home</title>"}
@@ -284,6 +308,7 @@ Single-shot completion without conversation history.
 ```json
 {
   "model": "codellama",
+  "scope": "public",
   "prompt": "Write a Go function that validates an ML-DSA-65 signature:",
   "temperature": 0.3,
   "max_tokens": 1024,
@@ -432,6 +457,10 @@ types:
         type: string
         required: false
         description: "Model name (uses default if omitted)"
+      scope:
+        type: ScopeLevel
+        required: false
+        description: "The highest scope of what the request carries, as the tenant reported it to the caller. Absent when any of it is undeclared, and then refused with SCOPE_MISSING. A request carrying nothing the tenant holds says public. See Destination Ceilings"
       messages:
         type: "[]Message"
         required: true
@@ -528,6 +557,10 @@ types:
         type: string
         required: false
         description: "Model name"
+      scope:
+        type: ScopeLevel
+        required: false
+        description: "As on ChatRequest"
       input:
         type: string
         required: true
@@ -552,6 +585,10 @@ types:
         type: string
         required: false
         description: "Embedding model name"
+      scope:
+        type: ScopeLevel
+        required: false
+        description: "As on ChatRequest"
       input:
         type: "[]string"
         required: true
@@ -709,7 +746,9 @@ Callers MAY specify both `model` and `provider` to bypass routing:
 
 When `provider` is specified, the router skips resolution and sends
 directly to that provider. If the model is not available on the
-specified provider, return 404.
+specified provider, return 404. The destination gate still applies: a
+named provider whose ceiling is below the request's `scope` refuses the
+request, and the router never sends it to another provider instead.
 
 ### Provider Health-Aware Routing
 
@@ -718,7 +757,8 @@ When a provider is unhealthy:
 
 1. Remove its models from the active routing table.
 2. Route requests for those models to the next provider in the
-   fallback chain.
+   fallback chain whose ceiling covers the request's `scope`, and
+   refuse the request when none does.
 3. Re-check the provider on the next health poll interval (default:
    60s).
 4. Restore routing when the provider returns to healthy.
@@ -738,14 +778,47 @@ ai_budget_action: downgrade
 
 When `downgrade` is configured and an agent exceeds its budget, the
 router automatically selects a cheaper model from the fallback chain
-(e.g., gpt-4o → gpt-4o-mini → llama3). When `block` is configured,
-return 429 with `TOKEN_BUDGET_EXCEEDED`.
+(e.g., gpt-4o → gpt-4o-mini → llama3), on a provider whose ceiling
+covers the request's `scope`. Where none does, the request is refused
+as `block` refuses it. When `block` is configured, return 429 with
+`TOKEN_BUDGET_EXCEEDED`.
+
+### Destination Ceilings
+
+Every provider this endpoint reaches is a model provider
+([`patterns/scope`](scope.md#model-providers)), and its ceiling is the
+one the tenant gives the provider's key under `providers:`, as
+`GET /v1/admin/model/ceiling?backend=<key>` answers it
+([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)).
+A provider key no current agreement lists has the ceiling `internal`.
+
+Before any request is sent, this endpoint applies the destination gate
+([`patterns/scope`](scope.md#the-gate)) to the request's `scope` and
+the chosen provider's ceiling:
+
+- **No scope** — refused with `SCOPE_MISSING`.
+- **`restricted` or above** — refused with `SCOPE_CEILING_EXCEEDED`,
+  whatever any provider's ceiling.
+- **Above the chosen provider's ceiling** — the router may choose only
+  among providers whose ceiling covers `scope`: in resolution, the
+  fallback chain, a failover, a downgrade and an override alike. When
+  none does, the request is refused with `SCOPE_CEILING_EXCEEDED`.
+
+Each refusal carries a `DestinationRefusal` naming each provider
+considered and its ceiling, and sends nothing. The gate is never
+audit-only, in any environment profile. A request is never moved to a
+provider whose ceiling is below its `scope`, and never with its
+content cut down to fit. When a request is served by a provider other
+than the one first chosen, the response's `provider` says so.
 
 ## Implementation Notes
 
 - **Provider failover**: If the primary provider returns a 5xx or
   times out, the endpoint SHOULD fall back to a secondary provider
-  if configured. Failover is transparent to the caller.
+  if one is configured and its ceiling covers the request's `scope`
+  (see [Destination Ceilings](#destination-ceilings)). Otherwise it
+  refuses. The response's `provider` names the provider that ran the
+  request.
 - **Streaming**: When `stream: true`, the response MUST use
   Server-Sent Events (SSE). Each event contains a partial
   `ChatResponse` with incremental `message.content`.
@@ -762,7 +835,7 @@ return 429 with `TOKEN_BUDGET_EXCEEDED`.
   extractions trigger one retry with an error-correction prompt.
 - **Model routing**: If the requested model is not available on the
   configured provider, the endpoint SHOULD check other providers
-  before returning 404.
+  whose ceiling covers the request's `scope` before returning 404.
 - **Input limits**: Request body MUST be capped at 1 MB. Prompts
   exceeding the model's context window SHOULD return 400 with
   `INVALID_REQUEST` and the model's token limit in `detail`.
@@ -779,7 +852,9 @@ return 429 with `TOKEN_BUDGET_EXCEEDED`.
 - [ ] GET `/ai/models` lists all configured providers and models
 - [ ] GET `/ai/health` reports per-provider status and latency
 - [ ] Unknown model returns 404 with helpful error
-- [ ] Provider failover is transparent to the caller
+- [ ] Provider failover goes only to a provider whose ceiling covers the request's `scope`, is refused with `SCOPE_CEILING_EXCEEDED` when none does, and the response's `provider` names the provider that ran it
+- [ ] A request with no `scope` is refused with `SCOPE_MISSING`, and one at `restricted` with `SCOPE_CEILING_EXCEEDED`, whatever any provider's ceiling, and neither reaches a provider
+- [ ] A request whose `scope` is `confidential` goes only to a provider a current agreement lists at `confidential`, through resolution, the fallback chain, a `downgrade` and a request-level `provider` override alike
 - [ ] Token usage is tracked per request with trace_id attribution
 - [ ] Streaming responses use SSE format
 - [ ] Streaming request to a non-streaming model returns 406 Not Acceptable

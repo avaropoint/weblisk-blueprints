@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: threat-model
-version: 1.2.2
+version: 1.2.3
 requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/content, architecture/data-security, architecture/admin, architecture/observability, architecture/enforcement, patterns/contract]
 platform: any
 tier: free
@@ -155,7 +155,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/enforcement
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
       behaviors:

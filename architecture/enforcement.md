@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: enforcement
-version: 1.1.1
+version: 2.0.0
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, patterns/privacy, architecture/orchestrator, architecture/gateway]
 platform: any
 tier: free
@@ -280,7 +280,21 @@ on a blocked list. Evaluates payload scope to prevent scope leakage
 — restricted-scope data cannot be sent to unclassified external
 endpoints, and nothing above its ceiling, or undeclared, is sent to a
 destination [`patterns/scope`](../patterns/scope.md#destination-ceilings)
-gives a ceiling, such as a model provider.
+gives a ceiling, such as a model provider. That check is the destination
+gate, and it denies in every environment profile
+([`patterns/scope`](../patterns/scope.md#the-gate)).
+
+**A model provider's endpoint is known from the tenant's model
+configuration.** A target is a model provider's when the tenant's model
+configuration names it: the address of the backend `GET /v1/admin/model`
+reports, and of each provider under
+[`patterns/api-ai`](../patterns/api-ai.md#blueprint-format)'s `providers:`. Such
+a target is reached only through the tenant's model route
+([`patterns/scope`](../patterns/scope.md#the-gate)), and a call to it from
+anything else is denied. A model endpoint the configuration does not name
+cannot be recognised here: a call to it is judged as a call to any
+unclassified endpoint is. This limit is stated with the rule so that the
+rule is not read as covering every model.
 
 **Response Boundary** — Intercepts every response produced by an
 agent before it is delivered to the calling party (gateway, another
@@ -525,7 +539,7 @@ external_proxy:
         protocol: enum(http, https, smtp, webhook, grpc)
         target: string             # URL, email address, or endpoint
         method: string             # GET, POST, SEND, etc.
-        payload_scope: ScopeLevel  # Highest scope in outbound payload
+        payload_scope: ScopeLevel  # Highest scope in outbound payload; absent when any part of it is undeclared
         payload_size: integer      # Bytes
     output:
       decision: enum(allow, require_approval, deny, quarantine)
@@ -535,8 +549,9 @@ external_proxy:
       - Check quarantine store — if agent quarantined → deny
       - Verify agent has declared external capability for the protocol
       - Check target against blocked endpoint list
+      - A target the tenant's model configuration names is a model provider's — a call to it from anything but the tenant's model route → deny with ENFORCEMENT_BLOCKED_TARGET
       - Evaluate payload scope — restricted+ data to unclassified endpoints → deny
-      - A target patterns/scope gives a ceiling (Destination Ceilings), such as a model provider, is classified by that ceiling — payload scope above it → deny; payload scope undeclared → deny with SCOPE_MISSING. Deny before any masking below, never mask to fit
+      - A target patterns/scope gives a ceiling (Destination Ceilings), such as a model provider, is classified by that ceiling — payload scope above it → deny; payload scope undeclared → deny with SCOPE_MISSING. This is the destination gate, and it resolves to deny in every environment profile, never audit-only. Deny before any masking below, never mask to fit
       - Build PolicyContext from agent, target, scope
       - Evaluate policies via patterns/policy
       - Apply privacy controls:
@@ -551,7 +566,7 @@ external_proxy:
       - code: ENFORCEMENT_QUARANTINED
         when: Agent is in quarantine store
       - code: ENFORCEMENT_BLOCKED_TARGET
-        when: Target is on the blocked endpoint list
+        when: Target is on the blocked endpoint list, or is a model provider's endpoint and the caller is not the tenant's model route
       - code: ENFORCEMENT_SCOPE_LEAKAGE
         when: Payload scope exceeds target endpoint classification — for a target patterns/scope gives a ceiling, that ceiling
       - code: SCOPE_MISSING
@@ -1579,7 +1594,8 @@ in the relevant `platforms/*.md` blueprint. All platforms MUST satisfy:
 - [ ] Message boundary intercepts all messages — enforcement evaluates policies and logs decisions before delivery
 - [ ] Storage boundary blocks scope violations — agent with `internal` scope cannot write to `restricted` resource (ENFORCEMENT_SCOPE_VIOLATION)
 - [ ] External boundary prevents scope leakage — `restricted`-scope data cannot be sent to unclassified external endpoints (ENFORCEMENT_SCOPE_LEAKAGE)
-- [ ] A model provider with no current agreement attestation is sent nothing above `internal`, and nothing undeclared (SCOPE_MISSING); the call is denied before any masking, never masked to fit ([`patterns/scope`](../patterns/scope.md#destination-ceilings))
+- [ ] A model provider is sent nothing above the ceiling [`patterns/scope`](../patterns/scope.md#model-providers) gives it, and nothing undeclared (`SCOPE_MISSING`); the call is denied before any masking, never masked to fit, and is denied in the `development` profile as in `production`
+- [ ] A call to an endpoint the tenant's model configuration names, from anything but the tenant's model route, is denied with `ENFORCEMENT_BLOCKED_TARGET`
 - [ ] Response boundary blocks output contract violations — agent cannot return fields outside its declared output contract (ENFORCEMENT_OUTPUT_CONTRACT_VIOLATION)
 - [ ] Response boundary blocks output scope exceeded — agent cannot return data at a scope higher than its declared operational scope (ENFORCEMENT_OUTPUT_SCOPE_EXCEEDED)
 - [ ] Quarantine blocks all four boundaries — quarantined agent's messages, storage writes, external calls, and responses are all rejected

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 1.1.3
+version: 1.1.4
 requires: [protocol/types, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement]
 platform: any
 tier: free
@@ -134,7 +134,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/enforcement
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: ViolationRecord

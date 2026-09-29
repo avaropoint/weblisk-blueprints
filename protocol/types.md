@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.3.0
+version: 1.4.0
 requires: []
 platform: any
 tier: free
@@ -344,6 +344,14 @@ request is [`architecture/content`](../architecture/content.md#proposals).
 a repository outside the tenant takes two grants: a replica with no credential
 reaches nothing, and a credential with no replica is sent nothing
 ([`architecture/content`](../architecture/content.md#who-may-declare-a-replica)).
+
+**Model capabilities:**
+- `model:attest` — record and withdraw an agreement attestation, which raises what a model provider may be sent ([`patterns/scope`](../patterns/scope.md#model-providers)). *Person only*
+
+`model:attest` is person only because it decides what leaves the tenant for a
+party outside it, and it is not in the `admin` family, so `admin:*` does not
+carry it. A service that administers a tenant therefore cannot raise a model
+provider's ceiling.
 
 **Fabric capabilities:**
 - `fabric:read` — read relationships, coverage, impact, lineage and the ledger projection

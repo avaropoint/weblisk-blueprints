@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.8.0
+version: 2.9.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -658,7 +658,7 @@ contracts:
         - The role names are exactly `viewer`, `auditor`, `operator` and `admin`
         - Capabilities MUST be derived from the role, never stored per operator
         - The `operator` role MUST carry `admin:read`, `admin:approve` and `admin:strategy` — it is the role every `operator+` endpoint in this document is gated on
-        - Each `content:` capability MUST be carried by the roles the Operator Roles table gives it, and a capability `protocol/types` marks person only by no role a service subject holds
+        - Each `content:` capability, and `model:attest`, MUST be carried by the roles the Operator Roles table gives it, and a capability `protocol/types` marks person only by no role a service subject holds
         - Every capability this document names MUST be carried by some role; a capability no role holds is a constant, not a permission
         - The last active admin MUST NOT be removable or demotable
         - A role change MUST be audited with the previous and new role
@@ -1055,16 +1055,15 @@ a failed registration.
 
 | Role | Capabilities | Description |
 |------|-------------|-------------|
-| **admin** | `admin:*`, and every `content:` capability | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, and declare their replicas |
+| **admin** | `admin:*`, `model:attest`, and every `content:` capability | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, declare their replicas, and record model provider agreements |
 | **operator** | `admin:read`, `admin:approve`, `admin:strategy`, `content:read`, `content:describe`, `content:write`, `content:propose`, `content:decide`, `content:reconcile` | Day-to-day operations — view everything, approve recommendations, manage strategies, write documents and decide proposals |
 | **viewer** | `admin:read`, `content:read`, `content:describe` | Read-only — view dashboards, logs, status and documents. Cannot modify anything |
 | **auditor** | `admin:read`, `admin:audit`, `content:read`, `content:describe` | Read-only plus full audit log access with export capability |
 
 A role is held by an operator, and an operator is a person, so a role may carry
 a capability [`protocol/types`](../protocol/types.md) marks *person only*.
-`content:write`, `content:decide`, `content:replicate` and `content:connect`
-reach a person this way and reach a service by no route: a service subject is
-granted no role that carries one
+Every such capability reaches a person this way and reaches a service by no
+route: a service subject is granted no role that carries one
 ([`patterns/principal-identity`](../patterns/principal-identity.md),
 `service-subject-constraints`).
 
