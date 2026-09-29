@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: mcp
-version: 1.0.1
+version: 1.0.2
 requires: [protocol/types, protocol/spec, architecture/agent, architecture/gateway, patterns/scope, patterns/safety]
 platform: any
 tier: free
@@ -68,7 +68,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

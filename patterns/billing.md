@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: billing
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/types, patterns/scope, patterns/governance]
 platform: any
 tier: free
@@ -55,7 +55,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

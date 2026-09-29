@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: enforcement
-version: 1.1.0
+version: 1.1.1
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, patterns/privacy, architecture/orchestrator, architecture/gateway]
 platform: any
 tier: free
@@ -118,7 +118,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=1.2.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: ScopeLevel

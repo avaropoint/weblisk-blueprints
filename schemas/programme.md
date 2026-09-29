@@ -738,9 +738,10 @@ This section says where a programme declares one.
 | `scope_metadata` | a register column | `custom_labels`, as on a spec |
 
 `custom_labels` is `patterns/scope`'s field, and nothing else under the two
-`_metadata` keys is read. A label never sets a level, so a label is refused
-where no level is declared beside it. A value that is not a `ScopeLevel` is
-refused too, and the file is named.
+`_metadata` keys is read. A label is refused where no level is declared beside
+it, and a value that is not a `ScopeLevel` is refused too, and the file is
+named. How a label and the level beside it combine is
+[`patterns/scope`](../patterns/scope.md#a-label-and-its-level)'s.
 
 ### `artifact_scope` is never spelled `scope`
 

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 1.2.0
+version: 2.0.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -84,10 +84,12 @@ requires:
    fully enforced.
 
 5. **Opt-in extensibility** — The five built-in levels cover most
-   use cases. Domains MAY define custom labels that map to a base
-   level for interoperability. Custom labels extend — they never
-   replace — the built-in model. Unknown custom labels resolve to
-   the mapped base level during cross-boundary transfers.
+   use cases. Domains MAY define custom labels, each registered with
+   the least level it may be declared with. Custom labels extend —
+   they never replace — the built-in model: every declaration carries
+   one of the five levels beside its labels, so a component that does
+   not know a label enforces the level declared with it (see
+   [A label and its level](#a-label-and-its-level)).
 
 ---
 
@@ -115,10 +117,10 @@ contracts:
         - name: custom_labels
           type: "[]string"
           required: false
-          description: Domain-specific labels that map to the base level for interoperability
+          description: Domain-specific labels carried beside the level. Never a level; a registered label's maps_to is the least level it may be declared with
       inherits: Scope metadata attachment, level validation, propagation rule assignment
       overridable: true
-      override_constraints: Level must be one of the five built-in values or a registered custom label that maps to a built-in level
+      override_constraints: Level must be one of the five built-in values, and at least the maps_to of every registered custom label the declaration carries
 
     - name: scope-propagation
       description: Carry scope across component boundaries — agent-to-agent, hub-to-hub, hub-to-client
@@ -456,7 +458,7 @@ types:
       - name: custom_labels
         type: "[]string"
         required: false
-        description: Domain-specific labels that extend the base level (e.g., ["pii", "financial", "hipaa"])
+        description: Domain-specific labels carried beside level (e.g., ["pii", "financial", "hipaa"]). Never a level. See A label and its level
       - name: declared_by
         type: string
         required: false
@@ -1085,8 +1087,8 @@ replacing it.
 
 ### Label Registration
 
-Custom labels are registered at the domain level and mapped to a
-base scope level:
+Custom labels are registered at the domain level. Each names in
+`maps_to` the least level it may be declared with:
 
 ```yaml
 custom_labels:
@@ -1107,21 +1109,45 @@ custom_labels:
     description: "System telemetry and metrics data"
 ```
 
+### A label and its level
+
+A label is never a level. It is carried beside one, and these rules decide how
+the two combine, for every entity including a content entry:
+
+1. **The level is always one of the five.** A declaration whose level is a
+   label, registered or not, or any other value, is refused with
+   `SCOPE_INVALID_LEVEL`. A label with no level beside it declares no level.
+2. **A registered label sets the least level it may be declared with.** Its
+   `maps_to` is that level. A declaration whose level is below the `maps_to` of
+   a registered label it carries is refused, and never raised to fit. The
+   refusal names the label and both levels. This pattern's code for it is
+   `SCOPE_INVALID_LEVEL`. A component whose contract names its own code for a
+   declaration below what applies to it uses that one, as
+   [`architecture/content`](../architecture/content.md#a-scope-only-rises)
+   uses `CONTENT_SCOPE_LOWERED`.
+3. **A label the component has not registered sets nothing.** It is carried
+   and preserved, and the declared level is enforced.
+
+So `scope: confidential` with `pii`, where `pii` is registered as above, is
+refused, and `scope: restricted` with `pii` is `restricted`. Where `pii` is
+not registered, the first is `confidential`, carrying `pii`.
+
 ### Label Resolution
 
-When a component encounters a custom label it does not recognize,
-it resolves the label to its mapped base level:
+When a component encounters a custom label it does not recognize, it
+enforces the level declared beside it:
 
 ```
-Entity scope: { level: restricted, custom_labels: ["hipaa"] }
+Entity scope: { level: critical, custom_labels: ["hipaa"] }
 
 Component A (knows "hipaa"): applies HIPAA-specific protections
-Component B (doesn't know "hipaa"): treats as "restricted" (mapped base level)
+Component B (doesn't know "hipaa"): enforces "critical", the declared level
 ```
 
-This ensures interoperability: custom labels add context for
-components that understand them, but every component can fall back
-to the base level.
+This ensures interoperability: custom labels add context for components that
+understand them, and every component enforces the level. Where `hipaa` is
+registered, that level is at least its `maps_to`, because rule 2 was checked
+when it was declared.
 
 ---
 
@@ -1136,7 +1162,7 @@ federation_transfer:
   target_hub: "partner-org"
   entity_scope:
     level: confidential
-    custom_labels: ["pii"]
+    custom_labels: ["financial"]
     declared_by: "acme-corp::content-analyzer"
   federation_policy:
     allow_scope_levels: [public, internal, confidential]
@@ -1154,7 +1180,7 @@ federation_transfer:
    environment profile on top of the preserved scope. If the
    receiving hub's policies are stricter, the stricter rules apply.
 4. **Custom label passthrough** — Unknown custom labels are preserved
-   in metadata but resolved to their base level for enforcement.
+   in metadata, and the level declared beside them is enforced.
 
 ---
 
@@ -1167,7 +1193,7 @@ federation_transfer:
 | `SCOPE_EXCEEDED` | 403 | permanent | Entity scope exceeds component's operational scope |
 | `SCOPE_MISSING` | 400 | permanent | Entity has no scope declaration and `reject_unscoped` is enabled, or it would be sent to a destination ([Destination Ceilings](#destination-ceilings)) |
 | `SCOPE_PROPAGATION_FAILED` | 500 | transient | Scope metadata could not be attached to transfer envelope |
-| `SCOPE_INVALID_LEVEL` | 400 | permanent | Declared scope level is not a valid built-in level or registered custom label |
+| `SCOPE_INVALID_LEVEL` | 400 | permanent | Declared scope level is not one of the five built-in levels, or is below the `maps_to` of a registered custom label the declaration carries ([A label and its level](#a-label-and-its-level)) |
 | `SCOPE_FEDERATION_DENIED` | 403 | permanent | Receiving hub does not accept this scope level from federated peers |
 
 ### Error Response Examples
@@ -1218,9 +1244,10 @@ federation_transfer:
   that have no explicit scope declaration. Implementations SHOULD
   log a warning when defaulting is applied, as it may indicate a
   missing classification.
-- Custom labels are resolved to their base level during cross-boundary
-  transfers. Components SHOULD preserve unknown labels in metadata
-  for downstream components that may understand them.
+- A label never stands in for the level during a cross-boundary
+  transfer: the level travels beside it. Components SHOULD preserve
+  unknown labels in metadata for downstream components that may
+  understand them.
 - Environment profiles are loaded at component startup from
   configuration. Profile changes require a component restart or
   configuration reload — they do not change mid-request.
@@ -1253,8 +1280,9 @@ federation_transfer:
 - [ ] Development environment permits audit-only enforcement for restricted scope
 - [ ] Production environment enforces all scope levels at maximum strictness
 - [ ] Critical scope is enforced (not just audited) in ALL environments including development
-- [ ] Custom labels map to a base built-in level for interoperability
-- [ ] Unknown custom labels resolve to their mapped base level during cross-boundary transfers
+- [ ] A declaration whose level is a custom label, or anything but one of the five built-in levels, is refused with `SCOPE_INVALID_LEVEL`
+- [ ] A declaration whose level is below the `maps_to` of a registered custom label it carries is refused, naming the label and both levels, and is never raised to fit
+- [ ] A component that does not know a custom label preserves it and enforces the level declared beside it, during cross-boundary transfers included
 - [ ] `scope.violation` events are emitted on every scope boundary violation
 - [ ] `scope.override` events are emitted when environment profiles modify enforcement
 - [ ] Both `scope` (string) and `scope_metadata` (object) fields present on all envelopes

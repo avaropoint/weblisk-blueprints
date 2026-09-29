@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.2.0
+version: 2.3.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -91,7 +91,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/scope
-    version: ">=1.2.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         # An enum: it declares values, not fields, so nothing is bound FROM it.
@@ -618,7 +618,7 @@ interfaces:
 | `CONTENT_PRECONDITION_FAILED` | conflict | `if_match` does not equal the identity of what it names — an entry's stored digest on a write or a proposal, a placement's census digest on an adoption, a replica census's digest, over what would leave and where it would go, on a replica declaration, a proposal's `before` on a decision to apply it. The empty string where an entry exists, on a write, a proposal to create, or a decision to apply one | Refuse. Return both digests. Never merge, never overwrite, never adopt. On a decision to apply, record the proposal `stale` and write nothing |
 | `CONTENT_IF_MATCH_REQUIRED` | validation | A write, a removal or a proposal arrived with no `if_match`. The empty string is a precondition, not its absence | Refuse. A write with no precondition is a blind overwrite, and a proposal with none cannot be told stale |
 | `CONTENT_CUSTODY_CEILING_EXCEEDED` | policy | Declared scope exceeds the repository ceiling, or something a replica would receive exceeds that replica's ceiling | Refuse, naming required and actual, and on a replica each path above it. Never downgrade the scope |
-| `CONTENT_SCOPE_LOWERED` | policy | A write or a proposal declares a scope below its path's recorded scope, or below the scope its own bytes declare, or declares none where either exists; or its bytes declare a scope below the path's recorded scope. A removal never ends a recorded scope, so this also refuses a path created again below the scope last recorded for it. See [An Entry's Scope](#an-entrys-scope) | Refuse, naming both levels and where each was declared. Never record the lower scope, and never raise the declared one to fit |
+| `CONTENT_SCOPE_LOWERED` | policy | A write or a proposal declares a scope below its path's recorded scope, below the scope its own bytes declare, or below the `maps_to` of a label its bytes carry that the tenant registers, or declares none where a recorded scope or the bytes give one; or its bytes declare a scope below the path's recorded scope. A removal never ends a recorded scope, so this also refuses a path created again below the scope last recorded for it. See [An Entry's Scope](#an-entrys-scope) | Refuse, naming both levels and where each was declared. Never record the lower scope, and never raise the declared one to fit |
 | `SCOPE_INVALID_LEVEL` | validation | A write or a proposal declares a scope, on the change or under `scope:` or `classification:` in its bytes, that is not a `ScopeLevel`. The code is [`patterns/scope`](../patterns/scope.md#scope-related-errors)'s | Refuse, naming where the value was found and the value |
 | `CONTENT_CUSTODY_UNDECLARED` | policy | Repository has no declared custody | Treat as `opaque`, apply the `internal` ceiling, and record the degradation |
 | `CONTENT_PATH_REFUSED` | validation | Traversal segment or escaping symlink — including a placement locator that is absolute, carries a scheme or an authority, or climbs out of its backend's root | Refuse the request as written. Do not normalise and proceed |
@@ -732,8 +732,9 @@ interfaces:
 2. Path Resolver confines the path as above
 3. Scope and ceiling check. First the declared scope against the rules of
    [A scope only rises](#a-scope-only-rises): none, or one below the path's
-   recorded scope or below the scope the bytes declare, where either exists,
-   or bytes declaring a scope below the recorded one → refuse with
+   recorded scope or below the scope the bytes declare, where either exists;
+   one below the `maps_to` of a registered label the bytes carry; or bytes
+   declaring a scope below the recorded one → refuse with
    `CONTENT_SCOPE_LOWERED`; a scope that is not a `ScopeLevel` → refuse with
    `SCOPE_INVALID_LEVEL`. Nothing is raised to fit. Then the declared scope
    against the repository's derived ceiling; a change that declares none is
@@ -1241,9 +1242,10 @@ An entry's scope is declared in two places, and nowhere else. A replica's
   frontmatter block, which ends at the next line that is `---`. A top-level
   `scope:` key in that block is the document's own declaration of its level.
   A top-level `scope_metadata:` beside it may carry `custom_labels`, as
-  `patterns/scope`'s `ScopeDeclaration` does. A label never sets a level, and
-  nothing else in `scope_metadata:` is read. An entry in any other form
-  declares nothing in its bytes.
+  `patterns/scope`'s `ScopeDeclaration` does, and nothing else in
+  `scope_metadata:` is read. How a label combines with the level beside it is
+  [`patterns/scope`](../patterns/scope.md#a-label-and-its-level)'s. An entry
+  in any other form declares nothing in its bytes.
 
 **`classification:` is read, and never written.** In a document whose
 frontmatter has `classification:` and no `scope:`, it declares that level
@@ -1297,6 +1299,11 @@ makes a classification permanent, and nothing in this contract lowers one.
    is not a `ScopeLevel` is refused with `SCOPE_INVALID_LEVEL`, naming the
    value and where it was found. A level somebody wrote and nobody can read is
    not the absence of one.
+4. A write or a proposal is refused with `CONTENT_SCOPE_LOWERED` when its
+   bytes carry a label the tenant has registered, and the scope it declares is
+   below that label's `maps_to`
+   ([`patterns/scope`](../patterns/scope.md#a-label-and-its-level)). The
+   refusal names the label and both levels.
 
 No scope is raised on a person's behalf either. The service never records a
 scope higher than the one the change declared: it refuses, and the person
@@ -4598,6 +4605,8 @@ security:
 - [ ] A write declaring a scope below its path's recorded scope, or whose bytes declare a scope below it, is refused with `CONTENT_SCOPE_LOWERED`, and nothing is written
 - [ ] A write or a proposal whose frontmatter carries a `scope:` or `classification:` that is not a `ScopeLevel` is refused with `SCOPE_INVALID_LEVEL` naming the value
 - [ ] A document whose frontmatter carries `classification: restricted` and no `scope:` declares `restricted`; one carrying `scope: internal` and `classification: confidential` declares `confidential`
+- [ ] Where the tenant registers `pii` with `maps_to: restricted`, a write declaring `confidential` whose bytes carry `scope: confidential` and `scope_metadata: {custom_labels: [pii]}` is refused with `CONTENT_SCOPE_LOWERED` naming `pii`; where it registers no `pii`, the same write is recorded at `confidential`
+- [ ] A frontmatter `scope: pii` is refused with `SCOPE_INVALID_LEVEL`, whether or not `pii` is a registered label
 - [ ] A `scope:` line inside a fenced block, or anywhere but a frontmatter block that begins on the first line, declares nothing
 - [ ] An adopted entry whose bytes declare `scope: confidential` is recorded with that scope on the `declare` entry, and an out-of-band edit that removes the line is observed at `confidential`
 - [ ] An entry with no recorded scope and no scope in its bytes reports no `scope`, never `internal`

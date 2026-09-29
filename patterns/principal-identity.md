@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.7.0
+version: 1.7.1
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -83,7 +83,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/scope
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: ScopeLevel
