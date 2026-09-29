@@ -959,7 +959,10 @@ and fetching over it would be a cache eating somebody's edits.
 
 **A clone is refreshed once it is older than a day**, and a refresh that fails
 keeps the cached copy and says so: a cached specification is worse than a
-current one and far better than none. A refresh is held while a build in the
+current one and far better than none. A failed refresh is tried again a day
+later, not on every command, and it does not make the copy any younger: a
+clone is as old as the last refresh that worked, and that is the age every
+report gives. A refresh is held while a build in the
 working directory has generated work banked against the current revision,
 because moving the corpus under a resume invalidates every banked file.
 
@@ -1005,8 +1008,8 @@ Each source:
 | `origin` | for a clone, the repository it is a clone of |
 | `present` | `false` for a clone not yet made: a build would make it first |
 | `revision` | the short commit, with `-dirty` when the tree has uncommitted or untracked changes. Empty when it is not a git checkout |
-| `fetched_at` | for a clone, when it was last refreshed. Absent when that is not known |
-| `stale` | for a clone, `true` when it is older than a day or when it was last refreshed is not known: the next build would refresh it before reading it |
+| `fetched_at` | for a clone, when it last refreshed successfully. A refresh that failed does not move it. Absent when that is not known |
+| `stale` | for a clone, `true` when its last successful refresh is more than a day old, or is not known. A build tries to refresh a stale clone before reading it, at most once a day |
 
 ### `weblisk blueprint update`
 
@@ -2406,6 +2409,7 @@ security:
 - [ ] Blueprint resolution follows priority: the corpus you are standing in → the project's `blueprints/` → configured blueprint sources → core
 - [ ] A source read in place — step 0 or the project's `blueprints/` — is never refreshed, and a clone is refreshed only once it is older than a day
 - [ ] `weblisk blueprint sources --json` lists every source in precedence order with `kind`, `from`, `dir`, `revision`, and for a clone `origin`, `present`, `fetched_at` and `stale` — and clones and fetches nothing
+- [ ] A refresh that fails leaves a clone's `fetched_at`, and the age a build prints for it, at the last refresh that worked
 - [ ] `weblisk validate <dir>` reports only that directory's files as findings, and a corpus directory is checked against nothing but itself
 - [ ] `weblisk validate <dir>` reports every family the schemas declare that the directory holds, with how many of its files were checked, and a directory holding none says so
 - [ ] `weblisk validate <dir>` checks programmes: parseable frontmatter, an `id` unique in the repository, a well-formed `version`, no reserved keys, `framework:control` citations, declared and acyclic tiers with one root, placed artifacts at declared tiers, and no spec requirement cycle
