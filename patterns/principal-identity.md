@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.6.0
+version: 1.7.0
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -57,11 +57,13 @@ the same way.
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.8.0 <2.0.0"
     bindings:
       types:
+        # cid and record_keys are how a verifier holding a token tells a
+        # record-signing key from the key that signed its subject in
         - name: WLToken
-          fields_used: [sub, iss, iat, exp, cap]
+          fields_used: [sub, iss, iat, exp, cap, cid, record_keys]
         - name: SigningKeyPair
           fields_used: [public_key, algorithm]
     on_change:
@@ -423,13 +425,29 @@ contracts:
           Principle 6 lets a classical key prove a session and nothing more. A
           passkey or any classical key attested for sign-records is refused with
           algorithm_not_permitted
-        - A sign-records credential MUST NOT authenticate. A hub refuses to
-          record one as a credential, and never mints a token with one, with
-          credential_purpose_mismatch
+        - A sign-records credential MUST NOT authenticate. A hub records it, with
+          the lifetime cap every attestation it records has, so that it can be
+          revoked and counted as any credential can. It never issues a
+          challenge for one or mints a token with one, and refuses a request
+          that tries with credential_purpose_mismatch. It never counts as a
+          credential able to administer the hub (last_administrator)
+        - One key serves one purpose. A hub MUST refuse to record a key under
+          one purpose while it holds that key, or ever held it, under the
+          other, with credential_purpose_mismatch
+        - A hub MUST name, in every token it mints for a subject, each
+          sign-records credential that subject holds there that is active and
+          unexpired (protocol/identity, record_keys). Revoking one leaves it out
+          of every token minted afterwards
         - An authenticate credential MUST NOT sign a record. A verifier refuses
-          a record signature made by one with credential_purpose_mismatch. So
-          the key a client holds in order to sign in is never a key that signs a
-          record
+          a record signature made by one with credential_purpose_mismatch
+        - The key a client holds in order to sign in never signs a record, and
+          two parties enforce it. The hub records a key under one purpose only.
+          A verifier that receives a record signature with a token refuses it,
+          with credential_purpose_mismatch, unless the signing key is one of
+          the token's record_keys and is not the credential the token's cid
+          names. A verifier that holds no token, such as an auditor reading a
+          log, can check neither, and has them only as the verifier that held
+          the token recorded them
         - A sign-records credential MUST be generated on the device where its
           subject signs, and MUST NOT be generated or held by a party that acts
           for people who sign in to it
@@ -443,9 +461,12 @@ contracts:
           while its attestation was live stays as it was recorded, and the
           log's order says what came before and what came after. Nothing
           un-signs a record. A verifier refuses a signature presented after its
-          attestation's not_after. A revoked or rotated identity reaches a
-          verifier that is not the hub only as the hub's refusal of that
-          identity's tokens, and no sooner
+          attestation's not_after. A revoked sign-records credential, and a
+          revoked or rotated identity, reach a verifier that is not the hub only
+          through the hub's tokens. The credential is missing from the
+          record_keys of every token minted after its revocation, and the hub
+          refuses that identity's tokens. Neither reaches such a verifier sooner
+          than the tokens minted before it expire
 
   guarantees:
     - No platform ever holds a subject's identity private key
@@ -738,7 +759,7 @@ types:
 | `credential_syncable_refused` | validation | Policy requires device-bound; the passkey is syncable | Refuse at REGISTRATION, so the subject learns before relying on it |
 | `authenticator_untrusted` | validation | AAGUID outside `accepted_authenticators` | Refuse registration |
 | `algorithm_not_permitted` | validation | A classical key offered as an identity, to sign an attestation, or as a sign-records credential | Refuse. Log as a security event |
-| `credential_purpose_mismatch` | auth | A credential used for what its attestation's `purpose` excludes: a sign-records credential offered to authenticate or recorded as a hub credential, or an authenticate credential's signature offered on a record | Refuse. Log as a security event |
+| `credential_purpose_mismatch` | auth | A credential used for what its attestation's `purpose` excludes: a sign-records credential offered to authenticate; a key offered under one purpose that the hub holds, or held, under the other; an authenticate credential's signature offered on a record; or a record signature, arriving with a token, by a key that is not one of the token's `record_keys` or is the credential its `cid` names | Refuse. Log as a security event |
 | `credential_previously_revoked` | validation | Re-registering a key revoked here before | Refuse permanently. Log as a security event |
 | `identity_key_as_credential` | auth | The identity key was offered to authenticate | Deny. Log as a security event |
 | `scope_exceeds_issuer` | validation | Invitation offers more than the issuer holds | Refuse |
@@ -961,9 +982,9 @@ credential revocation, which costs nothing else.
     issued one with the capability removed.
 48. A registration whose manifest declares `content:write` is refused with
     `capability_person_only`, and no token is issued.
-49. An attestation with `purpose` `sign-records` submitted as a hub credential
-    is refused with `credential_purpose_mismatch`, and no token is ever minted
-    with that key.
+49. An attestation with `purpose` `sign-records` is recorded, can be revoked,
+    and never obtains a challenge or a token: a request for either is refused
+    with `credential_purpose_mismatch`.
 50. An attestation with `purpose` `sign-records` for a passkey or any classical
     key is refused with `algorithm_not_permitted`.
 51. A record signature made by a credential whose attestation has no `purpose`,
@@ -971,3 +992,15 @@ credential revocation, which costs nothing else.
 52. A signature a log recorded while its attestation was live still verifies
     after the attestation's `not_after` has passed, and the same signature
     presented after that is refused.
+53. A key the hub holds under one purpose is refused under the other with
+    `credential_purpose_mismatch`, and so is a key it held under the other
+    and revoked.
+54. A token minted for a subject names in `record_keys` each of that subject's
+    active, unexpired sign-records credentials at the hub, and none revoked
+    before the token was minted.
+55. A record signature that arrives with a token is refused with
+    `credential_purpose_mismatch` where its key is not one of the token's
+    `record_keys`, or is the credential the token's `cid` names.
+56. Revoking the last active authenticate credential of the last subject able
+    to administer a hub is refused with `last_administrator`, however many
+    sign-records credentials that subject holds.

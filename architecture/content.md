@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 1.11.0
+version: 1.12.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -61,12 +61,13 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.6.0 <2.0.0"
+    version: ">=1.8.0 <2.0.0"
     bindings:
       types:
-        # identity_id is who a change names; type says whose token it is
+        # identity_id is who a change names; type says whose token it is;
+        # record_keys and cid say which key may sign the change it carries
         - name: WLToken
-          fields_used: [cap, identity_id, type]
+          fields_used: [cap, identity_id, type, cid, record_keys]
     # The change statement is a fixed-form statement, registered there
     on_change:
       compatible: validate-and-adopt
@@ -115,7 +116,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/principal-identity
-    version: ">=1.6.0 <2.0.0"
+    version: ">=1.7.0 <2.0.0"
     bindings:
       types:
         # What a change statement carries, so a verifier needs no hub
@@ -624,7 +625,7 @@ interfaces:
 | `CONTENT_PROPOSAL_DECIDED` | conflict | A decision arrived for a proposal that is no longer `open`, including the second of two decisions that raced | Refuse, returning the proposal as recorded. A proposal leaves `open` once |
 | `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the identity the proposal names as its `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, or the repository declares none | Refuse, naming the scope and the ceiling. Nothing is recorded and the proposal stays `open` |
 | `CONTENT_IDENTITY_REQUIRED` | auth | A write, removal, proposal, decision, replica declaration or retirement arrived on a token that carries no `identity_id` | Refuse. Never record a name, an address or a token's `sub` in its place |
-| `CONTENT_STATEMENT_INVALID` | auth | A write, removal or decision carried a `ChangeStatement` that does not verify: the token is not a person's; the attestation's `purpose` is not `sign-records`, its identity key is not the token's `identity_id`, its signature fails, its credential key is not ML-DSA-65, or its `not_after` has passed; `signed_at` is more than 300 seconds from the service's clock; or the signature does not verify over the statement rebuilt from the change. See [The change statement](#the-change-statement) | Refuse, naming the check that failed. Nothing is written and a proposal stays `open`. The change is never recorded unsigned instead. Log as a security event |
+| `CONTENT_STATEMENT_INVALID` | auth | A write, removal or decision carried a `ChangeStatement` that does not verify: the token is not a person's; the attestation's `purpose` is not `sign-records`, its identity key is not the token's `identity_id`, its signature fails, its credential key is not ML-DSA-65, or its `not_after` has passed or is more than 90 days ahead; its credential key is not one of the token's `record_keys`, or is the credential the token's `cid` names; `signed_at` is more than 300 seconds from the service's clock; or the signature does not verify over the statement rebuilt from the change. See [The change statement](#the-change-statement) | Refuse, naming the check that failed. Nothing is written and a proposal stays `open`. The change is never recorded unsigned instead. Log as a security event |
 | `CONTENT_LOG_BROKEN` | integrity | The repository's change log failed this service's check from its latest checkpoint, because a line breaks the chain or cannot be read, and the request would append to it: a write, a removal, a decision to apply, a reconcile or a checkpoint. See [A log that does not verify](#a-log-that-does-not-verify) | Refuse, naming the `seq` where the check failed. Nothing is written to the store and nothing is appended. Reads, the log's included, are still served |
 | `CONTENT_REPLICA_UNSEEN` | conflict | A replica declaration with no `if_match` | Refuse and return the `ReplicaCensus`. Nothing is recorded and nothing is sent. The caller re-submits with the census digest |
 | `CONTENT_REPLICA_UNCLASSIFIED` | policy | A replica declaration whose destination a third party holds, where the classification gate is not present or does not pass. See [A third party's replica waits for classification](#a-third-partys-replica-waits-for-classification) | Refuse. Nothing is recorded and nothing is sent |
@@ -2397,13 +2398,21 @@ anything is written:
    under `identity_public_key`
    ([`patterns/principal-identity`](../patterns/principal-identity.md),
    `record-signing`).
-3. Its `credential_public_key` is an ML-DSA-65 public key, and its `not_after`
-   has not passed.
-4. `signed_at` is within 300 seconds of the service's clock, the replay window
+3. Its `credential_public_key` is an ML-DSA-65 public key. Its `not_after` has
+   not passed, and is no more than 90 days ahead of the service's clock, the
+   cap [`architecture/admin`](admin.md) puts on every attestation a hub
+   records.
+4. The hub vouches for the key, and it is not the key that signed the person
+   in: the fingerprint of `credential_public_key` is one of the token's
+   `record_keys`, and is not the token's `cid`. A key the hub does not hold for
+   signing records, or has revoked, is named by no token minted since, and the
+   key a client holds in order to obtain a token never signs the change that
+   token carries.
+5. `signed_at` is within 300 seconds of the service's clock, the replay window
    `protocol/identity` sets for registration. Replaying a statement therefore
    needs the same person's live token, within five minutes, against the same
    `before`, and on a decision a proposal that can be decided only once.
-5. The signature verifies under `credential_public_key` over the rebuilt
+6. The signature verifies under `credential_public_key` over the rebuilt
    statement.
 
 A statement that fails any check refuses the request with
@@ -2412,10 +2421,19 @@ proposal stays `open`. The change is never recorded unsigned instead: a person
 who meant to sign would otherwise find an unsigned change recorded as their
 act.
 
-The service does not check the attestation's `hub_id`, because a registered
-component is not told its hub's. The statement is bound to one log by its log
-id, which is what stops it being spent anywhere else. A verifier who knows the
-tenant's hub_id checks the attestation against it.
+The service does not compare the attestation's `hub_id` itself, because a
+registered component is not told its hub's. Check 4 covers it: a key in the
+token's `record_keys` is one the hub recorded, and a hub refuses an attestation
+that names another hub. The statement is bound to one log by its log id, which
+is what stops it being spent anywhere else. A verifier who knows the tenant's
+hub_id checks the attestation against it.
+
+Revoking a sign-records credential at the hub reaches this service through
+the tokens: a token minted after the revocation does not name the key, so
+check 4 fails once the tokens minted before it expire. Nothing already
+recorded changes
+([`patterns/principal-identity`](../patterns/principal-identity.md),
+`record-signing`).
 
 A statement is optional. A write, removal or decision without one is recorded
 as it always was, and that person's part is `witnessed`.
@@ -2505,11 +2523,13 @@ After storage's three steps — chain, keys, checkpoint — it checks:
 4. **Statements.** For each `change` entry that carries a `statement`: rebuild
    the `weblisk/content-change/v1` bytes from the entry, with `role` `apply`
    where the entry records a `proposal` and `write` where it does not. Check
-   the attestation as the service did, with `signed_at` no later than
-   `not_after` in place of the service's clock, and its `hub_id` against the
-   tenant's. Check that `signer` is the fingerprint of the attestation's
-   identity key, and is the `actor` on a write or in `approved_by` on an apply.
-   Then verify the signature.
+   the attestation as the service did in checks 2 and 3, with the entry's
+   `recorded_at`, which the service witnessed and a checkpoint seals, in place
+   of the service's clock: `not_after` no earlier than `recorded_at`, and no
+   more than 90 days after it. Check its `hub_id` against the tenant's. Check
+   that `signer` is the fingerprint of the attestation's identity key, and is
+   the `actor` on a write or in `approved_by` on an apply. Then verify the
+   signature.
 5. **Separation.** As [Approvals and separation in the log](#approvals-and-separation-in-the-log)
    says.
 6. **A file.** Compute the SHA-256 of its bytes. The last `change` or `observe`
@@ -2534,7 +2554,10 @@ the service appears only once it is observed, and until then a file can differ
 from its last entry with nothing in the log to say so (Design Principle 5). An
 unsealed entry is recorded and not yet signed. A statement proves that a
 record-signing key attested by that identity signed the change. It does not
-prove who held the key.
+prove who held the key. Check 4 of [The change statement](#the-change-statement)
+— that the hub named the key in the person's token, and that it was not the key
+that obtained the token — is the service's to witness. The log does not hold
+the token, so a verifier has that check only on the service's seal.
 
 ---
 
@@ -3844,9 +3867,10 @@ security:
         A classical signature makes no party signed. No commit is signed by
         this service (patterns/content-git)
     - rule: A key a console holds never makes a change signed
-      mechanism: A change statement needs a sign-records credential. A hub
-        never mints a token with one, and a console never holds one
-        (architecture/admin, console-credential-use)
+      mechanism: A change statement needs a sign-records credential the token
+        names in record_keys, and never the credential its cid names. A hub
+        records a key under one purpose only, and a console never holds a
+        sign-records key (architecture/admin, console-credential-use)
     - rule: A change log verifies without this service
       mechanism: Sealed per architecture/storage, which lists what a verifier
         needs. The one fingerprint it brings is the service's registered key,
@@ -4291,6 +4315,9 @@ security:
 - [ ] A `statement` whose attestation has no `purpose`, or `purpose` `authenticate`, is refused with `CONTENT_STATEMENT_INVALID`
 - [ ] A `statement` whose `signed_at` is more than 300 seconds from the service's clock is refused with `CONTENT_STATEMENT_INVALID`
 - [ ] A `statement` on a token whose `type` is not `operator`, or whose attestation's identity key does not have the token's `identity_id` as its fingerprint, is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] A `statement` signed by the credential key the token's `cid` names is refused with `CONTENT_STATEMENT_INVALID`, even where that key was also attested with `purpose` `sign-records`
+- [ ] A `statement` whose credential key is not one of the token's `record_keys` — never recorded at the hub, or revoked before the token was minted — is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] A `statement` whose attestation's `not_after` is more than 90 days ahead of the service's clock is refused with `CONTENT_STATEMENT_INVALID`
 - [ ] A decision to apply that carries the decider's `statement` records it, and an offline verifier reports that approval `signed`; the same decision without one is reported `witnessed`
 - [ ] A decision whose `statement` fails is refused with `CONTENT_STATEMENT_INVALID`, and the proposal stays `open`
 - [ ] An offline verifier reports inconsistent a `change` entry recording `separation` `independent` whose `approved_by` is its `actor`, and one recording `separation` `self` whose `scope` is above the `self_decision_ceiling` in the `declare` entry

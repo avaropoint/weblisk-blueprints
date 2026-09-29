@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.7.1
+version: 1.8.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -604,6 +604,16 @@ Fields:
   this claim and never `sub`, which is a name
   ([`patterns/principal-identity`](../patterns/principal-identity.md) Design
   Principle 10). A token that carries none names nobody a record can join on
+- `record_keys`: on an operator token, the id of each sign-records credential
+  the subject held at the issuer, active and unexpired, when the token was
+  minted (optional). Each is the fingerprint of that credential's public key.
+  It is the issuer's statement, under its signature, of which keys may sign
+  records for that subject
+  ([`patterns/principal-identity`](../patterns/principal-identity.md),
+  `record-signing`). A verifier that receives a signed record with the token
+  accepts a signature only by a key named here, and never by the credential
+  `cid` names. A revoked credential is missing from every token minted after
+  its revocation
 
 ### Token Creation
 ```
@@ -721,6 +731,13 @@ types:
               the identity_id of the credential cid names. On a registration
               token, the fingerprint of the key the manifest registered. What a
               verifier records as who acted, never sub
+            required: false
+          record_keys:
+            type: "list<string>"
+            description: On an operator token, the ids of the subject's
+              sign-records credentials at the issuer that were active and
+              unexpired when it was minted. The only keys a verifier holding
+              the token accepts a record signature from
             required: false
       signature:
         type: string
@@ -995,6 +1012,7 @@ with deliberate deviations:
 | Algorithm | RS256, ES256, etc. | `"alg": "ML-DSA-65"` | ML-DSA-65 provides NIST Level 3 post-quantum security; single algorithm eliminates `alg` header confusion attacks |
 | Capabilities | Not in JWT | `"cap": [...]` claim | Core to Weblisk's capability-based auth model |
 | Issuing record | Not in JWT | `"cid": "..."` claim | Names the channel or credential a token was minted under, so the issuer can end it before `exp` |
+| Record-signing keys | Not in JWT | `"record_keys": [...]` claim | Names the subject's live sign-records credentials, so a service that is not the issuer can tell a key that may sign a record, and a revoked one drops out within a token's lifetime |
 | Algorithm agility | Multiple algorithms | Single algorithm (ML-DSA-65 only) | Eliminates downgrade attacks entirely; post-quantum from day one |
 
 ### Interoperability
