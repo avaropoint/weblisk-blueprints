@@ -11,7 +11,8 @@ than designed ahead of them. Every field below is one the loader places, and
 every refusal below is one it makes. Where a rule is enforced somewhere other
 than the loader, this says so, because the difference decides whether a mistake
 stops the file or is discovered months later by somebody reading a readiness
-number.
+number. The one exception is [Scope](#scope): its fields and refusals were
+declared here first, not derived from the loader.
 
 > **A programme is not a standard.** A standard declares what an authority
 > requires ([`standard.md`](standard.md)); a programme declares what an
@@ -172,8 +173,8 @@ the one somebody puts in front of an auditor.
 
 | class | edits |
 |---|---|
-| **MAJOR** | `id` changed · **an entry removed from `satisfies`** · **any change under `declares.obligation` other than the `activity`'s wording** — `cadence`, `applies_to`, `per`, `for`, `records`, `responsible`, `escalate`, `authority` · a register column removed, rekeyed or retyped · a `relation` target changed · `approved_by` gained or changed · `requires` gained · `kind` or `register.layout` changed |
-| **MINOR** | an entry added to `satisfies` · a register column added · `template` first named · a new optional field |
+| **MAJOR** | `id` changed · **an entry removed from `satisfies`** · **any change under `declares.obligation` other than the `activity`'s wording** — `cadence`, `applies_to`, `per`, `for`, `records`, `responsible`, `escalate`, `authority` · a register column removed, rekeyed or retyped · a `relation` target changed · `approved_by` gained or changed · `requires` gained · `kind` or `register.layout` changed · **`artifact_scope` or a column's `scope` declared, changed or removed** · `pii` added to or removed from any labels |
+| **MINOR** | an entry added to `satisfies` · a register column added · `template` first named · a new optional field · a label other than `pii` added or removed |
 | **PATCH** | the `brief` body · `title` · `path` · `structure` |
 
 Three of those deserve their reason stated, because each was measured in this
@@ -196,6 +197,13 @@ corpus's own history rather than imagined:
 `approved_by` gaining an entry is restrictive for the same reason `common.md`
 calls a new required field restrictive — a document that was in force now needs
 a signature it did not need.
+
+**A change of scope is MAJOR in both directions**, for the reason a tier's
+membership is. A scope decides where a document may be kept. Raising it can put
+a document a tenant already holds above its repository's ceiling; lowering it
+tells a tenant it may keep less protected what it already protects. `pii`
+decides which repository a register may live in, so adding or removing it is
+MAJOR too.
 
 ### Unversioned is a real answer, and is never 1.0.0
 
@@ -403,6 +411,8 @@ programmes at once.
 | `requires` | string[] | no | artifact `id`s this one depends on — the DAG that orders generation |
 | `template` | string | no | a doc template this organisation starts documents of this kind from. The **shape**, never the content |
 | `approved_by` | string[] | no | the **positions** that must sign this artifact off before it is in force |
+| `artifact_scope` | string | no | the `ScopeLevel` of the document this artifact creates. Never spelled `scope:` — see [Scope](#scope) |
+| `artifact_scope_metadata` | mapping | no | `custom_labels`, the labels that go with `artifact_scope`, such as `pii`. See [Scope](#scope) |
 | `declares` | mapping | no | what creating this artifact also creates — `obligation` and `register`, below |
 | `register` | mapping | no | the schema, when this artifact **is** a register. Requires `kind: register` |
 | *body* | prose | no | the `brief` — what this document must establish for THIS organisation |
@@ -690,6 +700,8 @@ file. `created` is right only for a document written once and never added to.
 | `options` | string[] | conditional | the choices, for a `select` |
 | `target` | string | conditional | the register a `relation` points at. **Required for `relation`** |
 | `display` | string | no | which of the target's columns is shown |
+| `scope` | string | no | the `ScopeLevel` of what the column holds. See [Scope](#scope) |
+| `scope_metadata` | mapping | no | `custom_labels`, the labels that go with `scope`, such as `pii` |
 
 Two columns sharing a `key` are refused: the second silently wins on every read,
 so one of the two answers is never recorded. A `relation` with no `target` is
@@ -706,6 +718,119 @@ see, not a silent failure.
 
 A `relation` cell stores the target row's **key**, never its rendered value, so
 renaming a site does not rewrite every record that cites it.
+
+---
+
+## Scope
+
+A spec may say how much protection the document it creates deserves: its
+**scope**, a `ScopeLevel` ([`patterns/scope`](../patterns/scope.md#level-hierarchy)),
+with the labels that go with it. What a scope does once the document exists —
+where the document may be kept, that its scope only rises, and what reads it —
+is [`architecture/content`](../architecture/content.md#an-entrys-scope)'s.
+This section says where a programme declares one.
+
+| field | on | means |
+|---|---|---|
+| `artifact_scope` | a spec | the scope of the document the spec creates |
+| `artifact_scope_metadata` | a spec | `custom_labels`: the labels that go with it, such as `pii` |
+| `scope` | a register column | the scope of what the column holds |
+| `scope_metadata` | a register column | `custom_labels`, as on a spec |
+
+`custom_labels` is `patterns/scope`'s field, and nothing else under the two
+`_metadata` keys is read. A label never sets a level, so a label is refused
+where no level is declared beside it. A value that is not a `ScopeLevel` is
+refused too, and the file is named.
+
+### `artifact_scope` is never spelled `scope`
+
+A spec file is itself a document in the repository that holds the programme,
+and `architecture/content` reads a top-level `scope:` in a document's
+frontmatter as that document's own level. A spec that wrote `scope: restricted`
+to describe the incident register it creates would make the spec restricted,
+and with it the repository the programme is kept in, though the spec names
+nobody. So the spec's field is `artifact_scope`. A top-level `scope:` or
+`classification:` on a spec or a map is the file's own level, and says nothing
+about the document the spec creates.
+
+### What the created document carries
+
+A document created from a spec carries its scope as `scope:` in its own
+frontmatter, and its labels as `scope_metadata: {custom_labels: […]}`. For a
+register those are the register's level, below, and every label its spec or
+any of its columns carries. Whatever creates the document writes them, from
+the spec. A model never chooses them. A document that already exists is not
+rewritten to carry them; it gains them through the next change a person makes
+to it.
+
+### A register's level
+
+A register is at the highest of the `artifact_scope` of the spec that declares
+it and every column's `scope`, whether or not any row holds a value in that
+column. That is the escalation
+[`patterns/scope`](../patterns/scope.md#scope-escalation) requires of anything
+composed. It holds for both forms: a standing register takes its own spec's
+`artifact_scope`, and a record log declared under `declares.register` takes
+the declaring spec's. A register nothing gives a level is created with none,
+and is unclassified.
+
+### Health and injury records
+
+A register whose rows record an injury to a person, or the state of a person's
+health, is `restricted` and labelled `pii`. Incidents that hurt somebody,
+first-aid treatments, occupational illness, health assessments, fitness for
+duty, return to work and accommodation of a medical need are all such
+registers.
+
+- Every column that names the person, or describes what happened to their body
+  or their health, declares `scope: restricted` and
+  `scope_metadata: {custom_labels: [pii]}`.
+- A standing register's own spec declares the same, as `artifact_scope` and
+  `artifact_scope_metadata`.
+- A column naming who recorded, reviewed or approved the row names a person
+  acting, not the person the row is about, and is not labelled for that.
+
+`restricted`, not `critical`. `critical` admits a document only to a store no
+other authority can reach
+([`architecture/content`](../architecture/content.md#derived-scope-ceiling)).
+`restricted` also admits a shared store whose access can be listed, whose
+changes can be attributed and whose history can be traversed.
+
+### Where a register holding `pii` lives
+
+A register **holds `pii`** when its spec or any of its columns is labelled
+`pii`. It is kept in a **records repository**: a content repository apart from
+the one that holds the programme's other documents, whose ceiling
+([`architecture/content`](../architecture/content.md#derived-scope-ceiling)) is
+`restricted` or higher. The ceiling that counts is the effective one, over
+every place a copy of the repository lives
+([`architecture/content`](../architecture/content.md#effective-custody)).
+
+It is kept apart because the programme's other documents are policies and
+procedures that people edit where they work, often in a shared store, and that
+the tenant may want copied elsewhere. Kept with them, the register would need
+that whole repository to hold `restricted`, and its rows would stay in that
+repository's history, so every copy of the policies would have to be able to
+hold them as well.
+
+**The records repository comes before enforcement begins.** Enforcement of a
+repository begins when `architecture/content` records it `declared`. From then
+on every write into it is checked against its ceiling. So, in this order:
+
+1. The records repository is established or adopted, and its custody
+   demonstrated, with a ceiling of `restricted` or higher.
+2. Each register holding `pii` is placed in it.
+3. Only then is the repository that holds the programme's other documents
+   declared, and only then is the first row written.
+
+Placed anywhere else, every row is refused from the moment that repository is
+declared, wherever its ceiling is below `restricted`, and the obligation that
+records into the register records nothing. A row written before the register
+moved stays in the history of the store it was written in. An environment
+profile that only audits `restricted`
+([`patterns/scope`](../patterns/scope.md#environment-profiles)) does not
+postpone any of this: the rows are about real people whatever the profile
+says.
 
 ---
 
@@ -952,6 +1077,7 @@ never people.** People change jobs and the duty does not.
 | a tier declared twice, requiring an unknown tier, or in a cycle | — |
 | an artifact placed at an undeclared tier | an artifact placed below something it requires *(reported against the map)* |
 | a `register:` schema on an artifact whose `kind` is not `register`, or with no `path` | — |
+| an `artifact_scope` or a column `scope` that is not a `ScopeLevel`, or `custom_labels` with no level declared beside them | — |
 
 The right-hand column is the one to read twice. Those mistakes produce a file
 that loads, renders and reviews cleanly, and are discovered when somebody asks
@@ -1296,6 +1422,10 @@ than naming a statute that does not exist.
 - [ ] Every `retention.keep` is `<n>y`, `<n>m` or `<n>d`, and declares its `authority`
 - [ ] Every `retention` on a register that is appended to says `from: modified`, and every `authority` either cites the instrument setting the period or says in words that none does
 - [ ] `responsible`, `approved_by`, `approvers` and `escalate.to` name positions, no individual is named anywhere
+- [ ] Every `artifact_scope` and column `scope` is a `ScopeLevel`, and every `custom_labels` sits beside a declared level
+- [ ] No spec writes a top-level `scope:` to mean the document it creates; that is `artifact_scope`
+- [ ] Every register whose rows record an injury to a person, or a person's health, is `restricted` and labelled `pii` on each column about the person, and on its own spec when it is a standing register
+- [ ] Every register holding `pii` is placed in a records repository, declared before the repository that holds the rest of the programme
 - [ ] No spec declares `creates:`
 - [ ] Every operation declares an `id` unique within the programme, and a `does:` **or** an `agent:` — never both
 - [ ] Every operation has a `schedule`, an `on:`, or both, and every `cadence`, `weekday` and `at` is in the declared vocabulary

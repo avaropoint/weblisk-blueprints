@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 1.13.0
+version: 2.0.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -97,7 +97,7 @@ requires:
         # An enum: it declares values, not fields, so nothing is bound FROM it.
         - name: ScopeLevel
         - name: ScopeDeclaration
-          fields_used: [level, context]
+          fields_used: [level, context, custom_labels]
         - name: ScopeViolation
           fields_used: [expected_scope, actual_scope, entity]
     on_change:
@@ -295,6 +295,8 @@ received, and takes nothing back. See [Replicas](#replicas).
   create which did not finish recoverable rather than orphaned
 - The custody model: classification, attestation properties, and the scope
   ceiling derived from them
+- An entry's scope: where it is declared, on the change and in the bytes,
+  what the log records of it, and the rule that it only rises
 - Replicas: copies of a repository sent to a second place, the census that
   precedes one, and the effective custody every copy adds to
 - Precondition semantics for writes (digest match, refusal on mismatch)
@@ -616,6 +618,8 @@ interfaces:
 | `CONTENT_PRECONDITION_FAILED` | conflict | `if_match` does not equal the identity of what it names — an entry's stored digest on a write or a proposal, a placement's census digest on an adoption, a replica census's digest, over what would leave and where it would go, on a replica declaration, a proposal's `before` on a decision to apply it. The empty string where an entry exists, on a write, a proposal to create, or a decision to apply one | Refuse. Return both digests. Never merge, never overwrite, never adopt. On a decision to apply, record the proposal `stale` and write nothing |
 | `CONTENT_IF_MATCH_REQUIRED` | validation | A write, a removal or a proposal arrived with no `if_match`. The empty string is a precondition, not its absence | Refuse. A write with no precondition is a blind overwrite, and a proposal with none cannot be told stale |
 | `CONTENT_CUSTODY_CEILING_EXCEEDED` | policy | Declared scope exceeds the repository ceiling, or something a replica would receive exceeds that replica's ceiling | Refuse, naming required and actual, and on a replica each path above it. Never downgrade the scope |
+| `CONTENT_SCOPE_LOWERED` | policy | A write or a proposal declares a scope below its path's recorded scope, or below the scope its own bytes declare; or its bytes declare a scope below the path's recorded scope. See [An Entry's Scope](#an-entrys-scope) | Refuse, naming both levels and where each was declared. Never record the lower scope, and never raise the declared one to fit |
+| `SCOPE_INVALID_LEVEL` | validation | A write or a proposal declares a scope, on the change or under `scope:` or `classification:` in its bytes, that is not a `ScopeLevel`. The code is [`patterns/scope`](../patterns/scope.md#scope-related-errors)'s | Refuse, naming where the value was found and the value |
 | `CONTENT_CUSTODY_UNDECLARED` | policy | Repository has no declared custody | Treat as `opaque`, apply the `internal` ceiling, and record the degradation |
 | `CONTENT_PATH_REFUSED` | validation | Traversal segment or escaping symlink — including a placement locator that is absolute, carries a scheme or an authority, or climbs out of its backend's root | Refuse the request as written. Do not normalise and proceed |
 | `CONTENT_RESERVED_PATH` | policy | A segment of the path, or of a placement's locator, is a reserved name — `.weblisk` or `.git` — as any filesystem could resolve it, or the backend's blueprint reserves the path — including a path in anything a replica would receive. See [Reserved Paths](#reserved-paths) | Refuse, for every operation including list, stat, propose, declare and declaring a replica. Installation state and control state are never content, and never leave: a version holding one is never sent to a replica already declared, and holds it ([Replica Send Flow](#replica-send-flow)) |
@@ -690,7 +694,9 @@ interfaces:
    request
 9. The repository is recorded `state: declared`. On adoption, every entry the
    census found is recorded with provenance `unknown` — the service did not
-   write them and observed no change, so it can establish nothing about them.
+   write them and observed no change, so it can establish nothing about them —
+   and with the scope its bytes declare, where they declare one this service
+   can read ([An Entry's Scope](#an-entrys-scope)).
    The repository's change log begins, with its `declare` entry (see
    [The Change Log](#the-change-log))
 10. `content.repository_declared` is published, carrying the disposition, the
@@ -710,8 +716,10 @@ interfaces:
    bytes — no normalisation, no reformatting
 5. Under shared custody, the digest is compared against the path's recorded
    digest ([What an entry covers](#what-an-entry-covers)); a difference
-   produces a `ContentObservation` with provenance `external`, appended to the
-   change log as an `observe` entry, and does **not** fail the read
+   produces a `ContentObservation` with provenance `external` and the scope
+   the bytes read are at ([A change this service did not make](#a-change-this-service-did-not-make)),
+   appended to the change log as an `observe` entry, and does **not** fail
+   the read
 6. Bytes and `ContentIdentity` are returned; the read leaves the bytes unchanged
 
 ### Write Flow
@@ -719,10 +727,15 @@ interfaces:
    the identity it believes it is replacing, or the empty string for an entry
    it believes does not exist yet — and, where the person signs, a
    `ChangeStatement` as `statement`. A removal submits an `EntryRemoval`
-   instead, and runs the same steps with no bytes and no ceiling check, the
-   storage proxy intercepting with operation `delete`
+   instead, and runs the same steps with no bytes and no scope or ceiling
+   check, the storage proxy intercepting with operation `delete`
 2. Path Resolver confines the path as above
-3. Ceiling check: declared scope against the repository's derived ceiling.
+3. Scope and ceiling check. First the declared scope against the rules of
+   [A scope only rises](#a-scope-only-rises): below the path's recorded scope
+   or below the scope the bytes declare, or bytes declaring a scope below the
+   recorded one → refuse with `CONTENT_SCOPE_LOWERED`; a scope that is not a
+   `ScopeLevel` → refuse with `SCOPE_INVALID_LEVEL`. Nothing is raised to fit.
+   Then the declared scope against the repository's derived ceiling.
    Exceeded → refuse, publish `content.ceiling_exceeded`
 4. Enforcement storage proxy intercepts with operation `create` when `if_match`
    is the empty string, and `modify` otherwise
@@ -756,8 +769,8 @@ interfaces:
    `max_entry_bytes` are refused as a write of that length would be
 2. Path Resolver confines the path as for a write; traversal, escaping symlinks
    and reserved paths are refused
-3. Ceiling check: declared scope against the repository's derived ceiling.
-   Exceeded → refuse, publish `content.ceiling_exceeded`
+3. Scope and ceiling check, as Write Flow step 3, over the proposed bytes and
+   their declared scope. A proposal to delete has neither
 4. Enforcement storage proxy intercepts with the operation the proposal would
    perform — `create`, `modify` or `delete` — for the proposer
 5. Precondition Gate compares `if_match` to the entry's current digest — for
@@ -807,9 +820,9 @@ interfaces:
    or the empty string when it has none. For a `create` or `modify`, Write
    Flow steps 2 to 8 run with the proposal's path, bytes and scope, and with
    the decider's statement where one was sent, verified against the proposal.
-   For a `delete`, the same steps run as a removal: no bytes and no ceiling
-   check, the enforcement storage proxy intercepting with operation `delete`,
-   and the entry is removed and its identity retired
+   For a `delete`, the same steps run as a removal: no bytes and no scope or
+   ceiling check, the enforcement storage proxy intercepting with operation
+   `delete`, and the entry is removed and its identity retired
 6. `before` no longer matches → refuse with `CONTENT_PRECONDITION_FAILED` and
    both digests, record the decision with the proposal `stale`, write nothing,
    and publish `content.proposal_decided`. Any other refusal leaves the
@@ -829,7 +842,9 @@ interfaces:
 2. For each entry with a recorded digest, the current digest is computed
 3. Unchanged entries produce nothing
 4. A changed entry produces a `ContentObservation`: both digests, provenance
-   `external`, and the writing identity when `attributable_writes` is attested
+   `external`, the scope the new bytes are at
+   ([A change this service did not make](#a-change-this-service-did-not-make)),
+   and the writing identity when `attributable_writes` is attested
 5. An unreadable entry produces an observation with state `unknown` — never
    `stale`, never `current`, and never a deletion
 6. Observations are recorded and surfaced. One of state `changed` or `removed`
@@ -1175,6 +1190,107 @@ signature. Under shared custody:
 The last point is the one that matters to an auditor. A partial access record
 labelled partial is evidence. The same record labelled complete is a false
 statement, and the system that made it cannot be trusted about the rest.
+
+---
+
+## An Entry's Scope
+
+An entry's **scope** is how much protection its content deserves. It is a
+`ScopeLevel`, one of the five levels
+[`patterns/scope`](../patterns/scope.md#level-hierarchy) declares, and that
+section's order is the only order they compare in. Custody says what a place
+can deliver; the scope is what the ceiling of a place is compared with. A
+scope is declared. It is never inferred from a path, a file name or what the
+text appears to say.
+
+### Where a scope is declared
+
+An entry's scope is declared in two places, and nowhere else. A replica's
+`history_scope` classifies versions for that replica alone
+([What would leave](#what-would-leave)).
+
+- **On the change.** A write, and a proposal to create or modify an entry,
+  carries `scope` (`EntryWrite`, `ProposalRequest`): what the person writing,
+  or the proposer, says the bytes deserve.
+- **In the bytes.** A document whose first line is `---` opens with a YAML
+  frontmatter block, which ends at the next line that is `---`. A top-level
+  `scope:` key in that block is the document's own declaration of its level.
+  A top-level `scope_metadata:` beside it may carry `custom_labels`, as
+  `patterns/scope`'s `ScopeDeclaration` does. A label never sets a level, and
+  nothing else in `scope_metadata:` is read. An entry in any other form
+  declares nothing in its bytes.
+
+**`classification:` is read, and never written.** In a document whose
+frontmatter has `classification:` and no `scope:`, it declares that level
+exactly as `scope:` would. A document carrying both declares the higher of
+the two. Whatever writes a document writes `scope:`, and never
+`classification:`. The alias exists so that nothing a person wrote goes
+unread, and it is never written so that the second spelling does not spread.
+
+**The level in the bytes travels with them.** A copy of the file carries it, a
+plain editor shows it, and a reader who holds only the file can see it. The
+scope on a change is known only to this service and its log.
+
+### The recorded scope
+
+The change log records a scope each time this service learns one for a path:
+
+- on the `declare` entry, for each adopted entry whose bytes declare one
+  (`AdoptedEntry.scope`);
+- on each `change` that writes bytes (`ContentChange.scope`);
+- on each `observe` whose bytes are at one (`ContentObservation.scope`).
+
+A path's **recorded scope** is the last one the log recorded for it. A
+removal ends it, whether this service made the removal or observed it, so a
+path created again starts with none.
+
+An entry's scope, as `ContentEntry.scope` reports it, is the higher of its
+path's recorded scope and the scope its bytes declare. An entry with neither
+is **unclassified**. It is reported with no scope, never as `internal` or any
+other level. The enforcement storage proxy still needs a resource scope to
+decide an operation on it, and is given `patterns/scope`'s `default_level`.
+That is a rule for deciding in place and never a declaration: an unclassified
+entry stays unclassified for everything that would leave
+([What would leave](#what-would-leave)).
+
+### A scope only rises
+
+[`patterns/scope`](../patterns/scope.md#key-distinction-classification-vs-enforcement)
+makes a classification permanent, and nothing in this contract lowers one.
+
+1. A write or a proposal is refused with `CONTENT_SCOPE_LOWERED` when the
+   scope it declares is below its path's recorded scope, or below the scope
+   its own bytes declare. The refusal names both levels.
+2. It is refused the same way when its bytes declare a scope below the path's
+   recorded scope, whatever the change declares. A file that understates its
+   own level misstates it wherever a copy of it goes.
+3. A write or a proposal whose declared scope, on the change or in its bytes,
+   is not a `ScopeLevel` is refused with `SCOPE_INVALID_LEVEL`, naming the
+   value and where it was found. A level somebody wrote and nobody can read is
+   not the absence of one.
+
+No scope is raised on a person's behalf either. The service never records a
+scope higher than the one the change declared: it refuses, and the person
+declares the level. So the scope a change records is the highest declaration
+that applies to it, a person's statement signs that scope
+([The change statement](#the-change-statement)), and the ceiling is checked
+against it (Write Flow, step 3).
+
+The rules run again when a proposal is applied, because the Write Flow runs
+for the decider. A path whose recorded scope rose after the proposal was made
+refuses the decision, and the proposal stays `open`. A removal declares no
+scope and is checked against none. A lower level is reached only by removing
+the entry and creating another, and the log records both acts.
+
+### A change this service did not make
+
+An observation reads the bytes it observed. Its `scope` is the higher of the
+path's recorded scope and the scope those bytes declare. A lower level in the
+bytes does not lower it: the recorded scope stands, and the observation is
+recorded like any other, as Design Principle 4 requires. A value that is not a
+`ScopeLevel`, in bytes this service did not write, declares nothing. An
+observation with neither records no scope, and the version it observed is
+unclassified. Nothing here raises an alarm or rewrites the file.
 
 ---
 
@@ -1724,13 +1840,21 @@ person-only capability with people are stated once, under
 
 ### What would leave
 
-Wherever a replica is concerned, a version's **scope** is the scope declared
-on the `ContentChange` that recorded it (`ContentChange.scope`). A change that
-removes an entry declares none, and its version needs none, because it adds no
-bytes. A version no `ContentChange` recorded is **unclassified**: one the store
-held before it was adopted, one recorded for an observation, one a person made
-in the store directly. No person declared its scope, and it is never assumed
-to be at any level.
+Wherever a replica is concerned, a version's **scope** is what was declared
+for it ([An Entry's Scope](#an-entrys-scope)):
+
+- A version a `ContentChange` recorded is at that change's `scope`, which the
+  Write Flow has made the highest declaration that applies to it.
+- Any other version — one the store held before it was adopted, one recorded
+  for an observation, one a person made in the store directly — takes, for
+  each entry it adds or changes, the higher of the scope that entry's bytes
+  declare and its path's recorded scope. The version is at the highest of
+  those.
+
+A version that only removes entries needs no scope, because it adds no bytes.
+A version is **unclassified** when an entry it adds or changes has no scope by
+either rule. Nothing declared its level, and it is never assumed to be at any
+level.
 
 The census reports, for the repository and the destination:
 
@@ -1763,10 +1887,11 @@ An unclassified version recorded after the census is not covered. It is held,
 never sent (Replica Send Flow, step 3).
 
 > **Gap.** Nothing in this contract classifies a version after it is recorded.
-> A replica held on an unclassified version therefore stays `behind`, and says
-> so, until something does. Under shared custody the first edit a person makes
-> outside this service is such a version. The remedy is left unspecified
-> rather than guessed at.
+> Under shared custody, an entry a person creates in the store directly, with
+> no scope in its bytes, makes such a version, and a replica held on it stays
+> `behind`, and says so. An edit to an entry that already has a recorded
+> scope does not, because the recorded scope carries to it. The remedy is left
+> unspecified rather than guessed at.
 
 A reserved path refuses the declaration even where it appears only in an
 earlier version, put there by somebody out of band. One that appears after the
@@ -2257,7 +2382,7 @@ Each entry records one act, once:
 
 | `act` | Appended when | Holds |
 |---|---|---|
-| `declare` | The repository is recorded `declared`. Always the first entry, so its digest is the log id | `LogDeclaration`: the repository's id, `scope_path`, disposition, custody, store ceiling and `self_decision_ceiling`, and on adoption every entry the census found |
+| `declare` | The repository is recorded `declared`. Always the first entry, so its digest is the log id | `LogDeclaration`: the repository's id, `scope_path`, disposition, custody, store ceiling and `self_decision_ceiling`, and on adoption every entry the census found, with the scope its bytes declared |
 | `change` | This service made a change: a write, a removal, or a decision that applied a proposal | `ContentChange`, with the person's `ChangeStatement` where one verified |
 | `observe` | This service observed a change it did not make — an observation of state `changed` or `removed`, from the Custody Reconciler or from a read | `ContentObservation` |
 | `key` | This service introduced a log key | `LogKey`, from [`architecture/storage`](storage.md#types) |
@@ -2505,12 +2630,14 @@ lets a verifier check them without this service:
   that is neither its `actor` nor its `on_behalf_of`.
 - A `change` entry recording `separation: self` names an `approved_by` that is
   one of them, with a scope at or below that ceiling: the change's `scope`, or
-  for a removal the `scope` the log last recorded for that path.
+  for a removal the path's recorded scope
+  ([The recorded scope](#the-recorded-scope)).
 
 A change whose separation does not fit its own parties is reported as
 inconsistent. Where the log records no scope for a removed path — an entry that
-arrived with adoption and was never changed — the check is `unknown`. The check
-is only as strong as `on_behalf_of`, which is asserted.
+arrived with adoption declaring none and was never changed or observed — the
+check is `unknown`. The check is only as strong as `on_behalf_of`, which is
+asserted.
 
 ### Reading the log
 
@@ -2966,10 +3093,10 @@ types:
       unclassified:
         type: integer
         required: true
-        description: How many versions that would leave are unclassified — no
-          ContentChange recorded them, so no person declared their scope.
-          Never assumed to be at any level. Non-zero with no history_scope
-          refuses the declaration with CONTENT_SCOPE_UNDECLARED
+        description: How many versions that would leave are unclassified —
+          nothing declared a scope for them (see What would leave). Never
+          assumed to be at any level. Non-zero with no history_scope refuses
+          the declaration with CONTENT_SCOPE_UNDECLARED
       above_ceiling:
         type: list
         items: CensusPath
@@ -3223,7 +3350,10 @@ types:
         description: Digest of the exact stored bytes
       scope:
         type: ScopeLevel
-        required: true
+        required: false
+        description: The higher of the path's recorded scope and the scope the
+          entry's bytes declare. Absent when neither exists — the entry is
+          unclassified, and no level is assumed for it. See An Entry's Scope
       modified_at:
         type: timestamp
         required: true
@@ -3260,8 +3390,9 @@ types:
         required: false
         description: Recorded. The scope the change declared — the write's, or
           the applied proposal's — against which its ceiling check was made.
-          Absent on delete. It is what makes the version the change produced
-          classified (see What would leave)
+          Never below the path's recorded scope or the scope the bytes declare
+          (see A scope only rises). Absent on delete. It is what classifies
+          the version the change produced (see What would leave)
       actor:
         type: string
         required: true
@@ -3337,6 +3468,12 @@ types:
         type: enum
         values: [changed, removed, unknown]
         required: true
+      scope:
+        type: ScopeLevel
+        required: false
+        description: Recorded. On a change, the higher of the path's recorded
+          scope and the scope the observed bytes declare. Absent when neither
+          exists, and on a removal. See A change this service did not make
       writer:
         type: string
         required: false
@@ -3387,7 +3524,9 @@ types:
       scope:
         type: ScopeLevel
         required: true
-        description: The declared scope of the bytes
+        description: The declared scope of the bytes. At least the path's
+          recorded scope and the scope the bytes declare, or the write is
+          refused with CONTENT_SCOPE_LOWERED. See A scope only rises
       statement:
         type: ChangeStatement
         required: false
@@ -3444,7 +3583,7 @@ types:
         type: ScopeLevel
         required: false
         description: The declared scope of the proposed bytes. Required for
-          create and modify, absent on delete
+          create and modify, absent on delete. Checked as EntryWrite's is
       on_behalf_of:
         type: string
         required: false
@@ -3739,6 +3878,12 @@ types:
         required: false
         description: Absent when the entry could not be read, which the census
           counted in unreadable
+      scope:
+        type: ScopeLevel
+        required: false
+        description: Recorded. The scope the entry's bytes declared when it
+          was adopted. Absent when they declared none this service could read.
+          See The recorded scope
 
   ChangeStatement:
     description: A person's signature over a change, by their record-signing
@@ -4048,8 +4193,8 @@ security:
         leave, the destination, held_by and the claims made for it, so a
         census taken for one destination confirms no other. content:replicate
         and content:connect are both required and both person only
-    - rule: Nothing is sent to a replica that holds a reserved path, that no
-        person classified, or that is above the replica's ceiling
+    - rule: Nothing is sent to a replica that holds a reserved path, that
+        nothing classified, or that is above the replica's ceiling
       mechanism: The census refuses each at declaration, an unclassified
         version unless a person records history_scope; the Replica Sender
         checks every version before it is sent and holds the first that fails,
@@ -4082,6 +4227,12 @@ security:
         downgraded
       mechanism: Ceiling check before the storage proxy, publishing
         content.ceiling_exceeded
+    - rule: A scope only rises, and is never raised on a person's behalf
+      mechanism: Write Flow step 3 refuses a declared scope below the path's
+        recorded scope or the scope the bytes declare, and bytes that declare
+        less than the recorded scope, with CONTENT_SCOPE_LOWERED. The change
+        records the scope it declared, which a person's statement signs. An
+        observation keeps the recorded scope whatever the bytes say
     - rule: An undeclared or unverified repository is treated as opaque
       mechanism: Registry default; attestation defaults to false
     - rule: A declaration with no disposition is refused
@@ -4301,6 +4452,12 @@ security:
   made once, when the proposal was recorded, has nothing to say about a caller
   who asks today.
 
+- **Read a level only where it is declared.** The declaration in the bytes is
+  a top-level `scope:` or `classification:` in a frontmatter block that begins
+  on the first line. The same word further down, in a code fence, a table or
+  quoted text, is text. Reading it would let any quoted example reclassify the
+  document it sits in.
+
 - **Compute `base` when asked, never store it.** An entry can change between
   one listing and the next, and a stored `current` is a claim about a moment
   that has passed.
@@ -4357,6 +4514,15 @@ security:
 - [ ] A repository with no declared custody reports `custody: opaque` and a ceiling of `internal`
 - [ ] An attestation declared in configuration but not demonstrated at verification resolves to `false`, and the ceiling reflects the demonstrated set
 - [ ] A write declaring a scope above the repository ceiling is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED` naming both levels, and the scope is not downgraded
+- [ ] A write declaring `internal` whose bytes carry `scope: confidential` in their frontmatter is refused with `CONTENT_SCOPE_LOWERED` naming both levels and nothing is written; the same write declaring `confidential` is recorded at `confidential`
+- [ ] A write declaring a scope below its path's recorded scope, or whose bytes declare a scope below it, is refused with `CONTENT_SCOPE_LOWERED`, and nothing is written
+- [ ] A write or a proposal whose frontmatter carries a `scope:` or `classification:` that is not a `ScopeLevel` is refused with `SCOPE_INVALID_LEVEL` naming the value
+- [ ] A document whose frontmatter carries `classification: restricted` and no `scope:` declares `restricted`; one carrying `scope: internal` and `classification: confidential` declares `confidential`
+- [ ] A `scope:` line inside a fenced block, or anywhere but a frontmatter block that begins on the first line, declares nothing
+- [ ] An adopted entry whose bytes declare `scope: confidential` is recorded with that scope on the `declare` entry, and an out-of-band edit that removes the line is observed at `confidential`
+- [ ] An entry with no recorded scope and no scope in its bytes reports no `scope`, never `internal`
+- [ ] After a removal, a write creating the same path is checked against no recorded scope
+- [ ] A proposal whose path's recorded scope rose above the proposal's scope after it was made is refused with `CONTENT_SCOPE_LOWERED` when applied, and stays `open`
 - [ ] An out-of-band change under shared custody produces a `ContentObservation` with provenance `external` and raises no tampering alert
 - [ ] An out-of-band change under exclusive custody is not produced by the reconciler, which is absent for exclusive repositories
 - [ ] An `AccessStatement` from a repository whose `effective_custody` is shared or opaque carries `access_complete: false`, and no caller can set it to true
@@ -4458,7 +4624,8 @@ security:
 - [ ] A version above a replica's ceiling holds the replica `behind` with `held_path` naming it and `held_reason` `above-ceiling`, and no version recorded after it is sent
 - [ ] A replica declaration confirming a census taken for another destination, or with other claimed custody, attestations or `history_scope`, is refused with `CONTENT_PRECONDITION_FAILED`, and so is one whose destination's backend changed `held_by` since the census
 - [ ] A replica declaration whose census counts unclassified versions and that carries no `history_scope` is refused with `CONTENT_SCOPE_UNDECLARED`; the same declaration with a `history_scope` at or below the prospective replica ceiling, and the digest of a census taken with it, is confirmed and records `history_scope`
-- [ ] An unclassified version recorded after a replica's census — an observation, or a version a person made in the store — holds the replica `behind` with `held_reason` `unclassified`, and nothing recorded after it is sent
+- [ ] An unclassified version recorded after a replica's census — an entry a person created in the store with no scope in its bytes, whether observed or not — holds the replica `behind` with `held_reason` `unclassified`, and nothing recorded after it is sent
+- [ ] An out-of-band edit, after a replica's census, to an entry whose path has a recorded scope is classified at that scope, or at the higher scope its bytes declare, and is sent when that is at or below the replica's ceiling
 - [ ] A version recorded after a replica was confirmed that holds a path under `.weblisk`, anywhere in what it holds, holds the replica `behind` with `held_reason` `reserved-path` naming that path; it is never sent, and nothing recorded after it is sent
 - [ ] A backend's report of a copy of the store that no replica declares makes `effective_custody` `opaque`, lowers `ceiling` to `internal` at most, and publishes `content.custody_degraded`
 - [ ] No configuration key declares a replica, and a configuration file naming one declares nothing
