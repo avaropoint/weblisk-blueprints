@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.3.1
+version: 2.4.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -617,7 +617,8 @@ interfaces:
 |---|---|---|---|
 | `CONTENT_PRECONDITION_FAILED` | conflict | `if_match` does not equal the identity of what it names — an entry's stored digest on a write or a proposal, a placement's census digest on an adoption, a replica census's digest, over what would leave and where it would go, on a replica declaration, a proposal's `before` on a decision to apply it. The empty string where an entry exists, on a write, a proposal to create, or a decision to apply one | Refuse. Return both digests. Never merge, never overwrite, never adopt. On a decision to apply, record the proposal `stale` and write nothing |
 | `CONTENT_IF_MATCH_REQUIRED` | validation | A write, a removal or a proposal arrived with no `if_match`. The empty string is a precondition, not its absence | Refuse. A write with no precondition is a blind overwrite, and a proposal with none cannot be told stale |
-| `CONTENT_CUSTODY_CEILING_EXCEEDED` | policy | Declared scope exceeds the repository ceiling, or something a replica would receive exceeds that replica's ceiling | Refuse, naming required and actual, and on a replica each path above it. Never downgrade the scope |
+| `CONTENT_CUSTODY_CEILING_EXCEEDED` | policy | Declared scope exceeds the repository ceiling, or something a replica would receive exceeds that replica's ceiling, or a records repository's derived ceiling is below `restricted` | Refuse, naming required and actual, and on a replica each path above it. Never downgrade the scope |
+| `CONTENT_RECORDS_REPOSITORY_REQUIRED` | policy | A write or a proposal whose bytes carry the label `pii`, into a repository that is not a records repository. See [Where an entry labelled `pii` is kept](#where-an-entry-labelled-pii-is-kept) | Refuse, naming the path and the `scope_path`'s records repository where there is one. Nothing is written, and the label is never dropped to fit |
 | `CONTENT_SCOPE_LOWERED` | policy | A write or a proposal declares a scope below its path's recorded scope, below the scope its own bytes declare, or below the `maps_to` of a label its bytes carry that the tenant registers, or declares none where a recorded scope or the bytes give one; or its bytes declare a scope below the path's recorded scope. A removal never ends a recorded scope, so this also refuses a path created again below the scope last recorded for it. See [An Entry's Scope](#an-entrys-scope) | Refuse, naming both levels and where each was declared. Never record the lower scope, and never raise the declared one to fit |
 | `SCOPE_INVALID_LEVEL` | validation | A write or a proposal declares a scope, on the change or under `scope:` or `classification:` in its bytes, that is not a `ScopeLevel`. The code is [`patterns/scope`](../patterns/scope.md#scope-related-errors)'s | Refuse, naming where the value was found and the value |
 | `CONTENT_CUSTODY_UNDECLARED` | policy | Repository has no declared custody | Treat as `opaque`, apply the `internal` ceiling, and record the degradation |
@@ -626,7 +627,7 @@ interfaces:
 | `CONTENT_UNREADABLE` | io | Bytes cannot be read | Identity is `unknown`, never `current` and never `stale` |
 | `CONTENT_REPOSITORY_UNKNOWN` | validation | No repository of that id in the caller's scope | Refuse without disclosing whether it exists elsewhere |
 | `CONTENT_DISPOSITION_REQUIRED` | validation | A declaration arrived without a disposition | Refuse. A declaration that does not say whether it expects bytes is a blind adoption |
-| `CONTENT_REPOSITORY_EXISTS` | conflict | The id is already declared at that `scope_path`, or is reserved there by an unfinished establish whose arguments differ from this request's | Refuse, naming the declared repository's placement. Never re-declare in place. An identical retry against an unfinished establish is a resumption, not this |
+| `CONTENT_REPOSITORY_EXISTS` | conflict | The id is already declared at that `scope_path`, or is reserved there by an unfinished establish whose arguments differ from this request's; or the declaration names itself a records repository and the `scope_path` has one | Refuse, naming the declared repository's placement. Never re-declare in place. An identical retry against an unfinished establish is a resumption, not this |
 | `CONTENT_ADOPTION_UNSEEN` | conflict | `disposition: adopt` with no `if_match` | Refuse and return the `ContentAdoption` census. Nothing is declared. The caller re-submits with the census digest |
 | `CONTENT_NOT_EMPTY` | conflict | `disposition: establish` and the placement already holds entries, including on a resumed establish whose store has since been written to; or a replica's destination holds something this service would not send | Refuse. Establishing over bytes somebody else wrote is adoption under the wrong word, and sending over them would overwrite them |
 | `CONTENT_BACKEND_UNKNOWN` | validation | The placement names a backend this service does not hold for that `scope_path` | Refuse without disclosing whether the name exists under another scope |
@@ -671,7 +672,9 @@ interfaces:
    (`CONTENT_REPOSITORY_EXISTS`), and the placement must not be equal to, inside
    or containing a placement already declared (`CONTENT_PLACEMENT_DECLARED`).
    A declaration carrying `self_decision_ceiling` MUST come from a caller
-   holding `content:decide` as well as `content:declare`
+   holding `content:decide` as well as `content:declare`. A declaration
+   naming itself a records repository at a `scope_path` that has one →
+   `CONTENT_REPOSITORY_EXISTS`
 5. `establish` — the caller MUST hold `content:establish` as well as
    `content:declare`; a backend that cannot create is refused with
    `CONTENT_ESTABLISH_UNSUPPORTED`; a placement already holding entries is
@@ -690,7 +693,9 @@ interfaces:
    no custody is recorded `opaque` and the degradation is recorded, per
    `CONTENT_CUSTODY_UNDECLARED`
 8. The ceiling is derived from what was demonstrated. It is never taken from the
-   request
+   request. A records repository whose ceiling is below `restricted` →
+   `CONTENT_CUSTODY_CEILING_EXCEEDED`, and it stays `establishing` on
+   `establish`, or is not declared on `adopt`
 9. The repository is recorded `state: declared`. On adoption, every entry the
    census found is recorded with provenance `unknown` — the service did not
    write them and observed no change, so it can establish nothing about them —
@@ -739,7 +744,9 @@ interfaces:
    `SCOPE_INVALID_LEVEL`. Nothing is raised to fit. Then the declared scope
    against the repository's derived ceiling; a change that declares none is
    checked at `patterns/scope`'s `default_level`, the level it is decided at in
-   place. Exceeded → refuse, publish `content.ceiling_exceeded`
+   place. Exceeded → refuse, publish `content.ceiling_exceeded`. Bytes that
+   carry `pii`, into a repository that is not a records repository → refuse
+   with `CONTENT_RECORDS_REPOSITORY_REQUIRED`
 4. Enforcement storage proxy intercepts with operation `create` when `if_match`
    is the empty string, and `modify` otherwise
 5. Precondition Gate reads the current digest and compares it to `if_match`.
@@ -1349,6 +1356,38 @@ recorded like any other, as Design Principle 4 requires. A value that is not a
 `ScopeLevel`, in bytes this service did not write, declares nothing. An
 observation with neither records no scope, and the version it observed is
 unclassified. Nothing here raises an alarm or rewrites the file.
+
+### Where an entry labelled `pii` is kept
+
+`pii` is a label this service acts on, whether or not the tenant registers it
+([`patterns/scope`](../patterns/scope.md#a-label-and-its-level)). An entry
+whose bytes carry it is about a person, and it is kept in a **records
+repository**: a repository whose declaration names it one (`records: true`).
+
+- **One per scope.** A `scope_path` has at most one records repository. A
+  second declaration naming itself one at the same `scope_path` is refused
+  with `CONTENT_REPOSITORY_EXISTS`, naming the first.
+- **Declared where it can hold `restricted`.** A declaration naming itself a
+  records repository is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`,
+  naming both levels, when the ceiling derived at declaration is below
+  `restricted`. Its ceiling can still fall later, as any repository's can,
+  and every write above it is then refused by the ordinary check.
+- **Nowhere else.** A write or a proposal whose bytes carry `pii`, into a
+  repository that is not a records repository, is refused with
+  `CONTENT_RECORDS_REPOSITORY_REQUIRED`, naming the path and, where the
+  `scope_path` has one, its records repository. An adoption does not refuse
+  such an entry, because an adoption records what a store already holds; every
+  later write to it is refused.
+- **The log keeps the label.** A change and an observation record the labels
+  their bytes carry (`labels`), so where an entry about a person was kept can
+  be read from the log. An entry carrying `pii` that a person puts in another
+  repository out of band is observed like any other change, as Design
+  Principle 4 requires, and its observation records the label.
+
+`records` is declared through `POST /v1/content/repositories` and fixed there.
+It is never configured: choosing where a tenant keeps records about people is
+an act somebody performs and the audit trail names, not a line in a file read
+at boot.
 
 ---
 
@@ -2888,6 +2927,12 @@ types:
         description: The highest scope at which a requester may apply their own
           proposal, recording separation self. Absent means no requester may.
           Fixed at declaration
+      records:
+        type: bool
+        required: true
+        description: Whether this is its scope_path's records repository, the
+          one that may hold an entry labelled pii. Fixed at declaration. See
+          Where an entry labelled pii is kept
       backend_report:
         type: object
         required: false
@@ -3019,6 +3064,13 @@ types:
           proposal. Absent means no requester may. Declaring it requires
           content:decide as well as content:declare, so only a person declares
           it. Not configurable
+      records:
+        type: bool
+        required: false
+        default: false
+        description: Declare this repository its scope_path's records
+          repository. Refused where the scope_path has one, or where the
+          derived ceiling is below restricted. Not configurable
 
   ContentAdoption:
     description: What a placement holds, issued by the service so a caller can
@@ -3472,6 +3524,11 @@ types:
           own declaration is all that stands behind it. chosen is asserted
           unless the change carries the person's statement. Present exactly
           when scope is
+      labels:
+        type: "[]string"
+        required: false
+        description: Recorded. The custom_labels the bytes carry under
+          scope_metadata. Absent when they carry none, and on delete
       actor:
         type: string
         required: true
@@ -3553,6 +3610,11 @@ types:
         description: Recorded. On a change, the higher of the path's recorded
           scope and the scope the observed bytes declare. Absent when neither
           exists, and on a removal. See A change this service did not make
+      labels:
+        type: "[]string"
+        required: false
+        description: Recorded. The custom_labels the observed bytes carry under
+          scope_metadata. Absent when they carry none, and on a removal
       writer:
         type: string
         required: false
@@ -3937,6 +3999,11 @@ types:
         required: false
         description: As declared. Absent means no requester may apply their own
           proposal
+      records:
+        type: bool
+        required: true
+        description: As declared. Whether the repository may hold an entry
+          labelled pii
       adoption:
         type: ContentAdoption
         required: false
@@ -4610,6 +4677,9 @@ security:
 - [ ] A `scope:` line inside a fenced block, or anywhere but a frontmatter block that begins on the first line, declares nothing
 - [ ] An adopted entry whose bytes declare `scope: confidential` is recorded with that scope on the `declare` entry, and an out-of-band edit that removes the line is observed at `confidential`
 - [ ] An entry with no recorded scope and no scope in its bytes reports no `scope`, never `internal`
+- [ ] A write whose bytes carry `scope_metadata: {custom_labels: [pii]}` into a repository whose `records` is false is refused with `CONTENT_RECORDS_REPOSITORY_REQUIRED` and nothing is written; the same write into the `scope_path`'s records repository is recorded with `labels` `[pii]`
+- [ ] A second declaration with `records: true` at a `scope_path` that has a records repository is refused with `CONTENT_REPOSITORY_EXISTS`, and one whose derived ceiling is below `restricted` with `CONTENT_CUSTODY_CEILING_EXCEEDED`
+- [ ] No configuration key declares a records repository
 - [ ] After a removal of an entry recorded at `restricted`, a write creating the same path that declares `internal`, or declares no scope, is refused with `CONTENT_SCOPE_LOWERED`, and one declaring `restricted` is recorded at `restricted`
 - [ ] A write that declares no scope, to a path with no recorded scope whose bytes declare none, records a `ContentChange` with no `scope` and no `scope_basis`, and the version it produces is counted `unclassified` by a replica census
 - [ ] A write declaring `confidential` to a path with no recorded scope, whose bytes declare none, records `scope_basis` `chosen`; one whose bytes declare `scope: confidential` records `bytes`; one declaring the path's recorded scope, with bytes that declare less, records `recorded`

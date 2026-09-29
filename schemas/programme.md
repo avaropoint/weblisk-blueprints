@@ -11,8 +11,8 @@ than designed ahead of them. Every field below is one the loader places, and
 every refusal below is one it makes. Where a rule is enforced somewhere other
 than the loader, this says so, because the difference decides whether a mistake
 stops the file or is discovered months later by somebody reading a readiness
-number. The one exception is [Scope](#scope): its fields and refusals were
-declared here first, not derived from the loader.
+number. [Scope](#scope) is declared by this schema rather than taken from the
+loader, and where the two differ, this schema is the one that is right.
 
 > **A programme is not a standard.** A standard declares what an authority
 > requires ([`standard.md`](standard.md)); a programme declares what an
@@ -736,6 +736,8 @@ This section says where a programme declares one.
 | `artifact_scope_metadata` | a spec | `custom_labels`: the labels that go with it, such as `pii` |
 | `scope` | a register column | the scope of what the column holds |
 | `scope_metadata` | a register column | `custom_labels`, as on a spec |
+| `scope` | a form's `frontmatter:` | the scope of the document the form creates |
+| `scope_metadata` | a form's `frontmatter:` | `custom_labels`, as on a spec |
 
 `custom_labels` is `patterns/scope`'s field, and nothing else under the two
 `_metadata` keys is read. A label is refused where no level is declared beside
@@ -754,15 +756,29 @@ nobody. So the spec's field is `artifact_scope`. A top-level `scope:` or
 `classification:` on a spec or a map is the file's own level, and says nothing
 about the document the spec creates.
 
+### A form's `frontmatter:`
+
+A blank form under `templates/` carries a `frontmatter:` block: the frontmatter
+the document created from it opens with. `scope:` and `scope_metadata:` in that
+block are the created document's own level and labels. They are never the form
+file's own, because they are not top-level in it. They are refused as a spec's
+are: a label with no level beside it, and a value that is not a `ScopeLevel`.
+
 ### What the created document carries
 
 A document created from a spec carries its scope as `scope:` in its own
 frontmatter, and its labels as `scope_metadata: {custom_labels: […]}`. For a
 register those are the register's level, below, and every label its spec or
-any of its columns carries. Whatever creates the document writes them, from
-the spec. A model never chooses them. A document that already exists is not
-rewritten to carry them; it gains them through the next change a person makes
-to it.
+any of its columns carries. A document created from a form carries what the
+form's `frontmatter:` gives. Whatever creates the document writes them, from
+the spec or the form. A model never chooses them.
+
+A document that already exists is never rewritten on open to carry them. The
+client that writes the next change a person makes to it MUST add them in that
+change, from the spec or the form, wherever the document lacks them. Where the
+entry's recorded scope is higher than the spec's, the client writes the
+recorded one, because a change never declares less
+([`architecture/content`](../architecture/content.md#a-scope-only-rises)).
 
 ### A register's level
 
@@ -775,19 +791,32 @@ composed. It holds for both forms: a standing register takes its own spec's
 the declaring spec's. A register nothing gives a level is created with none,
 and is unclassified.
 
-### Health and injury records
+### Records about a person
 
-A register whose rows record an injury to a person, or the state of a person's
-health, is `restricted` and labelled `pii`. Incidents that hurt somebody,
-first-aid treatments, occupational illness, health assessments, fitness for
-duty, return to work and accommodation of a medical need are all such
-registers.
+A register whose rows are **about a person** — any row of it may have one
+identifiable person as its subject, and records something about them — is
+`restricted` and labelled `pii`, whatever its other rows record. So is a
+document a form creates about one person. These are such records:
 
-- Every column that names the person, or describes what happened to their body
-  or their health, declares `scope: restricted` and
+- a register any row of which may record an injury to a person or the state of
+  a person's health: incidents, first-aid treatments, occupational illness,
+  health assessments, fitness for duty, return to work, and accommodation of a
+  medical need;
+- a register of the credentials a person holds, of complaints made by or about
+  a person, of the end of a person's employment, or of requests a person makes
+  about their own personal information;
+- the incident report, first-aid record, health assessment or other document a
+  form creates about one person.
+
+What each declares:
+
+- Every column that names the person, or describes what happened to them,
+  their body or their health, declares `scope: restricted` and
   `scope_metadata: {custom_labels: [pii]}`.
 - A standing register's own spec declares the same, as `artifact_scope` and
   `artifact_scope_metadata`.
+- A form's `frontmatter:` declares the same, as `scope:` and
+  `scope_metadata:`.
 - A column naming who recorded, reviewed or approved the row names a person
   acting, not the person the row is about, and is not labelled for that.
 
@@ -797,18 +826,18 @@ other authority can reach
 `restricted` also admits a shared store whose access can be listed, whose
 changes can be attributed and whose history can be traversed.
 
-### Where a register holding `pii` lives
+### Where a record holding `pii` lives
 
 A register **holds `pii`** when its spec or any of its columns is labelled
-`pii`. It is kept in a **records repository**: a content repository apart from
-the one that holds the programme's other documents, whose ceiling
-([`architecture/content`](../architecture/content.md#derived-scope-ceiling)) is
-`restricted` or higher. The ceiling that counts is the effective one, over
-every place a copy of the repository lives
-([`architecture/content`](../architecture/content.md#effective-custody)), so a
-records repository has no plain replica: a plain replica holds nothing above
-`confidential`. Nothing `restricted` in it is ever sent to a model provider
-either ([`patterns/scope`](../patterns/scope.md#model-providers)).
+`pii`, and a document a form creates holds `pii` when the form's
+`frontmatter:` labels it so. Each is kept in its scope's **records
+repository**, the one repository
+[`architecture/content`](../architecture/content.md#where-an-entry-labelled-pii-is-kept)
+lets hold an entry labelled `pii`, and refuses it anywhere else. What a records
+repository may be copied to is `architecture/content`'s
+([Effective custody](../architecture/content.md#effective-custody)), and what
+may be sent from it to a model provider is `patterns/scope`'s
+([Model providers](../patterns/scope.md#model-providers)).
 
 It is kept apart because the programme's other documents are policies and
 procedures that people edit where they work, often in a shared store, and that
@@ -817,24 +846,56 @@ that whole repository to hold `restricted`, and its rows would stay in that
 repository's history, so every copy of the policies would have to be able to
 hold them as well.
 
+**Install resolves the records repository.** Whatever installs a programme at
+a scope finds that scope's records repository once, at install: the repository
+`GET /v1/content/repositories` reports with `records: true` for that
+`scope_path`.
+
+- A register holding `pii` is created at its path — a standing register's
+  `path`, a record log's `records:` — in the records repository. A document a
+  form creates that holds `pii` is created at the form's `path:` there too.
+- Every other document the programme creates is created at its path in the
+  repository that holds the programme's documents.
+- Where the scope has no records repository, install creates nothing that
+  holds `pii`. It reports each register and form it did not create with
+  `CONTENT_RECORDS_REPOSITORY_REQUIRED`, the code its first write would be
+  refused with, naming the scope that has no records repository. It reports
+  every obligation that records into one as unable to record. Nothing that
+  holds `pii` is created in the programme's repository instead.
+
+**A path resolves by what it names.** A path a spec gives names a document,
+never a repository: a register's `path`, an obligation's `records:`, a
+`for.records`, and a `relation` column's `target`. It resolves in the records
+repository when the register it names holds `pii`, and in the programme's
+repository otherwise. Install, derive, the occurrence engine and every other
+reader resolve it the same way. So a register of incidents in the records
+repository relates each row to a project register in the programme's
+repository by the target path its spec gives, and the relation cell holds the
+project row's key ([Columns](#columns)).
+
 **The records repository comes before enforcement begins.** Enforcement of a
 repository begins when `architecture/content` records it `declared`. From then
-on every write into it is checked against its ceiling. So, in this order:
+on every write into it is checked against its ceiling and against where an
+entry labelled `pii` may be kept. So, in this order:
 
-1. The records repository is established or adopted, and its custody
-   demonstrated, with a ceiling of `restricted` or higher.
-2. Each register holding `pii` is placed in it.
+1. The records repository is established or adopted, and declared as its
+   scope's records repository.
+2. The programme is installed, and each record holding `pii` is created in it.
 3. Only then is the repository that holds the programme's other documents
    declared, and only then is the first row written.
 
-Placed anywhere else, every row is refused from the moment that repository is
-declared, wherever its ceiling is below `restricted`, and the obligation that
-records into the register records nothing. A row written before the register
-moved stays in the history of the store it was written in. An environment
-profile that only audits `restricted`
+Placed anywhere else, every write to a record holding `pii` is refused with
+`CONTENT_RECORDS_REPOSITORY_REQUIRED` from the moment the repository it sits in
+is declared, and the obligation that records into it records nothing. A row written before the record moved stays in the
+history of the store it was written in. An environment profile that only
+audits `restricted`
 ([`patterns/scope`](../patterns/scope.md#environment-profiles)) does not
 postpone any of this: the rows are about real people whatever the profile
 says.
+
+What installing a programme owes is checked by the
+[Installation Checklist](#installation-checklist), not by the checklist for a
+programme's files.
 
 ---
 
@@ -1385,6 +1446,16 @@ as the policy. Neither the missing kind nor the mis-classification is fixed
 here; both are one row in `kinds.md`, and both must be settled before an
 adoption's `extends` is built.
 
+**No shipped register or form declares a scope yet.** Measured at `6aa4aa7`:
+**0 of 222 specs** declare `artifact_scope` or a column `scope`, and **0 of 19
+forms** carry `scope:` under `frontmatter:`. So every record
+[Records about a person](#records-about-a-person) calls `restricted` — the
+incident, first-aid, return-to-work, accommodation, credential and privacy
+request registers and the incident report form among them — is created
+unclassified, and nothing keeps it in a records repository, until its spec or
+form declares one. Declaring them is authorship, one file at a time, each with
+its version bump.
+
 **`retention` is declared on a minority of registers.** Measured across the
 shipped corpus: **71 of 204** registers declare a keeping period, every one of
 them with an `authority` and a `reason`, and no policy domain now reports
@@ -1428,8 +1499,8 @@ than naming a statute that does not exist.
 - [ ] `responsible`, `approved_by`, `approvers` and `escalate.to` name positions, no individual is named anywhere
 - [ ] Every `artifact_scope` and column `scope` is a `ScopeLevel`, and every `custom_labels` sits beside a declared level
 - [ ] No spec writes a top-level `scope:` to mean the document it creates; that is `artifact_scope`
-- [ ] Every register whose rows record an injury to a person, or a person's health, is `restricted` and labelled `pii` on each column about the person, and on its own spec when it is a standing register
-- [ ] Every register holding `pii` is placed in a records repository, declared before the repository that holds the rest of the programme
+- [ ] Every register whose rows are about a person — any row of which may record an injury to them or their health, a credential they hold, a complaint by or about them, the end of their employment, or a request about their own personal information — is `restricted` and labelled `pii` on each column about the person, and on its own spec when it is a standing register
+- [ ] Every form whose document is about one person carries `scope: restricted` and `scope_metadata: {custom_labels: [pii]}` under `frontmatter:`, and no form carries a top-level `scope:` meaning the document it creates
 - [ ] No spec declares `creates:`
 - [ ] Every operation declares an `id` unique within the programme, and a `does:` **or** an `agent:` — never both
 - [ ] Every operation has a `schedule`, an `on:`, or both, and every `cadence`, `weekday` and `at` is in the declared vocabulary
@@ -1439,3 +1510,18 @@ than naming a statute that does not exist.
 - [ ] Every operation says `why:`, in terms that answer somebody who finds it running at three in the morning
 - [ ] No operation declares `start: running` unless adopting the programme is genuinely meant to change behaviour that day
 - [ ] Every artifact's body is a brief for **this organisation** — not the document itself, and not a recital of the standard
+
+---
+
+## Installation Checklist
+
+What whatever installs a programme into a tenant owes. The
+[Verification Checklist](#verification-checklist) above is for a programme's
+files; these are acts of the tenant and the client that installs into it.
+
+- [ ] The scope's records repository is found once, at install, as the repository `GET /v1/content/repositories` reports with `records: true` for that `scope_path`
+- [ ] A register holding `pii`, and a document a form creates that holds `pii`, is created in the records repository, and nothing holding `pii` is created anywhere else
+- [ ] Where the scope has no records repository, nothing holding `pii` is created, each register and form not created is reported with `CONTENT_RECORDS_REPOSITORY_REQUIRED`, and every obligation that records into one is reported as unable to record
+- [ ] A register's `path`, an obligation's `records:`, a `for.records` and a `relation` column's `target` resolve in the records repository when the register named holds `pii`, and in the programme's repository otherwise, for install, derive and the occurrence engine alike
+- [ ] The records repository is declared before the repository that holds the rest of the programme
+- [ ] The client writing a person's next change to a document created from a spec or a form adds `scope:` and `scope_metadata:` from the spec or form where the document lacks them, never on open, and never below the entry's recorded scope

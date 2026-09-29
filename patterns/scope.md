@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.0.0
+version: 2.1.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -1256,6 +1256,10 @@ the two combine, for every entity including a content entry:
 So `scope: confidential` with `pii`, where `pii` is registered as above, is
 refused, and `scope: restricted` with `pii` is `restricted`. Where `pii` is
 not registered, the first is `confidential`, carrying `pii`.
+
+`pii` is also a label the platform acts on, registered or not:
+[`architecture/content`](../architecture/content.md#where-an-entry-labelled-pii-is-kept)
+keeps an entry carrying it in a records repository.
 
 ### Label Resolution
 
