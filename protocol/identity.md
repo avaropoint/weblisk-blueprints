@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.6.1
+version: 1.7.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -483,20 +483,60 @@ rebuild the bytes without a canonicaliser, uses a **fixed-form statement**:
 statement share bytes. One key can sign more than one kind of statement, and a
 signature made for one kind is never valid as another.
 
-A signer MUST build a statement's bytes itself, from fields it has checked. It
-MUST NOT sign bytes a caller hands it. A key that signs whatever it is given is
-an oracle for every statement that key can make.
+**Nothing offers to sign a caller's bytes.** A party that offers signing to
+another program — a command-line verb, a route, or a function another component
+calls — MUST build the bytes itself, as a fixed-form statement or under
+[Sign JSON](#sign-json), from fields it has checked. It MUST NOT sign bytes the
+caller hands it. A key that signs whatever it is given is an oracle for every
+statement that key can make.
+
+A key holder reached through [`protocol/secret-source`](secret-source.md) is
+the one signer that signs a message as it is given, because it does not read
+the message. The rule then binds whoever asks it. Only a signer that built the
+bytes itself, in one of those two forms, may ask a secret source to sign them
+([`protocol/secret-source`](secret-source.md#actions), `sign`).
 
 | Prefix | Signed by | Defined in |
 |---|---|---|
+| `weblisk/auth/v1` | An identity, proving that it holds its key to a service that is not a hub | [Proving an identity to a service that is not a hub](#proving-an-identity-to-a-service-that-is-not-a-hub) |
 | `weblisk/credential-auth/v1` | A credential, to obtain an operator token | [`architecture/admin`](../architecture/admin.md#minting-a-token-with-the-credential) |
 | `weblisk/log-key/v1` | A log owner's long-lived key, introducing the key that signs the log's checkpoints | [`architecture/storage`](../architecture/storage.md#sealing-a-chained-log) |
 | `weblisk/log-checkpoint/v1` | A log key, over the log's tip | [`architecture/storage`](../architecture/storage.md#sealing-a-chained-log) |
 | `weblisk/content-change/v1` | A person's sign-records credential, over a change to a content entry | [`architecture/content`](../architecture/content.md#the-change-statement) |
+| `weblisk/holder-probe/v1` | An identity held by a secret source, proving that the reference reaches it. Nothing accepts it as anything else | [`protocol/secret-source`](secret-source.md#an-identity-held-by-a-source) |
 
 A kind of statement is registered here before any implementation signs it. A
 prefix names one layout for good. A changed layout gets a new prefix and a new
 row, and a verifier refuses a prefix it does not know.
+
+### Proving an identity to a service that is not a hub
+
+A service that is not a hub sometimes needs to know that a person holds an
+identity. A console does, before it links an identity to one of its accounts.
+It asks for a signature by the identity key over a fixed-form statement:
+
+```
+"weblisk/auth/v1" 0x00 <audience> 0x00 <nonce>
+
+<audience>  the name the verifying service gives this purpose. A signature made
+            for one audience is never valid at another
+<nonce>     the challenge the service issued, as the text it issued
+```
+
+- The service issues the nonce: at least 128 bits from a cryptographically
+  secure random source, bound to what the proof is for, spent by its first
+  use whether or not the signature verifies, and expiring within 300 seconds.
+- The signer refuses an empty audience or nonce, and one that contains a 0x00
+  byte. It builds the bytes itself from the two it is given.
+- The service rebuilds the bytes from its own audience and the nonce it issued,
+  and verifies the signature under the identity public key the proof is about.
+  It never verifies the nonce alone.
+
+The proof shows that whoever answered held the key at that moment, and nothing
+more. It is not a session, and no hub accepts it: a hub is entered by a
+credential, never by the identity
+([`patterns/principal-identity`](../patterns/principal-identity.md) Design
+Principle 4).
 
 ## Token System
 
@@ -1056,7 +1096,9 @@ Implementation MUST:
 - [ ] Support encrypted service keys whose passphrase comes from a secret source
 - [ ] Never accept a private key, other key material or a passphrase from an environment variable, except an installation's master key on a hosted deployment that protects no private key (rule 9)
 - [ ] Sign and verify with pure ML-DSA-65 and an empty context string, never HashML-DSA
-- [ ] Every fixed-form statement an implementation signs begins with a prefix the Fixed-Form Statements registry lists, followed by one `0x00` byte, and its bytes are built by the signer, never taken from a caller
+- [ ] Every fixed-form statement an implementation signs begins with a prefix the Fixed-Form Statements registry lists, followed by one `0x00` byte, and a verifier refuses a prefix the registry does not list
+- [ ] A verb, route or function that signs for another program builds the bytes itself and never signs the caller's, and a secret source is asked to sign only bytes its caller built itself
+- [ ] A proof of an identity to a service that is not a hub is a signature over `weblisk/auth/v1`, the service's audience and a nonce it issued, spent by its first use and expiring within 300 seconds; the service rebuilds those bytes and never verifies the nonce alone, and no hub accepts one
 - [ ] Parse weblisk-key-v1 format correctly (magic, algorithm=ml-dsa-65, kdf, params, ciphertext)
 - [ ] Never store passphrase on disk — only hold in memory during decrypt
 - [ ] A failed passphrase terminates the operation immediately — no retry loop, no passphrase enumeration. The platform blueprint states how termination is signalled

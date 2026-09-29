@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: secret-source
-version: 1.0.0
+version: 1.1.0
 requires: [protocol/identity, patterns/principal-identity]
 platform: any
 tier: free
@@ -65,8 +65,10 @@ the platform blueprint names them.
 
 ```yaml
 requires:
+  # Fixed-form statements, which a caller builds before it asks a source to
+  # sign, and the holder probe registered there
   - blueprint: protocol/identity
-    version: ">=1.1.0 <2.0.0"
+    version: ">=1.7.0 <2.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -325,6 +327,15 @@ as [`protocol/identity`](identity.md#sign) defines a signature, so it verifies
 wherever any other Weblisk signature does. Whether it is deterministic is the
 source's own; a caller MUST NOT depend on it.
 
+A source signs what it is given because it cannot read it, so the caller is
+what keeps the key from becoming an oracle
+([`protocol/identity`](identity.md#fixed-form-statements)). A caller MUST ask a
+source to sign only bytes it built itself, from fields it has checked: a
+fixed-form statement whose prefix `protocol/identity` registers, or a value
+under its Sign JSON. It MUST NOT pass on to `sign` a message another program
+handed it. A caller that did would be offering signing over a caller's bytes,
+which `protocol/identity` forbids.
+
 ```json
 { "version": 1, "action": "sign", "reference": "weblisk/identity-7f3a9c", "alg": "ml-dsa-65", "message": "<base64url>", "options": {} }
 { "signature": "<base64url, 3309 bytes decoded>" }
@@ -392,12 +403,25 @@ for one.
 **Mapping an identity that is already in a source.** A caller reads
 `public_key` from the source. Before it records the holder reference, or writes
 the public key beside it, it MUST prove that the reference works and names that
-key. It signs a fresh random message through the reference, as
+key. It signs a **probe** through the reference, as
 [Signing with a held identity](#signing-with-a-held-identity) describes, and
 verifies the signature against the `public_key` it read. A reference that cannot
 be read, or whose key does not match its `public_key`, is refused. Finding that
 out at the first real signature means finding it out in the middle of something
 else.
+
+The probe is a fixed-form statement
+([`protocol/identity`](identity.md#fixed-form-statements)):
+
+```
+"weblisk/holder-probe/v1" 0x00 <nonce>
+
+<nonce>  32 bytes from a cryptographically secure random source, which the
+         caller generates for this probe alone, as 64 lowercase hex characters
+```
+
+Nothing accepts it as anything else, so a signature made to prove a reference
+proves nothing more, and the caller discards it once it has verified.
 
 ### Signing with a held identity
 
@@ -658,7 +682,7 @@ types:
         type: string
         format: base64url
         required_when: action = sign
-        description: For sign, the exact bytes to sign
+        description: For sign, the exact bytes to sign. The caller built them itself, as a fixed-form statement protocol/identity registers or under its Sign JSON, and never passes on bytes another program handed it
       options:
         type: object
         required: false
@@ -850,7 +874,8 @@ security:
       any other source the caller gets the encrypted envelope and its
       passphrase, or the passphrase of a key file, decrypts in memory, signs,
       and zeroises both. Every signature is made as protocol/identity Sign
-      defines it
+      defines it, over bytes the caller built itself, because a source signs
+      whatever it is given
   timeouts:
     - >-
       Every deadline is the caller's. When one passes, the caller terminates
@@ -929,7 +954,8 @@ security:
 - [ ] From a source that cannot sign, the caller gets `private_key` and `passphrase`, decrypts in memory, signs, and zeroises both
 - [ ] An identity created in a source is stored as the `weblisk-key-v1` envelope with `kdf = argon2id`, a generated `passphrase` of at least 256 bits from a cryptographically secure random source, and its `public_key`, never as a raw key
 - [ ] A source keeps only an identity's passphrase only when the operator asked for it, and only after the caller checked that the passphrase opens the key file
-- [ ] A holder reference is recorded only after a signature made through it verifies against the `public_key` read from it
+- [ ] A holder reference is recorded only after a `weblisk/holder-probe/v1` signature made through it, over a nonce the caller generated for it, verifies against the `public_key` read from it
+- [ ] A caller asks a source to `sign` only a fixed-form statement `protocol/identity` registers, or a value under Sign JSON, that it built itself, and never a message another program handed it
 - [ ] `key_protection` is `hardware` only for a source that lists `sign` with `ml-dsa-65` and lists `private_key` in `withheld_fields`, and is never reported stronger than the Protection table gives
 - [ ] `file:` with a relative path answers `invalid_reference`
 - [ ] A master key that protects a private key, directly or through a key derived from it, never comes from an environment variable
