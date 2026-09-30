@@ -487,14 +487,18 @@ spent the call, and says that no provider was asked.
 than at second zero: a port that was free before an hour of generation is not a
 port anybody reserved. The result reports the port it took. A console building a
 tenant beside one that is already running passes `0`, because a fixed default is
-a collision the moment one tenant is up.
+a collision the moment one tenant is up. The port is this run's and nothing
+records it in the tenant, as for any `--port`: a later
+[`weblisk server start`](#weblisk-server-start) binds what `.weblisk/config.yaml`
+declares, else the convention. A console that starts the tenant again passes the
+port the result reported.
 
 **The result carries the first operator's token, and nothing writes it down.**
 With `--json`, the last object carries `result`: `root`, `address`, `port`,
 `operator`, `provider`, `model`, what acceptance asked (`checks`), and `token`
-with `token_expires_at`. That object is the only place the token goes. `create`
-writes no token file, and without `--json` it prints none — a person at a
-terminal connects afterwards with
+with `token_expires_at` in Unix seconds. That object is the only place the
+token goes. `create` writes no token file, and without `--json` it prints none —
+a person at a terminal connects afterwards with
 [`weblisk operator connect`](#weblisk-operator-connect). The stream is addressed
 to the program that started the command, which holds the token in memory as it
 holds the passphrase it sent; a caller that copies the stream to a file has
@@ -988,7 +992,9 @@ resolver that agrees with this one by luck, and says nothing when they part.
 **A question, not a refresh.** It clones nothing and fetches nothing. A clone
 that is due a refresh is reported `stale`, and one that has never been made is
 reported absent; [`weblisk blueprint update`](#weblisk-blueprint-update) is the
-verb that changes either.
+verb that changes either. Nor does it write in a working tree it reads — not
+even the index `git status` refreshes, whose lock a commit in that tree would
+meet. A console asks this on every page that shows the corpus.
 
 `--json` prints one object:
 
@@ -1072,24 +1078,29 @@ from the files, never declared beside them.
   family this CLI has no checks for is listed with its file count and nothing
   checked. Listing only what was checked would make an unchecked family look
   absent.
-- **Programmes are checked** against the rules
-  [`schemas/programme`](../schemas/programme.md) says refuse a file at load and
-  that need no installation to answer: frontmatter that parses; an `id` on every
-  map and spec, unique in the repository; a `version` that is `MAJOR.MINOR.PATCH`
-  where one is given; no `pack`, `source`, `builtin` or `derived_from`; every
-  `satisfies` citation `framework:control`, on a spec and on its obligation;
-  tiers that name declared tiers, with one root and no cycle; every placed
-  artifact at a declared tier; and no spec that requires itself or sits in a
-  cycle. An artifact a map places that no spec in the repository defines is a
-  warning, because another repository may supply it. A file with no `version`
-  is counted as unversioned and never read as `1.0.0`.
+- **Programmes are checked** against part of what
+  [`schemas/programme`](../schemas/programme.md) says refuses a file at load:
+  frontmatter that parses; an `id` on every map and spec, unique in the
+  repository; a `version` that is `MAJOR.MINOR.PATCH` where one is given; no
+  `pack`, `source`, `builtin` or `derived_from`; every `satisfies` citation
+  `framework:control`, on a spec and on its obligation; tiers that each have an
+  `id`, are declared once and name declared tiers, with one root and no cycle;
+  every placed artifact at a declared tier; and no spec that requires itself or
+  sits in a cycle. **Only these.** The rest of that table — an obligation's
+  `activity` and `interval_basis`, a register's columns, `layout`, `retention` —
+  is not checked here, so a programme with no findings can still be refused
+  when it is loaded. The loader is the authority on the rest, and a second
+  implementation of it here would be a second copy of a rule that drifts. An
+  artifact a map places that no spec in the repository defines is a warning,
+  because another repository may supply it. A file with no `version` is counted
+  as unversioned and never read as `1.0.0`.
 
 `--json` prints one object:
 
 | Field | Meaning |
 |---|---|
 | `dir` | the repository, absolute |
-| `revision` | its short commit, with `-dirty` when it has uncommitted or untracked changes. Empty when it is not a git checkout |
+| `revision` | its short commit, with `-dirty` when it has uncommitted or untracked changes. Empty when it is not a git checkout. Read as [`blueprint sources`](#weblisk-blueprint-sources) reads one, writing nothing in the repository |
 | `corpus` | `true` when it is a corpus, checked on its own |
 | `checked_against` | the sources that supplied rules and references, each as [`weblisk blueprint sources`](#weblisk-blueprint-sources) describes one. Empty when `corpus` is true |
 | `families` | each family recognised: `family`, the `schema` that governs it, `files`, `checked` — how many of those files a check read — and, for programmes, `programmes` and `unversioned` |
@@ -2411,6 +2422,8 @@ security:
 - [ ] `weblisk blueprint sources --json` lists every source in precedence order with `kind`, `from`, `dir`, `revision`, and for a clone `origin`, `present`, `fetched_at` and `stale` — and clones and fetches nothing
 - [ ] A refresh that fails leaves a clone's `fetched_at`, and the age a build prints for it, at the last refresh that worked
 - [ ] `weblisk validate <dir>` reports only that directory's files as findings, and a corpus directory is checked against nothing but itself
+- [ ] A file the repository holds is the copy `weblisk validate <dir>` checks, even when it does not parse: another source's file of the same name is never read in its place
+- [ ] `weblisk blueprint sources` and `weblisk validate <dir>` read a working tree's revision without writing to it or taking its index lock
 - [ ] `weblisk validate <dir>` reports every family the schemas declare that the directory holds, with how many of its files were checked, and a directory holding none says so
 - [ ] `weblisk validate <dir>` checks programmes: parseable frontmatter, an `id` unique in the repository, a well-formed `version`, no reserved keys, `framework:control` citations, declared and acyclic tiers with one root, placed artifacts at declared tiers, and no spec requirement cycle
 - [ ] `weblisk validate --json` without a directory is refused, and with one prints the report and exits non-zero when there is a fault
