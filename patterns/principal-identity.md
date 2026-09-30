@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.8.3
+version: 1.8.4
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -845,8 +845,11 @@ binding from grants resting on a pasted string.
 first identity to create a hub is verified by nobody, because there is nobody to
 verify against — but an unauthenticated bootstrap endpoint reachable on a network
 is claimable by whoever reaches it first, which need not be the operator who
-started the process. Implementations MUST require a bootstrap secret emitted to
-the console or log at first start, and MUST NOT treat mere arrival as authority.
+started the process. Implementations MUST require a bootstrap secret emitted at
+first start where only whoever started the process can read it — a file only
+that user can read, or a terminal attached to the process — and never to a log,
+which others read and which outlives the claim. They MUST NOT treat mere arrival
+as authority.
 Implementations SHOULD additionally confine bootstrap to console or local access,
 time-box it, close the window permanently once claimed, and record the resulting
 grant with `key_provenance: unverified`.
