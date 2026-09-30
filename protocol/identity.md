@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.8.0
+version: 1.8.1
 requires: [protocol/types]
 platform: any
 tier: free
@@ -76,14 +76,17 @@ classical Diffie-Hellman) for an identity, a token, an attestation or a
 signed record. Whoever breaks the algorithm of one of those can forge it,
 at any time afterwards.
 
-A **credential** is different, and
+A credential that **proves a live session** is different, and
 [`patterns/principal-identity`](../patterns/principal-identity.md) Design
-Principle 6 says why: it proves one live session and signs nothing that
-outlives it, so it may be classical. That includes a transport credential a hub
-presents to a third party's service in that service's own protocol, such as the
-SSH key a content replica is pushed with
-([`patterns/content-git`](../patterns/content-git.md)). The blueprint that
-specifies such a transport states what its key exchange must be.
+Principle 6 says why: it signs nothing that outlives the session, so it may be
+classical. That includes a transport credential a hub presents to a third
+party's service in that service's own protocol, such as the SSH key a content
+replica is pushed with ([`patterns/content-git`](../patterns/content-git.md)).
+The blueprint that specifies such a transport states what its key exchange
+must be. A credential that **signs records**, attested with the purpose
+`sign-records`, is not such a credential: what it signs outlives every session,
+so it is ML-DSA-65 like everything else that signs (principal-identity,
+`record-signing`).
 
 **Why ML-DSA-65?** ML-DSA is a lattice-based digital signature scheme
 selected by NIST after an 8-year international evaluation process
@@ -1091,7 +1094,7 @@ security:
 - All keys use base64url encoding for portable, size-efficient storage
 - Token lifetimes are deliberately short (24h auth, 1h channel) to limit blast radius
 - WLT is structurally similar to JWT but uses `typ: WLT` to prevent cross-system confusion
-- Single-algorithm design (ML-DSA-65 only) eliminates algorithm confusion and downgrade attacks
+- Single-algorithm design (ML-DSA-65 for everything this protocol signs) eliminates algorithm confusion and downgrade attacks
 - The `alg` header field MUST be `ML-DSA-65` — any other value is rejected
 - Key rotation is atomic — old key is invalid immediately after rotation
 - Federation key rotation uses dual-signature (old + new) for zero-downtime transitions
@@ -1099,15 +1102,15 @@ security:
   quantum resistance. This is an acceptable tradeoff for security
 - AES-256-GCM remains quantum-resistant (128-bit equivalent under Grover’s algorithm)
 - Argon2id key derivation is unaffected by quantum computing (symmetric primitive)
-- No quantum-vulnerable algorithms are used anywhere in the framework
+- No quantum-vulnerable algorithm signs an identity, a token, an attestation or a record anywhere in the framework. The one classical key it admits is a credential that proves a live session, such as a transport credential in a third party's protocol, and no such key signs anything the framework keeps
 
 ---
 
 ## Verification Checklist
 
 Implementation MUST:
-- [ ] Generate ML-DSA-65 key pairs (FIPS 204) — no other signing algorithm is permitted
-- [ ] Reject any key, signature, or token using a non-ML-DSA-65 algorithm
+- [ ] Generate ML-DSA-65 key pairs (FIPS 204) for every identity, operating credential, sign-records credential, log key and token this protocol specifies — no other signing algorithm is permitted there
+- [ ] Reject any identity key, attestation, record signature or token using a non-ML-DSA-65 algorithm. A transport credential a blueprint specifies for a third party's protocol is that blueprint's, and signs nothing this protocol verifies
 - [ ] Generate keys with cryptographically secure random source
 - [ ] Store private keys with restricted permissions (readable only by owning process)
 - [ ] Encrypt operator private keys with Argon2id + AES-256-GCM (passphrase required, min 12 chars)
