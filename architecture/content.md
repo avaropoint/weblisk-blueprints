@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.12.2
+version: 2.13.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -2205,10 +2205,16 @@ places.
   ceiling and never narrows effective custody.
 - **An undeclared copy counts.** A backend that can see a copy of the store
   that no replica declares MUST report it. It counts as a place whose custody
-  is `opaque`, with the `internal` ceiling the table gives that custody; its
-  anonymous read is not tested, because the service does not reach it.
-  Effective custody becomes `opaque`, the ceiling is `internal` at most, and
-  `content.custody_degraded` is published naming the content now above it.
+  is `opaque` and whose ceiling is `public`, by the second row of the replica
+  table under [Derived Scope Ceiling](#derived-scope-ceiling): it is a copy
+  away from the store, nothing demonstrates who reads it, and its anonymous
+  read is never tested, because the service does not reach it. A copy nobody
+  declared is trusted no more than a replica declared at the same place
+  would be. Effective custody becomes `opaque`, the ceiling becomes
+  `public`, and `content.custody_degraded` is published naming the content
+  now above it. So a store whose history may have been sent to a place such
+  as a public forge accepts nothing above `public` while the copy is
+  reported.
 
 **A replica counts from the moment it is confirmed** (Replica Declaration
 Flow, step 11), whether or not anything has reached its destination, and it
@@ -5055,7 +5061,7 @@ security:
 - [ ] An unclassified version recorded after a replica's census — an entry a person created in the store with no scope in its bytes, whether observed or not — holds the replica `behind` with `held_reason` `unclassified`, and nothing recorded after it is sent
 - [ ] An out-of-band edit, after a replica's census, to an entry whose path has a recorded scope is classified at that scope, or at the higher scope its bytes declare, and is sent when that is at or below the replica's ceiling
 - [ ] A version recorded after a replica was confirmed that holds a path under `.weblisk`, anywhere in what it holds, holds the replica `behind` with `held_reason` `reserved-path` naming that path; it is never sent, and nothing recorded after it is sent
-- [ ] A backend's report of a copy of the store that no replica declares makes `effective_custody` `opaque`, lowers `ceiling` to `internal` at most, and publishes `content.custody_degraded`
+- [ ] A backend's report of a copy of the store that no replica declares makes `effective_custody` `opaque`, lowers `ceiling` to `public`, as a replica declared at a place that demonstrated nothing would, and publishes `content.custody_degraded`; a write at `internal` is then refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
 - [ ] No configuration key declares a replica, and a configuration file naming one declares nothing
 - [ ] Every write, removal and applied proposal appends exactly one `change` entry to its repository's change log, and every observation of state `changed` or `removed` one `observe` entry; an observation of state `unknown` appends nothing
 - [ ] A repository's first log entry has `act` `declare` and `seq` 1, records its `self_decision_ceiling`, its `scope_floor` and, on adoption, every entry the census found; the SHA-256 of its stored line is the `log` its `LogHead` reports
