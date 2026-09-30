@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: storage
-version: 1.2.0
+version: 1.2.1
 requires: [protocol/types, protocol/identity, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 tier: free
@@ -61,10 +61,19 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-  # ML-DSA-65, the key fingerprint, rules 6 to 8 and fixed-form statements, which
-  # Sealing a Chained Log signs with
+  # Sealing a Chained Log: the log key is an ML-DSA-65 key pair held as rule 7
+  # holds an operating credential, and the owner's long-lived key is held as
+  # rule 8 requires. Every key entry, succession entry and checkpoint is a
+  # fixed-form statement signed and verified as Sign and Verify Signature say,
+  # and names each key by its Key Fingerprint
   - blueprint: protocol/identity
     version: ">=1.6.0 <2.0.0"
+    bindings:
+      types:
+        - name: SigningKeyPair
+          fields_used: [algorithm, public_key, private_key]
+        - name: Signature
+          fields_used: [algorithm, value]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
