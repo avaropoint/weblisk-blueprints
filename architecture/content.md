@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.8.1
+version: 2.8.2
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -4619,9 +4619,10 @@ security:
         protocol/types. A hub grants neither to a service subject, mints no
         token for one that carries either, and refuses a registration that
         declares either. This service honours them only on a token of type
-        operator. A console runs every agent under its own service identity.
-        What the tenant cannot see, a person's credential used by software, is
-        stated with the rule
+        operator, checked live with the orchestrator before the act. A console
+        runs an agent a person starts on that person's token narrowed of every
+        person-only capability. What the tenant cannot see, a person's
+        credential used by software, is stated with the rule
     - rule: Only a person allows self-decision
       mechanism: A declaration carrying self_decision_ceiling requires
         content:decide as well as content:declare

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.11.2
+version: 2.11.3
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -209,7 +209,7 @@ policy, which is `patterns/policy`.
 - Operator credentials: one per operator, client and hub, attested by the operator's identity, checked on every request
 - Admin dashboard SPA (overview, agents, approvals, workflows, federation, audit)
 - Admin API endpoints under `/v1/admin/*`
-- Operator token model (WLT with a one-hour TTL, minted with a credential, exact IP binding, two factors required where each key is opened)
+- Operator token model (WLT with a one-hour TTL, minted with a credential, two factors required where each key is opened, behind the admin gateway's IP allowlist)
 - Admin rate limiting and IP allowlist enforcement
 - 4-eyes approval for destructive actions
 
