@@ -590,7 +590,7 @@ if that one cannot — see [`weblisk tenant create`](#weblisk-tenant-create).
 | `path` | the resolved binary, for a backend that is a local program |
 | `model` | the model it uses unless something says otherwise |
 | `needs_key` | the environment variable a keyed backend reads |
-| `local` | nothing leaves the machine |
+| `local` | nothing leaves the machine: the model itself runs here, on a loopback address. A coding-agent CLI runs here and sends the work to its vendor, a `WL_AI_COMMAND` tool is not known either way, and an Ollama or an OpenAI-compatible server at another host is another machine — all `false`. It is what a person deciding where their data may go reads, so it is never claimed on a guess |
 | `default` | `true` on the one backend a build here would start with, with `why` beside it. At most one object carries it, and none does when a build here would have nothing to start with |
 
 **The default is marked by the CLI, never inferred by the caller.** A console
@@ -2397,6 +2397,7 @@ security:
 - [ ] `weblisk tenant create --port 0` starts the orchestrator on a free port chosen when it is started, and the result reports that port
 - [ ] `weblisk tenant create --json` puts the first operator's `token` and `token_expires_at` in the result and nowhere else: no token file is written, and none is printed without `--json`
 - [ ] `weblisk providers --json` marks at most one backend `default`, the one a build here would start with, and marks none when a build would have nothing to start with
+- [ ] `weblisk providers --json` says `local` only for a model served on a loopback address — never for a coding-agent CLI, a `WL_AI_COMMAND` tool, or a server at another host
 - [ ] `weblisk component help` lists a component only when the pipeline will read that component's own blueprint, so a listed kind is never generated from the protocol alone
 - [ ] `weblisk server init` reads YAML specs and dispatches to the configured LLM for code generation
 - [ ] `weblisk server start` reads .weblisk/config.yaml and builds+starts all declared components
