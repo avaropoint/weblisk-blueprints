@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.8.2
+version: 1.8.3
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -359,6 +359,10 @@ contracts:
           records by rotating
         - A subject without the old key cannot announce a rotation. It is
           admitted afresh, as a new subject with a new identifier
+        - A component registered with an orchestrator is not yet under the
+          rule that keeps its identifier. Its identity id is the fingerprint
+          of its current key, and changes when POST /v1/rotate-key replaces
+          that key. protocol/spec states that gap
 
     - name: service-subject-constraints
       description: What a non-human subject may not do, and must carry

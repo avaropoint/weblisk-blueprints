@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: enforcement
-version: 2.2.1
+version: 2.2.2
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, patterns/privacy, architecture/orchestrator, architecture/gateway]
 platform: any
 tier: free
@@ -297,10 +297,14 @@ which the external boundary reads with its own registration token, and whose
 route ([`patterns/scope`](../patterns/scope.md#the-gate)), and a call to it
 from anything else is denied. A provider an api-ai endpoint reaches under its
 own `providers:` ([`patterns/api-ai`](../patterns/api-ai.md#blueprint-format))
-is recognised only where that route reports an address for its key. A model
-endpoint no such answer names cannot be recognised here: a call to it is
-judged as a call to any unclassified endpoint is. This limit is stated with
-the rule so that the rule is not read as covering every model.
+is recognised only where that route reports an address for its key. The
+boundary cannot know an api-ai endpoint's provider keys, and no route a
+registered component may call lists the backends a tenant configures, so in
+practice the one model endpoint it
+recognises is the tenant's model backend. A model endpoint no such answer
+names cannot be recognised here: a call to it is judged as a call to any
+unclassified endpoint is. This limit is stated with the rule so that the rule
+is not read as covering every model.
 
 **Response Boundary** — Intercepts every response produced by an
 agent before it is delivered to the calling party (gateway, another

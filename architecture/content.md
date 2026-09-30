@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.11.0
+version: 2.12.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -630,6 +630,13 @@ status. The Category column classes the fault. It is not
 another blueprint registers, such as `SCOPE_INVALID_LEVEL` or
 `FORBIDDEN`, keeps the status that blueprint gives it.
 
+Four codes take another status than their Category's. `CONTENT_STATEMENT_INVALID`
+is 400: the token was accepted and the statement it carried was not, so a
+client told to authenticate again would send the same statement.
+`CONTENT_REPOSITORY_UNKNOWN`, `CONTENT_PROPOSAL_UNKNOWN` and
+`CONTENT_REPLICA_UNKNOWN` are 404, because the request was well formed and
+names nothing the caller may see.
+
 `CONTENT_STATEMENT_INVALID` is this surface's wire form of
 [`patterns/principal-identity`](../patterns/principal-identity.md#error-handling)'s
 `credential_purpose_mismatch` and `algorithm_not_permitted` where a change
@@ -1237,21 +1244,24 @@ the lowest of them (see [Effective custody](#effective-custody)).
 
 **A replica's ceiling** starts from the same table, applied to what was
 demonstrated about its destination. The first of these rows that applies then
-lowers it:
+gives it:
 
 | The replica's destination | Ceiling |
 |---|---|
+| It holds nothing but ciphertext under a key the tenant alone holds, as the blueprint that specifies its backend demonstrates | the ceiling of the repository's own store |
 | Anyone can read it, or its refusal of a read with no credential (`anonymous_read`) was not demonstrated | `public` |
 | Its custody is not `exclusive`, and it has not demonstrated `enumerable_principals` | `public` |
 | It is **plain**: it holds the bytes as they are, so whoever can read it reads them | the lower of the table's and `confidential` |
-| It holds nothing but ciphertext under a key the tenant alone holds, as the blueprint that specifies its backend demonstrates | the table's |
 
-The first two rows give `public` because, away from the store, a place nobody
-can say who reads cannot be told apart from a place anyone reads (Design
-Principle 2). The third holds whoever holds the destination and whatever
-custody it demonstrated. The `restricted` row of the table rests on approval
-and masking remaining enforceable, and nobody reading a destination passes
-through either.
+A **sealed** replica, the first row, takes the ceiling of whoever holds its
+key, and only the tenant does: whoever reads the destination reads
+ciphertext, wherever it is and whoever else holds it. The second and third
+rows give `public` because, away from the store, a place nobody can say who
+reads cannot be told apart from a place anyone reads (Design Principle 2).
+The fourth holds whoever holds the destination and whatever custody it
+demonstrated. The `restricted` row of the table rests on approval and masking
+remaining enforceable, and nobody reading a destination passes through
+either. No backend this corpus specifies demonstrates the first row yet.
 
 ### What Shared Custody Changes
 
@@ -2160,7 +2170,7 @@ store, is capped the same way, because whoever can read that machine reads the
 copy without passing through this service. Where nothing demonstrates who else
 can read it, as nothing does for a destination reached by a key registered
 there ([`patterns/content-git`](../patterns/content-git.md)), its ceiling is
-`public` by the second row of the replica table under
+`public` by the third row of the replica table under
 [Derived Scope Ceiling](#derived-scope-ceiling), and confirming it makes the repository's
 ceiling `public` for good ([Effective custody](#effective-custody)). Such a
 copy gives durability only to a repository that holds nothing above
@@ -2708,8 +2718,9 @@ a caller who may read everything the repository has held
 holds wherever it goes. An export that includes log lines discloses every path
 in them, the identity id of every party they name, and, in each statement, the
 signer's identity public key and any `device_label` their attestation carries.
-An identity id is the same at every hub its person joins, so those lines also
-link a person across tenants, which is why
+An identity id is the fingerprint of the key a person registered with, so it
+is the same at every hub they joined with that key, and those lines can link
+a person across tenants. That is why
 [`patterns/content-git`](../patterns/content-git.md) keeps identity ids out of
 a store's history.
 

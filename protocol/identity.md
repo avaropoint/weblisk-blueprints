@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.9.0
+version: 1.9.1
 requires: [protocol/types]
 platform: any
 tier: free
@@ -362,9 +362,14 @@ Because the hub keeps the operator's identity id, what was recorded under the
 old key and what is recorded under the new one name the same operator. The
 old key signs nothing more at that hub, and is never accepted there again.
 
-Service keys follow the same rotation protocol, with the passphrase from a
-secret source ([`protocol/secret-source`](secret-source.md)) instead of an
-interactive prompt — never from the environment (rule 9).
+A registered component's key does not rotate through these steps, which are
+an operator's. It rotates through `POST /v1/rotate-key`
+([`protocol/spec`](spec.md#post-v1rotate-key)), signed by its current key and
+its new one, with any passphrase from a secret source
+([`protocol/secret-source`](secret-source.md)) instead of an interactive
+prompt — never from the environment (rule 9). Its identity id is the
+fingerprint of the key it registered with (`protocol/spec`), so unlike an
+operator's it changes with its key, and `protocol/spec` states that gap.
 
 ### Key Recovery
 

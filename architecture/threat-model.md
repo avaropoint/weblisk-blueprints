@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: threat-model
-version: 1.2.4
+version: 1.2.5
 requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/content, architecture/data-security, architecture/admin, architecture/observability, architecture/enforcement, patterns/contract]
 platform: any
 tier: free
@@ -499,7 +499,7 @@ through the application gateway.
 
 | # | Attack Vector | Description | Mitigation | Control |
 |---|--------------|-------------|------------|---------|
-| 4.1 | **Operator key theft** | Attacker steals the operator's ML-DSA-65 identity private key | The key never rests unencrypted, so a copy signs nothing without its passphrase or the secret source that holds it; it signs only to register and to attest, never to log in, and each credential it attests is audited and listed at the hub; key revocation via another admin | Operator identity + attestation audit |
+| 4.1 | **Operator key theft** | Attacker steals the operator's ML-DSA-65 identity private key | The key never rests unencrypted, so a copy signs nothing without its passphrase or the secret source that holds it; it signs only to register, to attest and to change the operator's identity key at a hub, never to log in, and each credential it attests is audited and listed at the hub; key revocation via another admin. A thief who opens it can change the identity key with no approval, which revokes every credential the operator holds at that hub and keeps its identity id and role for the thief. The change is audited with both keys' fingerprints and the operator learns of it only when its next request is refused with `CREDENTIAL_REVOKED`: no alert is specified. An admin who removes the operator ends it | Operator identity + attestation audit |
 | 4.2 | **Admin portal discovery** | Attacker finds admin URL and probes it | Admin gateway on separate domain/port; not linked from application; IP allowlist rejects unknown sources before any processing | Network isolation |
 | 4.3 | **Privilege escalation** | Lower-role operator gains admin access | Role hierarchy enforced server-side; role changes require admin approval + audit log entry; no client-side role checks | Admin auth middleware |
 | 4.4 | **Admin session hijacking** | Steal admin session cookie | The admin gateway admits only allowlisted addresses; tokens expire in one hour and are refused sooner once the operator or credential they rest on is withdrawn; the credential that minted a token signs only after the person's own act. A token carries no address, so a stolen one works from any allowlisted address until then | Admin session policy |

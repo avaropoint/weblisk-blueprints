@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 2.0.3
+version: 2.0.4
 requires: [protocol/types, protocol/identity]
 platform: any
 tier: free
@@ -461,6 +461,8 @@ Rotates an agent's ML-DSA-65 key pair. The request must be dual-signed — once 
 | new_signature | string | yes | Same manifest signed with new private key |
 
 **Response:** 200 with updated `RegisterResponse`. The orchestrator updates the agent's public key in the service directory and issues a `system.agent.key_rotated` event.
+
+**A component's identity id changes with its key.** The token in that response carries `identity_id`, the fingerprint of the new key, as a registration's does. So what a component recorded or was recorded under before the rotation names it by one identity id, and what comes after by another. [`patterns/principal-identity`](../patterns/principal-identity.md)'s `identity-rotation` keeps a subject's identifier across a rotation, and `architecture/admin` does that for an operator. A registered component is not yet under that rule. This is the gap, stated as the enrolment gap under `POST /v1/register` is.
 
 **Error cases:**
 - 401 if current_signature is invalid

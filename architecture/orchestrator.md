@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.6.0
+version: 2.6.1
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin]
 platform: any
 tier: free
@@ -709,7 +709,8 @@ They are the tenant's model surface. The CLI installs them because they read
 the tenant's model configuration, discover which provider binaries are on the
 hub's host, and run a completion through them, and a generated component
 cannot do that without reproducing the CLI's provider catalogue. The CLI
-chooses a model of its own only when it creates a tenant.
+chooses a model of its own only where no tenant's model applies: when it
+creates a tenant, and for work a person starts outside any tenant.
 
 **Every one of them is authorised by the orchestrator.** The gateway that
 serves them has the orchestrator judge the caller's token on each request, by

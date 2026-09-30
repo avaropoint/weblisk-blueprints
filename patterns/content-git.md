@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: content-git
-version: 1.6.0
+version: 1.6.1
 requires: [architecture/content, patterns/content-identity, protocol/identity, patterns/secrets, patterns/principal-identity]
 platform: any
 tier: free
@@ -160,8 +160,9 @@ requires:
    made for somebody else.
 
 4. **History names a person by a pseudonym** — History is what a replica
-   later publishes. An identity id is the same at every hub its person joins,
-   so publishing one lets anyone link that person across tenants. A commit
+   later publishes. An identity id is the fingerprint of the key a person
+   registered with, so it is the same at every hub they joined with that key,
+   and publishing one can let anyone link that person across tenants. A commit
    names each person by a pseudonym, and only the tenant can map it back. A
    service it names is named the same way, so no rule depends on telling the
    two apart.
@@ -663,6 +664,10 @@ machine the tenant owns is `held_by: tenant`.
 ---
 
 ## Error Handling
+
+Each code is returned with the HTTP status its Category gives under
+[`architecture/content`](../architecture/content.md#error-handling)'s
+status-by-Category rule, as content's own codes are.
 
 | Code | Category | When | Behaviour |
 |---|---|---|---|
