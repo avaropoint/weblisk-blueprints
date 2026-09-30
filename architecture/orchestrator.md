@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.6.2
+version: 2.7.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin]
 platform: any
 tier: free
@@ -763,8 +763,17 @@ withdrawn only on a person's operator token holding `model:attest`, which
 - `GET /v1/admin/model/agreements` lists every agreement, withdrawn and lapsed
   ones included, so a person can see what was attested and when it ended.
 - `GET /v1/admin/model/ceiling` returns a `ProviderCeiling` for the backend
-  `GET /v1/admin/model` reports, or for the backend `?backend=` names. It is
+  `GET /v1/admin/model` reports, or for the name `?backend=` gives. It is
   what a client reads before it sends.
+- **Either ceiling route answers every name.** A name no current agreement
+  lists has the ceiling `internal`, whether or not the tenant's model
+  configuration names it, and one a current agreement lists has that
+  agreement's level. The routes never refuse a name as unknown: an api-ai
+  endpoint asks by its own `providers:` keys
+  ([`patterns/api-ai`](../patterns/api-ai.md#destination-ceilings)), which are
+  configured where these routes cannot see them, and a name nobody listed is
+  given `internal` and nothing more. `address` is present only for the
+  tenant's model backend, the one whose address these routes know.
 - `GET /v1/model/ceiling` returns the same `ProviderCeiling` to a registered
   component, on its own registration token. It is not an administrative
   route, so step 6 of Auth Middleware does not refuse that token, and an
@@ -783,7 +792,7 @@ withdrawn only on a person's operator token holding `model:attest`, which
 | `MODEL_AGREEMENT_LEVEL_REFUSED` | 400 | `level` is not `internal` or `confidential` |
 | `MODEL_AGREEMENT_LAPSE_INVALID` | 400 | `not_after` is not in the future, or is more than 90 days after the request |
 | `MODEL_AGREEMENT_EXISTS` | 409 | A name in `backends` is listed by an agreement that is current. The response names that agreement |
-| `NOT_FOUND` | 404 | No agreement of that `id`; or, on either ceiling route, a `?backend=` the tenant's model configuration does not name |
+| `NOT_FOUND` | 404 | No agreement of that `id` |
 
 Recording one publishes `system.model.agreement_recorded`, and withdrawing one
 `system.model.agreement_withdrawn`. Each is audited, recording who acted by
@@ -1420,6 +1429,7 @@ agents hold, which is theirs.
 - [ ] A recorded agreement's `recorded_by` is the token's `identity_id`, whatever the body says
 - [ ] An agreement whose `level` is `restricted` is refused with `MODEL_AGREEMENT_LEVEL_REFUSED`, one whose `not_after` is 91 days ahead with `MODEL_AGREEMENT_LAPSE_INVALID`, and one listing a backend a current agreement lists with `MODEL_AGREEMENT_EXISTS`
 - [ ] `GET /v1/admin/model/ceiling` answers `internal` for a backend no current agreement lists, and `internal` again once the agreement that listed it lapses or is withdrawn
+- [ ] Either ceiling route answers a `?backend=` name the tenant's model configuration does not name, such as an api-ai endpoint's `providers:` key, with `internal` and no `address` where no current agreement lists it, and with the agreement's level where one does, and never with `NOT_FOUND`
 - [ ] `GET /v1/model/ceiling` answers a registered component's token with the `ProviderCeiling` `GET /v1/admin/model/ceiling` gives an operator for the same backend, `address` included where the backend has one, and refuses an attestation token with `CREDENTIAL_REQUIRED`
 - [ ] Every platform-provided model route is authorised by the orchestrator's own judgement of the caller's token, and a `/v1/admin/*` one refuses an agent token with `CREDENTIAL_REQUIRED`
 - [ ] `POST /v1/token/check` reads the caller's token from its `Authorization` header only: with no header it answers 401 whatever the body holds, and a body with no `subject_token` is refused with 400 `INVALID_REQUEST`

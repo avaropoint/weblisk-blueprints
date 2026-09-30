@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: api-ai
-version: 2.1.1
+version: 2.1.2
 requires: [protocol/types, patterns/scope, architecture/agent, architecture/gateway]
 platform: any
 tier: free
@@ -791,8 +791,12 @@ one the tenant gives the provider's key under `providers:`, as
 `GET /v1/model/ceiling?backend=<key>` answers it
 ([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)).
 That route takes this endpoint's own registration token; the administrative
-route of the same name takes only a person's.
-A provider key no current agreement lists has the ceiling `internal`.
+route of the same name takes only a person's. It answers every key with a
+`ProviderCeiling`, whether or not the tenant's model configuration names it:
+a provider key no current agreement lists has the ceiling `internal`. It
+refuses only a token it does not accept, with a code
+[`protocol/types`](../protocol/types.md#errorresponse) registers, and an
+endpoint that cannot learn a ceiling uses `internal`.
 
 Before any request is sent, this endpoint applies the destination gate
 ([`patterns/scope`](scope.md#the-gate)) to the request's `scope` and
@@ -856,6 +860,7 @@ than the one first chosen, the response's `provider` says so.
 - [ ] Unknown model returns 404 with helpful error
 - [ ] Provider failover goes only to a provider whose ceiling covers the request's `scope`, is refused with `SCOPE_CEILING_EXCEEDED` when none does, and the response's `provider` names the provider that ran it
 - [ ] A request with no `scope` is refused with `SCOPE_MISSING`, and one at `restricted` with `SCOPE_CEILING_EXCEEDED`, whatever any provider's ceiling, and neither reaches a provider
+- [ ] A provider key that no current agreement lists, whether or not the tenant's model configuration names it, gets the ceiling `internal` from `GET /v1/model/ceiling?backend=<key>`, and a `confidential` request to it is refused with `SCOPE_CEILING_EXCEEDED`
 - [ ] A request whose `scope` is `confidential` goes only to a provider a current agreement lists at `confidential`, through resolution, the fallback chain, a `downgrade` and a request-level `provider` override alike
 - [ ] Token usage is tracked per request with trace_id attribution
 - [ ] Streaming responses use SSE format

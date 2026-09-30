@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.2.1
+version: 2.2.2
 requires: [protocol/types]
 platform: any
 tier: free
@@ -459,8 +459,9 @@ an **agreement attestation** for it.
   `GET /v1/admin/model` reports, or the provider's key under `patterns/api-ai`'s
   `providers:`. The name is compared exactly as the configuration spells it.
   A backend no current agreement lists has the ceiling `internal`, so a name
-  nobody listed is never given more. A backend is listed by at most one
-  current agreement.
+  nobody listed is never given more, and the ceiling routes answer every name
+  that way, one the tenant's model configuration does not know included. A
+  backend is listed by at most one current agreement.
 - **Who records it.** A person, on their own operator token, holding
   `model:attest`. [`protocol/types`](../protocol/types.md) marks it *person
   only*, and the mechanism that list names keeps it from every service
