@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: enforcement
-version: 2.0.0
+version: 2.1.0
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, patterns/privacy, architecture/orchestrator, architecture/gateway]
 platform: any
 tier: free
@@ -125,6 +125,8 @@ requires:
           fields_used: [public, internal, confidential, restricted, critical]
         - name: EnvironmentProfile
           fields_used: [name, enforcement_level, scope_overrides]
+        - name: DestinationRefusal
+          fields_used: [destination, ceiling, items]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -551,7 +553,7 @@ external_proxy:
       - Check target against blocked endpoint list
       - A target the tenant's model configuration names is a model provider's — a call to it from anything but the tenant's model route → deny with ENFORCEMENT_BLOCKED_TARGET
       - Evaluate payload scope — restricted+ data to unclassified endpoints → deny
-      - A target patterns/scope gives a ceiling (Destination Ceilings), such as a model provider, is classified by that ceiling — payload scope above it → deny; payload scope undeclared → deny with SCOPE_MISSING. This is the destination gate, and it resolves to deny in every environment profile, never audit-only. Deny before any masking below, never mask to fit
+      - A target patterns/scope gives a ceiling (Destination Ceilings), such as a model provider, is classified by that ceiling — payload scope above it → deny with SCOPE_CEILING_EXCEEDED; payload scope undeclared → deny with SCOPE_MISSING. Each carries a DestinationRefusal. This is the destination gate, and it resolves to deny in every environment profile, never audit-only. Deny before any masking below, never mask to fit
       - Build PolicyContext from agent, target, scope
       - Evaluate policies via patterns/policy
       - Apply privacy controls:
@@ -568,7 +570,9 @@ external_proxy:
       - code: ENFORCEMENT_BLOCKED_TARGET
         when: Target is on the blocked endpoint list, or is a model provider's endpoint and the caller is not the tenant's model route
       - code: ENFORCEMENT_SCOPE_LEAKAGE
-        when: Payload scope exceeds target endpoint classification — for a target patterns/scope gives a ceiling, that ceiling
+        when: Payload scope exceeds the classification of a target patterns/scope gives no ceiling
+      - code: SCOPE_CEILING_EXCEEDED
+        when: Payload scope is above the ceiling patterns/scope gives the target. The code and its DestinationRefusal are patterns/scope's, as every sender's refusal at a destination is
       - code: SCOPE_MISSING
         when: Payload scope is undeclared and the target has a ceiling in patterns/scope
       - code: ENFORCEMENT_CAPABILITY_MISMATCH
@@ -1594,7 +1598,7 @@ in the relevant `platforms/*.md` blueprint. All platforms MUST satisfy:
 - [ ] Message boundary intercepts all messages — enforcement evaluates policies and logs decisions before delivery
 - [ ] Storage boundary blocks scope violations — agent with `internal` scope cannot write to `restricted` resource (ENFORCEMENT_SCOPE_VIOLATION)
 - [ ] External boundary prevents scope leakage — `restricted`-scope data cannot be sent to unclassified external endpoints (ENFORCEMENT_SCOPE_LEAKAGE)
-- [ ] A model provider is sent nothing above the ceiling [`patterns/scope`](../patterns/scope.md#model-providers) gives it, and nothing undeclared (`SCOPE_MISSING`); the call is denied before any masking, never masked to fit, and is denied in the `development` profile as in `production`
+- [ ] A model provider is sent nothing above the ceiling [`patterns/scope`](../patterns/scope.md#model-providers) gives it (`SCOPE_CEILING_EXCEEDED`), and nothing undeclared (`SCOPE_MISSING`), each refusal carrying a `DestinationRefusal`; the call is denied before any masking, never masked to fit, and is denied in the `development` profile as in `production`
 - [ ] A call to an endpoint the tenant's model configuration names, from anything but the tenant's model route, is denied with `ENFORCEMENT_BLOCKED_TARGET`
 - [ ] Response boundary blocks output contract violations — agent cannot return fields outside its declared output contract (ENFORCEMENT_OUTPUT_CONTRACT_VIOLATION)
 - [ ] Response boundary blocks output scope exceeded — agent cannot return data at a scope higher than its declared operational scope (ENFORCEMENT_OUTPUT_SCOPE_EXCEEDED)

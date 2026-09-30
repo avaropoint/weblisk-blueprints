@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.1.0
+version: 2.1.1
 requires: [protocol/types]
 platform: any
 tier: free
@@ -207,7 +207,7 @@ contracts:
           type: ScopeLevel
           required: true
           description: The highest scope the destination may receive
-      inherits: Allow, or a refusal carrying a DestinationRefusal — SCOPE_MISSING when payload_scope is absent, SCOPE_CEILING_EXCEEDED when it is above destination_ceiling — in every environment profile
+      inherits: Allow, or a refusal carrying a DestinationRefusal — SCOPE_MISSING when payload_scope is absent, SCOPE_CEILING_EXCEEDED when it is above destination_ceiling — in every environment profile. architecture/content's replica declaration is the one sender with codes of its own, named under The gate
       overridable: false
       override_constraints: Not overridable — a gate an extender could loosen, or a profile could make audit-only, lets content leave that has not come back
 
@@ -354,6 +354,20 @@ hold:
    the highest scope of everything it carries, as
    [Scope Escalation](#scope-escalation) computes it. Above the ceiling, it is
    refused with `SCOPE_CEILING_EXCEEDED`.
+
+**One set of codes.** Every sender refuses with these two codes, each
+carrying a `DestinationRefusal`: a model route, an api-ai endpoint and the
+external boundary of
+[`architecture/enforcement`](../architecture/enforcement.md#external-proxy)
+alike. One exception is named here, as
+[A label and its level](#a-label-and-its-level) names one for a declaration:
+[`architecture/content`](../architecture/content.md#replica-declaration-flow)
+refuses a replica declaration with its own `CONTENT_SCOPE_UNDECLARED` and
+`CONTENT_CUSTODY_CEILING_EXCEEDED`, carrying the `ReplicaCensus`, which names
+the destination, its prospective ceiling and each path above it or
+unclassified — everything a `DestinationRefusal` carries — and it holds a
+replica's later sends rather than refusing them. No other component names a
+code of its own for this gate.
 
 **For content, the unit is the entry.** Any part of an entry in a content
 repository — a row, a section, a column, a quoted line, a summary of it — is
