@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: api-ai
-version: 2.0.0
+version: 2.1.0
 requires: [protocol/types, patterns/scope, architecture/agent, architecture/gateway]
 platform: any
 tier: free
@@ -187,7 +187,7 @@ local and remote is a configuration change, not a code change.
 
 ```yaml
 name: api-ai
-version: 2.0.0
+version: 2.1.0
 description: AI-first communication with language models and intelligence services
 
 providers:
@@ -788,8 +788,10 @@ as `block` refuses it. When `block` is configured, return 429 with
 Every provider this endpoint reaches is a model provider
 ([`patterns/scope`](scope.md#model-providers)), and its ceiling is the
 one the tenant gives the provider's key under `providers:`, as
-`GET /v1/admin/model/ceiling?backend=<key>` answers it
+`GET /v1/model/ceiling?backend=<key>` answers it
 ([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)).
+That route takes this endpoint's own registration token; the administrative
+route of the same name takes only a person's.
 A provider key no current agreement lists has the ceiling `internal`.
 
 Before any request is sent, this endpoint applies the destination gate

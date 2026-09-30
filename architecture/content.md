@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.6.0
+version: 2.7.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -2276,18 +2276,19 @@ Three rules keep every person-only capability with people:
   declares one ([`protocol/spec`](../protocol/spec.md), `POST /v1/register`).
   Both refusals carry `CAPABILITY_PERSON_ONLY`, the wire form
   [`protocol/types`](../protocol/types.md#error-handling) registers for
-  principal-identity's `capability_person_only`. A client that runs agents under
-  its own service identity can therefore only propose their output.
+  principal-identity's `capability_person_only`. A registered component that
+  runs agents can therefore only propose their output.
 - **This service honours one only on a person's token.** A person-only
   capability counts only on a token whose `type` is `operator`, which a hub
   mints for an operator, a person, through a credential that person's identity
   attested ([`architecture/admin`](admin.md#operator-token)). On any other
   token — a registered component's, a channel's — this service treats it as
   absent. A hub that issued one by mistake has still opened no route.
-- **An agent runs under a credential that holds none of them.** A console runs
-  every agent under its own service identity, whether or not anybody is
-  watching ([`architecture/admin`](admin.md), `console-credential-use`), so the
-  credential the run uses holds no person-only capability. An agent's
+- **An agent runs on a token that holds none of them.** A console runs an
+  agent a person starts on a token minted with that person's credential and
+  narrowed to leave out every person-only capability
+  ([`architecture/admin`](admin.md), `console-credential-use`), so the run can
+  only propose, and never beyond what that person may do. An agent's
   authorisation never names one either (principal-identity, `agent-delegation`).
 
 A decision is judgement, and a service has none to exercise
@@ -2297,10 +2298,10 @@ A decision is judgement, and a service has none to exercise
 tell whose credential a request used. It cannot tell whether that person sent
 the request or software they run sent it with their credential. The first two
 rules hold at the tenant for every service and every registered component, and
-no client can loosen them. The third holds at the tenant for a console's
-service identity, and in the console for a person's credential. A console that
-ran an agent under a person's credential would produce a change recorded as
-that person's direct write. This limit is stated here, as Design Principle 5
+no client can loosen them. The third holds in the console: a narrowed token and
+a full one are both that person's, and this service cannot tell which a client
+asked for. A console that ran an agent on a full token would produce a change
+recorded as that person's direct write. This limit is stated here, as Design Principle 5
 requires, rather than hidden behind the two rules that do hold.
 
 `content:write` and `content:propose` do not imply each other. A person who
@@ -2379,8 +2380,9 @@ change between one read and the next.
 ### Separation of duties
 
 The **requester** of a proposal is its `actor` and, when present, its
-`on_behalf_of`. The person who dispatched an agent is a requester of the
-agent's proposal, as much as the service the agent ran under.
+`on_behalf_of`. The person who started an agent is a requester of its
+proposal: its `actor`, where the run used that person's narrowed token, or its
+`on_behalf_of`, where a service ran it for them.
 
 Requester and decider are compared by identity id and by nothing else (see
 [Who a change was for](#who-a-change-was-for)). A name, an email address or a
@@ -2506,8 +2508,9 @@ record name the same party.
   `content:write`, which only a person's token carries, so the writer acts for
   themselves and `actor` already names them. On a proposal, a client that
   carries out a person's instruction under its own service identity MUST send
-  it; an agent run that a person dispatched is the ordinary case. Without it
-  that person is absent from the record, and separation cannot see them. A
+  it. Without it that person is absent from the record, and separation cannot
+  see them. An agent run a person started on their own narrowed token needs
+  none: the token names that person, so `actor` is them, witnessed. A
   scheduled job is not a person and is never `on_behalf_of`. It names itself
   in `run`, and `on_behalf_of` names the person it acts for, where there is
   one.
@@ -2686,8 +2689,8 @@ Two parties sign, and nobody else.
   carries it, and that person's part in the change is `signed`.
 
 An agent, a schedule and a service sign nothing here. Only a person moves an
-entry (Design Principle 7), and an agent runs under a service
-([Who may move an entry](#who-may-move-an-entry)). Their part is witnessed,
+entry (Design Principle 7), and an agent runs on a token that holds no
+person-only capability ([Who may move an entry](#who-may-move-an-entry)). Their part is witnessed,
 where the token that carried it names them, or asserted.
 
 The service's registered key is the long-lived key `architecture/storage`

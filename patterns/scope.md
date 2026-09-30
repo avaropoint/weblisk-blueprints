@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.1.1
+version: 2.2.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -339,7 +339,7 @@ read:
 | Destination | Ceiling derived by | Read by a client from |
 |---|---|---|
 | A replica of a content repository | [`architecture/content`](../architecture/content.md#derived-scope-ceiling), Derived Scope Ceiling | `GET /v1/content/repositories/{repository}/replicas` |
-| A model provider | [Model providers](#model-providers), below | `GET /v1/admin/model/ceiling` ([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)) |
+| A model provider | [Model providers](#model-providers), below | `GET /v1/admin/model/ceiling` on a person's token, and `GET /v1/model/ceiling` on a registered component's ([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)) |
 
 ### The gate
 
@@ -418,9 +418,9 @@ has with nothing demonstrated or attested.
 - A component's outbound call to a model provider's endpoint also passes the
   external boundary of
   [`architecture/enforcement`](../architecture/enforcement.md#external-proxy),
-  which recognises the endpoint from the tenant's model configuration, applies
-  the gate with the provider's ceiling, and refuses a call made around the
-  model route.
+  which recognises the endpoint by the address `GET /v1/model/ceiling` reports,
+  applies the gate with the provider's ceiling, and refuses a call made around
+  the model route.
 - A replica is checked by the content service, when it is declared and before
   every send, as [`architecture/content`](../architecture/content.md#replicas)
   says.
@@ -721,6 +721,10 @@ types:
         type: int64
         required: false
         description: When that agreement lapses. Absent when none gives the ceiling
+      - name: address
+        type: string
+        required: false
+        description: Where the backend is reached, as the base URL of its endpoint, so that an external boundary can recognise a call to it. Absent for a backend that runs as a program on the tenant's host, and for a name the tenant's model configuration gives no address
 
   DestinationRefusal:
     description: |

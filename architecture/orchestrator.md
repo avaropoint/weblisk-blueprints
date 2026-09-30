@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.3.0
+version: 2.4.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin]
 platform: any
 tier: free
@@ -277,6 +277,11 @@ declaration:
       path: "/v1/admin/model/ceiling"
       operation: AdminModelCeiling
       auth: "admin:read"
+      provided: platform
+    - method: GET
+      path: "/v1/model/ceiling"
+      operation: ModelCeiling
+      auth: "token"
       provided: platform
   checks:
     - check: no-path-literals
@@ -625,6 +630,7 @@ See [Lifecycle](lifecycle.md) for the continuous optimization loop.
 | POST | /v1/rotate-key | RotateKey | yes | Rotate an agent's ML-DSA-65 key pair. Dual-signed with the current and the new key, which proves possession of both; the caller's existing token still authenticates the request |
 | GET | /v1/health | Health | no | Orchestrator and hub health |
 | GET | /v1/audit | Audit | yes | Query audit log |
+| GET | /v1/model/ceiling | ModelCeiling | yes | What a model backend may be sent now, and where it is reached, for a registered component (platform-provided — see [A model is a destination](#a-model-is-a-destination)) |
 
 \* Registration uses ML-DSA-65 identity verification instead of tokens — there is
 no token to present before an agent is registered. Key rotation is different: it
@@ -646,9 +652,12 @@ Every endpoint here requires the stated capability from
 [`protocol/types`](../protocol/types.md), carried in the caller's token: an
 `admin:` capability, or, for recording and withdrawing a model provider
 agreement, `model:attest`.
-Administration is a capability like any other, which is what allows an
-administrative interface to be a service holding a grant rather than a
-privileged position in the deployment.
+Administration is a capability like any other: a route checks the capability
+the token carries, never a position in the deployment. On these routes the
+capability arrives on an operator's token, which is a person's, and on no other
+kind (Auth Middleware, step 6). A registered component reaches what it needs of
+the tenant's model through `GET /v1/model/ceiling`, which is not an
+administrative route ([A model is a destination](#a-model-is-a-destination)).
 
 | Method | Path | Operation | Capability | Purpose |
 |--------|------|-----------|-----------|---------|
@@ -683,10 +692,18 @@ serves them and a client may rely on them; they are NOT generated. The CLI
 installs them after generation, and they intercept their own paths ahead of the
 generated router.
 
-They are the CLI's surface rather than the tenant's: they read the model
-backend this workstation is configured with, discover which provider binaries
-are on its PATH, and run a completion through them. A generated component
-cannot implement that without reproducing the CLI's provider catalogue.
+They are the tenant's model surface. The CLI installs them because they read
+the tenant's model configuration, discover which provider binaries are on the
+hub's host, and run a completion through them, and a generated component
+cannot do that without reproducing the CLI's provider catalogue. The CLI
+chooses a model of its own only when it creates a tenant.
+
+**Every one of them is authorised by the orchestrator.** The gateway that
+serves them has the orchestrator judge the caller's token on each request, by
+the middleware that guards every route under the same prefix: every step of
+[Auth Middleware](#auth-middleware) under `/v1/admin/`, step 6 included, and
+every step but 6 for `/v1/model/ceiling`. It never accepts a token on its
+shape, and a request it cannot get a judgement on is refused.
 Asking a model for them produced four handlers against an unspecified
 contract, all of them shadowed the moment the gateway was installed. So this
 document specifies one thing about them and nothing else of their behaviour:
@@ -734,6 +751,15 @@ withdrawn only on a person's operator token holding `model:attest`, which
 - `GET /v1/admin/model/ceiling` returns a `ProviderCeiling` for the backend
   `GET /v1/admin/model` reports, or for the backend `?backend=` names. It is
   what a client reads before it sends.
+- `GET /v1/model/ceiling` returns the same `ProviderCeiling` to a registered
+  component, on its own registration token. It is not an administrative
+  route, so step 6 of Auth Middleware does not refuse that token, and an
+  attestation token is refused there as everywhere but `CredentialAttest`. It
+  is how an api-ai endpoint takes each provider's ceiling
+  ([`patterns/api-ai`](../patterns/api-ai.md#destination-ceilings)) and how the
+  external boundary of [`architecture/enforcement`](enforcement.md) recognises
+  the tenant's model backend by its `address`. It discloses no agreement's
+  terms and no credential.
 
 | Code | HTTP | When |
 |---|---|---|
@@ -1340,3 +1366,5 @@ agents hold, which is theirs.
 - [ ] A recorded agreement's `recorded_by` is the token's `identity_id`, whatever the body says
 - [ ] An agreement whose `level` is `restricted` is refused with `MODEL_AGREEMENT_LEVEL_REFUSED`, one whose `not_after` is 91 days ahead with `MODEL_AGREEMENT_LAPSE_INVALID`, and one listing a backend a current agreement lists with `MODEL_AGREEMENT_EXISTS`
 - [ ] `GET /v1/admin/model/ceiling` answers `internal` for a backend no current agreement lists, and `internal` again once the agreement that listed it lapses or is withdrawn
+- [ ] `GET /v1/model/ceiling` answers a registered component's token with the `ProviderCeiling` `GET /v1/admin/model/ceiling` gives an operator for the same backend, `address` included where the backend has one, and refuses an attestation token with `CREDENTIAL_REQUIRED`
+- [ ] Every platform-provided model route is authorised by the orchestrator's own judgement of the caller's token, and a `/v1/admin/*` one refuses an agent token with `CREDENTIAL_REQUIRED`

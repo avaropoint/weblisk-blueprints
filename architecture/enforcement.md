@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: enforcement
-version: 2.1.0
+version: 2.2.0
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, patterns/privacy, architecture/orchestrator, architecture/gateway]
 platform: any
 tier: free
@@ -127,6 +127,8 @@ requires:
           fields_used: [name, enforcement_level, scope_overrides]
         - name: DestinationRefusal
           fields_used: [destination, ceiling, items]
+        - name: ProviderCeiling
+          fields_used: [backend, ceiling, address]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -286,17 +288,19 @@ gives a ceiling, such as a model provider. That check is the destination
 gate, and it denies in every environment profile
 ([`patterns/scope`](../patterns/scope.md#the-gate)).
 
-**A model provider's endpoint is known from the tenant's model
-configuration.** A target is a model provider's when the tenant's model
-configuration names it: the address of the backend `GET /v1/admin/model`
-reports, and of each provider under
-[`patterns/api-ai`](../patterns/api-ai.md#blueprint-format)'s `providers:`. Such
-a target is reached only through the tenant's model route
-([`patterns/scope`](../patterns/scope.md#the-gate)), and a call to it from
-anything else is denied. A model endpoint the configuration does not name
-cannot be recognised here: a call to it is judged as a call to any
-unclassified endpoint is. This limit is stated with the rule so that the
-rule is not read as covering every model.
+**A model provider's endpoint is known from the tenant.** A target is a
+model provider's when its address is the `address` that
+`GET /v1/model/ceiling` reports for the tenant's model backend
+([`architecture/orchestrator`](orchestrator.md#a-model-is-a-destination)),
+which the external boundary reads with its own registration token, and whose
+`ceiling` it applies. Such a target is reached only through the tenant's model
+route ([`patterns/scope`](../patterns/scope.md#the-gate)), and a call to it
+from anything else is denied. A provider an api-ai endpoint reaches under its
+own `providers:` ([`patterns/api-ai`](../patterns/api-ai.md#blueprint-format))
+is recognised only where that route reports an address for its key. A model
+endpoint no such answer names cannot be recognised here: a call to it is
+judged as a call to any unclassified endpoint is. This limit is stated with
+the rule so that the rule is not read as covering every model.
 
 **Response Boundary** — Intercepts every response produced by an
 agent before it is delivered to the calling party (gateway, another
@@ -551,7 +555,7 @@ external_proxy:
       - Check quarantine store — if agent quarantined → deny
       - Verify agent has declared external capability for the protocol
       - Check target against blocked endpoint list
-      - A target the tenant's model configuration names is a model provider's — a call to it from anything but the tenant's model route → deny with ENFORCEMENT_BLOCKED_TARGET
+      - A target whose address GET /v1/model/ceiling reports is a model provider's — a call to it from anything but the tenant's model route → deny with ENFORCEMENT_BLOCKED_TARGET
       - Evaluate payload scope — restricted+ data to unclassified endpoints → deny
       - A target patterns/scope gives a ceiling (Destination Ceilings), such as a model provider, is classified by that ceiling — payload scope above it → deny with SCOPE_CEILING_EXCEEDED; payload scope undeclared → deny with SCOPE_MISSING. Each carries a DestinationRefusal. This is the destination gate, and it resolves to deny in every environment profile, never audit-only. Deny before any masking below, never mask to fit
       - Build PolicyContext from agent, target, scope
@@ -1599,7 +1603,7 @@ in the relevant `platforms/*.md` blueprint. All platforms MUST satisfy:
 - [ ] Storage boundary blocks scope violations — agent with `internal` scope cannot write to `restricted` resource (ENFORCEMENT_SCOPE_VIOLATION)
 - [ ] External boundary prevents scope leakage — `restricted`-scope data cannot be sent to unclassified external endpoints (ENFORCEMENT_SCOPE_LEAKAGE)
 - [ ] A model provider is sent nothing above the ceiling [`patterns/scope`](../patterns/scope.md#model-providers) gives it (`SCOPE_CEILING_EXCEEDED`), and nothing undeclared (`SCOPE_MISSING`), each refusal carrying a `DestinationRefusal`; the call is denied before any masking, never masked to fit, and is denied in the `development` profile as in `production`
-- [ ] A call to an endpoint the tenant's model configuration names, from anything but the tenant's model route, is denied with `ENFORCEMENT_BLOCKED_TARGET`
+- [ ] A call to the address `GET /v1/model/ceiling` reports for a model backend, from anything but the tenant's model route, is denied with `ENFORCEMENT_BLOCKED_TARGET`
 - [ ] Response boundary blocks output contract violations — agent cannot return fields outside its declared output contract (ENFORCEMENT_OUTPUT_CONTRACT_VIOLATION)
 - [ ] Response boundary blocks output scope exceeded — agent cannot return data at a scope higher than its declared operational scope (ENFORCEMENT_OUTPUT_SCOPE_EXCEEDED)
 - [ ] Quarantine blocks all four boundaries — quarantined agent's messages, storage writes, external calls, and responses are all rejected

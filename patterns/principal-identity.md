@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.8.0
+version: 1.8.1
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -394,7 +394,9 @@ contracts:
           never strips the capability and mints the rest
         - A component that registers with an orchestrator is a service subject.
           A registration whose manifest declares a person-only capability is
-          refused with capability_person_only (protocol/spec, POST /v1/register)
+          refused with capability_person_only (protocol/spec, POST /v1/register).
+          The enrolment rules above are not yet applied to a registration, and
+          protocol/spec states that gap
         - Offboarding a human owner MUST surface every service identity they own
           rather than silently orphaning it
 

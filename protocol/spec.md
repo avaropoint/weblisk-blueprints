@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 2.0.1
+version: 2.0.2
 requires: [protocol/types, protocol/identity]
 platform: any
 tier: free
@@ -386,6 +386,16 @@ The orchestrator MUST:
 10. Respond with `RegisterResponse` (includes routing table)
 11. Asynchronously broadcast updated `ServiceDirectory` (with routing table)
     to ALL OTHER agents via `POST /v1/services`
+
+> **Gap — a registration is not yet an enrolment.** A registered component is a
+> service subject ([`patterns/principal-identity`](../patterns/principal-identity.md)),
+> and `service-subject-constraints` requires a service's enrolment to record a
+> named human owner, to be vouched for by a holder of `grant:issue`, and to
+> carry an expiry. This endpoint does none of those: it admits a component on
+> its signed manifest alone. Of those constraints it applies only step 1's
+> refusal of a person-only capability. Closing the gap is also what would let
+> a hub admit a console's own service identity, which no route admits today
+> ([`architecture/admin`](../architecture/admin.md#a-console-holds-a-credential-never-a-token)).
 
 **Error responses:**
 - 400: Missing required fields

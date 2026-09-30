@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.6.0
+version: 1.7.0
 requires: []
 platform: any
 tier: free
@@ -380,11 +380,12 @@ family, and the orchestrator rejected it exactly as it should.
 
 Administration is expressed in capabilities like everything else, and an
 operator's **role is a bundle of them** — `architecture/admin` defines `viewer` as
-`admin:read`, `auditor` as `admin:read` plus `admin:audit`, and so on. This is
-what allows an administrative interface to be a service that holds grants rather
-than a second authority system running alongside the first: whatever asks to
-administer a component presents capabilities, and the component checks them the
-same way it checks `agent:message`.
+`admin:read`, `auditor` as `admin:read` plus `admin:audit`, and so on. That keeps
+administration one authority system rather than a second one running alongside
+the first: whatever asks to administer a component presents capabilities, and
+the component checks them the same way it checks `agent:message`. On the
+`/v1/admin/*` routes of `architecture/orchestrator`, those capabilities arrive on
+an operator's token — a person's — and on no other kind of token.
 
 `admin:*` is the only wildcard capability name. It exists because a full-access
 role has to be nameable, and it denotes the whole family rather than a resource
@@ -2286,6 +2287,7 @@ All paths are prefixed with `/v1`.
 | `/v1/health` | GET | no | orchestrator | Orchestrator health |
 | `/v1/audit` | GET | yes | orchestrator | Audit log |
 | `/v1/rotate-key` | POST | yes | orchestrator | Key rotation (see identity.md) |
+| `/v1/model/ceiling` | GET | yes | orchestrator | What a model backend may be sent now, and where it is reached. Platform-provided (architecture/orchestrator) |
 
 ---
 
