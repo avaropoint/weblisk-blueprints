@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: api-ai
-version: 2.1.0
+version: 2.1.1
 requires: [protocol/types, patterns/scope, architecture/agent, architecture/gateway]
 platform: any
 tier: free
@@ -30,7 +30,7 @@ through a single interface.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.11.0 <2.0.0"
     bindings:
       types:
         - name: AgentManifest

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.13.0
+version: 2.13.1
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -88,7 +88,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.9.0 <2.0.0"
+    version: ">=1.11.0 <2.0.0"
     bindings:
       types:
         - name: Strategy
@@ -248,10 +248,17 @@ Where the last column names a
 [`patterns/principal-identity`](../patterns/principal-identity.md#error-handling)
 code, this is its wire form at this surface, and that pattern holds the rule.
 
-An orchestrator enters each code in its central error registry with the HTTP
-status given here, which is what `architecture/orchestrator`'s
-`error-codes-registered` check looks for. The Category column classes the fault,
-as `architecture/content` and `architecture/fabric` do. It is not
+The codes a token check can report — `CREDENTIAL_REQUIRED`,
+`OPERATOR_UNKNOWN`, `OPERATOR_NOT_APPROVED`, `OPERATOR_REVOKED`,
+`CREDENTIAL_UNKNOWN`, `CREDENTIAL_OPERATOR_MISMATCH`, `CREDENTIAL_REVOKED` and
+`CREDENTIAL_EXPIRED` — are registered with their HTTP status in
+[`protocol/types`](../protocol/types.md#errorresponse), because every component
+an operator token is presented to answers with them, and their HTTP column
+here names that registry. An orchestrator enters every code in its central
+error registry with its HTTP status, from there for those eight and from here
+for the rest, which is what `architecture/orchestrator`'s
+`error-codes-registered` check looks for. The Category column classes the
+fault, as `architecture/content` and `architecture/fabric` do. It is not
 `ErrorResponse.category`: there, each of these is `permanent` and not
 `retryable`, because the client acts on the code rather than repeating the
 request.
@@ -259,15 +266,15 @@ request.
 | Code | HTTP | Category | When | Behaviour | principal-identity |
 |---|---|---|---|---|---|
 | `OPERATOR_BOOTSTRAP_REFUSED` | 403 | auth | A registration at a hub with no operator carried no bootstrap secret, or a wrong one | Refuse, write nothing, audit. The caller needs the secret the orchestrator emitted | — |
-| `OPERATOR_UNKNOWN` | 401 | auth | No operator of that name here: never registered, or lost with a hub regenerated without its records | Refuse. The client registers again or stops; retrying changes nothing | `identity_unknown` |
-| `OPERATOR_NOT_APPROVED` | 403 | auth | The operator is registered and pending | Refuse. Not a failure: the client reports that an admin must approve | — |
-| `OPERATOR_REVOKED` | 401 | auth | The operator was removed. A removed operator keeps its record with status `revoked` ([`protocol/types`](../protocol/types.md#operatorstatus)), so removal is never mistaken for a name the hub has not seen | Refuse. Every credential and token resting on it ended with it | — |
-| `CREDENTIAL_REQUIRED` | 401 | auth | A route that needs an operator token carrying a `cid` got something else: an operator token with no `cid`, an attestation token anywhere but the attestation route, or an agent or channel token on a `/v1/admin/*` route | Refuse. The client mints an operator token with a credential | — |
+| `OPERATOR_UNKNOWN` | [types](../protocol/types.md#errorresponse) | auth | No operator of that name here: never registered, or lost with a hub regenerated without its records | Refuse. The client registers again or stops; retrying changes nothing | `identity_unknown` |
+| `OPERATOR_NOT_APPROVED` | [types](../protocol/types.md#errorresponse) | auth | The operator is registered and pending | Refuse. Not a failure: the client reports that an admin must approve | — |
+| `OPERATOR_REVOKED` | [types](../protocol/types.md#errorresponse) | auth | The operator was removed. A removed operator keeps its record with status `revoked` ([`protocol/types`](../protocol/types.md#operatorstatus)), so removal is never mistaken for a name the hub has not seen | Refuse. Every credential and token resting on it ended with it | — |
+| `CREDENTIAL_REQUIRED` | [types](../protocol/types.md#errorresponse) | auth | A route that needs an operator token carrying a `cid` got something else: an operator token with no `cid`, an attestation token anywhere but the attestation route, or an agent or channel token on a `/v1/admin/*` route | Refuse. The client mints an operator token with a credential | — |
 | `OPERATOR_SUBJECT_MISMATCH` | 403 | auth | The token's `sub` is not the operator the path names, on a route only that operator may use: an attestation token on another operator's attestation route, or a token without the admin role revoking another operator's credential | Refuse. Log an attestation token's attempt as a security event | — |
-| `CREDENTIAL_UNKNOWN` | 401 | auth | The hub holds no credential with this id | Refuse. The client attests a credential | `identity_unknown` |
-| `CREDENTIAL_OPERATOR_MISMATCH` | 401 | auth | The credential the token's `cid` names is held by an operator other than the token's `sub` | Refuse. Log as a security event: this hub never issues such a token | — |
-| `CREDENTIAL_REVOKED` | 401 | auth | The credential was revoked, by its operator, by an admin, with its operator, or by a change of identity key | Refuse at once, not at the token's expiry. The client attests a new key | `credential_revoked`, `token_credential_revoked` |
-| `CREDENTIAL_EXPIRED` | 401 | auth | The attestation's `not_after` has passed | Refuse. The client re-attests, which needs the identity | `attestation_expired` |
+| `CREDENTIAL_UNKNOWN` | [types](../protocol/types.md#errorresponse) | auth | The hub holds no credential with this id | Refuse. The client attests a credential | `identity_unknown` |
+| `CREDENTIAL_OPERATOR_MISMATCH` | [types](../protocol/types.md#errorresponse) | auth | The credential the token's `cid` names is held by an operator other than the token's `sub` | Refuse. Log as a security event: this hub never issues such a token | — |
+| `CREDENTIAL_REVOKED` | [types](../protocol/types.md#errorresponse) | auth | The credential was revoked, by its operator, by an admin, with its operator, or by a change of identity key | Refuse at once, not at the token's expiry. The client attests a new key | `credential_revoked`, `token_credential_revoked` |
+| `CREDENTIAL_EXPIRED` | [types](../protocol/types.md#errorresponse) | auth | The attestation's `not_after` has passed | Refuse. The client re-attests, which needs the identity | `attestation_expired` |
 | `CREDENTIAL_CHALLENGE_INVALID` | 401 | auth | The nonce was not issued for this credential, was already used or has expired, or the signature does not verify | Refuse and spend the nonce. Log a signature failure as a security event | `replay_detected` |
 | `CREDENTIAL_ATTESTATION_INVALID` | 400 | validation | The attestation's signature does not verify under ML-DSA-65 against the operator's recorded key, or the attestation names another identity key, or an `identity_id` that is not the operator's at this hub | Refuse. Log as a security event | `attestation_invalid`, `algorithm_not_permitted` |
 | `CREDENTIAL_FORM_UNSUPPORTED` | 400 | validation | The credential key is not an ML-DSA-65 public key, the one form these routes carry | Refuse. A form principal-identity permits beside it is admitted only by a route that declares its own registration and challenge | — |

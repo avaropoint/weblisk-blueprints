@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: enforcement
-version: 2.2.2
+version: 2.2.3
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, patterns/privacy, architecture/orchestrator, architecture/gateway]
 platform: any
 tier: free
@@ -100,7 +100,7 @@ Enforcement operates on four principles:
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.11.0 <2.0.0"
     bindings:
       types:
         - name: ServiceDirectory
@@ -580,7 +580,7 @@ external_proxy:
       - code: ENFORCEMENT_SCOPE_LEAKAGE
         when: Payload scope exceeds the classification of a target patterns/scope gives no ceiling
       - code: SCOPE_CEILING_EXCEEDED
-        when: Payload scope is above the ceiling patterns/scope gives the target. The code and its DestinationRefusal are patterns/scope's, as every sender's refusal at a destination is
+        when: Payload scope is above the ceiling patterns/scope gives the target. The code is registered in protocol/types and its DestinationRefusal is patterns/scope's, as for every sender's refusal at a destination
       - code: SCOPE_MISSING
         when: Payload scope is undeclared and the target has a ceiling in patterns/scope
       - code: ENFORCEMENT_CAPABILITY_MISMATCH

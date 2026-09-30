@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.10.0
+version: 1.11.0
 requires: []
 platform: any
 tier: free
@@ -148,6 +148,37 @@ below, with their HTTP status, category and retryability.
 | `POLICY_LIFECYCLE_INVALID` | 409 | permanent | Invalid policy state transition (e.g., modifying an archived policy) |
 | `POLICY_CONFLICT` | 409 | permanent | Conflicting active policies detected for the same scope |
 
+**Operator token codes** (produced by the orchestrator's judgement of an
+operator token, `architecture/admin`'s `token-status-on-use`, and answered by
+every component that asks it about one, `POST /v1/token/check`):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `CREDENTIAL_REQUIRED` | 401 | permanent | The token is not an operator token carrying `cid` where one is required |
+| `OPERATOR_UNKNOWN` | 401 | permanent | The hub records no operator of the token's `sub` |
+| `OPERATOR_NOT_APPROVED` | 403 | permanent | The operator is registered and pending |
+| `OPERATOR_REVOKED` | 401 | permanent | The operator was removed |
+| `CREDENTIAL_UNKNOWN` | 401 | permanent | The hub holds no credential with the token's `cid` |
+| `CREDENTIAL_OPERATOR_MISMATCH` | 401 | permanent | The credential the token's `cid` names is held by an operator other than its `sub` |
+| `CREDENTIAL_REVOKED` | 401 | permanent | The credential was revoked |
+| `CREDENTIAL_EXPIRED` | 401 | permanent | The credential's attestation has passed its `not_after` |
+
+`architecture/admin` says when the orchestrator answers each and what a client
+does next. A component that refuses an operator token because
+`POST /v1/token/check` reported it not live answers with the code the
+`TokenStatus` names and the status this table gives it.
+
+**Destination codes** (produced by the destination gate of `patterns/scope`,
+and answered by every sender it binds):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `SCOPE_MISSING` | 400 | permanent | An entity has no scope declaration where one is required: `reject_unscoped` is enabled, or it would be sent to a destination. At a destination, `detail` is a `DestinationRefusal` |
+| `SCOPE_CEILING_EXCEEDED` | 403 | permanent | Content would be sent to a destination whose ceiling is below its scope. `detail` is a `DestinationRefusal` |
+
+What the gate refuses, and what a `DestinationRefusal` carries, are
+`patterns/scope`'s.
+
 **Identity error codes** (produced by `protocol/identity`):
 
 | Code | HTTP | Category | Description |
@@ -178,8 +209,9 @@ originating subsystem.
 
 **Registry vs. local codes:**
 - All protocol-level, enforcement, policy, contract, federation,
-  safety, identity, and common codes are registered in this central
-  table. These codes may appear in any component.
+  safety, operator token, destination, identity, and common codes are
+  registered in this central table. These codes may appear in any
+  component.
 - Agent-local codes (specific to a single agent's domain logic) are
   defined in the agent's own blueprint. Agent-local codes MUST NOT
   collide with registered codes and SHOULD use a descriptive name
@@ -2099,7 +2131,7 @@ types:
         name: Code
         type: string
         required: false
-        description: "Present when live is false: the code the orchestrator refuses that token with on its own routes — INVALID_SIGNATURE, TOKEN_EXPIRED, CREDENTIAL_REQUIRED, or one of architecture/admin's operator and credential codes"
+        description: "Present when live is false: the code the orchestrator refuses that token with on its own routes, one of INVALID_SIGNATURE and TOKEN_EXPIRED (Error Handling) or an operator token code (Errors) — CREDENTIAL_REQUIRED, OPERATOR_UNKNOWN, OPERATOR_NOT_APPROVED, OPERATOR_REVOKED, CREDENTIAL_UNKNOWN, CREDENTIAL_OPERATOR_MISMATCH, CREDENTIAL_REVOKED or CREDENTIAL_EXPIRED. Each is registered here with its HTTP status"
       identity_id:
         name: IdentityID
         type: string
@@ -3100,5 +3132,6 @@ security:
 - [ ] DecisionResult enum is constrained to `allow`, `audit`, `require_approval`, `escalate`, `deny`, `quarantine` with ordinal-based comparison
 - [ ] Severity enum is constrained to `info`, `low`, `medium`, `high`, `critical` — used consistently across enforcement, security, and safety
 - [ ] Decision mapping table resolves policy/safety/enforcement decisions to canonical DecisionResult using most-restrictive-wins
-- [ ] All protocol-level error codes (standard, enforcement, contract, federation, safety, policy, identity, common) are registered centrally; agent-local codes use domain-descriptive names and do not collide with registered codes
+- [ ] All protocol-level error codes (standard, enforcement, contract, federation, safety, policy, operator token, destination, identity, common) are registered centrally; agent-local codes use domain-descriptive names and do not collide with registered codes
+- [ ] Every code a `TokenStatus` may carry in `code` is registered here with its HTTP status, so a component that refuses a token `POST /v1/token/check` reported not live answers with that status and never a guessed one
 - [ ] Administrative authority is expressed as `admin:` capabilities in the standard list — not as a separate role model — and `admin:*` denotes the whole family

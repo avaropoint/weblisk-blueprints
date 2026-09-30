@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.2.0
+version: 2.2.1
 requires: [protocol/types]
 platform: any
 tier: free
@@ -41,7 +41,7 @@ Scope is the primitive; everything else is a consumer.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.11.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -1338,11 +1338,16 @@ federation_transfer:
 | Code | HTTP | Category | Description |
 |------|------|----------|-------------|
 | `SCOPE_EXCEEDED` | 403 | permanent | Entity scope exceeds component's operational scope |
-| `SCOPE_MISSING` | 400 | permanent | Entity has no scope declaration and `reject_unscoped` is enabled, or it would be sent to a destination ([Destination Ceilings](#destination-ceilings)). At a destination, the detail is a `DestinationRefusal` |
-| `SCOPE_CEILING_EXCEEDED` | 403 | permanent | Content would be sent to a destination whose ceiling is below its scope, or `restricted` or above would be sent to a model provider. The detail is a `DestinationRefusal` |
 | `SCOPE_PROPAGATION_FAILED` | 500 | transient | Scope metadata could not be attached to transfer envelope |
 | `SCOPE_INVALID_LEVEL` | 400 | permanent | Declared scope level is not one of the five built-in levels, or is below the `maps_to` of a registered custom label the declaration carries ([A label and its level](#a-label-and-its-level)) |
 | `SCOPE_FEDERATION_DENIED` | 403 | permanent | Receiving hub does not accept this scope level from federated peers |
+
+`SCOPE_MISSING` and `SCOPE_CEILING_EXCEEDED` are registered with their HTTP
+status in [`protocol/types`](../protocol/types.md#errorresponse), because
+every sender [The gate](#the-gate) binds answers with them, whatever component
+it is. [The gate](#the-gate), and `reject_unscoped` under
+[Configuration](#configuration), say when each is answered, and a refusal at
+a destination carries a `DestinationRefusal` as its detail.
 
 ### Error Response Examples
 

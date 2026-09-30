@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.6.1
+version: 2.6.2
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin]
 platform: any
 tier: free
@@ -73,7 +73,7 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: protocol/types
-      version: ">=1.10.0 <2.0.0"
+      version: ">=1.11.0 <2.0.0"
       bindings:
         types:
           - name: RegisterRequest
@@ -777,7 +777,7 @@ withdrawn only on a person's operator token holding `model:attest`, which
 
 | Code | HTTP | When |
 |---|---|---|
-| `CREDENTIAL_REQUIRED` | 401 | The token is not a person's operator token ([`architecture/admin`](admin.md#error-handling)) |
+| `CREDENTIAL_REQUIRED` | 401 | The token is not a person's operator token ([`protocol/types`](../protocol/types.md#errorresponse)) |
 | `FORBIDDEN` | 403 | The token does not carry `model:attest` ([`protocol/spec`](../protocol/spec.md)) |
 | `INVALID_REQUEST` | 400 | A required field is missing, `backends` is empty, or `agreement_digest` is not `sha256:` and 64 lowercase hex characters |
 | `MODEL_AGREEMENT_LEVEL_REFUSED` | 400 | `level` is not `internal` or `confidential` |

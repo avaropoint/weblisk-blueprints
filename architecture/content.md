@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.12.1
+version: 2.12.2
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -44,7 +44,7 @@ organisation can open.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.10.0 <2.0.0"
+    version: ">=1.11.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -627,8 +627,10 @@ that status wherever this service refuses: `validation` 400, `auth` 401,
 status. The Category column classes the fault. It is not
 `ErrorResponse.category`: there, an `io` or `partial` code is `transient` and
 `retryable`, and every other code is `permanent` and not `retryable`. A code
-another blueprint registers, such as `SCOPE_INVALID_LEVEL` or
-`FORBIDDEN`, keeps the status that blueprint gives it.
+another blueprint registers, such as `SCOPE_INVALID_LEVEL`, `FORBIDDEN`, or
+the code a token check reports for a token that is not live, keeps the status
+that blueprint gives it. [`protocol/types`](../protocol/types.md#errorresponse)
+registers every code a `TokenStatus` can carry.
 
 Four codes take another status than their Category's. `CONTENT_STATEMENT_INVALID`
 is 400: the token was accepted and the statement it carried was not, so a
@@ -2382,7 +2384,8 @@ header, and the token it was presented as `subject_token` in a
 `TokenCheckRequest`. It authorises the act against the `capabilities`
 the answer reports: what the operator's role carries now, never beyond the
 token's `cap`. A token the answer reports not live is refused with the code
-it names ([`architecture/admin`](admin.md#error-handling)). Where the
+it names, with the status
+[`protocol/types`](../protocol/types.md#errorresponse) registers for it. Where the
 orchestrator cannot be asked, the act is refused with
 `CONTENT_TOKEN_UNCHECKED` and nothing is performed. So a removed operator, a
 revoked credential and a lowered role reach this service at the next such act,
