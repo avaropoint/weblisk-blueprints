@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.2.1
+version: 2.3.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin]
 platform: any
 tier: free
@@ -67,7 +67,7 @@ declaration:
           - name: SignatureVerification
             fields_used: [verify_signature, check_replay]
           - name: WLToken
-            fields_used: [sub, iss, iat, exp, cap, cid, type, role]
+            fields_used: [sub, iss, iat, exp, cap, cid, type, role, identity_id, record_keys]
       on_change:
         compatible: validate-and-adopt
         breaking: version-bump
@@ -95,7 +95,7 @@ declaration:
           - name: Capability
             fields_used: [name, resources]
           - name: Operator
-            fields_used: [name, public_key, role, status, created_at]
+            fields_used: [name, public_key, identity_id, retired_keys, role, status, created_at]
       on_change:
         compatible: validate-and-adopt
         breaking: version-bump
@@ -135,6 +135,7 @@ declaration:
           - name: operator-token-issuance
           - name: token-status-on-use
           - name: operator-credential-revocation
+          - name: operator-key-change
           - name: operator-roles
       on_change:
         compatible: validate-and-adopt
@@ -184,6 +185,10 @@ declaration:
     - method: POST
       path: "/v1/admin/credentials/token"
       operation: CredentialToken
+      auth: "none"
+    - method: POST
+      path: "/v1/admin/operators/{name}/key"
+      operation: OperatorKeyChange
       auth: "none"
     - method: POST
       path: "/v1/admin/operators/{name}/credentials"
@@ -288,6 +293,8 @@ declaration:
       endpoint: POST /v1/admin/credentials/challenge
     - check: endpoint-routed
       endpoint: POST /v1/admin/credentials/token
+    - check: endpoint-routed
+      endpoint: POST /v1/admin/operators/{name}/key
     - check: endpoint-routed
       endpoint: POST /v1/admin/operators/{name}/credentials
     - check: endpoint-routed
@@ -649,6 +656,7 @@ privileged position in the deployment.
 | POST | /v1/admin/operators/token | OperatorToken | — | Issue an attestation token to a caller who signs `{name, timestamp}` with the private key matching this orchestrator's record. Unauthenticated by token, because it is what issues them. Deprecated as a way to an operator token — see [`architecture/admin`](admin.md#the-identity-signs-only-to-attest) |
 | POST | /v1/admin/credentials/challenge | CredentialChallenge | — | Issue a single-use nonce for a credential |
 | POST | /v1/admin/credentials/token | CredentialToken | — | Issue an operator token to a credential that signed the nonce. The ordinary way to an operator token |
+| POST | /v1/admin/operators/{name}/key | OperatorKeyChange | — | Change an operator's identity key, signed by the current key and the new one. Unauthenticated by token, because the two signatures authenticate it and the operator may hold no live credential — see [`architecture/admin`](admin.md#changing-an-identity-key) |
 | POST | /v1/admin/operators/{name}/credentials | CredentialAttest | the operator's own token, or an attestation token for them | Attest a credential for that operator |
 | GET | /v1/admin/operators/{name}/credentials | CredentialList | `admin:read` | That operator's credentials, revoked included |
 | DELETE | /v1/admin/operators/{name}/credentials/{cid} | CredentialRevoke | the operator, or `admin:*` | Revoke one credential |
@@ -992,10 +1000,11 @@ never block.
 
 ## Auth Middleware
 
-Applied to all endpoints except `/v1/health`, `POST /v1/register` and the four
-operator routes that establish or issue tokens: `OperatorRegister`,
-`OperatorToken`, `CredentialChallenge` and `CredentialToken` (see
-[Administrative endpoints](#administrative-endpoints)):
+Applied to all endpoints except `/v1/health`, `POST /v1/register`, the four
+operator routes that establish or issue tokens — `OperatorRegister`,
+`OperatorToken`, `CredentialChallenge` and `CredentialToken` — and
+`OperatorKeyChange`, which the operator's current and new identity keys
+authenticate (see [Administrative endpoints](#administrative-endpoints)):
 
 ```
 1. Check Authorization header for "Bearer <token>"
@@ -1294,6 +1303,7 @@ agents hold, which is theirs.
 - [ ] An operator token carries the role and capabilities from the orchestrator's own record, never from the request
 - [ ] `POST /v1/admin/credentials/challenge` and `POST /v1/admin/credentials/token` require no bearer token, and every other operator route refuses a token whose operator or credential is no longer live
 - [ ] The credential routes are served with the Operation names declared above: `CredentialChallenge`, `CredentialToken`, `CredentialAttest`, `CredentialList` and `CredentialRevoke`
+- [ ] `POST /v1/admin/operators/{name}/key` is served as `OperatorKeyChange`, requires no bearer token, and keeps the operator's `identity_id` while revoking its credentials (`architecture/admin`, `operator-key-change`)
 - [ ] A token with `type` `attestation` is refused with `CREDENTIAL_REQUIRED` on every route but `CredentialAttest`, `GET /v1/audit` and `POST /v1/channel` included, and on `CredentialAttest` for any operator but its `sub`
 - [ ] A token whose `type` is not `operator`, an agent token included, is refused with `CREDENTIAL_REQUIRED` on every `/v1/admin/*` route that requires a token, before the handler runs
 

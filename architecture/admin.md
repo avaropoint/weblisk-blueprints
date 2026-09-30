@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.9.1
+version: 2.10.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -271,6 +271,8 @@ request.
 | `CREDENTIAL_LIFETIME_INVALID` | 400 | validation | `not_after` is not in the future, or is more than 90 days after the hub receives the attestation | Refuse, naming the cap | `attestation_expired`, where `not_after` has passed |
 | `CREDENTIAL_PREVIOUSLY_REVOKED` | 409 | conflict | The key was revoked here before | Refuse permanently. Log as a security event | `credential_previously_revoked` |
 | `CREDENTIAL_KEY_BOUND` | 409 | conflict | The credential key is, or was, a credential of another operator at this hub, or is another operator's identity key | Refuse permanently, naming no operator. Log as a security event: an operator attested a key it can see in another's credential list | `credential_key_bound` |
+| `OPERATOR_KEY_CHANGE_INVALID` | 401 | auth | A change of identity key whose `current_signature` does not verify under the operator's recorded key, whose `new_signature` does not verify under `new_public_key`, whose `new_public_key` is not an ML-DSA-65 key, or whose timestamp is outside the 300-second window or was seen before | Refuse and change nothing. Log as a security event | `replay_detected`, where the timestamp is the fault |
+| `OPERATOR_KEY_REUSED` | 409 | conflict | A registration or a change of identity key offers a key this hub records, or recorded, as any operator's identity key, current or retired, or as any credential | Refuse permanently, naming no operator. The client generates a new key | — |
 | `OPERATOR_LAST_ADMINISTRATOR` | 409 | conflict | A request to revoke would end the last active authenticate credential of the last active admin. A sign-records credential signs nobody in and is not counted. A change of that admin's identity key is not refused | Refuse | `last_administrator` |
 
 `TOKEN_EXPIRED` ([`protocol/types`](../protocol/types.md#error-handling)) still
@@ -417,7 +419,9 @@ Critical rules:
 4. OPERATOR AUTHENTICATION
    ├── Skipped for the four routes that issue tokens, which carry none:
    │   operators/register, operators/token, credentials/challenge and
-   │   credentials/token. They pass to the orchestrator as they arrived
+   │   credentials/token, and for operators/{name}/key, which the current
+   │   and new identity keys sign. They pass to the orchestrator as they
+   │   arrived
    ├── Extract token from Authorization: Bearer <WLT>
    ├── Verify WLT signature against orchestrator's public key
    ├── Verify token.type == "operator" — or, on
@@ -449,7 +453,9 @@ Critical rules:
 8. DESTRUCTIVE ACTION CONFIRMATION (for critical writes)
    ├── Per-request HMAC confirmation (X-Confirm header)
    ├── 4-eyes approval for: deregister agent, revoke federation,
-   │   delete operator, key rotation
+   │   delete operator, orchestrator key rotation. Not for an operator's
+   │   change of its own identity key, which its two signatures authorise
+   │   and a sole admin must be able to make
    └── All actions logged to immutable audit trail
 ```
 
@@ -526,6 +532,7 @@ contracts:
         - The request MUST carry name, public_key, role, timestamp and signature
         - The signature MUST be verified against the SUBMITTED public key before any record is written
         - A name already held MUST be refused with 409 and the existing record left untouched
+        - A public_key this hub records, or recorded, as any operator's identity key, current or retired, or as any credential MUST be refused with OPERATOR_KEY_REUSED, so no two operators share an identity id
         - The timestamp MUST be inside the replay window, and the message MUST be refused on replay
         - Registration MUST be audited whether it succeeds or is refused
 
@@ -585,7 +592,7 @@ contracts:
       rules:
         - The route `POST /v1/admin/operators/{name}/credentials` MUST accept an attestation token or an operator token whose subject is the operator named in the path, and nothing else. A token for another operator is refused with OPERATOR_SUBJECT_MISMATCH, and any other kind of token with CREDENTIAL_REQUIRED
         - The attestation MUST verify under ML-DSA-65 against the public key in that operator's OWN record, and its identity_public_key MUST equal that key, or it is refused with CREDENTIAL_ATTESTATION_INVALID. Registration is how this surface records the key principal-identity takes from an invitation
-        - Its identity_id MUST be the fingerprint of that key, and its hub_id this hub's hub_id. A different hub_id MUST be refused with CREDENTIAL_FOREIGN_HUB and logged as a security event
+        - Its identity_id MUST be that operator's identity id at this hub (Operator Identity), which is the fingerprint of that key until the operator's first change of identity key and is kept across it, and its hub_id this hub's hub_id. A different hub_id MUST be refused with CREDENTIAL_FOREIGN_HUB and logged as a security event
         - Its credential_public_key MUST be an ML-DSA-65 public key, or it is refused with CREDENTIAL_FORM_UNSUPPORTED. These routes carry an ML-DSA-65 key-file credential and no other form. A form principal-identity permits beside it, such as a passkey, has its own registration and challenge, and a hub admits it only through a route that declares them
         - Its credential_public_key MUST NOT be the identity public key, or it is refused with CREDENTIAL_IS_IDENTITY_KEY and logged as a security event
         - Its purpose is authenticate, when it is absent, or sign-records. A sign-records credential is recorded, capped, revoked and listed as any credential is, and never obtains a challenge or a token (operator-token-issuance). Its key signs records for this hub and signs nobody in (patterns/principal-identity, record-signing)
@@ -631,11 +638,26 @@ contracts:
         - The route `DELETE /v1/admin/operators/{name}/credentials/{cid}` MUST be permitted to the operator named in the path and to an admin, and to nobody else. Another operator is refused with OPERATOR_SUBJECT_MISMATCH
         - A revoked credential MUST keep its record with status revoked, and its key MUST never be accepted again
         - Removing an operator MUST set its status to revoked and keep its record, and MUST revoke every credential it holds
-        - A change of an operator's identity public key MUST revoke every credential the old key attested
+        - A change of an operator's identity public key (operator-key-change) MUST revoke every credential the old key attested
         - A sign-records credential is revoked by the same route, and drops out of the record_keys of every token minted afterwards
         - A request to revoke the last active authenticate credential of the last active admin MUST be refused with OPERATOR_LAST_ADMINISTRATOR. A sign-records credential is not counted, because it signs nobody in
         - A change of that admin's identity key MUST NOT be refused on that ground, and revokes the credential all the same (patterns/principal-identity, revocation)
         - Every revocation MUST be audited with the actor, the credential id and the reason
+
+    - name: operator-key-change
+      description: Replace an operator's identity key, keeping the operator, its grant and its identity id
+      required: true
+      rules:
+        - The route `POST /v1/admin/operators/{name}/key` MUST require no bearer token. The two signatures in the request authenticate it, and an operator changing a key may hold no live credential
+        - The request MUST carry new_public_key, hub_id, timestamp, current_signature and new_signature. Both signatures MUST be over canonicalize({hub_id, name, new_public_key, timestamp}) per RFC 8785, name being the operator the path names
+        - The operator MUST have a record here (else OPERATOR_UNKNOWN) that is not revoked (else OPERATOR_REVOKED). A pending operator may change its key and stays pending
+        - hub_id MUST be this hub's (else CREDENTIAL_FOREIGN_HUB, logged as a security event), so a request signed for one hub is refused at every other
+        - The timestamp MUST be inside the 300-second replay window and the request MUST NOT have been seen before, current_signature MUST verify under the public key in the operator's OWN record, new_signature under new_public_key, and new_public_key MUST be an ML-DSA-65 public key. Otherwise OPERATOR_KEY_CHANGE_INVALID, logged as a security event
+        - new_public_key MUST NOT be a key this hub records, or recorded, as any operator's identity key, current or retired, or as any credential (else OPERATOR_KEY_REUSED)
+        - On success, in one durable write, the new key MUST become the operator's public_key, the old key MUST be added to its retired_keys, and name, role, status and identity_id MUST be kept. Every credential the operator holds, sign-records ones included, MUST be revoked with the reason that the identity key changed, so every token resting on one is refused at its next request
+        - It MUST NOT be refused with OPERATOR_LAST_ADMINISTRATOR, although it revokes the last admin's credentials: the new key attests a new one (patterns/principal-identity, revocation and identity-rotation)
+        - The response MUST carry the operator record, its identity_id and hub_id, and MUST NOT carry a token. The operator obtains an attestation token with the new key and attests a credential
+        - The change MUST be audited with the operator's identity id and the fingerprints of the old and new keys
 
     - name: console-credential-use
       description: How a console that acts for signed-in people holds and uses their credentials
@@ -680,6 +702,15 @@ identity, is registered at each hub, and holds a separate credential at each,
 attested by that identity. Registration records the identity and its grant at
 this hub. It does not create the identity, and it is not a credential. See
 [patterns/principal-identity](../patterns/principal-identity.md).
+
+**An operator's identity id** at this hub is the fingerprint
+([`protocol/identity`](../protocol/identity.md#key-fingerprint)) of the
+identity public key its registration recorded. The hub records it on the
+operator (`Operator.identity_id`) and keeps it across every change of identity
+key it accepts ([Changing an identity key](#changing-an-identity-key)), as it
+keeps `hub_id` across a rotation of its own key. It is what every token, every
+credential and every record that names the operator carries, and never the
+name. A new registration is a new identity id, and none is ever reused.
 
 Two consequences worth stating here, because this file is where operators are
 defined:
@@ -841,7 +872,7 @@ caller supplies — [`architecture/cli`](cli.md) gives a console that verb.
 POST /v1/admin/operators/alice/credentials
 Authorization: Bearer <attestation token, or alice's operator token>
 {
-  "identity_id": "<fingerprint of alice's identity public key>",
+  "identity_id": "<alice's identity id at this hub>",
   "identity_public_key": "<alice's identity public key>",
   "credential_public_key": "<ML-DSA-65 public key>",
   "hub_id": "<this hub's hub_id>",
@@ -989,6 +1020,53 @@ the new identity asks for an attestation token and attests a new one. The
 identity is the recovery path for every credential a subject holds
 ([`patterns/principal-identity`](../patterns/principal-identity.md)).
 
+### Changing an identity key
+
+An operator replaces the identity key it registered with through
+`POST /v1/admin/operators/{name}/key`, operation `OperatorKeyChange`, signed by
+the key it replaces and by the one replacing it. This is
+[`patterns/principal-identity`](../patterns/principal-identity.md)'s
+`identity-rotation` at this hub, and [`protocol/identity`](../protocol/identity.md#key-rotation)'s
+operator key rotation on the wire:
+
+```
+POST /v1/admin/operators/alice/key
+{
+  "new_public_key": "<ML-DSA-65 public key>",
+  "hub_id": "<this hub's hub_id>",
+  "timestamp": 1712160000,
+  "current_signature": "<the current identity key's signature over the input below>",
+  "new_signature": "<the new identity key's signature over the same input>"
+}
+
+    canonicalize({hub_id, name, new_public_key, timestamp})
+
+200 { "operator": {...}, "identity_id": "<unchanged>", "hub_id": "<this hub's hub_id>" }
+```
+
+The current key's signature is the continuity: only whoever held the key the
+hub recorded can hand the operator on. The new key's signature proves it is
+held. `hub_id` in the signed input stops a request made for one hub from being
+spent at another where the same identity is registered.
+
+**What changes, and what does not.** The operator keeps its name, role,
+status and **identity id**. The old key moves to `retired_keys` and is never
+accepted again as anybody's identity key or credential. Every credential the
+old key attested is revoked, so the operator is signed out everywhere at its
+next request, and signs in again by attesting a new credential with the new
+key. Because the identity id is kept, a record made before the change and one
+made after name the same operator: a person who proposed a change and then
+changed their key is still its requester
+([`architecture/content`](content.md#separation-of-duties)).
+
+**A key that is lost cannot be changed.** Nothing but the key the hub
+recorded can sign the continuity. An operator who has lost it is removed by an
+admin and registers again under a new name, as a new identity id: a removed
+operator's name stays with its revoked record and is never reused
+([`protocol/identity`](../protocol/identity.md#recovery-via-backup-operator)).
+
+`operator-key-change` in [Contracts](#contracts) is the rule.
+
 ### The registration response
 
 `POST /v1/admin/operators/register` returns the operator record, and a token
@@ -1103,7 +1181,7 @@ Operator tokens use the same WLT format as agent tokens, with the `cid`,
   "exp": 1712163600,
   "cap": ["admin:read", "admin:approve", "admin:strategy"],
   "cid": "<id of the credential that obtained it>",
-  "identity_id": "<fingerprint of alice's identity public key>",
+  "identity_id": "<alice's identity id at this hub>",
   "role": "operator",
   "type": "operator"
 }
@@ -1203,6 +1281,7 @@ operator the system is quiet when it is simply not there.
 | `/v1/admin/operators/token` | POST | — | Obtain an attestation token by signing `{name, timestamp}` with the identity. Deprecated as a way to an operator token |
 | `/v1/admin/credentials/challenge` | POST | — | Issue a single-use nonce for a credential |
 | `/v1/admin/credentials/token` | POST | — | Obtain an operator token by signing the nonce with the credential |
+| `/v1/admin/operators/:name/key` | POST | — | Change the operator's identity key, signed by the current key and the new one. Keeps the operator and its identity id, and revokes its credentials |
 | `/v1/admin/operators/:name/credentials` | POST | the operator | Attest a credential (an attestation token, or the operator's own token) |
 | `/v1/admin/operators/:name/credentials` | GET | viewer+ | List an operator's credentials, revoked included |
 | `/v1/admin/operators/:name/credentials/:cid` | DELETE | the operator, or admin | Revoke one credential |
@@ -1915,6 +1994,9 @@ Admin endpoints SHOULD be rate-limited:
 - [ ] Removing an operator, or revoking one of its credentials, refuses its next request with `OPERATOR_REVOKED` or `CREDENTIAL_REVOKED` without waiting for its token to expire
 - [ ] A removed operator keeps its record with status `revoked`, and a request naming it is refused with `OPERATOR_REVOKED`, never `OPERATOR_UNKNOWN`
 - [ ] The sole admin's change of identity key revokes their credentials and is not refused with `OPERATOR_LAST_ADMINISTRATOR`; the new identity then attests a credential and mints
+- [ ] `POST /v1/admin/operators/{name}/key` signed by the recorded key and the new key over `canonicalize({hub_id, name, new_public_key, timestamp})` keeps the operator's name, role, status and `identity_id`, moves the old key to `retired_keys` and revokes every credential; one whose `current_signature` is by any other key, or that is replayed, is refused with `OPERATOR_KEY_CHANGE_INVALID` and changes nothing; one naming another hub's `hub_id` is refused with `CREDENTIAL_FOREIGN_HUB`
+- [ ] A registration or a change of identity key offering a key this hub records or recorded as any identity key or credential is refused with `OPERATOR_KEY_REUSED`
+- [ ] A token minted after a change of identity key carries the same `identity_id` as one minted before it
 - [ ] A role lowered after a token was issued limits that token from its next request
 - [ ] An operator token without `cid` is refused with `CREDENTIAL_REQUIRED`
 - [ ] A console uses a person's credential only while that person has a live AAL2 session with it, uses its own service identity for work nobody is present for, and discards a person's tokens when their session ends

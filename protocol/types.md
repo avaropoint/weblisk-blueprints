@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.5.0
+version: 1.6.0
 requires: []
 platform: any
 tier: free
@@ -1935,10 +1935,19 @@ blueprint binds the names in it.**
 
 ### Operator
 
-A person or service admitted to administer this tenant. Declared here because
-`architecture/orchestrator` binds it and `architecture/admin` specifies its
-lifecycle — and until now no blueprint defined it, so every implementation
-inferred its shape from the `fields_used` list of whoever bound it.
+A person admitted to administer this tenant. An operator is always a person:
+its credential signs only after its person's own act (`architecture/admin`,
+Where the second factor is), and its role may carry a capability marked
+*person only* ([Capability](#capability)). A service is never registered as
+one. An admin approving a registration vouches that its subject is a person,
+and the first operator is whoever presents the bootstrap secret. A service
+reaches a tenant as a registered component ([`protocol/spec`](spec.md),
+`POST /v1/register`).
+
+Declared here because `architecture/orchestrator` binds it and
+`architecture/admin` specifies its lifecycle — and until now no blueprint
+defined it, so every implementation inferred its shape from the `fields_used`
+list of whoever bound it.
 
 ```yaml
 types:
@@ -1953,7 +1962,17 @@ types:
         name: PublicKey
         type: string
         required: true
-        description: "Base64url-encoded ML-DSA-65 identity public key — an operator holds no password. It verifies registration and the attestations of the operator's credentials; tokens are minted with a credential, never with this key (`architecture/admin`)"
+        description: "Base64url-encoded ML-DSA-65 identity public key — an operator holds no password. It verifies registration and the attestations of the operator's credentials; tokens are minted with a credential, never with this key (`architecture/admin`). Replaced only by a change of identity key signed by this key and the new one"
+      identity_id:
+        name: IdentityID
+        type: string
+        required: true
+        description: "The operator's identity id at this tenant: the fingerprint of the identity key its registration recorded, kept across every change of identity key. What tokens, credentials and records name the operator by, never the name. Never reused"
+      retired_keys:
+        name: RetiredKeys
+        type: "[]string"
+        required: false
+        description: "Identity public keys this operator held before a change of identity key, oldest first. None is accepted again as any operator's identity key or credential. A verifier that is not the hub reads them to check an attestation made before a change"
       role:
         name: Role
         type: OperatorRole

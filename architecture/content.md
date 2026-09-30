@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.5.1
+version: 2.6.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -639,7 +639,7 @@ interfaces:
 | `CONTENT_PROPOSAL_DECIDED` | conflict | A decision arrived for a proposal that is no longer `open`, including the second of two decisions that raced | Refuse, returning the proposal as recorded. A proposal leaves `open` once |
 | `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the identity the proposal names as its `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, the change has no scope, or the repository declares no ceiling. See [Separation of duties](#separation-of-duties) | Refuse, naming the scope, or that there is none, and the ceiling. Nothing is recorded and the proposal stays `open` |
 | `CONTENT_IDENTITY_REQUIRED` | auth | A write, removal, proposal, decision, replica declaration or retirement arrived on a token that carries no `identity_id` | Refuse. Never record a name, an address or a token's `sub` in its place |
-| `CONTENT_STATEMENT_INVALID` | auth | A write, removal or decision carried a `ChangeStatement` that does not verify: the token is not a person's; the attestation's `purpose` is not `sign-records`, its identity key is not the token's `identity_id`, its signature fails, its credential key is not ML-DSA-65, or its `not_after` has passed or is more than 90 days ahead; its credential key is not one of the token's `record_keys`, or is the credential the token's `cid` names; `signed_at` is more than 300 seconds from the service's clock; or the signature does not verify over the statement rebuilt from the change. See [The change statement](#the-change-statement) | Refuse, naming the check that failed. Nothing is written and a proposal stays `open`. The change is never recorded unsigned instead. Log as a security event |
+| `CONTENT_STATEMENT_INVALID` | auth | A write, removal or decision carried a `ChangeStatement` that does not verify: the token is not a person's; the attestation's `purpose` is not `sign-records`, its `identity_id` is not the token's, its signature fails, its credential key is not ML-DSA-65, or its `not_after` has passed or is more than 90 days ahead; its credential key is not one of the token's `record_keys`, or is the credential the token's `cid` names; `signed_at` is more than 300 seconds from the service's clock; or the signature does not verify over the statement rebuilt from the change. See [The change statement](#the-change-statement) | Refuse, naming the check that failed. Nothing is written and a proposal stays `open`. The change is never recorded unsigned instead. Log as a security event |
 | `CONTENT_WRITE_UNCONFIRMED` | io | The digest of the bytes read back after a write is not the digest of the decoded bytes submitted | Refuse. The reservation is settled as one whose path holds neither `before` nor the reserved `after`: an `observe` entry under shared custody, an integrity anomaly under exclusive custody. No `change` entry records the write, because a statement over the submitted bytes could not be checked against other ones. See [Write Flow](#write-flow) |
 | `CONTENT_LOG_NOT_BEGUN` | conflict | A log route named a repository that is `establishing`. Its log begins with the `declare` entry when it is recorded `declared` | Refuse. The caller learns the repository's state from `GET /v1/content/repositories` |
 | `CONTENT_SEALING_PAUSED` | io | A checkpoint was asked for and no log key can sign one: none is live and the long-lived key cannot introduce another | Refuse, carrying the `LogHead`, whose `unsealed` counts what waits. Nothing is appended. The request may be repeated once sealing resumes |
@@ -2388,6 +2388,15 @@ token's `sub` is never compared: the same person can appear under several of
 them, and a comparison across two of them finds two people where there is one
 (principal-identity Design Principle 10).
 
+An identity id survives a change of identity key: the hub keeps it
+([`architecture/admin`](admin.md#changing-an-identity-key)), so a person who
+proposed a change and then changed their key is still its requester. It does
+not survive being admitted twice. A person registered again under a new name,
+after losing a key, or registered under a second name at all, has two identity
+ids, and this service cannot see that they are one person. That limit is
+stated here, as Design Principle 5 requires. The hub's audit trail names the
+admin who approved each registration.
+
 A decision to apply is made by someone who is not a requester, and the
 resulting `ContentChange` records `separation: independent`. This is
 [`patterns/approval`](../patterns/approval.md) Design Principle 2, applied to a
@@ -2731,8 +2740,10 @@ A `ChangeStatement` verifies when all of these hold. They are checked before
 anything is written:
 
 1. The token is a person's, of `type` `operator`, and its `identity_id` is the
-   fingerprint of the attestation's `identity_public_key`. Only a person signs
-   here, and only for themselves.
+   attestation's `identity_id`. Only a person signs here, and only for
+   themselves. The key that signed the attestation is one the hub recorded for
+   that identity id: check 4's `record_keys` name only credentials the hub
+   attested under the operator's current identity key.
 2. The attestation's `purpose` is `sign-records`, and its signature verifies
    under `identity_public_key`
    ([`patterns/principal-identity`](../patterns/principal-identity.md),
@@ -2884,6 +2895,11 @@ content service's registered key, from the tenant, as the fingerprint it brings
 - which identity id belongs to each person it wants to name, from the tenant's
   own records. The log names people by identity id and never by name, and it
   cannot vouch for whose an identity is;
+- the identity keys the tenant records for each such identity id — an
+  operator's `public_key` and its `retired_keys`
+  ([`protocol/types`](../protocol/types.md#operator)) — because an identity id
+  is kept across a change of identity key, and a statement signed after one
+  carries an attestation by the new key;
 - an RFC 8785 canonicaliser, for one purpose: an attestation's signature is
   over its canonical JSON (`Attestation` in principal-identity). Everything
   else is a digest of stored bytes or a fixed-form statement.
@@ -2897,9 +2913,10 @@ After storage's three steps — chain, keys, checkpoint — it checks:
    `recorded_at`, which the service witnessed and a checkpoint seals, in place
    of the service's clock: `not_after` no earlier than `recorded_at`, and no
    more than 90 days after it. Check its `hub_id` against the tenant's. Check
-   that `signer` is the fingerprint of the attestation's identity key, and is
-   the `actor` on a write or in `approved_by` on an apply. Then verify the
-   signature.
+   that `signer` is the attestation's `identity_id`, that the attestation's
+   identity key is one the tenant records for that identity id, and that
+   `signer` is the `actor` on a write or in `approved_by` on an apply. Then
+   verify the signature.
 5. **Separation.** As [Approvals and separation in the log](#approvals-and-separation-in-the-log)
    says.
 6. **A file.** Compute the SHA-256 of its bytes. The last `change` or `observe`
@@ -4915,7 +4932,7 @@ security:
 - [ ] A write whose `statement` was signed over other bytes, another path or another `before` is refused with `CONTENT_STATEMENT_INVALID`, and nothing is written or recorded
 - [ ] A `statement` whose attestation has no `purpose`, or `purpose` `authenticate`, is refused with `CONTENT_STATEMENT_INVALID`
 - [ ] A `statement` whose `signed_at` is more than 300 seconds from the service's clock is refused with `CONTENT_STATEMENT_INVALID`
-- [ ] A `statement` on a token whose `type` is not `operator`, or whose attestation's identity key does not have the token's `identity_id` as its fingerprint, is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] A `statement` on a token whose `type` is not `operator`, or whose attestation names an `identity_id` other than the token's, is refused with `CONTENT_STATEMENT_INVALID`
 - [ ] A `statement` signed by the credential key the token's `cid` names is refused with `CONTENT_STATEMENT_INVALID`, even where that key was also attested with `purpose` `sign-records`
 - [ ] A `statement` whose credential key is not one of the token's `record_keys` — never recorded at the hub, or revoked before the token was minted — is refused with `CONTENT_STATEMENT_INVALID`
 - [ ] A `statement` whose attestation's `not_after` is more than 90 days ahead of the service's clock is refused with `CONTENT_STATEMENT_INVALID`

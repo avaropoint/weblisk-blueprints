@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.8.1
+version: 1.9.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -349,10 +349,18 @@ Operator keys can be rotated without losing hub access:
 2. Current passphrase is required (decrypts existing key)
 3. New ML-DSA-65 key pair is generated
 4. New passphrase is set (encrypts new key)
-5. New public key is registered with orchestrator (signed by old key)
-6. Orchestrator validates old-key signature → stores new public key
+5. The new public key is sent to each hub, signed by the old key and by the
+   new one (POST /v1/admin/operators/{name}/key, architecture/admin)
+6. Each hub validates both signatures → stores the new public key, keeps the
+   operator's name, role and identity id, and revokes every credential the
+   old key attested
 7. Old key is marked as revoked (preserved for audit)
+8. The operator attests a new credential at each hub with the new key
 ```
+
+Because the hub keeps the operator's identity id, what was recorded under the
+old key and what is recorded under the new one name the same operator. The
+old key signs nothing more at that hub, and is never accepted there again.
 
 Service keys follow the same rotation protocol, with the passphrase from a
 secret source ([`protocol/secret-source`](secret-source.md)) instead of an
@@ -370,14 +378,22 @@ The primary recovery path is another registered operator:
 
 ```
 1. Second operator (already registered, admin role) authenticates
-2. Revokes the compromised operator's identity
-3. Orchestrator invalidates old operator's public key and token
+2. Removes the compromised operator (DELETE /v1/admin/operators/{name})
+3. Orchestrator keeps the record as revoked, and revokes its credentials, so
+   every token resting on them ends at its next request
 4. Compromised operator generates a new key pair
-5. Compromised operator submits a new registration request
+5. Compromised operator submits a new registration request under a NEW name.
+   A removed operator's name stays with its revoked record and is never
+   reused (protocol/types OperatorStatus)
 6. Registration appears in approvals queue (not auto-approved)
 7. Second operator approves the registration
-8. Access restored with new identity
+8. Access restored with new identity, and a new identity id
 ```
+
+A key that is lost cannot be rotated: only the key the hub recorded can sign
+the continuity [Key Rotation](#key-rotation) needs. So a recovered operator is
+a new operator, with a new identity id, and records made under the old one
+still name the old one.
 
 **Requirement:** Every production deployment MUST have at least two
 registered operators. A single-operator deployment has no recovery
@@ -601,8 +617,12 @@ Fields:
   record holds now, never against this claim alone
 - `identity_id`: the identity id of the subject the token was minted for
   (optional). An operator token carries the `identity_id` of the credential
-  named by `cid`. A registration token carries the fingerprint of the public
-  key its manifest registered. It is the issuer's statement, under its
+  named by `cid`: the operator's identity id at the issuer, which is the
+  fingerprint of the identity key it registered with and is kept across every
+  change of identity key the issuer accepts
+  ([`architecture/admin`](../architecture/admin.md#changing-an-identity-key)).
+  A registration token carries the fingerprint of the public key its manifest
+  registered. It is the issuer's statement, under its
   signature, of who the subject is. A verifier that records who acted records
   this claim and never `sub`, which is a name
   ([`patterns/principal-identity`](../patterns/principal-identity.md) Design
@@ -731,9 +751,10 @@ types:
           identity_id:
             type: string
             description: The identity id of the subject. On an operator token,
-              the identity_id of the credential cid names. On a registration
-              token, the fingerprint of the key the manifest registered. What a
-              verifier records as who acted, never sub
+              the identity_id of the credential cid names, which the issuer
+              keeps across a change of the operator's identity key. On a
+              registration token, the fingerprint of the key the manifest
+              registered. What a verifier records as who acted, never sub
             required: false
           record_keys:
             type: "list<string>"
@@ -1132,9 +1153,9 @@ Implementation MUST:
 - [ ] Validate public key size (1952 bytes) and signature size (3309 bytes)
 - [ ] Use constant-time comparison for signature verification
 - [ ] Never log or expose private keys
-- [ ] Key rotation registers new public key signed by old key before revoking old key
+- [ ] Key rotation registers new public key signed by old key and by the new key, and the hub keeps the operator's identity id across it
 - [ ] Revoked keys stored as .key.revoked for audit trail
 - [ ] Production deployments have minimum 2 registered operators for recovery
-- [ ] Backup operator can revoke and re-register a compromised operator
+- [ ] Backup operator can remove a compromised operator, whose person then registers again under a new name and a new identity id
 - [ ] Bootstrap reset (all keys lost) requires orchestrator restart and re-registration
 - [ ] No identity, token, attestation or signed record uses a quantum-vulnerable algorithm (Ed25519, ECDSA, RSA)

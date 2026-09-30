@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.7.3
+version: 1.8.0
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -145,10 +145,15 @@ requires:
 
 8. **Rotation cascades, and this is deliberate** — Rotating a credential is
    local and cheap. Rotating an identity invalidates every attestation that
-   identity ever signed, so every hub relationship MUST be renegotiated: new
-   identity key, new invitations, new attestations, new credentials. There is no
-   overlap period (`protocol/identity` Rotation Rules) and no partial migration.
-   An identity-level event is expensive because it should be.
+   identity ever signed, so every hub relationship MUST be renegotiated: the
+   new identity key announced to each hub under the old one, new attestations,
+   new credentials. There is no overlap period (`protocol/identity` Rotation
+   Rules) and no partial migration. A hub that verified the announcement keeps
+   the subject's grant and the identifier it records for the subject, so what
+   it recorded before and after names one subject. A subject that cannot sign
+   an announcement, having lost the old key, is admitted afresh, by a new
+   invitation, as a new subject. An identity-level event is expensive because
+   it should be.
 
 9. **A directory locates subjects; it does not vouch for them** — A registry of
    identities, operated by a control plane, a CLI keystore or a marketplace,
@@ -346,6 +351,14 @@ contracts:
         - There MUST be no overlap period in which both identity keys verify
         - A hub that cannot reach the subject MUST fail closed, leaving the old
           credentials invalid rather than trusting an unverified replacement
+        - A hub that verifies the announcement MUST keep the subject's grant and
+          the identifier it records for the subject, and MUST record the old
+          key as retired and never accept it again. Every record the hub made
+          before the rotation and every record it makes after it then name the
+          same subject, so a subject cannot become someone else to its own
+          records by rotating
+        - A subject without the old key cannot announce a rotation. It is
+          admitted afresh, as a new subject with a new identifier
 
     - name: service-subject-constraints
       description: What a non-human subject may not do, and must carry
@@ -440,9 +453,10 @@ contracts:
         - One key serves one purpose. A hub MUST refuse to record a key under
           one purpose while it holds that key, or ever held it, under the
           other, with credential_purpose_mismatch
-        - A hub MUST name, in every token it mints for a subject, each
-          sign-records credential that subject holds there that is active and
-          unexpired (protocol/identity, record_keys). Revoking one leaves it out
+        - A hub MUST name, in every token it mints through one of a subject's
+          authenticate credentials (protocol/identity, record_keys - at
+          architecture/admin, every operator token), each sign-records
+          credential that subject holds there that is active and unexpired. Revoking one leaves it out
           of every token minted afterwards
         - An authenticate credential MUST NOT sign a record. A verifier refuses
           a record signature made by one with credential_purpose_mismatch
@@ -458,8 +472,10 @@ contracts:
           subject signs, and MUST NOT be generated or held by a party that acts
           for people who sign in to it
         - A verifier of a signed record is not the issuing hub, so it checks the
-          attestation itself - its signature under identity_public_key, the
-          fingerprint of that key against the identity id the record names, its
+          attestation itself - its signature under identity_public_key; that
+          identity_public_key is a key the issuing hub records for the identity
+          id the record names, which is the key whose fingerprint that id is or
+          one the hub accepted in its place by an identity-rotation; its
           purpose, and its hub_id against the hub the record belongs to where
           the verifier knows it - and treats not_after as the revocation window
           it has, as revocation states
@@ -537,6 +553,9 @@ types:
       identity_id:
         type: string
         required: true
+        description: The identifier the hub records for the subject, which it
+          keeps across an identity-rotation it verified. At architecture/admin,
+          the operator's identity id
       identity_public_key:
         type: string
         required: true
@@ -1011,7 +1030,7 @@ credential revocation, which costs nothing else.
 53. A key the hub holds under one purpose is refused under the other with
     `credential_purpose_mismatch`, and so is a key it held under the other
     and revoked.
-54. A token minted for a subject names in `record_keys` each of that subject's
+54. A token minted through a subject's authenticate credential names in `record_keys` each of that subject's
     active, unexpired sign-records credentials at the hub, and none revoked
     before the token was minted.
 55. A record signature that arrives with a token is refused with
@@ -1024,3 +1043,7 @@ credential revocation, which costs nothing else.
     subject, or another subject's identity key, is refused with
     `credential_key_bound`; the other subject's credential keeps its subject,
     and the next token it mints is that subject's.
+58. After a rotation the hub verified, the subject's next token carries the
+    same identifier as before it, and an attestation by the new identity key
+    names that identifier; the old key is refused as an identity key and as a
+    credential.

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.1.1
+version: 2.2.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1250,7 +1250,7 @@ Enter current passphrase: ********
 Generating new key pair...
 Enter new passphrase (min 12 characters): ********
 Confirm new passphrase: ********
-Registering new public key with orchestrator (signed by old key)...
+Sending the new public key to each hub (signed by the old key and the new)...
 ✓ Key rotated successfully.
   New Key ID: f7e8d9c0...
   Old key archived: ~/.weblisk/keys/operator.key.revoked
@@ -1259,7 +1259,13 @@ Registering new public key with orchestrator (signed by old key)...
 - Decrypts existing key with current passphrase
 - Generates new ML-DSA-65 key pair
 - Encrypts new key with new passphrase
-- Registers new public key with orchestrator (signed by old key for proof of continuity)
+- Sends the new public key to each hub it holds a credential for, through
+  `POST /v1/admin/operators/{name}/key`, signed by the old key for continuity
+  and by the new key for possession
+  ([`architecture/admin`](admin.md#changing-an-identity-key)). Each hub keeps
+  the operator's name, role and identity id. A hub that refuses is reported
+  with its code, and the old key is kept until every hub has accepted or the
+  person chooses to stop
 - Old key moved to `operator.key.revoked` beside the identity, for audit
 - The hub revokes every credential the old key attested, so the CLI discards its
   credentials for that hub, and the next `connect` attests a new one with the
