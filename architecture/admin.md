@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.14.0
+version: 2.15.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -566,6 +566,7 @@ contracts:
       required: true
       rules:
         - An orchestrator whose operator store is empty MUST generate a bootstrap secret of at least 256 bits from a cryptographically secure random source, and emit it once, where only whoever started the orchestrator can read it
+        - It MUST write the secret to .weblisk/bootstrap, readable only by the user the orchestrator runs as, and MAY show it on a terminal only when its standard error is one. It MUST NOT write the secret to a log file, a system journal, or any output stream that is not a terminal, because an orchestrator started detached or by a boot unit has its output captured where others can read it, and kept after the secret is claimed
         - The bootstrap secret MUST NOT appear in an audit entry or in any response
         - A registration at a hub whose operator store is empty MUST carry the bootstrap secret as bootstrap_secret, and the orchestrator MUST compare it in constant time
         - A registration there with no bootstrap secret, or a wrong one, MUST be refused with OPERATOR_BOOTSTRAP_REFUSED, write no record, and be audited
@@ -596,7 +597,7 @@ contracts:
       rules:
         - The route `POST /v1/admin/operators/token` MUST require no bearer token
         - The signed payload MUST be canonicalize({name, timestamp}), verified against the STORED public key for that operator, with the timestamp inside the 300-second replay window
-        - An operator with no record MUST be refused with OPERATOR_UNKNOWN, a pending one with OPERATOR_NOT_APPROVED and a revoked one with OPERATOR_REVOKED, and each refusal MUST be audited
+        - An operator with no record MUST be refused with OPERATOR_UNKNOWN, since there is no stored key to verify against. Only once the signature has verified may the hub disclose the operator's status: a signature that does not verify MUST be refused with INVALID_SIGNATURE whatever that status is, and then a pending operator with OPERATOR_NOT_APPROVED and a revoked one with OPERATOR_REVOKED. Each refusal MUST be audited
         - The token it issues MUST have type attestation, carry no capability and no cid, and expire within 300 seconds
         - An attestation token MUST be accepted by `POST /v1/admin/operators/{name}/credentials` for its own subject, refused there for any other operator with OPERATOR_SUBJECT_MISMATCH, and refused by every other route with CREDENTIAL_REQUIRED
         - The response MUST carry hub_id and the operator's identity_id at this hub, so the client can name this hub and this operator in the attestation it is about to have signed. A client MUST take identity_id from this answer, and never compute it from the identity key: a hub keeps it across a change of identity key, so after one it is not the current key's fingerprint
@@ -606,7 +607,7 @@ contracts:
       description: Bind a client's credential to an operator's identity at this hub
       required: true
       rules:
-        - The route `POST /v1/admin/operators/{name}/credentials` MUST accept an attestation token or an operator token whose subject is the operator named in the path, and nothing else. A token for another operator is refused with OPERATOR_SUBJECT_MISMATCH, and any other kind of token with CREDENTIAL_REQUIRED
+        - The route `POST /v1/admin/operators/{name}/credentials` MUST accept an attestation token or an operator token whose subject is the operator named in the path, and nothing else. A token for another operator is refused with OPERATOR_SUBJECT_MISMATCH, and any other kind of token with CREDENTIAL_REQUIRED. An operator token MUST also be able to use admin:read (token-status-on-use), or it is refused with FORBIDDEN
         - The attestation MUST verify under ML-DSA-65 against the public key in that operator's OWN record, and its identity_public_key MUST equal that key, or it is refused with CREDENTIAL_ATTESTATION_INVALID. Registration is how this surface records the key principal-identity takes from an invitation
         - Its identity_id MUST be that operator's identity id at this hub (Operator Identity), which is the fingerprint of that key until the operator's first change of identity key and is kept across it, or it is refused with CREDENTIAL_ATTESTATION_INVALID. Its hub_id MUST be this hub's hub_id. A different hub_id MUST be refused with CREDENTIAL_FOREIGN_HUB and logged as a security event
         - Its credential_public_key MUST be an ML-DSA-65 public key, or it is refused with CREDENTIAL_FORM_UNSUPPORTED. These routes carry an ML-DSA-65 key-file credential and no other form. A form principal-identity permits beside it, such as a passkey, has its own registration and challenge, and a hub admits it only through a route that declares them
@@ -644,7 +645,8 @@ contracts:
         - On every request bearing an operator token, the orchestrator MUST look up the operator named by sub and the credential named by cid in its OWN records before the handler runs
         - An operator token without a cid MUST be refused with CREDENTIAL_REQUIRED
         - The request MUST be refused when the operator has no record (OPERATOR_UNKNOWN), is pending (OPERATOR_NOT_APPROVED) or is revoked (OPERATOR_REVOKED), and when the credential is not that operator's (CREDENTIAL_OPERATOR_MISMATCH), is revoked (CREDENTIAL_REVOKED) or its attestation has expired (CREDENTIAL_EXPIRED)
-        - The request MUST be authorised against the capabilities the operator's role carries now, and never beyond the token's cap. A role changed since the token was issued takes effect on the next request
+        - The request MUST be authorised against the capabilities the operator's role carries now, and never beyond the token's cap: what it may use is the capabilities of both. A role changed since the token was issued takes effect on the next request
+        - An administrative route MUST refuse with FORBIDDEN a request that cannot use the capability its minimum stands for (Auth Middleware), whatever role the operator holds. A route only a named operator may use, alone or beside an admin, needs admin:read from that operator. So a token narrowed to another component's capabilities reaches no administrative route, an admin's included
         - Removing an operator, revoking a credential or rotating an operator's identity key therefore ends every token resting on it at its next request to the orchestrator, not when the token expires, and at another component at the next check that component makes through POST /v1/token/check (architecture/orchestrator). A component that does not ask honours the token until its exp, at most one hour
         - An admin gateway in front of the orchestrator MUST NOT stand in for this check. The orchestrator holds the records, and a signature check alone proves only that a token was once issued
 
@@ -652,7 +654,7 @@ contracts:
       description: Withdraw one credential, or every credential an operator holds
       required: true
       rules:
-        - The route `DELETE /v1/admin/operators/{name}/credentials/{cid}` MUST be permitted to the operator named in the path and to an admin, and to nobody else. Another operator is refused with OPERATOR_SUBJECT_MISMATCH
+        - The route `DELETE /v1/admin/operators/{name}/credentials/{cid}` MUST be permitted to the operator named in the path on a request that can use admin:read, and to an admin on one that can use admin:*, and to nobody else. Another operator is refused with OPERATOR_SUBJECT_MISMATCH, and a request that can use neither with FORBIDDEN
         - A revoked credential MUST keep its record with status revoked, and its key MUST never be accepted again
         - Removing an operator MUST set its status to revoked and keep its record, and MUST revoke every credential it holds
         - A change of an operator's identity public key (operator-key-change) MUST revoke every credential the old key attested
@@ -1750,8 +1752,9 @@ When an orchestrator starts with no registered operators:
 ```
 1. Orchestrator starts and detects empty operator store
 2. It generates a bootstrap secret and emits it once, where only whoever
-   started it can read it: on its console, and on a host in
-   .weblisk/bootstrap, readable only by the user it runs as
+   started it can read it: in .weblisk/bootstrap, readable only by the user
+   it runs as, and on its terminal when its standard error is one. Never in
+   a log file, a journal or captured output, which outlive the claim
 3. It prints how to claim it:
    "Run: weblisk operator init && weblisk operator register --bootstrap <file>"
 4. The first POST /v1/admin/operators/register that carries the secret is
@@ -1985,10 +1988,29 @@ identity keys sign:
    OPERATOR_SUBJECT_MISMATCH
 4. Check the operator named by sub and the credential named by cid are live
    in the orchestrator's own records (token-status-on-use)
-5. Check the role the operator holds now against the endpoint's minimum
+5. Check that the request can use the capability the endpoint's minimum
+   stands for (the table below): the capabilities the operator's role
+   carries now, narrowed to those the token's cap names. Otherwise
+   FORBIDDEN, whatever the role
 6. On failure → 401 or 403, with the code from Error Handling
 7. On success → pass operator claims to handler
 ```
+
+A role in the endpoint tables names the least role, and stands for a
+capability ([`protocol/types`](../protocol/types.md), Administrative
+capabilities). The request must be able to use that capability, so a token a
+console narrowed with `cap` for another component reaches none of these
+routes, an admin's included
+([A console holds a credential, never a token](#a-console-holds-a-credential-never-a-token)):
+
+| Minimum | The request must be able to use |
+|---|---|
+| `viewer+` | `admin:read` |
+| `auditor+`, `auditor` | `admin:audit` |
+| `operator+` | `admin:strategy` under Strategy Management, and `admin:approve` everywhere else |
+| `admin` | `admin:*` |
+| the operator | `admin:read`, on a token whose `sub` is the operator the path names. An attestation token, which carries no capability, is admitted only where Operator Management says so |
+| the operator, or admin | `admin:read` on the named operator's own token, or `admin:*` |
 
 ### Role Hierarchy
 
@@ -2019,10 +2041,14 @@ Every admin action is logged:
 
 ### Rate Limiting
 
-Admin endpoints SHOULD be rate-limited:
+The auth endpoints MUST be rate-limited, before any signature is verified:
 - Auth endpoints: 5 requests/minute per source — the four routes that issue
   tokens and `POST /v1/admin/operators/{name}/key`, none of which carries an
-  operator token to count against
+  operator token to count against. Each verifies an ML-DSA-65 signature, and
+  the key-change route admits a request with no token at all, so an
+  unlimited one is an oracle and a cost anybody can impose
+
+The rest SHOULD be:
 - Read endpoints: 60 requests/minute per operator
 - Write endpoints: 20 requests/minute per operator
 - Export endpoints: 5 requests/minute per operator
@@ -2093,10 +2119,14 @@ Admin endpoints SHOULD be rate-limited:
 - [ ] A registration or a change of identity key offering a key this hub records or recorded as any identity key or credential is refused with `OPERATOR_KEY_REUSED`
 - [ ] An attestation whose credential key is one of the operator's own retired identity keys is refused with `CREDENTIAL_IS_IDENTITY_KEY`
 - [ ] A change of identity key for a revoked operator whose signatures do not verify is refused with `OPERATOR_KEY_CHANGE_INVALID`, never `OPERATOR_REVOKED`; one whose signatures verify is refused with `OPERATOR_REVOKED`
-- [ ] More than five requests a minute from one source to `POST /v1/admin/operators/{name}/key` are refused before any signature is verified
+- [ ] More than five requests a minute from one source to `POST /v1/admin/operators/{name}/key`, or to any of the four routes that issue tokens, are refused before any signature is verified
 - [ ] A token minted after a change of identity key carries the same `identity_id` as one minted before it
 - [ ] A role lowered after a token was issued limits that token from its next request
 - [ ] An operator token without `cid` is refused with `CREDENTIAL_REQUIRED`
+- [ ] An admin's token minted with `cap` naming only `content:read`, `content:write` and `content:decide` is refused with `FORBIDDEN` at `POST /v1/admin/operators/{name}/approve`, `PUT /v1/admin/operators/{name}/role`, `DELETE /v1/admin/operators/{name}/credentials/{cid}` for another operator's credential and for the admin's own, `POST /v1/admin/operators/{name}/credentials` for the admin, and every `operator+` route, although the admin's role reaches each
+- [ ] Every administrative route authorises against the capabilities the operator's role carries now narrowed to the token's `cap`, never against the role alone
+- [ ] `POST /v1/admin/operators/token` with a signature that does not verify is refused with `INVALID_SIGNATURE` for a pending or a revoked operator, and only a request whose signature verifies is told `OPERATOR_NOT_APPROVED` or `OPERATOR_REVOKED`
+- [ ] The bootstrap secret is written to `.weblisk/bootstrap` readable only by the user the orchestrator runs as; an orchestrator whose standard error is not a terminal, such as one started detached or by a boot unit, writes it to no log, journal or output stream
 - [ ] A console uses a person's credential only while that person has a live AAL2 session with it, never for work nobody is present for, and discards a person's tokens when their session ends
 - [ ] A console gives no agent a token minted with a person's credential, with or without `cap`. For a run whose person holds a live AAL2 session it sends only reads of the tenant's content, on a token whose `cap` names `content:read` and `content:describe` alone, and completions through the model route, on a token whose `cap` names only that route's capability; it sends nothing for the run once that session ends; and a write, proposal or decision an agent prepared reaches a hub only in a request the person submits
 - [ ] A token a console presents to a component other than the orchestrator carries only the capabilities named in its `cap`, and an admin's token presented to the content service carries no `admin:` capability
@@ -2120,7 +2150,7 @@ Admin endpoints SHOULD be rate-limited:
 - [ ] Each admin endpoint group is served by the component that owns its state; the admin service composes them and owns none of them
 - [ ] An admin endpoint whose provider is not deployed reports itself unavailable and never returns an empty result
 - [ ] All admin API responses include Cache-Control: no-store header
-- [ ] Admin auth middleware verifies `type` is `operator`, checks that the operator and credential the token names are live, and checks the role the operator holds now against the endpoint minimum
+- [ ] Admin auth middleware verifies `type` is `operator`, checks that the operator and credential the token names are live, and checks that the request can use the capability the endpoint's minimum stands for, from the role the operator holds now narrowed to the token's `cap`
 - [ ] Bootstrap event (first operator registration) is permanently recorded in the audit log
 - [ ] WebSocket /v1/admin/ws provides real-time status updates for agent changes, approvals, and workflow completions
 - [ ] Admin gateway and application gateway share NO session state, cookie domain, or network listener

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.7.0
+version: 2.8.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin]
 platform: any
 tier: free
@@ -129,7 +129,7 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/admin
-      version: ">=2.13.0 <3.0.0"
+      version: ">=2.15.0 <3.0.0"
       bindings:
         behaviors:
           - name: operator-registration
@@ -664,7 +664,11 @@ layer; each provider specifies and serves its own, and
 Every endpoint here requires the stated capability from
 [`protocol/types`](../protocol/types.md), carried in the caller's token: an
 `admin:` capability, or, for recording and withdrawing a model provider
-agreement, `model:attest`.
+agreement, `model:attest`. A request can use a capability only when the
+operator's role carries it now and the token's `cap` names it
+([`architecture/admin`](admin.md), `token-status-on-use`), so a token a
+console narrowed for another component reaches none of these routes, a route
+only the named operator may use included.
 Administration is a capability like any other: a route checks the capability
 the token carries, never a position in the deployment. On these routes the
 capability arrives on an operator's token, which is a person's, and on no other
@@ -679,9 +683,9 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 | POST | /v1/admin/credentials/challenge | CredentialChallenge | — | Issue a single-use nonce for a credential |
 | POST | /v1/admin/credentials/token | CredentialToken | — | Issue an operator token to a credential that signed the nonce. The ordinary way to an operator token |
 | POST | /v1/admin/operators/{name}/key | OperatorKeyChange | — | Change an operator's identity key, signed by the current key and the new one. Unauthenticated by token, because the two signatures authenticate it and the operator may hold no live credential — see [`architecture/admin`](admin.md#changing-an-identity-key) |
-| POST | /v1/admin/operators/{name}/credentials | CredentialAttest | the operator's own token, or an attestation token for them | Attest a credential for that operator |
+| POST | /v1/admin/operators/{name}/credentials | CredentialAttest | the operator's own token, able to use `admin:read`, or an attestation token for them | Attest a credential for that operator |
 | GET | /v1/admin/operators/{name}/credentials | CredentialList | `admin:read` | That operator's credentials, revoked included |
-| DELETE | /v1/admin/operators/{name}/credentials/{cid} | CredentialRevoke | the operator, or `admin:*` | Revoke one credential |
+| DELETE | /v1/admin/operators/{name}/credentials/{cid} | CredentialRevoke | the operator, able to use `admin:read`, or `admin:*` | Revoke one credential |
 | GET | /v1/admin/operators | OperatorList | `admin:*` | List operators |
 | GET | /v1/admin/operators/{name} | OperatorGet | `admin:read` | Operator detail |
 | DELETE | /v1/admin/operators/{name} | OperatorDelete | `admin:*` | Remove an operator |
@@ -1422,6 +1426,7 @@ agents hold, which is theirs.
 - [ ] Domain dependency status recalculated on registration/deregistration
 - [ ] Orchestrator does NOT handle tasks, strategies, context, observations, or approvals
 - [ ] Administrative endpoints are gated on the capability each declares — an `admin:` capability, or `model:attest` — carried in the caller's token, not on a separate role model
+- [ ] An admin's token whose `cap` names only `content:` capabilities is refused with `FORBIDDEN` at `OperatorApprove`, `OperatorRole`, `OperatorDelete`, `AdminAgentDeregister` and `CredentialRevoke`, its own credential included, and at `CredentialAttest` for the admin
 - [ ] The orchestrator serves only the administrative endpoints backed by state it owns — operators, agents, and its own overview
 - [ ] `/v1/admin/overview` reports figures owned by undeployed components as unavailable, never as zero
 - [ ] `POST /v1/admin/complete` with no `scope` is refused with `SCOPE_MISSING`, one above the ceiling `GET /v1/admin/model/ceiling` reports for the backend is refused with `SCOPE_CEILING_EXCEEDED`, and one at `restricted` is refused whatever the ceiling; none of them runs a backend
