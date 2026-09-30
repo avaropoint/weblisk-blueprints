@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: approval
-version: 1.1.1
+version: 1.1.2
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety]
 platform: any
 tier: free
@@ -1030,10 +1030,10 @@ A person may decide a content proposal they requested, and nothing
 else of their own. [`architecture/content`](../architecture/content.md#separation-of-duties)
 specifies it, and it is bounded on every side:
 
-- **Only below a declared scope.** A repository's declaration names the
-  highest scope at which it is allowed. Absent, it is not allowed. It is
-  declared through the content service's API by a person, and never read
-  from configuration.
+- **Only at or below a declared scope.** A repository's declaration names
+  the highest scope at which it is allowed. Absent, it is not allowed, and
+  it is never allowed for a change that has no scope. It is declared through
+  the content service's API by a person, and never read from configuration.
 - **Only a person.** The decider holds a capability no service and no
   agent may hold, so the exception never lets software approve work.
 - **Recorded as what it is.** The change records `separation: self`. A

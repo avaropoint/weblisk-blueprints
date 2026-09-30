@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.4.2
+version: 2.5.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -637,7 +637,7 @@ interfaces:
 | `CONTENT_PLACEMENT_DECLARED` | conflict | The placement is equal to, inside, or contains an already-declared repository; or a replica's destination is equal to, inside or contains a declared repository's placement or another replica's destination | Refuse. Two ceilings over one set of bytes means the lower one is unenforceable, and a replica sent into a store would make a copy a source |
 | `CONTENT_PROPOSAL_UNKNOWN` | validation | No proposal of that id in the caller's scope | Refuse without disclosing whether it exists elsewhere |
 | `CONTENT_PROPOSAL_DECIDED` | conflict | A decision arrived for a proposal that is no longer `open`, including the second of two decisions that raced | Refuse, returning the proposal as recorded. A proposal leaves `open` once |
-| `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the identity the proposal names as its `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, or the repository declares none | Refuse, naming the scope and the ceiling. Nothing is recorded and the proposal stays `open` |
+| `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the identity the proposal names as its `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, the change has no scope, or the repository declares no ceiling. See [Separation of duties](#separation-of-duties) | Refuse, naming the scope, or that there is none, and the ceiling. Nothing is recorded and the proposal stays `open` |
 | `CONTENT_IDENTITY_REQUIRED` | auth | A write, removal, proposal, decision, replica declaration or retirement arrived on a token that carries no `identity_id` | Refuse. Never record a name, an address or a token's `sub` in its place |
 | `CONTENT_STATEMENT_INVALID` | auth | A write, removal or decision carried a `ChangeStatement` that does not verify: the token is not a person's; the attestation's `purpose` is not `sign-records`, its identity key is not the token's `identity_id`, its signature fails, its credential key is not ML-DSA-65, or its `not_after` has passed or is more than 90 days ahead; its credential key is not one of the token's `record_keys`, or is the credential the token's `cid` names; `signed_at` is more than 300 seconds from the service's clock; or the signature does not verify over the statement rebuilt from the change. See [The change statement](#the-change-statement) | Refuse, naming the check that failed. Nothing is written and a proposal stays `open`. The change is never recorded unsigned instead. Log as a security event |
 | `CONTENT_WRITE_UNCONFIRMED` | io | The digest of the bytes read back after a write is not the digest of the decoded bytes submitted | Refuse. The reservation is settled as one whose path holds neither `before` nor the reserved `after`: an `observe` entry under shared custody, an integrity anomaly under exclusive custody. No `change` entry records the write, because a statement over the submitted bytes could not be checked against other ones. See [Write Flow](#write-flow) |
@@ -674,7 +674,8 @@ interfaces:
    A declaration carrying `self_decision_ceiling` MUST come from a caller
    holding `content:decide` as well as `content:declare`. A declaration
    naming itself a records repository at a `scope_path` that has one →
-   `CONTENT_REPOSITORY_EXISTS`
+   `CONTENT_REPOSITORY_EXISTS`. A `scope_floor` that is not a `ScopeLevel` →
+   `SCOPE_INVALID_LEVEL`
 5. `establish` — the caller MUST hold `content:establish` as well as
    `content:declare`; a backend that cannot create is refused with
    `CONTENT_ESTABLISH_UNSUPPORTED`; a placement already holding entries is
@@ -693,8 +694,10 @@ interfaces:
    no custody is recorded `opaque` and the degradation is recorded, per
    `CONTENT_CUSTODY_UNDECLARED`
 8. The ceiling is derived from what was demonstrated. It is never taken from the
-   request. A records repository whose ceiling is below `restricted` →
-   `CONTENT_CUSTODY_CEILING_EXCEEDED`, and it stays `establishing` on
+   request. A records repository whose ceiling is below `restricted`, or a
+   `scope_floor` above the ceiling → `CONTENT_CUSTODY_CEILING_EXCEEDED`; on
+   `adopt`, a `scope_floor` below the census's `highest_scope` →
+   `CONTENT_SCOPE_LOWERED`. The repository stays `establishing` on
    `establish`, or is not declared on `adopt`
 9. The repository is recorded `state: declared`. On adoption, every entry the
    census found is recorded with provenance `unknown` — the service did not
@@ -826,8 +829,11 @@ interfaces:
    `content.proposal_decided` is published. Nothing else happens
 4. `apply` → separation is checked: a decider whose token's `identity_id` equals
    the proposal's `actor` or its `on_behalf_of` is refused with
-   `CONTENT_SEPARATION_REQUIRED` unless the change's scope is at or below the
-   repository's `self_decision_ceiling`
+   `CONTENT_SEPARATION_REQUIRED` unless the change has a scope — the
+   proposal's, or on a `delete` the recorded scope of the path it removes —
+   and that scope is at or below the repository's `self_decision_ceiling`. A
+   change with no scope is never self-decided
+   ([Separation of duties](#separation-of-duties))
 5. The write runs for the decider, with the proposal's `before` as `if_match`,
    or the empty string when it has none. For a `create` or `modify`, Write
    Flow steps 2 to 8 run with the proposal's path, bytes and scope, and with
@@ -1235,9 +1241,10 @@ text appears to say.
 
 ### Where a scope is declared
 
-An entry's scope is declared in two places, and nowhere else. A replica's
-`history_scope` classifies versions for that replica alone
-([What would leave](#what-would-leave)).
+An entry's scope is declared in three places, and nowhere else: on the
+change, in the bytes, and, for every entry of a repository, by the
+repository's `scope_floor`. A replica's `history_scope` classifies versions
+for that replica alone ([What would leave](#what-would-leave)).
 
 - **On the change.** A write, and a proposal to create or modify an entry,
   may carry `scope` (`EntryWrite`, `ProposalRequest`). It is a level a person
@@ -1261,9 +1268,15 @@ the two. Whatever writes a document writes `scope:`, and never
 `classification:`. The alias exists so that nothing a person wrote goes
 unread, and it is never written so that the second spelling does not spread.
 
+- **On the repository.** A declaration may carry `scope_floor`: the least
+  scope of every entry the repository holds, has held or will hold. It is the
+  one statement that covers entries whose bytes declare no level, such as a
+  programme's spec files, and history nobody classified. See [`scope_floor` covers what declares nothing](#scope_floor-covers-what-declares-nothing).
+
 **The level in the bytes travels with them.** A copy of the file carries it, a
 plain editor shows it, and a reader who holds only the file can see it. The
-scope on a change is known only to this service and its log.
+scope on a change is known only to this service and its log, and the floor
+only to this service, its log and the repository's declaration.
 
 ### The recorded scope
 
@@ -1279,6 +1292,13 @@ scope only rises, it is also the highest. A removal does not end it, whether
 this service made the removal or observed it: a path created again starts at
 the last scope recorded for it. A version the log recorded keeps the scope
 recorded with it, whatever happens to its path afterwards.
+
+**The floor is recorded for every path.** A repository declared with a
+`scope_floor` records it on its `declare` entry, and no path's recorded scope
+is below it: a path the log records nothing for is at the floor, and one it
+records a lower scope for is at the floor too. So in such a repository no
+entry and no version is unclassified, and every rule below that reads a
+recorded scope reads the floor with it.
 
 An entry's scope, as `ContentEntry.scope` reports it, is the higher of its
 path's recorded scope and the scope its bytes declare. An entry with neither
@@ -1736,6 +1756,43 @@ ceiling and the degradation is recorded, per `CONTENT_CUSTODY_UNDECLARED`. It
 is not refused: declaring a store you can say little about is a legitimate act,
 and refusing it pushes the content somewhere the service cannot see at all.
 
+### `scope_floor` covers what declares nothing
+
+A declaration may carry `scope_floor`, a `ScopeLevel`: the least scope of
+every entry the repository holds, has held or will hold, recorded as every
+path's least recorded scope ([The recorded scope](#the-recorded-scope)). It is
+the repository's own statement of its level, made once by the person who
+declares it, and it is what lets a repository whose entries cannot declare a
+level in their bytes reach a replica at all. A programme's spec files are the
+case that needs it: they are published with no `scope:` of their own, because
+[`schemas/programme`](../schemas/programme.md#artifact_scope-is-never-spelled-scope)
+gives the level of what a spec creates as `artifact_scope` and a `scope:` would
+classify the spec file itself. Without a floor, every new spec version is
+unclassified and holds every replica.
+
+- **It only raises.** An entry's scope is the higher of what its path records,
+  what its bytes declare and the floor. A write or a proposal declaring a
+  scope below the floor is refused with `CONTENT_SCOPE_LOWERED`, as one below
+  any recorded scope is ([A scope only rises](#a-scope-only-rises)).
+- **It is at least what the store already declares.** On `adopt`, the census
+  reports `highest_scope`, the highest scope the bytes of the entries it found
+  declare. A `scope_floor` below it is refused with `CONTENT_SCOPE_LOWERED`,
+  naming both, so a floor never states that a store is less sensitive than
+  its own files say.
+- **It fits the place.** A `scope_floor` above the ceiling derived at
+  declaration is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`, because
+  every entry would be above it.
+- **It is declared, never configured, and never lowered.** It is fixed when
+  the repository is declared, recorded on the `declare` entry and reported on
+  `ContentRepository`. Lowering it would declassify every entry it covers, and
+  no route lowers a scope. A repository declared without one, and every
+  configured repository, stays without one (see the gap under
+  [A store that already exists is the normal case](#a-store-that-already-exists-is-the-normal-case)).
+
+A replica's `history_scope` ([What would leave](#what-would-leave)) is a
+narrower act for a repository without a floor: one person classifies, for one
+replica, the versions its census counted unclassified.
+
 ### One placement, one repository
 
 A declaration whose placement equals, contains or sits inside an
@@ -1797,9 +1854,9 @@ control", and naming the system would be naming a product.
 > guessing that here would be worse than leaving it unnamed.
 >
 > **Nor is there a verb that amends a declaration.** What a declaration fixed
-> stays as declared: its placement, and its `self_decision_ceiling` or the
-> absence of one. A repository declared without that ceiling, and every
-> configured repository, cannot be given one. Naming an amending verb needs the
+> stays as declared: its placement, its `self_decision_ceiling` and its
+> `scope_floor`, or the absence of either. A repository declared without one,
+> and every configured repository, cannot be given one. Naming an amending verb needs the
 > same care as retiring, because an amendment that lowered separation would
 > weaken a control over bytes already written under the stronger one.
 
@@ -1991,13 +2048,18 @@ reports the `history_scope` it was computed under, and its digest binds it.
 An unclassified version recorded after the census is not covered. It is held,
 never sent (Replica Send Flow, step 3).
 
-> **Gap.** Nothing in this contract classifies a version after it is recorded.
-> A write that declares no scope for a path that has none, and, under shared
-> custody, an entry a person creates in the store directly with no scope in
-> its bytes, each make such a version, and a replica held on it stays
-> `behind`, and says so. An edit to an entry that already has a recorded
-> scope does not, because the recorded scope carries to it. The remedy is left
-> unspecified rather than guessed at.
+**A repository with a floor makes no unclassified version.** Its floor is
+every path's least recorded scope
+([The recorded scope](#the-recorded-scope)), so every version it records is
+at a declared scope. In a repository declared without one, a write that
+declares no scope for a path that has none, and, under shared custody, an
+entry a person creates in the store directly with no scope in its bytes, each
+make an unclassified version, and a replica held on it stays `behind`, and
+says so. An edit to an entry that already has a recorded scope does not,
+because the recorded scope carries to it. Nothing in this contract classifies
+a version after it is recorded, and no verb adds a floor to a repository
+already declared (see the gap under
+[A store that already exists is the normal case](#a-store-that-already-exists-is-the-normal-case)).
 
 A reserved path refuses the declaration even where it appears only in an
 earlier version, put there by somebody out of band. One that appears after the
@@ -2334,9 +2396,16 @@ allowed:
 - **Absent**, the default: a requester's decision to apply is refused with
   `CONTENT_SEPARATION_REQUIRED`.
 - **Present**: a requester may apply a change whose scope is at or below it —
-  the proposal's scope, or on a `delete` the scope of the entry it removes —
-  and the `ContentChange` records `separation: self`. Above it, the decision
-  is refused with `CONTENT_SEPARATION_REQUIRED`.
+  the proposal's scope, or on a `delete` the recorded scope of the path it
+  removes ([The recorded scope](#the-recorded-scope)) — and the
+  `ContentChange` records `separation: self`. Above it, the decision is
+  refused with `CONTENT_SEPARATION_REQUIRED`.
+- **A change with no scope is never self-decided.** A proposal that declares
+  none, on a path with no recorded scope, and a `delete` of a path with no
+  recorded scope, are unclassified. Nothing says they are at or below any
+  level, so a requester's decision to apply one is refused with
+  `CONTENT_SEPARATION_REQUIRED`, whatever `self_decision_ceiling` says. In a
+  repository with a `scope_floor` there is no such change.
 
 It never lets a service or an agent decide. A decider holds `content:decide`,
 which is person only, so the exception can only ever let a person agree with
@@ -2733,20 +2802,20 @@ its requester. Those fields, and the rules that set them, are
 [Separation of duties](#separation-of-duties). The log adds no rule to them. It
 lets a verifier check them without this service:
 
-- The `declare` entry records the repository's `self_decision_ceiling`, which is
-  fixed at declaration.
+- The `declare` entry records the repository's `self_decision_ceiling` and
+  `scope_floor`, which are fixed at declaration.
 - A `change` entry recording `separation: independent` names an `approved_by`
   that is neither its `actor` nor its `on_behalf_of`.
 - A `change` entry recording `separation: self` names an `approved_by` that is
   one of them, with a scope at or below that ceiling: the change's `scope`, or
-  for a removal the path's recorded scope
-  ([The recorded scope](#the-recorded-scope)).
+  for a removal the path's recorded scope as the log gives it before that
+  entry, the floor included ([The recorded scope](#the-recorded-scope)).
 
 A change whose separation does not fit its own parties is reported as
-inconsistent. Where the log records no scope for a removed path — an entry that
-arrived with adoption declaring none and was never changed or observed — the
-check is `unknown`. The check is only as strong as `on_behalf_of`, which is
-asserted.
+inconsistent, and so is a `separation: self` on a change with no scope by
+those rules: this service never self-decides an unclassified change. The
+log holds every scope the rule reads, so the check never needs anything
+else. It is only as strong as `on_behalf_of`, which is asserted.
 
 ### Reading the log
 
@@ -2929,6 +2998,12 @@ types:
         description: The highest scope at which a requester may apply their own
           proposal, recording separation self. Absent means no requester may.
           Fixed at declaration
+      scope_floor:
+        type: ScopeLevel
+        required: false
+        description: The least scope of every entry the repository holds, has
+          held or will hold. Absent means none was declared. Fixed at
+          declaration. See scope_floor covers what declares nothing
       records:
         type: bool
         required: true
@@ -3066,6 +3141,13 @@ types:
           proposal. Absent means no requester may. Declaring it requires
           content:decide as well as content:declare, so only a person declares
           it. Not configurable
+      scope_floor:
+        type: ScopeLevel
+        required: false
+        description: The least scope of every entry the repository will hold,
+          past versions included. Refused above the derived ceiling, and on
+          adopt below the census's highest_scope. Not configurable, and never
+          lowered. See scope_floor covers what declares nothing
       records:
         type: bool
         required: false
@@ -3097,6 +3179,12 @@ types:
         required: true
         description: How many entries could not be read. Their identity is
           unknown, and adopting them adopts content the service cannot digest
+      highest_scope:
+        type: ScopeLevel
+        required: false
+        description: The highest scope the bytes of the entries found declare.
+          The least scope_floor the declaration may carry. Absent when none
+          declares one this service can read
       backend_report:
         type: object
         required: false
@@ -4001,6 +4089,11 @@ types:
         required: false
         description: As declared. Absent means no requester may apply their own
           proposal
+      scope_floor:
+        type: ScopeLevel
+        required: false
+        description: As declared. Every path's least recorded scope, so a
+          verifier reads it with every scope the log records
       records:
         type: bool
         required: true
@@ -4683,7 +4776,7 @@ security:
 - [ ] A second declaration with `records: true` at a `scope_path` that has a records repository is refused with `CONTENT_REPOSITORY_EXISTS`, and one whose derived ceiling is below `restricted` with `CONTENT_CUSTODY_CEILING_EXCEEDED`
 - [ ] No configuration key declares a records repository
 - [ ] After a removal of an entry recorded at `restricted`, a write creating the same path that declares `internal`, or declares no scope, is refused with `CONTENT_SCOPE_LOWERED`, and one declaring `restricted` is recorded at `restricted`
-- [ ] A write that declares no scope, to a path with no recorded scope whose bytes declare none, records a `ContentChange` with no `scope` and no `scope_basis`, and the version it produces is counted `unclassified` by a replica census
+- [ ] In a repository with no `scope_floor`, a write that declares no scope, to a path with no recorded scope whose bytes declare none, records a `ContentChange` with no `scope` and no `scope_basis`, and the version it produces is counted `unclassified` by a replica census
 - [ ] A write declaring `confidential` to a path with no recorded scope, whose bytes declare none, records `scope_basis` `chosen`; one whose bytes declare `scope: confidential` records `bytes`; one declaring the path's recorded scope, with bytes that declare less, records `recorded`
 - [ ] No request lowers a path's recorded scope: every write, proposal and decision that would is refused with `CONTENT_SCOPE_LOWERED`
 - [ ] A replica census counts an earlier version of a path that no entry holds now at the scope the log recorded for it
@@ -4762,6 +4855,7 @@ security:
 - [ ] Applying a proposal records a `ContentChange` whose `actor` is the proposal's `actor`, whose `on_behalf_of` is the proposal's, whose `approved_by` holds the decider's `identity_id`, whose `proposal` is the proposal's `id`, and whose `correlation_id` is the decider's enforcement decision
 - [ ] A decision to apply by the proposal's `actor` or `on_behalf_of`, in a repository with no `self_decision_ceiling`, is refused with `CONTENT_SEPARATION_REQUIRED`, and the proposal stays `open`
 - [ ] With `self_decision_ceiling` `internal`, the proposal's `on_behalf_of` applying an `internal` proposal succeeds with `separation` `self`, and applying a `confidential` one is refused with `CONTENT_SEPARATION_REQUIRED`
+- [ ] With `self_decision_ceiling` `confidential`, a requester applying a proposal that declares no scope on a path with no recorded scope, or a `delete` of a path with no recorded scope, is refused with `CONTENT_SEPARATION_REQUIRED`, and the proposal stays `open`
 - [ ] A decision to apply by a person who is neither the proposal's `actor` nor its `on_behalf_of` records `separation` `independent`
 - [ ] A person whose token's `identity_id` is a proposal's `on_behalf_of`, deciding to apply it in a repository with no `self_decision_ceiling`, is refused with `CONTENT_SEPARATION_REQUIRED` whatever the token's `sub` says
 - [ ] The proposal's `on_behalf_of` may reject it with no `self_decision_ceiling` declared, and no `separation` is recorded
@@ -4771,6 +4865,8 @@ security:
 - [ ] A token whose `type` is not `operator` and whose `cap` holds `content:write` is refused `PUT /v1/content/entry` as though it did not hold it
 - [ ] The service's own manifest declares none of `content:write`, `content:decide`, `content:replicate` and `content:connect`, and its registration succeeds
 - [ ] A declaration carrying `self_decision_ceiling` from a caller holding `content:declare` and not `content:decide` is refused, and no repository is recorded
+- [ ] A repository declared with `scope_floor` `internal` reports an entry whose bytes and path declare nothing at `internal`, records its floor on the `declare` entry, refuses a write declaring `public` or declaring none with `CONTENT_SCOPE_LOWERED`, and has no version a replica census counts `unclassified`
+- [ ] An adoption whose census reports `highest_scope` `confidential` is refused with `CONTENT_SCOPE_LOWERED` when it carries `scope_floor` `internal`, and a declaration whose `scope_floor` is above its derived ceiling is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
 - [ ] `ContentChange.version` is absent when the backend keeps no version marker
 - [ ] A census over a placement whose backend's blueprint binds a `backend_report` covers that report in its `digest`, and an adoption whose store's report changed since the census is refused with `CONTENT_PRECONDITION_FAILED`
 - [ ] A first `POST /v1/content/repositories/{repository}/replicas` with no `if_match` is refused with `CONTENT_REPLICA_UNSEEN`, returns a `ReplicaCensus`, records no replica, creates no credential and sends nothing
@@ -4797,7 +4893,7 @@ security:
 - [ ] A backend's report of a copy of the store that no replica declares makes `effective_custody` `opaque`, lowers `ceiling` to `internal` at most, and publishes `content.custody_degraded`
 - [ ] No configuration key declares a replica, and a configuration file naming one declares nothing
 - [ ] Every write, removal and applied proposal appends exactly one `change` entry to its repository's change log, and every observation of state `changed` or `removed` one `observe` entry; an observation of state `unknown` appends nothing
-- [ ] A repository's first log entry has `act` `declare` and `seq` 1, records its `self_decision_ceiling` and, on adoption, every entry the census found; the SHA-256 of its stored line is the `log` its `LogHead` reports
+- [ ] A repository's first log entry has `act` `declare` and `seq` 1, records its `self_decision_ceiling`, its `scope_floor` and, on adoption, every entry the census found; the SHA-256 of its stored line is the `log` its `LogHead` reports
 - [ ] Killing the service after an entry's bytes are written and before its `change` entry is appended, then restarting it, appends that `change` entry with provenance `authored` before anything is served, and records no `observe` entry for those bytes
 - [ ] The `lines` of a `LogPage` decode to exactly the stored lines, and their `previous_digest` chain verifies with SHA-256 alone
 - [ ] `GET /v1/content/repositories/{repository}/log` with no query returns at most 1000 lines from `seq` 1; a page that reaches the tip has no `next`; a `from` beyond the tip returns no lines; a `limit` above 10000, or a `from` or `limit` below 1 or not an integer, is refused with `INVALID_REQUEST`
@@ -4819,7 +4915,7 @@ security:
 - [ ] A `statement` whose attestation's `not_after` is more than 90 days ahead of the service's clock is refused with `CONTENT_STATEMENT_INVALID`
 - [ ] A decision to apply that carries the decider's `statement` records it, and an offline verifier reports that approval `signed`; the same decision without one is reported `witnessed`
 - [ ] A decision whose `statement` fails is refused with `CONTENT_STATEMENT_INVALID`, and the proposal stays `open`
-- [ ] An offline verifier reports inconsistent a `change` entry recording `separation` `independent` whose `approved_by` is its `actor`, and one recording `separation` `self` whose `scope` is above the `self_decision_ceiling` in the `declare` entry
+- [ ] An offline verifier reports inconsistent a `change` entry recording `separation` `independent` whose `approved_by` is its `actor`, one recording `separation` `self` whose `scope` is above the `self_decision_ceiling` in the `declare` entry, and one recording `separation` `self` on a change with no scope — none declared, and on a removal no recorded scope for the path, the floor included
 - [ ] Every signature in a change log is ML-DSA-65, and a signature on a commit in a version-controlled store appears nowhere in the log
 - [ ] With the log key unavailable, writes still succeed, their entries are appended, and `LogHead.unsealed` counts them; the next checkpoint covers them all
 - [ ] `POST /v1/content/repositories/{repository}/log/checkpoint` on a log whose tip has moved appends a `checkpoint` entry covering the tip, and on one whose tip has not moved appends nothing

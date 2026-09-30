@@ -880,9 +880,18 @@ entry labelled `pii` may be kept. So, in this order:
 
 1. The records repository is established or adopted, and declared as its
    scope's records repository.
-2. The programme is installed, and each record holding `pii` is created in it.
-3. Only then is the repository that holds the programme's other documents
-   declared, and only then is the first row written.
+2. The repository that holds the programme's other documents is declared,
+   where it is not already. Its spec files declare no level of their own
+   ([`artifact_scope` is never spelled `scope`](#artifact_scope-is-never-spelled-scope)),
+   so a declaration made for it carries a `scope_floor`
+   ([`architecture/content`](../architecture/content.md#scope_floor-covers-what-declares-nothing)).
+3. The programme is installed. Every document it creates is written through
+   the content service's write route into the repository its path resolves
+   to, each record holding `pii` into the records repository, and only then
+   is the first row written.
+
+A repository that is not declared accepts no write, so install never writes
+into a store ahead of its declaration.
 
 Placed anywhere else, every write to a record holding `pii` is refused with
 `CONTENT_RECORDS_REPOSITORY_REQUIRED` from the moment the repository it sits in
@@ -1523,5 +1532,5 @@ files; these are acts of the tenant and the client that installs into it.
 - [ ] A register holding `pii`, and a document a form creates that holds `pii`, is created in the records repository, and nothing holding `pii` is created anywhere else
 - [ ] Where the scope has no records repository, nothing holding `pii` is created, each register and form not created is reported with `CONTENT_RECORDS_REPOSITORY_REQUIRED`, and every obligation that records into one is reported as unable to record
 - [ ] A register's `path`, an obligation's `records:`, a `for.records` and a `relation` column's `target` resolve in the records repository when the register named holds `pii`, and in the programme's repository otherwise, for install, derive and the occurrence engine alike
-- [ ] The records repository is declared before the repository that holds the rest of the programme
+- [ ] The records repository, and the repository that holds the rest of the programme, are declared before install creates anything, and every document install creates is written through the content service's write route into the repository its path resolves to
 - [ ] The client writing a person's next change to a document created from a spec or a form adds `scope:` and `scope_metadata:` from the spec or form where the document lacks them, never on open, and never below the entry's recorded scope
