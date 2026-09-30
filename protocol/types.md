@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.4.0
+version: 1.5.0
 requires: []
 platform: any
 tier: free
@@ -335,7 +335,8 @@ types:
 of a service subject's grant and every token minted for one, and out of an
 agent's authorisation (`service-subject-constraints` and `agent-delegation`).
 [`protocol/spec`](spec.md) refuses a registration whose manifest declares one,
-because a registered component is a service. `content:propose` is
+because a registered component is a service. Each refusal is
+`CAPABILITY_PERSON_ONLY` ([Error Handling](#error-handling)). `content:propose` is
 separate from `content:write` for the reason `fabric:attest` is separate from
 `fabric:observe` below: agents propose and people apply, and one capability
 covering both would make that unenforceable at the tenant. What each does to a
@@ -2299,6 +2300,11 @@ error_codes:
     category: permanent
     retryable: false
     description: Missing required capability
+  - code: CAPABILITY_PERSON_ONLY
+    status: 403
+    category: permanent
+    retryable: false
+    description: A registration manifest, a grant to a service subject, a token minted for one, or an agent's authorisation names a capability this document marks person only (see Capability). Nothing is issued. The wire form of patterns/principal-identity's capability_person_only
   - code: NOT_FOUND
     status: 404
     category: permanent

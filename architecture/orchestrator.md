@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.2.0
+version: 2.2.1
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin]
 platform: any
 tier: free
@@ -830,7 +830,7 @@ for the authoritative registration contract.
 
 ```
 1.  Parse and validate per spec.md contract. A manifest whose capabilities
-    name one protocol/types marks person only → 403 capability_person_only,
+    name one protocol/types marks person only → 403 CAPABILITY_PERSON_ONLY,
     before anything is recorded
 2.  Verify signature and replay protection (see protocol/identity.md)
 3.  Validate namespace claims:
@@ -1300,7 +1300,7 @@ agents hold, which is theirs.
 - [ ] `POST /v1/register` verifies ML-DSA-65 signature and replay protection
 - [ ] `POST /v1/register` enforces exclusive namespace ownership (409 on conflict)
 - [ ] `POST /v1/register` rejects reserved namespace claims (403)
-- [ ] `POST /v1/register` refuses a manifest naming `content:write` or `content:decide` with 403 `capability_person_only`, records no agent and issues no token
+- [ ] `POST /v1/register` refuses a manifest naming any capability `protocol/types` marks person only — `content:write`, `content:decide`, `content:replicate`, `content:connect` or `model:attest` — with 403 `CAPABILITY_PERSON_ONLY`, records no agent and issues no token
 - [ ] A registration token carries `identity_id`, the fingerprint of `manifest.public_key`
 - [ ] `POST /v1/register` validates subscription scopes (event:observe for "*")
 - [ ] `POST /v1/register` returns `RegisterResponse` with agent ID, token, and service directory

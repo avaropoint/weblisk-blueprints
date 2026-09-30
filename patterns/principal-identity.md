@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.7.1
+version: 1.7.2
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -779,6 +779,13 @@ types:
 | `capability_person_only` | validation | A grant to a service subject, a token minted for one, a registration manifest, or an agent's authorisation carries a capability `protocol/types` marks person only | Refuse at ISSUE. Log as a security event |
 | `clock_outside_tolerance` | auth | Timestamp beyond skew tolerance, or not yet valid | Deny. MUST NOT clamp into range |
 
+These codes name conditions, and a surface that raises one gives it the wire
+form its own blueprint registers, as `architecture/admin`'s Error Handling does
+for the operator routes. `capability_person_only` is raised on several
+surfaces, so its wire form is registered once, in
+[`protocol/types`](../protocol/types.md#error-handling): `CAPABILITY_PERSON_ONLY`,
+HTTP 403, permanent.
+
 Every failure is fail-closed. An unreachable directory causes discovery to fail;
 it MUST NOT cause a hub to accept unverified key material.
 
@@ -972,16 +979,18 @@ credential revocation, which costs nothing else.
 43. Every agent action names both the subject and the agent run in the record.
 44. Whatever a hub issues on the strength of an identity signature submits an
     attestation for that identity and is refused for every other request.
-45. A grant to a service subject carrying a person-only capability, such as
-    `content:write`, is refused at issue with `capability_person_only`.
-46. An `AgentAuthorization` naming `content:write` or `content:decide` is
-    refused with `capability_person_only`, so an agent acting under a subject
-    who holds `content:write` cannot write an entry directly.
-47. A service subject whose role comes to carry `content:write` after its grant
-    was issued is refused a token with `capability_person_only`, and is never
-    issued one with the capability removed.
-48. A registration whose manifest declares `content:write` is refused with
-    `capability_person_only`, and no token is issued.
+45. A grant to a service subject carrying any person-only capability —
+    `content:write`, `content:decide`, `content:replicate`, `content:connect`
+    or `model:attest` — is refused at issue with `capability_person_only`.
+46. An `AgentAuthorization` naming any of those five is refused with
+    `capability_person_only`, so an agent acting under a subject who holds
+    `content:write` cannot write an entry directly.
+47. A service subject whose role comes to carry any of those five after its
+    grant was issued is refused a token with `capability_person_only`, and is
+    never issued one with the capability removed.
+48. A registration whose manifest declares any of those five is refused with
+    `capability_person_only`, whose wire form is `CAPABILITY_PERSON_ONLY`, and
+    no token is issued.
 49. An attestation with `purpose` `sign-records` is recorded, can be revoked,
     and never obtains a challenge or a token: a request for either is refused
     with `credential_purpose_mismatch`.

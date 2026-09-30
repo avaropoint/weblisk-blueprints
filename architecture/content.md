@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.4.1
+version: 2.4.2
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -985,7 +985,7 @@ manifest therefore declares every capability in the table except the four
 that are person only: `content:write`, `content:decide`, `content:replicate`
 and `content:connect`. It checks those on the requests it serves and never
 holds them, and registration refuses a manifest that declares one, with
-`capability_person_only`. For the same reason no channel grant to this service
+`CAPABILITY_PERSON_ONLY`. For the same reason no channel grant to this service
 can carry one, because a grant is the intersection of what the requester
 holds and what the target's manifest declares
 ([`architecture/orchestrator`](orchestrator.md)).
@@ -2206,7 +2206,9 @@ Three rules keep every person-only capability with people:
   ([`patterns/principal-identity`](../patterns/principal-identity.md),
   `service-subject-constraints`), and refuses a registration whose manifest
   declares one ([`protocol/spec`](../protocol/spec.md), `POST /v1/register`).
-  Both refusals carry `capability_person_only`. A client that runs agents under
+  Both refusals carry `CAPABILITY_PERSON_ONLY`, the wire form
+  [`protocol/types`](../protocol/types.md#error-handling) registers for
+  principal-identity's `capability_person_only`. A client that runs agents under
   its own service identity can therefore only propose their output.
 - **This service honours one only on a person's token.** A person-only
   capability counts only on a token whose `type` is `operator`, which a hub
