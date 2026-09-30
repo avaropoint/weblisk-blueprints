@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: secret-source
-version: 1.1.0
+version: 1.2.0
 requires: [protocol/identity, patterns/principal-identity]
 platform: any
 tier: free
@@ -150,6 +150,18 @@ not listed is one the source releases.
 
 A `capabilities` response that leaves a field out is read as the smaller claim:
 `named_fields` false, `sign_algs` empty, `withheld_fields` empty.
+
+**A source never puts a secret where another process can read it.** A
+source, built in or a helper, MUST NOT place a secret value, a passphrase or a
+key on the command line or in the environment of any program it runs, its
+store's own command-line tool included. It hands one to that program on the
+program's standard input, or through an interface no other process can read,
+such as a library call or a descriptor it opened. A store whose tool takes a
+secret only as an argument is not written through that tool: a keychain's
+command that sets a password from its command line, such as `security
+add-generic-password -w <value>` or `cmdkey /pass:<value>`, puts on view to
+every local process the very passphrase a source keeps beside an identity
+(see [An identity held by a source](#an-identity-held-by-a-source)).
 
 A source is reached in one of two ways, and a caller cannot tell them apart on
 the wire:
@@ -867,6 +879,13 @@ security:
     - >-
       A helper's standard error is for diagnostics. It never carries a secret,
       and a caller MAY show it to a person.
+    - >-
+      A source, built in or a helper, places no secret, passphrase or key on
+      the command line or in the environment of any program it runs, its
+      store's own command-line tool included. It hands one over on that
+      program's standard input, or through an interface no other process can
+      read. The rule for the hop from caller to helper holds for every hop
+      after it.
   signing:
     algorithm: ML-DSA-65 (FIPS 204), named ml-dsa-65 on the wire
     process: >-
@@ -937,6 +956,7 @@ security:
 - [ ] A registry file, a helper program, registered or found on the search path, and a `file:` reference are each refused as `denied` unless the file and its directory are owned by the caller's user or an administrator and nobody else can write them; nothing is used in a refused program's place
 - [ ] A registered command names its program by an absolute path
 - [ ] No field of a `SecretSourceRequest` appears on a helper's command line or in its environment
+- [ ] While a source, built in or a helper, runs its store's own tool to store, read or erase a secret, no secret value, passphrase or key appears on that tool's command line or in its environment, as `ps` or the process's environment would show; the `1password` source and a keychain source included
 - [ ] A helper's environment carries no variable holding a secret the caller was given
 - [ ] A helper answers a request whose `version` it does not speak with `unsupported`
 - [ ] A valid response is the helper's answer whatever its exit status, and only a helper that wrote no valid response is reported as `unsupported`
