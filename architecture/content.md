@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.5.0
+version: 2.5.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -2091,9 +2091,15 @@ are what make it safe to declare:
   ([Derived Scope Ceiling](#derived-scope-ceiling)).
 
 A copy on a machine the tenant owns, away from the machine that holds the
-store, gives durability without disclosure. It is capped the same way, because
-whoever can read that machine reads the copy without passing through this
-service.
+store, is capped the same way, because whoever can read that machine reads the
+copy without passing through this service. Where nothing demonstrates who else
+can read it, as nothing does for a destination reached by a key registered
+there ([`patterns/content-git`](../patterns/content-git.md)), its ceiling is
+`public` by the table's second row, and confirming it makes the repository's
+ceiling `public` for good ([Effective custody](#effective-custody)). Such a
+copy gives durability only to a repository that holds nothing above
+`public`. That limit is stated here, as Design Principle 5 requires, rather
+than read into the words "the tenant's own machine".
 
 ### Effective custody
 
