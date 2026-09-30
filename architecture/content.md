@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.8.2
+version: 2.9.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -2313,12 +2313,13 @@ Three rules keep every person-only capability with people:
   attested ([`architecture/admin`](admin.md#operator-token)). On any other
   token — a registered component's, a channel's — this service treats it as
   absent. A hub that issued one by mistake has still opened no route.
-- **An agent runs on a token that holds none of them.** A console runs an
-  agent a person starts on a token minted with that person's credential and
-  narrowed to leave out every person-only capability
-  ([`architecture/admin`](admin.md), `console-credential-use`), so the run can
-  only propose, and never beyond what that person may do. An agent's
-  authorisation never names one either (principal-identity, `agent-delegation`).
+- **No agent holds a person's token.** An agent acts under an authorisation
+  that never names a person-only capability (principal-identity,
+  `agent-delegation`), or under a service identity, and a console never gives
+  one a token minted with a person's credential, narrowed or not
+  ([`architecture/admin`](admin.md), `console-credential-use`). So an agent's
+  work reaches this service as a proposal made under a service identity, or
+  in a request its person submits as their own act.
 
 A decision is judgement, and a service has none to exercise
 (principal-identity Design Principle 11).
@@ -2347,11 +2348,15 @@ requires.
 tell whose credential a request used. It cannot tell whether that person sent
 the request or software they run sent it with their credential. The first two
 rules hold at the tenant for every service and every registered component, and
-no client can loosen them. The third holds in the console: a narrowed token and
-a full one are both that person's, and this service cannot tell which a client
-asked for. A console that ran an agent on a full token would produce a change
-recorded as that person's direct write. This limit is stated here, as Design Principle 5
-requires, rather than hidden behind the two rules that do hold.
+no client can loosen them. The third holds in the console: a request an agent
+sent with a person's token would be that person's to this service, and a
+console that let an agent use one would produce changes recorded as that
+person's own acts. Nor does a token name its audience: this service could
+present a token it receives at any route its capabilities reach until it
+expires, which is why a console presents one here narrowed to what its
+requests here need (`console-credential-use`). These limits are stated here,
+as Design Principle 5 requires, rather than hidden behind the two rules that
+do hold.
 
 `content:write` and `content:propose` do not imply each other. A person who
 holds both may still propose, to ask for a review.
@@ -2430,8 +2435,8 @@ change between one read and the next.
 
 The **requester** of a proposal is its `actor` and, when present, its
 `on_behalf_of`. The person who started an agent is a requester of its
-proposal: its `actor`, where the run used that person's narrowed token, or its
-`on_behalf_of`, where a service ran it for them.
+proposal: its `actor`, where that person submitted it under their own token,
+or its `on_behalf_of`, where a service submitted it for them.
 
 Requester and decider are compared by identity id and by nothing else (see
 [Who a change was for](#who-a-change-was-for)). A name, an email address or a
@@ -2558,13 +2563,14 @@ record name the same party.
   themselves and `actor` already names them. On a proposal, a client that
   carries out a person's instruction under its own service identity MUST send
   it. Without it that person is absent from the record, and separation cannot
-  see them. An agent run a person started on their own narrowed token needs
+  see them. A person who submits an agent's work under their own token needs
   none: the token names that person, so `actor` is them, witnessed. A
   scheduled job is not a person and is never `on_behalf_of`. It names itself
   in `run`, and `on_behalf_of` names the person it acts for, where there is
   one.
 - **`agent` and `run`**: a client submitting a change that an agent prepared
-  MUST send `agent` and `run` with the proposal, as well as `on_behalf_of`.
+  MUST send `agent` and `run` with the proposal, and `on_behalf_of` as well
+  where it submits under its own service identity for a person.
   principal-identity Design Principle 13 requires the record to name the agent
   and the run that used a subject's authority, and the proposal is where the
   record holds them. Both are asserted. `proposal` leads from the change to
@@ -2738,8 +2744,8 @@ Two parties sign, and nobody else.
   carries it, and that person's part in the change is `signed`.
 
 An agent, a schedule and a service sign nothing here. Only a person moves an
-entry (Design Principle 7), and an agent runs on a token that holds no
-person-only capability ([Who may move an entry](#who-may-move-an-entry)). Their part is witnessed,
+entry (Design Principle 7), and no agent holds a person's token
+([Who may move an entry](#who-may-move-an-entry)). Their part is witnessed,
 where the token that carried it names them, or asserted.
 
 The service's registered key is the long-lived key `architecture/storage`
@@ -4620,9 +4626,10 @@ security:
         token for one that carries either, and refuses a registration that
         declares either. This service honours them only on a token of type
         operator, checked live with the orchestrator before the act. A console
-        runs an agent a person starts on that person's token narrowed of every
-        person-only capability. What the tenant cannot see, a person's
-        credential used by software, is stated with the rule
+        gives no agent a person's token, narrowed or not
+        (architecture/admin, console-credential-use). What the tenant cannot
+        see, a person's credential used by software and a token presented
+        where it was not sent, is stated with the rule
     - rule: Only a person allows self-decision
       mechanism: A declaration carrying self_decision_ceiling requires
         content:decide as well as content:declare

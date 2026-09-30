@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.11.3
+version: 2.12.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -668,7 +668,9 @@ contracts:
         - It MUST ask for not_after 30 days ahead unless the person chooses another value within the 90-day cap, and MUST warn the person when fewer than 7 days remain
         - It MUST use a person's credential only while that person holds a live session with the console at AAL2, and MUST NOT mint a token with it at any other time
         - Work no signed-in person is present for, such as a schedule or a background job, MUST NOT use a person's credential. It needs the console's own service identity at the hub, and this contract specifies no route that admits one (A console holds a credential, never a token), so until one is specified a console does no such work at a hub
-        - An agent run a signed-in person starts MUST run on a token minted with that person's credential while their AAL2 session is live, requested with cap naming no capability protocol/types marks person only (operator-token-issuance), and MUST NOT run on a token that carries one. The run then does only what that person may do, less every person-only capability, and ends with their session
+        - It MUST NOT give an agent a token minted with a person's credential, narrowed by cap or not, and an agent it runs MUST NOT make a request to a hub with one. Leaving out the person-only capabilities leaves every other capability of the person's role, admin:* for an admin, which admits operators and sets their roles. The hub cannot tell the agent's requests from the person's, and could end the run only by revoking the person's credential
+        - An agent acts at a hub only under patterns/principal-identity's agent-delegation, as the intersection of the person's grant, the agent's declared capabilities and an authorisation of that agent the hub holds, or under the console's own service identity. This contract specifies a route for neither, so until one is specified an agent a console runs acts at no hub. What it prepares reaches a hub only in a request the person submits, under their own token, as their own act
+        - A token it presents to a component other than the orchestrator MUST be minted with cap naming only the capabilities the requests it carries there need. A WLT names no audience, so the component can present the token at any route its capabilities reach until its exp
         - It MUST NOT generate, hold or ask an identity to attest a sign-records credential, for anyone. A signature on a record means the person signed it, and a key a console holds signs whenever the console does (patterns/principal-identity, record-signing)
         - It MUST hold an operator token in memory only and never write one anywhere, encrypted or not. What it keeps at rest is the credential key, as an installation secret
         - It MUST discard a person's tokens when that person's session ends, by sign-out, idle or absolute expiry, or the account's revocation, even where exp is later
@@ -949,11 +951,15 @@ POST /v1/admin/credentials/token
 
 A token request may also carry `cap`, a list of capability names, and the
 token then carries only those of them the operator's role carries
-(`operator-token-issuance`). It only narrows: a console asks for a token
-without any person-only capability to run an agent a person starts
+(`operator-token-issuance`). It only narrows, for a client that needs less
+than the role carries: a console presenting a token to a component other than
+the orchestrator asks for what its requests there need, because a token names
+no audience and the component could present it anywhere its capabilities
+reach
 ([A console holds a credential, never a token](#a-console-holds-a-credential-never-a-token)).
-It is not signed, because nothing it can do widens what the credential
-already reaches.
+A narrowed token is still the person's, and never one to give an agent. It
+is not signed, because nothing it can do widens what the credential already
+reaches.
 
 The signed bytes are fixed and domain-separated. A credential never signs a
 caller's bytes, and a signature made here cannot be presented as a signature
@@ -1246,17 +1252,29 @@ it may replay it. So a console keeps the thing that can **ask**, and never the
   ([`protocol/spec`](../protocol/spec.md#post-v1register)). Until one is
   specified, a console does no unattended work at a hub, and work that runs
   whether or not anybody is present belongs to the tenant's own services.
-- **An agent a person starts runs on that person's narrowed token.** The
-  console mints it with the person's credential while their AAL2 session is
-  live, asking for `cap` without any capability `protocol/types` marks
-  *person only* (`operator-token-issuance`). The run does only what that
-  person may do, less every person-only capability, so an agent's change to a
-  document reaches the tenant as a proposal a person decides
-  ([`architecture/content`](content.md#who-may-move-an-entry)), and it stops
-  when the person's session ends. The token names the person, so the person
-  who started the run is the proposal's `actor`, witnessed, and so a
-  requester who cannot decide it alone
-  ([`architecture/content`](content.md#separation-of-duties)).
+- **An agent never holds a person's token.** Narrowing a token with `cap`
+  removes what it names and keeps the rest. For an admin the rest is
+  `admin:*`, and an agent holding it could register an operator with a key
+  of its own, approve it, give it a role, and through it decide the person's
+  own proposal as somebody independent. No person would have vouched for that
+  operator. The hub cannot tell an agent's request from the person's, and it
+  could end the run only by revoking the person's credential. An agent acts
+  at a hub under
+  [`patterns/principal-identity`](../patterns/principal-identity.md)'s
+  `agent-delegation` — the intersection of the person's grant, the agent's
+  declared capabilities and an authorisation of that agent which the hub
+  holds, which expires and which the person can revoke alone — or under the
+  console's own service identity. This contract has a route for neither.
+  Until one is specified, an agent a console runs makes no request to a hub.
+  What it prepares reaches the hub only when the person submits it, under
+  their own token, as their own act, naming the agent and the run on a
+  proposal ([`architecture/content`](content.md#who-a-change-was-for)).
+- **A token is narrowed to where it is going.** A WLT names no audience, so a
+  component a token is presented to can present it again anywhere its
+  capabilities reach until it expires. A console presenting a person's token
+  to a component other than the orchestrator mints it with `cap` naming only
+  what its requests there need, so the content service holds `content:`
+  capabilities and never `admin:*`.
 - **Tokens stay in memory.** A console never writes an operator token anywhere,
   encrypted or not. A console that drives the CLI to connect asks it not to
   store one either (`--no-store`).
@@ -2027,7 +2045,8 @@ Admin endpoints SHOULD be rate-limited:
 - [ ] A role lowered after a token was issued limits that token from its next request
 - [ ] An operator token without `cid` is refused with `CREDENTIAL_REQUIRED`
 - [ ] A console uses a person's credential only while that person has a live AAL2 session with it, never for work nobody is present for, and discards a person's tokens when their session ends
-- [ ] A console runs an agent a person starts on a token minted with that person's credential during their AAL2 session and requested with `cap` naming no person-only capability, and never on a token that carries one
+- [ ] A console gives no agent a token minted with a person's credential, with or without `cap`: an agent it runs makes no request to a hub, and what the agent prepared reaches a hub only in a request the person submits
+- [ ] A token a console presents to a component other than the orchestrator carries only the capabilities named in its `cap`, and an admin's token presented to the content service carries no `admin:` capability
 - [ ] A token request carrying `cap` receives a token carrying exactly the named capabilities its operator's role carries; a name the role does not carry is left out, and a request with no `cap` receives the role's full set
 - [ ] An operator token carries `identity_id`, the `identity_id` of the credential its `cid` names
 - [ ] A `viewer` token carries `content:read` and `content:describe` and no other `content:` capability, and an `operator` token carries `content:write` and `content:decide`
