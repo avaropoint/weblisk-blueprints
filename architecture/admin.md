@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.9.0
+version: 2.9.1
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -270,6 +270,7 @@ request.
 | `CREDENTIAL_PURPOSE_REFUSED` | 400 | validation | The attestation names one purpose for a key this hub holds, or held, under the other; or a challenge or token request names a sign-records credential, which never signs anybody in | Refuse. Log as a security event. The client attests a separate key for each purpose | `credential_purpose_mismatch` |
 | `CREDENTIAL_LIFETIME_INVALID` | 400 | validation | `not_after` is not in the future, or is more than 90 days after the hub receives the attestation | Refuse, naming the cap | `attestation_expired`, where `not_after` has passed |
 | `CREDENTIAL_PREVIOUSLY_REVOKED` | 409 | conflict | The key was revoked here before | Refuse permanently. Log as a security event | `credential_previously_revoked` |
+| `CREDENTIAL_KEY_BOUND` | 409 | conflict | The credential key is, or was, a credential of another operator at this hub, or is another operator's identity key | Refuse permanently, naming no operator. Log as a security event: an operator attested a key it can see in another's credential list | `credential_key_bound` |
 | `OPERATOR_LAST_ADMINISTRATOR` | 409 | conflict | A request to revoke would end the last active authenticate credential of the last active admin. A sign-records credential signs nobody in and is not counted. A change of that admin's identity key is not refused | Refuse | `last_administrator` |
 
 `TOKEN_EXPIRED` ([`protocol/types`](../protocol/types.md#error-handling)) still
@@ -591,7 +592,8 @@ contracts:
         - A key this hub holds, or ever held, under one purpose MUST be refused under the other with CREDENTIAL_PURPOSE_REFUSED, and logged as a security event. One key serves one purpose, so the key a client signs in with is never one that signs a record
         - Its not_after MUST be in the future and no more than 90 days after the hub receives it, or it is refused with CREDENTIAL_LIFETIME_INVALID
         - A key that was ever revoked at this hub MUST be refused with CREDENTIAL_PREVIOUSLY_REVOKED
-        - An attestation for a key the operator already holds as an active credential MUST replace that credential's attestation and keep its id. That is re-attestation
+        - A credential_public_key this hub holds, or ever held, as a credential of another operator, or that is another operator's identity key, current or retired, MUST be refused with CREDENTIAL_KEY_BOUND and logged as a security event. A credential's id is its key's fingerprint, so accepting it would rebind that credential, and every token minted with it, to the operator who attested it. A key is bound to the first operator this hub recorded it for, and to no other, ever
+        - An attestation for a key the same operator already holds as an active credential MUST replace that credential's attestation and keep its id. That is re-attestation
         - The hub MUST store the credential with algorithm ml-dsa-65, form key-file, device_bound false (a key file can be copied, and no authenticator says otherwise) and status active, and return it with its id, the fingerprint of its public key
         - Every attestation MUST be audited with the operator, the credential id, its purpose and the device_label
 
@@ -858,7 +860,11 @@ recommends, and a hub refuses anything longer. The attestation lifetime is the
 revocation window for every verifier that is not this hub, so it is kept short.
 
 Re-attesting a key the operator already holds here replaces its attestation and
-keeps its id. It may be submitted with that operator's own operator token, so a
+keeps its id. A key that is, or was, another operator's credential or identity
+key is refused with `CREDENTIAL_KEY_BOUND`: every operator's credential keys
+are listed to any `viewer`, and a key's fingerprint is its credential's id, so
+accepting one would hand that credential, and the tokens it mints, to whoever
+attested it second. It may be submitted with that operator's own operator token, so a
 client whose credential is still live re-attests with one identity signature and
 no attestation token.
 
@@ -1902,6 +1908,7 @@ Admin endpoints SHOULD be rate-limited:
 - [ ] An attestation whose `hub_id` is not this hub's, whose credential key is not an ML-DSA-65 key, whose credential key is the identity key, whose `not_after` has passed or is more than 90 days away, or whose key was revoked here before is refused with `CREDENTIAL_FOREIGN_HUB`, `CREDENTIAL_FORM_UNSUPPORTED`, `CREDENTIAL_IS_IDENTITY_KEY`, `CREDENTIAL_LIFETIME_INVALID` or `CREDENTIAL_PREVIOUSLY_REVOKED`
 - [ ] An attestation with `purpose` `sign-records` is recorded under the same checks and 90-day cap as any other, appears in the operator's credential list, and can be revoked; a challenge or token request for its key is refused with `CREDENTIAL_PURPOSE_REFUSED` and no nonce is issued
 - [ ] An attestation naming one purpose for a key this hub holds, or held and revoked, under the other is refused with `CREDENTIAL_PURPOSE_REFUSED`
+- [ ] An operator attesting a key that is another operator's active, expired or revoked credential, or another operator's identity key, is refused with `CREDENTIAL_KEY_BOUND`; the other operator's credential keeps its operator and its attestation, and their next token is minted for them
 - [ ] Every operator token names in `record_keys` each active, unexpired sign-records credential its operator holds here, and a token minted after one is revoked does not name it
 - [ ] Revoking the last authenticate credential of the last active admin is refused with `OPERATOR_LAST_ADMINISTRATOR` whatever sign-records credentials that admin holds
 - [ ] A console holds no key attested with `purpose` `sign-records`, for any account

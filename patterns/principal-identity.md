@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.7.2
+version: 1.7.3
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -274,6 +274,12 @@ contracts:
         - A credential public key that has ever been revoked at this hub MUST NOT
           be re-registered, even under a valid attestation. Otherwise replaying
           the original attestation resurrects a revoked credential
+        - A credential public key a hub holds, or ever held, for one subject, or
+          that is any subject's identity key, MUST be refused for every other
+          subject with credential_key_bound, and logged as a security event.
+          A key the hub already records names that credential, so accepting
+          it for a second subject would rebind the credential, and every token
+          it mints, to the subject who attested it second
         - A hub MAY require the identity's signature over a fresh,
           replay-protected request before it accepts an attestation. What that
           signature obtains MUST be limited to submitting attestations for that
@@ -761,6 +767,7 @@ types:
 | `algorithm_not_permitted` | validation | A classical key offered as an identity, to sign an attestation, or as a sign-records credential | Refuse. Log as a security event |
 | `credential_purpose_mismatch` | auth | A credential used for what its attestation's `purpose` excludes: a sign-records credential offered to authenticate; a key offered under one purpose that the hub holds, or held, under the other; an authenticate credential's signature offered on a record; or a record signature, arriving with a token, by a key that is not one of the token's `record_keys` or is the credential its `cid` names | Refuse. Log as a security event |
 | `credential_previously_revoked` | validation | Re-registering a key revoked here before | Refuse permanently. Log as a security event |
+| `credential_key_bound` | validation | A credential key the hub holds, or held, for another subject, or that is a subject's identity key, attested for a second subject | Refuse permanently. Log as a security event |
 | `identity_key_as_credential` | auth | The identity key was offered to authenticate | Deny. Log as a security event |
 | `scope_exceeds_issuer` | validation | Invitation offers more than the issuer holds | Refuse |
 | `provenance_insufficient` | validation | Key provenance below `minimum_key_provenance` for the offered scope | Refuse |
@@ -1013,3 +1020,7 @@ credential revocation, which costs nothing else.
 56. Revoking the last active authenticate credential of the last subject able
     to administer a hub is refused with `last_administrator`, however many
     sign-records credentials that subject holds.
+57. A subject attesting a credential key the hub holds, or held, for another
+    subject, or another subject's identity key, is refused with
+    `credential_key_bound`; the other subject's credential keeps its subject,
+    and the next token it mints is that subject's.
