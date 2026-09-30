@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.9.0
+version: 2.10.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -659,7 +659,7 @@ code here is enough, because a client does the same thing for both.
 | `CONTENT_PROPOSAL_UNKNOWN` | validation | No proposal of that id in the caller's scope | Refuse without disclosing whether it exists elsewhere |
 | `CONTENT_PROPOSAL_DECIDED` | conflict | A decision arrived for a proposal that is no longer `open`, including the second of two decisions that raced | Refuse, returning the proposal as recorded. A proposal leaves `open` once |
 | `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the identity the proposal names as its `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, the change has no scope, or the repository declares no ceiling. See [Separation of duties](#separation-of-duties) | Refuse, naming the scope, or that there is none, and the ceiling. Nothing is recorded and the proposal stays `open` |
-| `CONTENT_TOKEN_UNCHECKED` | io | A write, removal, decision, replica declaration or retirement, or a declaration carrying `self_decision_ceiling`, arrived and the orchestrator could not be asked whether its token is live | Refuse and perform nothing. The request may be repeated once the orchestrator answers. Never proceed on the token alone |
+| `CONTENT_TOKEN_UNCHECKED` | io | A write, removal, decision, replica declaration or retirement, or a declaration carrying `self_decision_ceiling` or `scope_floor`, arrived and the orchestrator could not be asked whether its token is live | Refuse and perform nothing. The request may be repeated once the orchestrator answers. Never proceed on the token alone |
 | `CONTENT_IDENTITY_REQUIRED` | auth | A write, removal, proposal, decision, replica declaration or retirement arrived on a token that carries no `identity_id` | Refuse. Never record a name, an address or a token's `sub` in its place |
 | `CONTENT_STATEMENT_INVALID` | auth | A write, removal or decision carried a `ChangeStatement` that does not verify: the token is not a person's; the attestation's `purpose` is not `sign-records`, its `identity_id` is not the token's, its identity key is not the operator's current one, its signature fails, its credential key is not ML-DSA-65, or its `not_after` has passed or is more than 90 days ahead; its credential key is not one of the token's `record_keys`, or is the credential the token's `cid` names; `signed_at` is more than 300 seconds from the service's clock; or the signature does not verify over the statement rebuilt from the change. See [The change statement](#the-change-statement) | Refuse, naming the check that failed. Nothing is written and a proposal stays `open`. The change is never recorded unsigned instead. Log as a security event |
 | `CONTENT_WRITE_UNCONFIRMED` | io | The digest of the bytes read back after a write is not the digest of the decoded bytes submitted | Refuse. The reservation is settled as one whose path holds neither `before` nor the reserved `after`: an `observe` entry under shared custody, an integrity anomaly under exclusive custody. No `change` entry records the write, because a statement over the submitted bytes could not be checked against other ones. See [Write Flow](#write-flow) |
@@ -667,7 +667,7 @@ code here is enough, because a client does the same thing for both.
 | `CONTENT_SEALING_PAUSED` | io | A checkpoint was asked for and no log key can sign one: none is live and the long-lived key cannot introduce another | Refuse, carrying the `LogHead`, whose `unsealed` counts what waits. Nothing is appended. The request may be repeated once sealing resumes |
 | `CONTENT_LOG_BROKEN` | integrity | The repository's change log failed this service's check from its latest checkpoint, because a line breaks the chain or cannot be read, and the request would append to it: a write, a removal, a decision to apply, a reconcile or a checkpoint. See [A log that does not verify](#a-log-that-does-not-verify) | Refuse, naming the `seq` where the check failed. Nothing is written to the store and nothing is appended. Reads, the log's included, are still served |
 | `CONTENT_REPLICA_UNSEEN` | conflict | A replica declaration with no `if_match` | Refuse and return the `ReplicaCensus`. Nothing is recorded and nothing is sent. The caller re-submits with the census digest |
-| `CONTENT_SCOPE_UNDECLARED` | policy | A replica declaration where a version that would leave is unclassified, and the declaration carries no `history_scope`. See [What would leave](#what-would-leave) | Refuse, naming how many versions are unclassified. Nothing is recorded and nothing is sent. No version is assumed to be at any level |
+| `CONTENT_SCOPE_UNDECLARED` | policy | A replica declaration where a version that would leave is unclassified, and the declaration carries no `history_scope`. See [What would leave](#what-would-leave). Or an adoption whose census reports `keeps_history`, and the declaration carries no `scope_floor`. See [`scope_floor` covers what declares nothing](#scope_floor-covers-what-declares-nothing) | Refuse, naming how many versions are unclassified, or, on an adoption, returning the census, whose `highest_scope` is the least floor it may carry. Nothing is recorded and nothing is sent. No version is assumed to be at any level |
 | `CONTENT_REPLICA_EXISTS` | conflict | The replica id is taken in that repository, by a replica that is not `establishing` or whose recorded arguments differ from this request's | Refuse, naming the recorded destination. An identical retry against an `establishing` replica is a resumption, not this |
 | `CONTENT_REPLICA_UNKNOWN` | validation | No replica of that id in that repository | Refuse |
 | `CONTENT_REPLICA_UNSUPPORTED` | policy | The destination's backend cannot receive a replica, or cannot receive one of the repository's backend | Refuse. Nothing is recorded |
@@ -693,11 +693,13 @@ code here is enough, because a client does the same thing for both.
 4. Registry checks: the id must be free at that `scope_path`
    (`CONTENT_REPOSITORY_EXISTS`), and the placement must not be equal to, inside
    or containing a placement already declared (`CONTENT_PLACEMENT_DECLARED`).
-   A declaration carrying `self_decision_ceiling` MUST come from a caller
-   holding `content:decide` as well as `content:declare`. A declaration
-   naming itself a records repository at a `scope_path` that has one →
-   `CONTENT_REPOSITORY_EXISTS`. A `scope_floor` that is not a `ScopeLevel` →
-   `SCOPE_INVALID_LEVEL`
+   A declaration carrying `self_decision_ceiling` or `scope_floor` MUST come
+   from a caller holding `content:decide` as well as `content:declare`, on a
+   token the orchestrator reports live
+   ([Who may move an entry](#who-may-move-an-entry)); otherwise `FORBIDDEN`.
+   A declaration naming itself a records repository at a `scope_path` that
+   has one → `CONTENT_REPOSITORY_EXISTS`. A `scope_floor` that is not a
+   `ScopeLevel` → `SCOPE_INVALID_LEVEL`
 5. `establish` — the caller MUST hold `content:establish` as well as
    `content:declare`; a backend that cannot create is refused with
    `CONTENT_ESTABLISH_UNSUPPORTED`; a placement already holding entries is
@@ -710,7 +712,11 @@ code here is enough, because a client does the same thing for both.
    With no `if_match`, it returns the census, refuses with
    `CONTENT_ADOPTION_UNSEEN`, and declares nothing. With an `if_match` that does
    not equal the census digest it has just computed, it refuses with
-   `CONTENT_PRECONDITION_FAILED` and returns both digests. `adopt` never creates
+   `CONTENT_PRECONDITION_FAILED` and returns both digests. Where the census
+   reports `keeps_history` and the declaration carries no `scope_floor`, it
+   refuses with `CONTENT_SCOPE_UNDECLARED`, returns the census, and declares
+   nothing ([`scope_floor` covers what declares nothing](#scope_floor-covers-what-declares-nothing)).
+   `adopt` never creates
 7. Each claimed attestation is demonstrated — on `establish`, against the store
    that now exists. An undemonstrated claim becomes `false`; a declaration with
    no custody is recorded `opaque` and the degradation is recorded, per
@@ -1802,11 +1808,30 @@ unclassified and holds every replica.
   what its bytes declare and the floor. A write or a proposal declaring a
   scope below the floor is refused with `CONTENT_SCOPE_LOWERED`, as one below
   any recorded scope is ([A scope only rises](#a-scope-only-rises)).
+- **Only a person declares it.** A floor classifies every entry and version
+  that declares nothing, history included, so it is a person's judgement, as
+  a scope on a change is, and a model never chooses one. A declaration
+  carrying `scope_floor` requires `content:decide` as well as
+  `content:declare`, and is checked with the orchestrator before it is
+  recorded, as `self_decision_ceiling` is
+  ([Who may move an entry](#who-may-move-an-entry)). `content:decide` is
+  person only, so no service and no agent can declare a store public.
+- **It is required where adopting takes in history.** A backend whose store
+  keeps earlier versions of its entries that this service can read, such as
+  one under version control, says so in the blueprint that specifies it, and
+  the census over such a store reports `keeps_history`. Nobody classified
+  that history, and a replica would send it. So an adoption whose census
+  reports `keeps_history` and whose declaration carries no `scope_floor` is
+  refused with `CONTENT_SCOPE_UNDECLARED`, returning the census. `establish`
+  takes in nothing, and needs none.
 - **It is at least what the store already declares.** On `adopt`, the census
-  reports `highest_scope`, the highest scope the bytes of the entries it found
-  declare. A `scope_floor` below it is refused with `CONTENT_SCOPE_LOWERED`,
-  naming both, so a floor never states that a store is less sensitive than
-  its own files say.
+  reports `highest_scope`: the highest scope the entries it found are at by
+  their bytes, each at the level it declares or, where higher, the `maps_to`
+  of a label it carries that the tenant registers
+  ([`patterns/scope`](../patterns/scope.md#a-label-and-its-level)). A
+  `scope_floor` below it is refused with `CONTENT_SCOPE_LOWERED`, naming
+  both, so a floor never states that a store is less sensitive than its own
+  files say. It is the least floor the census proposes to the person.
 - **It fits the place.** A `scope_floor` above the ceiling derived at
   declaration is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`, because
   every entry would be above it.
@@ -2326,7 +2351,8 @@ A decision is judgement, and a service has none to exercise
 
 **A person-only act is checked with the orchestrator.** Before it performs a
 write, a removal, a decision, a replica declaration or retirement, or a
-repository declaration that carries `self_decision_ceiling`, this service asks
+repository declaration that carries `self_decision_ceiling` or `scope_floor`,
+this service asks
 the orchestrator whether the token is still live
 ([`architecture/orchestrator`](orchestrator.md#token-check-post-v1tokencheck),
 `POST /v1/token/check`), and authorises the act against the `capabilities`
@@ -3227,9 +3253,12 @@ types:
         type: ScopeLevel
         required: false
         description: The least scope of every entry the repository will hold,
-          past versions included. Refused above the derived ceiling, and on
-          adopt below the census's highest_scope. Not configurable, and never
-          lowered. See scope_floor covers what declares nothing
+          past versions included. Declaring it requires content:decide as
+          well as content:declare, so only a person declares it. Required on
+          adopt where the census reports keeps_history. Refused above the
+          derived ceiling, and on adopt below the census's highest_scope. Not
+          configurable, and never lowered. See scope_floor covers what
+          declares nothing
       records:
         type: bool
         required: false
@@ -3264,9 +3293,18 @@ types:
       highest_scope:
         type: ScopeLevel
         required: false
-        description: The highest scope the bytes of the entries found declare.
-          The least scope_floor the declaration may carry. Absent when none
-          declares one this service can read
+        description: The highest scope the entries found are at by their
+          bytes, each at the level it declares or, where higher, the maps_to
+          of a label it carries that the tenant registers. The least
+          scope_floor the declaration may carry. Absent when no entry declares
+          a level or carries such a label this service can read
+      keeps_history:
+        type: bool
+        required: true
+        description: True when the placement's backend keeps earlier versions
+          of its entries that this service can read, as the blueprint that
+          specifies it says. A declaration adopting it MUST then carry
+          scope_floor. See scope_floor covers what declares nothing
       backend_report:
         type: object
         required: false
@@ -4630,9 +4668,14 @@ security:
         (architecture/admin, console-credential-use). What the tenant cannot
         see, a person's credential used by software and a token presented
         where it was not sent, is stated with the rule
-    - rule: Only a person allows self-decision
-      mechanism: A declaration carrying self_decision_ceiling requires
-        content:decide as well as content:declare
+    - rule: Only a person allows self-decision or sets a floor
+      mechanism: A declaration carrying self_decision_ceiling or scope_floor
+        requires content:decide as well as content:declare, checked live with
+        the orchestrator before it is recorded
+    - rule: History a store kept is classified before it is adopted
+      mechanism: An adoption whose census reports keeps_history carries a
+        scope_floor, at or above the census's highest_scope, or is refused
+        with CONTENT_SCOPE_UNDECLARED
     - rule: A proposal writes nothing
       mechanism: Proposed bytes are held in the service's own state, never in
         the repository, until a decision applies them
@@ -4951,6 +4994,10 @@ security:
 - [ ] A token whose `type` is not `operator` and whose `cap` holds `content:write` is refused `PUT /v1/content/entry` as though it did not hold it
 - [ ] The service's own manifest declares none of `content:write`, `content:decide`, `content:replicate` and `content:connect`, and its registration succeeds
 - [ ] A declaration carrying `self_decision_ceiling` from a caller holding `content:declare` and not `content:decide` is refused, and no repository is recorded
+- [ ] A declaration carrying `scope_floor` from a caller holding `content:declare` and not `content:decide`, a registered component's included, is refused with `FORBIDDEN`, and no repository is recorded
+- [ ] A declaration carrying `self_decision_ceiling` or `scope_floor` on a token whose operator was removed after it was minted is refused with `OPERATOR_REVOKED`, and one made while the orchestrator cannot be asked is refused with `CONTENT_TOKEN_UNCHECKED`; neither records a repository
+- [ ] An adoption of a store whose census reports `keeps_history`, confirmed with the census digest and carrying no `scope_floor`, is refused with `CONTENT_SCOPE_UNDECLARED`, returns the census, and declares nothing; the same adoption carrying a `scope_floor` at or above the census's `highest_scope` is declared
+- [ ] A census over a store holding an entry that declares no level and carries a label the tenant registers reports a `highest_scope` at least that label's `maps_to`, and an adoption carrying a `scope_floor` below it is refused with `CONTENT_SCOPE_LOWERED`
 - [ ] A repository declared with `scope_floor` `internal` reports an entry whose bytes and path declare nothing at `internal`, records its floor on the `declare` entry, refuses a write declaring `public` or declaring none with `CONTENT_SCOPE_LOWERED`, and has no version a replica census counts `unclassified`
 - [ ] An adoption whose census reports `highest_scope` `confidential` is refused with `CONTENT_SCOPE_LOWERED` when it carries `scope_floor` `internal`, and a declaration whose `scope_floor` is above its derived ceiling is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
 - [ ] `ContentChange.version` is absent when the backend keeps no version marker

@@ -788,8 +788,11 @@ column. That is the escalation
 [`patterns/scope`](../patterns/scope.md#scope-escalation) requires of anything
 composed. It holds for both forms: a standing register takes its own spec's
 `artifact_scope`, and a record log declared under `declares.register` takes
-the declaring spec's. A register nothing gives a level is created with none,
-and is unclassified.
+the declaring spec's. A register nothing gives a level is created with no
+`scope:` of its own. In a repository declared with a `scope_floor` it is at
+the floor, and the write that creates it declares the floor
+([Where a record holding `pii` lives](#where-a-record-holding-pii-lives)).
+Anywhere else it is unclassified.
 
 ### Records about a person
 
@@ -883,12 +886,23 @@ entry labelled `pii` may be kept. So, in this order:
 2. The repository that holds the programme's other documents is declared,
    where it is not already. Its spec files declare no level of their own
    ([`artifact_scope` is never spelled `scope`](#artifact_scope-is-never-spelled-scope)),
-   so a declaration made for it carries a `scope_floor`
+   so a declaration made for it MUST carry a `scope_floor`
    ([`architecture/content`](../architecture/content.md#scope_floor-covers-what-declares-nothing)).
+   A person chooses its level. Only a person may declare one, it is at least
+   the `highest_scope` an adoption's census reports, and this schema names
+   no level for it: what a tenant's programmes may hold is the tenant's
+   judgement.
 3. The programme is installed. Every document it creates is written through
    the content service's write route into the repository its path resolves
    to, each record holding `pii` into the records repository, and only then
-   is the first row written.
+   is the first row written. Each write declares a scope on the change: the
+   higher of the level the spec or form gives the document and its path's
+   recorded scope, which in a floored repository is never below the floor.
+   Where the document carries `scope:`, it carries that level too
+   ([What the created document carries](#what-the-created-document-carries)).
+   A write there that declares none, or less, is refused with
+   `CONTENT_SCOPE_LOWERED`
+   ([`architecture/content`](../architecture/content.md#a-scope-only-rises)).
 
 A repository that is not declared accepts no write, so install never writes
 into a store ahead of its declaration.
@@ -1533,4 +1547,5 @@ files; these are acts of the tenant and the client that installs into it.
 - [ ] Where the scope has no records repository, nothing holding `pii` is created, each register and form not created is reported with `CONTENT_RECORDS_REPOSITORY_REQUIRED`, and every obligation that records into one is reported as unable to record
 - [ ] A register's `path`, an obligation's `records:`, a `for.records` and a `relation` column's `target` resolve in the records repository when the register named holds `pii`, and in the programme's repository otherwise, for install, derive and the occurrence engine alike
 - [ ] The records repository, and the repository that holds the rest of the programme, are declared before install creates anything, and every document install creates is written through the content service's write route into the repository its path resolves to
+- [ ] The declaration of the repository that holds the rest of the programme carries a `scope_floor` a person chose, and every write install makes into it declares on the change the higher of the level the spec or form gives the document and the floor
 - [ ] The client writing a person's next change to a document created from a spec or a form adds `scope:` and `scope_metadata:` from the spec or form where the document lacks them, never on open, and never below the entry's recorded scope

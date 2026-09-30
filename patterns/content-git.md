@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: content-git
-version: 1.5.2
+version: 1.6.0
 requires: [architecture/content, patterns/content-identity, protocol/identity, patterns/secrets, patterns/principal-identity]
 platform: any
 tier: free
@@ -66,7 +66,7 @@ all of what this blueprint says about it.
 ```yaml
 requires:
   - blueprint: architecture/content
-    version: ">=2.5.0 <3.0.0"
+    version: ">=2.10.0 <3.0.0"
     bindings:
       types:
         - name: ContentChange
@@ -76,7 +76,7 @@ requires:
         - name: ContentRepository
           fields_used: [placement, custody, attestations, backend_report]
         - name: ContentAdoption
-          fields_used: [digest, entries, backend_report]
+          fields_used: [digest, entries, keeps_history, backend_report]
         - name: ContentReplica
           fields_used: [destination, state, custody, anonymous_read, attestations, credential, credential_fingerprint, held_path, held_reason, backend_report]
         - name: ReplicaCensus
@@ -190,6 +190,7 @@ contracts:
       rules:
         - A placement's locator names the top level of exactly one git repository, and the whole of it. Establishing or adopting a locator inside a git repository that is not its top level is refused with CONTENT_PLACEMENT_PARTIAL
         - Adopting a store whose git directory, common directory or object store lies outside the locator, that borrows objects through alternates, or that is shallow or a partial clone, is refused with CONTENT_PLACEMENT_PARTIAL. Such a store does not hold its own history
+        - A git store keeps its history, and every version on its line leaves with a copy of it. The census over one reports keeps_history true, so adopting it needs a scope_floor, per architecture/content's rule that history a store kept is classified before it is adopted
         - establish runs git init with no template, so nothing is copied into the git directory, with the backend's object_format and with default_line as the initial branch, bare when the backend's worktree option is none. The line is left unborn. The service writes no commit, no .gitignore and no README, per architecture/content's rule that it writes nothing into a store it establishes
         - On adopt, the line is the branch the store's HEAD names when the census is taken. The census shows it, and the census digest covers it
         - Adopting a store whose HEAD names no branch, that is in the middle of a merge, rebase, cherry-pick, revert or bisect, whose index has unmerged entries, or whose working tree differs from its line, is refused with CONTENT_LINE_UNSETTLED. A person settles it with git and takes a new census
@@ -734,6 +735,7 @@ from the line's, returning both of those digests.
 - [ ] A write racing a person's commit that changed the same path is refused with `CONTENT_PRECONDITION_FAILED`, and the line keeps the person's commit
 - [ ] Adopting a subdirectory of a git repository is refused with `CONTENT_PLACEMENT_PARTIAL`, and so is adopting a store that uses alternates or is shallow
 - [ ] Adopting a store with a detached HEAD, or whose working tree differs from its line, is refused with `CONTENT_LINE_UNSETTLED`, and the census's `backend_report` names the reason
+- [ ] The census over a git store reports `keeps_history` true, and adopting one whose declaration carries no `scope_floor` is refused with `CONTENT_SCOPE_UNDECLARED`
 - [ ] An adoption whose store gained a configured remote after the census is refused with `CONTENT_PRECONDITION_FAILED`
 - [ ] After a person resets the line to an earlier commit, every read and write answers `CONTENT_UNREADABLE`, health reports degraded naming `line-rewritten`, and nothing in the store is changed by the service
 - [ ] A path inside a nested repository, and a path the line records as a symbolic link, are refused with `CONTENT_RESERVED_PATH`
