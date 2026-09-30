@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.2.2
+version: 2.3.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -1260,7 +1260,8 @@ the two combine, for every entity including a content entry:
 
 1. **The level is always one of the five.** A declaration whose level is a
    label, registered or not, or any other value, is refused with
-   `SCOPE_INVALID_LEVEL`. A label with no level beside it declares no level.
+   `SCOPE_INVALID_LEVEL`. A label with no level beside it declares no level;
+   rule 4 says what a registered one gives where nothing checked it.
 2. **A registered label sets the least level it may be declared with.** Its
    `maps_to` is that level. A declaration whose level is below the `maps_to` of
    a registered label it carries is refused, and never raised to fit. The
@@ -1271,10 +1272,20 @@ the two combine, for every entity including a content entry:
    uses `CONTENT_SCOPE_LOWERED`.
 3. **A label the component has not registered sets nothing.** It is carried
    and preserved, and the declared level is enforced.
+4. **Where nothing checked a declaration, a registered label still sets its
+   least level.** A level a component reads from something rule 2 was never
+   applied to — bytes it did not write, a version kept from before it held
+   them, a copy it observed — is the higher of the level declared beside the
+   label and the label's `maps_to`, and a registered label with no level
+   beside it gives its `maps_to`. What rule 2 would have refused is never
+   classified below the label, so an entity that carries a registered label
+   is never sent, copied or recorded below its `maps_to`.
 
 So `scope: confidential` with `pii`, where `pii` is registered as above, is
-refused, and `scope: restricted` with `pii` is `restricted`. Where `pii` is
-not registered, the first is `confidential`, carrying `pii`.
+refused, and `scope: restricted` with `pii` is `restricted`. Found in bytes
+nothing checked, the first is `restricted`, and so is `pii` with no level
+beside it. Where `pii` is not registered, the first is `confidential`,
+carrying `pii`.
 
 `pii` is also a label the platform acts on, registered or not:
 [`architecture/content`](../architecture/content.md#where-an-entry-labelled-pii-is-kept)
@@ -1294,8 +1305,8 @@ Component B (doesn't know "hipaa"): enforces "critical", the declared level
 
 This ensures interoperability: custom labels add context for components that
 understand them, and every component enforces the level. Where `hipaa` is
-registered, that level is at least its `maps_to`, because rule 2 was checked
-when it was declared.
+registered, that level is at least its `maps_to`: rule 2 was checked where it
+was declared, and rule 4 sets it where nothing checked it.
 
 ---
 
@@ -1436,6 +1447,7 @@ a destination carries a `DestinationRefusal` as its detail.
 - [ ] Critical scope is enforced (not just audited) in ALL environments including development
 - [ ] A declaration whose level is a custom label, or anything but one of the five built-in levels, is refused with `SCOPE_INVALID_LEVEL`
 - [ ] A declaration whose level is below the `maps_to` of a registered custom label it carries is refused, naming the label and both levels, and is never raised to fit
+- [ ] Bytes a component did not write, carrying a registered label whose `maps_to` is `restricted` beside `scope: internal` or beside no level, are classified `restricted` wherever the component records, copies or sends them
 - [ ] A component that does not know a custom label preserves it and enforces the level declared beside it, during cross-boundary transfers included
 - [ ] `scope.violation` events are emitted on every scope boundary violation
 - [ ] `scope.override` events are emitted when environment profiles modify enforcement

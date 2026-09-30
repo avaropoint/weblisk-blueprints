@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.13.1
+version: 2.14.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -97,7 +97,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/scope
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.3.0 <3.0.0"
     bindings:
       types:
         # An enum: it declares values, not fields, so nothing is bound FROM it.
@@ -782,7 +782,7 @@ code here is enough, because a client does the same thing for both.
    [A scope only rises](#a-scope-only-rises): none, or one below the path's
    recorded scope or below the scope the bytes declare, where either exists;
    one below the `maps_to` of a registered label the bytes carry; or bytes
-   declaring a scope below the recorded one → refuse with
+   whose frontmatter names a level below the recorded one → refuse with
    `CONTENT_SCOPE_LOWERED`; a scope that is not a `ScopeLevel` → refuse with
    `SCOPE_INVALID_LEVEL`. Nothing is raised to fit. Then the declared scope
    against the repository's derived ceiling; a change that declares none is
@@ -1327,6 +1327,21 @@ the two. Whatever writes a document writes `scope:`, and never
 `classification:`. The alias exists so that nothing a person wrote goes
 unread, and it is never written so that the second spelling does not spread.
 
+**A registered label counts.** Wherever this contract reads the scope bytes
+declare, bytes that carry a label the tenant registers declare at least
+that label's `maps_to`, with or without a level beside it
+([`patterns/scope`](../patterns/scope.md#a-label-and-its-level), rule 4). A
+write is refused when the level its bytes name, or the scope
+it declares, is below such a label's `maps_to`, or when neither names one
+([A scope only rises](#a-scope-only-rises), rule 4), so this reading
+decides the level only of bytes nothing checked: an adopted store's files
+and history, an observed edit, a version made in the store directly. It is
+what their `AdoptedEntry.scope`, `ContentObservation.scope`,
+`ContentEntry.scope`, [What would leave](#what-would-leave) and the
+census's `highest_scope` all read, so a version that carries `pii`
+registered at `restricted` is never recorded, counted or sent below
+`restricted`.
+
 - **On the repository.** A declaration may carry `scope_floor`: the least
   scope of every entry the repository holds, has held or will hold. It is the
   one statement that covers entries whose bytes declare no level, such as a
@@ -1378,16 +1393,17 @@ makes a classification permanent, and nothing in this contract lowers one.
    its own bytes declare. It is refused the same way when it declares no scope
    and either of those exists. The refusal names both levels, or the one level
    and that the change declared none.
-2. It is refused the same way when its bytes declare a scope below the path's
-   recorded scope, whatever the change declares. A file that understates its
-   own level misstates it wherever a copy of it goes.
+2. It is refused the same way when the level its bytes' frontmatter names is
+   below the path's recorded scope, whatever the change declares. A file that
+   understates its own level misstates it wherever a copy of it goes.
 3. A write or a proposal whose declared scope, on the change or in its bytes,
    is not a `ScopeLevel` is refused with `SCOPE_INVALID_LEVEL`, naming the
    value and where it was found. A level somebody wrote and nobody can read is
    not the absence of one.
 4. A write or a proposal is refused with `CONTENT_SCOPE_LOWERED` when its
-   bytes carry a label the tenant has registered, and it declares no scope or
-   one below that label's `maps_to`
+   bytes carry a label the tenant has registered, and the level its bytes
+   name beside that label, or the scope it declares on the change, is below
+   the label's `maps_to`, or neither names a level
    ([`patterns/scope`](../patterns/scope.md#a-label-and-its-level)). The
    refusal names the label and both levels.
 
@@ -1850,10 +1866,9 @@ unclassified and holds every replica.
   refused with `CONTENT_SCOPE_UNDECLARED`, returning the census. `establish`
   takes in nothing, and needs none.
 - **It is at least what the store already declares.** On `adopt`, the census
-  reports `highest_scope`: the highest scope the entries it found are at by
-  their bytes, each at the level it declares or, where higher, the `maps_to`
-  of a label it carries that the tenant registers
-  ([`patterns/scope`](../patterns/scope.md#a-label-and-its-level)). A
+  reports `highest_scope`: the highest scope the entries it found declare in
+  their bytes, a registered label's `maps_to` included
+  ([A registered label counts](#where-a-scope-is-declared)). A
   `scope_floor` below it is refused with `CONTENT_SCOPE_LOWERED`, naming
   both, so a floor never states that a store is less sensitive than its own
   files say. It is the least floor the census proposes to the person.
@@ -2084,8 +2099,9 @@ for it ([An Entry's Scope](#an-entrys-scope)):
 - Any other version — one the store held before it was adopted, one recorded
   for an observation, one a person made in the store directly — takes, for
   each entry it adds or changes, the higher of the scope that entry's bytes
-  declare and its path's recorded scope. The version is at the highest of
-  those.
+  declare, a registered label's `maps_to` included
+  ([Where a scope is declared](#where-a-scope-is-declared)), and its path's
+  recorded scope. The version is at the highest of those.
 
 A path's recorded scope is never cleared by a removal
 ([The recorded scope](#the-recorded-scope)), so an earlier version of a path
@@ -5039,6 +5055,8 @@ security:
 - [ ] A declaration carrying `self_decision_ceiling` or `scope_floor` on a token whose operator was removed after it was minted is refused with `OPERATOR_REVOKED`, and one made while the orchestrator cannot be asked is refused with `CONTENT_TOKEN_UNCHECKED`; neither records a repository
 - [ ] An adoption of a store whose census reports `keeps_history`, confirmed with the census digest and carrying no `scope_floor`, is refused with `CONTENT_SCOPE_UNDECLARED`, returns the census, and declares nothing; the same adoption carrying a `scope_floor` at or above the census's `highest_scope` is declared
 - [ ] A census over a store holding an entry that declares no level and carries a label the tenant registers reports a `highest_scope` at least that label's `maps_to`, and an adoption carrying a `scope_floor` below it is refused with `CONTENT_SCOPE_LOWERED`
+- [ ] Where the tenant registers `pii` with `maps_to: restricted`, an adopted entry whose bytes carry `custom_labels: [pii]` beside `scope: internal`, or beside no level, is recorded at `restricted` on the `declare` entry and reported with `ContentEntry.scope` `restricted`; an out-of-band edit that adds the label to an `internal` entry is observed at `restricted`; and a version from before adoption that carries the label, in a repository floored at `internal`, is classified `restricted` for a replica and held from a plain one with `held_reason` `above-ceiling`
+- [ ] Where `pii` is registered with `maps_to: restricted`, a write whose bytes carry `custom_labels: [pii]` beside `scope: internal` is refused with `CONTENT_SCOPE_LOWERED` even when the change declares `restricted`, and one whose bytes carry the label and no level, declaring `restricted` on the change, is recorded at `restricted`
 - [ ] A repository declared with `scope_floor` `internal` reports an entry whose bytes and path declare nothing at `internal`, records its floor on the `declare` entry, refuses a write declaring `public` or declaring none with `CONTENT_SCOPE_LOWERED`, and has no version a replica census counts `unclassified`
 - [ ] An adoption whose census reports `highest_scope` `confidential` is refused with `CONTENT_SCOPE_LOWERED` when it carries `scope_floor` `internal`, and a declaration whose `scope_floor` is above its derived ceiling is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
 - [ ] `ContentChange.version` is absent when the backend keeps no version marker
