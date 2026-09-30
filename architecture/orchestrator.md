@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.5.0
+version: 2.5.1
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin]
 platform: any
 tier: free
@@ -59,7 +59,7 @@ this replaces.
 declaration:
   requires:
     - blueprint: protocol/identity
-      version: ">=1.0.0 <2.0.0"
+      version: ">=1.9.0 <2.0.0"
       bindings:
         types:
           - name: SigningKeyPair
@@ -73,7 +73,7 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: protocol/types
-      version: ">=1.0.0 <2.0.0"
+      version: ">=1.8.0 <2.0.0"
       bindings:
         types:
           - name: RegisterRequest
@@ -125,7 +125,7 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/admin
-      version: ">=2.0.0 <3.0.0"
+      version: ">=2.11.0 <3.0.0"
       bindings:
         behaviors:
           - name: operator-registration

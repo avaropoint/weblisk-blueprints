@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.11.1
+version: 2.11.2
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -57,7 +57,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.8.0 <2.0.0"
+    version: ">=1.9.0 <2.0.0"
     bindings:
       types:
         - name: WLToken
@@ -69,7 +69,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/principal-identity
-    version: ">=1.7.0 <2.0.0"
+    version: ">=1.8.0 <2.0.0"
     bindings:
       types:
         - name: Attestation
@@ -88,7 +88,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.8.0 <2.0.0"
     bindings:
       types:
         - name: Strategy
@@ -428,7 +428,6 @@ Critical rules:
    │   POST /v1/admin/operators/{name}/credentials alone, "attestation"
    │   with sub equal to {name} (Auth Middleware, below)
    ├── Verify token expiry
-   ├── Verify operator IP matches token's bound IP
    ├── The orchestrator checks the operator, the credential named by
    │   token.cid and the grant are live — its records, not the token's word
    └── 401 Unauthorized if any check fails, with the code that says which
@@ -470,7 +469,7 @@ operator tokens (WLT) with stricter controls:
 | Signing key | Gateway's ML-DSA-65 key | Orchestrator's ML-DSA-65 key |
 | TTL | 24 hours | 1 hour |
 | Idle timeout | 1 hour | None at the hub, where nothing tells use from idle. A console ends a person's tokens when that person's session with it goes idle (`console-credential-use`) |
-| IP binding | /24 subnet (allows roaming) | Exact IP (no roaming) |
+| IP binding | /24 subnet (allows roaming) | None in the token: a WLT carries no address, and a hub stores nothing it issues, so there is nothing to bind one to. The IP allowlist (step 1) is the network control |
 | MFA | Optional per policy | Always required, at attestation and at every mint ([Where the second factor is](#where-the-second-factor-is)) |
 | Cookie | HttpOnly, Secure, SameSite=Strict | HttpOnly, Secure, SameSite=Strict |
 | Cookie domain | `app.example.com` | `admin.example.com` |
@@ -1736,15 +1735,16 @@ A console that required a local project directory in order to connect made
 the whole architecture rests on: a console is a CLIENT of a hub, over the hub's
 own services, and a client that needs the server's filesystem is not a client.
 
-Connecting therefore has three outcomes, and they MUST be told apart:
+Connecting therefore has outcomes that MUST be told apart.
+[`architecture/cli`](cli.md#weblisk-operator-connect) names all five, and this
+document does not restate them. Two matter to the hub: a hub that will not
+issue a token yet leaves the operator **pending approval**, which is not a
+failure — the first operator of a hub is admitted by the bootstrap secret,
+every later one requires an existing admin, and the report MUST name who can
+act — and a hub that does not serve the token endpoint is **unreachable**,
+never pending.
 
-| Outcome | When | What it means |
-|---|---|---|
-| **connected** | a token was issued | proceed |
-| **pending approval** | the hub knows this operator, or refuses to register a new one unauthenticated, and will not issue a token | **not a failure.** The first operator of a hub is admitted by the bootstrap secret; every later one requires an existing admin. Somebody joining an established hub waits, and the report MUST name who can act |
-| **unreachable** | nothing answered, or the hub does not serve the token endpoint | a fault, and the report MUST distinguish "no hub there" from "a hub that cannot issue tokens" |
-
-The last row matters. A hub that predates
+The second matters most. A hub that predates
 `POST /v1/admin/operators/token` answers `404` or `405`, and reporting that as
 "pending approval" tells somebody to wait for an approval that is never coming.
 An implementation MUST NOT collapse a missing endpoint into an authorisation
@@ -2039,7 +2039,7 @@ Admin endpoints SHOULD be rate-limited:
 - [ ] The first operator is approved as admin only on presenting the bootstrap secret; a registration at an empty hub without it, or with a wrong one, is refused with `OPERATOR_BOOTSTRAP_REFUSED` and writes nothing; subsequent operators require existing admin approval
 - [ ] The bootstrap secret is destroyed when claimed, never appears in a response or an audit entry, and is not issued again while any operator record exists
 - [ ] Two registrations presenting the bootstrap secret at once admit exactly one admin, and a restart before the claim replaces the emitted secret
-- [ ] Admin tokens are WLTs with a one-hour TTL and exact IP binding, and a console ends a person's tokens when that person's session with it goes idle
+- [ ] Admin tokens are WLTs with a one-hour TTL, and a console ends a person's tokens when that person's session with it goes idle
 - [ ] Two factors are required with no exception, where each key is opened: an identity key signs only once its passphrase or its secret source opens it, and a client keeps a credential key only in the `weblisk-key-v1` envelope, in a secret source, or behind a console session at AAL2, never in the clear. No gateway checks a factor claim in a token
 - [ ] Role hierarchy admin > operator > auditor > viewer is enforced server-side on every /v1/admin/* endpoint
 - [ ] Destructive actions (deregister agent, revoke federation, delete operator) require 4-eyes approval and X-Confirm HMAC

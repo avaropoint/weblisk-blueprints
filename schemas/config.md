@@ -169,6 +169,7 @@ backend owes once it exists, and what is refused, all live there.
 | `reconcile_interval` | duration | no | `15m` | Out-of-band change detection for shared-custody repositories. `0` disables |
 | `reverify_custody_interval` | duration | no | `24h` | How often attestations are re-demonstrated, the store's and each replica's |
 | `replica_retry_interval` | duration | no | `15m` | How often a replica that lacks versions is sent them, besides after each version is recorded |
+| `checkpoint_interval` | duration | no | `15m` | How often a change log whose tip has moved is sealed. `0` seals only at shutdown and on request ([`architecture/storage`](../architecture/storage.md#the-checkpoint)) |
 | `max_entry_bytes` | integer | no | `10485760` | Largest entry the service will write |
 
 #### content.backends[]
@@ -210,7 +211,9 @@ protection level nobody verified. **Nor is `self_decision_ceiling`.** Letting a
 person decide their own change weakens a control, so a person declares it
 through the content service's API
 ([`architecture/content`](../architecture/content.md#separation-of-duties)),
-and a configured repository has none.
+and a configured repository has none. **Nor is `scope_floor`**, which declares
+the level of everything in a repository, and lowering it would declassify all
+of it ([`architecture/content`](../architecture/content.md#scope_floor-covers-what-declares-nothing)).
 
 **No key declares a replica.** A person declares one through the content
 service's API after reading a census of what would leave

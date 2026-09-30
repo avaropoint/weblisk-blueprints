@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.8.1
+version: 1.8.2
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -72,7 +72,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.5.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse

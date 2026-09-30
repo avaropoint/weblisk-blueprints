@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.8.0
+version: 2.8.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -44,7 +44,7 @@ organisation can open.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.8.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -64,7 +64,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.8.0 <2.0.0"
+    version: ">=1.9.0 <2.0.0"
     bindings:
       types:
         # identity_id is who a change names; type says whose token it is;
@@ -119,7 +119,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/principal-identity
-    version: ">=1.7.0 <2.0.0"
+    version: ">=1.8.0 <2.0.0"
     bindings:
       types:
         # What a change statement carries, so a verifier needs no hub
@@ -615,6 +615,24 @@ interfaces:
 ---
 
 ## Error Handling
+
+**Each code's HTTP status follows its Category**, and a code is returned with
+that status wherever this service refuses: `validation` 400, `auth` 401,
+`policy` 403, `enforcement` 403, `conflict` 409, `integrity` 409, `io` 503 and
+`partial` 207. A code whose behaviour is not a refusal, such as
+`CONTENT_CUSTODY_UNDECLARED`, is reported and never returned as an error
+status. The Category column classes the fault. It is not
+`ErrorResponse.category`: there, an `io` or `partial` code is `transient` and
+`retryable`, and every other code is `permanent` and not `retryable`. A code
+another blueprint registers, such as `SCOPE_INVALID_LEVEL` or
+`FORBIDDEN`, keeps the status that blueprint gives it.
+
+`CONTENT_STATEMENT_INVALID` is this surface's wire form of
+[`patterns/principal-identity`](../patterns/principal-identity.md#error-handling)'s
+`credential_purpose_mismatch` and `algorithm_not_permitted` where a change
+statement fails for either reason, as `architecture/admin`'s Error Handling
+gives wire forms for the operator routes. The pattern holds the rule, and one
+code here is enough, because a client does the same thing for both.
 
 | Code | Category | When | Behaviour |
 |---|---|---|---|
@@ -1132,7 +1150,9 @@ does not work rather than a component that was not given a mesh.
    [`architecture/fabric`](fabric.md) Design Principle 9 says of the fabric.
    What the verifier checks is still, in part, this service's word. A
    checkpoint is the service's own statement that the log is what it recorded,
-   and it stays `unwitnessed` until somebody else keeps it
+   and it is reported `unwitnessed`, because this contract defines no
+   countersignature. A checkpoint somebody else kept does not change that
+   verdict; it is what exposes a log rewritten after it
    ([`architecture/storage`](storage.md#verifying-a-sealed-log)). A person's
    statement is that person's; the order, the completeness and everything the
    service witnessed rest on its seal.
@@ -2103,7 +2123,8 @@ store, is capped the same way, because whoever can read that machine reads the
 copy without passing through this service. Where nothing demonstrates who else
 can read it, as nothing does for a destination reached by a key registered
 there ([`patterns/content-git`](../patterns/content-git.md)), its ceiling is
-`public` by the table's second row, and confirming it makes the repository's
+`public` by the second row of the replica table under
+[Derived Scope Ceiling](#derived-scope-ceiling), and confirming it makes the repository's
 ceiling `public` for good ([Effective custody](#effective-custody)). Such a
 copy gives durability only to a repository that holds nothing above
 `public`. That limit is stated here, as Design Principle 5 requires, rather
@@ -3343,6 +3364,7 @@ types:
           Equal to entries where the backend keeps no versions
       history_only:
         type: list
+        items: string
         required: true
         description: Paths an earlier version holds and no entry holds now
       unreadable:
@@ -4364,8 +4386,9 @@ demonstrated at verification becomes `false`, and the ceiling follows the
 demonstration, not the claim.
 
 A configured repository carries no `self_decision_ceiling`, so nobody may
-decide their own proposal in it. See
-[Separation of duties](#separation-of-duties).
+decide their own proposal in it, and no `scope_floor`. See
+[Separation of duties](#separation-of-duties) and
+[`scope_floor` covers what declares nothing](#scope_floor-covers-what-declares-nothing).
 
 **A configuration entry is processed as `establish`, and that is a limit rather
 than a choice.** Adoption requires `if_match` over a census the service issued,

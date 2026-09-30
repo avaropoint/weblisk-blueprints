@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.2.0
+version: 2.3.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -134,7 +134,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.9.0 <2.0.0"
     bindings:
       types:
         - name: WLToken
@@ -164,7 +164,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.6.0 <2.0.0"
     bindings:
       types:
         - name: Operator
@@ -188,7 +188,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/admin
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.11.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/admin/operators/register
@@ -1000,17 +1000,23 @@ CLI holds one for each identity at each hub:
   there.
 - **Kept as the identity is.** The private key sits beside the identity it
   belongs to, encrypted in the `weblisk-key-v1` envelope with `kdf` `argon2id`
-  or held by a secret source, and it is opened the way the identity's own key
-  is: by a passphrase the person types, or by a secret source they unlock
-  ([Where an identity lives](#where-an-identity-lives)). It is never in the
+  under the identity's own passphrase, or held by the secret source that
+  holds the identity, and it is opened the way the identity's own key is: by
+  that passphrase, typed by the person or remembered by a source they unlock,
+  or by that source ([Where an identity lives](#where-an-identity-lives)).
+  One passphrase, because the two keys sit together and a second one would
+  guard nothing the first does not. It is never in the
   clear and never under `kdf` `none`
   ([`architecture/admin`](admin.md#where-the-second-factor-is)). Its public half
   and its `cid` sit beside it.
-- **Replaced only when the hub refuses it.** When the hub answers
-  `CREDENTIAL_UNKNOWN`, `CREDENTIAL_REVOKED` or `CREDENTIAL_EXPIRED`, the CLI
-  discards that credential, and the next `connect` attests a new one, which
-  asks the identity once. Before `not_after`, the CLI gives the warning
-  [`architecture/admin`](admin.md#attesting-a-credential) requires.
+- **Re-attested when it expires, replaced when the hub refuses it.** When the
+  hub answers `CREDENTIAL_EXPIRED`, the key is sound and only its attestation
+  lapsed, so the next `connect` re-attests the same key, which keeps its `cid`
+  and asks the identity once
+  ([`architecture/admin`](admin.md#attesting-a-credential)). When it answers
+  `CREDENTIAL_UNKNOWN` or `CREDENTIAL_REVOKED`, the CLI discards that
+  credential, and the next `connect` attests a new one. Before `not_after`,
+  the CLI gives the warning `architecture/admin` requires.
 
 `--no-store` is about the token. The credential is kept either way, because
 keeping it is what spares the identity.
