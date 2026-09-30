@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.12.0
+version: 2.12.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -704,9 +704,9 @@ code here is enough, because a client does the same thing for both.
    (`CONTENT_REPOSITORY_EXISTS`), and the placement must not be equal to, inside
    or containing a placement already declared (`CONTENT_PLACEMENT_DECLARED`).
    A declaration carrying `self_decision_ceiling` or `scope_floor` MUST come
-   from a caller holding `content:decide` as well as `content:declare`, on a
-   token the orchestrator reports live
-   ([Who may move an entry](#who-may-move-an-entry)); otherwise `FORBIDDEN`.
+   from a caller holding `content:decide` as well as `content:declare`
+   (`FORBIDDEN` otherwise), on a token the orchestrator reports live
+   ([Who may move an entry](#who-may-move-an-entry)).
    A declaration naming itself a records repository at a `scope_path` that
    has one → `CONTENT_REPOSITORY_EXISTS`. A `scope_floor` that is not a
    `ScopeLevel` → `SCOPE_INVALID_LEVEL`
@@ -870,7 +870,8 @@ code here is enough, because a client does the same thing for both.
 2. The proposal must be in the caller's scope (`CONTENT_PROPOSAL_UNKNOWN`) and
    `open` (`CONTENT_PROPOSAL_DECIDED`). The token is checked with the
    orchestrator as Write Flow step 4 says, and must carry `content:decide`
-   now. An `apply` does not ask again when step 5 runs that step
+   now. When step 5 runs the Write Flow for an `apply`, its step 4 uses this
+   answer rather than asking again
 3. `reject` → the decision is recorded, the proposal becomes `rejected`, and
    `content.proposal_decided` is published. Nothing else happens
 4. `apply` → separation is checked: a decider whose token's `identity_id` equals
@@ -2374,8 +2375,7 @@ A decision is judgement, and a service has none to exercise
 **A person-only act is checked with the orchestrator.** Before it performs a
 write, a removal, a decision, a replica declaration or retirement, or a
 repository declaration that carries `self_decision_ceiling` or `scope_floor`,
-this service asks
-the orchestrator whether the token is still live
+this service asks the orchestrator whether the token is still live
 ([`architecture/orchestrator`](orchestrator.md#token-check-post-v1tokencheck),
 `POST /v1/token/check`): its own registration token in the `Authorization`
 header, and the token it was presented as `subject_token` in a
@@ -2404,7 +2404,8 @@ console that let an agent use one would produce changes recorded as that
 person's own acts. Nor does a token name its audience: this service could
 present a token it receives at any route its capabilities reach until it
 expires, which is why a console presents one here narrowed to what its
-requests here need (`console-credential-use`). These limits are stated here,
+requests here need ([`architecture/admin`](admin.md),
+`console-credential-use`). These limits are stated here,
 as Design Principle 5 requires, rather than hidden behind the two rules that
 do hold.
 
