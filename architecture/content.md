@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.13.0
+version: 2.13.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -2375,7 +2375,10 @@ Three rules keep every person-only capability with people:
   one a token minted with a person's credential, narrowed or not
   ([`architecture/admin`](admin.md), `console-credential-use`). So an agent's
   work reaches this service as a proposal made under a service identity, or
-  in a request its person submits as their own act.
+  in a request its person submits as their own act. For a run its person
+  attends, a console may read here on that person's token narrowed to
+  `content:read` and `content:describe`. Such a read is the person's, and it
+  changes nothing.
 
 A decision is judgement, and a service has none to exercise
 (principal-identity Design Principle 11).
