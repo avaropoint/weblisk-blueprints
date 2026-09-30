@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.3.0
+version: 2.4.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -188,7 +188,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/admin
-    version: ">=2.11.0 <3.0.0"
+    version: ">=2.13.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/admin/operators/register
@@ -200,6 +200,8 @@ requires:
         - path: /v1/admin/credentials/token
           methods: [POST]
         - path: /v1/admin/operators/{name}/credentials
+          methods: [POST]
+        - path: /v1/admin/operators/{name}/key
           methods: [POST]
         - path: /v1/admin/overview
           methods: [GET]
@@ -993,7 +995,9 @@ CLI holds one for each identity at each hub:
   identity at a hub, the CLI generates an ML-DSA-65 key pair for that hub, has
   the identity attest it through an attestation token, and keeps it. Every
   later token for that identity at that hub is minted with it, and the
-  identity is not asked.
+  identity is not asked. The attestation is built as
+  [`weblisk operator attest`](#weblisk-operator-attest) builds it, naming the
+  `hub_id` and `identity_id` the hub answered with.
 - **Named by the hub, never by its address.** Each credential is kept under the
   `hub_id` it was attested for. A challenge that answers with another `hub_id`
   is a hub this identity holds no credential for, and `connect` attests one
@@ -1228,12 +1232,15 @@ The steps are [`architecture/admin`](admin.md#obtaining-a-token)'s:
 
 - Reads the credential's public key from the file `--credential-key` names
 - Asks the hub for an attestation token, signing `{name, timestamp}` with the
-  identity, and takes `hub_id` from the answer
-- Builds the `Attestation` itself — the identity's public key and its
-  fingerprint, the credential public key, `hub_id`, `--device-label` and
-  `not_after` — and signs its canonical form. It never signs bytes a caller
-  supplies, so it is not a way to get the identity's signature over anything
-  else
+  identity, and takes `hub_id` and `identity_id` from the answer
+- Builds the `Attestation` itself — the `identity_id` the hub answered with,
+  the identity's public key, the credential public key, `hub_id`,
+  `--device-label` and `not_after` — and signs its canonical form. It never
+  computes the identity id from the key: a hub keeps an operator's identity id
+  across a change of identity key
+  ([`architecture/admin`](admin.md#changing-an-identity-key)), so after one it
+  is not the key's fingerprint. It never signs bytes a caller supplies, so it
+  is not a way to get the identity's signature over anything else
 - `--days <n>` sets `not_after` that many days ahead, within the default and the
   cap [`architecture/admin`](admin.md#attesting-a-credential) states, and is
   refused beyond the cap
@@ -1275,7 +1282,8 @@ Sending the new public key to each hub (signed by the old key and the new)...
 - Old key moved to `operator.key.revoked` beside the identity, for audit
 - The hub revokes every credential the old key attested, so the CLI discards its
   credentials for that hub, and the next `connect` attests a new one with the
-  new identity
+  new identity. The hub answers the same `identity_id` as before, and the
+  attestation names it
 
 ---
 
@@ -2395,6 +2403,7 @@ security:
 - [ ] `weblisk operator token` refreshes the token when it has expired or less than a fifth of its lifetime remains, without asking the identity to sign anything but an attestation
 - [ ] `--no-store` on `weblisk operator connect`, `weblisk operator register` and `weblisk operator token --refresh` returns the token on stdout or in the `--json` result, and writes no token file
 - [ ] `weblisk operator attest` signs only an `Attestation` it builds itself, refuses a `--days` beyond admin's cap, submits it, reports the credential's `cid` and `not_after`, and writes nothing to disk
+- [ ] Every `Attestation` the CLI builds names the `identity_id` the hub's attestation-token answer carries, never one computed from the identity key, so an identity that changed its key still attests at every hub that accepted the change
 - [ ] `connect` and `register` generate one ML-DSA-65 credential per identity per hub the first time they reach it, have the identity attest it once, keep its private key only in the `weblisk-key-v1` envelope or a secret source, and mint every later token with it without asking the identity
 - [ ] `weblisk operators revoke` invalidates target operator's public key and tokens (admin only)
 - [ ] `weblisk operators revoke` prevents self-revocation and revoking the last admin

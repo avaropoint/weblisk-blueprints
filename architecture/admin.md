@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.12.0
+version: 2.13.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -88,13 +88,19 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.8.0 <2.0.0"
+    version: ">=1.9.0 <2.0.0"
     bindings:
       types:
         - name: Strategy
           fields_used: [id, name, targets, status, priority]
         - name: AgentManifest
           fields_used: [name, version, capabilities, public_key]
+        # The operator lifecycle this document specifies, across a change of
+        # identity key
+        - name: Operator
+          fields_used: [name, public_key, identity_id, retired_keys, role, status]
+        - name: RetiredKey
+          fields_used: [public_key, retired_at]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -263,10 +269,10 @@ request.
 | `CREDENTIAL_REVOKED` | 401 | auth | The credential was revoked, by its operator, by an admin, with its operator, or by a change of identity key | Refuse at once, not at the token's expiry. The client attests a new key | `credential_revoked`, `token_credential_revoked` |
 | `CREDENTIAL_EXPIRED` | 401 | auth | The attestation's `not_after` has passed | Refuse. The client re-attests, which needs the identity | `attestation_expired` |
 | `CREDENTIAL_CHALLENGE_INVALID` | 401 | auth | The nonce was not issued for this credential, was already used or has expired, or the signature does not verify | Refuse and spend the nonce. Log a signature failure as a security event | `replay_detected` |
-| `CREDENTIAL_ATTESTATION_INVALID` | 400 | validation | The attestation's signature does not verify under ML-DSA-65 against the operator's recorded key, or the attestation names another identity key | Refuse. Log as a security event | `attestation_invalid`, `algorithm_not_permitted` |
+| `CREDENTIAL_ATTESTATION_INVALID` | 400 | validation | The attestation's signature does not verify under ML-DSA-65 against the operator's recorded key, or the attestation names another identity key, or an `identity_id` that is not the operator's at this hub | Refuse. Log as a security event | `attestation_invalid`, `algorithm_not_permitted` |
 | `CREDENTIAL_FORM_UNSUPPORTED` | 400 | validation | The credential key is not an ML-DSA-65 public key, the one form these routes carry | Refuse. A form principal-identity permits beside it is admitted only by a route that declares its own registration and challenge | — |
 | `CREDENTIAL_FOREIGN_HUB` | 400 | validation | The attestation's `hub_id` is not this hub's | Refuse. Log as a security event | `credential_foreign_hub` |
-| `CREDENTIAL_IS_IDENTITY_KEY` | 400 | validation | The credential's public key is the operator's identity key | Refuse. Log as a security event | `identity_key_as_credential` |
+| `CREDENTIAL_IS_IDENTITY_KEY` | 400 | validation | The credential's public key is the operator's identity key, current or retired | Refuse. Log as a security event | `identity_key_as_credential` |
 | `CREDENTIAL_PURPOSE_REFUSED` | 400 | validation | The attestation names one purpose for a key this hub holds, or held, under the other; or a challenge or token request names a sign-records credential, which never signs anybody in | Refuse. Log as a security event. The client attests a separate key for each purpose | `credential_purpose_mismatch` |
 | `CREDENTIAL_LIFETIME_INVALID` | 400 | validation | `not_after` is not in the future, or is more than 90 days after the hub receives the attestation | Refuse, naming the cap | `attestation_expired`, where `not_after` has passed |
 | `CREDENTIAL_PREVIOUSLY_REVOKED` | 409 | conflict | The key was revoked here before | Refuse permanently. Log as a security event | `credential_previously_revoked` |
@@ -413,7 +419,9 @@ Critical rules:
    ├── Per-operator: 60 read/min, 20 write/min
    ├── Auth endpoints: 5/min (very restrictive) — the four routes that
    │   issue tokens, credentials/challenge included, since it answers
-   │   anyone who names a credential and holds each nonce until it expires
+   │   anyone who names a credential and holds each nonce until it expires,
+   │   and operators/{name}/key, which verifies two ML-DSA-65 signatures
+   │   for anyone who names an operator
    └── Export endpoints: 5/min
 
 4. OPERATOR AUTHENTICATION
@@ -530,6 +538,7 @@ contracts:
       rules:
         - The request MUST carry name, public_key, role, timestamp and signature
         - The signature MUST be verified against the SUBMITTED public key before any record is written
+        - The record MUST carry identity_id, the fingerprint (protocol/identity) of the submitted public_key, which no later change alters (Operator Identity)
         - A name already held MUST be refused with 409 and the existing record left untouched
         - A public_key this hub records, or recorded, as any operator's identity key, current or retired, or as any credential MUST be refused with OPERATOR_KEY_REUSED, so no two operators share an identity id
         - The timestamp MUST be inside the replay window, and the message MUST be refused on replay
@@ -554,7 +563,7 @@ contracts:
         - A registration at a hub whose operator store is empty MUST carry the bootstrap secret as bootstrap_secret, and the orchestrator MUST compare it in constant time
         - A registration there with no bootstrap secret, or a wrong one, MUST be refused with OPERATOR_BOOTSTRAP_REFUSED, write no record, and be audited
         - The registration that presents the secret MUST be approved with the admin role, whatever role it asked for
-        - Its response MUST carry an attestation token and hub_id, and never an operator token. The first operator obtains operator tokens the way every operator does, with a credential
+        - Its response MUST carry an attestation token, hub_id and the operator's identity_id, and never an operator token. The first operator obtains operator tokens the way every operator does, with a credential
         - The secret MUST be destroyed when it is claimed, and MUST NOT be issued again while the operator store holds any record. The bootstrap reset in protocol/identity is the one way back
         - The claim MUST be atomic. Of registrations that present the secret concurrently, exactly one is approved, and every other is refused with OPERATOR_BOOTSTRAP_REFUSED
         - An orchestrator that restarts while its operator store is still empty MUST generate a new secret and emit it in place of the last, so a secret read from an earlier start admits nothing
@@ -583,7 +592,7 @@ contracts:
         - An operator with no record MUST be refused with OPERATOR_UNKNOWN, a pending one with OPERATOR_NOT_APPROVED and a revoked one with OPERATOR_REVOKED, and each refusal MUST be audited
         - The token it issues MUST have type attestation, carry no capability and no cid, and expire within 300 seconds
         - An attestation token MUST be accepted by `POST /v1/admin/operators/{name}/credentials` for its own subject, refused there for any other operator with OPERATOR_SUBJECT_MISMATCH, and refused by every other route with CREDENTIAL_REQUIRED
-        - The response MUST carry hub_id, so the client can name this hub in the attestation it is about to have signed
+        - The response MUST carry hub_id and the operator's identity_id at this hub, so the client can name this hub and this operator in the attestation it is about to have signed. A client MUST take identity_id from this answer, and never compute it from the identity key: a hub keeps it across a change of identity key, so after one it is not the current key's fingerprint
         - It is the way to a first credential, and is deprecated as a way to an operator token. A hub built before the credential routes issues an operator token here, and a client MAY use one only from a hub that answers the credential routes with 404 or 405
 
     - name: operator-credential-attestation
@@ -592,9 +601,9 @@ contracts:
       rules:
         - The route `POST /v1/admin/operators/{name}/credentials` MUST accept an attestation token or an operator token whose subject is the operator named in the path, and nothing else. A token for another operator is refused with OPERATOR_SUBJECT_MISMATCH, and any other kind of token with CREDENTIAL_REQUIRED
         - The attestation MUST verify under ML-DSA-65 against the public key in that operator's OWN record, and its identity_public_key MUST equal that key, or it is refused with CREDENTIAL_ATTESTATION_INVALID. Registration is how this surface records the key principal-identity takes from an invitation
-        - Its identity_id MUST be that operator's identity id at this hub (Operator Identity), which is the fingerprint of that key until the operator's first change of identity key and is kept across it, and its hub_id this hub's hub_id. A different hub_id MUST be refused with CREDENTIAL_FOREIGN_HUB and logged as a security event
+        - Its identity_id MUST be that operator's identity id at this hub (Operator Identity), which is the fingerprint of that key until the operator's first change of identity key and is kept across it, or it is refused with CREDENTIAL_ATTESTATION_INVALID. Its hub_id MUST be this hub's hub_id. A different hub_id MUST be refused with CREDENTIAL_FOREIGN_HUB and logged as a security event
         - Its credential_public_key MUST be an ML-DSA-65 public key, or it is refused with CREDENTIAL_FORM_UNSUPPORTED. These routes carry an ML-DSA-65 key-file credential and no other form. A form principal-identity permits beside it, such as a passkey, has its own registration and challenge, and a hub admits it only through a route that declares them
-        - Its credential_public_key MUST NOT be the identity public key, or it is refused with CREDENTIAL_IS_IDENTITY_KEY and logged as a security event
+        - Its credential_public_key MUST NOT be the operator's identity public key, current or retired, or it is refused with CREDENTIAL_IS_IDENTITY_KEY and logged as a security event
         - Its purpose is authenticate, when it is absent, or sign-records. A sign-records credential is recorded, capped, revoked and listed as any credential is, and never obtains a challenge or a token (operator-token-issuance). Its key signs records for this hub and signs nobody in (patterns/principal-identity, record-signing)
         - A key this hub holds, or ever held, under one purpose MUST be refused under the other with CREDENTIAL_PURPOSE_REFUSED, and logged as a security event. One key serves one purpose, so the key a client signs in with is never one that signs a record
         - Its not_after MUST be in the future and no more than 90 days after the hub receives it, or it is refused with CREDENTIAL_LIFETIME_INVALID
@@ -651,11 +660,12 @@ contracts:
       rules:
         - The route `POST /v1/admin/operators/{name}/key` MUST require no bearer token. The two signatures in the request authenticate it, and an operator changing a key may hold no live credential
         - The request MUST carry new_public_key, hub_id, timestamp, current_signature and new_signature. Both signatures MUST be over canonicalize({hub_id, name, new_public_key, timestamp}) per RFC 8785, name being the operator the path names
-        - The operator MUST have a record here (else OPERATOR_UNKNOWN) that is not revoked (else OPERATOR_REVOKED). A pending operator may change its key and stays pending
+        - The operator MUST have a record here (else OPERATOR_UNKNOWN)
         - hub_id MUST be this hub's (else CREDENTIAL_FOREIGN_HUB, logged as a security event), so a request signed for one hub is refused at every other
         - The timestamp MUST be inside the 300-second replay window and the request MUST NOT have been seen before, current_signature MUST verify under the public key in the operator's OWN record, new_signature under new_public_key, and new_public_key MUST be an ML-DSA-65 public key. Otherwise OPERATOR_KEY_CHANGE_INVALID, logged as a security event
+        - Only once both signatures have verified may the hub disclose the operator's status: a revoked operator is then refused with OPERATOR_REVOKED. A pending operator may change its key and stays pending
         - new_public_key MUST NOT be a key this hub records, or recorded, as any operator's identity key, current or retired, or as any credential (else OPERATOR_KEY_REUSED)
-        - On success, in one durable write, the new key MUST become the operator's public_key, the old key MUST be added to its retired_keys, and name, role, status and identity_id MUST be kept. Every credential the operator holds, sign-records ones included, MUST be revoked with the reason that the identity key changed, so every token resting on one is refused at its next request
+        - On success, in one durable write, the new key MUST become the operator's public_key, the old key MUST be added to its retired_keys with the time of the change as its retired_at, and name, role, status and identity_id MUST be kept. Every credential the operator holds, sign-records ones included, MUST be revoked with the reason that the identity key changed, so every token resting on one is refused at its next request
         - It MUST NOT be refused with OPERATOR_LAST_ADMINISTRATOR, although it revokes the last admin's credentials: the new key attests a new one (patterns/principal-identity, revocation and identity-rotation)
         - The response MUST carry the operator record, its identity_id and hub_id, and MUST NOT carry a token. The operator obtains an attestation token with the new key and attests a credential
         - The change MUST be audited with the operator's identity id and the fingerprints of the old and new keys
@@ -798,7 +808,7 @@ the identity is not asked.
 ```
 When a client holds no live credential at a hub — the only steps that need the identity
   client ── sign {name, timestamp} with the identity ──▶ POST /v1/admin/operators/token
-         ◀── attestation token (type attestation, 300 s), hub_id
+         ◀── attestation token (type attestation, 300 s), hub_id, identity_id
   client ── Attestation, signed by the identity ───────▶ POST /v1/admin/operators/{name}/credentials
          ◀── the credential, and its id
 
@@ -839,9 +849,16 @@ registered but unapproved operator is a different fact from an unknown one.
 200 {
   "token": "<WLT, type attestation>",
   "expires_at": 1712160300,
-  "hub_id": "<fingerprint of the orchestrator's first public key>"
+  "hub_id": "<fingerprint of the orchestrator's first public key>",
+  "identity_id": "<alice's identity id at this hub>"
 }
 ```
+
+`identity_id` is what the attestation names the operator by. The client takes
+it from here and never computes it from the identity key: the hub keeps it
+across a change of identity key
+([Changing an identity key](#changing-an-identity-key)), so after one it is
+not the fingerprint of the key that signed this request.
 
 The token does one thing: it submits an attestation for this operator. Every
 other route refuses it. So this endpoint is not the authentication by identity
@@ -1070,8 +1087,9 @@ held. `hub_id` in the signed input stops a request made for one hub from being
 spent at another where the same identity is registered.
 
 **What changes, and what does not.** The operator keeps its name, role,
-status and **identity id**. The old key moves to `retired_keys` and is never
-accepted again as anybody's identity key or credential. Every credential the
+status and **identity id**. The old key moves to `retired_keys`, with the time
+of the change as its `retired_at`, and is never accepted again as anybody's
+identity key or credential, the operator's own included. Every credential the
 old key attested is revoked, so the operator is signed out everywhere at its
 next request, and signs in again by attesting a new credential with the new
 key. Because the identity id is kept, a record made before the change and one
@@ -1095,7 +1113,7 @@ claim. That token is an attestation token. Otherwise there is no token to give,
 and the response says so:
 
 ```
-200 { "operator": {...}, "status": "approved", "token": "<WLT, type attestation>", "expires_at": ..., "hub_id": ... }
+200 { "operator": {...}, "status": "approved", "token": "<WLT, type attestation>", "expires_at": ..., "hub_id": ..., "identity_id": ... }
 200 { "operator": {...}, "status": "pending" }
 ```
 
@@ -1929,7 +1947,9 @@ security:
 
 All `/v1/admin/*` endpoints go through admin auth middleware, except
 `POST /v1/admin/operators/register`, `POST /v1/admin/operators/token`,
-`POST /v1/admin/credentials/challenge` and `POST /v1/admin/credentials/token`:
+`POST /v1/admin/credentials/challenge`, `POST /v1/admin/credentials/token` and
+`POST /v1/admin/operators/{name}/key`, which the operator's current and new
+identity keys sign:
 
 ```
 1. Extract token from Authorization: Bearer <token>
@@ -1975,6 +1995,9 @@ Every admin action is logged:
 ### Rate Limiting
 
 Admin endpoints SHOULD be rate-limited:
+- Auth endpoints: 5 requests/minute per source — the four routes that issue
+  tokens and `POST /v1/admin/operators/{name}/key`, none of which carries an
+  operator token to count against
 - Read endpoints: 60 requests/minute per operator
 - Write endpoints: 20 requests/minute per operator
 - Export endpoints: 5 requests/minute per operator
@@ -2020,11 +2043,13 @@ Admin endpoints SHOULD be rate-limited:
 - [ ] Provisioning against an existing identity reuses it; a passphrase that does not open it is an error and no new key is generated
 - [ ] Provisioning is re-runnable: an already-registered operator proceeds to obtain a token rather than failing
 - [ ] The passphrase is never written to disk, and a console never writes an operator token anywhere
-- [ ] `POST /v1/admin/operators/token` issues an attestation token (`type` `attestation`, no `cap`, no `cid`, at most 300 seconds, with `hub_id`) to an approved operator who signs `{name, timestamp}` with their identity key, and every route but `POST /v1/admin/operators/{name}/credentials` refuses that token with `CREDENTIAL_REQUIRED`
+- [ ] `POST /v1/admin/operators/token` issues an attestation token (`type` `attestation`, no `cap`, no `cid`, at most 300 seconds, with `hub_id` and the operator's `identity_id`) to an approved operator who signs `{name, timestamp}` with their identity key, and every route but `POST /v1/admin/operators/{name}/credentials` refuses that token with `CREDENTIAL_REQUIRED`
 - [ ] The signature is verified against the public key in the orchestrator's OWN operator record, never a directory
 - [ ] A token request outside the 300-second replay window is refused
 - [ ] A token request for a pending operator is refused with 403 `OPERATOR_NOT_APPROVED`, distinctly from an unknown operator (`OPERATOR_UNKNOWN`)
-- [ ] Registration that also approves returns an attestation token, `hub_id` and `status: approved`; registration that does not returns `status: pending` and no token
+- [ ] Registration that also approves returns an attestation token, `hub_id`, `identity_id` and `status: approved`; registration that does not returns `status: pending` and no token
+- [ ] A registered operator's `identity_id` is the fingerprint of the `public_key` its registration carried, and stays that value through every later change of identity key
+- [ ] After a change of identity key, `POST /v1/admin/operators/token` signed with the new key answers the operator's kept `identity_id`; an attestation naming that `identity_id` is accepted, and one naming the new key's fingerprint instead is refused with `CREDENTIAL_ATTESTATION_INVALID`
 - [ ] An expired operator token is replaced by a new challenge answered with the credential, without re-registering and without the identity
 - [ ] `POST /v1/admin/credentials/token` issues an operator token carrying `cid`, expiring one hour after issue and never after the attestation's `not_after`, only for a signature by the stored credential key over `weblisk/credential-auth/v1`, 0x00, `hub_id` as its 64 hex characters, 0x00 and the base64url text of a nonce this hub issued for that credential
 - [ ] A hub that rotates its orchestrator key answers every challenge with the `hub_id` it had before, and every credential attested for that `hub_id` still mints
@@ -2039,8 +2064,11 @@ Admin endpoints SHOULD be rate-limited:
 - [ ] Removing an operator, or revoking one of its credentials, refuses its next request with `OPERATOR_REVOKED` or `CREDENTIAL_REVOKED` without waiting for its token to expire
 - [ ] A removed operator keeps its record with status `revoked`, and a request naming it is refused with `OPERATOR_REVOKED`, never `OPERATOR_UNKNOWN`
 - [ ] The sole admin's change of identity key revokes their credentials and is not refused with `OPERATOR_LAST_ADMINISTRATOR`; the new identity then attests a credential and mints
-- [ ] `POST /v1/admin/operators/{name}/key` signed by the recorded key and the new key over `canonicalize({hub_id, name, new_public_key, timestamp})` keeps the operator's name, role, status and `identity_id`, moves the old key to `retired_keys` and revokes every credential; one whose `current_signature` is by any other key, or that is replayed, is refused with `OPERATOR_KEY_CHANGE_INVALID` and changes nothing; one naming another hub's `hub_id` is refused with `CREDENTIAL_FOREIGN_HUB`
+- [ ] `POST /v1/admin/operators/{name}/key` signed by the recorded key and the new key over `canonicalize({hub_id, name, new_public_key, timestamp})` keeps the operator's name, role, status and `identity_id`, moves the old key to `retired_keys` with the time of the change as its `retired_at`, and revokes every credential; one whose `current_signature` is by any other key, or that is replayed, is refused with `OPERATOR_KEY_CHANGE_INVALID` and changes nothing; one naming another hub's `hub_id` is refused with `CREDENTIAL_FOREIGN_HUB`
 - [ ] A registration or a change of identity key offering a key this hub records or recorded as any identity key or credential is refused with `OPERATOR_KEY_REUSED`
+- [ ] An attestation whose credential key is one of the operator's own retired identity keys is refused with `CREDENTIAL_IS_IDENTITY_KEY`
+- [ ] A change of identity key for a revoked operator whose signatures do not verify is refused with `OPERATOR_KEY_CHANGE_INVALID`, never `OPERATOR_REVOKED`; one whose signatures verify is refused with `OPERATOR_REVOKED`
+- [ ] More than five requests a minute from one source to `POST /v1/admin/operators/{name}/key` are refused before any signature is verified
 - [ ] A token minted after a change of identity key carries the same `identity_id` as one minted before it
 - [ ] A role lowered after a token was issued limits that token from its next request
 - [ ] An operator token without `cid` is refused with `CREDENTIAL_REQUIRED`

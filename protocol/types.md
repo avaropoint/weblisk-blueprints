@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.8.0
+version: 1.9.0
 requires: []
 platform: any
 tier: free
@@ -1971,9 +1971,9 @@ types:
         description: "The operator's identity id at this tenant: the fingerprint of the identity key its registration recorded, kept across every change of identity key. What tokens, credentials and records name the operator by, never the name. Never reused"
       retired_keys:
         name: RetiredKeys
-        type: "[]string"
+        type: "[]RetiredKey"
         required: false
-        description: "Identity public keys this operator held before a change of identity key, oldest first. None is accepted again as any operator's identity key or credential. A verifier that is not the hub reads them to check an attestation made before a change"
+        description: "Identity keys this operator held before a change of identity key, oldest first, each with when it was retired. None is accepted again as any operator's identity key or credential, the operator's own included. A verifier that is not the hub reads them to check an attestation made before a change, and only for what was recorded before that key's retired_at"
       role:
         name: Role
         type: OperatorRole
@@ -1994,6 +1994,28 @@ types:
         type: int64
         required: false
         description: "Unix epoch seconds of the most recent token issued to this operator"
+```
+
+### RetiredKey
+
+An identity key an operator held before a change of identity key
+(`architecture/admin`, Changing an identity key), and when the change took
+it out of use.
+
+```yaml
+types:
+  RetiredKey:
+    fields:
+      public_key:
+        name: PublicKey
+        type: string
+        required: true
+        description: "Base64url-encoded ML-DSA-65 identity public key the operator held"
+      retired_at:
+        name: RetiredAt
+        type: int64
+        required: true
+        description: "Unix epoch seconds of the change that retired it. No attestation it signed vouches for anything recorded at or after this time, because the change revoked every credential it attested"
 ```
 
 ### OperatorRole

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.5.1
+version: 2.5.2
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin]
 platform: any
 tier: free
@@ -73,7 +73,7 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: protocol/types
-      version: ">=1.8.0 <2.0.0"
+      version: ">=1.9.0 <2.0.0"
       bindings:
         types:
           - name: RegisterRequest
@@ -96,6 +96,8 @@ declaration:
             fields_used: [name, resources]
           - name: Operator
             fields_used: [name, public_key, identity_id, retired_keys, role, status, created_at]
+          - name: RetiredKey
+            fields_used: [public_key, retired_at]
           - name: TokenStatus
             fields_used: [live, code, identity_id, identity_public_key, role, capabilities]
       on_change:
@@ -125,7 +127,7 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/admin
-      version: ">=2.11.0 <3.0.0"
+      version: ">=2.13.0 <3.0.0"
       bindings:
         behaviors:
           - name: operator-registration

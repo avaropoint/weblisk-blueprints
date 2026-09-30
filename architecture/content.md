@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.10.0
+version: 2.10.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -2981,7 +2981,7 @@ content service's registered key, from the tenant, as the fingerprint it brings
   own records. The log names people by identity id and never by name, and it
   cannot vouch for whose an identity is;
 - the identity keys the tenant records for each such identity id — an
-  operator's `public_key` and its `retired_keys`
+  operator's `public_key` and its `retired_keys`, each with its `retired_at`
   ([`protocol/types`](../protocol/types.md#operator)) — because an identity id
   is kept across a change of identity key, and a statement signed after one
   carries an attestation by the new key;
@@ -2999,9 +2999,12 @@ After storage's three steps — chain, keys, checkpoint — it checks:
    of the service's clock: `not_after` no earlier than `recorded_at`, and no
    more than 90 days after it. Check its `hub_id` against the tenant's. Check
    that `signer` is the attestation's `identity_id`, that the attestation's
-   identity key is one the tenant records for that identity id, and that
-   `signer` is the `actor` on a write or in `approved_by` on an apply. Then
-   verify the signature.
+   identity key is one the tenant records for that identity id and, where it
+   is a retired one, that the entry's `recorded_at` is before that key's
+   `retired_at`, and that `signer` is the `actor` on a write or in
+   `approved_by` on an apply. Then verify the signature. A key retired before
+   the entry was recorded had had every credential it attested revoked, so
+   the service could not have accepted its attestation then.
 5. **Separation.** As [Approvals and separation in the log](#approvals-and-separation-in-the-log)
    says.
 6. **A file.** Compute the SHA-256 of its bytes. The last `change` or `observe`
@@ -5049,6 +5052,7 @@ security:
 - [ ] A `statement` whose credential key is not one of the token's `record_keys` — never recorded at the hub, or revoked before the token was minted — is refused with `CONTENT_STATEMENT_INVALID`
 - [ ] A `statement` whose attestation's `not_after` is more than 90 days ahead of the service's clock is refused with `CONTENT_STATEMENT_INVALID`
 - [ ] A decision to apply that carries the decider's `statement` records it, and an offline verifier reports that approval `signed`; the same decision without one is reported `witnessed`
+- [ ] An offline verifier does not report `signed` a statement whose attestation is by one of the signer's retired identity keys and whose entry was recorded at or after that key's `retired_at`, and does report `signed` one recorded before it
 - [ ] A decision whose `statement` fails is refused with `CONTENT_STATEMENT_INVALID`, and the proposal stays `open`
 - [ ] An offline verifier reports inconsistent a `change` entry recording `separation` `independent` whose `approved_by` is its `actor`, one recording `separation` `self` whose `scope` is above the `self_decision_ceiling` in the `declare` entry, and one recording `separation` `self` on a change with no scope — none declared, and on a removal no recorded scope for the path, the floor included
 - [ ] Every signature in a change log is ML-DSA-65, and a signature on a commit in a version-controlled store appears nowhere in the log
