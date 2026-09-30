@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.4.0
+version: 2.5.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin]
 platform: any
 tier: free
@@ -96,6 +96,8 @@ declaration:
             fields_used: [name, resources]
           - name: Operator
             fields_used: [name, public_key, identity_id, retired_keys, role, status, created_at]
+          - name: TokenStatus
+            fields_used: [live, code, identity_id, identity_public_key, role, capabilities]
       on_change:
         compatible: validate-and-adopt
         breaking: version-bump
@@ -161,6 +163,10 @@ declaration:
     - method: POST
       path: "/v1/rotate-key"
       operation: RotateKey
+      auth: "token"
+    - method: POST
+      path: "/v1/token/check"
+      operation: TokenCheck
       auth: "token"
     - method: GET
       path: "/v1/health"
@@ -306,6 +312,8 @@ declaration:
       endpoint: GET /v1/admin/operators/{name}/credentials
     - check: endpoint-routed
       endpoint: DELETE /v1/admin/operators/{name}/credentials/{cid}
+    - check: endpoint-routed
+      endpoint: POST /v1/token/check
     - check: endpoint-routed
       endpoint: GET /v1/health
     - check: type-has-keys
@@ -630,6 +638,7 @@ See [Lifecycle](lifecycle.md) for the continuous optimization loop.
 | POST | /v1/rotate-key | RotateKey | yes | Rotate an agent's ML-DSA-65 key pair. Dual-signed with the current and the new key, which proves possession of both; the caller's existing token still authenticates the request |
 | GET | /v1/health | Health | no | Orchestrator and hub health |
 | GET | /v1/audit | Audit | yes | Query audit log |
+| POST | /v1/token/check | TokenCheck | yes | Tell a registered component whether an operator token presented to it is still live — see [Token Check](#token-check-post-v1tokencheck) |
 | GET | /v1/model/ceiling | ModelCeiling | yes | What a model backend may be sent now, and where it is reached, for a registered component (platform-provided — see [A model is a destination](#a-model-is-a-destination)) |
 
 \* Registration uses ML-DSA-65 identity verification instead of tokens — there is
@@ -1062,6 +1071,37 @@ operator's credentials.
 
 ---
 
+## Token Check (POST /v1/token/check)
+
+A WLT is self-contained, and only this orchestrator holds the operator,
+credential and grant an operator token rests on. A component that receives an
+operator token, such as the content service, therefore asks here before it
+acts on one where acting on a withdrawn token would matter
+([`architecture/content`](content.md#who-may-move-an-entry)):
+
+```
+POST /v1/token/check
+Authorization: Bearer <the component's own registration token>
+{ "token": "<the operator token presented to the component>" }
+
+200 TokenStatus
+```
+
+The orchestrator judges the token in the body exactly as its own middleware
+would judge it on an operator route: its signature and expiry, that it is an
+operator token carrying `cid`, and `token-status-on-use` from
+[`architecture/admin`](admin.md). It answers `live: true` with the operator's
+identity id, current identity public key, current role and the capabilities
+that role carries now, never beyond the token's `cap`; or `live: false` with
+the code it would refuse the token with on its own routes. A token it cannot
+judge is never reported live.
+
+The caller authenticates with its own token, which Auth Middleware judges as
+for any route outside `/v1/admin/`. The route writes nothing and is not
+audited: it is a read of the orchestrator's own records.
+
+---
+
 ## System Events
 
 The orchestrator owns the `system.*` namespace and publishes lifecycle
@@ -1368,3 +1408,4 @@ agents hold, which is theirs.
 - [ ] `GET /v1/admin/model/ceiling` answers `internal` for a backend no current agreement lists, and `internal` again once the agreement that listed it lapses or is withdrawn
 - [ ] `GET /v1/model/ceiling` answers a registered component's token with the `ProviderCeiling` `GET /v1/admin/model/ceiling` gives an operator for the same backend, `address` included where the backend has one, and refuses an attestation token with `CREDENTIAL_REQUIRED`
 - [ ] Every platform-provided model route is authorised by the orchestrator's own judgement of the caller's token, and a `/v1/admin/*` one refuses an agent token with `CREDENTIAL_REQUIRED`
+- [ ] `POST /v1/token/check` answers `live: false` with `OPERATOR_REVOKED` for a token minted before its operator was removed, with `CREDENTIAL_REVOKED` after its credential was revoked, and with `TOKEN_EXPIRED` past `exp`; and, for a live token, the capabilities the operator's role carries now, so a role lowered since the token was minted is reported lowered

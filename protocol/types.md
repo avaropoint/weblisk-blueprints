@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.7.0
+version: 1.8.0
 requires: []
 platform: any
 tier: free
@@ -2038,6 +2038,49 @@ types:
         description: "Retained for the audit trail. No token is issued, and the name is not reusable"
 ```
 
+### TokenStatus
+
+What the orchestrator answers a registered component that asks whether an
+operator token presented to it still rests on a live operator and credential
+(`POST /v1/token/check`, `architecture/orchestrator`). A WLT cannot be
+recalled, and only the orchestrator holds the records it rests on.
+
+```yaml
+types:
+  TokenStatus:
+    fields:
+      live:
+        name: Live
+        type: bool
+        required: true
+        description: "True when the token is this orchestrator's, unexpired, an operator token with a cid, and its operator and credential are live in the orchestrator's own records"
+      code:
+        name: Code
+        type: string
+        required: false
+        description: "Present when live is false: the code the orchestrator refuses that token with on its own routes — INVALID_SIGNATURE, TOKEN_EXPIRED, CREDENTIAL_REQUIRED, or one of architecture/admin's operator and credential codes"
+      identity_id:
+        name: IdentityID
+        type: string
+        required: false
+        description: "Present when live: the operator's identity id"
+      identity_public_key:
+        name: IdentityPublicKey
+        type: string
+        required: false
+        description: "Present when live: the operator's current identity public key, against which an attestation the token's holder carries is checked"
+      role:
+        name: Role
+        type: OperatorRole
+        required: false
+        description: "Present when live: the role the operator holds now"
+      capabilities:
+        name: Capabilities
+        type: "[]string"
+        required: false
+        description: "Present when live: what that role carries now, never beyond the token's cap. What the asking component authorises the request against"
+```
+
 ### AuditEntry
 
 ```yaml
@@ -2287,6 +2330,7 @@ All paths are prefixed with `/v1`.
 | `/v1/health` | GET | no | orchestrator | Orchestrator health |
 | `/v1/audit` | GET | yes | orchestrator | Audit log |
 | `/v1/rotate-key` | POST | yes | orchestrator | Key rotation (see identity.md) |
+| `/v1/token/check` | POST | yes | orchestrator | Whether an operator token presented to a component is still live, and what its operator's role carries now |
 | `/v1/model/ceiling` | GET | yes | orchestrator | What a model backend may be sent now, and where it is reached. Platform-provided (architecture/orchestrator) |
 
 ---

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.11.0
+version: 2.11.1
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -630,7 +630,7 @@ contracts:
         - An operator token without a cid MUST be refused with CREDENTIAL_REQUIRED
         - The request MUST be refused when the operator has no record (OPERATOR_UNKNOWN), is pending (OPERATOR_NOT_APPROVED) or is revoked (OPERATOR_REVOKED), and when the credential is not that operator's (CREDENTIAL_OPERATOR_MISMATCH), is revoked (CREDENTIAL_REVOKED) or its attestation has expired (CREDENTIAL_EXPIRED)
         - The request MUST be authorised against the capabilities the operator's role carries now, and never beyond the token's cap. A role changed since the token was issued takes effect on the next request
-        - Removing an operator, revoking a credential or rotating an operator's identity key therefore ends every token resting on it at the next request, not when the token expires
+        - Removing an operator, revoking a credential or rotating an operator's identity key therefore ends every token resting on it at its next request to the orchestrator, not when the token expires, and at another component at the next check that component makes through POST /v1/token/check (architecture/orchestrator). A component that does not ask honours the token until its exp, at most one hour
         - An admin gateway in front of the orchestrator MUST NOT stand in for this check. The orchestrator holds the records, and a signature check alone proves only that a token was once issued
 
     - name: operator-credential-revocation
@@ -1011,7 +1011,12 @@ by `sub` and the credential named by `cid` in its own records before the handler
 runs, and authorises against what the operator's role carries **now**.
 
 Removing an operator, revoking a credential or rotating an operator's identity
-therefore takes effect on the next request, not an hour later. A client told why
+therefore takes effect on the next request to the orchestrator, not an hour
+later. Another component that receives the token learns it through
+`POST /v1/token/check` ([`architecture/orchestrator`](orchestrator.md#token-check-post-v1tokencheck)),
+which the content service asks before every act only a person may perform. A
+component that does not ask honours the token until it expires, at most an
+hour after it was minted. A client told why
 ([Error Handling](#error-handling)) knows what to do: attest again, wait for an
 approval, or stop.
 
