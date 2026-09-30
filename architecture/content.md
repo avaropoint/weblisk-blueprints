@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.10.1
+version: 2.11.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -44,7 +44,7 @@ organisation can open.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.8.0 <2.0.0"
+    version: ">=1.10.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -55,7 +55,10 @@ requires:
           fields_used: [id, timestamp, actor, action, target, status]
         - name: ProposedChange
           fields_used: [path, action]
-        # A person-only act is checked with the orchestrator first
+        # A person-only act is checked with the orchestrator first: the
+        # request POST /v1/token/check takes, and what it answers
+        - name: TokenCheckRequest
+          fields_used: [subject_token]
         - name: TokenStatus
           fields_used: [live, code, identity_id, identity_public_key, capabilities]
     on_change:
@@ -778,8 +781,14 @@ code here is enough, because a client does the same thing for both.
    place. Exceeded → refuse, publish `content.ceiling_exceeded`. Bytes that
    carry `pii`, into a repository that is not a records repository → refuse
    with `CONTENT_RECORDS_REPOSITORY_REQUIRED`
-4. Enforcement storage proxy intercepts with operation `create` when `if_match`
-   is the empty string, and `modify` otherwise
+4. The token is checked with the orchestrator
+   ([Who may move an entry](#who-may-move-an-entry)): one it reports not live
+   is refused with the code it names, one its role no longer lets write with
+   `FORBIDDEN`, and a request it cannot be asked about with
+   `CONTENT_TOKEN_UNCHECKED`. The answer's `identity_public_key` is what
+   step 6 checks a statement against. Then the enforcement storage proxy
+   intercepts with operation `create` when `if_match` is the empty string,
+   and `modify` otherwise
 5. Precondition Gate reads the current digest and compares it to `if_match`.
    Mismatch → refuse with both digests. No merge is attempted
 6. A statement, where one was sent, is verified against the change this write
@@ -852,7 +861,9 @@ code here is enough, because a client does the same thing for both.
 1. Caller submits a `DecisionRequest` for one proposal: `apply` or `reject`,
    and, where the person signs an `apply`, a `ChangeStatement`
 2. The proposal must be in the caller's scope (`CONTENT_PROPOSAL_UNKNOWN`) and
-   `open` (`CONTENT_PROPOSAL_DECIDED`)
+   `open` (`CONTENT_PROPOSAL_DECIDED`). The token is checked with the
+   orchestrator as Write Flow step 4 says, and must carry `content:decide`
+   now. An `apply` does not ask again when step 5 runs that step
 3. `reject` → the decision is recorded, the proposal becomes `rejected`, and
    `content.proposal_decided` is published. Nothing else happens
 4. `apply` → separation is checked: a decider whose token's `identity_id` equals
@@ -917,7 +928,8 @@ code here is enough, because a client does the same thing for both.
    where versions that would leave are unclassified, and `if_match`
 2. Enforcement storage proxy intercepts with operation `create` and the
    repository's `scope_path` as the resource scope
-3. The caller must hold `content:replicate` and `content:connect`, both on a
+3. The token is checked with the orchestrator as Write Flow step 4 says. The
+   caller must hold `content:replicate` and `content:connect`, both on a
    person's token that the orchestrator reports live and whose role carries
    both now (see [Who may declare a replica](#who-may-declare-a-replica) and
    [Who may move an entry](#who-may-move-an-entry))
@@ -2355,7 +2367,9 @@ repository declaration that carries `self_decision_ceiling` or `scope_floor`,
 this service asks
 the orchestrator whether the token is still live
 ([`architecture/orchestrator`](orchestrator.md#token-check-post-v1tokencheck),
-`POST /v1/token/check`), and authorises the act against the `capabilities`
+`POST /v1/token/check`): its own registration token in the `Authorization`
+header, and the token it was presented as `subject_token` in a
+`TokenCheckRequest`. It authorises the act against the `capabilities`
 the answer reports: what the operator's role carries now, never beyond the
 token's `cap`. A token the answer reports not live is refused with the code
 it names ([`architecture/admin`](admin.md#error-handling)). Where the

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.5.2
+version: 2.6.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin]
 platform: any
 tier: free
@@ -73,7 +73,7 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: protocol/types
-      version: ">=1.9.0 <2.0.0"
+      version: ">=1.10.0 <2.0.0"
       bindings:
         types:
           - name: RegisterRequest
@@ -98,6 +98,8 @@ declaration:
             fields_used: [name, public_key, identity_id, retired_keys, role, status, created_at]
           - name: RetiredKey
             fields_used: [public_key, retired_at]
+          - name: TokenCheckRequest
+            fields_used: [subject_token]
           - name: TokenStatus
             fields_used: [live, code, identity_id, identity_public_key, role, capabilities]
       on_change:
@@ -780,7 +782,7 @@ withdrawn only on a person's operator token holding `model:attest`, which
 | `MODEL_AGREEMENT_LEVEL_REFUSED` | 400 | `level` is not `internal` or `confidential` |
 | `MODEL_AGREEMENT_LAPSE_INVALID` | 400 | `not_after` is not in the future, or is more than 90 days after the request |
 | `MODEL_AGREEMENT_EXISTS` | 409 | A name in `backends` is listed by an agreement that is current. The response names that agreement |
-| `NOT_FOUND` | 404 | No agreement of that `id` |
+| `NOT_FOUND` | 404 | No agreement of that `id`; or, on either ceiling route, a `?backend=` the tenant's model configuration does not name |
 
 Recording one publishes `system.model.agreement_recorded`, and withdrawing one
 `system.model.agreement_withdrawn`. Each is audited, recording who acted by
@@ -1045,7 +1047,8 @@ authenticate (see [Administrative endpoints](#administrative-endpoints)):
 
 ```
 1. Check Authorization header for "Bearer <token>"
-2. If no header, check request body for "token" field
+2. If no header, check request body for "token" field — except on
+   TokenCheck, whose caller's token is read from the header alone
 3. Verify token against orchestrator's signing key
 4. Check expiry
 5. Refuse a token whose type is "attestation" with CREDENTIAL_REQUIRED, on
@@ -1084,12 +1087,20 @@ acts on one where acting on a withdrawn token would matter
 ```
 POST /v1/token/check
 Authorization: Bearer <the component's own registration token>
-{ "token": "<the operator token presented to the component>" }
+{ "subject_token": "<the operator token presented to the component>" }
 
 200 TokenStatus
 ```
 
-The orchestrator judges the token in the body exactly as its own middleware
+The body is a `TokenCheckRequest` and the answer a `TokenStatus`, both
+[`protocol/types`](../protocol/types.md#tokencheckrequest)'s. The caller's own
+token is read from the `Authorization` header and nowhere else: Auth
+Middleware step 2 does not apply here, so the token being asked about never
+authenticates the request that asks about it. A request with no
+`Authorization` header is refused with 401 as on any other route, and one
+whose body has no `subject_token` with 400 `INVALID_REQUEST`.
+
+The orchestrator judges `subject_token` exactly as its own middleware
 would judge it on an operator route: its signature and expiry, that it is an
 operator token carrying `cid`, and `token-status-on-use` from
 [`architecture/admin`](admin.md). It answers `live: true` with the operator's
@@ -1410,4 +1421,5 @@ agents hold, which is theirs.
 - [ ] `GET /v1/admin/model/ceiling` answers `internal` for a backend no current agreement lists, and `internal` again once the agreement that listed it lapses or is withdrawn
 - [ ] `GET /v1/model/ceiling` answers a registered component's token with the `ProviderCeiling` `GET /v1/admin/model/ceiling` gives an operator for the same backend, `address` included where the backend has one, and refuses an attestation token with `CREDENTIAL_REQUIRED`
 - [ ] Every platform-provided model route is authorised by the orchestrator's own judgement of the caller's token, and a `/v1/admin/*` one refuses an agent token with `CREDENTIAL_REQUIRED`
+- [ ] `POST /v1/token/check` reads the caller's token from its `Authorization` header only: with no header it answers 401 whatever the body holds, and a body with no `subject_token` is refused with 400 `INVALID_REQUEST`
 - [ ] `POST /v1/token/check` answers `live: false` with `OPERATOR_REVOKED` for a token minted before its operator was removed, with `CREDENTIAL_REVOKED` after its credential was revoked, and with `TOKEN_EXPIRED` past `exp`; and, for a live token, the capabilities the operator's role carries now, so a role lowered since the token was minted is reported lowered

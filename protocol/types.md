@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.9.0
+version: 1.10.0
 requires: []
 platform: any
 tier: free
@@ -2058,6 +2058,25 @@ types:
         description: "May obtain a token"
       - value: revoked
         description: "Retained for the audit trail. No token is issued, and the name is not reusable"
+```
+
+### TokenCheckRequest
+
+What a registered component sends to ask whether an operator token presented
+to it is still live (`POST /v1/token/check`, `architecture/orchestrator`).
+The component authenticates with its own registration token, in the
+`Authorization` header and nowhere else. The token it asks about travels in
+this body under a name the orchestrator never reads as a caller's token.
+
+```yaml
+types:
+  TokenCheckRequest:
+    fields:
+      subject_token:
+        name: SubjectToken
+        type: string
+        required: true
+        description: "The operator token presented to the asking component, exactly as it arrived. Never the caller's own token, and never read as one"
 ```
 
 ### TokenStatus
