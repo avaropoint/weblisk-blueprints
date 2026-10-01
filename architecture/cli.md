@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.6.1
+version: 2.7.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1010,9 +1010,16 @@ CLI holds one for each identity at each hub:
   reach the hub at another. The `hub_id` names the hub; the address is only
   where to find it, so a hub reached there that answers another `hub_id` is
   not that hub. A registration outlives its credential: it is kept when the
-  credential is discarded, and removed only when that hub answers
-  `OPERATOR_REVOKED` or `OPERATOR_UNKNOWN` for the operator, or the person
-  removes it. It holds nothing secret. It is what
+  credential is discarded, and removed only when the person confirms it. A
+  hub that answers `OPERATOR_REVOKED` or `OPERATOR_UNKNOWN` for the operator
+  is reported with the address that answered, and the CLI asks; under
+  `--json` or with no terminal it keeps the registration. Neither answer
+  shows that it came from the hub the registration names: no refusal carries
+  a `hub_id`, and a key change is answered `OPERATOR_UNKNOWN` before any
+  signature is checked ([`architecture/admin`](admin.md#changing-an-identity-key)),
+  so whatever answers at the hub's last address could produce it. A
+  registration dropped on such an answer would let a rotation finish and
+  destroy the one key the real hub still accepts. It holds nothing secret. It is what
   [`weblisk operator rotate`](#weblisk-operator-rotate) sends a key change to.
 - **Kept as the identity is.** The private key sits beside the identity it
   belongs to, encrypted in the `weblisk-key-v1` envelope with `kdf` `argon2id`
@@ -1141,7 +1148,10 @@ $ weblisk operator path --identity alice
 
 So a caller can ask where an identity lives instead of deriving the path. A
 console or script that derives it is a second implementation of admin rule 2,
-kept in step by luck. `--json` for machine-readable output.
+kept in step by luck. `--json` for machine-readable output. While a rotation
+is pending it also names the rotation record and the file holding the key
+that signs, `operator.key.next` for an encrypted file
+([`weblisk operator rotate`](#weblisk-operator-rotate)).
 
 ### `weblisk operator register`
 
@@ -1243,7 +1253,14 @@ $ weblisk operator token --refresh
 **Where a token is kept.** `connect`, `register` and `token --refresh` store
 the token they obtain beside the identity that obtained it, mode 0600, so the
 next command can use it. The token is a bearer credential: whoever holds the
-file may use it until it expires. **`--no-store` writes no token file.** The
+file may use it until it expires. It carries every capability the operator's
+role carries, `admin:*` and every person-only capability for an admin, and
+mode 0600 keeps it from other users, never from another program the same
+user runs, an agent included. `architecture/admin`'s rule that no agent holds
+a person's token binds a console
+([`console-credential-use`](admin.md#a-console-holds-a-credential-never-a-token)),
+and a stored file is outside it: a person who runs agents under their own
+account passes `--no-store`. **`--no-store` writes no token file.** The
 token goes to stdout, or into the `--json` result, and nowhere else. A caller
 that holds the token itself passes it — a console does, because a console
 never writes an operator token anywhere
@@ -1320,12 +1337,25 @@ Rotation pending at 1 hub. The old key is kept until it finishes:
   it beside the identity as the **next** key, in the holder's form below, and
   writes a rotation record listing every registration as `pending`. Each hub
   that answers `200` with the registration's `identity_id` is marked
-  `changed`. One that answers another `identity_id` is marked `refused` and
-  reported, because that hub does not hold the operator this registration
-  names. `OPERATOR_REVOKED` and `OPERATOR_UNKNOWN` remove the registration, as
-  they always do. Any other refusal, and a hub that cannot be reached or
-  answers another `hub_id`, leaves it `pending`, reported with its code or as
+  `changed`, whether it applied the change then or answers a repeat of a
+  change it applied before, whose answer was lost
+  ([`architecture/admin`](admin.md#changing-an-identity-key)). One that
+  answers `200` with another `identity_id` is marked `refused` and reported:
+  it took the new key, for an operator this registration does not name.
+  `OPERATOR_REVOKED` and `OPERATOR_UNKNOWN` are reported, and the hub stays
+  `pending`, with its registration kept until the person confirms its
+  removal ([A credential for each hub](#a-credential-for-each-hub)). Any
+  other refusal, and a hub that cannot be reached or answers another
+  `hub_id`, leaves it `pending`, reported with its code or as
   `unreachable`.
+- **Never with nowhere to send.** With no registrations, or while the
+  identity holds a credential kept under a `hub_id` it has no registration
+  for, `rotate` is refused and names each such `hub_id`. An identity that
+  registered before the CLI kept registrations is still recorded by those
+  hubs under the old key, and a rotation that finished would destroy the
+  only key they accept. `connect` to each hub writes its registration. A
+  person sure the identity is registered at no hub confirms it when asked;
+  under `--json` or with no terminal the refusal stands.
 - **While a rotation is pending, the identity's key is the new one.**
   `operator.pub` holds the new public key from the moment the record is
   written, and every signature the identity makes is made with the new key,
@@ -1335,30 +1365,44 @@ Rotation pending at 1 hub. The old key is kept until it finishes:
   send it the key change, whether or not a credential there is still live,
   and the identity signs there with the new key once the change is accepted.
   A refusal leaves the hub `pending`, and the command has the identity sign
-  nothing there and reports the code.
+  nothing there and reports the code. For an encrypted file the key that
+  signs is `operator.key.next`: `operator.key` still holds the old key, and
+  signs only that continuity, so nothing pairs `operator.key` with
+  `operator.pub` while a rotation record exists.
+  [`weblisk operator path`](#weblisk-operator-path) names the file that
+  signs, so a caller that reads the files never has to know this.
 - **Resumed, never started again.** `weblisk operator rotate --resume` sends
   the change to every hub still `pending`, signed by the old key and the new
-  exactly as the first attempt was: the old key is still the one those hubs
-  record, so it is the one that can hand the operator on. With `connect` and
+  over a fresh timestamp: a hub refuses a request it has seen and one outside
+  its 300-second window, so no attempt reuses another's bytes. The old key is
+  the one a hub that never applied the change still records, so it is the one
+  that can hand the operator on. A hub that applied the change and whose
+  answer was lost answers the same request as a repeat, `200`, and is marked
+  `changed`. With `connect` and
   `attest` doing the same, a hub that was unreachable during the rotation
   finishes it the next time it is reached. `rotate` without `--resume` while a
   rotation is pending is refused, so a second new key never strands the
   first.
 - **Finished when nothing is pending.** When every registration is `changed`,
-  or has been removed, the old private key is destroyed in the holder's form
+  or has been removed by the person, the old private key is destroyed in the holder's form
   below, its public half is kept beside the identity as
   `operator.pub.retired` with the time the rotation finished, for audit, and
   the rotation record is deleted. Once no hub records the old key, nothing
   may be signed with it, and a private key that is kept is one more copy of a
   key to protect, kept for no use. Its public half is all an auditor needs.
 - **Abandoning a hub.** `weblisk operator rotate --abandon <hub_id>` removes
-  one `pending` hub from the rotation, and its registration with it, and asks
-  for confirmation first.
-  That hub keeps the old key as the operator's identity key, and once the
-  rotation finishes nothing on this machine can sign for it there: that is the
-  lost-key case, and the operator is removed by an admin there and registers
-  again as a new identity id
-  ([`architecture/admin`](admin.md#changing-an-identity-key)).
+  one `pending` or `refused` hub from the rotation, and its registration with
+  it, and asks for confirmation first. It is the only way out for a hub that
+  answered `OPERATOR_REVOKED` or `OPERATOR_UNKNOWN`, or `refused`, and the
+  person's confirmation is what removes the registration. A `refused` hub
+  already holds the new key, so abandoning it loses only the registration. A
+  `pending` hub that never applied the change keeps the old key as the
+  operator's identity key, and once the rotation finishes nothing on this
+  machine can sign for it there: that is the lost-key case, and the operator
+  is removed by an admin there and registers again as a new identity id
+  ([`architecture/admin`](admin.md#changing-an-identity-key)). Before it asks,
+  the CLI sends the change to that hub once more, so a hub that did apply it
+  and is reachable is marked `changed` instead.
 - **Credentials.** Each hub that accepts revokes every credential the old key
   attested, so the CLI discards its credential for that hub, and the next
   `connect` attests a new one with the new key. The hub answers the same
@@ -2499,13 +2543,18 @@ security:
 - [ ] For an identity held by a secret source whose `capabilities` do not list `store`, `connect` keeps the new credential key beside the identity in its own `weblisk-key-v1` envelope with `kdf` `argon2id`, under a passphrase the person chose for it, and never in the clear or under `kdf` `none`
 - [ ] For an identity held by a source that lists `store` but answers `named_fields` false, or names `private_key` in `withheld_fields`, `connect` keeps the credential key in its own envelope beside the identity, never in that source, and signs every later challenge with it
 - [ ] `connect --remember-passphrase` for such an identity has a source that lists `store` keep the envelope's passphrase, and is refused, keeping nothing, when neither the identity's source nor one named with `--passphrase-holder` lists `store`
-- [ ] `register` and `connect` record a registration for each hub, naming its `hub_id`, the operator name it recorded, the `identity_id` it answered and the address it was reached at; discarding a credential after `CREDENTIAL_UNKNOWN` keeps the registration, and `OPERATOR_REVOKED` or `OPERATOR_UNKNOWN` removes it
+- [ ] `register` and `connect` record a registration for each hub, naming its `hub_id`, the operator name it recorded, the `identity_id` it answered and the address it was reached at; discarding a credential after `CREDENTIAL_UNKNOWN` keeps the registration, and `OPERATOR_REVOKED` or `OPERATOR_UNKNOWN` is reported and removes it only when the person confirms; under `--json` it is kept
 - [ ] `weblisk operator rotate` writes the next key and a rotation record listing every registration `pending` before it sends anything, then sends `POST /v1/admin/operators/{name}/key` to each registration with its own name and `hub_id`, signed by the old key and the new, a hub whose credential was discarded included
 - [ ] With one of three hubs unreachable, `rotate` marks two `changed` and one `pending`, keeps the old key, and exits non-zero naming the pending hub; `operator.pub` holds the new key, and a `register` at a fourth hub signs with the new key
 - [ ] `weblisk operator rotate --resume` against the hub left `pending` signs the change with the old key it still records and the new key, the hub answers `200` with the same `identity_id`, and only then is the old private key destroyed and its public half kept as `operator.pub.retired`
 - [ ] `weblisk operator connect` to a hub left `pending` by a rotation sends that hub the key change before it attests, and attests with the new key; when the change is refused it signs nothing there
 - [ ] `weblisk operator rotate` while a rotation is pending is refused without `--resume`, and generates no second key
 - [ ] `weblisk operator rotate --abandon <hub_id>` asks for confirmation, removes that hub and its registration from the rotation, and the rotation then finishes with the old private key destroyed
+- [ ] A hub that applied a key change and whose `200` was lost is left `pending`; `rotate --resume`, or `connect` to it, sends the change again over a fresh timestamp, the hub answers `200` as a repeat, the hub is marked `changed`, and the rotation finishes
+- [ ] During a rotation, a hub that answers `OPERATOR_UNKNOWN` stays `pending` with its registration kept, and the rotation does not finish until the person abandons it with confirmation
+- [ ] `--abandon` accepts a `refused` hub, and the rotation then finishes
+- [ ] `weblisk operator rotate` with no registrations, or with a credential kept under a `hub_id` that has no registration, is refused naming each such `hub_id`, generates no key, and with `--json` stays refused
+- [ ] While an encrypted-file rotation is pending, a signature the identity makes verifies under `operator.pub` and was made with `operator.key.next`, and `weblisk operator path` names `operator.key.next` as the key that signs
 - [ ] For an identity held by a source that signs and withholds `private_key`, `weblisk operator rotate` without `--new-holder` is refused and says why; with `--new-holder <source>:<reference>` it maps that key only once a signature through it verifies, and never asks the source to create one
 - [ ] For an identity held whole by a source, `rotate` stores the new key in that source with `store`, and on finishing points `holder.json` at it and `erase`s the old reference, reporting a source that does not list `erase`
 - [ ] `weblisk operators revoke` invalidates target operator's public key and tokens (admin only)

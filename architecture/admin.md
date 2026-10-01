@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.16.0
+version: 2.17.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -278,7 +278,7 @@ request.
 | `CREDENTIAL_CHALLENGE_INVALID` | 401 | auth | The nonce was not issued for this credential, was already used or has expired, or the signature does not verify | Refuse and spend the nonce. Log a signature failure as a security event | `replay_detected` |
 | `CREDENTIAL_ATTESTATION_INVALID` | 400 | validation | The attestation's signature does not verify under ML-DSA-65 against the operator's recorded key, or the attestation names another identity key, or an `identity_id` that is not the operator's at this hub | Refuse. Log as a security event | `attestation_invalid`, `algorithm_not_permitted` |
 | `CREDENTIAL_FORM_UNSUPPORTED` | 400 | validation | The credential key is not an ML-DSA-65 public key, the one form these routes carry | Refuse. A form principal-identity permits beside it is admitted only by a route that declares its own registration and challenge | — |
-| `CREDENTIAL_FOREIGN_HUB` | 400 | validation | The attestation's `hub_id` is not this hub's | Refuse. Log as a security event | `credential_foreign_hub` |
+| `CREDENTIAL_FOREIGN_HUB` | 400 | validation | The `hub_id` an attestation or a key-change request names is not this hub's | Refuse. Log as a security event | `credential_foreign_hub` |
 | `CREDENTIAL_IS_IDENTITY_KEY` | 400 | validation | The credential's public key is the operator's identity key, current or retired | Refuse. Log as a security event | `identity_key_as_credential` |
 | `CREDENTIAL_PURPOSE_REFUSED` | 400 | validation | The attestation names one purpose for a key this hub holds, or held, under the other; or a challenge or token request names a sign-records credential, which never signs anybody in | Refuse. Log as a security event. The client attests a separate key for each purpose | `credential_purpose_mismatch` |
 | `CREDENTIAL_LIFETIME_INVALID` | 400 | validation | `not_after` is not in the future, or is more than 90 days after the hub receives the attestation | Refuse, naming the cap | `attestation_expired`, where `not_after` has passed |
@@ -673,6 +673,7 @@ contracts:
         - The operator MUST have a record here (else OPERATOR_UNKNOWN)
         - hub_id MUST be this hub's (else CREDENTIAL_FOREIGN_HUB, logged as a security event), so a request signed for one hub is refused at every other
         - The timestamp MUST be inside the 300-second replay window and the request MUST NOT have been seen before, current_signature MUST verify under the public key in the operator's OWN record, new_signature under new_public_key, and new_public_key MUST be an ML-DSA-65 public key. Otherwise OPERATOR_KEY_CHANGE_INVALID, logged as a security event
+        - A repeat of the change the hub last accepted for the operator MUST be answered as that change was. Where new_public_key is already the operator's public_key, current_signature verifies under the key that change moved to retired_keys, new_signature verifies under new_public_key, and the timestamp is inside the replay window and unseen, the hub MUST answer 200, unless the operator is revoked (OPERATOR_REVOKED, as below), with the operator record, its identity_id and hub_id, change nothing, revoke nothing, and audit it as a repeat of that change. This is the one request current_signature may verify under a retired key for, and it hands nothing on: both keys signed it, and the operator already holds the new one. It is checked before OPERATOR_KEY_REUSED, which would otherwise refuse the operator's own current key, so a client whose answer to an accepted change was lost learns that the change stands
         - Only once both signatures have verified may the hub disclose the operator's status: a revoked operator is then refused with OPERATOR_REVOKED. A pending operator may change its key and stays pending
         - new_public_key MUST NOT be a key this hub records, or recorded, as any operator's identity key, current or retired, or as any credential (else OPERATOR_KEY_REUSED)
         - On success, in one durable write, the new key MUST become the operator's public_key, the old key MUST be added to its retired_keys with the time of the change as its retired_at, and name, role, status and identity_id MUST be kept. Every credential the operator holds, sign-records ones included, MUST be revoked with the reason that the identity key changed, so every token resting on one is refused at its next request
@@ -1098,6 +1099,16 @@ The current key's signature is the continuity: only whoever held the key the
 hub recorded can hand the operator on. The new key's signature proves it is
 held. `hub_id` in the signed input stops a request made for one hub from being
 spent at another where the same identity is registered.
+
+**A change whose answer was lost is answered again.** The hub applies a change
+in one durable write, so a client whose connection dropped before the `200`
+arrived cannot tell whether the change stands, and sending it again with the
+old key as `current_signature` no longer verifies under the operator's record.
+So a request whose `new_public_key` is already the operator's key, signed by
+the key the last change retired and by that new key, over a fresh timestamp,
+is answered `200` exactly as the change was, and changes nothing. Both keys
+signed it, so it proves nothing a retired key could not prove alone: the
+operator holds the new key already.
 
 **What changes, and what does not.** The operator keeps its name, role,
 status and **identity id**. The old key moves to `retired_keys`, with the time
@@ -2131,7 +2142,8 @@ The rest SHOULD be:
 - [ ] Removing an operator, or revoking one of its credentials, refuses its next request with `OPERATOR_REVOKED` or `CREDENTIAL_REVOKED` without waiting for its token to expire
 - [ ] A removed operator keeps its record with status `revoked`, and a request naming it is refused with `OPERATOR_REVOKED`, never `OPERATOR_UNKNOWN`
 - [ ] The sole admin's change of identity key revokes their credentials and is not refused with `OPERATOR_LAST_ADMINISTRATOR`; the new identity then attests a credential and mints
-- [ ] `POST /v1/admin/operators/{name}/key` signed by the recorded key and the new key over `canonicalize({hub_id, name, new_public_key, timestamp})` keeps the operator's name, role, status and `identity_id`, moves the old key to `retired_keys` with the time of the change as its `retired_at`, and revokes every credential; one whose `current_signature` is by any other key, or that is replayed, is refused with `OPERATOR_KEY_CHANGE_INVALID` and changes nothing; one naming another hub's `hub_id` is refused with `CREDENTIAL_FOREIGN_HUB`
+- [ ] `POST /v1/admin/operators/{name}/key` signed by the recorded key and the new key over `canonicalize({hub_id, name, new_public_key, timestamp})` keeps the operator's name, role, status and `identity_id`, moves the old key to `retired_keys` with the time of the change as its `retired_at`, and revokes every credential; one whose `current_signature` is by any other key, apart from the repeat below, or that is replayed, is refused with `OPERATOR_KEY_CHANGE_INVALID` and changes nothing; one naming another hub's `hub_id` is refused with `CREDENTIAL_FOREIGN_HUB`
+- [ ] After a key change the hub accepted, the same change sent again with a fresh timestamp, signed by the key it retired and by the new key, is answered `200` with the same operator record, `identity_id` and `hub_id`, revokes nothing, leaves `retired_keys` as it was, and is audited as a repeat; with a `new_signature` that does not verify, or signed by a key retired before that change, it is refused with `OPERATOR_KEY_CHANGE_INVALID`
 - [ ] A registration or a change of identity key offering a key this hub records or recorded as any identity key or credential is refused with `OPERATOR_KEY_REUSED`
 - [ ] An attestation whose credential key is one of the operator's own retired identity keys is refused with `CREDENTIAL_IS_IDENTITY_KEY`
 - [ ] A change of identity key for a revoked operator whose signatures do not verify is refused with `OPERATOR_KEY_CHANGE_INVALID`, never `OPERATOR_REVOKED`; one whose signatures verify is refused with `OPERATOR_REVOKED`
