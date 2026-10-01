@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.11.1
+version: 1.11.2
 requires: []
 platform: any
 tier: free
@@ -2519,54 +2519,9 @@ Implementations MUST:
 
 ## Scope
 
-### ScopeLevel
-
-Enumeration of universal scope levels. Scope classifies any resource,
-operation, message, or data field.
-
-| Value | Ordinal | Description |
-|-------|---------|-------------|
-| `public` | 0 | No restrictions — visible to anyone |
-| `internal` | 1 | Visible within the hub only |
-| `confidential` | 2 | Need-to-know basis with audit trail |
-| `restricted` | 3 | Limited to authorized agents/roles |
-| `critical` | 4 | Highest protection — requires approval for access |
-
-### ScopeDeclaration
-
-Attached to any resource, field, message, or operation to declare
-its scope level.
-
-```yaml
-types:
-  ScopeDeclaration:
-    fields:
-      target:
-        name: Target
-        type: string
-        required: true
-        description: "What is being scoped (field path, resource ID, operation name)"
-      level:
-        name: Level
-        type: string
-        required: true
-        description: "ScopeLevel value"
-      declared_by:
-        name: DeclaredBy
-        type: string
-        required: true
-        description: "Agent or system that declared the scope"
-      timestamp:
-        name: Timestamp
-        type: int64
-        required: true
-        description: "When the scope was declared"
-      justification:
-        name: Justification
-        type: string
-        required: false
-        description: "Why this scope level was chosen"
-```
+`ScopeLevel` and `ScopeDeclaration` are
+[`patterns/scope`](../patterns/scope.md#types)'s, and are defined there alone.
+A blueprint that uses either binds it from `patterns/scope`.
 
 ---
 
@@ -2841,39 +2796,8 @@ types:
 
 ### KeyRotationRequest
 
-Defined in [protocol/identity.md](identity.md#key-rotation). Included
-here for completeness — identity.md is the authoritative source.
-
-```yaml
-types:
-  KeyRotationRequest:
-    fields:
-      agent_id:
-        name: AgentID
-        type: string
-        required: true
-        description: "Agent ID (32 hex chars)"
-      new_public_key:
-        name: NewPublicKey
-        type: string
-        required: true
-        description: "New ML-DSA-65 public key (base64url-encoded, 1952 bytes)"
-      current_signature:
-        name: CurrentSignature
-        type: string
-        required: true
-        description: "Agent manifest signed with current private key (base64url-encoded, 3309 bytes)"
-      new_signature:
-        name: NewSignature
-        type: string
-        required: true
-        description: "Same manifest signed with new private key (base64url-encoded, 3309 bytes)"
-      timestamp:
-        name: Timestamp
-        type: int64
-        required: true
-        description: "Unix epoch seconds"
-```
+[`protocol/identity`](identity.md#key-rotation)'s, and defined there alone. A
+blueprint that uses it binds it from `protocol/identity`.
 
 ---
 
@@ -3123,8 +3047,6 @@ security:
 - [ ] ChannelGrant includes `channel_id`, scoped `channel_token`, `target_url`, `target_pub_key`, and `expires_at`
 - [ ] Protocol paths are all prefixed with `/v1` and method/auth requirements match the Protocol Paths table
 - [ ] DeadLetterEntry includes `original_event`, `failure_reason`, `last_error`, `attempts`, and `subscriber`
-- [ ] ScopeLevel enum is constrained to `public`, `internal`, `confidential`, `restricted`, `critical`
-- [ ] ScopeDeclaration requires `target`, `level`, `declared_by`, and `timestamp`
 - [ ] PolicyDecision requires `policy_name`, `decision`, and `timestamp`; decision uses DecisionResult enum
 - [ ] OperationIntent requires `id`, `agent`, `operation`, `resource`, `resource_class`, `scope`, `environment`, and `timestamp`; operation includes `list` and `query`
 - [ ] IntentDecision requires `intent_id`, `decision`, `authority`, and `timestamp`; decision uses DecisionResult enum

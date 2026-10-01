@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.9.0
+version: 2.10.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -110,8 +110,6 @@ declaration:
       version: ">=1.0.0 <2.0.0"
       bindings:
         types:
-          - name: AgentEntry
-            fields_used: [manifest, agent_id, status, registered_at, last_seen]
           - name: AuditFilter
             fields_used: [actor, action, since, cursor, limit]
       on_change:
@@ -1301,47 +1299,45 @@ and [protocol/types.md](../protocol/types.md) for type definitions.
 
 ### AgentEntry
 
-An entry in the orchestrator's internal agent registry.
+An entry in the orchestrator's agent registry, as
+[Registration Flow](#registration-flow-post-v1register) step 6 stores it. The
+orchestrator owns it, and [`architecture/storage`](storage.md#store-agent-registry)
+binds it for the store that keeps it; it is defined here alone.
 
 ```yaml
 types:
   AgentEntry:
     fields:
-      agent_id:
-        name: AgentID
-        type: string
-        required: true
-        description: "Assigned agent identifier"
       manifest:
         name: Manifest
         type: AgentManifest
         required: true
-        description: "Agent's declared manifest"
+        description: "The manifest the agent registered with"
+      agent_id:
+        name: AgentID
+        type: string
+        required: true
+        description: "Assigned agent identifier (32 hex chars)"
       token:
         name: Token
         type: string
         required: true
-        description: "Issued WLT token"
-      status:
-        name: Status
-        type: string
-        required: true
-        description: "`\"registered\"`, `\"active\"`, `\"offline\"`"
+        description: "Current auth token"
       registered_at:
         name: RegisteredAt
         type: int64
         required: true
-        description: "Unix epoch of registration"
-      public_key:
-        name: PublicKey
+        description: "Unix epoch seconds of registration"
+      last_seen:
+        name: LastSeen
+        type: int64
+        required: true
+        description: "Unix epoch seconds of the last health check or request"
+      status:
+        name: Status
         type: string
         required: true
-        description: "Agent's ML-DSA-65 public key (base64url)"
-      namespaces:
-        name: Namespaces
-        type: "[]string"
-        required: true
-        description: "Owned publish namespaces"
+        description: "`online`, `offline` or `degraded`"
 ```
 
 ---

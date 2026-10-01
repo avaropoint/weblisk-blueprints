@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: storage
-version: 1.2.1
+version: 1.2.2
 requires: [protocol/types, protocol/identity, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 tier: free
@@ -90,11 +90,11 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.10.0 <3.0.0"
     bindings:
       types:
         - name: AgentEntry
-          fields_used: [Manifest, AgentID, Token, Status]
+          fields_used: [manifest, agent_id, token, registered_at, last_seen, status]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -477,37 +477,8 @@ without changing the store interface.
 | DeleteAgent | `(name string) → error` | Remove agent from registry |
 | ListAgents | `(filter AgentFilter) → ([]AgentEntry, error)` | List agents, optionally filtered by type/status |
 
-### AgentEntry (internal)
-
-```yaml
-types:
-  AgentEntry:
-    fields:
-      manifest:
-        name: Manifest
-        type: AgentManifest
-        description: "Full manifest from registration"
-      agent_id:
-        name: AgentID
-        type: string
-        description: "Assigned ID (32 hex chars)"
-      token:
-        name: Token
-        type: string
-        description: "Current auth token"
-      registered_at:
-        name: RegisteredAt
-        type: int64
-        description: "Unix epoch seconds"
-      last_seen:
-        name: LastSeen
-        type: int64
-        description: "Last health check or request timestamp"
-      status:
-        name: Status
-        type: string
-        description: "`online`, `offline`, `degraded`"
-```
+`AgentEntry` is [`architecture/orchestrator`](orchestrator.md#agententry)'s,
+the store's owner, and is defined there alone.
 
 ---
 
