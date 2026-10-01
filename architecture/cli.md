@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.3.0
+version: 2.4.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -585,6 +585,15 @@ same tree. Generation therefore reads what the tenant already contains — modul
 path, packages present with their exported names, and which component owns which
 file — and REFUSES a plan that names another component's files. See
 [`architecture/generation`](generation.md#deciding-whether-a-file-must-be-rebuilt).
+
+A build that repairs never ends on a tree worse than the best it reached.
+Whatever ends the run, an error included, the command leaves that tree on disk,
+records it as generation's output and reports the verdict on it, and a re-run
+starts from it. Where it could not put that tree back, its error says so. It
+lists each requirement it left unrepaired and why, cutting a long list short
+with a count of what it left out. How trees are ranked, and how a repair round
+is kept, judged and undone, is in
+[`architecture/generation`](generation.md#a-repair-round-is-a-transaction).
 
 ### `weblisk component <name> start` · `stop` · `status` · `logs`
 
@@ -2355,6 +2364,7 @@ security:
 - [ ] `weblisk tenant create` generates the orchestrator only; every other component is added afterwards and the command does not claim otherwise
 - [ ] `weblisk tenant accept` reports a `404` as an absent route and a `401` as a pass, and a failed non-essential check does not fail the tenant
 - [ ] `weblisk component help` lists a component only when the pipeline will read that component's own blueprint, so a listed kind is never generated from the protocol alone
+- [ ] `weblisk component <name> init` ends on the best tree it reached and never a worse one — on an error too — names the requirements it left unrepaired, and a re-run starts from that tree
 - [ ] `weblisk server init` reads YAML specs and dispatches to the configured LLM for code generation
 - [ ] `weblisk server start` reads .weblisk/config.yaml and builds+starts all declared components
 - [ ] `weblisk server start` starts the orchestrator alone when `.weblisk/config.yaml` is absent, and refuses a declaration it cannot carry out before starting anything
