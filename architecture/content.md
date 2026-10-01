@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.14.4
+version: 2.14.5
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -670,7 +670,7 @@ code here is enough, because a client does the same thing for both.
 | `CONTENT_PLACEMENT_DECLARED` | conflict | The placement is equal to, inside, or contains an already-declared repository; or a replica's destination is equal to, inside or contains a declared repository's placement or another replica's destination | Refuse. Two ceilings over one set of bytes means the lower one is unenforceable, and a replica sent into a store would make a copy a source |
 | `CONTENT_PROPOSAL_UNKNOWN` | validation | No proposal of that id in the caller's scope | Refuse without disclosing whether it exists elsewhere |
 | `CONTENT_PROPOSAL_DECIDED` | conflict | A decision arrived for a proposal that is no longer `open`, including the second of two decisions that raced | Refuse, returning the proposal as recorded. A proposal leaves `open` once |
-| `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the identity the proposal names as its `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, the change has no scope, or the repository declares no ceiling. See [Separation of duties](#separation-of-duties) | Refuse, naming the scope, or that there is none, and the ceiling. Nothing is recorded and the proposal stays `open` |
+| `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the identity the proposal names as its `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, the change has no scope, or the repository declares no ceiling. Or a repository declaration whose `self_decision_ceiling` is `critical`. See [Separation of duties](#separation-of-duties) | Refuse, naming the scope, or that there is none, and the ceiling. Nothing is recorded and the proposal stays `open` |
 | `CONTENT_TOKEN_UNCHECKED` | io | A write, removal, decision, replica declaration or retirement, or a declaration carrying `self_decision_ceiling` or `scope_floor`, arrived and the orchestrator could not be asked whether its token is live | Refuse and perform nothing. The request may be repeated once the orchestrator answers. Never proceed on the token alone |
 | `CONTENT_IDENTITY_REQUIRED` | auth | A write, removal, proposal, decision, replica declaration or retirement arrived on a token that carries no `identity_id` | Refuse. Never record a name, an address or a token's `sub` in its place |
 | `CONTENT_STATEMENT_INVALID` | auth | A write, removal or decision carried a `ChangeStatement` that does not verify: the token is not a person's; the attestation's `purpose` is not `sign-records`, its `identity_id` is not the token's, its identity key is not the operator's current one, its signature fails, its credential key is not ML-DSA-65, or its `not_after` has passed or is more than 90 days ahead; its credential key is not one of the token's `record_keys`, or is the credential the token's `cid` names; `signed_at` is more than 300 seconds from the service's clock; or the signature does not verify over the statement rebuilt from the change. See [The change statement](#the-change-statement) | Refuse, naming the check that failed. Nothing is written and a proposal stays `open`. The change is never recorded unsigned instead. Log as a security event |
@@ -711,7 +711,10 @@ code here is enough, because a client does the same thing for both.
    ([Who may move an entry](#who-may-move-an-entry)).
    A declaration naming itself a records repository at a `scope_path` that
    has one → `CONTENT_REPOSITORY_EXISTS`. A `scope_floor` that is not a
-   `ScopeLevel` → `SCOPE_INVALID_LEVEL`
+   `ScopeLevel` → `SCOPE_INVALID_LEVEL`. A `self_decision_ceiling` of
+   `critical` → `CONTENT_SEPARATION_REQUIRED`, because separation at
+   `critical` is not configurable
+   ([Separation of duties](#separation-of-duties))
 5. `establish` — the caller MUST hold `content:establish` as well as
    `content:declare`; a backend that cannot create is refused with
    `CONTENT_ESTABLISH_UNSUPPORTED`; a placement already holding entries is
@@ -2566,7 +2569,11 @@ A repository MAY allow one person to decide their own change, up to a scope it
 declares. This is the one exception `patterns/approval` names to its separation
 of duties, and it is bounded there as it is here. `self_decision_ceiling` on
 the repository's declaration is the highest `ScopeLevel` at which it is
-allowed:
+allowed, and it is never `critical`: `patterns/approval` Design Principle 2
+requires a different approver for a critical change and makes that not
+configurable, so a declaration naming `critical` is refused with
+`CONTENT_SEPARATION_REQUIRED`. A `critical` change is therefore never
+self-decided, whatever a repository declares:
 
 - **Absent**, the default: a requester's decision to apply is refused with
   `CONTENT_SEPARATION_REQUIRED`.
@@ -3187,7 +3194,7 @@ types:
         required: false
         description: The highest scope at which a requester may apply their own
           proposal, recording separation self. Absent means no requester may.
-          Fixed at declaration
+          Never critical. Fixed at declaration
       scope_floor:
         type: ScopeLevel
         required: false
@@ -3328,9 +3335,10 @@ types:
         type: ScopeLevel
         required: false
         description: The highest scope at which a requester may apply their own
-          proposal. Absent means no requester may. Declaring it requires
-          content:decide as well as content:declare, so only a person declares
-          it. Not configurable
+          proposal, and never critical, which is refused with
+          CONTENT_SEPARATION_REQUIRED. Absent means no requester may. Declaring
+          it requires content:decide as well as content:declare, so only a
+          person declares it. Not configurable
       scope_floor:
         type: ScopeLevel
         required: false
@@ -5083,6 +5091,7 @@ security:
 - [ ] The service's own manifest declares none of `content:write`, `content:decide`, `content:replicate` and `content:connect`, and its registration succeeds
 - [ ] A declaration carrying `self_decision_ceiling` from a caller holding `content:declare` and not `content:decide` is refused, and no repository is recorded
 - [ ] A decider whose token's `cap` names `content:decide` and not `content:write` applies a proposal, and the write is recorded; the same token is refused with `FORBIDDEN` at `PUT /v1/content/entry`
+- [ ] A declaration whose `self_decision_ceiling` is `critical` is refused with `CONTENT_SEPARATION_REQUIRED` and no repository is recorded; one at `restricted` is declared, and a requester's decision to apply a `critical` change in it is refused with `CONTENT_SEPARATION_REQUIRED`
 - [ ] A declaration carrying `scope_floor` from a caller holding `content:declare` and not `content:decide`, a registered component's included, is refused with `FORBIDDEN`, and no repository is recorded
 - [ ] A declaration carrying `self_decision_ceiling` or `scope_floor` on a token whose operator was removed after it was minted is refused with `OPERATOR_REVOKED`, and one made while the orchestrator cannot be asked is refused with `CONTENT_TOKEN_UNCHECKED`; neither records a repository
 - [ ] An adoption of a store whose census reports `keeps_history`, confirmed with the census digest and carrying no `scope_floor`, is refused with `CONTENT_SCOPE_UNDECLARED`, returns the census, and declares nothing; the same adoption carrying a `scope_floor` at or above the census's `highest_scope` is declared
