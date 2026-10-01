@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.8.1
-requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin]
+version: 2.8.2
+requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
 -->
@@ -143,6 +143,22 @@ declaration:
           - name: operator-credential-revocation
           - name: operator-key-change
           - name: operator-roles
+      on_change:
+        compatible: validate-and-adopt
+        breaking: version-bump
+        removed: halt-immediately
+    - blueprint: patterns/scope
+      version: ">=2.2.0 <3.0.0"
+      bindings:
+        types:
+          # An enum: it declares values, not fields, so nothing is bound FROM it.
+          - name: ScopeLevel
+          - name: ProviderAgreement
+            fields_used: [id, party, backends, component, agreement, agreement_digest, level, recorded_by, recorded_at, not_after, withdrawn_by, withdrawn_at]
+          - name: ProviderCeiling
+            fields_used: [backend, ceiling, agreement, not_after, address]
+          - name: DestinationRefusal
+            fields_used: [destination, ceiling, items]
       on_change:
         compatible: validate-and-adopt
         breaking: version-bump
