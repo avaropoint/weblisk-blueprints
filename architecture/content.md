@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.14.5
-requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
+version: 2.15.0
+requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
 -->
@@ -186,6 +186,17 @@ requires:
           fields_used: [seq, tip, issued_at, key, signature]
       behaviors:
         - name: sealed-log
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/orchestrator
+    version: ">=2.6.0 <3.0.0"
+    bindings:
+      endpoints:
+        # Asked before every act only a person may perform. See Who may move an entry
+        - path: /v1/token/check
+          methods: [POST]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -650,9 +661,9 @@ code here is enough, because a client does the same thing for both.
 |---|---|---|---|
 | `CONTENT_PRECONDITION_FAILED` | conflict | `if_match` does not equal the identity of what it names — an entry's stored digest on a write or a proposal, a placement's census digest on an adoption, a replica census's digest, over what would leave and where it would go, on a replica declaration, a proposal's `before` on a decision to apply it. The empty string where an entry exists, on a write, a proposal to create, or a decision to apply one | Refuse. Return both digests. Never merge, never overwrite, never adopt. On a decision to apply, record the proposal `stale` and write nothing |
 | `CONTENT_IF_MATCH_REQUIRED` | validation | A write, a removal or a proposal arrived with no `if_match`. The empty string is a precondition, not its absence | Refuse. A write with no precondition is a blind overwrite, and a proposal with none cannot be told stale |
-| `CONTENT_CUSTODY_CEILING_EXCEEDED` | policy | Declared scope exceeds the repository ceiling, or something a replica would receive exceeds that replica's ceiling, or a records repository's derived ceiling is below `restricted` | Refuse, naming required and actual, and on a replica each path above it. Never downgrade the scope |
+| `CONTENT_CUSTODY_CEILING_EXCEEDED` | policy | Declared scope exceeds the repository ceiling, or something a replica would receive exceeds that replica's ceiling, or a records repository's derived ceiling is below `restricted`, or a declaration's `scope_floor` is above the ceiling derived at declaration. See [`scope_floor`](#scope_floor-covers-what-declares-nothing) | Refuse, naming required and actual, and on a replica each path above it. Never downgrade the scope |
 | `CONTENT_RECORDS_REPOSITORY_REQUIRED` | policy | A write or a proposal whose bytes carry the label `pii`, into a repository that is not a records repository. See [Where an entry labelled `pii` is kept](#where-an-entry-labelled-pii-is-kept) | Refuse, naming the path and the `scope_path`'s records repository where there is one. Nothing is written, and the label is never dropped to fit |
-| `CONTENT_SCOPE_LOWERED` | policy | A write or a proposal declares a scope below its path's recorded scope, below the scope its own bytes declare, or below the `maps_to` of a label its bytes carry that the tenant registers, or declares none where a recorded scope, the bytes or such a label give one; or its bytes declare a scope below the path's recorded scope. A removal never ends a recorded scope, so this also refuses a path created again below the scope last recorded for it. See [An Entry's Scope](#an-entrys-scope) | Refuse, naming both levels and where each was declared. Never record the lower scope, and never raise the declared one to fit |
+| `CONTENT_SCOPE_LOWERED` | policy | A write or a proposal declares a scope below its path's recorded scope, below the scope its own bytes declare, or below the `maps_to` of a label its bytes carry that the tenant registers, or declares none where a recorded scope, the bytes or such a label give one; or its bytes declare a scope below the path's recorded scope. A removal never ends a recorded scope, so this also refuses a path created again below the scope last recorded for it. An adoption whose `scope_floor` is below the census's `highest_scope` is refused with it too. See [An Entry's Scope](#an-entrys-scope) and [`scope_floor`](#scope_floor-covers-what-declares-nothing) | Refuse, naming both levels and where each was declared. Never record the lower scope, and never raise the declared one to fit |
 | `SCOPE_INVALID_LEVEL` | validation | A write or a proposal declares a scope, on the change or under `scope:` or `classification:` in its bytes, that is not a `ScopeLevel`. The code is [`patterns/scope`](../patterns/scope.md#scope-related-errors)'s | Refuse, naming where the value was found and the value |
 | `CONTENT_CUSTODY_UNDECLARED` | policy | Repository has no declared custody | Treat as `opaque`, apply the `internal` ceiling, and record the degradation |
 | `CONTENT_PATH_REFUSED` | validation | Traversal segment or escaping symlink — including a placement locator that is absolute, carries a scheme or an authority, or climbs out of its backend's root | Refuse the request as written. Do not normalise and proceed |
@@ -932,7 +943,7 @@ code here is enough, because a client does the same thing for both.
    store's, and each replica's that is not retired, with its `anonymous_read`
 2. A property that cannot be demonstrated becomes `false`
 3. The backend reports any copy of the store it can see that no replica
-   declares
+   declares, and each one not yet in `reported_copies` is added to it
 4. The ceiling is recomputed from every place the bytes live (see
    [Effective custody](#effective-custody))
 5. If the ceiling dropped, `content.custody_degraded` is published naming the
@@ -2256,9 +2267,13 @@ places.
   declared is trusted no more than a replica declared at the same place
   would be. Effective custody becomes `opaque`, the ceiling becomes
   `public`, and `content.custody_degraded` is published naming the content
-  now above it. So a store whose history may have been sent to a place such
-  as a public forge accepts nothing above `public` while the copy is
-  reported.
+  now above it. A copy once reported counts for good, as a retired replica
+  does: the repository records where it was seen, in `reported_copies`, and a
+  later report that no longer names it removes nothing, because what was
+  copied there may still be read. So a store whose history may have been
+  sent to a place such as a public forge accepts nothing above `public` from
+  the first report of that copy, and removing the remote that pointed there
+  does not raise the ceiling again.
 
 **A replica counts from the moment it is confirmed** (Replica Declaration
 Flow, step 11), whether or not anything has reached its destination, and it
@@ -3169,8 +3184,8 @@ types:
         required: true
         description: The most permissive custody of any place the bytes live
           — the store, every replica that has been confirmed, retired or not,
-          and any copy the backend reports that no replica declares. Equal to
-          custody for a repository with no replica
+          and every copy in reported_copies. Equal to custody for a repository
+          with no replica and no reported copy
       attestations:
         type: CustodyAttestations
         required: true
@@ -3214,6 +3229,14 @@ types:
           says it reports about the store — its control state, and whether the
           store is as the service left it — in the form that blueprint
           declares. Absent when that blueprint declares none
+      reported_copies:
+        type: "[]string"
+        required: false
+        description: Where each copy of the store that no replica declares was
+          seen, as the backend's report named it, in the order first reported.
+          Only ever added to. A copy the backend stops reporting stays, as a
+          retired replica does, because bytes that have left have left. See
+          Effective custody
 
   CustodyAttestations:
     description: What a repository can demonstrate. Unknown is recorded as false
@@ -5124,6 +5147,7 @@ security:
 - [ ] An out-of-band edit, after a replica's census, to an entry whose path has a recorded scope is classified at that scope, or at the higher scope its bytes declare, and is sent when that is at or below the replica's ceiling
 - [ ] A version recorded after a replica was confirmed that holds a path under `.weblisk`, anywhere in what it holds, holds the replica `behind` with `held_reason` `reserved-path` naming that path; it is never sent, and nothing recorded after it is sent
 - [ ] A backend's report of a copy of the store that no replica declares makes `effective_custody` `opaque`, lowers `ceiling` to `public`, as a replica declared at a place that demonstrated nothing would, and publishes `content.custody_degraded`; a write at `internal` is then refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
+- [ ] A copy the backend reported once and no longer reports stays in `reported_copies`; `effective_custody` stays `opaque` and `ceiling` stays `public`, and a write at `internal` is still refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
 - [ ] No configuration key declares a replica, and a configuration file naming one declares nothing
 - [ ] Every write, removal and applied proposal appends exactly one `change` entry to its repository's change log, and every observation of state `changed` or `removed` one `observe` entry; an observation of state `unknown` appends nothing
 - [ ] A repository's first log entry has `act` `declare` and `seq` 1, records its `self_decision_ceiling`, its `scope_floor` and, on adoption, every entry the census found; the SHA-256 of its stored line is the `log` its `LogHead` reports

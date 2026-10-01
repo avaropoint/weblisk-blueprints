@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.10.2
+version: 2.11.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -662,7 +662,7 @@ See [Lifecycle](lifecycle.md) for the continuous optimization loop.
 | POST | /v1/rotate-key | RotateKey | yes | Rotate an agent's ML-DSA-65 key pair. Dual-signed with the current and the new key, which proves possession of both; the caller's existing token still authenticates the request |
 | GET | /v1/health | Health | no | Orchestrator and hub health |
 | GET | /v1/audit | Audit | yes | Query audit log |
-| POST | /v1/token/check | TokenCheck | yes | Tell a registered component whether an operator token presented to it is still live — see [Token Check](#token-check-post-v1tokencheck) |
+| POST | /v1/token/check | TokenCheck | yes | Tell a registered component, on its registration token and no other, whether an operator token presented to it is still live — see [Token Check](#token-check-post-v1tokencheck) |
 | GET | /v1/model/ceiling | ModelCeiling | yes | What a model backend may be sent now, and where it is reached, for a registered component (platform-provided — see [A model is a destination](#a-model-is-a-destination)) |
 
 \* Registration uses ML-DSA-65 identity verification instead of tokens — there is
@@ -727,7 +727,8 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 The model routes are marked `provided: platform` in the declaration. They are
 NOT generated: the CLI installs them after generation, and they intercept their
 own paths ahead of the generated router. A hub MUST serve all of them as this
-section specifies; today's CLI serves four, ungated
+section specifies; today's CLI serves four, authorised as the table says and
+with no destination gate
 ([A model is a destination](#a-model-is-a-destination), the gap note).
 
 They are the tenant's model surface. The CLI installs them because they read
@@ -772,8 +773,8 @@ the gate here is as good as the caller: that is why
 [`patterns/scope`](../patterns/scope.md#the-gate) binds every sender, a client
 included.
 
-> **Gap — the CLI's gateway serves four of these nine routes, and gates
-> none.** The model gateway the CLI installs today serves `GET` and
+> **Gap — the CLI's gateway serves four of these nine routes, with no
+> destination gate.** The model gateway the CLI installs today serves `GET` and
 > `PUT /v1/admin/model`, `GET /v1/admin/model/providers` and
 > `POST /v1/admin/complete`. It does not serve the three agreement routes,
 > `GET /v1/admin/model/ceiling` or `GET /v1/model/ceiling`, and being
@@ -813,6 +814,17 @@ withdrawn only on a person's operator token holding `model:attest`, which
   withdrawn changes nothing and returns it as recorded.
 - `GET /v1/admin/model/agreements` lists every agreement, withdrawn and lapsed
   ones included, so a person can see what was attested and when it ended.
+- **`PUT /v1/admin/model` withdraws what it could carry past an agreement.**
+  An agreement binds a name, never what the name reaches
+  ([`patterns/scope`](../patterns/scope.md#model-providers)). So a request
+  that changes the tenant's model backend withdraws, in the same write, every
+  current agreement listing the name the request sets, setting
+  `withdrawn_by` from the request's token and `withdrawn_at`, and its answer
+  names each one withdrawn. A request that keeps the name the configuration
+  held and changes nothing but which model that backend is asked for
+  withdraws nothing. Without this, a token narrowed for administration,
+  carrying `admin:*` and not `model:attest`, could point a listed name at a
+  party nobody attested and raise that party to the agreement's level.
 - `GET /v1/admin/model/ceiling` returns a `ProviderCeiling` for the backend
   `GET /v1/admin/model` reports, or for the name `?backend=` gives. It is
   what a client reads before it sends.
@@ -1185,9 +1197,17 @@ that role carries now, never beyond the token's `cap`; or `live: false` with
 the code it would refuse the token with on its own routes. A token it cannot
 judge is never reported live.
 
-The caller authenticates with its own token, which Auth Middleware judges as
-for any route outside `/v1/admin/`. The route writes nothing and is not
-audited: it is a read of the orchestrator's own records.
+The caller authenticates with its own registration token, which Auth
+Middleware judges as for any route outside `/v1/admin/`. Only a registration
+token may ask: one with no `type` and no `cid`, whose `sub` is a component
+registered here now and whose `identity_id` is that registration's
+([`protocol/identity`](../protocol/identity.md#payload-claims)). An operator
+token and a channel token are refused with `FORBIDDEN`, and an attestation
+token never gets this far (Auth Middleware step 5). The answer names an operator's identity public key, role and
+capabilities, and a component asks so that it can act on a token presented to
+it; a person's console, or the holder of a channel, has no such act to
+perform. The route writes nothing and is not audited: it is a read of the
+orchestrator's own records.
 
 ---
 
@@ -1492,6 +1512,7 @@ agents hold, which is theirs.
 - [ ] `/v1/admin/overview` reports figures owned by undeployed components as unavailable, never as zero
 - [ ] `POST /v1/admin/complete` with no `scope` is refused with `SCOPE_MISSING`, one above the ceiling `GET /v1/admin/model/ceiling` reports for the backend is refused with `SCOPE_CEILING_EXCEEDED`, and one at `restricted` is refused whatever the ceiling; none of them runs a backend
 - [ ] `POST /v1/admin/model/agreements` and `DELETE /v1/admin/model/agreements/{id}` refuse a token without `model:attest` with `FORBIDDEN`, including one holding `admin:*`, and a service's or an agent's token with `CREDENTIAL_REQUIRED`
+- [ ] A `PUT /v1/admin/model` on a token carrying `admin:*` and not `model:attest` that points a name a current agreement lists at another backend withdraws that agreement, names it in its answer, and `GET /v1/admin/model/ceiling` then answers that name `internal`; one that keeps the name and changes only the model withdraws nothing
 - [ ] A recorded agreement's `recorded_by` is the token's `identity_id`, whatever the body says
 - [ ] An agreement whose `level` is `restricted` is refused with `MODEL_AGREEMENT_LEVEL_REFUSED`, one whose `not_after` is 91 days ahead with `MODEL_AGREEMENT_LAPSE_INVALID`, and one listing a backend a current agreement lists with `MODEL_AGREEMENT_EXISTS`
 - [ ] `GET /v1/admin/model/ceiling` answers `internal` for a backend no current agreement lists, and `internal` again once the agreement that listed it lapses or is withdrawn
@@ -1500,3 +1521,4 @@ agents hold, which is theirs.
 - [ ] Every platform-provided model route is authorised by the orchestrator's own judgement of the caller's token, and a `/v1/admin/*` one refuses an agent token with `CREDENTIAL_REQUIRED`
 - [ ] `POST /v1/token/check` reads the caller's token from its `Authorization` header only: with no header it answers 401 whatever the body holds, and a body with no `subject_token` is refused with 400 `INVALID_REQUEST`
 - [ ] `POST /v1/token/check` answers `live: false` with `OPERATOR_REVOKED` for a token minted before its operator was removed, with `CREDENTIAL_REVOKED` after its credential was revoked, and with `TOKEN_EXPIRED` past `exp`; and, for a live token, the capabilities the operator's role carries now, so a role lowered since the token was minted is reported lowered
+- [ ] `POST /v1/token/check` called with an operator token or a channel token in its `Authorization` header is refused with `FORBIDDEN`, and with an attestation token with `CREDENTIAL_REQUIRED`, and discloses nothing about `subject_token`; called with a registered component's registration token it answers

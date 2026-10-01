@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.4.4
+version: 2.5.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -507,14 +507,18 @@ an **agreement attestation** for it.
   that way, one the tenant's model configuration does not know included. A
   backend is listed by at most one current agreement.
 - **What an agreement does not bind.** It binds a name, never what the name
-  reaches. Changing what a listed name reaches, the tenant's model backend
-  through `PUT /v1/admin/model` or an api-ai `providers:` entry's endpoint,
-  keeps the agreement's level and records no new attestation, so content up
-  to the agreement's level would go to a party no agreement covers. Nothing
-  here detects that. Until an agreement records what each name it lists
-  reaches and a change to it lapses the agreement, whoever changes what a
-  listed name reaches withdraws that agreement first, and the tenant cannot
-  check that they did.
+  reaches. So changing what a listed name reaches ends the agreement where
+  the tenant can see the change. The orchestrator holds both the model
+  configuration and the agreements, and `PUT /v1/admin/model` withdraws every
+  current agreement listing a name whose backend the request changes
+  ([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)),
+  so the name falls to `internal` until a person holding `model:attest`
+  records a new one. An api-ai `providers:` entry is configured where the
+  orchestrator cannot see it: changing its endpoint keeps the agreement's
+  level, and content up to that level would go to a party no agreement
+  covers. Until an agreement records what each name it lists reaches, whoever
+  changes a listed `providers:` entry withdraws that agreement first, and the
+  tenant cannot check that they did.
 - **Who records it.** A person, on their own operator token, holding
   `model:attest`. [`protocol/types`](../protocol/types.md) marks it *person
   only*, and the mechanism that list names keeps it from every service
@@ -763,7 +767,7 @@ types:
       - name: backend
         type: string
         required: true
-        description: The name the tenant's model configuration gives the backend
+        description: The name asked about — the backend GET /v1/admin/model reports, or the name ?backend= gave, which may be an api-ai providers key the tenant's model configuration does not know
       - name: ceiling
         type: ScopeLevel
         required: true
@@ -789,7 +793,7 @@ types:
       - name: destination
         type: string
         required: true
-        description: The destination refused — a replica's id, or a model backend's name
+        description: The destination refused, as the gate that refused it names it — a replica's id, a model backend's or an api-ai provider's name, `mcp` for the caller of a hub's MCP surface, or the target an external boundary refused
       - name: ceiling
         type: ScopeLevel
         required: true
@@ -1518,6 +1522,7 @@ a destination carries a `DestinationRefusal` as its detail.
 - [ ] The destination gate denies in every environment profile, `development` included, and no profile makes it audit-only
 - [ ] A model provider with no current agreement attestation has the ceiling `internal`, and a `confidential` request to it is refused with `SCOPE_CEILING_EXCEEDED`
 - [ ] A `ProviderAgreement` is recorded or withdrawn only on a person's operator token holding `model:attest`; a token holding `admin:*` and not `model:attest` is refused; one naming a level above `confidential`, or a `not_after` more than 90 days ahead, is refused; and after `not_after` or withdrawal the provider's ceiling is `internal`
+- [ ] A `PUT /v1/admin/model` that changes the backend a name a current agreement lists reaches withdraws that agreement, and the ceiling routes then answer that name `internal`; one that keeps the name and changes only the model asked for withdraws nothing
 - [ ] A backend is found by the name the tenant's model configuration spells, and a name no current agreement lists has the ceiling `internal`
 - [ ] Nothing `restricted` or `critical` is sent to a model provider, whatever its ceiling, a model the tenant runs itself included
 - [ ] Any part of a content entry is sent at that entry's `ContentEntry.scope`, and any part of an unclassified entry is refused with `SCOPE_MISSING`

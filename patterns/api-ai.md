@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: api-ai
-version: 2.1.2
-requires: [protocol/types, patterns/scope, architecture/agent, architecture/gateway]
+version: 2.2.0
+requires: [protocol/types, patterns/scope, architecture/agent, architecture/gateway, architecture/orchestrator]
 platform: any
 tier: free
 -->
@@ -67,6 +67,17 @@ requires:
       types:
         - name: Route
           fields_used: [path, methods, rate_limit]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/orchestrator
+    version: ">=2.7.0 <3.0.0"
+    bindings:
+      endpoints:
+        # Read before every send. See Destination Ceilings
+        - path: /v1/model/ceiling
+          methods: [GET]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -810,8 +821,10 @@ the chosen provider's ceiling:
   fallback chain, a failover, a downgrade and an override alike. When
   none does, the request is refused with `SCOPE_CEILING_EXCEEDED`.
 
-Each refusal carries a `DestinationRefusal` naming each provider
-considered and its ceiling, and sends nothing. The gate is never
+Each refusal carries one `DestinationRefusal`, naming the provider the
+router chose first, by resolution or the caller's override, and that
+provider's ceiling. Where the router considered others, none of them covered
+`scope` either, and the refusal does not list them. It sends nothing. The gate is never
 audit-only, in any environment profile. A request is never moved to a
 provider whose ceiling is below its `scope`, and never with its
 content cut down to fit. When a request is served by a provider other
