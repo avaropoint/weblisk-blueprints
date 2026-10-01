@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.15.2
+version: 2.15.3
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -2046,7 +2046,14 @@ The auth endpoints MUST be rate-limited, before any signature is verified:
   tokens and `POST /v1/admin/operators/{name}/key`, none of which carries an
   operator token to count against. Each verifies an ML-DSA-65 signature, and
   the key-change route admits a request with no token at all, so an
-  unlimited one is an oracle and a cost anybody can impose
+  unlimited one is an oracle and a cost anybody can impose. A **source** is
+  the client's IP address, as
+  [`patterns/rate-limiting`](../patterns/rate-limiting.md#identification-keys)
+  derives the IP key: the connection's address, or `X-Forwarded-For` only
+  where it comes from a proxy the hub is configured to trust. Never a name,
+  `cid` or key in the request, which whoever sends it chooses. Each route is
+  counted on its own, so a person minting a token is never refused for
+  having changed a key
 
 The rest SHOULD be:
 - Read endpoints: 60 requests/minute per operator
@@ -2154,6 +2161,7 @@ The rest SHOULD be:
 - [ ] An admin's token minted with `cap` `[admin:read]` carries `admin:read`, reaches a `viewer+` route and `POST /v1/admin/complete`, and is refused with `FORBIDDEN` on an `admin` route such as `PUT /v1/admin/operators/{name}/role`
 - [ ] An operator-role token minted with `cap` `[admin:*]` carries `admin:read`, `admin:approve` and `admin:strategy`, and not `admin:*` or `admin:audit`
 - [ ] A token presented in the request body rather than the `Authorization` header is refused on every `/v1/admin/*` route
+- [ ] A sixth `POST /v1/admin/credentials/token` within a minute from one client address is refused before its signature is verified, whatever `cid` each names, while requests from another address, and to `POST /v1/admin/operators/{name}/key` from the same one, are not
 - [ ] Bootstrap event (first operator registration) is permanently recorded in the audit log
 - [ ] WebSocket /v1/admin/ws provides real-time status updates for agent changes, approvals, and workflow completions
 - [ ] Admin gateway and application gateway share NO session state, cookie domain, or network listener
