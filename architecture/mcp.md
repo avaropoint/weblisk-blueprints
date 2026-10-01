@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: mcp
-version: 1.0.2
+version: 1.1.0
 requires: [protocol/types, protocol/spec, architecture/agent, architecture/gateway, patterns/scope, patterns/safety]
 platform: any
 tier: free
@@ -69,6 +69,14 @@ requires:
       removed: halt-immediately
   - blueprint: patterns/scope
     version: ">=2.0.0 <3.0.0"
+    bindings:
+      types:
+        # An enum: it declares values, not fields, so nothing is bound FROM it.
+        - name: ScopeLevel
+        - name: DestinationRefusal
+          fields_used: [destination, ceiling, items]
+        - name: DestinationItem
+          fields_used: [ref, scope]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -179,8 +187,37 @@ reflects it without redeployment.
    declared is rejected rather than passed through.
 5. The operation passes the safety gate, which may permit, require approval, or refuse.
 6. The action executes as an agent action, under the caller's resolved scope.
-7. The result is rendered back in MCP's vocabulary, and the call is audited with the
+7. The result passes the destination gate ([The destination gate](#the-destination-gate)).
+   A result it refuses is not returned, in whole or in part.
+8. The result is rendered back in MCP's vocabulary, and the call is audited with the
    principal, the tool, the outcome and the time.
+
+### The destination gate
+
+A tool result leaves the tenant. The caller is a model, or software that hands
+what it is given to one, and a model is a destination with a ceiling
+([`patterns/scope`](../patterns/scope.md#destination-ceilings)). The caller's
+model provider is whoever the caller chose, and the hub cannot see who that is,
+so no agreement can name it: **an MCP caller's ceiling is `internal`**, always,
+whatever the caller's credential and whatever agreement the tenant has recorded
+for its own model backends.
+
+Before a result is returned, the surface applies
+[`patterns/scope`](../patterns/scope.md#the-gate)'s gate to it with that
+ceiling. The result's scope is the highest scope of everything it carries, as
+the action reported it, never the surface's own reading of the text:
+
+- **Undeclared.** A result that carries anything whose scope the action did
+  not report is refused with `SCOPE_MISSING`.
+- **Above the ceiling.** A result whose scope is above `internal`, and so every
+  one that carries any part of a `restricted` or `critical` entry, is refused
+  with `SCOPE_CEILING_EXCEEDED`.
+
+Each refusal carries a `DestinationRefusal` naming the destination `mcp`, the
+ceiling `internal`, and each item that set it off, and returns nothing of the
+result. The surface never trims a result to fit, as the gate forbids. A
+mutating tool's action has already run when its result is refused: the refusal
+withholds what it returned, never what it did, and the audit records both.
 
 ---
 
@@ -202,6 +239,10 @@ reflects it without redeployment.
 7. **The caller is untrusted input, and so is everything it was told.** An external agent
    may be relaying instructions from a document, a web page or another model. The surface
    trusts the credential, never the argument.
+8. **What is returned has left.** A tool result reaches a model the hub did not choose,
+   so it passes the same destination gate as anything sent to a model provider, at a
+   ceiling no agreement raises. A credential that may read something does not make the
+   caller a place it may be sent.
 
 ---
 
@@ -330,6 +371,11 @@ security:
     - rule: Every invocation is attributable
       mechanism: Audit records principal, tool, arguments' declared names,
         outcome and time
+    - rule: No tool result above internal, or with an undeclared scope, is
+        returned to a caller
+      mechanism: patterns/scope's destination gate applied to every result with
+        the ceiling internal, refusing with SCOPE_MISSING or
+        SCOPE_CEILING_EXCEEDED and returning nothing of the result
     - rule: An error discloses nothing about the hub's internals
       mechanism: Structured errors from the declared set; no internal identifier,
         query or stack detail crosses the boundary
@@ -366,3 +412,7 @@ security:
 - [ ] Every invocation MUST pass the safety gate before execution
 - [ ] Every invocation MUST produce an audit entry naming principal, tool, outcome and time
 - [ ] An error response MUST NOT contain an internal identifier, query, or stack detail
+- [ ] A read tool whose result carries a row of a `restricted` register is refused with `SCOPE_CEILING_EXCEEDED`, carrying a `DestinationRefusal` with ceiling `internal`, and returns no row of it, whatever the caller's credential may read
+- [ ] A tool result that carries an entry whose scope the action did not report is refused with `SCOPE_MISSING`, and nothing of it is returned
+- [ ] A tool result at `confidential` is refused although the tenant has recorded an agreement at `confidential` for its own model backend
+- [ ] A mutating tool whose result is refused still records its action and its outcome in the audit, and returns nothing of the result

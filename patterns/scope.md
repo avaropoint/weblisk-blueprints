@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.3.0
+version: 2.4.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -340,6 +340,7 @@ read:
 |---|---|---|
 | A replica of a content repository | [`architecture/content`](../architecture/content.md#derived-scope-ceiling), Derived Scope Ceiling | `GET /v1/content/repositories/{repository}/replicas` |
 | A model provider | [Model providers](#model-providers), below | `GET /v1/admin/model/ceiling` on a person's token, and `GET /v1/model/ceiling` on a registered component's ([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)) |
+| A caller of a hub's MCP surface | Always `internal`, as [`architecture/mcp`](../architecture/mcp.md#the-destination-gate) says: its caller is a model whose provider the tenant cannot see, so it is a model provider no agreement can name | Not read by a client: the MCP surface applies it to every tool result |
 
 ### The gate
 
@@ -421,6 +422,10 @@ has with nothing demonstrated or attested.
   which recognises the endpoint by the address `GET /v1/model/ceiling` reports,
   applies the gate with the provider's ceiling, and refuses a call made around
   the model route.
+- A tool result is checked by a hub's MCP surface before it is returned to
+  its caller, as [`architecture/mcp`](../architecture/mcp.md#the-destination-gate)
+  says. Its caller is a model, so nothing `restricted` or above is returned
+  to one ([Model providers](#model-providers)).
 - A replica is checked by the content service, when it is declared and before
   every send, as [`architecture/content`](../architecture/content.md#replicas)
   says.
@@ -482,10 +487,11 @@ an **agreement attestation** for it.
   is `internal` again.
 
 **Nothing `restricted` or above is sent to a model provider, whatever its
-ceiling,** a model the tenant runs itself included. That is why an agreement
-names `confidential` at most. A request that carries any part of an entry
-whose `ContentEntry.scope` is `restricted` or `critical` is refused, whichever
-of its rows, sections or columns the request drew on.
+ceiling,** a model the tenant runs itself and the model behind an MCP caller
+included. That is why an agreement names `confidential` at most. A request
+that carries any part of an entry whose `ContentEntry.scope` is `restricted`
+or `critical` is refused, whichever of its rows, sections or columns the
+request drew on.
 
 ---
 
