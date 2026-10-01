@@ -907,6 +907,19 @@ entry labelled `pii` may be kept. So, in this order:
 A repository that is not declared accepts no write, so install never writes
 into a store ahead of its declaration.
 
+**Install is a person's act.** Step 2's declaration carries a `scope_floor`,
+which needs `content:decide`, and step 3's writes need `content:write`, and
+both are *person only*, checked live on a person's operator token
+([`architecture/content`](../architecture/content.md#who-may-move-an-entry)).
+So whatever installs a programme does steps 2 and 3 on the token of the
+person installing it, and step 1 too wherever that declaration carries a
+`scope_floor`, as an adoption of a store that keeps history must. A service
+or an agent that installs on its own declares nothing that carries a floor
+and writes nothing: it stages each document as a proposal
+(`content:propose`) into a repository a person has declared, and a person
+decides them. Until a person does, the programme is not installed, and
+install reports so rather than reporting success.
+
 Placed anywhere else, every write to a record holding `pii` is refused with
 `CONTENT_RECORDS_REPOSITORY_REQUIRED` from the moment the repository it sits in
 is declared, and the obligation that records into it records nothing. A row written before the record moved stays in the
