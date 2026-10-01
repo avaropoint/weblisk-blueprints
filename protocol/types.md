@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.12.0
+version: 1.12.1
 requires: []
 platform: any
 tier: free
@@ -2805,8 +2805,9 @@ types:
 
 ### KeyRotationRequest
 
-[`protocol/identity`](identity.md#key-rotation)'s, and defined there alone. A
-blueprint that uses it binds it from `protocol/identity`.
+[`protocol/identity`](identity.md#types)'s, and defined there alone, for
+[agent key rotation](identity.md#rotation-flow). A blueprint that uses it binds
+it from `protocol/identity`.
 
 ---
 
