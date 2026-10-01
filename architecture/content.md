@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.14.0
+version: 2.14.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -1728,7 +1728,13 @@ ends when the operation does.
 ### Creating is not declaring
 
 `establish` requires `content:declare` **and** `content:establish`. `adopt`
-requires `content:declare` alone.
+does not need `content:establish`. It needs `content:declare` alone only where
+the declaration carries neither `scope_floor` nor `self_decision_ceiling`; one
+carrying either also needs `content:decide`, checked live
+([Declaration Flow](#declaration-flow) step 4). An adoption whose census
+reports `keeps_history` must carry a `scope_floor`, so adopting a store that
+keeps history, every git store included, is a person's act
+([`scope_floor` covers what declares nothing](#scope_floor-covers-what-declares-nothing)).
 
 The argument that split `content:declare` off `content:write` was that writing a
 document and deciding which stores a tenant governs are different acts by
@@ -5004,7 +5010,8 @@ security:
 - [ ] A repeated `establish` differing in `placement`, `custody` or `attestations` is refused with `CONTENT_REPOSITORY_EXISTS`, and the reserved declaration is unchanged
 - [ ] A repeated `establish` with identical arguments against a repository already `declared` is refused with `CONTENT_REPOSITORY_EXISTS` and is not treated as a no-op
 - [ ] A resumed `establish` whose store has since been written to is refused with `CONTENT_NOT_EMPTY`, and the entries are neither adopted nor touched
-- [ ] A caller holding `content:declare` and not `content:establish` is refused `disposition: establish` and succeeds at `disposition: adopt`
+- [ ] A caller holding `content:declare` and not `content:establish` is refused `disposition: establish` and succeeds at `disposition: adopt` of a store whose census does not report `keeps_history`, with a declaration carrying neither `scope_floor` nor `self_decision_ceiling`
+- [ ] A caller holding `content:declare` and not `content:decide`, a registered component's included, cannot adopt a store whose census reports `keeps_history`: confirmed with the census digest and without a `scope_floor` it is refused with `CONTENT_SCOPE_UNDECLARED`, with one it is refused with `FORBIDDEN`, and no repository is recorded either way
 - [ ] A configured repository already `declared` with the same `id`, `scope_path` and `placement` is reconciled on every subsequent start — nothing is created, nothing is refused, and health does not report `degraded` for it
 - [ ] A configured repository left `establishing` by a crashed boot is resumed on the next start with no operator action
 - [ ] With an orchestrator URL configured, a failed registration is fatal

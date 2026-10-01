@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.11.0
+version: 1.11.1
 requires: []
 platform: any
 tier: free
@@ -354,9 +354,9 @@ types:
 - `content:read` — read entries and list a content repository, read the proposals made against it, and read its change log
 - `content:write` — create, modify and remove entries directly. *Person only*
 - `content:propose` — stage a change to one entry for a person to decide. Writes nothing
-- `content:decide` — apply or reject a proposed change. *Person only*
+- `content:decide` — apply or reject a proposed change, and, beside `content:declare`, declare a repository's `self_decision_ceiling` or `scope_floor`. *Person only*
 - `content:describe` — read a repository's custody class, attestations and derived ceiling, its replicas, and its change log's head, and have that log sealed
-- `content:declare` — bring a store under governance. Sufficient to adopt one that already holds bytes; establishing a new one also needs `content:establish`
+- `content:declare` — bring a store under governance. Adopting one that already holds bytes needs it alone only where the census does not report `keeps_history` and the declaration carries neither `scope_floor` nor `self_decision_ceiling`; adopting a store that keeps history must carry a `scope_floor`, so it also needs `content:decide`. Establishing a new store also needs `content:establish`
 - `content:establish` — create a store and declare it. Required in addition to `content:declare` for `disposition: establish`; adoption does not need it
 - `content:reconcile` — run custody reconciliation on a shared repository
 - `content:replicate` — declare a replica of a repository, and retire one. Declaring one also needs `content:connect`. *Person only*
