@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.8.4
+version: 1.8.5
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -72,7 +72,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.5.0 <2.0.0"
+    version: ">=1.12.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -1015,15 +1015,16 @@ credential revocation, which costs nothing else.
 44. Whatever a hub issues on the strength of an identity signature submits an
     attestation for that identity and is refused for every other request.
 45. A grant to a service subject carrying any person-only capability —
-    `content:write`, `content:decide`, `content:replicate`, `content:connect`
-    or `model:attest` — is refused at issue with `capability_person_only`.
-46. An `AgentAuthorization` naming any of those five is refused with
+    `content:write`, `content:decide`, `content:replicate`, `content:connect`,
+    `model:attest` or `fabric:attest` — is refused at issue with
+    `capability_person_only`.
+46. An `AgentAuthorization` naming any of those six is refused with
     `capability_person_only`, so an agent acting under a subject who holds
     `content:write` cannot write an entry directly.
-47. A service subject whose role comes to carry any of those five after its
+47. A service subject whose role comes to carry any of those six after its
     grant was issued is refused a token with `capability_person_only`, and is
     never issued one with the capability removed.
-48. A registration whose manifest declares any of those five is refused with
+48. A registration whose manifest declares any of those six is refused with
     `capability_person_only`, whose wire form is `CAPABILITY_PERSON_ONLY`, and
     no token is issued.
 49. An attestation with `purpose` `sign-records` is recorded, can be revoked,

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.14.2
+version: 2.14.3
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -2095,6 +2095,13 @@ sent nothing. Sending a repository outside the tenant therefore takes two
 grants, the rule `content:establish` already follows beside `content:declare`
 (see [Creating is not declaring](#creating-is-not-declaring)). Retiring a replica
 needs `content:replicate` alone, because it only ever reduces where bytes go.
+
+Two grants separate two people only where two people hold them, and today
+nothing makes them: only the `admin` role carries either
+([`architecture/admin`](admin.md#operator-roles)), and a role is a fixed
+bundle, so every admin holds both and one admin can declare a replica alone.
+What the two grants guarantee is that no other role, and nothing that is not
+a person, can.
 
 Both are *person only* in [`protocol/types`](../protocol/types.md). Sending a
 tenant's history to another place is a judgement, and a service has none to

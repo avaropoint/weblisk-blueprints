@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 2.0.4
+version: 2.0.5
 requires: [protocol/types, protocol/identity]
 platform: any
 tier: free
@@ -46,7 +46,7 @@ over standard HTTP endpoints.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.5.0 <2.0.0"
+    version: ">=1.12.0 <2.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -1134,7 +1134,7 @@ security:
 - [ ] Orchestrator `POST /v1/register` validates subscription scopes (403 on unauthorized)
 - [ ] Orchestrator `POST /v1/register` enforces replay protection (300s window)
 - [ ] Orchestrator `POST /v1/register` rejects `system.*` namespace claims (403)
-- [ ] Orchestrator `POST /v1/register` refuses a manifest whose `capabilities` names any capability `protocol/types` marks person only — `content:write`, `content:decide`, `content:replicate`, `content:connect` or `model:attest` — with 403 `CAPABILITY_PERSON_ONLY`, and issues no token
+- [ ] Orchestrator `POST /v1/register` refuses a manifest whose `capabilities` names any capability `protocol/types` marks person only — `content:write`, `content:decide`, `content:replicate`, `content:connect`, `model:attest` or `fabric:attest` — with 403 `CAPABILITY_PERSON_ONLY`, and issues no token
 - [ ] The token `POST /v1/register` issues carries `identity_id`, the fingerprint of `manifest.public_key`
 - [ ] Orchestrator `DELETE /v1/register` releases namespaces and routing entries
 - [ ] Orchestrator `GET /v1/services` returns service directory with routing table and namespace map

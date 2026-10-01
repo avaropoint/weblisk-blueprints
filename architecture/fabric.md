@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 1.1.4
+version: 1.1.5
 requires: [protocol/types, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement]
 platform: any
 tier: free
@@ -48,7 +48,7 @@ and is reachable from either.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.12.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -1347,15 +1347,20 @@ orchestrator, claims the `fabric.*` namespace exclusively, and verifies caller
 tokens against the orchestrator's public key.
 
 Its manifest declares the wire protocol version from
-[`protocol/types`](../protocol/types.md) — not this blueprint's semver — and
-these capabilities, which are the `fabric:` family that document declares:
+[`protocol/types`](../protocol/types.md) — not this blueprint's semver. Its
+routes are guarded by the `fabric:` family that document declares:
 
 | Capability | Guards |
 |---|---|
 | `fabric:read` | the six read operations, and `GET /v1/fabric/producers` |
 | `fabric:produce` | `POST /v1/fabric/sync` |
 | `fabric:observe` | `POST /v1/fabric/observations` |
-| `fabric:attest` | `POST /v1/fabric/attestations`, `/decisions` and `/relocations` |
+| `fabric:attest` | `POST /v1/fabric/attestations`, `/decisions` and `/relocations`. Person only |
+
+`fabric:attest` is *person only* ([`protocol/types`](../protocol/types.md)):
+only a person reaches `confirmed`, so the fabric's own manifest never declares
+it, and no service subject and no agent is granted it
+([`patterns/principal-identity`](../patterns/principal-identity.md)).
 
 A capability name is `family:verb`, and an invented one is refused at
 registration — which is why these belong in
@@ -1563,6 +1568,7 @@ security:
 - [ ] No fabric code path transfers content bytes; version resolution and relocation use identity lookup and listing only
 - [ ] A content service whose `ServiceEntry` is on another host is reached only with a grant for that address; absent one the repository is `unreachable` and no credential is sent
 - [ ] The fabric's manifest declares no `agent:message`, and a remote content service does not cause it to be added
+- [ ] The fabric's manifest declares no `fabric:attest`, and its registration succeeds; a component whose manifest declares `fabric:attest` is refused at registration with `CAPABILITY_PERSON_ONLY`, and an agent's authorisation naming it is refused
 - [ ] Recording, confirming, rejecting or retiring a relationship leaves both artifacts byte-identical
 - [ ] Projecting an unchanged ledger twice produces identical bytes, and every judgement in the projection can be recomputed from the content with a published digest tool
 - [ ] Every relationship reachable from one endpoint is reachable from the other, and a synthesised containment step is reported as synthesised

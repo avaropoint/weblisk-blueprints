@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.11.2
+version: 1.12.0
 requires: []
 platform: any
 tier: free
@@ -104,7 +104,7 @@ below, with their HTTP status, category and retryability.
 | `ENFORCEMENT_MISSING_INTENT` | 403 | permanent | Safety intent required but not filed |
 | `ENFORCEMENT_CAPABILITY_MISMATCH` | 403 | permanent | Agent lacks declared capability for operation |
 | `ENFORCEMENT_SCOPE_VIOLATION` | 403 | permanent | Resource scope exceeds agent operational scope |
-| `ENFORCEMENT_SCOPE_LEAKAGE` | 403 | permanent | Payload scope exceeds target endpoint classification |
+| `ENFORCEMENT_SCOPE_LEAKAGE` | 403 | permanent | Payload scope exceeds the classification of a target `patterns/scope` gives no ceiling. A target with a ceiling refuses with `SCOPE_CEILING_EXCEEDED` |
 | `ENFORCEMENT_BLOCKED_TARGET` | 403 | permanent | Target is on the blocked endpoint list |
 | `ENFORCEMENT_DATA_CONTRACT_VIOLATION` | 403 | permanent | Operation targets resources outside agent's declared data contract |
 | `ENFORCEMENT_OUTPUT_CONTRACT_VIOLATION` | 403 | permanent | Response contains fields outside declared output contract |
@@ -377,25 +377,34 @@ request is [`architecture/content`](../architecture/content.md#proposals).
 a repository outside the tenant takes two grants: a replica with no credential
 reaches nothing, and a credential with no replica is sent nothing
 ([`architecture/content`](../architecture/content.md#who-may-declare-a-replica)).
+They separate two people only where two people hold them. Today only the
+`admin` role carries either, and a role is a fixed bundle, so every admin
+holds both and one admin can send a repository outside the tenant alone.
 
 **Model capabilities:**
 - `model:attest` — record and withdraw an agreement attestation, which raises what a model provider may be sent ([`patterns/scope`](../patterns/scope.md#model-providers)). *Person only*
 
 `model:attest` is person only because it decides what leaves the tenant for a
-party outside it, and it is not in the `admin` family, so `admin:*` does not
-carry it. A service that administers a tenant therefore cannot raise a model
-provider's ceiling.
+party outside it. It is not in the `admin` family, so `admin:*` does not carry
+it, and a role carries it only where
+[`architecture/admin`](../architecture/admin.md)'s roles table names it: today
+only `admin` does, so every admin holds it. What keeps it apart from `admin:*`
+is therefore that a token narrowed by `cap` for administration carries
+`admin:*` without it, and that a future role may administer without attesting
+agreements. No service could raise a ceiling through `admin:*` in any case:
+`/v1/admin/*` admits only operator tokens, which are people's.
 
 **Fabric capabilities:**
 - `fabric:read` — read relationships, coverage, impact, lineage and the ledger projection
 - `fabric:produce` — state a producer's full current view for one partition
 - `fabric:observe` — report one relationship incrementally
-- `fabric:attest` — assert, judge or re-anchor a relationship as a person
+- `fabric:attest` — assert, judge or re-anchor a relationship as a person. *Person only*
 
 `fabric:attest` is separate from `fabric:observe` for the reason
 `architecture/fabric` is built around: only a person reaches `confirmed`. One
 capability covering both would make that rule unenforceable at the boundary
-where it has to hold.
+where it has to hold, and for the same reason it is *person only*: a service or
+an agent holding it would reach `confirmed` without a person.
 
 A capability name is `family:verb`. A component that invents one is refused at
 registration with `INVALID_REQUEST` — which is correct, and is why a component's
@@ -2059,13 +2068,13 @@ types:
     base: string
     values:
       - value: viewer
-        description: "Read the administrative surface"
+        description: "Read the administrative surface, and read and describe content"
       - value: auditor
         description: "Viewer, plus the full audit trail"
       - value: operator
-        description: "Day-to-day operations — read, act on the approval queue, manage strategies. Cannot admit, remove or re-role operators"
+        description: "Day-to-day operations — read, act on the approval queue, manage strategies, and write, propose, decide and reconcile content. Cannot admit, remove or re-role operators, declare a repository or a replica, or record a model provider agreement"
       - value: admin
-        description: "Every administrative capability, including admitting and removing operators"
+        description: "Every administrative capability, including admitting and removing operators, every content capability, and model:attest"
 ```
 
 `operator` was missing from this enum while `architecture/admin` named it in
