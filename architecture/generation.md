@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.1.0
+version: 1.1.1
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -927,11 +927,25 @@ A generator MUST treat every repair round as a transaction:
    discarded, and its requirement is reported as unrepaired, with the reason.
 
 5. **A repair MUST be shown the uses of what its file declares.** For each
-   package-level name the file declares (type, field, function, method,
-   variable, constant), the repair is given every place another file uses it.
-   Being shown the uses gives a single-file repair no authority over them. Where
-   its change breaks them, the repair is discarded, and the change belongs to a
-   repair across those files — see *Repairing a disagreement between files*.
+   package-level name a Go file declares (type, field, function, method,
+   variable, constant), and each export of a JavaScript or TypeScript file (the
+   forms below), the repair is given every place another file uses it. Being
+   shown the uses gives a single-file repair no authority over them. Where a
+   build of the trial shows its change breaking them, the repair is discarded,
+   and the change belongs to a repair across those files — see *Repairing a
+   disagreement between files*.
+
+   A break no build shows is not caught. A Go change whose broken uses sit in
+   an importer that a failing package hides, on the tree before and on the
+   trial alike, moves no count, and nothing undoes its round for it. A later
+   round that lets the build reach those uses, without touching the importer,
+   is not charged with them either: they stand in a package the build before
+   it hid, and its own change did not make them (see *Ranking failing builds*
+   below).
+
+   What a file in any other language declares is not read. Such a file is shown
+   no uses, no change to it is refused before a trial, and no error is charged
+   to its change as one the change made.
 
    Some builds do not check where another file uses a name. Here that means
    JavaScript and TypeScript, whose build may bundle or may not exist. For those
@@ -966,20 +980,36 @@ A generator MUST treat every repair round as a transaction:
      `module.exports = { … }`;
    - the default export, however written (`export default`,
      `export { x as default }`, `export =`, `module.exports = x`). It is used
-     wherever an importer binds the default or takes the whole module;
-   - `export * from`, which is used wherever an importer binds names.
+     wherever an importer binds the default (`import d from`,
+     `export { default } from`) or takes the whole module, which means
+     `require(…)` and `import(…)`;
+   - `export * from`, which is used wherever an importer binds names. A
+     namespace import (`import * as ns from`) binds names; it does not take the
+     whole module.
 
-   Two forms are not read, and an implementation MUST NOT claim them:
+   These are not read, and an implementation MUST NOT claim them:
 
    - an export made by a call: `Object.assign(module.exports, …)`,
      `Object.defineProperty(exports, …)`;
    - a use through an import this pipeline cannot place: a path alias or a
-     package name.
+     package name;
+   - the default read through a namespace import as `ns.default`. A repair that
+     removes `export default` while an importer reads `ns.default` is not
+     refused;
+   - the default a CommonJS module is to an importer (below). It is not an
+     export a repair can be refused for removing, so a repair that rewrites
+     such a module as an ES module with no default is not refused.
 
-   Nothing is said to be missing from a file whose exports cannot be closed —
-   one that has `export * from`, an export made by a call, or `module.exports`
-   assigned anything but an object literal. A changed signature is not detected
-   in these languages.
+   A named import is never said to be missing from a file whose exports cannot
+   be closed: one that has `export * from`, an export made by a call, or
+   `module.exports` assigned anything but an object literal. A default import
+   is said to be missing only from an ES module, meaning a file with an
+   `export` statement, that has no default and no CommonJS export. A CommonJS
+   module is its own default, so a default import of one is never said to be
+   missing, and neither is a default import of a file that exports nothing.
+   `export * from` does not pass on a default, so a file that has it and no
+   default of its own lacks one like any other ES module. A changed signature
+   is not detected in these languages.
 
 6. **A package clash is repaired where it is.** The toolchain reports two
    package clauses in one directory at the line that imports that directory, so
@@ -1001,8 +1031,12 @@ A generator MUST treat every repair round as a transaction:
      on it, and those the other tree answered and it does not. Silencing a
      failing test ties with failing it, and silencing a passing one loses to
      passing it;
-   - then fewer assertions reported unmet;
-   - then more assertions satisfied.
+   - then, only between two trees whose assertions were both read, fewer
+     assertions reported unmet, and then more assertions satisfied. Where
+     either tree's assertions were not read, the two tie here. A reading that
+     failed reports nothing unmet. Counted, it would outrank a read tree with
+     unmet assertions, become the best tree, and end the run inconclusive where
+     the read tree ends it refuted.
 
    A tie is not an improvement. Progress is measured against the best tree, not
    the previous round. Counting against the previous round read a tree that
@@ -1090,7 +1124,12 @@ A generator MUST treat every repair round as a transaction:
     NOT treat the tree it last wrote successfully as the tree on disk. Where the
     loop cannot put the best tree back, its error MUST say so. No file the disk
     holds differently from what the loop returns may be recorded as generation's
-    output.
+    output, with one exception: a file a prepare step rewrote while the disk
+    held the tree returned, whose rewrite is recorded as item 8 says. The loop
+    returns `go.mod` as the pipeline wrote it, and the disk and the record hold
+    what `go mod tidy` made of it. Where the disk does not hold the tree
+    returned, a prepare step's last rewrite was of another tree, and the
+    exception does not apply.
 
     The verdict MUST say what became of each undone round: for a retried round,
     how many of its repairs were kept.
@@ -1111,6 +1150,14 @@ A generator MUST treat every repair round as a transaction:
     the bound bounds nothing. A build that outlives an interrupted CLI writes
     into the tenant after the command that started it has gone.
 
+    `weblisk` does not yet meet the first of these on Windows, where it is
+    released. There a timeout ends the shell that runs the build line
+    (`cmd /C …`) and nothing that shell started, so the compiler runs on past
+    the bound, and the CLI stops waiting for its output rather than stopping it.
+    Ending the whole tree there takes a Job Object, which the CLI does not
+    create. Everywhere else the build line runs in a process group of its own,
+    and the timeout kills the group.
+
 **Ranking failing builds: what hides what.** A failing build is ranked by what
 hides what, not by its error count. A compiler does not report everything wrong
 with a tree; it reports what it reached.
@@ -1120,11 +1167,12 @@ with a tree; it reports what it reached.
   unterminated string, an invalid character, an unterminated comment, an unknown
   escape) is not a parse error. The package is type-checked, its type errors are
   reported beside it, and they are counted with it.
-- A package that does not compile hides every error in the packages that import
-  it, directly or through another.
+- A Go package that does not compile hides every error in the packages that
+  import it, directly or through another.
 
 So each package is judged by what its own build could show of it, and two builds
-are compared package by package:
+are compared package by package. What hides what is read for Go only; a build in
+any other language is compared as *Other builds* below says.
 
 - A package both show is compared with itself: every error when both show every
   error, and its syntax errors when either shows only those.
@@ -1147,6 +1195,25 @@ now fails is. A package the later tree hides was hidden by a package it imports
 going from compiling to failing, and that package is shown on both trees and
 rose. So the round is undone for that rise.
 
+**Other builds.** A build in any other language is not read for what hides
+what. No directory hides another, and nothing in a directory is hidden behind
+a syntax error, so two of its failing builds are compared directory by
+directory, each on the plain count of the diagnostics that name a planned file
+there. A fix that lets such a build reach errors in another directory is
+charged with them, and its round is undone for them.
+
+A diagnostic names a file only when its line begins with the file's path and
+line, as `path:line: message` or `path:line:col: message`, which is how Go's
+tools write it. Measured 2026-10-01 on real output, neither of the corpus's
+other compilers writes that. cargo, the build in
+[`languages/rust`](../languages/rust.md), puts the position on a line of its
+own beneath the message (`--> server/src/main.rs:2:13`). `tsc`, which
+[`platforms/node`](../platforms/node.md) builds with, writes
+`src/a.ts(1,7): error TS2322: …` when its output is piped. Each of their failing
+builds therefore names no file the plan owns. It ranks with the failures below,
+and a loop whose current tree fails that way stops, because no repair can be
+aimed at it.
+
 A failure whose distance from compiling cannot be read ranks below every failure
 that can, and two such failures tie. These are:
 
@@ -1167,9 +1234,17 @@ failure when it stands at a line the loader reads:
 - or any line of a file the plan does not hold.
 
 A load failure that names no position ("found packages … in DIR", "import cycle
-not allowed") is recognised by its words. Measured with go1.27.1, each of the
-following names a planned file and line, hides every type error in the build,
-and was missed by a list of phrases:
+not allowed") is recognised by its words. The words are matched on every line
+of a build's output, positioned or not and under a "# importpath" line or not,
+so a compile error that quotes them is read as a load failure too, and its
+build ranks as one whose distance from compiling cannot be read. Measured with
+go1.27.1, `cannot use "no Go files in" (untyped string constant) as int value
+in variable declaration`, standing under its package's "# importpath" line, is
+read that way.
+
+Words alone do not find the rest. Measured with go1.27.1, each of the following
+names a planned file and line, hides every type error in the build, and was
+missed by a list of phrases:
 
 - "use of internal package … not allowed";
 - "case-insensitive import collision";
@@ -1340,6 +1415,7 @@ and "nothing contradicted it".
 - [ ] Each refuted assertion names the artifacts it is about, attributed by the check that refuted it
 - [ ] The loop continues while any assertion is `failed` and stops after two rounds that do not improve on the best tree reached
 - [ ] Building and conforming are ranked as separate stages; every tree that builds ranks above every tree that does not
+- [ ] Assertions rank two trees only when both trees' assertions were read; otherwise the two tie on them
 - [ ] Every repair round starts from a kept copy of the tree, and every repair in it is asked for against that tree
 - [ ] A repair that returns its file unchanged is not tried, and a round with nothing to try is not measured
 - [ ] The next repair of a file is told why its last repair was not kept and what that attempt's build reported; a kept repair clears it
@@ -1348,13 +1424,14 @@ and "nothing contradicted it".
 - [ ] A new error at a line the change did not alter, in a package where the change fixed an error and not at a use of a name it removed or re-signed, does not undo the round; the ranking still counts it
 - [ ] A round read worse, and not observed worse, is undone and not retried
 - [ ] An undone round's responses are retried one file at a time with no new model call, each kept only if the tree is no worse and no holding test fails
-- [ ] Every repair is shown each other file's uses of the names its file declares; where the build cannot detect a broken use, a repair that removes a used export or imports a name not exported is refused before it is tried, judged alone and together with the round's earlier kept repairs
+- [ ] Every repair of a Go, JavaScript or TypeScript file is shown each other file's uses of the names its file declares; where the build cannot detect a broken use, a repair that removes a used export or imports a name not exported is refused before it is tried, judged alone and together with the round's earlier kept repairs
+- [ ] A default import is said to be missing only from an ES module with no default and no CommonJS export; a namespace import binds names, and only `require` and `import()` take the whole module
 - [ ] A package clash is asked of the two files that declare the packages, not of the importer the toolchain reports it at
-- [ ] A failing build is ranked by what hides what: only a parse error hides a package's type errors, a package hides its importers, packages are compared one by one, and an error at a use of a name a change removed counts against that change
-- [ ] A failing build that is a package-loading failure (one standing under no compile header at a line the loader reads, or one naming no position that says so in its words), names no planned file, is a dependency fault, or was stopped at its timeout never ranks above a failure that can be counted
+- [ ] A failing Go build is ranked by what hides what: only a parse error hides a package's type errors, a package hides its importers, packages are compared one by one, and an error at a use of a name a change removed counts against that change; a failing build in any other language is compared directory by directory on its plain count
+- [ ] A failing build that is a package-loading failure (one standing under no compile header at a line the loader reads, or one whose words on any line say so), names no planned file, is a dependency fault, or was stopped at its timeout never ranks above a failure that can be counted
 - [ ] A tree that reads nothing left to repair but is not the best does not end the run; the best tree is put back and repaired from
 - [ ] The run ends on the best tree reached, whatever ended it; that tree is on disk, is built again once put back when the last build was of another tree, is what is recorded, and is what the verdict describes; where the rebuild disagrees, the rebuild is the answer
-- [ ] A write that fails part-way ends on the best tree or says it could not, and no file the disk holds differently from what is returned is recorded
+- [ ] A write that fails part-way ends on the best tree or says it could not, and no file the disk holds differently from what is returned is recorded, except a prepare step's rewrite made while the disk held the tree returned
 - [ ] The record of generation's output moves only when the disk holds a tree the loop accepted
 - [ ] Only the best tree's files are banked; no repair is banked before its tree is measured
 - [ ] The run names every requirement left unrepaired, including tests that failed or passed and then went quiet, and for each discarded or refused repair, why
