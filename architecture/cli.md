@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.4.1
+version: 2.5.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1013,6 +1013,17 @@ CLI holds one for each identity at each hub:
   clear and never under `kdf` `none`
   ([`architecture/admin`](admin.md#where-the-second-factor-is)). Its public half
   and its `cid` sit beside it.
+- **Kept apart where the source cannot keep it.** `store` is optional
+  ([`protocol/secret-source`](../protocol/secret-source.md#the-source-contract)),
+  and a source that signs with an identity's key and never releases it holds
+  no passphrase for it either. So the CLI asks the source that holds the
+  identity for its `capabilities`. Where `store` is listed, the credential is
+  stored there as an identity created in a source is. Where it is not, the
+  credential key is written beside the identity in its own `weblisk-key-v1`
+  envelope with `kdf` `argon2id`, under a passphrase the person chooses for it
+  when it is made, and is opened by that passphrase, typed or remembered by a
+  source as an identity's may be. That is then the one passphrase, because the
+  identity has none to type.
 - **Re-attested when it expires, replaced when the hub refuses it.** When the
   hub answers `CREDENTIAL_EXPIRED`, the key is sound and only its attestation
   lapsed, so the next `connect` re-attests the same key, which keeps its `cid`
@@ -2405,6 +2416,7 @@ security:
 - [ ] `weblisk operator attest` signs only an `Attestation` it builds itself, refuses a `--days` beyond admin's cap, submits it, reports the credential's `cid` and `not_after`, and writes nothing to disk
 - [ ] Every `Attestation` the CLI builds names the `identity_id` the hub's attestation-token answer carries, never one computed from the identity key, so an identity that changed its key still attests at every hub that accepted the change
 - [ ] `connect` and `register` generate one ML-DSA-65 credential per identity per hub the first time they reach it, have the identity attest it once, keep its private key only in the `weblisk-key-v1` envelope or a secret source, and mint every later token with it without asking the identity
+- [ ] For an identity held by a secret source whose `capabilities` do not list `store`, `connect` keeps the new credential key beside the identity in its own `weblisk-key-v1` envelope with `kdf` `argon2id`, under a passphrase the person chose for it, and never in the clear or under `kdf` `none`
 - [ ] `weblisk operators revoke` invalidates target operator's public key and tokens (admin only)
 - [ ] `weblisk operators revoke` prevents self-revocation and revoking the last admin
 - [ ] `weblisk operators list` shows all registered operators with name, role, status, and registration date
