@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.4.3
+version: 2.4.4
 requires: [protocol/types]
 platform: any
 tier: free
@@ -506,6 +506,15 @@ an **agreement attestation** for it.
   nobody listed is never given more, and the ceiling routes answer every name
   that way, one the tenant's model configuration does not know included. A
   backend is listed by at most one current agreement.
+- **What an agreement does not bind.** It binds a name, never what the name
+  reaches. Changing what a listed name reaches, the tenant's model backend
+  through `PUT /v1/admin/model` or an api-ai `providers:` entry's endpoint,
+  keeps the agreement's level and records no new attestation, so content up
+  to the agreement's level would go to a party no agreement covers. Nothing
+  here detects that. Until an agreement records what each name it lists
+  reaches and a change to it lapses the agreement, whoever changes what a
+  listed name reaches withdraws that agreement first, and the tenant cannot
+  check that they did.
 - **Who records it.** A person, on their own operator token, holding
   `model:attest`. [`protocol/types`](../protocol/types.md) marks it *person
   only*, and the mechanism that list names keeps it from every service
