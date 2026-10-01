@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.4.1
+version: 2.4.2
 requires: [protocol/types]
 platform: any
 tier: free
@@ -1093,7 +1093,7 @@ scope:
   escalation_strategy: maximum           # default escalation strategy
   violation_action: deny                 # default action on scope violation
   environment: production                # active environment profile
-  custom_labels: {}                      # domain-registered custom labels
+  custom_labels: {}                      # labels this component registers (Label Registration)
   audit:
     log_all_access: false                # log every access, not just violations
     tamper_evident: false                # enable cryptographic audit integrity
@@ -1260,8 +1260,12 @@ replacing it.
 
 ### Label Registration
 
-Custom labels are registered at the domain level. Each names in
-`maps_to` the least level it may be declared with:
+Custom labels are registered in the `scope.custom_labels` configuration of
+the component that enforces them: a domain's for what that domain enforces,
+and the content service's for every repository it holds
+([`architecture/content`](../architecture/content.md#an-entrys-scope), where
+the tenant registers a label). Each names in `maps_to` the least level it may
+be declared with:
 
 ```yaml
 custom_labels:

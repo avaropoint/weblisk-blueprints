@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.14.1
+version: 2.14.2
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -1341,6 +1341,14 @@ what their `AdoptedEntry.scope`, `ContentObservation.scope`,
 census's `highest_scope` all read, so a version that carries `pii`
 registered at `restricted` is never recorded, counted or sent below
 `restricted`.
+
+**Where the tenant registers a label.** Throughout this contract, a label the
+tenant registers is one in this service's own `scope.custom_labels`
+configuration ([Configuration](#configuration), in
+[`patterns/scope`](../patterns/scope.md#label-registration)'s shape), and it
+is the one registry for every repository the service holds, at every
+`scope_path`. No domain's registry applies to a repository, and two
+repositories never read a label differently.
 
 - **On the repository.** A declaration may carry `scope_floor`: the least
   scope of every entry the repository holds, has held or will hold. It is the
@@ -4475,6 +4483,10 @@ content:
                                  # is sealed; 0 seals only at shutdown and on
                                  # request (architecture/storage)
   max_entry_bytes: 10485760
+  scope:
+    custom_labels: {}            # the labels the tenant registers, for every
+                                 # repository this service holds, in
+                                 # patterns/scope's Label Registration shape
 ```
 
 `held_by` is stated where the host is named, and what it means is under
@@ -4959,6 +4971,7 @@ security:
 - [ ] A write declaring a scope below its path's recorded scope, or whose bytes declare a scope below it, is refused with `CONTENT_SCOPE_LOWERED`, and nothing is written
 - [ ] A write or a proposal whose frontmatter carries a `scope:` or `classification:` that is not a `ScopeLevel` is refused with `SCOPE_INVALID_LEVEL` naming the value
 - [ ] A document whose frontmatter carries `classification: restricted` and no `scope:` declares `restricted`; one carrying `scope: internal` and `classification: confidential` declares `confidential`
+- [ ] A label in the service's `scope.custom_labels` configuration is applied to writes in every repository the service holds, at every `scope_path`, and a label only a domain's configuration registers is not applied to any
 - [ ] Where the tenant registers `pii` with `maps_to: restricted`, a write declaring `confidential` whose bytes carry `scope: confidential` and `scope_metadata: {custom_labels: [pii]}` is refused with `CONTENT_SCOPE_LOWERED` naming `pii`; where it registers no `pii`, the same write is recorded at `confidential`
 - [ ] A frontmatter `scope: pii` is refused with `SCOPE_INVALID_LEVEL`, whether or not `pii` is a registered label
 - [ ] A `scope:` line inside a fenced block, or anywhere but a frontmatter block that begins on the first line, declares nothing
