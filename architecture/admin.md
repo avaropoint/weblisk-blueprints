@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.15.0
+version: 2.15.1
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -106,7 +106,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.9.0 <3.0.0"
     bindings:
       endpoints:
         # The orchestrator-provided groups only. Strategies, approvals,
@@ -632,6 +632,7 @@ contracts:
         - A token request naming a cid this hub holds no credential for MUST be refused with CREDENTIAL_UNKNOWN, and one naming a sign-records credential with CREDENTIAL_PURPOSE_REFUSED
         - Only once the signature has verified may the hub disclose the credential's status or its operator's. The credential MUST be active (else CREDENTIAL_REVOKED) and its attestation's not_after in the future (else CREDENTIAL_EXPIRED), and its operator MUST be approved (else OPERATOR_NOT_APPROVED, or OPERATOR_REVOKED for a removed one)
         - The token request MAY carry cap, a list of capability names. The token then carries each capability the operator's role carries that cap names, and no other. A name the role does not carry is left out, never refused, so cap only ever narrows a token. With no cap, the token carries every capability the role carries
+        - admin:* MUST be read as each capability in the admin family by name, both in a role and in cap. A role carrying admin:* carries admin:read, admin:approve, admin:strategy and admin:audit, so cap [admin:read] gives an admin a token carrying admin:read; and cap [admin:*] names each of them, so a role carrying only some capabilities of the admin family keeps those. A token carries admin:* itself only where the role carries it and cap names it or is absent
         - The token MUST have type operator, carry cid, the identity_id of the credential cid names, the operator's role and the capabilities that role carries, narrowed by cap where the request carries one, and record_keys naming every sign-records credential the operator holds here that is active and whose attestation's not_after is in the future, and expire one hour after issue and never after the attestation's not_after
         - Role and capabilities MUST come from the stored record, never from the request
         - The response MUST carry the attestation's not_after, so the client can warn before it passes
@@ -1973,28 +1974,27 @@ security:
 ```
 ### Auth Middleware
 
-All `/v1/admin/*` endpoints go through admin auth middleware, except
-`POST /v1/admin/operators/register`, `POST /v1/admin/operators/token`,
-`POST /v1/admin/credentials/challenge`, `POST /v1/admin/credentials/token` and
-`POST /v1/admin/operators/{name}/key`, which the operator's current and new
-identity keys sign:
+All `/v1/admin/*` endpoints pass the orchestrator's
+[Auth Middleware](orchestrator.md#auth-middleware), which is the one sequence
+for them, except `POST /v1/admin/operators/register`,
+`POST /v1/admin/operators/token`, `POST /v1/admin/credentials/challenge`,
+`POST /v1/admin/credentials/token` and `POST /v1/admin/operators/{name}/key`,
+which the operator's current and new identity keys sign. That sequence reads
+the token from the `Authorization` header alone, verifies it and its expiry,
+admits an operator token (and an attestation token on the attestation route
+only, for the operator the path names), checks that the operator and
+credential it names are live (token-status-on-use), and then checks the
+capability, which is this document's to define:
 
-```
-1. Extract token from Authorization: Bearer <token>
-2. Verify token against orchestrator's public key
-3. Check token.type == "operator" — or, on the attestation route only,
-   "attestation" for the operator named in the path. Any other type, or none,
-   is CREDENTIAL_REQUIRED, and an attestation token for another operator is
-   OPERATOR_SUBJECT_MISMATCH
-4. Check the operator named by sub and the credential named by cid are live
-   in the orchestrator's own records (token-status-on-use)
-5. Check that the request can use the capability the endpoint's minimum
-   stands for (the table below): the capabilities the operator's role
-   carries now, narrowed to those the token's cap names. Otherwise
-   FORBIDDEN, whatever the role
-6. On failure → 401 or 403, with the code from Error Handling
-7. On success → pass operator claims to handler
-```
+**The request must be able to use the capability the endpoint's minimum
+stands for** (the table below): one the operator's role carries now and the
+token's `cap`, where it has one, names. Otherwise `FORBIDDEN`, whatever the
+role. `admin:*` stands for every `admin:` capability by name, on both sides:
+a role carrying `admin:*` carries `admin:read`, `admin:approve`,
+`admin:strategy` and `admin:audit`, so an admin's token whose `cap` names only
+`admin:read` can use `admin:read`; and a `cap` naming `admin:*` names each of
+them, so it keeps whichever the role carries
+([operator-token-issuance](#contracts)).
 
 A role in the endpoint tables names the least role, and stands for a
 capability ([`protocol/types`](../protocol/types.md), Administrative
@@ -2151,6 +2151,9 @@ The rest SHOULD be:
 - [ ] An admin endpoint whose provider is not deployed reports itself unavailable and never returns an empty result
 - [ ] All admin API responses include Cache-Control: no-store header
 - [ ] Admin auth middleware verifies `type` is `operator`, checks that the operator and credential the token names are live, and checks that the request can use the capability the endpoint's minimum stands for, from the role the operator holds now narrowed to the token's `cap`
+- [ ] An admin's token minted with `cap` `[admin:read]` carries `admin:read`, reaches a `viewer+` route and `POST /v1/admin/complete`, and is refused with `FORBIDDEN` on an `admin` route such as `PUT /v1/admin/operators/{name}/role`
+- [ ] An operator-role token minted with `cap` `[admin:*]` carries `admin:read`, `admin:approve` and `admin:strategy`, and not `admin:*` or `admin:audit`
+- [ ] A token presented in the request body rather than the `Authorization` header is refused on every `/v1/admin/*` route
 - [ ] Bootstrap event (first operator registration) is permanently recorded in the audit log
 - [ ] WebSocket /v1/admin/ws provides real-time status updates for agent changes, approvals, and workflow completions
 - [ ] Admin gateway and application gateway share NO session state, cookie domain, or network listener

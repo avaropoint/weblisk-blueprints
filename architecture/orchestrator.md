@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.8.2
+version: 2.9.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -1105,7 +1105,8 @@ authenticate (see [Administrative endpoints](#administrative-endpoints)):
 ```
 1. Check Authorization header for "Bearer <token>"
 2. If no header, check request body for "token" field — except on
-   TokenCheck, whose caller's token is read from the header alone
+   TokenCheck and every /v1/admin/* route, whose token is read from the
+   header alone
 3. Verify token against orchestrator's signing key
 4. Check expiry
 5. Refuse a token whose type is "attestation" with CREDENTIAL_REQUIRED, on
@@ -1118,10 +1119,24 @@ authenticate (see [Administrative endpoints](#administrative-endpoints)):
 7. For an operator token, check the operator and the credential it names are
    live in this orchestrator's own records (architecture/admin,
    token-status-on-use)
-8. On failure → 401 {"error": "valid token required — register first"}, or the
-   operator code architecture/admin's Error Handling names
-9. On success → pass TokenClaims to handler
+8. On every /v1/admin/* route, check that the request can use the capability
+   the route requires: the auth its declaration names, or, for a route
+   architecture/admin's tables give a minimum role, the capability that
+   minimum stands for. The request can use a capability when the operator's
+   role carries it now and the token's cap, where it has one, names it, admin:*
+   being read as each admin: capability by name. Otherwise FORBIDDEN, whatever
+   the role (architecture/admin, Auth Middleware)
+9. On failure → 401 {"error": "valid token required — register first"}, 403
+   FORBIDDEN from step 8, or the operator code architecture/admin's Error
+   Handling names
+10. On success → pass TokenClaims to handler
 ```
+
+This is the one sequence for every route this orchestrator serves, the
+`/v1/admin/*` routes included, and the platform-provided model routes judged by
+it ([Administrative endpoints](#administrative-endpoints)).
+[`architecture/admin`](admin.md#auth-middleware) says which capability each
+administrative minimum stands for, and how a token's `cap` narrows a role.
 
 Steps 5 and 6 run before any handler, because a route's `auth: "token"` in the
 declaration accepts any token this orchestrator signed. Without them, an
@@ -1462,6 +1477,7 @@ agents hold, which is theirs.
 - [ ] `POST /v1/channel` requires agent:message capability (403 if missing)
 - [ ] Channel tokens expire after configured TTL
 - [ ] Auth middleware rejects unauthenticated requests on protected endpoints
+- [ ] On a `/v1/admin/*` route, Auth Middleware refuses with `FORBIDDEN`, before any handler, an operator token whose role carries the route's capability but whose `cap` does not name it, and reads a token only from the `Authorization` header
 - [ ] `GET /v1/health` returns 200 without auth with agent/domain/channel/namespace counts
 - [ ] system.agent.registered event published after successful registration
 - [ ] system.agent.deregistered event published after deregistration
