@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.14.3
+version: 2.14.4
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
 platform: any
 tier: free
@@ -873,7 +873,11 @@ code here is enough, because a client does the same thing for both.
    `open` (`CONTENT_PROPOSAL_DECIDED`). The token is checked with the
    orchestrator as Write Flow step 4 says, and must carry `content:decide`
    now. When step 5 runs the Write Flow for an `apply`, its step 4 uses this
-   answer rather than asking again
+   answer rather than asking again, and the capability it requires there is
+   `content:decide`, never `content:write`: a decider applies a proposal
+   without holding `content:write`, and is refused with `FORBIDDEN` only when
+   its role no longer carries `content:decide` or its token's `cap` does not
+   name it
 3. `reject` → the decision is recorded, the proposal becomes `rejected`, and
    `content.proposal_decided` is published. Nothing else happens
 4. `apply` → separation is checked: a decider whose token's `identity_id` equals
@@ -5078,6 +5082,7 @@ security:
 - [ ] A token whose `type` is not `operator` and whose `cap` holds `content:write` is refused `PUT /v1/content/entry` as though it did not hold it
 - [ ] The service's own manifest declares none of `content:write`, `content:decide`, `content:replicate` and `content:connect`, and its registration succeeds
 - [ ] A declaration carrying `self_decision_ceiling` from a caller holding `content:declare` and not `content:decide` is refused, and no repository is recorded
+- [ ] A decider whose token's `cap` names `content:decide` and not `content:write` applies a proposal, and the write is recorded; the same token is refused with `FORBIDDEN` at `PUT /v1/content/entry`
 - [ ] A declaration carrying `scope_floor` from a caller holding `content:declare` and not `content:decide`, a registered component's included, is refused with `FORBIDDEN`, and no repository is recorded
 - [ ] A declaration carrying `self_decision_ceiling` or `scope_floor` on a token whose operator was removed after it was minted is refused with `OPERATOR_REVOKED`, and one made while the orchestrator cannot be asked is refused with `CONTENT_TOKEN_UNCHECKED`; neither records a repository
 - [ ] An adoption of a store whose census reports `keeps_history`, confirmed with the census digest and carrying no `scope_floor`, is refused with `CONTENT_SCOPE_UNDECLARED`, returns the census, and declares nothing; the same adoption carrying a `scope_floor` at or above the census's `highest_scope` is declared
