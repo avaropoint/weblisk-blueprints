@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: api-ai
-version: 2.2.0
+version: 2.2.1
 requires: [protocol/types, patterns/scope, architecture/agent, architecture/gateway, architecture/orchestrator]
 platform: any
 tier: free
@@ -30,7 +30,7 @@ through a single interface.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.11.0 <2.0.0"
+    version: ">=1.13.0 <2.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -795,6 +795,12 @@ as `block` refuses it. When `block` is configured, return 429 with
 `TOKEN_BUDGET_EXCEEDED`.
 
 ### Destination Ceilings
+
+A component that serves these endpoints declares `model:route` in its
+manifest ([`protocol/types`](../protocol/types.md)): it is the tenant's model
+route, and the external boundary admits a call to a provider's address from
+nothing that does not declare it
+([`architecture/enforcement`](../architecture/enforcement.md#external-proxy)).
 
 Every provider this endpoint reaches is a model provider
 ([`patterns/scope`](scope.md#model-providers)), and its ceiling is the

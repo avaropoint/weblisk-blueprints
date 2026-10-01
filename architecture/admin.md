@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.17.0
+version: 2.17.1
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1293,7 +1293,9 @@ it may replay it. So a console keeps the thing that can **ask**, and never the
   job never uses a person's credential. It would need the console's own
   service identity at the hub: a service subject under
   [`patterns/principal-identity`](../patterns/principal-identity.md), with a
-  named human owner, vouched for by a holder of `grant:issue`, with an expiry.
+  named human owner, vouched for by a holder of the authority to issue
+  grants, with an expiry. That authority is principal-identity's `grant:issue`,
+  and at a hub it is `admin:*`.
   This contract has no route that admits a console's service subject, grants
   it and mints it a token. The operator routes admit people only, and
   `POST /v1/register` admits a mesh component on its manifest alone

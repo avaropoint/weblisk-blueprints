@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: enforcement
-version: 2.2.4
+version: 2.3.0
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, patterns/privacy, architecture/orchestrator, architecture/gateway]
 platform: any
 tier: free
@@ -100,7 +100,7 @@ Enforcement operates on four principles:
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.11.0 <2.0.0"
+    version: ">=1.13.0 <2.0.0"
     bindings:
       types:
         - name: ServiceDirectory
@@ -563,7 +563,7 @@ external_proxy:
       - Check quarantine store — if agent quarantined → deny
       - Verify agent has declared external capability for the protocol
       - Check target against blocked endpoint list
-      - A target whose address GET /v1/model/ceiling reports is a model provider's — a call to it from anything but the tenant's model route → deny with ENFORCEMENT_BLOCKED_TARGET
+      - A target whose address GET /v1/model/ceiling reports is a model provider's — a call to it from an agent whose manifest does not declare model:route, the capability protocol/types gives the tenant's model route → deny with ENFORCEMENT_BLOCKED_TARGET
       - Evaluate payload scope — restricted+ data to unclassified endpoints → deny
       - A target patterns/scope gives a ceiling (Destination Ceilings), such as a model provider, is classified by that ceiling — payload scope above it → deny with SCOPE_CEILING_EXCEEDED; payload scope undeclared → deny with SCOPE_MISSING. Each carries a DestinationRefusal. This is the destination gate, and it resolves to deny in every environment profile, never audit-only. Deny before any masking below, never mask to fit
       - Build PolicyContext from agent, target, scope
@@ -580,7 +580,7 @@ external_proxy:
       - code: ENFORCEMENT_QUARANTINED
         when: Agent is in quarantine store
       - code: ENFORCEMENT_BLOCKED_TARGET
-        when: Target is on the blocked endpoint list, or is a model provider's endpoint and the caller is not the tenant's model route
+        when: Target is on the blocked endpoint list, or is a model provider's endpoint and the caller's manifest does not declare model:route
       - code: ENFORCEMENT_SCOPE_LEAKAGE
         when: Payload scope exceeds the classification of a target patterns/scope gives no ceiling
       - code: SCOPE_CEILING_EXCEEDED
@@ -1611,7 +1611,7 @@ in the relevant `platforms/*.md` blueprint. All platforms MUST satisfy:
 - [ ] Storage boundary blocks scope violations — agent with `internal` scope cannot write to `restricted` resource (ENFORCEMENT_SCOPE_VIOLATION)
 - [ ] External boundary prevents scope leakage — `restricted`-scope data cannot be sent to unclassified external endpoints (ENFORCEMENT_SCOPE_LEAKAGE)
 - [ ] A model provider is sent nothing above the ceiling [`patterns/scope`](../patterns/scope.md#model-providers) gives it (`SCOPE_CEILING_EXCEEDED`), and nothing undeclared (`SCOPE_MISSING`), each refusal carrying a `DestinationRefusal`; the call is denied before any masking, never masked to fit, and is denied in the `development` profile as in `production`
-- [ ] A call to the address `GET /v1/model/ceiling` reports for a model backend, from anything but the tenant's model route, is denied with `ENFORCEMENT_BLOCKED_TARGET`
+- [ ] A call to the address `GET /v1/model/ceiling` reports for a model backend, from an agent whose manifest does not declare `model:route`, is denied with `ENFORCEMENT_BLOCKED_TARGET`; from one that declares it, the call reaches the destination gate and a payload above the provider's ceiling is denied with `SCOPE_CEILING_EXCEEDED`
 - [ ] Response boundary blocks output contract violations — agent cannot return fields outside its declared output contract (ENFORCEMENT_OUTPUT_CONTRACT_VIOLATION)
 - [ ] Response boundary blocks output scope exceeded — agent cannot return data at a scope higher than its declared operational scope (ENFORCEMENT_OUTPUT_SCOPE_EXCEEDED)
 - [ ] Quarantine blocks all four boundaries — quarantined agent's messages, storage writes, external calls, and responses are all rejected

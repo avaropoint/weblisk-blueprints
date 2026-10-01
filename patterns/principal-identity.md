@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.8.5
+version: 1.8.6
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -109,6 +109,14 @@ requires:
    identifiable, not admitted. Every capability comes from a grant issued by a
    hub, exercised through a credential that hub attested. Identity is the
    subject of an authorization decision, never the decision.
+
+   The authority to issue a grant is written `grant:issue` in this pattern. It
+   is the pattern's name for that authority, not a capability name in
+   [`protocol/types`](../protocol/types.md)' list: no manifest declares it and
+   no token carries it under that name. A blueprint that applies this pattern
+   says which of its own capabilities carries it, and at a Weblisk hub that is
+   `admin:*`, which admits operators and sets their roles
+   ([`architecture/admin`](../architecture/admin.md#operator-roles)).
 
 3. **A subject is a person or a service, treated identically** — Service
    accounts are identities. Same algorithm, same binding, same revocation, same

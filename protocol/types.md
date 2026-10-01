@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.12.2
+version: 1.13.0
 requires: []
 platform: any
 tier: free
@@ -383,6 +383,15 @@ holds both and one admin can send a repository outside the tenant alone.
 
 **Model capabilities:**
 - `model:attest` — record and withdraw an agreement attestation, which raises what a model provider may be sent ([`patterns/scope`](../patterns/scope.md#model-providers)). *Person only*
+- `model:route` — send to a model provider's endpoint as the tenant's model route ([`patterns/scope`](../patterns/scope.md#the-gate)). Declared by a component that serves `patterns/api-ai`'s endpoints or `POST /v1/admin/complete`, and by nothing else
+
+`model:route` is how [`architecture/enforcement`](../architecture/enforcement.md#external-proxy)'s
+external boundary tells the model route from a call made around it. It
+admits a call to a provider's address and nothing past the destination gate:
+the boundary still refuses whatever is above the provider's ceiling. Any
+component may declare it on its signed manifest today, as it may any service
+capability, because a registration is not yet an enrolment
+([`protocol/spec`](spec.md#post-v1register)).
 
 `model:attest` is person only because it decides what leaves the tenant for a
 party outside it. It is not in the `admin` family, so `admin:*` does not carry

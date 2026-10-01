@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.5.0
+version: 2.5.1
 requires: [protocol/types]
 platform: any
 tier: free
@@ -41,7 +41,7 @@ Scope is the primitive; everything else is a consumer.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.11.0 <2.0.0"
+    version: ">=1.13.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -453,14 +453,17 @@ has with nothing demonstrated or attested.
   of [`patterns/api-ai`](api-ai.md#destination-ceilings), and
   `POST /v1/admin/complete`
   ([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)).
-  Each applies the gate itself before it sends. A model backend that runs as a
+  Each applies the gate itself before it sends, and the component serving it
+  declares `model:route` ([`protocol/types`](../protocol/types.md)), which is
+  how a boundary tells it from anything else. A model backend that runs as a
   program on the tenant's host makes no outbound call a boundary can see.
 - A component's outbound call to a model provider's endpoint also passes the
   external boundary of
   [`architecture/enforcement`](../architecture/enforcement.md#external-proxy),
   which recognises the endpoint by the address `GET /v1/model/ceiling` reports,
   applies the gate with the provider's ceiling, and refuses a call made around
-  the model route.
+  the model route: one from a caller whose manifest does not declare
+  `model:route`.
 - A tool result is checked by a hub's MCP surface before it is returned to
   its caller, as [`architecture/mcp`](../architecture/mcp.md#the-destination-gate)
   says. Its caller is a model, so nothing `restricted` or above is returned
