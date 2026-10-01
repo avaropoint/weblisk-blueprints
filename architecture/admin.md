@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.15.4
+version: 2.16.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -708,7 +708,7 @@ contracts:
         - The role names are exactly `viewer`, `auditor`, `operator` and `admin`
         - Capabilities MUST be derived from the role, never stored per operator
         - The `operator` role MUST carry `admin:read`, `admin:approve` and `admin:strategy` — it is the role every `operator+` endpoint in this document is gated on
-        - Each `content:` capability, and `model:attest`, MUST be carried by the roles the Operator Roles table gives it. Roles are held by operators, who are people, and by nothing else, so a role may carry a capability `protocol/types` marks person only
+        - Each `content:` capability, `model:attest`, `fabric:read` and `fabric:attest` MUST be carried by the roles the Operator Roles table gives it. Roles are held by operators, who are people, and by nothing else, so a role may carry a capability `protocol/types` marks person only
         - Every capability this document names MUST be carried by some role; a capability no role holds is a constant, not a permission
         - The last active admin MUST NOT be removable or demotable
         - A role change MUST be audited with the previous and new role
@@ -1190,10 +1190,10 @@ a failed registration.
 
 | Role | Capabilities | Description |
 |------|-------------|-------------|
-| **admin** | `admin:*`, `model:attest`, and every `content:` capability | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, declare their replicas, and record model provider agreements |
-| **operator** | `admin:read`, `admin:approve`, `admin:strategy`, `content:read`, `content:describe`, `content:write`, `content:propose`, `content:decide`, `content:reconcile` | Day-to-day operations — view everything, approve recommendations, manage strategies, write documents and decide proposals |
-| **viewer** | `admin:read`, `content:read`, `content:describe` | Read-only — view dashboards, logs, status and documents. Cannot modify anything |
-| **auditor** | `admin:read`, `admin:audit`, `content:read`, `content:describe` | Read-only plus full audit log access with export capability |
+| **admin** | `admin:*`, `model:attest`, every `content:` capability, `fabric:read` and `fabric:attest` | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, declare their replicas, record model provider agreements, and confirm or reject relationships |
+| **operator** | `admin:read`, `admin:approve`, `admin:strategy`, `content:read`, `content:describe`, `content:write`, `content:propose`, `content:decide`, `content:reconcile`, `fabric:read`, `fabric:attest` | Day-to-day operations — view everything, approve recommendations, manage strategies, write documents, decide proposals, and confirm or reject relationships |
+| **viewer** | `admin:read`, `content:read`, `content:describe`, `fabric:read` | Read-only — view dashboards, logs, status, documents and relationships. Cannot modify anything |
+| **auditor** | `admin:read`, `admin:audit`, `content:read`, `content:describe`, `fabric:read` | Read-only plus full audit log access with export capability |
 
 A role is held by an operator, and an operator is always a person
 ([`protocol/types`](../protocol/types.md#operator)), so a role may carry a
@@ -1202,6 +1202,12 @@ a person this way and reaches a service by no route: a service subject holds
 no role, and a registered component is refused one in its manifest
 ([`patterns/principal-identity`](../patterns/principal-identity.md),
 `service-subject-constraints`).
+
+`fabric:attest` is the person-only capability the fabric's person routes
+require ([`architecture/fabric`](fabric.md#registration-and-standalone-operation)):
+only a person confirms or rejects a relationship, so this table is the one way
+it reaches anybody. `auditor` reads relationships and confirms none, because an
+auditor who confirmed a relationship would then be auditing their own claim.
 
 `operator` sits between `auditor` and `admin` deliberately: it is the role that
 does the day-to-day work — approving recommendations and managing strategies —
@@ -2143,6 +2149,7 @@ The rest SHOULD be:
 - [ ] A token request carrying `cap` receives a token carrying exactly the named capabilities its operator's role carries; a name the role does not carry is left out, and a request with no `cap` receives the role's full set
 - [ ] An operator token carries `identity_id`, the `identity_id` of the credential its `cid` names
 - [ ] A `viewer` token carries `content:read` and `content:describe` and no other `content:` capability, and an `operator` token carries `content:write` and `content:decide`
+- [ ] An `operator` or `admin` token carries `fabric:read` and `fabric:attest`, a `viewer` or `auditor` token carries `fabric:read` and not `fabric:attest`
 - [ ] An `admin` token carries `content:replicate` and `content:connect`, an `operator` token carries neither, and no token minted for a service subject carries either
 - [ ] Removing an account from a console deletes its credential keys, revokes each credential first with the token of a signed-in person that hub permits to revoke it where there is one, and otherwise reports each credential live at its hub until its `not_after`
 

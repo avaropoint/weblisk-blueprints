@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.12.1
+version: 1.12.2
 requires: []
 platform: any
 tier: free
@@ -404,7 +404,11 @@ agreements. No service could raise a ceiling through `admin:*` in any case:
 `architecture/fabric` is built around: only a person reaches `confirmed`. One
 capability covering both would make that rule unenforceable at the boundary
 where it has to hold, and for the same reason it is *person only*: a service or
-an agent holding it would reach `confirmed` without a person.
+an agent holding it would reach `confirmed` without a person. A person holds it,
+and `fabric:read`, only through a role that
+[`architecture/admin`](../architecture/admin.md)'s roles table gives it to, as
+for every person-only capability. `fabric:produce` and `fabric:observe` are a
+producer's, which is a registered component.
 
 A capability name is `family:verb`. A component that invents one is refused at
 registration with `INVALID_REQUEST` — which is correct, and is why a component's
@@ -2068,13 +2072,13 @@ types:
     base: string
     values:
       - value: viewer
-        description: "Read the administrative surface, and read and describe content"
+        description: "Read the administrative surface, read and describe content, and read the fabric"
       - value: auditor
-        description: "Viewer, plus the full audit trail"
+        description: "Viewer, plus the full audit trail. Confirms no relationship"
       - value: operator
-        description: "Day-to-day operations — read, act on the approval queue, manage strategies, and write, propose, decide and reconcile content. Cannot admit, remove or re-role operators, declare a repository or a replica, or record a model provider agreement"
+        description: "Day-to-day operations — read, act on the approval queue, manage strategies, write, propose, decide and reconcile content, and read the fabric and attest relationships on it (fabric:read, fabric:attest). Cannot admit, remove or re-role operators, declare a repository or a replica, or record a model provider agreement"
       - value: admin
-        description: "Every administrative capability, including admitting and removing operators, every content capability, and model:attest"
+        description: "Every administrative capability, including admitting and removing operators, every content capability, model:attest, fabric:read and fabric:attest"
 ```
 
 `operator` was missing from this enum while `architecture/admin` named it in

@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 1.1.5
-requires: [protocol/types, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement]
+version: 1.2.0
+requires: [protocol/types, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
 adoption: opt-in
@@ -61,6 +61,10 @@ requires:
           fields_used: [name, resources]
         - name: HealthStatus
           fields_used: [status, name, version, uptime]
+        - name: TokenCheckRequest
+          fields_used: [subject_token]
+        - name: TokenStatus
+          fields_used: [live, code, identity_id, capabilities]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -139,6 +143,17 @@ requires:
       types:
         - name: ViolationRecord
           fields_used: [boundary, agent, operation, violation_type, scope_required, scope_actual, detail, severity]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/orchestrator
+    version: ">=2.6.0 <3.0.0"
+    bindings:
+      endpoints:
+        - path: /v1/token/check
+          methods: [POST]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -476,6 +491,7 @@ second component's to publish, and the orchestrator refuses the claim.
 | `FABRIC_PARTITION_UNKNOWN` | validation | A sync named a partition the producer has not declared | Refuse the whole batch. Retirement is bounded by the partition, and an unknown one has no bound |
 | `FABRIC_CHAIN_BROKEN` | integrity | An entry's chain digest does not follow its predecessor | Refuse further appends in that scope, publish `fabric.chain.broken`, and report the first entry that does not follow |
 | `FABRIC_LEDGER_TRUNCATED` | integrity | The log's byte length decreased | Re-read in full and report. Never continue from an incremental parse |
+| `FABRIC_TOKEN_UNCHECKED` | io | An attestation, a decision or a relocation arrived and the orchestrator could not be asked whether its token is live | Refuse and append nothing. The request may be repeated once the orchestrator answers. Never proceed on the token alone |
 | `FABRIC_SCOPE_MISMATCH` | policy | A claim's scope lies outside the caller's declared scope | Refuse with a `ScopeViolation`. Never narrow the claim to fit |
 | `ENFORCEMENT_DATA_CONTRACT_VIOLATION` | enforcement | The claim's endpoints lie outside the agent's declared operational data contract | Refuse via the boundary proxy |
 
@@ -502,10 +518,14 @@ second component's to publish, and the orchestrator refuses the claim.
    be derived again by running it
 
 ### Person Flow
-1. A person submits an assertion or a judgement, naming the relationship
-2. The resolver lands it on the same identity a producer's claim would reach, so
+1. A person submits an assertion or a judgement, naming the relationship, on
+   their own operator token
+2. The service asks the orchestrator whether the token is live and what it
+   carries now, and refuses unless it carries `fabric:attest`
+   ([Registration and Standalone Operation](#registration-and-standalone-operation))
+3. The resolver lands it on the same identity a producer's claim would reach, so
    the confirmation sits **on** the inference rather than beside it
-3. The entry is appended alone. A producer's work can be re-derived; a person's
+4. The entry is appended alone. A producer's work can be re-derived; a person's
    act cannot, so it is never batched behind one
 
 ### Answer Flow
@@ -1360,7 +1380,34 @@ routes are guarded by the `fabric:` family that document declares:
 `fabric:attest` is *person only* ([`protocol/types`](../protocol/types.md)):
 only a person reaches `confirmed`, so the fabric's own manifest never declares
 it, and no service subject and no agent is granted it
-([`patterns/principal-identity`](../patterns/principal-identity.md)).
+([`patterns/principal-identity`](../patterns/principal-identity.md)). A person
+holds it through a role, and
+[`architecture/admin`](admin.md#operator-roles)'s roles table says which roles
+carry it, and `fabric:read`.
+
+**This service honours `fabric:attest` only on a person's token.** It counts
+only on a token whose `type` is `operator`, which a hub mints for an operator,
+a person, through a credential that person's identity attested
+([`architecture/admin`](admin.md#operator-token)). On any other token, a
+registered component's or a channel's, this service treats it as absent and
+refuses the request with `FORBIDDEN`. A hub that minted it on one by mistake
+has still opened no person route.
+
+**A person's act is checked with the orchestrator.** Before it appends an
+attestation, a decision or a relocation, this service asks the orchestrator
+whether the token is still live
+([`architecture/orchestrator`](orchestrator.md#token-check-post-v1tokencheck),
+`POST /v1/token/check`): its own registration token in the `Authorization`
+header, and the token it was presented as `subject_token` in a
+`TokenCheckRequest`. It authorises the act against the `capabilities` the
+answer reports, which are what the operator's role carries now, never beyond
+the token's `cap`. A token the answer reports not live is refused with the
+code it names. Where the orchestrator cannot be asked, the act is refused with
+`FABRIC_TOKEN_UNCHECKED` and nothing is appended. So a removed operator, a
+revoked credential and a role lowered below `fabric:attest` reach this service
+at the person's next act, not when the token expires. A read is authorised on
+the token as verified: for a read, a removal or a lowered role takes effect
+when the token expires, at most one hour after it was minted.
 
 A capability name is `family:verb`, and an invented one is refused at
 registration — which is why these belong in
@@ -1569,6 +1616,9 @@ security:
 - [ ] A content service whose `ServiceEntry` is on another host is reached only with a grant for that address; absent one the repository is `unreachable` and no credential is sent
 - [ ] The fabric's manifest declares no `agent:message`, and a remote content service does not cause it to be added
 - [ ] The fabric's manifest declares no `fabric:attest`, and its registration succeeds; a component whose manifest declares `fabric:attest` is refused at registration with `CAPABILITY_PERSON_ONLY`, and an agent's authorisation naming it is refused
+- [ ] An attestation on a person's operator token whose role carries `fabric:attest` is recorded; the same request on a registered component's token or a channel token is refused with `FORBIDDEN`, whatever capabilities that token names
+- [ ] An attestation, a decision or a relocation on an operator token minted before its operator was removed, its credential revoked, or its role lowered to one without `fabric:attest` is refused at that act with the code `POST /v1/token/check` reports, and appends nothing
+- [ ] With the orchestrator unreachable, an attestation, a decision or a relocation is refused with `FABRIC_TOKEN_UNCHECKED` and appends nothing, and a read on a verified token is still answered
 - [ ] Recording, confirming, rejecting or retiring a relationship leaves both artifacts byte-identical
 - [ ] Projecting an unchanged ledger twice produces identical bytes, and every judgement in the projection can be recomputed from the content with a published digest tool
 - [ ] Every relationship reachable from one endpoint is reachable from the other, and a synthesised containment step is reported as synthesised
