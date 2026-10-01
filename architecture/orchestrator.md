@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.10.1
+version: 2.10.2
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -441,6 +441,12 @@ the sentence declaring the coupling is the declaration.
 [`architecture/fabric`](fabric.md) states its own case in exactly that form: "A
 component that needs the filesystem of the thing it describes is not a client
 of it."
+
+Where a component may be placed does not decide what it may be sent there. A
+component on another host has, as yet, no ceiling of its own: the rule that
+it takes one from the custody its host demonstrates, never from
+`address_provenance`, waits on a way to demonstrate it
+([`patterns/scope`](../patterns/scope.md#destination-ceilings), the gap note).
 
 ### What the directory's signature attests, and what it does not
 

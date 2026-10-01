@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.4.2
+version: 2.4.3
 requires: [protocol/types]
 platform: any
 tier: free
@@ -342,6 +342,22 @@ read:
 | A model provider | [Model providers](#model-providers), below | `GET /v1/admin/model/ceiling` on a person's token, and `GET /v1/model/ceiling` on a registered component's ([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)) |
 | A caller of a hub's MCP surface | Always `internal`, as [`architecture/mcp`](../architecture/mcp.md#the-destination-gate) says: its caller is a model whose provider the tenant cannot see, so it is a model provider no agreement can name | Not read by a client: the MCP surface applies it to every tool result |
 
+> **Gap — a tenant component on another host has no ceiling yet.** A tenant
+> component on a host other than the one holding the content takes its
+> ceiling from the custody that host has demonstrated, and never from
+> `ServiceEntry.address_provenance`, which says where a component is and not
+> who can read its bytes. No blueprint yet specifies how a host
+> demonstrates custody, so no such row stands in the table above, and what
+> the content service serves a component, `content:read` included, is bounded
+> today by that component's grant and scope alone, wherever it runs. A tenant
+> that places a component that reads content on another host
+> ([`architecture/orchestrator`](../architecture/orchestrator.md#a-tenants-components-may-be-distributed))
+> therefore sends that host whatever the component may read, `restricted`
+> included, with nothing demonstrated about who else can read it there.
+> Closing it is a custody demonstration for a component's host, with a
+> ceiling derived from it as a replica's is, and the gate above applied to
+> every read served across hosts.
+
 ### The gate
 
 Anything a tenant holds may be sent to a destination only when both of these
@@ -399,9 +415,9 @@ above it with its level, or that the item's level is undeclared. It emits
 new request of their own, told what it leaves out.
 
 > **Gap — a register is not yet masked by column for a model provider.**
-> G9 decided that a register sent to a model provider has the columns its
+> A register sent to a model provider is meant to have the columns its
 > schema declares above the provider's ceiling masked, rather than the whole
-> register refused, and that the masking follows
+> register refused, with the masking following
 > [`patterns/privacy`](privacy.md)'s activation matrix. Nothing here does that
 > yet, so today a register with one column declared above the ceiling is
 > refused whole. A sender cannot do it: a model route cannot see where the
