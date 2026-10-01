@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.8.0
+version: 2.8.1
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin]
 platform: any
 tier: free
@@ -704,10 +704,11 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 | DELETE | /v1/admin/model/agreements/{id} | AdminModelAgreementWithdraw | `model:attest` | Withdraw an agreement (platform-provided) |
 | GET | /v1/admin/model/ceiling | AdminModelCeiling | `admin:read` | What a model backend may be sent now (platform-provided) |
 
-The model routes are marked `provided: platform` in the declaration. The hub
-serves them and a client may rely on them; they are NOT generated. The CLI
-installs them after generation, and they intercept their own paths ahead of the
-generated router.
+The model routes are marked `provided: platform` in the declaration. They are
+NOT generated: the CLI installs them after generation, and they intercept their
+own paths ahead of the generated router. A hub MUST serve all of them as this
+section specifies; today's CLI serves four, ungated
+([A model is a destination](#a-model-is-a-destination), the gap note).
 
 They are the tenant's model surface. The CLI installs them because they read
 the tenant's model configuration, discover which provider binaries are on the
@@ -750,6 +751,32 @@ where the text in a prompt came from, so `scope` is the caller's statement and
 the gate here is as good as the caller: that is why
 [`patterns/scope`](../patterns/scope.md#the-gate) binds every sender, a client
 included.
+
+> **Gap — the CLI's gateway serves four of these nine routes, and gates
+> none.** The model gateway the CLI installs today serves `GET` and
+> `PUT /v1/admin/model`, `GET /v1/admin/model/providers` and
+> `POST /v1/admin/complete`. It does not serve the three agreement routes,
+> `GET /v1/admin/model/ceiling` or `GET /v1/model/ceiling`, and being
+> `provided: platform` they are not generated either, so a request to any of
+> them falls through to the generated router and is answered `404`. Its
+> `POST /v1/admin/complete` reads no `scope` and runs with none of the gate
+> above: it never refuses `SCOPE_MISSING` or `SCOPE_CEILING_EXCEEDED`, and runs
+> whatever it is sent, `restricted` included. Until a hub serves all nine and
+> gates `complete`:
+>
+> - a client MUST NOT read a `404` from either ceiling route as a ceiling. It
+>   cannot learn one, so it uses `internal`, the ceiling a provider has with
+>   nothing attested, as an api-ai endpoint that cannot learn a ceiling does
+>   ([`patterns/api-ai`](../patterns/api-ai.md#destination-ceilings));
+> - a client MUST apply the gate itself before it sends to `complete`, with
+>   that ceiling, and MUST NOT rely on the hub to refuse anything: nothing
+>   undeclared and nothing above `internal` is sent
+>   ([`patterns/scope`](../patterns/scope.md#the-gate), every sender);
+> - no agreement can be recorded, so no provider's ceiling is above
+>   `internal` at any tenant.
+>
+> Closing it is the CLI's: serve the agreement and ceiling routes, and gate
+> `complete` on `scope`, as this section specifies.
 
 **Agreements.** A `ProviderAgreement`
 ([`patterns/scope`](../patterns/scope.md#model-providers)) is recorded and
