@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.6.0
+version: 2.6.1
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1029,13 +1029,22 @@ CLI holds one for each identity at each hub:
   ([`protocol/secret-source`](../protocol/secret-source.md#the-source-contract)),
   and a source that signs with an identity's key and never releases it holds
   no passphrase for it either. So the CLI asks the source that holds the
-  identity for its `capabilities`. Where `store` is listed, the credential is
-  stored there as an identity created in a source is. Where it is not, the
-  credential key is written beside the identity in its own `weblisk-key-v1`
-  envelope with `kdf` `argon2id`, under a passphrase the person chooses for it
-  when it is made, and is opened by that passphrase, typed or remembered by a
-  source as an identity's may be. That is then the one passphrase, because the
-  identity has none to type.
+  identity for its `capabilities`. Only a source that could hold an identity
+  **whole** can hold the credential that way
+  ([`protocol/secret-source`](../protocol/secret-source.md#an-identity-held-by-a-source)):
+  one whose `capabilities` list `store`, answer `named_fields` true, and do
+  not name `private_key` in `withheld_fields`, because the CLI must read the
+  key back with `get` to sign a challenge. There the credential is stored as
+  an identity created in a source is. Anywhere else, the credential key is
+  written beside the identity in its own `weblisk-key-v1` envelope with `kdf`
+  `argon2id`, under a passphrase the person chooses for it when it is made.
+  That is then the one passphrase, because the identity has none to type. It
+  is typed by the person, or, only on request (`--remember-passphrase`),
+  remembered by a source as an identity's passphrase is: one that lists
+  `store`, which may be the identity's own source where it lists `store`
+  without holding keys whole, or another the person names with
+  `--passphrase-holder <source>`. The envelope's `holder.json` records
+  `holds: ["passphrase"]` and that source. With neither, it is typed.
 - **Re-attested when it expires, replaced when the hub refuses it.** When the
   hub answers `CREDENTIAL_EXPIRED`, the key is sound and only its attestation
   lapsed, so the next `connect` re-attests the same key, which keeps its `cid`
@@ -1208,6 +1217,8 @@ Flags:
 | `--keys-dir <path>` | which identity signs, by location. Outranks `--identity` |
 | `--json` | machine-readable result, for a console driving this |
 | `--no-store` | return the token — on stdout, or in the `--json` result — and write no token file |
+| `--remember-passphrase` | where the credential key is kept in its own envelope ([A credential for each hub](#a-credential-for-each-hub)), have a source remember the passphrase chosen for it. Refused, keeping nothing, where no source that lists `store` is available |
+| `--passphrase-holder <source>` | with `--remember-passphrase`, the source that remembers it, where it is not the identity's own |
 
 **The passphrase arrives on stdin and never in argv.** A passphrase in a
 command-line argument is readable by every process on the machine, so one is
@@ -2486,6 +2497,8 @@ security:
 - [ ] Every `Attestation` the CLI builds names the `identity_id` the hub's attestation-token answer carries, never one computed from the identity key, so an identity that changed its key still attests at every hub that accepted the change
 - [ ] `connect` and `register` generate one ML-DSA-65 credential per identity per hub the first time they reach it, have the identity attest it once, keep its private key only in the `weblisk-key-v1` envelope or a secret source, and mint every later token with it without asking the identity
 - [ ] For an identity held by a secret source whose `capabilities` do not list `store`, `connect` keeps the new credential key beside the identity in its own `weblisk-key-v1` envelope with `kdf` `argon2id`, under a passphrase the person chose for it, and never in the clear or under `kdf` `none`
+- [ ] For an identity held by a source that lists `store` but answers `named_fields` false, or names `private_key` in `withheld_fields`, `connect` keeps the credential key in its own envelope beside the identity, never in that source, and signs every later challenge with it
+- [ ] `connect --remember-passphrase` for such an identity has a source that lists `store` keep the envelope's passphrase, and is refused, keeping nothing, when neither the identity's source nor one named with `--passphrase-holder` lists `store`
 - [ ] `register` and `connect` record a registration for each hub, naming its `hub_id`, the operator name it recorded, the `identity_id` it answered and the address it was reached at; discarding a credential after `CREDENTIAL_UNKNOWN` keeps the registration, and `OPERATOR_REVOKED` or `OPERATOR_UNKNOWN` removes it
 - [ ] `weblisk operator rotate` writes the next key and a rotation record listing every registration `pending` before it sends anything, then sends `POST /v1/admin/operators/{name}/key` to each registration with its own name and `hub_id`, signed by the old key and the new, a hub whose credential was discarded included
 - [ ] With one of three hubs unreachable, `rotate` marks two `changed` and one `pending`, keeps the old key, and exits non-zero naming the pending hub; `operator.pub` holds the new key, and a `register` at a fourth hub signs with the new key
