@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.9.1
+version: 1.9.2
 requires: [protocol/types]
 platform: any
 tier: free
@@ -346,21 +346,29 @@ Operator keys can be rotated without losing hub access:
 
 ```
 1. Operator initiates key rotation
-2. Current passphrase is required (decrypts existing key)
-3. New ML-DSA-65 key pair is generated
-4. New passphrase is set (encrypts new key)
+2. The current key is unlocked as its holder unlocks it: by its passphrase,
+   or by the secret source that holds it
+3. A new ML-DSA-65 key pair is made: generated and protected as the identity's
+   holder protects one, or, for a source that signs and never releases a key,
+   created with that source's own tools (protocol/secret-source)
+4. The new key is kept beside the old one until every hub has it
 5. The new public key is sent to each hub, signed by the old key and by the
    new one (POST /v1/admin/operators/{name}/key, architecture/admin)
 6. Each hub validates both signatures → stores the new public key, keeps the
-   operator's name, role and identity id, and revokes every credential the
-   old key attested
-7. Old key is marked as revoked (preserved for audit)
+   operator's name, role and identity id, records the old key as retired with
+   the time of the change, and revokes every credential the old key attested
+7. When no hub records the old key any more, its private half is destroyed and
+   its public half kept for audit
 8. The operator attests a new credential at each hub with the new key
 ```
 
 Because the hub keeps the operator's identity id, what was recorded under the
 old key and what is recorded under the new one name the same operator. The
-old key signs nothing more at that hub, and is never accepted there again.
+old key signs nothing more at that hub, and is never accepted there again. It
+is **retired**, not revoked: a signature it made before its `retired_at` still
+verifies, and one dated at or after it does not. How the CLI carries the steps
+out, a rotation some hubs have not yet received included, is
+[`architecture/cli`](../architecture/cli.md#weblisk-operator-rotate)'s.
 
 A registered component's key does not rotate through these steps, which are
 an operator's. It rotates through `POST /v1/rotate-key`
@@ -1159,7 +1167,7 @@ Implementation MUST:
 - [ ] Use constant-time comparison for signature verification
 - [ ] Never log or expose private keys
 - [ ] Key rotation registers new public key signed by old key and by the new key, and the hub keeps the operator's identity id across it
-- [ ] Revoked keys stored as .key.revoked for audit trail
+- [ ] A rotated operator key is retired, not revoked: once no hub records it, its private half is destroyed and only its public half is kept for audit
 - [ ] Production deployments have minimum 2 registered operators for recovery
 - [ ] Backup operator can remove a compromised operator, whose person then registers again under a new name and a new identity id
 - [ ] Bootstrap reset (all keys lost) requires orchestrator restart and re-registration
