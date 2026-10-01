@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: content-git
-version: 1.6.2
+version: 1.6.3
 requires: [architecture/content, patterns/content-identity, protocol/identity, patterns/secrets, patterns/principal-identity]
 platform: any
 tier: free
@@ -258,7 +258,7 @@ contracts:
         - A process that must reach another repository allows only the transport it needs, on that process alone - file, for the record mirror to fetch from its store; ssh, to push to a replica or ask a replica's head; and, with no credential, the transports of a replica's read addresses, to test anonymous read
         - The service runs only these git commands - init, rev-parse, symbolic-ref, for-each-ref, cat-file, ls-tree, ls-files, check-ignore, hash-object, read-tree, update-index, write-tree, commit-tree, update-ref, merge-base, rev-list, diff-tree with --no-ext-diff and --no-textconv, config reading the store's own file, fetch run in the record mirror from its store, push from the record mirror to a replica, and ls-remote against a replica
         - The service never runs gc, repack or prune on a store, and never checks out, resets, merges, rebases or stashes
-        - The git binary is found once, at start, by absolute path. Below version 2.36.0, the release that added core.fsync for references, or where no git is found, the backend is unavailable. The service does not exit, health reports degraded naming the backend and what was found, and every operation on the backend's repositories answers CONTENT_UNREADABLE
+        - The git binary is found once, at start, by absolute path. Below version 2.38.0, the first release that honours safe.directory given with -c (earlier ones read it only from system or global configuration, which the environment above empties, and refuse a store another user owns), or where no git is found, the backend is unavailable. The service does not exit, health reports degraded naming the backend and what was found, and every operation on the backend's repositories answers CONTENT_UNREADABLE
 
     - name: git-control-census
       description: What an adoption census reports about the store's control state
@@ -744,7 +744,7 @@ from the line's, returning both of those digests.
 - [ ] An adoption whose store gained a configured remote after the census is refused with `CONTENT_PRECONDITION_FAILED`
 - [ ] After a person resets the line to an earlier commit, every read and write answers `CONTENT_UNREADABLE`, health reports degraded naming `line-rewritten`, and nothing in the store is changed by the service
 - [ ] A path inside a nested repository, and a path the line records as a symbolic link, are refused with `CONTENT_RESERVED_PATH`
-- [ ] With git below 2.36.0 on the host, the service starts, health reports degraded naming the backend, and reads of its repositories answer `CONTENT_UNREADABLE`
+- [ ] With git below 2.38.0 on the host, the service starts, health reports degraded naming the backend, and reads of its repositories answer `CONTENT_UNREADABLE`
 - [ ] `tamper_evident` is false after an anchored commit is removed from the record mirror, and the ceiling is recomputed
 - [ ] A replica on a `git-remote` backend returns `credential` as an OpenSSH `ssh-ed25519` public key, and the private key appears in no response, log or event, and in no file at any time, including while a push runs
 - [ ] Outside development, a replica's private key is held in a store that meets `protocol/identity` rule 8, never under file permissions alone
