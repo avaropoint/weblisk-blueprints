@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.4.0
+version: 2.4.1
 requires: [protocol/types]
 platform: any
 tier: free
@@ -397,6 +397,29 @@ why, as a `DestinationRefusal`: the destination, its ceiling, and each item
 above it with its level, or that the item's level is undeclared. It emits
 `scope.violation`. A person may then send what is at or below the ceiling, as a
 new request of their own, told what it leaves out.
+
+> **Gap — a register is not yet masked by column for a model provider.**
+> G9 decided that a register sent to a model provider has the columns its
+> schema declares above the provider's ceiling masked, rather than the whole
+> register refused, and that the masking follows
+> [`patterns/privacy`](privacy.md)'s activation matrix. Nothing here does that
+> yet, so today a register with one column declared above the ceiling is
+> refused whole. A sender cannot do it: a model route cannot see where the
+> text in a prompt came from, and a client takes a level only from what the
+> tenant reported with it, which is the whole entry's. Only the tenant can,
+> because it alone holds what a column's level is: a column `scope` is
+> declared on the register's spec
+> ([`schemas/programme`](../schemas/programme.md#scope)) and the entry's bytes
+> carry only the register's level, so
+> [`architecture/content`](../architecture/content.md#the-recorded-scope)
+> records no column's. What closes it is a read the tenant answers with the
+> register less every column declared above a named ceiling, reported at the
+> scope of what remains and naming each column it left out, so that the
+> removal is the tenant's declared act, shown to whoever asked and audited,
+> and never a sender's silent one. That read is a different item from the
+> entry, at its own scope, and the gate and the rule above apply to it
+> unchanged. A register whose spec, rather than a column, puts it at
+> `restricted` or above stays refused whole.
 
 **Every sender, a client included.** The gate binds whatever sends: a
 component, an agent, a gateway, and a client outside the tenant, such as an
