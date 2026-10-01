@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.5.0
+version: 2.6.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1002,6 +1002,18 @@ CLI holds one for each identity at each hub:
   `hub_id` it was attested for. A challenge that answers with another `hub_id`
   is a hub this identity holds no credential for, and `connect` attests one
   there.
+- **Each hub it is registered at is remembered.** Beside the identity, the
+  CLI keeps one **registration** for each hub the identity registered or
+  connected at: that hub's `hub_id`, the operator name the hub recorded, the
+  `identity_id` it answered with, and the address it was last reached at.
+  `register` and `connect` write it, and update the address whenever they
+  reach the hub at another. The `hub_id` names the hub; the address is only
+  where to find it, so a hub reached there that answers another `hub_id` is
+  not that hub. A registration outlives its credential: it is kept when the
+  credential is discarded, and removed only when that hub answers
+  `OPERATOR_REVOKED` or `OPERATOR_UNKNOWN` for the operator, or the person
+  removes it. It holds nothing secret. It is what
+  [`weblisk operator rotate`](#weblisk-operator-rotate) sends a key change to.
 - **Kept as the identity is.** The private key sits beside the identity it
   belongs to, encrypted in the `weblisk-key-v1` envelope with `kdf` `argon2id`
   under the identity's own passphrase, or held by the secret source that
@@ -1266,7 +1278,8 @@ Its outcomes are `attested`, and `pending_approval`, `refused`,
 
 ### `weblisk operator rotate`
 
-Rotate the operator's ML-DSA-65 key pair.
+Change the identity's ML-DSA-65 key at every hub it is registered at, keeping
+its name, role and identity id at each.
 
 ```bash
 $ weblisk operator rotate
@@ -1274,27 +1287,83 @@ Enter current passphrase: ********
 Generating new key pair...
 Enter new passphrase (min 12 characters): ********
 Confirm new passphrase: ********
-Sending the new public key to each hub (signed by the old key and the new)...
-✓ Key rotated successfully.
-  New Key ID: f7e8d9c0...
-  Old key archived: ~/.weblisk/keys/operator.key.revoked
+Sending the new public key to 3 hubs (signed by the old key and the new)...
+  ✓ 7c1e…  changed
+  ✓ 0b9d…  changed
+  ✗ 4f2a…  unreachable — still pending
+Rotation pending at 1 hub. The old key is kept until it finishes:
+  weblisk operator rotate --resume
 ```
 
-- Decrypts existing key with current passphrase
-- Generates new ML-DSA-65 key pair
-- Encrypts new key with new passphrase
-- Sends the new public key to each hub it holds a credential for, through
-  `POST /v1/admin/operators/{name}/key`, signed by the old key for continuity
-  and by the new key for possession
-  ([`architecture/admin`](admin.md#changing-an-identity-key)). Each hub keeps
-  the operator's name, role and identity id. A hub that refuses is reported
-  with its code, and the old key is kept until every hub has accepted or the
-  person chooses to stop
-- Old key moved to `operator.key.revoked` beside the identity, for audit
-- The hub revokes every credential the old key attested, so the CLI discards its
-  credentials for that hub, and the next `connect` attests a new one with the
-  new identity. The hub answers the same `identity_id` as before, and the
-  attestation names it
+- **Where it sends.** To every hub in the identity's registrations
+  ([A credential for each hub](#a-credential-for-each-hub)), at the address
+  each was last reached at, through `POST /v1/admin/operators/{name}/key` with
+  the name and `hub_id` the registration records, signed by the old key for
+  continuity and by the new key for possession
+  ([`architecture/admin`](admin.md#changing-an-identity-key)). A hub whose
+  credential lapsed and was discarded is still registered, so it is sent the
+  change too. Rotate takes no `--orch` or `--name`: a key belongs to the
+  identity, and a change made at some of its hubs and not others is exactly
+  the state below.
+- **Recorded before anything is sent.** The CLI generates the new key, keeps
+  it beside the identity as the **next** key, in the holder's form below, and
+  writes a rotation record listing every registration as `pending`. Each hub
+  that answers `200` with the registration's `identity_id` is marked
+  `changed`. One that answers another `identity_id` is marked `refused` and
+  reported, because that hub does not hold the operator this registration
+  names. `OPERATOR_REVOKED` and `OPERATOR_UNKNOWN` remove the registration, as
+  they always do. Any other refusal, and a hub that cannot be reached or
+  answers another `hub_id`, leaves it `pending`, reported with its code or as
+  `unreachable`.
+- **While a rotation is pending, the identity's key is the new one.**
+  `operator.pub` holds the new public key from the moment the record is
+  written, and every signature the identity makes is made with the new key,
+  a registration at a new hub included. The old key signs one thing only: the
+  continuity of a key change at a hub still `pending`, which records the old
+  key and nothing else. So `connect` and `attest` to a `pending` hub first
+  send it the key change, whether or not a credential there is still live,
+  and the identity signs there with the new key once the change is accepted.
+  A refusal leaves the hub `pending`, and the command has the identity sign
+  nothing there and reports the code.
+- **Resumed, never started again.** `weblisk operator rotate --resume` sends
+  the change to every hub still `pending`, signed by the old key and the new
+  exactly as the first attempt was: the old key is still the one those hubs
+  record, so it is the one that can hand the operator on. With `connect` and
+  `attest` doing the same, a hub that was unreachable during the rotation
+  finishes it the next time it is reached. `rotate` without `--resume` while a
+  rotation is pending is refused, so a second new key never strands the
+  first.
+- **Finished when nothing is pending.** When every registration is `changed`,
+  or has been removed, the old private key is destroyed in the holder's form
+  below, its public half is kept beside the identity as
+  `operator.pub.retired` with the time the rotation finished, for audit, and
+  the rotation record is deleted. Once no hub records the old key, nothing
+  may be signed with it, and a private key that is kept is one more copy of a
+  key to protect, kept for no use. Its public half is all an auditor needs.
+- **Abandoning a hub.** `weblisk operator rotate --abandon <hub_id>` removes
+  one `pending` hub from the rotation, and its registration with it, and asks
+  for confirmation first.
+  That hub keeps the old key as the operator's identity key, and once the
+  rotation finishes nothing on this machine can sign for it there: that is the
+  lost-key case, and the operator is removed by an admin there and registers
+  again as a new identity id
+  ([`architecture/admin`](admin.md#changing-an-identity-key)).
+- **Credentials.** Each hub that accepts revokes every credential the old key
+  attested, so the CLI discards its credential for that hub, and the next
+  `connect` attests a new one with the new key. The hub answers the same
+  `identity_id` as before, and the attestation names it.
+
+**For each holder** ([Where an identity lives](#where-an-identity-lives)):
+
+| Holder | The next key | When the rotation finishes |
+|---|---|---|
+| Encrypted file | Generated by the CLI and written beside the identity as `operator.key.next`, in `weblisk-key-v1` with `kdf` `argon2id`, under a new passphrase the person types twice. The current passphrase opens the old key | `operator.key.next` replaces `operator.key`, and the old envelope is overwritten and removed |
+| Encrypted file, passphrase remembered by a source | As the encrypted file, and the source is asked to `store` the new passphrase, under a reference the rotation record keeps | `holder.json` names the new reference, and the old passphrase is `erase`d from the source |
+| A source holding it whole | Generated by the CLI and stored in the same source with `store`, as an identity created there is ([`protocol/secret-source`](../protocol/secret-source.md#an-identity-held-by-a-source)), under a reference the rotation record keeps | `holder.json` names the new reference, and the old one is `erase`d. A source that does not list `erase` is reported, and the person erases it with the source's own tool |
+| A source that signs and never releases the key | Not generated by the CLI: no action of `protocol/secret-source` creates a key in such a source. The person creates it with the source's own tool and names it with `--new-holder <source>:<reference>`, which the CLI maps as `weblisk operator store` maps one, once a signature through it verifies against the public key it reads. Without `--new-holder`, rotate is refused for this holder and says why | `holder.json` names the new reference. The CLI cannot destroy the old key, and tells the person to with the source's own tool |
+
+The passphrase of an encrypted file is never a flag and never in shell history,
+as for `operator init`.
 
 ---
 
@@ -2417,6 +2486,15 @@ security:
 - [ ] Every `Attestation` the CLI builds names the `identity_id` the hub's attestation-token answer carries, never one computed from the identity key, so an identity that changed its key still attests at every hub that accepted the change
 - [ ] `connect` and `register` generate one ML-DSA-65 credential per identity per hub the first time they reach it, have the identity attest it once, keep its private key only in the `weblisk-key-v1` envelope or a secret source, and mint every later token with it without asking the identity
 - [ ] For an identity held by a secret source whose `capabilities` do not list `store`, `connect` keeps the new credential key beside the identity in its own `weblisk-key-v1` envelope with `kdf` `argon2id`, under a passphrase the person chose for it, and never in the clear or under `kdf` `none`
+- [ ] `register` and `connect` record a registration for each hub, naming its `hub_id`, the operator name it recorded, the `identity_id` it answered and the address it was reached at; discarding a credential after `CREDENTIAL_UNKNOWN` keeps the registration, and `OPERATOR_REVOKED` or `OPERATOR_UNKNOWN` removes it
+- [ ] `weblisk operator rotate` writes the next key and a rotation record listing every registration `pending` before it sends anything, then sends `POST /v1/admin/operators/{name}/key` to each registration with its own name and `hub_id`, signed by the old key and the new, a hub whose credential was discarded included
+- [ ] With one of three hubs unreachable, `rotate` marks two `changed` and one `pending`, keeps the old key, and exits non-zero naming the pending hub; `operator.pub` holds the new key, and a `register` at a fourth hub signs with the new key
+- [ ] `weblisk operator rotate --resume` against the hub left `pending` signs the change with the old key it still records and the new key, the hub answers `200` with the same `identity_id`, and only then is the old private key destroyed and its public half kept as `operator.pub.retired`
+- [ ] `weblisk operator connect` to a hub left `pending` by a rotation sends that hub the key change before it attests, and attests with the new key; when the change is refused it signs nothing there
+- [ ] `weblisk operator rotate` while a rotation is pending is refused without `--resume`, and generates no second key
+- [ ] `weblisk operator rotate --abandon <hub_id>` asks for confirmation, removes that hub and its registration from the rotation, and the rotation then finishes with the old private key destroyed
+- [ ] For an identity held by a source that signs and withholds `private_key`, `weblisk operator rotate` without `--new-holder` is refused and says why; with `--new-holder <source>:<reference>` it maps that key only once a signature through it verifies, and never asks the source to create one
+- [ ] For an identity held whole by a source, `rotate` stores the new key in that source with `store`, and on finishing points `holder.json` at it and `erase`s the old reference, reporting a source that does not list `erase`
 - [ ] `weblisk operators revoke` invalidates target operator's public key and tokens (admin only)
 - [ ] `weblisk operators revoke` prevents self-revocation and revoking the last admin
 - [ ] `weblisk operators list` shows all registered operators with name, role, status, and registration date
