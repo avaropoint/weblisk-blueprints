@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.1.1
+version: 1.2.0
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -878,9 +878,10 @@ A generator MUST treat every repair round as a transaction:
    - dependency resolution that succeeded now fails;
    - a tree that built no longer builds;
    - a failing build got further from compiling. Either a package both builds
-     show has more errors, however much another package improved, or the build
-     now fails in a way whose distance from compiling cannot be read where
-     before it could. See *Ranking failing builds* below;
+     show has more errors, however much another package improved; or a package
+     the earlier build showed is one the later build hides; or the build now
+     fails in a way whose distance from compiling cannot be read where before
+     it could. See *Ranking failing builds* below;
    - a component that started no longer starts;
    - a conformance test that was holding now fails.
 
@@ -892,23 +893,41 @@ A generator MUST treat every repair round as a transaction:
    unreachable, which is allowed, and the next can take it from unreachable to
    failing. Neither step then looks like a passing test broken.
 
-   **Revealed is not made.** When the round is judged, an error on the later
-   build is not counted if all of the following hold:
-
-   - it stands at a line the change did not alter;
-   - the tree before did not have it at that line;
-   - the change made an error in the same package go;
-   - the line uses no name the change removed or re-signed, in its own file or
-     another.
+   **Revealed or made, a package shown worse is worse.** A round, and each
+   repair tried on its own in the retry (rule 4), MUST be undone when any
+   package both builds show has more errors than it had on the tree the round
+   started from. This holds even where the same change made an error in that
+   package go and the new errors stand at lines it did not alter. No error is
+   exempted as revealed rather than made.
 
    The type checker hides errors as a failing package hides its importers.
    Given `cfg := loadConfg()`, the compiler reports the undefined name and
-   nothing about `cfg`, whose type it never learned. Fixing the typo reveals
-   "cfg.Host undefined" and "cfg.Port undefined", and counted, the round was
-   undone every time and the run stopped on the typo. A change that fixed
-   nothing in a package revealed nothing in it. The ranking still counts every
-   error, so such a round is kept, and what it revealed counts against it when
-   it is compared with the best tree.
+   nothing about `cfg`, whose type it never learned, and fixing the typo
+   reveals "cfg.Host undefined" and "cfg.Port undefined". No count of
+   diagnostics tells an error a change revealed from one it made, and an
+   exemption for the revealed kind let one package's improvement carry another
+   package's regression into the best tree.
+
+   The rule costs such a fix a round, not the fix. The prompt for the undone
+   repair's file lists the errors its build reported (rule 2), so the next
+   repair is shown them and can put them right along with the typo. Where what
+   a fix reveals stands in a file the fix did not change, no repair of the
+   fix's own file alone can be kept, and that package stays as the tree before
+   showed it.
+
+   **Losing sight of a package is not progress.** A package the earlier build
+   showed, which the later build hides, MUST count as worse, never as
+   unchanged. That holds when a round is judged, when a repair is tried on its
+   own in the retry, and when two trees are ranked (see *Ranking failing
+   builds* below). Hidden, its errors leave the count without one of them
+   being fixed. Where it is hidden because a package it imports went from
+   compiling to failing, that package is shown on both builds with more
+   errors, and the round is undone for it already. But a change that adds an
+   import of a package that already fails hides the importer, and every
+   package that imports it in turn, while no package shown on both builds
+   rises. Counted as unchanged, such a round could be kept for what it fixed
+   elsewhere, and whatever it did to the packages it hid would reach the best
+   tree unseen.
 
    More assertions read unmet also makes a round worse, but only when nothing
    observed shows the round did any good, that is, when no fewer conformance
@@ -946,6 +965,19 @@ A generator MUST treat every repair round as a transaction:
    What a file in any other language declares is not read. Such a file is shown
    no uses, no change to it is refused before a trial, and no error is charged
    to its change as one the change made.
+
+   **An error is charged across files only through a dependency.** An error
+   that stands in one file MUST be charged to a change in another file only
+   through a dependency the generator establishes from the source. The file
+   holding the error imports the changed file or its package, or is in the
+   same Go package, and the error's line uses, through that import or package,
+   a declaration the change removed or re-signed. A word on the line that
+   matches the name MUST NOT be enough. The same word can be a field of
+   another type, a local variable, or a name another file declares, and an
+   error there is not the change's. A language whose imports the generator
+   cannot read MUST charge nothing across files, and an import it cannot
+   place, such as a path alias or a package name, establishes nothing. What a
+   charge does to the count is in *Ranking failing builds* below.
 
    Some builds do not check where another file uses a name. Here that means
    JavaScript and TypeScript, whose build may bundle or may not exist. For those
@@ -1182,25 +1214,28 @@ any other language is compared as *Other builds* below says.
   every error the later build shows there, the most the change can have done.
   Where the later build cannot count it either, the later tree is not nearer
   compiling, whatever else improved.
-- A package the later build shows less of than the earlier build did, which the
-  change touched, makes the later tree further from compiling.
+- A package the later build shows less of than the earlier build did makes the
+  later tree further from compiling, whatever else improved and whether or not
+  the change touched it. That includes a package the later build hides
+  entirely: losing sight of a package is not progress (rule 3).
 - An error on the later tree at a use of a name that the change removed or
   re-signed was not revealed; the change made it. It counts against the package
   whose change made it. Only the tree a change made is charged with what the
-  change made.
+  change made, and only a use established through a dependency is charged,
+  never a word that matches (rule 5).
 
 The ranking sums these comparisons. Undoing a round does not: one package shown
-worse is a regression however much another improved, as one holding test that
-now fails is. A package the later tree hides was hidden by a package it imports
-going from compiling to failing, and that package is shown on both trees and
-rose. So the round is undone for that rise.
+worse is a regression however much another improved, and whether the change
+revealed its new errors or made them, as one holding test that now fails is. A
+package the later build hides counts as worse too, whether or not a package it
+imports rose to hide it (rule 3).
 
 **Other builds.** A build in any other language is not read for what hides
 what. No directory hides another, and nothing in a directory is hidden behind
 a syntax error, so two of its failing builds are compared directory by
 directory, each on the plain count of the diagnostics that name a planned file
-there. A fix that lets such a build reach errors in another directory is
-charged with them, and its round is undone for them.
+there. A fix that lets such a build reach errors in another directory has them
+counted against that directory, and its round is undone for them.
 
 A diagnostic names a file only when its line begins with the file's path and
 line, as `path:line: message` or `path:line:col: message`, which is how Go's
@@ -1419,9 +1454,11 @@ and "nothing contradicted it".
 - [ ] Every repair round starts from a kept copy of the tree, and every repair in it is asked for against that tree
 - [ ] A repair that returns its file unchanged is not tried, and a round with nothing to try is not measured
 - [ ] The next repair of a file is told why its last repair was not kept and what that attempt's build reported; a kept repair clears it
-- [ ] A round is worse when resolution, the build or the start stops working, a package a failing build shows has more errors, a failing build becomes one whose distance from compiling cannot be read, or a holding conformance test fails — and a worse round is undone
+- [ ] A round is worse when resolution, the build or the start stops working, a package a failing build shows has more errors, a package the earlier failing build showed is hidden on the later one, a failing build becomes one whose distance from compiling cannot be read, or a holding conformance test fails — and a worse round is undone
 - [ ] A conformance test that passed and has given no answer since is still held to passing, in the retry and in later rounds
-- [ ] A new error at a line the change did not alter, in a package where the change fixed an error and not at a use of a name it removed or re-signed, does not undo the round; the ranking still counts it
+- [ ] A round, or a repair tried alone in the retry, that leaves any package both builds show with more errors is undone, even where the same change fixed an error in that package and the new errors stand at lines it did not alter
+- [ ] A package the earlier failing build showed and the later one hides counts as worse, never as unchanged, when a round is judged, when a repair is tried alone, and when trees are ranked, including where what hid it is an added import of a package that already failed
+- [ ] An error is charged to a change in another file only where the file holding it imports the changed file or its package, or shares its Go package, and the line uses a declaration the change removed or re-signed; a matching word charges nothing, and a language whose imports cannot be read charges nothing across files
 - [ ] A round read worse, and not observed worse, is undone and not retried
 - [ ] An undone round's responses are retried one file at a time with no new model call, each kept only if the tree is no worse and no holding test fails
 - [ ] Every repair of a Go, JavaScript or TypeScript file is shown each other file's uses of the names its file declares; where the build cannot detect a broken use, a repair that removes a used export or imports a name not exported is refused before it is tried, judged alone and together with the round's earlier kept repairs
