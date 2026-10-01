@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.15.3
+version: 2.15.4
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -687,7 +687,8 @@ contracts:
         - A console MUST hold a separate credential for each account at each hub, generate its key pair itself, and have it attested by that account's operator identity through the CLI, never by holding the identity itself
         - It MUST ask for not_after 30 days ahead unless the person chooses another value within the 90-day cap, and MUST warn the person when fewer than 7 days remain
         - It MUST use a person's credential only while that person holds a live session with the console at AAL2, and MUST NOT mint a token with it at any other time
-        - Work no signed-in person is present for, such as a schedule or a background job, MUST NOT use a person's credential. It needs the console's own service identity at the hub, and this contract specifies no route that admits one (A console holds a credential, never a token), so until one is specified a console does no such work at a hub
+        - Work no signed-in person is present for, such as a schedule or a background job, MUST NOT use a person's credential. It needs the console's own service identity at the hub, and this contract specifies no route that admits a console as one (A console holds a credential, never a token), so until one is specified a console does no such work at a hub
+        - A console MUST NOT register itself, or any key it holds, as a component through POST /v1/register. That route admits any component on its signed manifest alone (protocol/spec, the enrolment gap), so a console could obtain a registration token there with content read, propose and model capabilities and run the unattended work the rule above withholds. A hub cannot tell a console's registration from a component's, so this rule binds the console, and a console that registered is in breach of it
         - It MUST NOT give an agent a token minted with a person's credential, narrowed by cap or not. The console holds the token and sends every request itself. Leaving out the person-only capabilities leaves every other capability of the person's role, admin:* for an admin, which admits operators and sets their roles. The hub cannot tell the agent's requests from the person's, and could end the run only by revoking the person's credential
         - While the person who started a run holds a live AAL2 session with it, a console MAY send, for that run, reads of the tenant's content and completions through the tenant's model route, and nothing else. Each is the person's request, on that person's token minted with cap naming only what that request needs where it is sent - content:read and content:describe at the content service, and the capability the model route requires at the orchestrator. Neither changes anything at a hub, which is why they are admitted before agent-delegation has a route and nothing that changes anything is. They stop when the person's session ends
         - No write, removal, proposal, decision, declaration, replica act or other administrative request that an agent chose is sent for it. What an agent prepares reaches a hub only in a request the person submits, under their own token, as their own act, naming the agent and the run on a proposal
@@ -1278,10 +1279,12 @@ it may replay it. So a console keeps the thing that can **ask**, and never the
   named human owner, vouched for by a holder of `grant:issue`, with an expiry.
   This contract has no route that admits a console's service subject, grants
   it and mints it a token. The operator routes admit people only, and
-  `POST /v1/register` admits a mesh component on its manifest
-  ([`protocol/spec`](../protocol/spec.md#post-v1register)). Until one is
-  specified, a console does no unattended work at a hub, and work that runs
-  whether or not anybody is present belongs to the tenant's own services.
+  `POST /v1/register` admits a mesh component on its manifest alone
+  ([`protocol/spec`](../protocol/spec.md#post-v1register)), with nothing
+  that could tell a console from a component, so a console MUST NOT register
+  itself there (`console-credential-use`). Until a route is specified, a
+  console does no unattended work at a hub, and work that runs whether or
+  not anybody is present belongs to the tenant's own services.
 - **An agent never holds a person's token.** Narrowing a token with `cap`
   removes what it names and keeps the rest. For an admin the rest is
   `admin:*`, and an agent holding it could register an operator with a key
@@ -2161,6 +2164,7 @@ The rest SHOULD be:
 - [ ] An admin's token minted with `cap` `[admin:read]` carries `admin:read`, reaches a `viewer+` route and `POST /v1/admin/complete`, and is refused with `FORBIDDEN` on an `admin` route such as `PUT /v1/admin/operators/{name}/role`
 - [ ] An operator-role token minted with `cap` `[admin:*]` carries `admin:read`, `admin:approve` and `admin:strategy`, and not `admin:*` or `admin:audit`
 - [ ] A token presented in the request body rather than the `Authorization` header is refused on every `/v1/admin/*` route
+- [ ] A console holds no registration at any hub: it never sends `POST /v1/register` with its own key or any key it holds, and does no work at a hub while no signed-in person is present
 - [ ] A sixth `POST /v1/admin/credentials/token` within a minute from one client address is refused before its signature is verified, whatever `cid` each names, while requests from another address, and to `POST /v1/admin/operators/{name}/key` from the same one, are not
 - [ ] Bootstrap event (first operator registration) is permanently recorded in the audit log
 - [ ] WebSocket /v1/admin/ws provides real-time status updates for agent changes, approvals, and workflow completions

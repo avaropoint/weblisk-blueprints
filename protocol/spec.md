@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 2.0.5
+version: 2.0.6
 requires: [protocol/types, protocol/identity]
 platform: any
 tier: free
@@ -393,8 +393,12 @@ The orchestrator MUST:
 > named human owner, to be vouched for by a holder of `grant:issue`, and to
 > carry an expiry. This endpoint does none of those: it admits a component on
 > its signed manifest alone. Of those constraints it applies only step 1's
-> refusal of a person-only capability. Closing the gap is also what would let
-> a hub admit a console's own service identity, which no route admits today
+> refusal of a person-only capability. So it would admit a console that
+> registered its own key as a component, which nothing here can tell from a
+> component; `architecture/admin`'s `console-credential-use` forbids a console
+> to do so, and that rule binds the console, not this endpoint. Closing the
+> gap is also what would let a hub admit a console's own service identity
+> deliberately, as no route does today
 > ([`architecture/admin`](../architecture/admin.md#a-console-holds-a-credential-never-a-token)).
 
 **Error responses:**
