@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.14.1
+version: 1.14.2
 requires: []
 platform: any
 tier: free
@@ -397,7 +397,7 @@ holds both and one admin can send a repository outside the tenant alone.
 
 **Model capabilities:**
 - `model:attest` — record and withdraw an agreement attestation, which raises what a model provider may be sent ([`patterns/scope`](../patterns/scope.md#model-providers)). *Person only*
-- `model:route` — send to a model provider's endpoint as the tenant's model route ([`patterns/scope`](../patterns/scope.md#the-gate)). Declared by a component that serves `patterns/api-ai`'s endpoints or `POST /v1/admin/complete`, and by nothing else
+- `model:route` — send to a model provider's endpoint as the tenant's model route ([`patterns/scope`](../patterns/scope.md#the-gate)). Declared by a component that serves `patterns/api-ai`'s endpoints, and by nothing else. `POST /v1/admin/complete` is the orchestrator's own route and is served by no component, so nothing declares it there ([`patterns/scope`](../patterns/scope.md#the-gate), Where the tenant applies it)
 
 `model:route` is how [`architecture/enforcement`](../architecture/enforcement.md#external-proxy)'s
 external boundary tells the model route from a call made around it. It

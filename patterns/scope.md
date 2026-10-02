@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.6.0
+version: 2.6.1
 requires: [protocol/types]
 platform: any
 tier: free
@@ -453,10 +453,16 @@ has with nothing demonstrated or attested.
   of [`patterns/api-ai`](api-ai.md#destination-ceilings), and
   `POST /v1/admin/complete`
   ([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)).
-  Each applies the gate itself before it sends, and the component serving it
-  declares `model:route` ([`protocol/types`](../protocol/types.md)), which is
-  how a boundary tells it from anything else. A model backend that runs as a
-  program on the tenant's host makes no outbound call a boundary can see.
+  Each applies the gate itself before it sends. A component serving
+  api-ai's endpoints declares `model:route`
+  ([`protocol/types`](../protocol/types.md)), which is how a boundary tells it
+  from anything else. `POST /v1/admin/complete` is the orchestrator's own
+  route, served by the model gateway the CLI installs in it, and neither
+  registers a manifest: the external boundary wraps an agent's outbound
+  calls, and the orchestrator is not an agent, so `model:route` is not how
+  that route is told apart, and what holds there is the gate it applies
+  itself. A model backend that runs as a program on the tenant's host makes
+  no outbound call a boundary can see.
 - A component's outbound call to a model provider's endpoint also passes the
   external boundary of
   [`architecture/enforcement`](../architecture/enforcement.md#external-proxy),
