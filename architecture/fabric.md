@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 1.2.1
-requires: [protocol/types, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
+version: 1.3.0
+requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
 adoption: opt-in
@@ -65,6 +65,19 @@ requires:
           fields_used: [subject_token]
         - name: TokenStatus
           fields_used: [live, code, identity_id, capabilities]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/identity
+    version: ">=1.9.0 <2.0.0"
+    bindings:
+      types:
+        # type says whether a person's credential obtained the token, which
+        # is the only token fabric:attest counts on; cap narrows a read
+        - name: WLToken
+          fields_used: [type, cap]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -154,9 +167,12 @@ requires:
       behaviors:
         # Asked before every attestation, decision and relocation. See Registration and Standalone Operation
         - name: token-check
+          usage: Relied on, never served here. This service asks the orchestrator and acts on the TokenStatus it answers
       endpoints:
         - path: /v1/token/check
           methods: [POST]
+          request_type: TokenCheckRequest
+          response_fields: [live, code, identity_id, capabilities]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -481,6 +497,15 @@ second component's to publish, and the orchestrator refuses the claim.
 
 ## Error Handling
 
+**Each code's HTTP status follows its Category**, and a code is returned with
+that status wherever this service refuses: `validation` 400, `policy` 403,
+`enforcement` 403, `conflict` 409, `integrity` 409 and `io` 503. A code whose
+behaviour is not a refusal, such as `FABRIC_ENDPOINT_UNREACHABLE`, is reported
+and never returned as an error status. A code another blueprint registers,
+such as `FORBIDDEN` or the code a token check reports for a token that is not
+live, keeps the status that blueprint gives it
+([`protocol/types`](../protocol/types.md#errorresponse)).
+
 | Code | Category | When | Behaviour |
 |---|---|---|---|
 | `FABRIC_REFERENCE_UNQUALIFIED` | validation | A reference names a path and no source, and more than one source in scope answers to it | Refuse. Name every candidate. Two sources answering is no answer |
@@ -494,7 +519,7 @@ second component's to publish, and the orchestrator refuses the claim.
 | `FABRIC_PARTITION_UNKNOWN` | validation | A sync named a partition the producer has not declared | Refuse the whole batch. Retirement is bounded by the partition, and an unknown one has no bound |
 | `FABRIC_CHAIN_BROKEN` | integrity | An entry's chain digest does not follow its predecessor | Refuse further appends in that scope, publish `fabric.chain.broken`, and report the first entry that does not follow |
 | `FABRIC_LEDGER_TRUNCATED` | integrity | The log's byte length decreased | Re-read in full and report. Never continue from an incremental parse |
-| `FABRIC_TOKEN_UNCHECKED` | io | An attestation, a decision or a relocation arrived and the orchestrator could not be asked whether its token is live | Refuse and append nothing. The request may be repeated once the orchestrator answers. Never proceed on the token alone |
+| `FABRIC_TOKEN_UNCHECKED` | io | An attestation, a decision or a relocation arrived and the orchestrator could not be asked whether its token is live, or answered anything but 200 with a `TokenStatus` | Refuse and append nothing. The request may be repeated once the orchestrator answers. Never proceed on the token alone |
 | `FABRIC_SCOPE_MISMATCH` | policy | A claim's scope lies outside the caller's declared scope | Refuse with a `ScopeViolation`. Never narrow the claim to fit |
 | `ENFORCEMENT_DATA_CONTRACT_VIOLATION` | enforcement | The claim's endpoints lie outside the agent's declared operational data contract | Refuse via the boundary proxy |
 
@@ -1389,8 +1414,10 @@ holds it through a role, and
 carry it, and `fabric:read`.
 
 **This service honours `fabric:attest` only on a person's token.** It counts
-only on a token whose `type` is `operator`, which a hub mints for an operator,
-a person, through a credential that person's identity attested
+only on a token whose `type` claim
+([`protocol/identity`](../protocol/identity.md#payload-claims)) is `operator`,
+which a hub mints for an operator, a person, through a credential that
+person's identity attested
 ([`architecture/admin`](admin.md#operator-token)). On any other token, a
 registered component's or a channel's, this service treats it as absent and
 refuses the request with `FORBIDDEN`. A hub that minted it on one by mistake
@@ -1405,8 +1432,12 @@ header, and the token it was presented as `subject_token` in a
 `TokenCheckRequest`. It authorises the act against the `capabilities` the
 answer reports, which are what the operator's role carries now, never beyond
 the token's `cap`. A token the answer reports not live is refused with the
-code it names. Where the orchestrator cannot be asked, the act is refused with
-`FABRIC_TOKEN_UNCHECKED` and nothing is appended. So a removed operator, a
+code it names. Where the orchestrator cannot be asked, or answers anything
+but 200 with a `TokenStatus` (a 401 for this service's own expired
+registration token, say, or a 5xx), the act is refused with
+`FABRIC_TOKEN_UNCHECKED` and nothing is appended. Such an answer judged this
+service's request, never the presented token, so its code is never relayed as
+the token's. So a removed operator, a
 revoked credential and a role lowered below `fabric:attest` reach this service
 at the person's next act, not when the token expires. A read is authorised on
 the token as verified: for a read, a removal or a lowered role takes effect
@@ -1622,6 +1653,7 @@ security:
 - [ ] An attestation on a person's operator token whose role carries `fabric:attest` is recorded; the same request on a registered component's token or a channel token is refused with `FORBIDDEN`, whatever capabilities that token names
 - [ ] An attestation, a decision or a relocation on an operator token minted before its operator was removed, its credential revoked, or its role lowered to one without `fabric:attest` is refused at that act with the code `POST /v1/token/check` reports, and appends nothing
 - [ ] With the orchestrator unreachable, an attestation, a decision or a relocation is refused with `FABRIC_TOKEN_UNCHECKED` and appends nothing, and a read on a verified token is still answered
+- [ ] An attestation, a decision or a relocation for which `POST /v1/token/check` answers anything but 200 with a `TokenStatus`, such as 401 `TOKEN_EXPIRED` for this service's own registration token or a 503, is refused with 503 `FABRIC_TOKEN_UNCHECKED`, never with the code that answer carried
 - [ ] Recording, confirming, rejecting or retiring a relationship leaves both artifacts byte-identical
 - [ ] Projecting an unchanged ledger twice produces identical bytes, and every judgement in the projection can be recomputed from the content with a published digest tool
 - [ ] Every relationship reachable from one endpoint is reachable from the other, and a synthesised containment step is reported as synthesised

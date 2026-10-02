@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.15.1
+version: 2.15.2
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -196,9 +196,12 @@ requires:
       behaviors:
         # Asked before every act only a person may perform. See Who may move an entry
         - name: token-check
+          usage: Relied on, never served here. This service asks the orchestrator and acts on the TokenStatus it answers
       endpoints:
         - path: /v1/token/check
           methods: [POST]
+          request_type: TokenCheckRequest
+          response_fields: [live, code, identity_id, identity_public_key, capabilities]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -684,7 +687,7 @@ code here is enough, because a client does the same thing for both.
 | `CONTENT_PROPOSAL_UNKNOWN` | validation | No proposal of that id in the caller's scope | Refuse without disclosing whether it exists elsewhere |
 | `CONTENT_PROPOSAL_DECIDED` | conflict | A decision arrived for a proposal that is no longer `open`, including the second of two decisions that raced | Refuse, returning the proposal as recorded. A proposal leaves `open` once |
 | `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the identity the proposal names as its `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, the change has no scope, or the repository declares no ceiling. Or a repository declaration whose `self_decision_ceiling` is `critical`. See [Separation of duties](#separation-of-duties) | Refuse, naming the scope, or that there is none, and the ceiling. Nothing is recorded and the proposal stays `open` |
-| `CONTENT_TOKEN_UNCHECKED` | io | A write, removal, decision, replica declaration or retirement, or a declaration carrying `self_decision_ceiling` or `scope_floor`, arrived and the orchestrator could not be asked whether its token is live | Refuse and perform nothing. The request may be repeated once the orchestrator answers. Never proceed on the token alone |
+| `CONTENT_TOKEN_UNCHECKED` | io | A write, removal, decision, replica declaration or retirement, or a declaration carrying `self_decision_ceiling` or `scope_floor`, arrived and the orchestrator could not be asked whether its token is live, or answered anything but 200 with a `TokenStatus` | Refuse and perform nothing. The request may be repeated once the orchestrator answers. Never proceed on the token alone |
 | `CONTENT_IDENTITY_REQUIRED` | auth | A write, removal, proposal, decision, replica declaration or retirement arrived on a token that carries no `identity_id` | Refuse. Never record a name, an address or a token's `sub` in its place |
 | `CONTENT_STATEMENT_INVALID` | auth | A write, removal or decision carried a `ChangeStatement` that does not verify: the token is not a person's; the attestation's `purpose` is not `sign-records`, its `identity_id` is not the token's, its identity key is not the operator's current one, its signature fails, its credential key is not ML-DSA-65, or its `not_after` has passed or is more than 90 days ahead; its credential key is not one of the token's `record_keys`, or is the credential the token's `cid` names; `signed_at` is more than 300 seconds from the service's clock; or the signature does not verify over the statement rebuilt from the change. See [The change statement](#the-change-statement) | Refuse, naming the check that failed. Nothing is written and a proposal stays `open`. The change is never recorded unsigned instead. Log as a security event |
 | `CONTENT_WRITE_UNCONFIRMED` | io | The digest of the bytes read back after a write is not the digest of the decoded bytes submitted | Refuse. The reservation is settled as one whose path holds neither `before` nor the reserved `after`: an `observe` entry under shared custody, an integrity anomaly under exclusive custody. No `change` entry records the write, because a statement over the submitted bytes could not be checked against other ones. See [Write Flow](#write-flow) |
@@ -2456,8 +2459,11 @@ the answer reports: what the operator's role carries now, never beyond the
 token's `cap`. A token the answer reports not live is refused with the code
 it names, with the status
 [`protocol/types`](../protocol/types.md#errorresponse) registers for it. Where the
-orchestrator cannot be asked, the act is refused with
-`CONTENT_TOKEN_UNCHECKED` and nothing is performed. So a removed operator, a
+orchestrator cannot be asked, or answers anything but 200 with a
+`TokenStatus` (a 401 for this service's own expired registration token, say,
+or a 5xx), the act is refused with `CONTENT_TOKEN_UNCHECKED` and nothing is
+performed. Such an answer judged this service's request, never the presented
+token, so its code is never relayed as the token's. So a removed operator, a
 revoked credential and a lowered role reach this service at the next such act,
 not when the token expires.
 
@@ -5171,6 +5177,7 @@ security:
 - [ ] A `statement` on a token whose `type` is not `operator`, or whose attestation names an `identity_id` other than the token's, or whose attestation's identity key is not the operator's current key as `POST /v1/token/check` reports it, is refused with `CONTENT_STATEMENT_INVALID`
 - [ ] A write, removal or decision on an unexpired token whose operator was removed, or whose credential was revoked, after it was minted is refused with `OPERATOR_REVOKED` or `CREDENTIAL_REVOKED` and nothing is written; one whose operator's role no longer carries the capability is refused with `FORBIDDEN`
 - [ ] A write, removal, decision or replica declaration made while the orchestrator cannot be asked is refused with `CONTENT_TOKEN_UNCHECKED`, and nothing is written, decided or recorded
+- [ ] A person-only act for which `POST /v1/token/check` answers anything but 200 with a `TokenStatus`, such as 401 `TOKEN_EXPIRED` for this service's own registration token or a 503, is refused with `CONTENT_TOKEN_UNCHECKED`, never with the code that answer carried
 - [ ] A `statement` signed by the credential key the token's `cid` names is refused with `CONTENT_STATEMENT_INVALID`, even where that key was also attested with `purpose` `sign-records`
 - [ ] A `statement` whose credential key is not one of the token's `record_keys` — never recorded at the hub, or revoked before the token was minted — is refused with `CONTENT_STATEMENT_INVALID`
 - [ ] A `statement` whose attestation's `not_after` is more than 90 days ahead of the service's clock is refused with `CONTENT_STATEMENT_INVALID`
