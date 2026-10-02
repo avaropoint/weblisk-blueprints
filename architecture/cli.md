@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.7.1
+version: 2.8.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -134,7 +134,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.9.0 <2.0.0"
+    version: ">=1.11.0 <2.0.0"
     bindings:
       types:
         - name: WLToken
@@ -1227,6 +1227,7 @@ Flags:
 | `--keys-dir <path>` | which identity signs, by location. Outranks `--identity` |
 | `--json` | machine-readable result, for a console driving this |
 | `--no-store` | return the token — on stdout, or in the `--json` result — and write no token file |
+| `--cap <name,...>` | mint the token with `cap` naming only these capabilities, those the operator's role carries (`architecture/admin`, operator-token-issuance). For a token that will be presented to a component other than the orchestrator |
 | `--remember-passphrase` | where the credential key is kept in its own envelope ([A credential for each hub](#a-credential-for-each-hub)), have a source remember the passphrase chosen for it. Refused, keeping nothing, where no source that lists `store` is available |
 | `--passphrase-holder <source>` | with `--remember-passphrase`, the source that remembers it, where it is not the identity's own |
 
@@ -1265,6 +1266,16 @@ token goes to stdout, or into the `--json` result, and nowhere else. A caller
 that holds the token itself passes it — a console does, because a console
 never writes an operator token anywhere
 ([`architecture/admin`](admin.md#a-console-holds-a-credential-never-a-token)).
+
+**A token goes to the orchestrator unless it was narrowed.** One minted with
+no `--cap` carries the role's full set and is presented to the orchestrator
+that issued it alone. A caller that will present a token to another
+component, the content service or the fabric, has `connect` or
+`token --refresh` mint it with `--cap` naming only what its requests there
+need, as every holder of an operator token must
+([`protocol/identity`](../protocol/identity.md#a-token-names-no-audience)). A
+narrowed token is never stored, so `--cap` requires `--no-store`, and the
+token the next command uses keeps the role's full set.
 
 ### `weblisk operator attest`
 
@@ -2537,6 +2548,7 @@ security:
 - [ ] `weblisk operator register --bootstrap <path>` sends the bootstrap secret read from that file, and the secret is never accepted as an argument
 - [ ] `weblisk operator token` refreshes the token when it has expired or less than a fifth of its lifetime remains, without asking the identity to sign anything but an attestation
 - [ ] `--no-store` on `weblisk operator connect`, `weblisk operator register` and `weblisk operator token --refresh` returns the token on stdout or in the `--json` result, and writes no token file
+- [ ] `--cap content:read,content:describe` on `weblisk operator connect` or `weblisk operator token --refresh` returns a token whose `cap` names those two alone, and is refused without `--no-store`
 - [ ] `weblisk operator attest` signs only an `Attestation` it builds itself, refuses a `--days` beyond admin's cap, submits it, reports the credential's `cid` and `not_after`, and writes nothing to disk
 - [ ] Every `Attestation` the CLI builds names the `identity_id` the hub's attestation-token answer carries, never one computed from the identity key, so an identity that changed its key still attests at every hub that accepted the change
 - [ ] `connect` and `register` generate one ML-DSA-65 credential per identity per hub the first time they reach it, have the identity attest it once, keep its private key only in the `weblisk-key-v1` envelope or a secret source, and mint every later token with it without asking the identity

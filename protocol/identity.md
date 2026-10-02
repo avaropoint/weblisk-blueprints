@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.10.1
+version: 1.11.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -690,6 +690,22 @@ Fields:
 - Channel tokens: 1 hour
 - Operator tokens: [`architecture/admin`](../architecture/admin.md#operator-token) states theirs
 
+### A token names no audience
+
+A WLT carries no audience claim. A component a token is presented to can
+present it again, at any route of any component that accepts its issuer's
+tokens, as far as its capabilities reach, until it expires. So whoever holds
+an operator token, a console, the CLI or a script that took one from it,
+MUST present it to a component other than the orchestrator that issued it
+only when it was minted with `cap` naming nothing but what the requests sent
+there need ([`architecture/admin`](../architecture/admin.md#contracts),
+operator-token-issuance). A token minted with no `cap` carries its role's
+full set, and is presented to that orchestrator alone. An admin's token
+presented to the content service therefore carries `content:` capabilities
+and never `admin:*`, which the content service could otherwise replay at
+`/v1/admin/*`. This is the one statement of the rule; a blueprint whose
+client holds operator tokens points here.
+
 ### ID Generation
 ```
 Generate 16 cryptographically random bytes → hex encode → 32-char string
@@ -1176,6 +1192,7 @@ Implementation MUST:
 - [ ] Check token expiry on every verification
 - [ ] A record of who acted names the token's `identity_id`, never its `sub`
 - [ ] An operator token always carries `cap`, and one whose `cap` is absent or empty is read as naming no capability, never as carrying its role's full set
+- [ ] An operator token presented to a component other than the orchestrator that issued it, by any holder, was minted with `cap` naming only what the requests sent there need, and one minted with no `cap` is presented to that orchestrator alone
 - [ ] Enforce replay protection window (300 seconds) on registration
 - [ ] Validate public key size (1952 bytes) and signature size (3309 bytes)
 - [ ] Use constant-time comparison for signature verification

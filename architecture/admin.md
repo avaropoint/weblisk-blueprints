@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.18.1
+version: 2.18.2
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -57,7 +57,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.9.0 <2.0.0"
+    version: ">=1.11.0 <2.0.0"
     bindings:
       types:
         - name: WLToken
@@ -697,7 +697,7 @@ contracts:
         - While the person who started a run holds a live AAL2 session with it, a console MAY send, for that run, reads of the tenant's content and completions through the tenant's model route, and nothing else. Each is the person's request, on that person's token minted with cap naming only what that request needs where it is sent - content:read and content:describe at the content service, and the capability the model route requires at the orchestrator. Neither changes anything at a hub, which is why they are admitted before agent-delegation has a route and nothing that changes anything is. They stop when the person's session ends
         - No write, removal, proposal, decision, declaration, replica act or other administrative request that an agent chose is sent for it. What an agent prepares reaches a hub only in a request the person submits, under their own token, as their own act, naming the agent and the run on a proposal
         - An agent acts at a hub in its own right only under patterns/principal-identity's agent-delegation, as the intersection of the person's grant, the agent's declared capabilities and an authorisation of that agent the hub holds, or under the console's own service identity. This contract specifies a route for neither, so until one is specified no agent a console runs acts at a hub in its own right, and none continues once its person's session ends
-        - A token it presents to a component other than the orchestrator MUST be minted with cap naming only the capabilities the requests it carries there need. A WLT names no audience, so the component can present the token at any route its capabilities reach until its exp
+        - A token it presents to a component other than the orchestrator MUST be minted with cap naming only the capabilities the requests it carries there need, as protocol/identity requires of every holder of an operator token (A token names no audience)
         - It MUST NOT generate, hold or ask an identity to attest a sign-records credential, for anyone. A signature on a record means the person signed it, and a key a console holds signs whenever the console does (patterns/principal-identity, record-signing)
         - It MUST hold an operator token in memory only and never write one anywhere, encrypted or not. What it keeps at rest is the credential key, as an installation secret
         - It MUST discard a person's tokens when that person's session ends, by sign-out, idle or absolute expiry, or the account's revocation, even where exp is later
@@ -992,11 +992,9 @@ capability the `operator` role carries ([Operator Roles](#operator-roles)).
 A token request may also carry `cap`, a list of capability names, and the
 token then carries only those of them the operator's role carries
 (`operator-token-issuance`). It only narrows, for a client that needs less
-than the role carries: a console presenting a token to a component other than
-the orchestrator asks for what its requests there need, because a token names
-no audience and the component could present it anywhere its capabilities
-reach
-([A console holds a credential, never a token](#a-console-holds-a-credential-never-a-token)).
+than the role carries: any client presenting a token to a component other
+than the orchestrator asks for what its requests there need
+([`protocol/identity`](../protocol/identity.md#a-token-names-no-audience)).
 A narrowed token is still the person's, and never one to give an agent. It
 is not signed, because nothing it can do widens what the credential already
 reaches.
@@ -1358,12 +1356,12 @@ it may replay it. So a console keeps the thing that can **ask**, and never the
   ([`architecture/content`](content.md#who-a-change-was-for)). No agent a
   console runs acts at a hub in its own right, and none continues once its
   person's session ends, until one of the two routes above is specified.
-- **A token is narrowed to where it is going.** A WLT names no audience, so a
-  component a token is presented to can present it again anywhere its
-  capabilities reach until it expires. A console presenting a person's token
-  to a component other than the orchestrator mints it with `cap` naming only
-  what its requests there need, so the content service holds `content:`
-  capabilities and never `admin:*`.
+- **A token is narrowed to where it is going.** A console presenting a
+  person's token to a component other than the orchestrator mints it with
+  `cap` naming only what its requests there need, as every holder of an
+  operator token must
+  ([`protocol/identity`](../protocol/identity.md#a-token-names-no-audience)),
+  so the content service holds `content:` capabilities and never `admin:*`.
 - **Tokens stay in memory.** A console never writes an operator token anywhere,
   encrypted or not. A console that drives the CLI to connect asks it not to
   store one either (`--no-store`).

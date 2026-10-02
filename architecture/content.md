@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.15.5
+version: 2.15.6
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -67,7 +67,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.9.0 <2.0.0"
+    version: ">=1.11.0 <2.0.0"
     bindings:
       types:
         # identity_id is who a change names; type says whose token it is;
@@ -2488,9 +2488,10 @@ sent with a person's token would be that person's to this service, and a
 console that let an agent use one would produce changes recorded as that
 person's own acts. Nor does a token name its audience: this service could
 present a token it receives at any route its capabilities reach until it
-expires, which is why a console presents one here narrowed to what its
-requests here need ([`architecture/admin`](admin.md),
-`console-credential-use`). These limits are stated here,
+expires, which is why every holder of an operator token, a console or any
+other client, presents one here narrowed to what its requests here need
+([`protocol/identity`](../protocol/identity.md#a-token-names-no-audience)).
+These limits are stated here,
 as Design Principle 5 requires, rather than hidden behind the two rules that
 do hold.
 
