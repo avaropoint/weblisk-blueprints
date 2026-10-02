@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 1.3.0
+version: 1.3.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
@@ -75,9 +75,10 @@ requires:
     bindings:
       types:
         # type says whether a person's credential obtained the token, which
-        # is the only token fabric:attest counts on; cap narrows a read
+        # is the only token fabric:attest counts on; cap narrows a read;
+        # identity_id names who acted on an entry, never sub
         - name: WLToken
-          fields_used: [type, cap]
+          fields_used: [type, cap, identity_id]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -555,6 +556,11 @@ live, keeps the status that blueprint gives it
    the confirmation sits **on** the inference rather than beside it
 4. The entry is appended alone. A producer's work can be re-derived; a person's
    act cannot, so it is never batched behind one
+5. The entry records the person as its `actor` by the `identity_id` the token
+   check answered, never by the token's `sub`, which is a name
+   ([`protocol/identity`](../protocol/identity.md#payload-claims),
+   `identity_id`). So does every attestation, decision and relocation, and an
+   edge a person's act settles names them in `asserted_by` the same way
 
 ### Answer Flow
 1. A caller asks what touches a node, what a criterion is answered by, or what a
@@ -1110,7 +1116,7 @@ types:
       asserted_by:
         type: string
         required: true
-        description: The producer, agent or person whose assertion stands
+        description: The producer, agent or person whose assertion stands, by identity id, as the entry that made it records its actor
       confidence:
         type: number
         required: true
@@ -1158,6 +1164,7 @@ types:
       actor:
         type: string
         required: true
+        description: Who acted, by identity id. A person's is the identity_id the token check answered for their token; a producer's or an agent's is the identity_id claim of the token it presented. Never the token's sub, which is a name
       note:
         type: string
         required: false
@@ -1600,8 +1607,8 @@ security:
   will look correct, because it will be correct. It will simply be quadratic, and
   it reintroduces exactly the cost partitioning removes.
 
-- **Hold no personal data in an entry.** An entry names artifacts and actors by
-  durable identifier and holds no content, which is what lets an erasure
+- **Hold no personal data in an entry.** An entry names artifacts by durable
+  identifier and actors by identity id, and holds no content, which is what lets an erasure
   obligation be answered at the identity layer rather than by rewriting a chained
   leaf. Whether erasing the identity itself is compatible with an immutable chain
   is a contract question, it belongs to the privacy pattern, and it is not
@@ -1652,6 +1659,7 @@ security:
 - [ ] The fabric's manifest declares no `fabric:attest`, and its registration succeeds; a component whose manifest declares `fabric:attest` is refused at registration with `CAPABILITY_PERSON_ONLY`, and an agent's authorisation naming it is refused
 - [ ] An attestation on a person's operator token whose role carries `fabric:attest` is recorded; the same request on a registered component's token or a channel token is refused with `FORBIDDEN`, whatever capabilities that token names
 - [ ] An attestation, a decision or a relocation on an operator token minted before its operator was removed, its credential revoked, or its role lowered to one without `fabric:attest` is refused at that act with the code `POST /v1/token/check` reports, and appends nothing
+- [ ] A person's attestation, decision or relocation records the `identity_id` the token check answered as the entry's `actor`, never the token's `sub`, so renaming the operator changes nothing the ledger holds; a producer's claims record the `identity_id` claim of the token it presented
 - [ ] With the orchestrator unreachable, an attestation, a decision or a relocation is refused with `FABRIC_TOKEN_UNCHECKED` and appends nothing, and a read on a verified token is still answered
 - [ ] An attestation, a decision or a relocation for which `POST /v1/token/check` answers anything but 200 with a `TokenStatus`, such as 401 `TOKEN_EXPIRED` for this service's own registration token or a 503, is refused with 503 `FABRIC_TOKEN_UNCHECKED`, never with the code that answer carried
 - [ ] Recording, confirming, rejecting or retiring a relationship leaves both artifacts byte-identical
