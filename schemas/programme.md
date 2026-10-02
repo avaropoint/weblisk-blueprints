@@ -862,7 +862,8 @@ a scope finds that scope's records repository once, at install: the repository
 - Where the scope has no records repository, install creates nothing that
   holds `pii`. It reports each register and form it did not create with
   `CONTENT_RECORDS_REPOSITORY_REQUIRED`, the code its first write would be
-  refused with, naming the scope that has no records repository. It reports
+  refused with ([`architecture/content`](../architecture/content.md#error-handling)),
+  naming the scope that has no records repository. It reports
   every obligation that records into one as unable to record. Nothing that
   holds `pii` is created in the programme's repository instead.
 

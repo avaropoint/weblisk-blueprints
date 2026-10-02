@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.13.1
+version: 1.13.2
 requires: []
 platform: any
 tier: free
@@ -105,7 +105,7 @@ below, with their HTTP status, category and retryability.
 | `ENFORCEMENT_CAPABILITY_MISMATCH` | 403 | permanent | Agent lacks declared capability for operation |
 | `ENFORCEMENT_SCOPE_VIOLATION` | 403 | permanent | Resource scope exceeds agent operational scope |
 | `ENFORCEMENT_SCOPE_LEAKAGE` | 403 | permanent | Payload scope exceeds the classification of a target `patterns/scope` gives no ceiling. A target with a ceiling refuses with `SCOPE_CEILING_EXCEEDED` |
-| `ENFORCEMENT_BLOCKED_TARGET` | 403 | permanent | Target is on the blocked endpoint list |
+| `ENFORCEMENT_BLOCKED_TARGET` | 403 | permanent | Target is on the blocked endpoint list, or is the address of a model provider and the caller's manifest does not declare `model:route` ([`architecture/enforcement`](../architecture/enforcement.md#external-proxy)) |
 | `ENFORCEMENT_DATA_CONTRACT_VIOLATION` | 403 | permanent | Operation targets resources outside agent's declared data contract |
 | `ENFORCEMENT_OUTPUT_CONTRACT_VIOLATION` | 403 | permanent | Response contains fields outside declared output contract |
 | `ENFORCEMENT_OUTPUT_SCOPE_EXCEEDED` | 403 | permanent | Response scope exceeds agent's operational scope |
@@ -219,6 +219,16 @@ originating subsystem.
   cron agent, `HARD_BOUNCE` in the email-send agent).
 - When an agent-local code is used by two or more unrelated agents,
   it SHOULD be promoted to the common codes table in this registry.
+- A blueprint that reports or cites the code another component refuses
+  with does not use that code in this sense, and the code stays local to
+  the component that refuses with it. `schemas/programme` reports
+  `CONTENT_RECORDS_REPOSITORY_REQUIRED` for what install did not create,
+  because it is the code the content service would refuse the first write
+  with, and `patterns/scope` and `schemas/programme` cite
+  `CONTENT_SCOPE_LOWERED`, `CONTENT_SCOPE_UNDECLARED` and
+  `CONTENT_CUSTODY_CEILING_EXCEEDED` as `architecture/content`'s refusals. Each
+  is registered once, with its status, in `architecture/content`'s Error
+  Handling, and each of those blueprints points there.
 
 ### AgentManifest
 
