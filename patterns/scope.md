@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.5.2
+version: 2.5.3
 requires: [protocol/types]
 platform: any
 tier: free
@@ -463,7 +463,13 @@ has with nothing demonstrated or attested.
   which recognises the endpoint by the address `GET /v1/model/ceiling` reports,
   applies the gate with the provider's ceiling, and refuses a call made around
   the model route: one from a caller whose manifest does not declare
-  `model:route`.
+  `model:route`. That refusal holds only against a component that does not
+  declare it. A registration is not yet an enrolment, so any component may
+  declare `model:route` on its own signed manifest
+  ([`protocol/types`](../protocol/types.md), model capabilities, and
+  [`protocol/spec`](../protocol/spec.md#post-v1register)). Against one that
+  does, what still holds is the gate: nothing above the provider's ceiling
+  passes the boundary.
 - A tool result is checked by a hub's MCP surface before it is returned to
   its caller, as [`architecture/mcp`](../architecture/mcp.md#the-destination-gate)
   says. Its caller is a model, so nothing `restricted` or above is returned
