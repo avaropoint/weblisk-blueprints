@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.17.3
+version: 2.18.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -631,9 +631,10 @@ contracts:
         - The nonce MUST be one this hub issued for that cid, unexpired and unused, and the attempt MUST spend it whether or not the signature verifies. Otherwise CREDENTIAL_CHALLENGE_INVALID
         - A token request naming a cid this hub holds no credential for MUST be refused with CREDENTIAL_UNKNOWN, and one naming a sign-records credential with CREDENTIAL_PURPOSE_REFUSED
         - Only once the signature has verified may the hub disclose the credential's status or its operator's. The credential MUST be active (else CREDENTIAL_REVOKED) and its attestation's not_after in the future (else CREDENTIAL_EXPIRED), and its operator MUST be approved (else OPERATOR_NOT_APPROVED, or OPERATOR_REVOKED for a removed one)
-        - The token request MAY carry cap, a list of capability names. The token then carries each capability the operator's role carries that cap names, and no other. A name the role does not carry is left out, never refused, so cap only ever narrows a token. With no cap, the token carries every capability the role carries
-        - admin:* MUST be read as each capability in the admin family by name, both in a role and in cap. A role carrying admin:* carries admin:read, admin:approve, admin:strategy and admin:audit, so cap [admin:read] gives an admin a token carrying admin:read; and cap [admin:*] names each of them, so a role carrying only some capabilities of the admin family keeps those. A token carries admin:* itself only where the role carries it and cap names it or is absent
+        - The token request MAY carry cap, a list of capability names. The token then carries each capability the operator's role carries that cap names, and no other. A name the role does not carry is left out, never refused, so cap only ever narrows a token, and a cap that names nothing the role carries gives a token whose cap is empty. With no cap in the request, the token carries every capability the role carries
+        - admin:* MUST be read as each capability in the admin family by name, both in a role and in cap. A role carrying admin:* carries admin:read, admin:approve, admin:strategy and admin:audit, so cap [admin:read] gives an admin a token carrying admin:read; and cap [admin:*] names each of them, so a role carrying only some capabilities of the admin family keeps those. A token carries admin:* itself only where the role carries it and the request's cap names it or the request carries none
         - The token MUST have type operator, carry cid, the identity_id of the credential cid names, the operator's role and the capabilities that role carries, narrowed by cap where the request carries one, and record_keys naming every sign-records credential the operator holds here that is active and whose attestation's not_after is in the future, and expire one hour after issue and never after the attestation's not_after
+        - An operator token MUST carry its cap claim always, an empty list included. Its cap is the most it may use, so a verifier MUST read an operator token whose cap is absent or empty as naming no capability, never as carrying its role's full set. A serialiser that leaves an empty list out therefore narrows nothing away: the token it sends reaches no route that requires a capability (protocol/identity)
         - Role and capabilities MUST come from the stored record, never from the request
         - The response MUST carry the attestation's not_after, so the client can warn before it passes
         - The credential's last_used_at MUST be updated
@@ -2024,15 +2025,16 @@ only, for the operator the path names), checks that the operator and
 credential it names are live (token-status-on-use), and then checks the
 capability, which is this document's to define:
 
-**The request must be able to use the capability the endpoint's minimum
-stands for** (the table below): one the operator's role carries now and the
-token's `cap`, where it has one, names. Otherwise `FORBIDDEN`, whatever the
-role. `admin:*` stands for every `admin:` capability by name, on both sides:
-a role carrying `admin:*` carries `admin:read`, `admin:approve`,
-`admin:strategy` and `admin:audit`, so an admin's token whose `cap` names only
-`admin:read` can use `admin:read`; and a `cap` naming `admin:*` names each of
-them, so it keeps whichever the role carries
-([operator-token-issuance](#contracts)).
+**The request must be able to use the capability the endpoint's minimum stands
+for** (the table below): one the operator's role carries now and the token's
+`cap` names. Otherwise `FORBIDDEN`, whatever the role. An operator token whose
+`cap` is absent or empty names no capability, so it can use none of these
+endpoints, and never stands for its role's full set. `admin:*` stands for
+every `admin:` capability by name, on both sides: a role carrying `admin:*`
+carries `admin:read`, `admin:approve`, `admin:strategy` and `admin:audit`, so
+an admin's token whose `cap` names only `admin:read` can use `admin:read`; and
+a `cap` naming `admin:*` names each of them, so it keeps whichever the role
+carries ([operator-token-issuance](#contracts)).
 
 A role in the endpoint tables names the least role, and stands for a
 capability ([`protocol/types`](../protocol/types.md), Administrative
@@ -2177,6 +2179,7 @@ The rest SHOULD be:
 - [ ] A console gives no agent a token minted with a person's credential, with or without `cap`. For a run whose person holds a live AAL2 session it sends only reads of the tenant's content, on a token whose `cap` names `content:read` and `content:describe` alone, and completions through the model route, on a token whose `cap` names only that route's capability; it sends nothing for the run once that session ends; and a write, proposal or decision an agent prepared reaches a hub only in a request the person submits
 - [ ] A token a console presents to a component other than the orchestrator carries only the capabilities named in its `cap`, and an admin's token presented to the content service carries no `admin:` capability
 - [ ] A token request carrying `cap` receives a token carrying exactly the named capabilities its operator's role carries; a name the role does not carry is left out, and a request with no `cap` receives the role's full set
+- [ ] A token request whose `cap` names nothing the operator's role carries, such as a `viewer`'s or an `auditor`'s with `cap` `[fabric:attest]`, receives a token whose `cap` is the empty list. That token, and an operator token that carries no `cap` claim at all, is refused with `FORBIDDEN` at every route that requires a capability, and `POST /v1/token/check` answers it live with `capabilities` `[]`, never with the role's full set
 - [ ] An operator token carries `identity_id`, the `identity_id` of the credential its `cid` names
 - [ ] A `viewer` token carries `content:read` and `content:describe` and no other `content:` capability, and an `operator` token carries `content:write` and `content:decide`
 - [ ] An `operator` or `admin` token carries `fabric:read` and `fabric:attest`, a `viewer` or `auditor` token carries `fabric:read` and not `fabric:attest`

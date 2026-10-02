@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.9.3
+version: 1.10.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -617,7 +617,12 @@ Fields:
 - `iss` (issuer): who created the token ("orchestrator" or agent name)
 - `iat` (issued at): Unix timestamp
 - `exp` (expires at): Unix timestamp (0 = no expiry)
-- `cap` (capabilities): granted capability names (optional)
+- `cap` (capabilities): granted capability names (optional). An operator
+  token always carries `cap`, an empty list included, and names no capability
+  its `cap` does not name: an operator token whose `cap` is absent or empty
+  may use none, and is never read as carrying its role's full set
+  ([`architecture/admin`](../architecture/admin.md#contracts),
+  operator-token-issuance)
 - `cid`: the id of the record the issuer minted this token under, and can
   withdraw before `exp` (optional). An empty `cid` is no `cid`, and a verifier
   that asks whether a token carries one treats it so. A registration token
@@ -748,7 +753,7 @@ types:
             description: Expires at (Unix epoch seconds, 0 = no expiry)
           cap:
             type: "list<string>"
-            description: Granted capability names
+            description: Granted capability names. Always present on an operator token, an empty list included; an operator token whose cap is absent or empty may use no capability
             required: false
           cid:
             type: string
@@ -1169,6 +1174,7 @@ Implementation MUST:
 - [ ] Verify token `alg` header is exactly `ML-DSA-65` — reject all other values
 - [ ] Check token expiry on every verification
 - [ ] A record of who acted names the token's `identity_id`, never its `sub`
+- [ ] An operator token always carries `cap`, and one whose `cap` is absent or empty is read as naming no capability, never as carrying its role's full set
 - [ ] Enforce replay protection window (300 seconds) on registration
 - [ ] Validate public key size (1952 bytes) and signature size (3309 bytes)
 - [ ] Use constant-time comparison for signature verification

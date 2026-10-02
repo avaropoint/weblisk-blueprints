@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.12.2
+version: 2.13.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -951,7 +951,8 @@ contracts:
         - It MUST admit only a registration token, one with no type and no cid, whose sub is a component registered here now and whose identity_id is that registration's (protocol/identity). Every other token Auth Middleware lets through MUST be refused with FORBIDDEN, disclosing nothing about subject_token - an operator token, a channel token, and a registration token whose component has deregistered or whose identity_id is no longer its registration's, as after POST /v1/rotate-key (protocol/spec). An attestation token is refused before this, at Auth Middleware step 5
         - A body with no subject_token MUST be refused with 400 INVALID_REQUEST
         - It MUST judge subject_token as Auth Middleware judges a token on an operator route - its signature and expiry, that it is an operator token carrying cid, and token-status-on-use (architecture/admin)
-        - A token that passes MUST be answered live true, with the operator's identity id, current identity public key and current role, and the capabilities that role carries now narrowed by the token's cap where it has one, read as operator-token-issuance reads a role and a cap (architecture/admin) and as Auth Middleware step 8 reads them, admin:* as each admin: capability by name. It MUST NOT name a capability the token's cap does not name, so a token minted with cap [content:read] is answered with content:read alone, whatever its operator's role carries
+        - A token that passes MUST be answered live true, with the operator's identity id, current identity public key and current role, and the capabilities that role carries now narrowed by the token's cap, read as operator-token-issuance reads a role and a cap (architecture/admin) and as Auth Middleware step 8 reads them. It MUST NOT name a capability the token's cap does not name, so a token minted with cap [content:read] is answered with content:read alone, whatever its operator's role carries, and an operator token whose cap is absent or empty is answered live with capabilities [], never with its role's full set
+        - capabilities MUST name each admin: capability the answer includes by its own name, admin:read, admin:approve, admin:strategy or admin:audit, and never admin:*, so a component looks for a capability by the name it requires
         - Any other token MUST be answered live false, with the code the orchestrator would refuse it with on its own routes. A token it cannot judge MUST NOT be reported live
         - It MUST write nothing. It is a read of the orchestrator's own records and is not audited
 ```
@@ -1170,9 +1171,10 @@ authenticate (see [Administrative endpoints](#administrative-endpoints)):
    the route requires: the auth its declaration names, or, for a route
    architecture/admin's tables give a minimum role, the capability that
    minimum stands for. The request can use a capability when the operator's
-   role carries it now and the token's cap, where it has one, names it, admin:*
-   being read as each admin: capability by name. Otherwise FORBIDDEN, whatever
-   the role (architecture/admin, Auth Middleware)
+   role carries it now and the token's cap names it, admin:* being read as
+   each admin: capability by name. An operator token whose cap is absent or
+   empty names none. Otherwise FORBIDDEN, whatever the role
+   (architecture/admin, Auth Middleware)
 9. On failure → 401: INVALID_SIGNATURE from step 3, malformed tokens
    included, TOKEN_EXPIRED from step 4, and {"error": "valid token required —
    register first"} where no token was presented; 403 FORBIDDEN from step 8;
@@ -1548,4 +1550,6 @@ agents hold, which is theirs.
 - [ ] `POST /v1/token/check` called with an operator token or a channel token in its `Authorization` header is refused with `FORBIDDEN`, and with an attestation token with `CREDENTIAL_REQUIRED`, and discloses nothing about `subject_token`; called with a registered component's registration token it answers 200 with a `TokenStatus`
 - [ ] `POST /v1/token/check` called with the registration token of a component that has since deregistered, or whose identity id `POST /v1/rotate-key` has since changed, is refused with `FORBIDDEN` and discloses nothing about `subject_token`
 - [ ] `POST /v1/token/check` asked about an admin's token minted with `cap` `[content:read]` answers `live: true` with `capabilities` `[content:read]` alone, never `content:decide` or `content:write`; asked about an admin's token minted with `cap` `[admin:read]`, it answers with `admin:read`, and not `admin:*`
+- [ ] An operator token whose `cap` is the empty list, as a `viewer` gets asking for `cap` `[fabric:attest]`, or that carries no `cap` claim, is refused with `FORBIDDEN` at every `/v1/admin/*` route Auth Middleware step 8 covers, and `POST /v1/token/check` answers it `live: true` with `capabilities` `[]`, never with its role's full set
+- [ ] `POST /v1/token/check` asked about an admin's token minted with no `cap` answers `capabilities` naming `admin:read`, `admin:approve`, `admin:strategy` and `admin:audit`, each by name, and never `admin:*`
 - [ ] A token whose signature does not verify is refused with 401 `INVALID_SIGNATURE`, and one past `exp` with 401 `TOKEN_EXPIRED`, on every route Auth Middleware covers

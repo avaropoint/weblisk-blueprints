@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.13.2
+version: 1.14.0
 requires: []
 platform: any
 tier: free
@@ -2184,7 +2184,7 @@ types:
         name: Capabilities
         type: "[]string"
         required: false
-        description: "Present when live: what that role carries now, never beyond the token's cap. What the asking component authorises the request against"
+        description: "Present when live: what that role carries now, never beyond the token's cap, each admin: capability by its own name and never admin:*. Empty for an operator token whose cap is absent or empty, which names nothing. What the asking component authorises the request against"
 ```
 
 ### AuditEntry
@@ -2436,7 +2436,7 @@ All paths are prefixed with `/v1`.
 | `/v1/health` | GET | no | orchestrator | Orchestrator health |
 | `/v1/audit` | GET | yes | orchestrator | Audit log |
 | `/v1/rotate-key` | POST | yes | orchestrator | Key rotation (see identity.md) |
-| `/v1/token/check` | POST | yes | orchestrator | Whether an operator token presented to a component is still live, and what its operator's role carries now |
+| `/v1/token/check` | POST | yes | orchestrator | Whether an operator token presented to a component is still live, and what its operator's role carries now, never beyond the token's `cap` (`TokenStatus`) |
 | `/v1/model/ceiling` | GET | yes | orchestrator | What a model backend may be sent now, and where it is reached. Platform-provided (architecture/orchestrator) |
 
 ---
