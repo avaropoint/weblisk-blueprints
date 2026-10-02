@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: enforcement
-version: 2.3.1
+version: 2.3.2
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, patterns/privacy, architecture/orchestrator, architecture/gateway]
 platform: any
 tier: free
@@ -181,7 +181,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.4.0 <3.0.0"
+    version: ">=2.14.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/model/ceiling

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: api-ai
-version: 2.3.0
+version: 2.3.1
 requires: [protocol/types, patterns/scope, architecture/agent, architecture/gateway, architecture/orchestrator]
 platform: any
 tier: free
@@ -72,7 +72,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.7.0 <3.0.0"
+    version: ">=2.14.0 <3.0.0"
     bindings:
       endpoints:
         # Read before every send. See Destination Ceilings

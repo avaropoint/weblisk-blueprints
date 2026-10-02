@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 1.3.2
+version: 1.3.3
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
@@ -48,7 +48,7 @@ and is reachable from either.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.12.0 <2.0.0"
+    version: ">=1.14.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -163,7 +163,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/orchestrator
-    version: ">=2.12.0 <3.0.0"
+    version: ">=2.13.0 <3.0.0"
     bindings:
       behaviors:
         # Asked before every attestation, decision and relocation. See Registration and Standalone Operation
