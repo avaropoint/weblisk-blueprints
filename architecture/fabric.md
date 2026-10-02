@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 1.2.0
+version: 1.2.1
 requires: [protocol/types, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
@@ -149,8 +149,11 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/orchestrator
-    version: ">=2.6.0 <3.0.0"
+    version: ">=2.12.0 <3.0.0"
     bindings:
+      behaviors:
+        # Asked before every attestation, decision and relocation. See Registration and Standalone Operation
+        - name: token-check
       endpoints:
         - path: /v1/token/check
           methods: [POST]

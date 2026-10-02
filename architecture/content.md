@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.15.0
+version: 2.15.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -191,10 +191,12 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.6.0 <3.0.0"
+    version: ">=2.12.0 <3.0.0"
     bindings:
-      endpoints:
+      behaviors:
         # Asked before every act only a person may perform. See Who may move an entry
+        - name: token-check
+      endpoints:
         - path: /v1/token/check
           methods: [POST]
     on_change:

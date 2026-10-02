@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.11.0
+version: 2.12.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -927,6 +927,33 @@ one, and no path returns data the caller's capabilities do not permit.
 
 ---
 
+## Contracts
+
+What a component may rely on when it asks this orchestrator about a token
+presented to it. A component that does binds this behaviour, by name, from its
+dependency on this blueprint
+([`schemas/common`](../schemas/common.md#binding-types)). The prose is under
+[Token Check](#token-check-post-v1tokencheck), and it says why.
+
+```yaml
+contracts:
+  behaviors:
+    - name: token-check
+      description: Whether an operator token presented to a component is live now, answered to that component
+      required: true
+      rules:
+        - The route POST /v1/token/check MUST take a TokenCheckRequest and answer 200 with a TokenStatus (protocol/types)
+        - It MUST read the caller's token from the Authorization header alone (Auth Middleware step 2), so subject_token never authenticates the request that asks about it. A request with no Authorization header MUST be refused with 401, as on any other route
+        - It MUST admit only a registration token, one with no type and no cid, whose sub is a component registered here now and whose identity_id is that registration's (protocol/identity). An operator token or a channel token MUST be refused with FORBIDDEN. An attestation token is refused before this, at Auth Middleware step 5
+        - A body with no subject_token MUST be refused with 400 INVALID_REQUEST
+        - It MUST judge subject_token as Auth Middleware judges a token on an operator route - its signature and expiry, that it is an operator token carrying cid, and token-status-on-use (architecture/admin)
+        - A token that passes MUST be answered live true, with the operator's identity id, current identity public key and current role, and the capabilities that role carries now that the token's cap, where it has one, names
+        - Any other token MUST be answered live false, with the code the orchestrator would refuse it with on its own routes. A token it cannot judge MUST NOT be reported live
+        - It MUST write nothing. It is a read of the orchestrator's own records and is not audited
+```
+
+---
+
 ## Startup Sequence
 
 ```
@@ -1180,34 +1207,25 @@ Authorization: Bearer <the component's own registration token>
 200 TokenStatus
 ```
 
-The body is a `TokenCheckRequest` and the answer a `TokenStatus`, both
-[`protocol/types`](../protocol/types.md#tokencheckrequest)'s. The caller's own
-token is read from the `Authorization` header and nowhere else: Auth
-Middleware step 2 does not apply here, so the token being asked about never
-authenticates the request that asks about it. A request with no
-`Authorization` header is refused with 401 as on any other route, and one
-whose body has no `subject_token` with 400 `INVALID_REQUEST`.
+`token-check` in [Contracts](#contracts) is the rule. The body is a
+`TokenCheckRequest` and the answer a `TokenStatus`, both
+[`protocol/types`](../protocol/types.md#tokencheckrequest)'s.
 
-The orchestrator judges `subject_token` exactly as its own middleware
-would judge it on an operator route: its signature and expiry, that it is an
-operator token carrying `cid`, and `token-status-on-use` from
-[`architecture/admin`](admin.md). It answers `live: true` with the operator's
-identity id, current identity public key, current role and the capabilities
-that role carries now, never beyond the token's `cap`; or `live: false` with
-the code it would refuse the token with on its own routes. A token it cannot
-judge is never reported live.
+The caller's own token comes from the `Authorization` header and nowhere else.
+Were Auth Middleware step 2 to read a body's token here, a request carrying
+only a body would be authenticated by the very token it asks about: the route
+would no longer need a registered component, and a dead operator token would
+be answered 401 rather than `live: false`.
 
-The caller authenticates with its own registration token, which Auth
-Middleware judges as for any route outside `/v1/admin/`. Only a registration
-token may ask: one with no `type` and no `cid`, whose `sub` is a component
-registered here now and whose `identity_id` is that registration's
-([`protocol/identity`](../protocol/identity.md#payload-claims)). An operator
-token and a channel token are refused with `FORBIDDEN`, and an attestation
-token never gets this far (Auth Middleware step 5). The answer names an operator's identity public key, role and
-capabilities, and a component asks so that it can act on a token presented to
-it; a person's console, or the holder of a channel, has no such act to
-perform. The route writes nothing and is not audited: it is a read of the
-orchestrator's own records.
+The answer is this orchestrator's own judgement of the token, the one its
+middleware makes on an operator route, so a component acts on a person's token
+exactly as far as the orchestrator would act on it, and no further.
+
+Only a component asks. The answer names an operator's identity public key,
+role and capabilities, and a component asks so that it can act on a token
+presented to it; a person's console, or the holder of a channel, has no such
+act to perform. It is a read of the orchestrator's own records, so nothing is
+written.
 
 ---
 
