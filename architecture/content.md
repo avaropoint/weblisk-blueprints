@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.15.7
+version: 2.16.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -1415,6 +1415,15 @@ That is a rule for deciding in place and never a declaration: an unclassified
 entry stays unclassified for everything that would leave
 ([What would leave](#what-would-leave)).
 
+> **Gap — a repository does not yet report what it holds.** The highest
+> scope recorded for any of a repository's paths (`scope_held`), and how many
+> of its entries are unclassified, are not yet fields of `ContentRepository`.
+> Nor are an adoption's count of entries at each scope, and of those above the
+> ceiling derived for it, fields of `ContentAdoption`. A replica's census
+> counts what would leave unclassified or above that replica's ceiling
+> (`ReplicaCensus`), and nothing counts the rest. Until they are specified,
+> what a repository holds is read entry by entry, from each entry's scope.
+
 ### A scope only rises
 
 [`patterns/scope`](../patterns/scope.md#key-distinction-classification-vs-enforcement)
@@ -1467,6 +1476,16 @@ scope, so a write that creates the path again is checked against it.
 request that would lower one is refused by the rules above. A level set too
 high stays on the path it was set on, and on every version recorded under it.
 
+> **Gap — declassification has no capability yet.** The act it needs is
+> person only and takes two people: a request by one, approved by another
+> through the tenant's approval queue, recorded and signed with ML-DSA-65, and
+> never lowering the scope the repository holds. Its capability is not in
+> [`protocol/types`](../protocol/types.md#capability)' list, because
+> [`architecture/admin`](admin.md#contracts)'s `operator-roles` requires every
+> capability to be carried by some role, and which roles carry this one is not
+> decided. Nor has the tenant an approval queue that routes such a request to
+> an owner position. Until both exist, the refusal above is the whole answer.
+
 **A copy is a new entry.** Bytes written to another path carry the level they
 declare in themselves, and nothing else of the entry they were copied from. An
 entry whose level was declared only on its changes arrives, copied, at
@@ -1510,6 +1529,17 @@ repository**: a repository whose declaration names it one (`records: true`).
   be read from the log. An entry carrying `pii` that a person puts in another
   repository out of band is observed like any other change, as Design
   Principle 4 requires, and its observation records the label.
+- **Removing it is not erasing it.** A removal of a path whose last recorded
+  labels include `pii` records `erasure_complete` on its `ContentChange`.
+  It is `false` where the placement's backend keeps earlier versions of its
+  entries, as the blueprint that specifies it says, or where any replica was
+  sent a version holding the entry, because those bytes remain there; and
+  `true` only where neither holds. The change log keeps the path and digests
+  it recorded either way. A statement that a person's data was erased MUST
+  NOT be made from a removal whose `erasure_complete` is `false`, for the
+  reason a statement of who has accessed content carries `access_complete:
+  false` wherever this service cannot see every path to it
+  ([The Custody Model](#the-custody-model)).
 
 `records` is declared through `POST /v1/content/repositories` and fixed there.
 It is never configured: choosing where a tenant keeps records about people is
@@ -2786,6 +2816,21 @@ appended. A proposal that is `open`, `rejected` or `stale` changed no entry and
 is not in the log; the proposal is its record ([Proposals](#proposals)). Reads,
 replica sends and custody re-verification change no entry either.
 
+> **Gap — a replica send leaves no signed record of what left.** A send is
+> recorded only as its replica's `checked_at`, on replica state the next send
+> replaces ([Replica Send Flow](#replica-send-flow)), so the tenant keeps no
+> signed evidence of what left, for which destination, or under what
+> demonstrated ceiling. What a send owes is one entry in this log, sealed as
+> every entry is: the replica, its ceiling and the attestations it was
+> derived from, the version sent last, a sha256 manifest of the path, digest
+> and scope of every entry the send carried, the scope the repository holds,
+> and digests of the rules the send was checked against. It is not specified
+> here yet, because the scope a repository holds is not yet one of its fields
+> ([The recorded scope](#the-recorded-scope)). Until it is, nothing a send
+> leaves behind is evidence of what left: a consumer MUST NOT report what a
+> replica holds, or that it holds nothing above a level, from `checked_at` or
+> from the replica's state.
+
 **A path's recorded digest is its last entry.** The last `change` or `observe`
 entry that names a path, or, where there is none, the `declare` entry, records
 the identity the path holds as far as this service knows. It is what the Read
@@ -3869,6 +3914,14 @@ types:
         required: false
         description: Recorded. The custom_labels the bytes carry under
           scope_metadata. Absent when they carry none, and on delete
+      erasure_complete:
+        type: bool
+        required: false
+        description: Recorded. Present on a delete of a path whose last
+          recorded labels include pii. False where the placement's backend
+          keeps earlier versions of its entries or a replica was sent a
+          version holding the entry, true only where neither holds. See
+          Where an entry labelled pii is kept
       actor:
         type: string
         required: true
@@ -5037,6 +5090,7 @@ security:
 - [ ] An entry with no recorded scope and no scope in its bytes reports no `scope`, never `internal`
 - [ ] A write whose bytes carry `scope_metadata: {custom_labels: [pii]}` into a repository whose `records` is false is refused with `CONTENT_RECORDS_REPOSITORY_REQUIRED` and nothing is written; the same write into the `scope_path`'s records repository is recorded with `labels` `[pii]`
 - [ ] A second declaration with `records: true` at a `scope_path` that has a records repository is refused with `CONTENT_REPOSITORY_EXISTS`, and one whose derived ceiling is below `restricted` with `CONTENT_CUSTODY_CEILING_EXCEEDED`
+- [ ] Removing an entry labelled `pii` from a records repository whose backend keeps earlier versions, the git backend among them, records `erasure_complete: false` on its `ContentChange`, as does removing one that any replica was sent; only where the backend keeps none and no replica was sent it is `erasure_complete` true, and a removal of an entry not labelled `pii` carries no `erasure_complete`
 - [ ] No configuration key declares a records repository
 - [ ] After a removal of an entry recorded at `restricted`, a write creating the same path that declares `internal`, or declares no scope, is refused with `CONTENT_SCOPE_LOWERED`, and one declaring `restricted` is recorded at `restricted`
 - [ ] In a repository with no `scope_floor`, a write that declares no scope, to a path with no recorded scope whose bytes declare none, records a `ContentChange` with no `scope` and no `scope_basis`, and the version it produces is counted `unclassified` by a replica census
