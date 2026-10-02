@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: approval
-version: 1.1.3
+version: 1.1.4
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety]
 platform: any
 tier: free
@@ -130,6 +130,14 @@ requires:
    approve its own recommendation. A domain controller cannot approve
    cross-domain changes it initiated. Critical changes require a
    different approver than the requester. This is not configurable.
+   A change is *critical* here when anything that classifies it is
+   `critical`: its scope (the `ScopeLevel`
+   [`patterns/scope`](scope.md) declares), its target's `ResourceClass`,
+   or its severity. Inside the approval engine every self-approval is
+   rejected, critical or not, so the sense matters to the exception
+   alone. A content change is classified by its scope and nothing else,
+   so for it a critical change is one whose scope is `critical`, which is
+   the bound the exception carries.
    One exception exists, outside the approval engine, and it is named
    under [Separation of Duties](#separation-of-duties) so that the corpus
    states one rule rather than two.
