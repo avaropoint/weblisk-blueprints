@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.9.1
+version: 2.9.2
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -326,10 +326,10 @@ groups [`architecture/admin`](admin.md#the-admin-api-is-an-aggregate) gives to
 a component other than the orchestrator. The token the CLI stores carries the
 role's full set, so it goes to the orchestrator alone
 ([`protocol/identity`](../protocol/identity.md#a-token-names-no-audience)), and
-no such component serves an administrative route yet
-([`architecture/admin`](admin.md#contracts), `admin-gateway-authorization`).
+no such component's blueprint specifies an administrative route yet
+([`architecture/admin`](admin.md#the-admin-api-is-an-aggregate), the gap there).
 Each of these commands therefore reports its group unavailable, sends nothing
-and exits 1. Once a group's provider serves a route, the command goes to it on
+and exits 1. Once a group's provider specifies a route, the command goes to it on
 a token minted with `--cap` naming only the capability that route requires,
 never on the stored one; a route whose minimum is `admin` stays unavailable,
 as `architecture/admin` says.

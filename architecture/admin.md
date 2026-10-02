@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.20.1
+version: 2.20.2
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1443,8 +1443,9 @@ operator token, whichever component serves them (`admin-gateway-authorization`).
 
 ### The admin API is an aggregate
 
-Each group below is **served by the component that owns the state**, and that
-component's blueprint specifies its routes. The admin gateway composes one
+Each group below is **served by the component that owns the state**, and its
+routes belong in that component's blueprint, which for every group but the
+orchestrator's specifies none yet (the gap below). The admin gateway composes one
 operator surface from them. It forwards each request to its group's provider on
 the operator's own token and holds no capability of its own, and every provider
 has the orchestrator judge that token before it acts
@@ -2290,7 +2291,7 @@ The rest SHOULD be:
 - [ ] A token minted after a change of identity key carries the same `identity_id` as one minted before it
 - [ ] A role lowered after a token was issued limits that token from its next request
 - [ ] An operator token without `cid` is refused with `CREDENTIAL_REQUIRED`
-- [ ] An admin's token minted with `cap` naming only `content:read`, `content:write` and `content:decide` is refused with `FORBIDDEN` at `POST /v1/admin/operators/{name}/approve`, `PUT /v1/admin/operators/{name}/role`, `DELETE /v1/admin/operators/{name}/credentials/{cid}` for another operator's credential and for the admin's own, `POST /v1/admin/operators/{name}/credentials` for the admin, and every `operator+` route, although the admin's role reaches each
+- [ ] An admin's token minted with `cap` naming only `content:read`, `content:write` and `content:decide` is refused with `FORBIDDEN` at `POST /v1/admin/operators/{name}/approve`, `PUT /v1/admin/operators/{name}/role`, `DELETE /v1/admin/operators/{name}/credentials/{cid}` for another operator's credential and for the admin's own, `POST /v1/admin/operators/{name}/credentials` for the admin, and, at a provider that serves one, every `operator+` route, although the admin's role reaches each
 - [ ] Every administrative route authorises against the capabilities the operator's role carries now narrowed to the token's `cap`, never against the role alone
 - [ ] `POST /v1/admin/operators/token` with a signature that does not verify is refused with `INVALID_SIGNATURE` for a pending or a revoked operator, and only a request whose signature verifies is told `OPERATOR_NOT_APPROVED` or `OPERATOR_REVOKED`
 - [ ] The bootstrap secret is written to `.weblisk/bootstrap` readable only by the user the orchestrator runs as; an orchestrator whose standard error is not a terminal, such as one started detached or by a boot unit, writes it to no log, journal or output stream
