@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.12.1
+version: 2.12.2
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -947,11 +947,11 @@ contracts:
       required: true
       rules:
         - The route POST /v1/token/check MUST take a TokenCheckRequest and answer 200 with a TokenStatus (protocol/types)
-        - It MUST read the caller's token from the Authorization header alone (Auth Middleware step 2), so subject_token never authenticates the request that asks about it. A request with no Authorization header MUST be refused with 401, as on any other route
-        - It MUST admit only a registration token, one with no type and no cid, whose sub is a component registered here now and whose identity_id is that registration's (protocol/identity). An operator token or a channel token MUST be refused with FORBIDDEN. An attestation token is refused before this, at Auth Middleware step 5
+        - It MUST read the caller's token from the Authorization header alone (Auth Middleware step 2), so nothing in the body, the token it asks about included, authenticates the request. A request with no Authorization header MUST be refused with 401, as on any other route
+        - It MUST admit only a registration token, one with no type and no cid, whose sub is a component registered here now and whose identity_id is that registration's (protocol/identity). Every other token Auth Middleware lets through MUST be refused with FORBIDDEN, disclosing nothing about subject_token - an operator token, a channel token, and a registration token whose component has deregistered or whose identity_id is no longer its registration's, as after POST /v1/rotate-key (protocol/spec). An attestation token is refused before this, at Auth Middleware step 5
         - A body with no subject_token MUST be refused with 400 INVALID_REQUEST
         - It MUST judge subject_token as Auth Middleware judges a token on an operator route - its signature and expiry, that it is an operator token carrying cid, and token-status-on-use (architecture/admin)
-        - A token that passes MUST be answered live true, with the operator's identity id, current identity public key and current role, and the capabilities that role carries now that the token's cap, where it has one, names
+        - A token that passes MUST be answered live true, with the operator's identity id, current identity public key and current role, and the capabilities that role carries now narrowed by the token's cap where it has one, read as operator-token-issuance reads a role and a cap (architecture/admin) and as Auth Middleware step 8 reads them, admin:* as each admin: capability by name. It MUST NOT name a capability the token's cap does not name, so a token minted with cap [content:read] is answered with content:read alone, whatever its operator's role carries
         - Any other token MUST be answered live false, with the code the orchestrator would refuse it with on its own routes. A token it cannot judge MUST NOT be reported live
         - It MUST write nothing. It is a read of the orchestrator's own records and is not audited
 ```
@@ -1173,9 +1173,10 @@ authenticate (see [Administrative endpoints](#administrative-endpoints)):
    role carries it now and the token's cap, where it has one, names it, admin:*
    being read as each admin: capability by name. Otherwise FORBIDDEN, whatever
    the role (architecture/admin, Auth Middleware)
-9. On failure → 401 {"error": "valid token required — register first"}, 403
-   FORBIDDEN from step 8, or the operator code architecture/admin's Error
-   Handling names
+9. On failure → 401: INVALID_SIGNATURE from step 3, malformed tokens
+   included, TOKEN_EXPIRED from step 4, and {"error": "valid token required —
+   register first"} where no token was presented; 403 FORBIDDEN from step 8;
+   or the operator code architecture/admin's Error Handling names
 10. On success → pass TokenClaims to handler
 ```
 
@@ -1216,10 +1217,11 @@ Authorization: Bearer <the component's own registration token>
 [`protocol/types`](../protocol/types.md#tokencheckrequest)'s.
 
 The caller's own token comes from the `Authorization` header and nowhere else.
-Were Auth Middleware step 2 to read a body's token here, a request carrying
-only a body would be authenticated by the very token it asks about: the route
-would no longer need a registered component, and a dead operator token would
-be answered 401 rather than `live: false`.
+`subject_token` is never step 2's `token` field, but were step 2 to read a
+body here, a request with no header whose body carried the token it asks
+about under `token` as well would be authenticated by that very token: the
+route would no longer need a registered component, and a dead operator token
+would be answered 401 rather than `live: false`.
 
 The answer is this orchestrator's own judgement of the token, the one its
 middleware makes on an operator route, so a component acts on a person's token
@@ -1543,4 +1545,7 @@ agents hold, which is theirs.
 - [ ] Every platform-provided model route is authorised by the orchestrator's own judgement of the caller's token, and a `/v1/admin/*` one refuses an agent token with `CREDENTIAL_REQUIRED`
 - [ ] `POST /v1/token/check` reads the caller's token from its `Authorization` header only: with no header it answers 401 whatever the body holds, and a body with no `subject_token` is refused with 400 `INVALID_REQUEST`
 - [ ] `POST /v1/token/check` answers `live: false` with `OPERATOR_REVOKED` for a token minted before its operator was removed, with `CREDENTIAL_REVOKED` after its credential was revoked, and with `TOKEN_EXPIRED` past `exp`; and, for a live token, the capabilities the operator's role carries now, so a role lowered since the token was minted is reported lowered
-- [ ] `POST /v1/token/check` called with an operator token or a channel token in its `Authorization` header is refused with `FORBIDDEN`, and with an attestation token with `CREDENTIAL_REQUIRED`, and discloses nothing about `subject_token`; called with a registered component's registration token it answers
+- [ ] `POST /v1/token/check` called with an operator token or a channel token in its `Authorization` header is refused with `FORBIDDEN`, and with an attestation token with `CREDENTIAL_REQUIRED`, and discloses nothing about `subject_token`; called with a registered component's registration token it answers 200 with a `TokenStatus`
+- [ ] `POST /v1/token/check` called with the registration token of a component that has since deregistered, or whose identity id `POST /v1/rotate-key` has since changed, is refused with `FORBIDDEN` and discloses nothing about `subject_token`
+- [ ] `POST /v1/token/check` asked about an admin's token minted with `cap` `[content:read]` answers `live: true` with `capabilities` `[content:read]` alone, never `content:decide` or `content:write`; asked about an admin's token minted with `cap` `[admin:read]`, it answers with `admin:read`, and not `admin:*`
+- [ ] A token whose signature does not verify is refused with 401 `INVALID_SIGNATURE`, and one past `exp` with 401 `TOKEN_EXPIRED`, on every route Auth Middleware covers
