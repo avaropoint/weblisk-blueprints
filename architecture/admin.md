@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.19.1
+version: 2.19.2
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -697,7 +697,7 @@ contracts:
       description: What the admin gateway forwards, and on whose judgement
       required: true
       rules:
-        - The admin gateway MUST forward an administrative request only once the orchestrator has judged its operator token against the capability the endpoint's minimum stands for (Auth Middleware), as token-status-on-use authorises a request - what the operator's role carries now, never beyond the token's cap, admin:* read as each admin: capability by its own name. It MUST NOT authorise by the token's role claim, which is the role at mint and ignores cap
+        - Every administrative request the admin gateway passes on MUST be authorised by the orchestrator's judgement of its operator token against the capability the endpoint's minimum stands for (Auth Middleware), as token-status-on-use authorises a request - what the operator's role carries now, never beyond the token's cap, admin:* read as each admin: capability by its own name. The gateway MUST NOT authorise by the token's role claim, which is the role at mint and ignores cap
         - A request for a group the orchestrator provides MUST be forwarded to it with the operator token as it arrived, in the Authorization header, where its Auth Middleware judges the token
         - A request for a group another component provides (The admin API is an aggregate) MUST NOT be forwarded until the gateway has asked POST /v1/token/check (architecture/orchestrator, token-check), on its own registration token and with the operator token as subject_token, and the answer is 200 with a TokenStatus that is live and whose capabilities name the capability the endpoint requires
         - A TokenStatus that is not live MUST be answered with the code it names, at the status protocol/types registers for it, and a live one whose capabilities do not name that capability with FORBIDDEN, whatever its role. Where the orchestrator cannot be asked, or answers anything but 200 with a TokenStatus, the request MUST be refused with ADMIN_TOKEN_UNCHECKED, never with the code that answer carried, which judged the gateway's request and not the operator's token. None of them forwards anything
