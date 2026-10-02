@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: lifecycle
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/types, architecture/domain, architecture/agent, patterns/messaging]
 platform: any
 tier: free
@@ -678,6 +678,21 @@ security:
     - rule: Strategy changes only on measured feedback
       mechanism: Feedback records before and after values for a named metric
 ```
+
+> **Gap — nothing here yet tells a person's approval from a component's.**
+> `approve_recommendation` and `reject_recommendation` arrive as
+> `POST /v1/message` actions, which check a sender's signature where one is
+> present and no operator token
+> ([`protocol/spec`](../protocol/spec.md#post-v1message)), so any registered
+> component can send one, and nothing records which person decided. The
+> boundary *Recommendation → Approval* and the rule that execution runs under
+> the approver's scope hold only once the Lifecycle Agent serves the approval
+> queue's administrative routes, judging the person's operator token as
+> [`architecture/admin`](admin.md#contracts)'s
+> `admin-gateway-authorization` requires and resolving the approver's scope
+> from the `TokenStatus` that judgement answers. No such route is specified
+> yet, and until one is, `architecture/admin` reports the approval queue
+> unavailable.
 
 ---
 

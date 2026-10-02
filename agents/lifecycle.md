@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: lifecycle
-version: 1.0.1
+version: 1.0.2
 port: 9782
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/lifecycle]
 extends: [patterns/messaging, patterns/scope, patterns/policy]
@@ -793,6 +793,11 @@ triggers:
 ### approve_recommendation
 
 **Purpose:** Accept or reject a pending recommendation.
+
+This action checks no operator token, so it does not yet tell a person's
+decision from any registered component's, and records no decider. That gap,
+and what closes it, is stated once in
+[`architecture/lifecycle`](../architecture/lifecycle.md#security).
 
 **Input:** `{recommendation_id, decision: "accept"|"reject", reason?}`
 

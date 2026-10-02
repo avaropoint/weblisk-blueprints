@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.14.3
+version: 1.14.4
 requires: []
 platform: any
 tier: free
@@ -415,7 +415,10 @@ only `admin` does, so every admin holds it. What keeps it apart from `admin:*`
 is therefore that a token narrowed by `cap` for administration carries
 `admin:*` without it, and that a future role may administer without attesting
 agreements. No service could raise a ceiling through `admin:*` in any case:
-`/v1/admin/*` admits only operator tokens, which are people's.
+`/v1/admin/*` admits only operator tokens, which are people's, whichever
+component serves the route
+([`architecture/admin`](../architecture/admin.md#contracts),
+`admin-gateway-authorization`).
 
 **Fabric capabilities:**
 - `fabric:read` — read relationships, coverage, impact, lineage and the ledger projection
@@ -452,9 +455,10 @@ bundle in its Operator Roles table, `auditor` being `viewer` plus `admin:audit`,
 and so on. That keeps
 administration one authority system rather than a second one running alongside
 the first: whatever asks to administer a component presents capabilities, and
-the component checks them the same way it checks `agent:message`. On the
-`/v1/admin/*` routes of `architecture/orchestrator`, those capabilities arrive on
-an operator's token — a person's — and on no other kind of token.
+the component checks them the same way it checks `agent:message`. On every
+`/v1/admin/*` route, the orchestrator's and any other component's, those
+capabilities arrive on an operator's token — a person's — and on no other kind
+of token, and the orchestrator judges what that token may use.
 
 `admin:*` is the only wildcard capability name. It exists because a full-access
 role has to be nameable, and it denotes the whole family rather than a resource
@@ -463,9 +467,14 @@ glob — resource scoping stays in `resources`, as for every other capability.
 > **Gap.** `architecture/admin`'s `admin` role relies on `admin:*` for operator
 > management, agent deregistration and federation approval, none of which is
 > separately nameable here. A deployment that wants an operator who may approve
-> federation but not deregister agents cannot express it. Naming those is
-> `architecture/admin`'s to do, and this list will follow it — inventing the
-> names here would put the wrong document in charge of what administration means.
+> federation but not deregister agents cannot express it. Nor can a route whose
+> minimum stands for `admin:*` be served by any component but the orchestrator:
+> a token that can use it reaches operator management wherever it is presented
+> ([`protocol/identity`](identity.md#a-token-names-no-audience)), so
+> `architecture/admin` answers such a route elsewhere as unavailable. Naming
+> those is `architecture/admin`'s to do, and this list will follow it —
+> inventing the names here would put the wrong document in charge of what
+> administration means.
 
 ### IOSpec
 

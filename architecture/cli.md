@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.8.1
+version: 2.9.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -310,13 +310,29 @@ the sections below: [Project Commands](#project-commands),
 1. Operator runs a CLI command (e.g., `weblisk agents list`)
 2. CLI resolves which identity acts — `--keys-dir`, else `--identity <label>`, else the unnamed default
 3. CLI loads the auth token stored beside that identity (refreshes if near expiry)
-4. CLI constructs HTTP request to orchestrator admin API endpoint
+4. CLI constructs HTTP request to the orchestrator's admin API endpoint, for a
+   group the orchestrator provides. A command for any other group is not sent
+   there (below)
 5. Token included in the `Authorization: Bearer` header
 6. Orchestrator validates token, and checks the request can use the capability the endpoint's minimum stands for: what the operator's role carries now, never beyond the token's `cap` ([`architecture/admin`](admin.md#auth-middleware), Auth Middleware)
 7. Orchestrator returns JSON response
 8. CLI formats response as human-readable table (or raw JSON with `--json`)
 9. For write operations: CLI prompts for interactive confirmation before sending
 10. Exit code set based on success/failure (0 = success, 1 = error, 2 = auth failure)
+
+**A group another component provides is not reached on the stored token.**
+The domain, workflow, approval, strategy and federation commands address
+groups [`architecture/admin`](admin.md#the-admin-api-is-an-aggregate) gives to
+a component other than the orchestrator. The token the CLI stores carries the
+role's full set, so it goes to the orchestrator alone
+([`protocol/identity`](../protocol/identity.md#a-token-names-no-audience)), and
+no such component serves an administrative route yet
+([`architecture/admin`](admin.md#contracts), `admin-gateway-authorization`).
+Each of these commands therefore reports its group unavailable, sends nothing
+and exits 1. Once a group's provider serves a route, the command goes to it on
+a token minted with `--cap` naming only the capability that route requires,
+never on the stored one; a route whose minimum is `admin` stays unavailable,
+as `architecture/admin` says.
 
 ---
 
@@ -2577,6 +2593,7 @@ security:
 - [ ] All commands output human-readable tables by default and structured JSON with --json flag
 - [ ] Destructive commands (agents deregister, federations revoke) require --confirm or interactive name-confirmation
 - [ ] `weblisk approvals reject` requires a --reason argument for every rejection
+- [ ] `weblisk approvals list`, `weblisk strategies list`, `weblisk federations peers`, `weblisk domains list` and `weblisk workflows list` report their group unavailable and exit 1 while no component other than the orchestrator serves its route, and send nothing, the stored token included, to any component
 - [ ] `weblisk status` calls GET /v1/admin/overview and displays agents, domains, workflows, approvals, federation, and health score
 - [ ] Exit codes are 0=success, 1=general error, 2=auth error, 3=connection error, 4=not found, 5=permission denied
 - [ ] Config resolution order: command-line flags > environment variable > .weblisk/config.json (project) > ~/.weblisk/config.json (user)
