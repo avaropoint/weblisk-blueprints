@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.19.0
+version: 2.19.1
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -701,8 +701,8 @@ contracts:
         - A request for a group the orchestrator provides MUST be forwarded to it with the operator token as it arrived, in the Authorization header, where its Auth Middleware judges the token
         - A request for a group another component provides (The admin API is an aggregate) MUST NOT be forwarded until the gateway has asked POST /v1/token/check (architecture/orchestrator, token-check), on its own registration token and with the operator token as subject_token, and the answer is 200 with a TokenStatus that is live and whose capabilities name the capability the endpoint requires
         - A TokenStatus that is not live MUST be answered with the code it names, at the status protocol/types registers for it, and a live one whose capabilities do not name that capability with FORBIDDEN, whatever its role. Where the orchestrator cannot be asked, or answers anything but 200 with a TokenStatus, the request MUST be refused with ADMIN_TOKEN_UNCHECKED, never with the code that answer carried, which judged the gateway's request and not the operator's token. None of them forwards anything
-        - The gateway MUST call another component as itself, on its own registration token, naming the operator in X-Operator, and MUST NOT pass the operator token on. A token names no audience (protocol/identity), so a component that received one could present it wherever its capabilities reach, the orchestrator's administrative routes included
-        - To ask, and to call another component, the gateway MUST hold a registration of its own at the hub (protocol/spec, POST /v1/register)
+        - The gateway MUST call another component as itself, on its own registration token, whose admin: capabilities are what that component authorises (The admin API is an aggregate), naming the operator in X-Operator, which records whom the gateway judged and authorises nothing. It MUST NOT pass the operator token on. A token names no audience (protocol/identity), so a component that received one could present it wherever its capabilities reach, the orchestrator's administrative routes included
+        - To ask, and to call another component, the gateway MUST hold a registration of its own at the hub (protocol/spec, POST /v1/register). It is therefore a component other than the orchestrator, and a token presented to it is narrowed as protocol/identity requires of every holder, to the capabilities the requests sent through it need
 
     - name: operator-credential-revocation
       description: Withdraw one credential, or every credential an operator holds
