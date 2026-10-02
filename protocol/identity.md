@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.10.0
+version: 1.10.1
 requires: [protocol/types]
 platform: any
 tier: free
@@ -357,9 +357,10 @@ Operator keys can be rotated without losing hub access:
 6. Each hub validates both signatures → stores the new public key, keeps the
    operator's name, role and identity id, records the old key as retired with
    the time of the change, and revokes every credential the old key attested
-7. When no hub records the old key any more, or a hub that still records it
-   was abandoned by the person (architecture/cli, rotate --abandon), its
-   private half is destroyed and its public half kept for audit
+7. When every hub that recorded the old key has either taken the new one or
+   been abandoned by the person (architecture/cli, rotate --abandon), the old
+   key's private half is destroyed and its public half kept for audit. While
+   any hub is still pending, the old private key is kept
 8. The operator attests a new credential at each hub with the new key
 ```
 

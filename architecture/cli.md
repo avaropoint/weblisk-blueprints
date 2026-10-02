@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.7.0
+version: 2.7.1
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -2549,7 +2549,7 @@ security:
 - [ ] `weblisk operator rotate --resume` against the hub left `pending` signs the change with the old key it still records and the new key, the hub answers `200` with the same `identity_id`, and only then is the old private key destroyed and its public half kept as `operator.pub.retired`
 - [ ] `weblisk operator connect` to a hub left `pending` by a rotation sends that hub the key change before it attests, and attests with the new key; when the change is refused it signs nothing there
 - [ ] `weblisk operator rotate` while a rotation is pending is refused without `--resume`, and generates no second key
-- [ ] `weblisk operator rotate --abandon <hub_id>` asks for confirmation, removes that hub and its registration from the rotation, and the rotation then finishes with the old private key destroyed
+- [ ] `weblisk operator rotate --abandon <hub_id>` asks for confirmation, removes that hub and its registration from the rotation, and the rotation then finishes with the old private key destroyed when no other hub is still pending; with one still pending, the old private key is kept
 - [ ] A hub that applied a key change and whose `200` was lost is left `pending`; `rotate --resume`, or `connect` to it, sends the change again over a fresh timestamp, the hub answers `200` as a repeat, the hub is marked `changed`, and the rotation finishes
 - [ ] During a rotation, a hub that answers `OPERATOR_UNKNOWN` stays `pending` with its registration kept, and the rotation does not finish until the person abandons it with confirmation
 - [ ] `--abandon` accepts a `refused` hub, and the rotation then finishes
