@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: storage
-version: 1.3.0
+version: 1.3.1
 requires: [protocol/types, protocol/identity, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 tier: free
@@ -1250,7 +1250,11 @@ each checkpoint it verifies, with the log id.
 The verdict was once called `unwitnessed`. It was renamed because
 [`architecture/content`](content.md#who-a-change-was-for) uses *witnessed* for
 a party the service took from a token it verified, which is the owner
-vouching, not a second party countersigning.
+vouching, not a second party countersigning. Renaming a value an implementer
+reports would break that implementer, and it was taken as a minor version
+only because none reports it: the verdict was introduced and renamed before
+any sealed log was built, and a blueprint that names the verdict requires
+1.3.0 or later.
 
 ### An owner checks its own log
 
