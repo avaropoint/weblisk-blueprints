@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.14.0
+version: 1.14.1
 requires: []
 platform: any
 tier: free
@@ -164,9 +164,13 @@ every component that asks it about one, `POST /v1/token/check`):
 | `CREDENTIAL_EXPIRED` | 401 | permanent | The credential's attestation has passed its `not_after` |
 
 `architecture/admin` says when the orchestrator answers each and what a client
-does next. A component that refuses an operator token because
-`POST /v1/token/check` reported it not live answers with the code the
-`TokenStatus` names and the status this table gives it.
+does next. A token check can also report `INVALID_SIGNATURE` or
+`TOKEN_EXPIRED`, for a token whose signature does not verify or whose `exp`
+has passed, and those two are registered with their status in
+[Error Handling](#error-handling). A component that refuses an operator token
+because `POST /v1/token/check` reported it not live answers with the code
+`TokenStatus.code` names and the status this table or Error Handling gives
+it.
 
 **Destination codes** (produced by the destination gate of `patterns/scope`,
 and answered by every sender it binds):

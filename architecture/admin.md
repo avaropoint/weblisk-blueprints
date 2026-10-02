@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.18.0
+version: 2.18.1
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -248,15 +248,17 @@ Where the last column names a
 [`patterns/principal-identity`](../patterns/principal-identity.md#error-handling)
 code, this is its wire form at this surface, and that pattern holds the rule.
 
-The codes a token check can report — `CREDENTIAL_REQUIRED`,
-`OPERATOR_UNKNOWN`, `OPERATOR_NOT_APPROVED`, `OPERATOR_REVOKED`,
-`CREDENTIAL_UNKNOWN`, `CREDENTIAL_OPERATOR_MISMATCH`, `CREDENTIAL_REVOKED` and
-`CREDENTIAL_EXPIRED` — are registered with their HTTP status in
-[`protocol/types`](../protocol/types.md#errorresponse), because every component
-an operator token is presented to answers with them, and their HTTP column
-here names that registry. An orchestrator enters every code in its central
-error registry with its HTTP status, from there for those eight and from here
-for the rest, which is what `architecture/orchestrator`'s
+The codes a token check can report are the ones `TokenStatus.code` names
+([`protocol/types`](../protocol/types.md#tokenstatus)): the eight operator
+token codes — `CREDENTIAL_REQUIRED`, `OPERATOR_UNKNOWN`,
+`OPERATOR_NOT_APPROVED`, `OPERATOR_REVOKED`, `CREDENTIAL_UNKNOWN`,
+`CREDENTIAL_OPERATOR_MISMATCH`, `CREDENTIAL_REVOKED` and `CREDENTIAL_EXPIRED`
+— and `INVALID_SIGNATURE` and `TOKEN_EXPIRED`. Each is registered with its
+HTTP status in [`protocol/types`](../protocol/types.md#errorresponse), because
+every component an operator token is presented to answers with them, and the
+HTTP column here names that registry for the eight it lists. An orchestrator
+enters every code in its central error registry with its HTTP status, from
+there for those ten and from here for the rest, which is what `architecture/orchestrator`'s
 `error-codes-registered` check looks for. The Category column classes the
 fault, as `architecture/content` and `architecture/fabric` do. It is not
 `ErrorResponse.category`: there, each of these is `permanent` and not
@@ -1246,7 +1248,7 @@ it produces confident, well-commented, wrong code.
 ### Operator Token
 
 Operator tokens use the same WLT format as agent tokens, with the `cid`,
-`identity_id`, `type` and `role` claims
+`identity_id`, `type`, `role` and `record_keys` claims
 [`protocol/identity`](../protocol/identity.md#payload-claims) declares:
 
 ```json
@@ -1261,13 +1263,15 @@ Operator tokens use the same WLT format as agent tokens, with the `cid`,
           "fabric:read", "fabric:attest"],
   "cid": "<id of the credential that obtained it>",
   "identity_id": "<alice's identity id at this hub>",
+  "record_keys": [],
   "role": "operator",
   "type": "operator"
 }
 ```
 
 This token was minted with no `cap`, so its `cap` is the operator role's full
-set. One minted with `cap` `[admin:*]` would carry only `admin:read`,
+set. Its operator holds no sign-records credential here, so `record_keys` is
+the empty list; one who holds a live one has its id there. One minted with `cap` `[admin:*]` would carry only `admin:read`,
 `admin:approve` and `admin:strategy` (`operator-token-issuance`).
 
 **Operator tokens have a one-hour TTL,** and never outlive the attestation of the
