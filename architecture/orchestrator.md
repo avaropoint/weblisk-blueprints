@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.14.0
+version: 2.14.1
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -863,7 +863,7 @@ and it records `withdrawn_by` from that request's token.
 | Code | HTTP | When |
 |---|---|---|
 | `CREDENTIAL_REQUIRED` | 401 | The token is not a person's operator token ([`protocol/types`](../protocol/types.md#errorresponse)) |
-| `FORBIDDEN` | 403 | The token does not carry `model:attest` ([`protocol/spec`](../protocol/spec.md)) |
+| `FORBIDDEN` | 403 | The request cannot use `model:attest`: the operator's role does not carry it now, or the token's `cap` does not name it (Auth Middleware, step 8; [`protocol/types`](../protocol/types.md#error-handling)) |
 | `INVALID_REQUEST` | 400 | A required field is missing, `backends` or `models` is empty, or `agreement_digest` is not `sha256:` and 64 lowercase hex characters |
 | `MODEL_AGREEMENT_LEVEL_REFUSED` | 400 | `level` is not `internal` or `confidential` |
 | `MODEL_AGREEMENT_LAPSE_INVALID` | 400 | `not_after` is not in the future, or is more than 90 days after the request |

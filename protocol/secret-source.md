@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: secret-source
-version: 1.2.0
+version: 1.3.0
 requires: [protocol/identity, patterns/principal-identity]
 platform: any
 tier: free
@@ -182,12 +182,21 @@ hardware token. None is required, and none is special.
 | `1password` | the CLI | what its vault item holds, as named fields |
 | `file` | every caller that runs unattended | one value, read from a file ([Headless references](#headless-references-file-and-fd)) |
 | `fd` | every caller that runs unattended | one value, read from an inherited file descriptor |
+| `keychain` | the CLI, on each platform below | an identity whole, or only its passphrase where the person asks ([An identity held by a source](#an-identity-held-by-a-source)) |
 
 **The CLI MUST carry a `1password` source built in, and MUST reach it through
 this protocol.** That makes it the protocol's first user: every request the CLI
 makes of 1Password is one a helper could answer, so nothing about 1Password is
 known outside that source. It needs nothing installed beyond the vault's own
 command-line tool, and answers `not_installed` where that tool is missing.
+
+**The CLI MUST carry a `keychain` source built in** for its platform's
+keychain, reached through this protocol as every source is: macOS's first,
+then the Secret Service on Linux, then Windows', in that order. It holds an
+identity whole unless the person asks it to remember only the passphrase. On
+a platform it carries none for, it answers `not_installed`. No CLI carries
+one yet, so until it does, a person who wants a keychain names a helper that
+speaks for it.
 
 ### Discovery
 

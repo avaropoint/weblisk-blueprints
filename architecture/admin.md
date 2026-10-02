@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.20.0
+version: 2.20.1
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -420,7 +420,7 @@ implementations of one.
 │  Port 443              │      │  Port 9443 (or separate 443) │
 │  Public internet       │      │  Private / IP-restricted     │
 │  User sessions (WLS)   │      │  Operator tokens (WLT)       │
-│  ABAC policies         │      │  Role hierarchy + MFA always │
+│  ABAC policies         │      │  Capabilities + MFA always   │
 │  Data masking          │      │  Full audit trail            │
 └────────────┬───────────┘      └──────────────┬───────────────┘
              │                                  │
@@ -561,9 +561,13 @@ acceptable for single-host deployments.
    Writes are limited to approvals, strategy management, and
    configuration.
 2. **ML-DSA-65 operator identity, kept cold** — Operators are identified
-   by the same ML-DSA-65 identity system as agents. The identity signs to
-   register and to attest a credential, and nothing else. Tokens, with
-   admin-scoped capabilities, are minted with the credential.
+   by the same ML-DSA-65 identity system as agents. At a hub the identity
+   signs to register, to obtain the attestation token that lets it attest,
+   to attest a credential and to change its own key, and nothing else.
+   Elsewhere it signs only the fixed-form statements
+   [`protocol/identity`](../protocol/identity.md#fixed-form-statements)
+   registers for an identity. Tokens, with admin-scoped capabilities, are
+   minted with the credential.
 3. **Offline-capable** — The dashboard is a static SPA that works
    even when the orchestrator is degraded. It shows stale data with
    timestamps rather than failing entirely.
@@ -879,8 +883,8 @@ A client reaches a hub with a **credential**: an ML-DSA-65 key pair the client
 generates for that hub alone, bound to the operator's identity by an
 attestation the identity signs once
 ([`patterns/principal-identity`](../patterns/principal-identity.md)). The
-identity key is cold. It signs to register and to attest, and nothing it signs
-is a login. Tokens come from the credential, at a challenge the hub issues, and
+identity key is cold. It signs to register, to attest and to change itself,
+and nothing it signs is a login. Tokens come from the credential, at a challenge the hub issues, and
 the identity is not asked.
 
 ```
@@ -1344,8 +1348,9 @@ records who acted records it, never `sub`, which is the operator's name.
 `type` is `operator` for a token that administers, and `attestation` for the
 one an identity signature obtains. An attestation token carries `sub`, `iss`,
 `iat`, `exp` and `type`, no `cap` and no `cid`, and lives at most 300 seconds.
-`role` records the role at issue. A request is authorised against the role the
-operator holds when it arrives (`token-status-on-use`).
+`role` records the role at issue. A request is authorised against what the
+role the operator holds when it arrives carries, never beyond the token's
+`cap` (`token-status-on-use`).
 
 ### A console holds a credential, never a token
 
@@ -2063,8 +2068,8 @@ security:
       carries now, never beyond the token's cap; multi-factor
       authentication is required without exception, where the identity key
       and the credential key are opened, because an operator credential is the
-      most valuable one in a deployment. The identity key signs to register and
-      to attest, and is never a login.
+      most valuable one in a deployment. The identity key signs to register, to
+      attest and to change itself, and is never a login.
 
   boundaries:
     - boundary: Operator browser → Admin gateway. A separate TLS entry point,
@@ -2183,7 +2188,7 @@ Every admin action is logged:
 {
   "id": "audit-abc123",
   "timestamp": 1712160000,
-  "actor": "alice",
+  "actor": "<the operator's identity_id>",
   "actor_type": "operator",
   "action": "approve",
   "target": "rec-001",

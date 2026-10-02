@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.9.0
+version: 2.9.1
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1003,7 +1003,9 @@ identity.
 
 ### A credential for each hub
 
-The identity signs to register and to attest, and nothing else. Tokens come
+The identity signs to register, to attest and to change its own key
+([`weblisk operator rotate`](#weblisk-operator-rotate)), and nothing else at a
+hub. Tokens come
 from a credential ([`architecture/admin`](admin.md#obtaining-a-token)), and the
 CLI holds one for each identity at each hub:
 

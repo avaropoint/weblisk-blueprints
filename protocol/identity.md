@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.11.0
+version: 1.12.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -241,9 +241,10 @@ When `kdf = none`:
 2. Service key generation defaults to `kdf = none`, which rule 6 confines to
    development, but SHOULD support encrypted keys whose passphrase comes from a
    secret source ([`protocol/secret-source`](secret-source.md)).
-3. Production deployments SHOULD encrypt service keys with a passphrase
-   supplied at startup by a secret source, such as a secrets manager or a
-   secret the platform mounts.
+3. In production a service key MUST NOT be kept with `kdf = none` (rule 6).
+   One kept encrypted takes its passphrase at startup from a secret source,
+   such as a secrets manager or a secret the platform mounts, which is
+   rule 8's injected passphrase.
 4. The passphrase is NEVER stored on disk. It exists only in memory
    during the decrypt operation. This binds the implementation, which never
    writes a passphrase anywhere; a secret source MAY keep one under its own
@@ -254,7 +255,7 @@ When `kdf = none`:
 
 ### Service Key Protection
 
-Rules 2 and 3 above date from a model in which a service held one
+Rule 2's default dates from a model in which a service held one
 long-lived key on disk, and `kdf = none` was the only way a headless
 process could start unattended. That trade is no longer necessary, and
 it is no longer permitted in production.
@@ -543,6 +544,18 @@ bytes itself, in one of those two forms, may ask a secret source to sign them
 A kind of statement is registered here before any implementation signs it. A
 prefix names one layout for good. A changed layout gets a new prefix and a new
 row, and a verifier refuses a prefix it does not know.
+
+**Test vectors come before a signer.** An implementation signs under a prefix
+only once this corpus publishes test vectors for it — the exact bytes signed,
+a public key, and a signature over them — made with Cloudflare's circl and
+verified with OpenSSL 3.5 or later and with @noble/post-quantum. Every
+implementation, a hub's, a client's or a verifier's, tests against those same
+vectors. None is published yet. So no implementation may yet sign under
+`weblisk/credential-auth/v1`, `weblisk/log-key/v1`,
+`weblisk/log-checkpoint/v1`, `weblisk/log-succession/v1`,
+`weblisk/content-change/v1` or `weblisk/holder-probe/v1`, and
+`weblisk/auth/v1`, which the CLI already signs and a console already
+verifies, is the one exception, until its vectors are published.
 
 ### Proving an identity to a service that is not a hub
 
