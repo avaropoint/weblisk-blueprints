@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.8.0
+version: 2.8.1
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -312,7 +312,7 @@ the sections below: [Project Commands](#project-commands),
 3. CLI loads the auth token stored beside that identity (refreshes if near expiry)
 4. CLI constructs HTTP request to orchestrator admin API endpoint
 5. Token included in the `Authorization: Bearer` header
-6. Orchestrator validates token, checks operator role against endpoint minimum
+6. Orchestrator validates token, and checks the request can use the capability the endpoint's minimum stands for: what the operator's role carries now, never beyond the token's `cap` ([`architecture/admin`](admin.md#auth-middleware), Auth Middleware)
 7. Orchestrator returns JSON response
 8. CLI formats response as human-readable table (or raw JSON with `--json`)
 9. For write operations: CLI prompts for interactive confirmation before sending

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.18.2
+version: 2.19.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -88,11 +88,17 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.11.0 <2.0.0"
+    version: ">=1.14.0 <2.0.0"
     bindings:
       types:
         - name: Strategy
           fields_used: [id, name, targets, status, priority]
+        # What the admin gateway asks before forwarding to a provider other
+        # than the orchestrator, and what it forwards on
+        - name: TokenCheckRequest
+          fields_used: [subject_token]
+        - name: TokenStatus
+          fields_used: [live, code, capabilities]
         - name: AgentManifest
           fields_used: [name, version, capabilities, public_key]
         # The operator lifecycle this document specifies, across a change of
@@ -106,8 +112,13 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.9.0 <3.0.0"
+    version: ">=2.13.0 <3.0.0"
     bindings:
+      behaviors:
+        # Asked by the admin gateway before it forwards a request for a group
+        # another component provides. See admin-gateway-authorization
+        - name: token-check
+          usage: Relied on, never served here. The gateway forwards only on the TokenStatus it answers
       endpoints:
         # The orchestrator-provided groups only. Strategies, approvals,
         # workflows and federation are bound from their own providers — see
@@ -120,6 +131,10 @@ requires:
           methods: [POST]
         - path: /v1/audit
           methods: [GET]
+        - path: /v1/token/check
+          methods: [POST]
+          request_type: TokenCheckRequest
+          response_fields: [live, code, capabilities]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -242,7 +257,9 @@ approval queue, federation management, audit/observability) and
 ## Error Handling
 
 The operator and credential routes answer with these codes, in `ErrorResponse`
-([`protocol/types`](../protocol/types.md#errorresponse)). Each says what the
+([`protocol/types`](../protocol/types.md#errorresponse)), and the admin gateway
+answers `ADMIN_TOKEN_UNCHECKED` at a route another component provides
+(`admin-gateway-authorization`). Each says what the
 client does next, so a client acts on the code and never on the message text.
 Where the last column names a
 [`patterns/principal-identity`](../patterns/principal-identity.md#error-handling)
@@ -263,7 +280,8 @@ there for those ten and from here for the rest, which is what `architecture/orch
 fault, as `architecture/content` and `architecture/fabric` do. It is not
 `ErrorResponse.category`: there, each of these is `permanent` and not
 `retryable`, because the client acts on the code rather than repeating the
-request.
+request, except `ADMIN_TOKEN_UNCHECKED`, which is `transient` and `retryable`,
+because nothing was judged.
 
 | Code | HTTP | Category | When | Behaviour | principal-identity |
 |---|---|---|---|---|---|
@@ -289,6 +307,7 @@ request.
 | `OPERATOR_KEY_CHANGE_INVALID` | 401 | auth | A change of identity key whose `current_signature` does not verify under the operator's recorded key, whose `new_signature` does not verify under `new_public_key`, whose `new_public_key` is not an ML-DSA-65 key, or whose timestamp is outside the 300-second window or was seen before | Refuse and change nothing. Log as a security event | `replay_detected`, where the timestamp is the fault |
 | `OPERATOR_KEY_REUSED` | 409 | conflict | A registration or a change of identity key offers a key this hub records, or recorded, as any operator's identity key, current or retired, or as any credential | Refuse permanently, naming no operator. The client generates a new key | — |
 | `OPERATOR_LAST_ADMINISTRATOR` | 409 | conflict | A request to revoke would end the last active authenticate credential of the last active admin. A sign-records credential signs nobody in and is not counted. A change of that admin's identity key is not refused | Refuse | `last_administrator` |
+| `ADMIN_TOKEN_UNCHECKED` | 503 | io | A request for a group another component provides arrived at the admin gateway, and the orchestrator could not be asked whether its operator token is live, or answered anything but 200 with a `TokenStatus` | Refuse and forward nothing. The request may be repeated once the orchestrator answers. Never forward on the token alone, and never relay the code that answer carried, which judged the gateway's own request | — |
 
 `TOKEN_EXPIRED` ([`protocol/types`](../protocol/types.md#error-handling)) still
 answers a token past its `exp`. The client mints another with its credential,
@@ -308,9 +327,13 @@ which does not ask the identity.
 6. No factor is re-checked here: two were required where the credential was
    attested and where its key was opened to mint this token
    ([Where the second factor is](#where-the-second-factor-is))
-7. Role authorization checked against endpoint minimum role
-8. Request forwarded to orchestrator's admin API with `X-Operator` and `X-Trace-Id` headers
-9. Orchestrator processes request and returns response
+7. Capability authorization: the request must be able to use the capability
+   the endpoint's minimum stands for, as the orchestrator judges it — never the
+   token's role claim alone ([Admin Gateway Request Lifecycle](#admin-gateway-request-lifecycle), step 6)
+8. Request forwarded to the provider of the endpoint's group with `X-Operator`
+   and `X-Trace-Id` headers: to the orchestrator with the operator token, to any
+   other provider on the gateway's own registration token (`admin-gateway-authorization`)
+9. The provider processes request and returns response
 10. Admin gateway returns response to operator browser (with `Cache-Control: no-store`)
 11. For destructive actions: additional HMAC confirmation and 4-eyes approval before step 8
 
@@ -446,7 +469,9 @@ Critical rules:
    │   with sub equal to {name} (Auth Middleware, below)
    ├── Verify token expiry
    ├── The orchestrator checks the operator, the credential named by
-   │   token.cid and the grant are live — its records, not the token's word
+   │   token.cid and the grant are live — its records, not the token's word:
+   │   when the request reaches it, for a group it provides, and when the
+   │   gateway asks it at step 6, for a group another component provides
    └── 401 Unauthorized if any check fails, with the code that says which
 
 5. SECOND FACTOR (always required, never checked per request)
@@ -456,14 +481,28 @@ Critical rules:
    └── A console's AAL2 session is opened with a one-time code or WebAuthn,
        never a code sent by SMS
 
-6. ROLE AUTHORIZATION
-   ├── Check token.role against endpoint's minimum role
-   ├── Role hierarchy: admin > operator > auditor > viewer
-   └── 403 Forbidden if role insufficient
+6. CAPABILITY AUTHORIZATION (the orchestrator's judgement, never the
+   gateway's own; admin-gateway-authorization is the rule)
+   ├── The request must be able to use the capability the endpoint's
+   │   minimum stands for: one the operator's role carries now and the
+   │   token's cap names (Auth Middleware, below). token.role is the role
+   │   at mint and ignores cap, so it is never the judgement
+   ├── A group the orchestrator provides: its Auth Middleware judges the
+   │   token when the request arrives
+   ├── A group another component provides: the gateway asks
+   │   POST /v1/token/check on its own registration token before it
+   │   forwards anything, and forwards only on a live TokenStatus whose
+   │   capabilities name that capability
+   └── Not live → the code the TokenStatus names; live without the
+       capability → 403 FORBIDDEN, whatever the role; the orchestrator not
+       answering with a TokenStatus → 503 ADMIN_TOKEN_UNCHECKED
 
 7. REQUEST FORWARDING
-   ├── Forward to orchestrator's admin API
-   ├── Internal headers: X-Operator, X-Operator-Role, X-Trace-Id
+   ├── To the provider of the endpoint's group (The admin API is an
+   │   aggregate): to the orchestrator with the operator token as it
+   │   arrived; to any other provider on the gateway's own registration
+   │   token, never passing the operator token on
+   ├── Internal headers: X-Operator, X-Trace-Id
    └── Response returned to operator browser
 
 8. DESTRUCTIVE ACTION CONFIRMATION (for critical writes)
@@ -650,9 +689,20 @@ contracts:
         - An operator token without a cid MUST be refused with CREDENTIAL_REQUIRED
         - The request MUST be refused when the operator has no record (OPERATOR_UNKNOWN), is pending (OPERATOR_NOT_APPROVED) or is revoked (OPERATOR_REVOKED), and when the credential is not that operator's (CREDENTIAL_OPERATOR_MISMATCH), is revoked (CREDENTIAL_REVOKED) or its attestation has expired (CREDENTIAL_EXPIRED)
         - The request MUST be authorised against the capabilities the operator's role carries now, and never beyond the token's cap: what it may use is the capabilities of both. A role changed since the token was issued takes effect on the next request
-        - An administrative route MUST refuse with FORBIDDEN a request that cannot use the capability its minimum stands for (Auth Middleware), whatever role the operator holds. A route only a named operator may use, alone or beside an admin, needs admin:read from that operator. So a token narrowed to another component's capabilities reaches no administrative route, an admin's included
+        - An administrative route MUST refuse with FORBIDDEN a request that cannot use the capability its minimum stands for (Auth Middleware), whatever role the operator holds. A route only a named operator may use, alone or beside an admin, needs admin:read from that operator. So a token narrowed to another component's capabilities reaches no administrative route, an admin's included, and one another component provides as little as one the orchestrator does (admin-gateway-authorization)
         - Removing an operator, revoking a credential or rotating an operator's identity key therefore ends every token resting on it at its next request to the orchestrator, not when the token expires, and at another component at the next check that component makes through POST /v1/token/check (architecture/orchestrator). A component that does not ask honours the token until its exp, at most one hour
         - An admin gateway in front of the orchestrator MUST NOT stand in for this check. The orchestrator holds the records, and a signature check alone proves only that a token was once issued
+
+    - name: admin-gateway-authorization
+      description: What the admin gateway forwards, and on whose judgement
+      required: true
+      rules:
+        - The admin gateway MUST forward an administrative request only once the orchestrator has judged its operator token against the capability the endpoint's minimum stands for (Auth Middleware), as token-status-on-use authorises a request - what the operator's role carries now, never beyond the token's cap, admin:* read as each admin: capability by its own name. It MUST NOT authorise by the token's role claim, which is the role at mint and ignores cap
+        - A request for a group the orchestrator provides MUST be forwarded to it with the operator token as it arrived, in the Authorization header, where its Auth Middleware judges the token
+        - A request for a group another component provides (The admin API is an aggregate) MUST NOT be forwarded until the gateway has asked POST /v1/token/check (architecture/orchestrator, token-check), on its own registration token and with the operator token as subject_token, and the answer is 200 with a TokenStatus that is live and whose capabilities name the capability the endpoint requires
+        - A TokenStatus that is not live MUST be answered with the code it names, at the status protocol/types registers for it, and a live one whose capabilities do not name that capability with FORBIDDEN, whatever its role. Where the orchestrator cannot be asked, or answers anything but 200 with a TokenStatus, the request MUST be refused with ADMIN_TOKEN_UNCHECKED, never with the code that answer carried, which judged the gateway's request and not the operator's token. None of them forwards anything
+        - The gateway MUST call another component as itself, on its own registration token, naming the operator in X-Operator, and MUST NOT pass the operator token on. A token names no audience (protocol/identity), so a component that received one could present it wherever its capabilities reach, the orchestrator's administrative routes included
+        - To ask, and to call another component, the gateway MUST hold a registration of its own at the hub (protocol/spec, POST /v1/register)
 
     - name: operator-credential-revocation
       description: Withdraw one credential, or every credential an operator holds
@@ -1379,7 +1429,8 @@ operator token.
 
 Each group below is **specified and served by the component that owns the
 state**. The admin service holds `admin:` capabilities, calls those endpoints,
-and composes one operator surface behind its own enforcement. It is not the owner
+and composes one operator surface, forwarding nothing for an operator token the
+orchestrator has not judged (`admin-gateway-authorization`). It is not the owner
 of the data and it is not co-located with any single provider.
 
 | Group | Provider | Present when |
@@ -1967,7 +2018,8 @@ security:
       sharing no session store and no cookie domain, so compromising one does not
       reach the other. Every request is authenticated by a token minted with a
       credential the operator's identity attested, re-checked against the
-      orchestrator's records, and authorised against a role; multi-factor
+      orchestrator's records, and authorised against what the operator's role
+      carries now, never beyond the token's cap; multi-factor
       authentication is required without exception, where the identity key
       and the credential key are opened, because an operator credential is the
       most valuable one in a deployment. The identity key signs to register and
@@ -1976,10 +2028,13 @@ security:
   boundaries:
     - boundary: Operator browser → Admin gateway. A separate TLS entry point,
         authenticated per request against the orchestrator's key
-    - boundary: Admin gateway → Orchestrator. Reads the orchestrator's own
-        endpoints; it does not reach past them into an agent or a store
-    - boundary: Operator role → Action. Every endpoint declares a minimum role,
-        checked before the handler runs
+    - boundary: Admin gateway → Providers. Forwards to the orchestrator's own
+        endpoints and calls another provider's as itself, once the orchestrator
+        has judged the token; it does not reach past them into a store
+    - boundary: Operator capability → Action. Every endpoint declares a minimum
+        role, which stands for a capability the request must be able to use,
+        judged by the orchestrator before the handler runs or anything is
+        forwarded
     - boundary: Destructive action → Effect. Crossed only through the change
         gate, by approvers who are distinct principals
 
@@ -1992,11 +2047,13 @@ security:
         orchestrator's public key and checks `type == operator` before dispatch
     - rule: A token is refused as soon as what it rests on is withdrawn
       mechanism: The orchestrator looks up the operator and the credential named
-        by the token on every request, and authorises against the role the
-        operator holds now
-    - rule: An endpoint is refused to a role below its declared minimum
-      mechanism: Role compared against the endpoint's requirement; 403 rather
-        than a partial result
+        by the token on every request, and authorises against what the role the
+        operator holds now carries, narrowed by the token's cap
+    - rule: An endpoint is refused to a request that cannot use the capability
+        its declared minimum stands for, whatever the role
+      mechanism: The orchestrator's judgement, in its Auth Middleware or in the
+        TokenStatus the admin gateway asks for before forwarding to another
+        provider (admin-gateway-authorization); 403 rather than a partial result
     - rule: The auditor role cannot approve or mutate
       mechanism: Auditor carries viewer permissions plus audit read, and no
         approval or management capability — it is a branch of the hierarchy
@@ -2015,7 +2072,7 @@ security:
 ```
 ### Auth Middleware
 
-All `/v1/admin/*` endpoints pass the orchestrator's
+Every `/v1/admin/*` endpoint the orchestrator provides passes its
 [Auth Middleware](orchestrator.md#auth-middleware), which is the one sequence
 for them, except `POST /v1/admin/operators/register`,
 `POST /v1/admin/operators/token`, `POST /v1/admin/credentials/challenge`,
@@ -2025,7 +2082,11 @@ the token from the `Authorization` header alone, verifies it and its expiry,
 admits an operator token (and an attestation token on the attestation route
 only, for the operator the path names), checks that the operator and
 credential it names are live (token-status-on-use), and then checks the
-capability, which is this document's to define:
+capability, which is this document's to define. An endpoint another component
+provides never reaches that sequence, so the admin gateway asks the
+orchestrator for the same judgement, through `POST /v1/token/check`, before it
+forwards anything there (`admin-gateway-authorization` in
+[Contracts](#contracts)). Either way the rule is this one:
 
 **The request must be able to use the capability the endpoint's minimum stands
 for** (the table below): one the operator's role carries now and the token's
@@ -2201,6 +2262,9 @@ The rest SHOULD be:
 - [ ] `GET /v1/admin/overview` returns agent counts, domain status, workflow stats, approval counts, and health score — with any figure whose provider is not deployed reported as unavailable rather than zero
 - [ ] Each admin endpoint group is served by the component that owns its state; the admin service composes them and owns none of them
 - [ ] An admin endpoint whose provider is not deployed reports itself unavailable and never returns an empty result
+- [ ] At the admin gateway, an admin's token minted with `cap` `[content:read, content:describe]` is refused with `FORBIDDEN` at `POST /v1/admin/approvals/:id`, `POST /v1/admin/strategies` and `POST /v1/admin/federation/pending/:id`, although the admin's role reaches each, and nothing reaches the Lifecycle Agent or the federation layer
+- [ ] For a group another component provides, the admin gateway asks `POST /v1/token/check` before it forwards: the token of an operator removed since it was minted is refused with `OPERATOR_REVOKED`, an admin's token after that admin was lowered to `viewer` is refused with `FORBIDDEN` at `POST /v1/admin/approvals/:id`, and while the orchestrator cannot be asked every such request is refused with 503 `ADMIN_TOKEN_UNCHECKED`; none of them is forwarded
+- [ ] The admin gateway calls a provider other than the orchestrator on its own registration token, naming the operator in `X-Operator`, and no provider other than the orchestrator receives an operator token from it
 - [ ] All admin API responses include Cache-Control: no-store header
 - [ ] Admin auth middleware verifies `type` is `operator`, checks that the operator and credential the token names are live, and checks that the request can use the capability the endpoint's minimum stands for, from the role the operator holds now narrowed to the token's `cap`
 - [ ] An admin's token minted with `cap` `[admin:read]` carries `admin:read`, reaches a `viewer+` route and `POST /v1/admin/complete`, and is refused with `FORBIDDEN` on an `admin` route such as `PUT /v1/admin/operators/{name}/role`
