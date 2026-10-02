@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 1.3.1
+version: 1.3.2
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
@@ -549,8 +549,10 @@ live, keeps the status that blueprint gives it
 ### Person Flow
 1. A person submits an assertion or a judgement, naming the relationship, on
    their own operator token
-2. The service asks the orchestrator whether the token is live and what it
-   carries now, and refuses unless it carries `fabric:attest`
+2. A token whose `type` is not `operator` is refused with `FORBIDDEN`, and the
+   orchestrator is not asked about it. For an operator token, the service asks
+   the orchestrator whether the token is live and what it carries now, and
+   refuses unless it carries `fabric:attest`
    ([Registration and Standalone Operation](#registration-and-standalone-operation))
 3. The resolver lands it on the same identity a producer's claim would reach, so
    the confirmation sits **on** the inference rather than beside it
@@ -1431,8 +1433,11 @@ refuses the request with `FORBIDDEN`. A hub that minted it on one by mistake
 has still opened no person route.
 
 **A person's act is checked with the orchestrator.** Before it appends an
-attestation, a decision or a relocation, this service asks the orchestrator
-whether the token is still live
+attestation, a decision or a relocation, this service first looks at the
+token's `type`. One that is not `operator` is refused with `FORBIDDEN`, as the
+rule above says, and the orchestrator is not asked about it: it is asked only
+about an operator token. For an operator token, this service asks the
+orchestrator whether the token is still live
 ([`architecture/orchestrator`](orchestrator.md#token-check-post-v1tokencheck),
 `POST /v1/token/check`): its own registration token in the `Authorization`
 header, and the token it was presented as `subject_token` in a
@@ -1657,7 +1662,7 @@ security:
 - [ ] A content service whose `ServiceEntry` is on another host is reached only with a grant for that address; absent one the repository is `unreachable` and no credential is sent
 - [ ] The fabric's manifest declares no `agent:message`, and a remote content service does not cause it to be added
 - [ ] The fabric's manifest declares no `fabric:attest`, and its registration succeeds; a component whose manifest declares `fabric:attest` is refused at registration with `CAPABILITY_PERSON_ONLY`, and an agent's authorisation naming it is refused
-- [ ] An attestation on a person's operator token whose role carries `fabric:attest` is recorded; the same request on a registered component's token or a channel token is refused with `FORBIDDEN`, whatever capabilities that token names
+- [ ] An attestation on a person's operator token whose role carries `fabric:attest` is recorded; the same request on a registered component's token or a channel token is refused with `FORBIDDEN`, whatever capabilities that token names, and the service makes no `POST /v1/token/check` for it
 - [ ] An attestation, a decision or a relocation on an operator token minted before its operator was removed, its credential revoked, or its role lowered to one without `fabric:attest` is refused at that act with the code `POST /v1/token/check` reports, and appends nothing
 - [ ] A person's attestation, decision or relocation records the `identity_id` the token check answered as the entry's `actor`, never the token's `sub`, so renaming the operator changes nothing the ledger holds; a producer's claims record the `identity_id` claim of the token it presented
 - [ ] With the orchestrator unreachable, an attestation, a decision or a relocation is refused with `FABRIC_TOKEN_UNCHECKED` and appends nothing, and a read on a verified token is still answered

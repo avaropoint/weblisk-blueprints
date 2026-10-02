@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.15.4
+version: 2.15.5
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -689,7 +689,7 @@ code here is enough, because a client does the same thing for both.
 | `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the identity the proposal names as its `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, the change has no scope, or the repository declares no ceiling. Or a repository declaration whose `self_decision_ceiling` is `critical`. See [Separation of duties](#separation-of-duties) | Refuse, naming the scope, or that there is none, and the ceiling. Nothing is recorded and the proposal stays `open` |
 | `CONTENT_TOKEN_UNCHECKED` | io | A write, removal, decision, replica declaration or retirement, or a declaration carrying `self_decision_ceiling` or `scope_floor`, arrived and the orchestrator could not be asked whether its token is live, or answered anything but 200 with a `TokenStatus` | Refuse and perform nothing. The request may be repeated once the orchestrator answers. Never proceed on the token alone |
 | `CONTENT_IDENTITY_REQUIRED` | auth | A write, removal, proposal, decision, replica declaration or retirement arrived on a token that carries no `identity_id` | Refuse. Never record a name, an address or a token's `sub` in its place |
-| `CONTENT_STATEMENT_INVALID` | auth | A write, removal or decision carried a `ChangeStatement` that does not verify: the token is not a person's; the attestation's `purpose` is not `sign-records`, its `identity_id` is not the token's, its identity key is not the operator's current one, its signature fails, its credential key is not ML-DSA-65, or its `not_after` has passed or is more than 90 days ahead; its credential key is not one of the token's `record_keys`, or is the credential the token's `cid` names; `signed_at` is more than 300 seconds from the service's clock; or the signature does not verify over the statement rebuilt from the change. See [The change statement](#the-change-statement) | Refuse, naming the check that failed. Nothing is written and a proposal stays `open`. The change is never recorded unsigned instead. Log as a security event |
+| `CONTENT_STATEMENT_INVALID` | auth | A write, removal or decision carried a `ChangeStatement` that does not verify: the attestation's `purpose` is not `sign-records`, its `identity_id` is not the token's, its identity key is not the operator's current one, its signature fails, its credential key is not ML-DSA-65, or its `not_after` has passed or is more than 90 days ahead; its credential key is not one of the token's `record_keys`, or is the credential the token's `cid` names; `signed_at` is more than 300 seconds from the service's clock; or the signature does not verify over the statement rebuilt from the change. See [The change statement](#the-change-statement) | Refuse, naming the check that failed. Nothing is written and a proposal stays `open`. The change is never recorded unsigned instead. Log as a security event |
 | `CONTENT_WRITE_UNCONFIRMED` | io | The digest of the bytes read back after a write is not the digest of the decoded bytes submitted | Refuse. The reservation is settled as one whose path holds neither `before` nor the reserved `after`: an `observe` entry under shared custody, an integrity anomaly under exclusive custody. No `change` entry records the write, because a statement over the submitted bytes could not be checked against other ones. See [Write Flow](#write-flow) |
 | `CONTENT_LOG_NOT_BEGUN` | conflict | A log route named a repository that is `establishing`. Its log begins with the `declare` entry when it is recorded `declared` | Refuse. The caller learns the repository's state from `GET /v1/content/repositories` |
 | `CONTENT_SEALING_PAUSED` | io | A checkpoint was asked for and no log key can sign one: none is live and the long-lived key cannot introduce another | Refuse, carrying the `LogHead`, whose `unsealed` counts what waits. Nothing is appended. The request may be repeated once sealing resumes |
@@ -809,11 +809,12 @@ code here is enough, because a client does the same thing for both.
    place. Exceeded → refuse, publish `content.ceiling_exceeded`. Bytes that
    carry `pii`, into a repository that is not a records repository → refuse
    with `CONTENT_RECORDS_REPOSITORY_REQUIRED`
-4. The token is checked with the orchestrator
-   ([Who may move an entry](#who-may-move-an-entry)): one it reports not live
-   is refused with the code it names, one its role no longer lets write with
-   `FORBIDDEN`, and a request it cannot be asked about with
-   `CONTENT_TOKEN_UNCHECKED`. The answer's `identity_public_key` is what
+4. The token is checked ([Who may move an entry](#who-may-move-an-entry)).
+   One whose `type` is not `operator` is refused here with `FORBIDDEN`, and
+   the orchestrator is not asked about it. An operator token is checked with
+   the orchestrator: one it reports not live is refused with the code it
+   names, one its role no longer lets write with `FORBIDDEN`, and a request
+   it cannot be asked about with `CONTENT_TOKEN_UNCHECKED`. The answer's `identity_public_key` is what
    step 6 checks a statement against. Then the enforcement storage proxy
    intercepts with operation `create` when `if_match` is the empty string,
    and `modify` otherwise
@@ -2450,7 +2451,12 @@ A decision is judgement, and a service has none to exercise
 **A person-only act is checked with the orchestrator.** Before it performs a
 write, a removal, a decision, a replica declaration or retirement, or a
 repository declaration that carries `self_decision_ceiling` or `scope_floor`,
-this service asks the orchestrator whether the token is still live
+this service first looks at the token's `type`. One that is not `operator`
+does not hold the capability the act needs, as the rule above says, so the
+act is refused with `FORBIDDEN`, whatever its `cap` or the request carries,
+and the orchestrator is not asked about it: it is asked only about an
+operator token. For an operator token, this service asks the orchestrator
+whether the token is still live
 ([`architecture/orchestrator`](orchestrator.md#token-check-post-v1tokencheck),
 `POST /v1/token/check`): its own registration token in the `Authorization`
 header, and the token it was presented as `subject_token` in a
@@ -2932,9 +2938,10 @@ to bytes its signer did not sign.
 A `ChangeStatement` verifies when all of these hold. They are checked before
 anything is written:
 
-1. The token is a person's, of `type` `operator`, and its `identity_id` is the
-   attestation's `identity_id`. Only a person signs here, and only for
-   themselves. The attestation's `identity_public_key` is the operator's
+1. The token's `identity_id` is the attestation's `identity_id`. Only a person
+   signs here, and only for themselves: a token whose `type` is not
+   `operator` was refused with `FORBIDDEN` before any statement is read
+   ([Who may move an entry](#who-may-move-an-entry)). The attestation's `identity_public_key` is the operator's
    current identity key, as the orchestrator's check of the token reports it
    (`TokenStatus.identity_public_key`), which every act that carries a
    statement asks for ([Who may move an entry](#who-may-move-an-entry)).
@@ -5118,7 +5125,7 @@ security:
 - [ ] A `ContentChange` from `PUT /v1/content/entry` carries no `on_behalf_of`, `approved_by`, `proposal` or `separation`
 - [ ] A write or proposal whose body names an `actor` records the verified token's `identity_id`, never the named one and never the token's `sub`
 - [ ] A write, removal, proposal or decision on a token that carries no `identity_id` is refused with `CONTENT_IDENTITY_REQUIRED`, and nothing is recorded
-- [ ] A token whose `type` is not `operator` and whose `cap` holds `content:write` is refused `PUT /v1/content/entry` as though it did not hold it
+- [ ] A token whose `type` is not `operator` and whose `cap` holds `content:write` is refused `PUT /v1/content/entry` with `FORBIDDEN`, as though it did not hold it, whether or not the request carries a `statement`, and the service makes no `POST /v1/token/check` for it
 - [ ] The service's own manifest declares none of `content:write`, `content:decide`, `content:replicate` and `content:connect`, and its registration succeeds
 - [ ] A declaration carrying `self_decision_ceiling` from a caller holding `content:declare` and not `content:decide` is refused, and no repository is recorded
 - [ ] A decider whose token's `cap` names `content:decide` and not `content:write` applies a proposal, and the write is recorded; the same token is refused with `FORBIDDEN` at `PUT /v1/content/entry`
@@ -5174,7 +5181,7 @@ security:
 - [ ] A write whose `statement` was signed over other bytes, another path or another `before` is refused with `CONTENT_STATEMENT_INVALID`, and nothing is written or recorded
 - [ ] A `statement` whose attestation has no `purpose`, or `purpose` `authenticate`, is refused with `CONTENT_STATEMENT_INVALID`
 - [ ] A `statement` whose `signed_at` is more than 300 seconds from the service's clock is refused with `CONTENT_STATEMENT_INVALID`
-- [ ] A `statement` on a token whose `type` is not `operator`, or whose attestation names an `identity_id` other than the token's, or whose attestation's identity key is not the operator's current key as `POST /v1/token/check` reports it, is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] A `statement` whose attestation names an `identity_id` other than the token's, or whose attestation's identity key is not the operator's current key as `POST /v1/token/check` reports it, is refused with `CONTENT_STATEMENT_INVALID`
 - [ ] A write, removal or decision on an unexpired token whose operator was removed, or whose credential was revoked, after it was minted is refused with `OPERATOR_REVOKED` or `CREDENTIAL_REVOKED` and nothing is written; one whose operator's role no longer carries the capability is refused with `FORBIDDEN`
 - [ ] A write, removal, decision or replica declaration made while the orchestrator cannot be asked is refused with `CONTENT_TOKEN_UNCHECKED`, and nothing is written, decided or recorded
 - [ ] A person-only act for which `POST /v1/token/check` answers anything but 200 with a `TokenStatus`, such as 401 `TOKEN_EXPIRED` for this service's own registration token or a 503, is refused with `CONTENT_TOKEN_UNCHECKED`, never with the code that answer carried
