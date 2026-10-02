@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.12.0
+version: 2.12.1
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -800,9 +800,13 @@ included.
 > `complete` on `scope`, as this section specifies.
 
 **Agreements.** A `ProviderAgreement`
-([`patterns/scope`](../patterns/scope.md#model-providers)) is recorded and
-withdrawn only on a person's operator token holding `model:attest`, which
-[`protocol/types`](../protocol/types.md) marks *person only*.
+([`patterns/scope`](../patterns/scope.md#model-providers)) is recorded only on
+a person's operator token holding `model:attest`, which
+[`protocol/types`](../protocol/types.md) marks *person only*, and withdrawn on
+that token by `DELETE /v1/admin/model/agreements/{id}`. The one other
+withdrawal is the side effect of `PUT /v1/admin/model` below, which
+`admin:*` reaches: it only ever withdraws, so it only ever lowers a ceiling,
+and it records `withdrawn_by` from that request's token.
 
 - `POST /v1/admin/model/agreements` takes the agreement's `party`, `backends`,
   `component` where there is one, `agreement`, `agreement_digest`, `level` and

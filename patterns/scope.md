@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.5.1
+version: 2.5.2
 requires: [protocol/types]
 platform: any
 tier: free
@@ -530,7 +530,12 @@ an **agreement attestation** for it.
   `service-subject-constraints` and `agent-delegation`). `admin:*` does not
   include it. The tenant takes who recorded it from the token's `identity_id`
   ([`protocol/identity`](../protocol/identity.md#payload-claims)), and
-  withdrawing one takes the same capability.
+  withdrawing one by `DELETE /v1/admin/model/agreements/{id}` takes the same
+  capability. The one other withdrawal is the side effect of a
+  `PUT /v1/admin/model` that points a listed name elsewhere, which `admin:*`
+  reaches
+  ([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)):
+  it only ever lowers a ceiling, so it needs no attestation.
 - **Where it is held.** At the tenant, beside the model configuration it
   qualifies, through the routes
   [`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)
@@ -1524,7 +1529,7 @@ a destination carries a `DestinationRefusal` as its detail.
 - [ ] A client takes the scope of what it would send, and a destination's ceiling, from the tenant; a level it cannot learn is undeclared, and a ceiling it cannot learn is the one the destination has with nothing attested
 - [ ] The destination gate denies in every environment profile, `development` included, and no profile makes it audit-only
 - [ ] A model provider with no current agreement attestation has the ceiling `internal`, and a `confidential` request to it is refused with `SCOPE_CEILING_EXCEEDED`
-- [ ] A `ProviderAgreement` is recorded or withdrawn only on a person's operator token holding `model:attest`; a token holding `admin:*` and not `model:attest` is refused; one naming a level above `confidential`, or a `not_after` more than 90 days ahead, is refused; and after `not_after` or withdrawal the provider's ceiling is `internal`
+- [ ] A `ProviderAgreement` is recorded, or withdrawn by `DELETE /v1/admin/model/agreements/{id}`, only on a person's operator token holding `model:attest`; a token holding `admin:*` and not `model:attest` is refused at both routes; one naming a level above `confidential`, or a `not_after` more than 90 days ahead, is refused; and after `not_after` or withdrawal the provider's ceiling is `internal`
 - [ ] A `PUT /v1/admin/model` that changes the backend a name a current agreement lists reaches withdraws that agreement, and the ceiling routes then answer that name `internal`; one that keeps the name and changes only the model asked for withdraws nothing
 - [ ] A backend is found by the name the tenant's model configuration spells, and a name no current agreement lists has the ceiling `internal`
 - [ ] Nothing `restricted` or `critical` is sent to a model provider, whatever its ceiling, a model the tenant runs itself included
