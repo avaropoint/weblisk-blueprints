@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: mcp
-version: 1.2.0
-requires: [protocol/types, protocol/spec, architecture/agent, architecture/gateway, patterns/scope, patterns/safety]
+version: 1.3.0
+requires: [protocol/types, protocol/spec, architecture/agent, architecture/gateway, patterns/scope, patterns/safety, patterns/auth-oauth]
 platform: any
 tier: free
 adoption: opt-in
@@ -83,6 +83,19 @@ requires:
       removed: halt-immediately
   - blueprint: patterns/safety
     version: ">=1.0.0 <2.0.0"
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/auth-oauth
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        # What a tool call is admitted on, and what its audit entry names
+        - name: ResolvedCredential
+          fields_used: [principal, client, resource, scope]
+      behaviors:
+        - name: validate_credential
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -178,12 +191,20 @@ reflects it without redeployment.
 
 1. A caller requests capabilities. The surface answers from declarations, filtered by what
    the caller may see.
-2. A caller invokes a tool, presenting a credential. Authorization resolves it to a
-   principal and a scope. What the principal may use here never includes a capability
-   [`protocol/types`](../protocol/types.md#capability) marks *person only*, whatever
-   credential was presented, a person's operator token included: the caller is a model,
-   and an agent holds no person-only capability, so agents propose and people apply at
-   this surface too.
+2. A caller invokes a tool, presenting a credential. The surface admits only one that
+   [`patterns/auth-oauth`](../patterns/auth-oauth.md) issued for this surface
+   (`validate_credential`), which names the person who consented, the client acting
+   for them, this resource and the granted scope. A person's own token — an operator
+   token, whatever its `cap` — is not one, and is refused before any tool is resolved:
+   the caller is a model, and no agent holds a person's token
+   ([`architecture/admin`](admin.md#a-console-holds-a-credential-never-a-token)). What
+   the caller may use is what the granted scope names, within what the person may use
+   now, and never a capability [`protocol/types`](../protocol/types.md#capability)
+   marks *person only*: the intersection
+   [`patterns/principal-identity`](../patterns/principal-identity.md) requires of an
+   agent acting for a person, so agents propose and people apply at this surface too.
+   A deployment that issues no such credential admits no caller to invoke a tool, and
+   serves discovery of the publicly discoverable set alone.
 3. The surface resolves the tool name to a declared capability. An unknown name, or one
    outside the caller's scope or needing a capability step 2 left out, is refused — and
    these are refused identically, so the refusal does not disclose what exists.
@@ -194,7 +215,8 @@ reflects it without redeployment.
 7. The result passes the destination gate ([The destination gate](#the-destination-gate)).
    A result it refuses is not returned, in whole or in part.
 8. The result is rendered back in MCP's vocabulary, and the call is audited with the
-   principal, the tool, the outcome and the time.
+   person and the client the credential names, the tool, the outcome and the time, so
+   the record names both whose authority was used and what used it.
 
 ### The destination gate
 
@@ -362,6 +384,10 @@ security:
     - rule: An argument the tool's input contract does not declare is rejected
       mechanism: Validation against the declared contract before dispatch,
         rejecting rather than ignoring unknown arguments
+    - rule: A person's own token is never admitted
+      mechanism: Only a credential patterns/auth-oauth validates for this
+        resource resolves to a principal; an operator token, whatever its cap,
+        is refused before any tool name is resolved
     - rule: No action carries a person-only capability, whatever credential the
         caller presented
       mechanism: The caller's capabilities are resolved without every
@@ -379,8 +405,8 @@ security:
     - rule: A mutating operation passes the safety gate on every invocation
       mechanism: patterns/safety evaluated per call, never cached across calls
     - rule: Every invocation is attributable
-      mechanism: Audit records principal, tool, arguments' declared names,
-        outcome and time
+      mechanism: Audit records the person and the client the credential names,
+        tool, arguments' declared names, outcome and time
     - rule: No tool result above internal, or with an undeclared scope, is
         returned to a caller
       mechanism: patterns/scope's destination gate applied to every result with
@@ -415,13 +441,14 @@ security:
 - [ ] A tool's `input_contract` MUST NOT declare a tenant, organisation, project or principal identifier
 - [ ] An argument not declared in `input_contract` MUST be rejected rather than ignored
 - [ ] An unknown tool name and a tool outside the caller's scope MUST produce identical refusals
-- [ ] A caller presenting a person's operator token whose role carries `content:write`, `content:decide`, `model:attest` or `fabric:attest` invokes no tool whose operation needs one of them: the call is refused as an unknown name is, and nothing is performed
+- [ ] A caller presenting a person's operator token, whatever its `cap`, is refused before any tool is resolved, and nothing is performed
+- [ ] A caller whose credential `patterns/auth-oauth` issued for this surface, for a person whose role carries `content:write`, `content:decide`, `model:attest` or `fabric:attest`, invokes no tool whose operation needs one of them: the call is refused as an unknown name is, and nothing is performed
 - [ ] Discovery without credentials MUST return only declarations marked discoverable
 - [ ] An authenticated caller's discovery MUST return nothing outside its resolved scope
 - [ ] A tool with `mutates: true` MUST be refused without an idempotency key
 - [ ] A repeated invocation carrying the same idempotency key MUST return the first outcome without acting again
 - [ ] Every invocation MUST pass the safety gate before execution
-- [ ] Every invocation MUST produce an audit entry naming principal, tool, outcome and time
+- [ ] Every invocation MUST produce an audit entry naming the person and the client its credential names, the tool, outcome and time
 - [ ] An error response MUST NOT contain an internal identifier, query, or stack detail
 - [ ] A read tool whose result carries a row of a `restricted` register is refused with `SCOPE_CEILING_EXCEEDED`, carrying a `DestinationRefusal` with ceiling `internal`, and returns no row of it, whatever the caller's credential may read
 - [ ] A tool result that carries an entry whose scope the action did not report is refused with `SCOPE_MISSING`, and nothing of it is returned
