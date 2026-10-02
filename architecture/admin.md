@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.17.2
+version: 2.17.3
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -975,10 +975,16 @@ POST /v1/admin/credentials/token
   "token": "<WLT, type operator, carries cid, identity_id and record_keys>",
   "expires_at": 1712163600,
   "role": "operator",
-  "capabilities": ["admin:read", "admin:approve", "admin:strategy"],
+  "capabilities": ["admin:read", "admin:approve", "admin:strategy",
+                   "content:read", "content:describe", "content:write",
+                   "content:propose", "content:decide", "content:reconcile",
+                   "fabric:read", "fabric:attest"],
   "not_after": 1714752000
 }
 ```
+
+The request carries no `cap`, so the token and its `capabilities` carry every
+capability the `operator` role carries ([Operator Roles](#operator-roles)).
 
 A token request may also carry `cap`, a list of capability names, and the
 token then carries only those of them the operator's role carries
@@ -1248,13 +1254,20 @@ Operator tokens use the same WLT format as agent tokens, with the `cid`,
   "iss": "orchestrator",
   "iat": 1712160000,
   "exp": 1712163600,
-  "cap": ["admin:read", "admin:approve", "admin:strategy"],
+  "cap": ["admin:read", "admin:approve", "admin:strategy",
+          "content:read", "content:describe", "content:write",
+          "content:propose", "content:decide", "content:reconcile",
+          "fabric:read", "fabric:attest"],
   "cid": "<id of the credential that obtained it>",
   "identity_id": "<alice's identity id at this hub>",
   "role": "operator",
   "type": "operator"
 }
 ```
+
+This token was minted with no `cap`, so its `cap` is the operator role's full
+set. One minted with `cap` `[admin:*]` would carry only `admin:read`,
+`admin:approve` and `admin:strategy` (`operator-token-issuance`).
 
 **Operator tokens have a one-hour TTL,** and never outlive the attestation of the
 credential that obtained them. A client mints the next one with that credential,

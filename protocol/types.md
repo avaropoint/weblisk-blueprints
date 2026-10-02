@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.13.0
+version: 1.13.1
 requires: []
 platform: any
 tier: free
@@ -433,8 +433,9 @@ family, and the orchestrator rejected it exactly as it should.
 - `admin:*` — every capability in the `admin` family
 
 Administration is expressed in capabilities like everything else, and an
-operator's **role is a bundle of them** — `architecture/admin` defines `viewer` as
-`admin:read`, `auditor` as `admin:read` plus `admin:audit`, and so on. That keeps
+operator's **role is a bundle of them** — `architecture/admin` defines each
+bundle in its Operator Roles table, `auditor` being `viewer` plus `admin:audit`,
+and so on. That keeps
 administration one authority system rather than a second one running alongside
 the first: whatever asks to administer a component presents capabilities, and
 the component checks them the same way it checks `agent:message`. On the
