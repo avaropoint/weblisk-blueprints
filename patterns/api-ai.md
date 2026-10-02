@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: api-ai
-version: 2.2.1
+version: 2.3.0
 requires: [protocol/types, patterns/scope, architecture/agent, architecture/gateway, architecture/orchestrator]
 platform: any
 tier: free
@@ -42,13 +42,13 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.6.0 <3.0.0"
     bindings:
       types:
         # An enum: it declares values, not fields, so nothing is bound FROM it.
         - name: ScopeLevel
         - name: ProviderCeiling
-          fields_used: [backend, ceiling]
+          fields_used: [backend, model, ceiling]
         - name: DestinationRefusal
           fields_used: [destination, ceiling, items]
     on_change:
@@ -757,9 +757,11 @@ Callers MAY specify both `model` and `provider` to bypass routing:
 
 When `provider` is specified, the router skips resolution and sends
 directly to that provider. If the model is not available on the
-specified provider, return 404. The destination gate still applies: a
-named provider whose ceiling is below the request's `scope` refuses the
-request, and the router never sends it to another provider instead.
+specified provider, return 404. The destination gate still applies, to
+the named provider and the named model together: where the ceiling the
+tenant gives that provider for that model is below the request's `scope`,
+the request is refused, and the router never sends it to another provider
+or model instead ([Destination Ceilings](#destination-ceilings)).
 
 ### Provider Health-Aware Routing
 
@@ -804,13 +806,18 @@ nothing that does not declare it
 
 Every provider this endpoint reaches is a model provider
 ([`patterns/scope`](scope.md#model-providers)), and its ceiling is the
-one the tenant gives the provider's key under `providers:`, as
-`GET /v1/model/ceiling?backend=<key>` answers it
+one the tenant gives the provider's key under `providers:` and the model
+the request would ask it for, as
+`GET /v1/model/ceiling?backend=<key>&model=<model>` answers it
 ([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)).
 That route takes this endpoint's own registration token; the administrative
-route of the same name takes only a person's. It answers every key with a
-`ProviderCeiling`, whether or not the tenant's model configuration names it:
-a provider key no current agreement lists has the ceiling `internal`. It
+route of the same name takes only a person's. It answers every key and model with a
+`ProviderCeiling`, whether or not the tenant's model configuration names
+them: a provider key no current agreement lists, and a model the agreement
+listing the key does not list, has the ceiling `internal`. The ceiling is the
+model's as well as the key's, because at an aggregator or a gateway the model
+chooses who runs it, so each step the router weighs below is a key and a
+model, and is gated as one. It
 refuses only a token it does not accept, with a code
 [`protocol/types`](../protocol/types.md#errorresponse) registers, and an
 endpoint that cannot learn a ceiling uses `internal`.
@@ -880,7 +887,8 @@ than the one first chosen, the response's `provider` says so.
 - [ ] Provider failover goes only to a provider whose ceiling covers the request's `scope`, is refused with `SCOPE_CEILING_EXCEEDED` when none does, and the response's `provider` names the provider that ran it
 - [ ] A request with no `scope` is refused with `SCOPE_MISSING`, and one at `restricted` with `SCOPE_CEILING_EXCEEDED`, whatever any provider's ceiling, and neither reaches a provider
 - [ ] A provider key that no current agreement lists, whether or not the tenant's model configuration names it, gets the ceiling `internal` from `GET /v1/model/ceiling?backend=<key>`, and a `confidential` request to it is refused with `SCOPE_CEILING_EXCEEDED`
-- [ ] A request whose `scope` is `confidential` goes only to a provider a current agreement lists at `confidential`, through resolution, the fallback chain, a `downgrade` and a request-level `provider` override alike
+- [ ] A request whose `scope` is `confidential` goes only to a provider and a model a current agreement lists both of at `confidential`, through resolution, the fallback chain, a `downgrade` and a request-level `provider` and `model` override alike
+- [ ] A request-level override naming a provider a current agreement lists at `confidential` and a model that agreement does not list is gated at `internal`, the ceiling `GET /v1/model/ceiling?backend=<key>&model=<model>` answers, so a `confidential` request is refused with `SCOPE_CEILING_EXCEEDED` and sent nowhere else
 - [ ] Token usage is tracked per request with trace_id attribution
 - [ ] Streaming responses use SSE format
 - [ ] Streaming request to a non-streaming model returns 406 Not Acceptable

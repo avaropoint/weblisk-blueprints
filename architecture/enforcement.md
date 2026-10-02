@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: enforcement
-version: 2.3.0
+version: 2.3.1
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, patterns/privacy, architecture/orchestrator, architecture/gateway]
 platform: any
 tier: free
@@ -118,7 +118,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=2.2.0 <3.0.0"
+    version: ">=2.6.0 <3.0.0"
     bindings:
       types:
         - name: ScopeLevel
@@ -297,7 +297,13 @@ model provider's when its address is the `address` that
 `GET /v1/model/ceiling` reports for the tenant's model backend
 ([`architecture/orchestrator`](orchestrator.md#a-model-is-a-destination)),
 which the external boundary reads with its own registration token, and whose
-`ceiling` it applies. Such a target is reached only through the tenant's model
+`ceiling` it applies. That ceiling is the one the tenant gives its backend for
+the model its configuration names. A ceiling is a model's as well as a
+name's ([`patterns/scope`](../patterns/scope.md#model-providers)), and the
+boundary does not read which model a call asks for, so at a backend whose
+model chooses who runs it, what holds for any other model is the model
+route's own gate, which applies the ceiling of the model it asks for. Such a
+target is reached only through the tenant's model
 route ([`patterns/scope`](../patterns/scope.md#the-gate)), and a call to it
 from anything else is denied. A provider an api-ai endpoint reaches under its
 own `providers:` ([`patterns/api-ai`](../patterns/api-ai.md#blueprint-format))

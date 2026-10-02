@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.13.0
+version: 2.14.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -146,15 +146,15 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: patterns/scope
-      version: ">=2.2.0 <3.0.0"
+      version: ">=2.6.0 <3.0.0"
       bindings:
         types:
           # An enum: it declares values, not fields, so nothing is bound FROM it.
           - name: ScopeLevel
           - name: ProviderAgreement
-            fields_used: [id, party, backends, component, agreement, agreement_digest, level, recorded_by, recorded_at, not_after, withdrawn_by, withdrawn_at]
+            fields_used: [id, party, backends, models, component, agreement, agreement_digest, level, recorded_by, recorded_at, not_after, withdrawn_by, withdrawn_at]
           - name: ProviderCeiling
-            fields_used: [backend, ceiling, agreement, not_after, address]
+            fields_used: [backend, model, ceiling, agreement, not_after, address]
           - name: DestinationRefusal
             fields_used: [destination, ceiling, items]
       on_change:
@@ -760,7 +760,8 @@ that raise a ceiling, and answers what a ceiling is.
 request carries `scope`: the highest scope of what the prompt carries, as the
 tenant reported it to the caller. A caller whose prompt carries nothing the
 tenant holds says `public`. The route finds the ceiling of the backend it would
-run, as `GET /v1/admin/model/ceiling` answers it, and refuses:
+run and the model it would ask it for, as `GET /v1/admin/model/ceiling`
+answers it, and refuses:
 
 - with `SCOPE_MISSING` when `scope` is absent;
 - with `SCOPE_CEILING_EXCEEDED` when `scope` is above the ceiling, or is
@@ -809,8 +810,8 @@ withdrawal is the side effect of `PUT /v1/admin/model` below, which
 and it records `withdrawn_by` from that request's token.
 
 - `POST /v1/admin/model/agreements` takes the agreement's `party`, `backends`,
-  `component` where there is one, `agreement`, `agreement_digest`, `level` and
-  `not_after`. The route sets `id`, `recorded_by` from the token's
+  `models`, `component` where there is one, `agreement`, `agreement_digest`,
+  `level` and `not_after`. The route sets `id`, `recorded_by` from the token's
   `identity_id`, and `recorded_at`, and never takes them from the body. It
   returns the agreement as recorded.
 - `DELETE /v1/admin/model/agreements/{id}` withdraws it, setting
@@ -819,23 +820,31 @@ and it records `withdrawn_by` from that request's token.
 - `GET /v1/admin/model/agreements` lists every agreement, withdrawn and lapsed
   ones included, so a person can see what was attested and when it ended.
 - **`PUT /v1/admin/model` withdraws what it could carry past an agreement.**
-  An agreement binds a name, never what the name reaches
-  ([`patterns/scope`](../patterns/scope.md#model-providers)). So a request
-  that changes the tenant's model backend withdraws, in the same write, every
-  current agreement listing the name the request sets, setting
-  `withdrawn_by` from the request's token and `withdrawn_at`, and its answer
-  names each one withdrawn. A request that keeps the name the configuration
-  held and changes nothing but which model that backend is asked for
-  withdraws nothing. Without this, a token narrowed for administration,
-  carrying `admin:*` and not `model:attest`, could point a listed name at a
-  party nobody attested and raise that party to the agreement's level.
+  An agreement covers the names and the models it lists, never what a name
+  reaches ([`patterns/scope`](../patterns/scope.md#model-providers)). So a
+  request that sets a name a current agreement lists withdraws that
+  agreement in the same write, unless the configuration held that same name
+  before the write and the request changes nothing of it but the model. It
+  sets `withdrawn_by` from the request's token and `withdrawn_at`, and its
+  answer names each one withdrawn. A request that changes only the model
+  withdraws nothing, because a ceiling is a model's as well as a name's: the
+  model it sets has the agreement's level only where the agreement lists it,
+  and `internal` otherwise. This is the one rule for what the request
+  withdraws. Without it, a token narrowed for administration, carrying
+  `admin:*` and not `model:attest`, could point a listed name at a party
+  nobody attested and raise that party to the agreement's level; and without
+  the ceiling being the model's, it could do the same by changing only the
+  model, at a backend whose model chooses who runs it.
 - `GET /v1/admin/model/ceiling` returns a `ProviderCeiling` for the backend
-  `GET /v1/admin/model` reports, or for the name `?backend=` gives. It is
-  what a client reads before it sends.
-- **Either ceiling route answers every name.** A name no current agreement
-  lists has the ceiling `internal`, whether or not the tenant's model
-  configuration names it, and one a current agreement lists has that
-  agreement's level. The routes never refuse a name as unknown: an api-ai
+  and the model `GET /v1/admin/model` reports, or for the name `?backend=`
+  gives and the model `?model=` gives. It is what a client reads before it
+  sends.
+- **Either ceiling route answers every name and model.** A name no current
+  agreement lists has the ceiling `internal`, whether or not the tenant's
+  model configuration names it, and so does a model the agreement listing
+  the name does not list, and a request that names no model. A name and a
+  model one current agreement lists both of have that agreement's level. The
+  routes never refuse a name or a model as unknown: an api-ai
   endpoint asks by its own `providers:` keys
   ([`patterns/api-ai`](../patterns/api-ai.md#destination-ceilings)), which are
   configured where these routes cannot see them, and a name nobody listed is
@@ -855,10 +864,10 @@ and it records `withdrawn_by` from that request's token.
 |---|---|---|
 | `CREDENTIAL_REQUIRED` | 401 | The token is not a person's operator token ([`protocol/types`](../protocol/types.md#errorresponse)) |
 | `FORBIDDEN` | 403 | The token does not carry `model:attest` ([`protocol/spec`](../protocol/spec.md)) |
-| `INVALID_REQUEST` | 400 | A required field is missing, `backends` is empty, or `agreement_digest` is not `sha256:` and 64 lowercase hex characters |
+| `INVALID_REQUEST` | 400 | A required field is missing, `backends` or `models` is empty, or `agreement_digest` is not `sha256:` and 64 lowercase hex characters |
 | `MODEL_AGREEMENT_LEVEL_REFUSED` | 400 | `level` is not `internal` or `confidential` |
 | `MODEL_AGREEMENT_LAPSE_INVALID` | 400 | `not_after` is not in the future, or is more than 90 days after the request |
-| `MODEL_AGREEMENT_EXISTS` | 409 | A name in `backends` is listed by an agreement that is current. The response names that agreement |
+| `MODEL_AGREEMENT_EXISTS` | 409 | A model in `models`, at a name in `backends`, is already covered by an agreement that is current. The response names that agreement |
 | `NOT_FOUND` | 404 | No agreement of that `id` |
 
 Recording one publishes `system.model.agreement_recorded`, and withdrawing one
@@ -1246,7 +1255,7 @@ events that all agents may subscribe to:
 |-------|-------|----------------|
 | `system.agent.registered` | `*` | New agent successfully registered |
 | `system.agent.deregistered` | `*` | Agent deregistered |
-| `system.model.agreement_recorded` | `*` | A person recorded a model provider agreement. Carries its `id`, `party`, `backends`, `level`, `not_after` and `recorded_by` |
+| `system.model.agreement_recorded` | `*` | A person recorded a model provider agreement. Carries its `id`, `party`, `backends`, `models`, `level`, `not_after` and `recorded_by` |
 | `system.model.agreement_withdrawn` | `*` | A person withdrew one. Carries its `id`, `backends` and `withdrawn_by` |
 | `system.shutdown` | `*` | Orchestrator is shutting down gracefully |
 
@@ -1536,12 +1545,13 @@ agents hold, which is theirs.
 - [ ] An admin's token whose `cap` names only `content:` capabilities is refused with `FORBIDDEN` at `OperatorApprove`, `OperatorRole`, `OperatorDelete`, `AdminAgentDeregister` and `CredentialRevoke`, its own credential included, and at `CredentialAttest` for the admin
 - [ ] The orchestrator serves only the administrative endpoints backed by state it owns — operators, agents, and its own overview
 - [ ] `/v1/admin/overview` reports figures owned by undeployed components as unavailable, never as zero
-- [ ] `POST /v1/admin/complete` with no `scope` is refused with `SCOPE_MISSING`, one above the ceiling `GET /v1/admin/model/ceiling` reports for the backend is refused with `SCOPE_CEILING_EXCEEDED`, and one at `restricted` is refused whatever the ceiling; none of them runs a backend
+- [ ] `POST /v1/admin/complete` with no `scope` is refused with `SCOPE_MISSING`, one above the ceiling `GET /v1/admin/model/ceiling` reports for the backend and model it would run is refused with `SCOPE_CEILING_EXCEEDED`, and one at `restricted` is refused whatever the ceiling; none of them runs a backend
 - [ ] `POST /v1/admin/model/agreements` and `DELETE /v1/admin/model/agreements/{id}` refuse a token without `model:attest` with `FORBIDDEN`, including one holding `admin:*`, and a service's or an agent's token with `CREDENTIAL_REQUIRED`
-- [ ] A `PUT /v1/admin/model` on a token carrying `admin:*` and not `model:attest` that points a name a current agreement lists at another backend withdraws that agreement, names it in its answer, and `GET /v1/admin/model/ceiling` then answers that name `internal`; one that keeps the name and changes only the model withdraws nothing
+- [ ] A `PUT /v1/admin/model` on a token carrying `admin:*` and not `model:attest` that sets a name a current agreement lists, and changes anything of it but the model or held another name before, withdraws that agreement, names it in its answer, and `GET /v1/admin/model/ceiling` then answers that name `internal`
+- [ ] A `PUT /v1/admin/model` that keeps a listed name and changes only its model to one the agreement does not list withdraws nothing, and `GET /v1/admin/model/ceiling` then answers `internal` for that name and model, so a `confidential` `POST /v1/admin/complete` is refused with `SCOPE_CEILING_EXCEEDED`; changing it back to a listed model answers the agreement's level again
 - [ ] A recorded agreement's `recorded_by` is the token's `identity_id`, whatever the body says
-- [ ] An agreement whose `level` is `restricted` is refused with `MODEL_AGREEMENT_LEVEL_REFUSED`, one whose `not_after` is 91 days ahead with `MODEL_AGREEMENT_LAPSE_INVALID`, and one listing a backend a current agreement lists with `MODEL_AGREEMENT_EXISTS`
-- [ ] `GET /v1/admin/model/ceiling` answers `internal` for a backend no current agreement lists, and `internal` again once the agreement that listed it lapses or is withdrawn
+- [ ] An agreement whose `level` is `restricted` is refused with `MODEL_AGREEMENT_LEVEL_REFUSED`, one whose `not_after` is 91 days ahead with `MODEL_AGREEMENT_LAPSE_INVALID`, one with no `models` with `INVALID_REQUEST`, and one listing a model at a backend a current agreement covers for that model with `MODEL_AGREEMENT_EXISTS`
+- [ ] `GET /v1/admin/model/ceiling` answers `internal` for a backend no current agreement lists, for a model the agreement listing the backend does not list, and for a backend asked for no model, and `internal` again once the agreement that listed it lapses or is withdrawn
 - [ ] Either ceiling route answers a `?backend=` name the tenant's model configuration does not name, such as an api-ai endpoint's `providers:` key, with `internal` and no `address` where no current agreement lists it, and with the agreement's level where one does, and never with `NOT_FOUND`
 - [ ] `GET /v1/model/ceiling` answers a registered component's token with the `ProviderCeiling` `GET /v1/admin/model/ceiling` gives an operator for the same backend, `address` included where the backend has one, and refuses an attestation token with `CREDENTIAL_REQUIRED`
 - [ ] Every platform-provided model route is authorised by the orchestrator's own judgement of the caller's token, and a `/v1/admin/*` one refuses an agent token with `CREDENTIAL_REQUIRED`

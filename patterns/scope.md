@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.5.3
+version: 2.6.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -231,7 +231,7 @@ contracts:
       description: The tenant's record of the agreement that raises a model provider's ceiling
       inherited_by: Scope Types section
     - name: ProviderCeiling
-      description: What a model backend may be sent now
+      description: What a model backend may be sent now, for the model asked about
       inherited_by: Scope Types section
     - name: DestinationRefusal
       description: Why the destination gate refused a send
@@ -504,30 +504,43 @@ an **agreement attestation** for it.
   keeps, whether it trains on it, to whom it discloses it — and covers content
   up to a stated level, `internal` or `confidential`. It names the party, every
   name under which the tenant's model configuration reaches it (`backends`),
-  the agreement, the SHA-256 of the tenant's own copy of it, the level, who
-  recorded it, and when it lapses. Where the tenant runs the model itself, it
-  names the component.
+  every model it covers at those names (`models`), the agreement, the SHA-256
+  of the tenant's own copy of it, the level, who recorded it, and when it
+  lapses. Where the tenant runs the model itself, it names the component.
 - **How a request finds its provider.** By the name the tenant's model
   configuration gives the backend the request reaches: the `provider` value
   `GET /v1/admin/model` reports, or the provider's key under `patterns/api-ai`'s
-  `providers:`. The name is compared exactly as the configuration spells it.
-  A backend no current agreement lists has the ceiling `internal`, so a name
-  nobody listed is never given more, and the ceiling routes answer every name
-  that way, one the tenant's model configuration does not know included. A
-  backend is listed by at most one current agreement.
-- **What an agreement does not bind.** It binds a name, never what the name
-  reaches. So changing what a listed name reaches ends the agreement where
-  the tenant can see the change. The orchestrator holds both the model
-  configuration and the agreements, and `PUT /v1/admin/model` withdraws every
-  current agreement listing a name whose backend the request changes
-  ([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)),
-  so the name falls to `internal` until a person holding `model:attest`
-  records a new one. An api-ai `providers:` entry is configured where the
-  orchestrator cannot see it: changing its endpoint keeps the agreement's
-  level, and content up to that level would go to a party no agreement
-  covers. Until an agreement records what each name it lists reaches, whoever
-  changes a listed `providers:` entry withdraws that agreement first, and the
-  tenant cannot check that they did.
+  `providers:`; and by the model the request asks that backend for: the
+  `model` value `GET /v1/admin/model` reports, or the model the request, its
+  route or its fallback names. Each is compared exactly as the configuration
+  or the request spells it. A backend no current agreement lists, and a model
+  the agreement that lists it does not list, has the ceiling `internal`, so a
+  name or a model nobody listed is never given more, and the ceiling routes
+  answer every name and model that way, ones the tenant's model configuration
+  does not know included. A model at a backend is covered by at most one
+  current agreement.
+- **Why an agreement lists models.** At a backend whose model chooses who
+  runs it, such as an aggregator or a gateway that forwards each model to
+  whichever organisation hosts it, the name alone names no party. An
+  agreement that covered a name whatever model it was asked for would cover
+  parties nobody attested, and a change of model alone would send content up
+  to its level to one of them. So an agreement covers the models it lists and
+  no other, at every backend it lists, whichever kind of backend that is. A
+  request that names no model goes to whatever the backend chooses, which no
+  agreement can name, so its ceiling is `internal`.
+- **What an agreement does not bind.** It binds names and models, never what a
+  name reaches. So changing what a listed name reaches ends the agreement
+  where the tenant can see the change. The orchestrator holds both the model
+  configuration and the agreements, and `PUT /v1/admin/model` withdraws what
+  it could carry past one, by the one rule
+  [`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)
+  states, so the name falls to `internal` until a person holding
+  `model:attest` records a new one. An api-ai `providers:` entry is configured
+  where the orchestrator cannot see it: changing its endpoint keeps the
+  agreement's level, and content up to that level would go to a party no
+  agreement covers. Until an agreement records what each name it lists
+  reaches, whoever changes a listed `providers:` entry withdraws that
+  agreement first, and the tenant cannot check that they did.
 - **Who records it.** A person, on their own operator token, holding
   `model:attest`. [`protocol/types`](../protocol/types.md) marks it *person
   only*, and the mechanism that list names keeps it from every service
@@ -537,9 +550,8 @@ an **agreement attestation** for it.
   include it. The tenant takes who recorded it from the token's `identity_id`
   ([`protocol/identity`](../protocol/identity.md#payload-claims)), and
   withdrawing one by `DELETE /v1/admin/model/agreements/{id}` takes the same
-  capability. The one other withdrawal is the side effect of a
-  `PUT /v1/admin/model` that points a listed name elsewhere, which `admin:*`
-  reaches
+  capability. The one other withdrawal is the side effect of
+  `PUT /v1/admin/model`, which `admin:*` reaches
   ([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)):
   it only ever lowers a ceiling, so it needs no attestation.
 - **Where it is held.** At the tenant, beside the model configuration it
@@ -547,8 +559,8 @@ an **agreement attestation** for it.
   [`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)
   declares. It is a fact about the tenant, so a client never keeps one, never
   infers one, and never treats a setting of its own as one.
-- **What it changes.** While it is current, the provider's ceiling is the
-  level it names. It lapses at `not_after`, which is no more than 90 days after
+- **What it changes.** While it is current, the provider's ceiling, for the
+  models it lists at the names it lists, is the level it names. It lapses at `not_after`, which is no more than 90 days after
   it is recorded, or when a person withdraws it. From that moment the ceiling
   is `internal` again.
 
@@ -735,7 +747,11 @@ types:
       - name: backends
         type: "[]string"
         required: true
-        description: Every name under which the tenant's model configuration reaches the party, spelled as the configuration spells it. At least one. A name a current agreement already lists is refused
+        description: Every name under which the tenant's model configuration reaches the party, spelled as the configuration spells it. At least one
+      - name: models
+        type: "[]string"
+        required: true
+        description: Every model the agreement covers at each name in backends, spelled as the configuration or a request spells it and compared exactly. At least one. A model it does not list has the ceiling internal at those names, and a model at a name a current agreement already covers is refused. See Model providers, Why an agreement lists models
       - name: component
         type: string
         required: false
@@ -782,10 +798,14 @@ types:
         type: string
         required: true
         description: The name asked about — the backend GET /v1/admin/model reports, or the name ?backend= gave, which may be an api-ai providers key the tenant's model configuration does not know
+      - name: model
+        type: string
+        required: false
+        description: The model asked about — the model GET /v1/admin/model reports, or the one ?model= gave. Absent where none is named, and then the ceiling is internal
       - name: ceiling
         type: ScopeLevel
         required: true
-        description: internal, or the level of the current agreement that lists the backend
+        description: internal, or the level of the current agreement that lists both the backend and the model
       - name: agreement
         type: string
         required: false
@@ -1536,8 +1556,10 @@ a destination carries a `DestinationRefusal` as its detail.
 - [ ] The destination gate denies in every environment profile, `development` included, and no profile makes it audit-only
 - [ ] A model provider with no current agreement attestation has the ceiling `internal`, and a `confidential` request to it is refused with `SCOPE_CEILING_EXCEEDED`
 - [ ] A `ProviderAgreement` is recorded, or withdrawn by `DELETE /v1/admin/model/agreements/{id}`, only on a person's operator token holding `model:attest`; a token holding `admin:*` and not `model:attest` is refused at both routes; one naming a level above `confidential`, or a `not_after` more than 90 days ahead, is refused; and after `not_after` or withdrawal the provider's ceiling is `internal`
-- [ ] A `PUT /v1/admin/model` that changes the backend a name a current agreement lists reaches withdraws that agreement, and the ceiling routes then answer that name `internal`; one that keeps the name and changes only the model asked for withdraws nothing
+- [ ] A `PUT /v1/admin/model` withdraws exactly what [`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination) says it withdraws, and the ceiling routes then answer each name it withdrew `internal`
 - [ ] A backend is found by the name the tenant's model configuration spells, and a name no current agreement lists has the ceiling `internal`
+- [ ] An agreement listing the backend `gateway` and the model `vendor-a/model-x` at `confidential` gives that name `confidential` for `vendor-a/model-x` alone: the ceiling routes answer `internal` for `gateway` asked for `vendor-b/model-y`, or asked for no model, and a `confidential` request for either is refused with `SCOPE_CEILING_EXCEEDED`, whether its model came from `PUT /v1/admin/model`, a route, a fallback or a caller's override
+- [ ] An agreement that lists no model is refused, and so is one listing a model at a backend a current agreement already covers for that model
 - [ ] Nothing `restricted` or `critical` is sent to a model provider, whatever its ceiling, a model the tenant runs itself included
 - [ ] Any part of a content entry is sent at that entry's `ContentEntry.scope`, and any part of an unclassified entry is refused with `SCOPE_MISSING`
 - [ ] Resolution, fallback, failover, budget downgrade and a caller's override each choose only a destination whose ceiling covers what is sent, refuse when none does, and never send to a lower-ceiling destination transparently
