@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.15.2
+version: 2.15.3
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -1201,7 +1201,7 @@ does not work rather than a component that was not given a mesh.
    [`architecture/fabric`](fabric.md) Design Principle 9 says of the fabric.
    What the verifier checks is still, in part, this service's word. A
    checkpoint is the service's own statement that the log is what it recorded,
-   and it is reported `unwitnessed`, because this contract defines no
+   and it is reported `uncountersigned`, because this contract defines no
    countersignature. A checkpoint somebody else kept does not change that
    verdict; it is what exposes a log rewritten after it
    ([`architecture/storage`](storage.md#verifying-a-sealed-log)). A person's
@@ -2766,7 +2766,7 @@ Each entry records one act, once:
 
 | `act` | Appended when | Holds |
 |---|---|---|
-| `declare` | The repository is recorded `declared`. Always the first entry, so its digest is the log id | `LogDeclaration`: the repository's id, `scope_path`, disposition, custody, store ceiling and `self_decision_ceiling`, and on adoption every entry the census found, with the scope its bytes declared |
+| `declare` | The repository is recorded `declared`. Always the first entry, so its digest is the log id | `LogDeclaration`: the repository's id, `scope_path`, disposition, custody, store ceiling, `self_decision_ceiling` and `scope_floor`, and on adoption every entry the census found, with the scope its bytes declared |
 | `change` | This service made a change: a write, a removal, or a decision that applied a proposal | `ContentChange`, with the person's `ChangeStatement` where one verified |
 | `observe` | This service observed a change it did not make — an observation of state `changed` or `removed`, from the Custody Reconciler or from a read | `ContentObservation` |
 | `key` | This service introduced a log key | `LogKey`, from [`architecture/storage`](storage.md#types) |

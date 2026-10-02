@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: storage
-version: 1.2.2
+version: 1.3.0
 requires: [protocol/types, protocol/identity, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 tier: free
@@ -326,7 +326,7 @@ contracts:
         - A key entry MUST NOT be removed or replaced. A checkpoint is judged against the key and succession entries before it
         - The owner MUST verify its log from the latest checkpoint to the tip before its first append after it starts and before each checkpoint. It MUST NOT append to or seal a log that fails, and MUST go on serving reads of it
         - A break in the chain MUST be reported where it is and MUST NOT be repaired, truncated or re-chained
-        - Every checkpoint MUST be reported unwitnessed. It is the owner's own statement, and nothing in this contract has anyone else countersign it
+        - Every checkpoint MUST be reported uncountersigned. It is the owner's own statement, and nothing in this contract has anyone else countersign it
 ```
 
 ---
@@ -1235,17 +1235,22 @@ What a verifier reports is computed from the log each time and never stored:
 | Sealing | sealed through `seq` N, by the latest checkpoint that passes step 3, with the number of entries after N that are unsealed; `unsealed` where no checkpoint passes step 3 |
 | Authority | `unvouched`, for each authority the verifier does not trust, with the checkpoints signed under it, none of which passes step 3 |
 | Key protection | `development-only`, for each checkpoint signed under a log key whose key entry says so |
-| Witness | `unwitnessed`, for every checkpoint that no party but the owner has signed. This contract defines no countersignature, so every checkpoint made under it is `unwitnessed` |
+| Countersignature | `uncountersigned`, for every checkpoint that no party but the owner has signed. This contract defines no countersignature, so every checkpoint made under it is `uncountersigned` |
 
 A break is reported where it is. It is never repaired, truncated or re-chained.
 A line that cannot be parsed is `unreadable`, not `broken`: a verifier that
 could not read a line has refuted nothing.
 
-**A checkpoint is the owner's own statement**, which is what `unwitnessed`
+**A checkpoint is the owner's own statement**, which is what `uncountersigned`
 says. An owner holding its keys can write a different log and seal it. What
 exposes that is an earlier checkpoint somebody else kept: the log must still
 hold, at that `seq`, a line whose SHA-256 is that `tip`. A verifier SHOULD keep
 each checkpoint it verifies, with the log id.
+
+The verdict was once called `unwitnessed`. It was renamed because
+[`architecture/content`](content.md#who-a-change-was-for) uses *witnessed* for
+a party the service took from a token it verified, which is the owner
+vouching, not a second party countersigning.
 
 ### An owner checks its own log
 
@@ -1440,7 +1445,7 @@ security:
         append after start and before each checkpoint, and refuses to append to
         or seal a broken log while still serving reads of it
     - rule: No checkpoint is reported as more than its owner's word
-      mechanism: Every checkpoint is reported unwitnessed
+      mechanism: Every checkpoint is reported uncountersigned
 ```
 
 ---
@@ -1500,6 +1505,6 @@ security:
 - [ ] Rotating the owner's long-lived key appends a succession entry, signed by both keys, to each log before the new key signs anything there, and a verifier that has only the new key's fingerprint verifies checkpoints sealed before the rotation
 - [ ] A key entry signed by a key that is not the authority, with no succession entry before it, makes a verifier that lacks that key's fingerprint report `unvouched`, and no checkpoint under it passes
 - [ ] An owner whose log fails its check from the latest checkpoint appends nothing and seals nothing, still serves reads of the log, and reports where it fails
-- [ ] Every checkpoint is reported `unwitnessed`
+- [ ] Every checkpoint is reported `uncountersigned`
 - [ ] With the log key unavailable, appends continue, no checkpoint is written, and the reported count of unsealed entries rises
 - [ ] Changing one byte of an entry a checkpoint covers fails verification — the chain is `broken` at the next entry's `seq`, or, for the entry the checkpoint names, its `tip` no longer matches — and the failure is reported rather than repaired
