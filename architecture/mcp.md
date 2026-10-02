@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: mcp
-version: 1.1.0
+version: 1.2.0
 requires: [protocol/types, protocol/spec, architecture/agent, architecture/gateway, patterns/scope, patterns/safety]
 platform: any
 tier: free
@@ -38,7 +38,7 @@ outside the hub's governance, which is the failure this blueprint exists to prev
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.11.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -179,10 +179,14 @@ reflects it without redeployment.
 1. A caller requests capabilities. The surface answers from declarations, filtered by what
    the caller may see.
 2. A caller invokes a tool, presenting a credential. Authorization resolves it to a
-   principal and a scope.
+   principal and a scope. What the principal may use here never includes a capability
+   [`protocol/types`](../protocol/types.md#capability) marks *person only*, whatever
+   credential was presented, a person's operator token included: the caller is a model,
+   and an agent holds no person-only capability, so agents propose and people apply at
+   this surface too.
 3. The surface resolves the tool name to a declared capability. An unknown name, or one
-   outside the caller's scope, is refused — and the two are refused identically, so the
-   refusal does not disclose what exists.
+   outside the caller's scope or needing a capability step 2 left out, is refused — and
+   these are refused identically, so the refusal does not disclose what exists.
 4. Arguments are validated against the tool's declared input contract. Anything not
    declared is rejected rather than passed through.
 5. The operation passes the safety gate, which may permit, require approval, or refuse.
@@ -358,6 +362,12 @@ security:
     - rule: An argument the tool's input contract does not declare is rejected
       mechanism: Validation against the declared contract before dispatch,
         rejecting rather than ignoring unknown arguments
+    - rule: No action carries a person-only capability, whatever credential the
+        caller presented
+      mechanism: The caller's capabilities are resolved without every
+        capability protocol/types marks person only, before the tool name is
+        resolved, so a tool whose operation needs one is refused as an unknown
+        one is
     - rule: An unknown tool and a forbidden tool are refused identically
       mechanism: A single refusal path with no distinguishing detail or timing
     - rule: Discovery returns nothing the caller may not reach
@@ -405,6 +415,7 @@ security:
 - [ ] A tool's `input_contract` MUST NOT declare a tenant, organisation, project or principal identifier
 - [ ] An argument not declared in `input_contract` MUST be rejected rather than ignored
 - [ ] An unknown tool name and a tool outside the caller's scope MUST produce identical refusals
+- [ ] A caller presenting a person's operator token whose role carries `content:write`, `content:decide`, `model:attest` or `fabric:attest` invokes no tool whose operation needs one of them: the call is refused as an unknown name is, and nothing is performed
 - [ ] Discovery without credentials MUST return only declarations marked discoverable
 - [ ] An authenticated caller's discovery MUST return nothing outside its resolved scope
 - [ ] A tool with `mutates: true` MUST be refused without an idempotency key
