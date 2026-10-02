@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.20.2
+version: 2.20.3
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -342,7 +342,7 @@ which does not ask the identity.
    provider asks it before acting ([Admin Gateway Request Lifecycle](#admin-gateway-request-lifecycle), step 6)
 9. The provider processes request and returns response
 10. Admin gateway returns response to operator browser (with `Cache-Control: no-store`)
-11. For destructive actions: additional HMAC confirmation and 4-eyes approval before step 8
+11. For destructive actions: additional HMAC confirmation and 4-eyes approval before step 7
 
 ---
 
