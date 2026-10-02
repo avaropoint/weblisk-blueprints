@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.14.2
+version: 1.14.3
 requires: []
 platform: any
 tier: free
@@ -2089,6 +2089,10 @@ types:
 
 ### OperatorRole
 
+The four roles an operator may hold. Which capabilities each carries is
+[`architecture/admin`](../architecture/admin.md#operator-roles)'s roles table,
+and only that table: these values name the roles and do not restate it.
+
 ```yaml
 types:
   OperatorRole:
@@ -2096,13 +2100,13 @@ types:
     base: string
     values:
       - value: viewer
-        description: "Read the administrative surface, read and describe content, and read the fabric"
+        description: "Reads. The capabilities it carries are architecture/admin's roles table's"
       - value: auditor
-        description: "Viewer, plus the full audit trail. Confirms no relationship"
+        description: "Reads, and the full audit trail. The capabilities it carries are architecture/admin's roles table's"
       - value: operator
-        description: "Day-to-day operations — read, act on the approval queue, manage strategies, write, propose, decide and reconcile content, and read the fabric and attest relationships on it (fabric:read, fabric:attest). Cannot admit, remove or re-role operators, declare a repository or a replica, or record a model provider agreement"
+        description: "Day-to-day operations. The capabilities it carries are architecture/admin's roles table's"
       - value: admin
-        description: "Every administrative capability, including admitting and removing operators, every content capability, model:attest, fabric:read and fabric:attest"
+        description: "Full administration. The capabilities it carries are architecture/admin's roles table's"
 ```
 
 `operator` was missing from this enum while `architecture/admin` named it in
