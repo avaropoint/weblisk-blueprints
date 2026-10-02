@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.9.2
+version: 1.9.3
 requires: [protocol/types]
 platform: any
 tier: free
@@ -357,8 +357,9 @@ Operator keys can be rotated without losing hub access:
 6. Each hub validates both signatures → stores the new public key, keeps the
    operator's name, role and identity id, records the old key as retired with
    the time of the change, and revokes every credential the old key attested
-7. When no hub records the old key any more, its private half is destroyed and
-   its public half kept for audit
+7. When no hub records the old key any more, or a hub that still records it
+   was abandoned by the person (architecture/cli, rotate --abandon), its
+   private half is destroyed and its public half kept for audit
 8. The operator attests a new credential at each hub with the new key
 ```
 
@@ -595,6 +596,11 @@ Verifiers MUST check the `alg` field is exactly `ML-DSA-65`. Tokens
 with any other `alg` value MUST be rejected.
 
 ### Payload (Claims)
+
+The example is a **registration token**: the one `POST /v1/register` issues
+a component ([`protocol/spec`](spec.md)). Some blueprints call it an *agent
+token*. It is the same token, under two names.
+
 ```json
 {
   "sub": "seo",
@@ -602,7 +608,6 @@ with any other `alg` value MUST be rejected.
   "iat": 1712160000,
   "exp": 1712246400,
   "cap": ["file:read", "llm:chat", "agent:message"],
-  "cid": "",
   "identity_id": "<fingerprint of the public key seo registered>"
 }
 ```
@@ -614,8 +619,10 @@ Fields:
 - `exp` (expires at): Unix timestamp (0 = no expiry)
 - `cap` (capabilities): granted capability names (optional)
 - `cid`: the id of the record the issuer minted this token under, and can
-  withdraw before `exp` (optional). A channel token carries its channel's id. An
-  operator token carries the id of the credential that obtained it
+  withdraw before `exp` (optional). An empty `cid` is no `cid`, and a verifier
+  that asks whether a token carries one treats it so. A registration token
+  carries none. A channel token carries its channel's id. An operator token
+  carries the id of the credential that obtained it
   ([`architecture/admin`](../architecture/admin.md#obtaining-a-token)), and says
   it is one in its `type` claim, so a verifier never takes a channel's id for a
   credential's
@@ -624,7 +631,7 @@ Fields:
   submits an attestation for its subject
   ([`architecture/admin`](../architecture/admin.md#operator-token)). An agent
   token and a channel token carry none, so a verifier that requires a `type`
-  refuses them
+  refuses them. An empty `type` is no `type`
 - `role`: the operator's role when an operator token was issued (optional). A
   verifier that holds the operator's record authorises against the role that
   record holds now, never against this claim alone
@@ -1167,7 +1174,7 @@ Implementation MUST:
 - [ ] Use constant-time comparison for signature verification
 - [ ] Never log or expose private keys
 - [ ] Key rotation registers new public key signed by old key and by the new key, and the hub keeps the operator's identity id across it
-- [ ] A rotated operator key is retired, not revoked: once no hub records it, its private half is destroyed and only its public half is kept for audit
+- [ ] A rotated operator key is retired, not revoked: once no hub records it, or each hub that still does was abandoned by the person, its private half is destroyed and only its public half is kept for audit
 - [ ] Production deployments have minimum 2 registered operators for recovery
 - [ ] Backup operator can remove a compromised operator, whose person then registers again under a new name and a new identity id
 - [ ] Bootstrap reset (all keys lost) requires orchestrator restart and re-registration
