@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 1.3.3
+version: 1.4.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
@@ -54,31 +54,28 @@ requires:
         - name: ErrorResponse
           fields_used: [code, error, category, retryable]
         - name: AuditEntry
-          fields_used: [id, timestamp, actor, action, target, status]
+          fields_used: [id, timestamp, actor, via, action, target, status]
         - name: AgentManifest
           fields_used: [name, capabilities]
         - name: Capability
           fields_used: [name, resources]
         - name: HealthStatus
           fields_used: [status, name, version, uptime]
-        - name: TokenCheckRequest
-          fields_used: [subject_token]
-        - name: TokenStatus
-          fields_used: [live, code, identity_id, capabilities]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.9.0 <2.0.0"
+    version: ">=1.13.0 <2.0.0"
     bindings:
       types:
-        # type says whether a person's credential obtained the token, which
-        # is the only token fabric:attest counts on; cap narrows a read;
-        # identity_id names who acted on an entry, never sub
+        # type and aud say a person's request reached this service on a pass
+        # addressed to it, the only token fabric:attest counts on; cap is what
+        # it may use; identity_id names who acted on an entry, never sub; act
+        # names the gateway that carried it
         - name: WLToken
-          fields_used: [type, cap, identity_id]
+          fields_used: [type, aud, act, cap, identity_id]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -163,17 +160,13 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/orchestrator
-    version: ">=2.13.0 <3.0.0"
+    version: ">=2.15.0 <3.0.0"
     bindings:
       behaviors:
-        # Asked before every attestation, decision and relocation. See Registration and Standalone Operation
-        - name: token-check
-          usage: Relied on, never served here. This service asks the orchestrator and acts on the TokenStatus it answers
-      endpoints:
-        - path: /v1/token/check
-          methods: [POST]
-          request_type: TokenCheckRequest
-          response_fields: [live, code, identity_id, capabilities]
+        # What a pass this service accepts rests on. See This service honours
+        # fabric:attest only on a pass
+        - name: token-exchange
+          usage: Relied on, never called here. Every pass this service accepts was minted by the exchange, for an operator token the orchestrator judged live then, carrying no capability the person could not use then
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -503,8 +496,8 @@ that status wherever this service refuses: `validation` 400, `policy` 403,
 `enforcement` 403, `conflict` 409, `integrity` 409 and `io` 503. A code whose
 behaviour is not a refusal, such as `FABRIC_ENDPOINT_UNREACHABLE`, is reported
 and never returned as an error status. A code another blueprint registers,
-such as `FORBIDDEN` or the code a token check reports for a token that is not
-live, keeps the status that blueprint gives it
+such as `FORBIDDEN`, `PASS_REQUIRED` or `PASS_AUDIENCE_MISMATCH`, keeps the
+status that blueprint gives it
 ([`protocol/types`](../protocol/types.md#errorresponse)).
 
 | Code | Category | When | Behaviour |
@@ -520,7 +513,6 @@ live, keeps the status that blueprint gives it
 | `FABRIC_PARTITION_UNKNOWN` | validation | A sync named a partition the producer has not declared | Refuse the whole batch. Retirement is bounded by the partition, and an unknown one has no bound |
 | `FABRIC_CHAIN_BROKEN` | integrity | An entry's chain digest does not follow its predecessor | Refuse further appends in that scope, publish `fabric.chain.broken`, and report the first entry that does not follow |
 | `FABRIC_LEDGER_TRUNCATED` | integrity | The log's byte length decreased | Re-read in full and report. Never continue from an incremental parse |
-| `FABRIC_TOKEN_UNCHECKED` | io | An attestation, a decision or a relocation arrived and the orchestrator could not be asked whether its token is live, or answered anything but 200 with a `TokenStatus` | Refuse and append nothing. The request may be repeated once the orchestrator answers. Never proceed on the token alone |
 | `FABRIC_SCOPE_MISMATCH` | policy | A claim's scope lies outside the caller's declared scope | Refuse with a `ScopeViolation`. Never narrow the claim to fit |
 | `ENFORCEMENT_DATA_CONTRACT_VIOLATION` | enforcement | The claim's endpoints lie outside the agent's declared operational data contract | Refuse via the boundary proxy |
 
@@ -547,19 +539,20 @@ live, keeps the status that blueprint gives it
    be derived again by running it
 
 ### Person Flow
-1. A person submits an assertion or a judgement, naming the relationship, on
-   their own operator token
-2. A token whose `type` is not `operator` is refused with `FORBIDDEN`, and the
-   orchestrator is not asked about it. For an operator token, the service asks
-   the orchestrator whether the token is live and what it carries now, and
-   refuses unless it carries `fabric:attest`
-   ([Registration and Standalone Operation](#registration-and-standalone-operation))
+1. A person submits an assertion or a judgement, naming the relationship,
+   through the tenant's admin gateway, which carries it here on a pass
+   addressed to this service
+   ([`protocol/identity`](../protocol/identity.md#the-pass))
+2. A token that is not a pass is refused with `FORBIDDEN`, and an operator
+   token with `PASS_REQUIRED`. A pass is refused with `FORBIDDEN` unless its
+   `cap` names `fabric:attest`
+   ([This service honours `fabric:attest` only on a pass](#registration-and-standalone-operation))
 3. The resolver lands it on the same identity a producer's claim would reach, so
    the confirmation sits **on** the inference rather than beside it
 4. The entry is appended alone. A producer's work can be re-derived; a person's
    act cannot, so it is never batched behind one
-5. The entry records the person as its `actor` by the `identity_id` the token
-   check answered, never by the token's `sub`, which is a name
+5. The entry records the person as its `actor` by the pass's `identity_id`,
+   never by its `sub`, which is a name
    ([`protocol/identity`](../protocol/identity.md#payload-claims),
    `identity_id`). So does every attestation, decision and relocation, and an
    edge a person's act settles names them in `asserted_by` the same way
@@ -1166,7 +1159,7 @@ types:
       actor:
         type: string
         required: true
-        description: Who acted, by identity id. A person's is the identity_id the token check answered for their token; a producer's or an agent's is the identity_id claim of the token it presented. Never the token's sub, which is a name
+        description: Who acted, by identity id. A person's is the identity_id claim of the pass their request arrived on; a producer's or an agent's is the identity_id claim of the token it presented. Never the token's sub, which is a name
       note:
         type: string
         required: false
@@ -1422,38 +1415,30 @@ holds it through a role, and
 [`architecture/admin`](admin.md#operator-roles)'s roles table says which roles
 carry it, and `fabric:read`.
 
-**This service honours `fabric:attest` only on a person's token.** It counts
-only on a token whose `type` claim
-([`protocol/identity`](../protocol/identity.md#payload-claims)) is `operator`,
-which a hub mints for an operator, a person, through a credential that
-person's identity attested
+**This service honours `fabric:attest` only on a pass.** It counts only on a
+pass addressed to this service
+([`protocol/identity`](../protocol/identity.md#the-pass) rule 6), which the
+orchestrator mints for a person's operator token, a token minted through a
+credential that person's identity attested
 ([`architecture/admin`](admin.md#operator-token)). On any other token, a
 registered component's or a channel's, this service treats it as absent and
 refuses the request with `FORBIDDEN`. A hub that minted it on one by mistake
 has still opened no person route.
 
-**A person's act is checked with the orchestrator.** Before it appends an
-attestation, a decision or a relocation, this service first looks at the
-token's `type`. One that is not `operator` is refused with `FORBIDDEN`, as the
-rule above says, and the orchestrator is not asked about it: it is asked only
-about an operator token. For an operator token, this service asks the
-orchestrator whether the token is still live
-([`architecture/orchestrator`](orchestrator.md#token-check-post-v1tokencheck),
-`POST /v1/token/check`): its own registration token in the `Authorization`
-header, and the token it was presented as `subject_token` in a
-`TokenCheckRequest`. It authorises the act against the `capabilities` the
-answer reports, which are what the operator's role carries now, never beyond
-the token's `cap`. A token the answer reports not live is refused with the
-code it names. Where the orchestrator cannot be asked, or answers anything
-but 200 with a `TokenStatus` (a 401 for this service's own expired
-registration token, say, or a 5xx), the act is refused with
-`FABRIC_TOKEN_UNCHECKED` and nothing is appended. Such an answer judged this
-service's request, never the presented token, so its code is never relayed as
-the token's. So a removed operator, a
+**A person's act arrives on a pass.** Before it appends an attestation, a
+decision or a relocation, this service looks at the token. One that is not a
+pass addressed to it is refused with `FORBIDDEN`, as the rule above says, and
+an operator token is refused before this, on every route, with
+`PASS_REQUIRED`. On a pass, it authorises the act against the pass's `cap`,
+which the orchestrator computed at the exchange from what the operator's role
+carried then, never beyond the token's `cap`, and only for a token it judged
+live then
+([`architecture/orchestrator`](orchestrator.md#token-exchange-post-v1tokenexchange),
+`token-exchange`). This service asks nothing again. So a removed operator, a
 revoked credential and a role lowered below `fabric:attest` reach this service
-at the person's next act, not when the token expires. A read is authorised on
-the token as verified: for a read, a removal or a lowered role takes effect
-when the token expires, at most one hour after it was minted.
+at the person's next act, and a pass minted before lives at most 30 seconds.
+A read on a pass is bounded the same way, and its audit entry names the
+gateway that carried it as `via`, beside the person as `actor`.
 
 A capability name is `family:verb`, and an invented one is refused at
 registration — which is why these belong in
@@ -1662,11 +1647,10 @@ security:
 - [ ] A content service whose `ServiceEntry` is on another host is reached only with a grant for that address; absent one the repository is `unreachable` and no credential is sent
 - [ ] The fabric's manifest declares no `agent:message`, and a remote content service does not cause it to be added
 - [ ] The fabric's manifest declares no `fabric:attest`, and its registration succeeds; a component whose manifest declares `fabric:attest` is refused at registration with `CAPABILITY_PERSON_ONLY`, and an agent's authorisation naming it is refused
-- [ ] An attestation on a person's operator token whose role carries `fabric:attest` is recorded; the same request on a registered component's token or a channel token is refused with `FORBIDDEN`, whatever capabilities that token names, and the service makes no `POST /v1/token/check` for it
-- [ ] An attestation, a decision or a relocation on an operator token minted before its operator was removed, its credential revoked, or its role lowered to one without `fabric:attest` is refused at that act with the code `POST /v1/token/check` reports, and appends nothing
-- [ ] A person's attestation, decision or relocation records the `identity_id` the token check answered as the entry's `actor`, never the token's `sub`, so renaming the operator changes nothing the ledger holds; a producer's claims record the `identity_id` claim of the token it presented
-- [ ] With the orchestrator unreachable, an attestation, a decision or a relocation is refused with `FABRIC_TOKEN_UNCHECKED` and appends nothing, and a read on a verified token is still answered
-- [ ] An attestation, a decision or a relocation for which `POST /v1/token/check` answers anything but 200 with a `TokenStatus`, such as 401 `TOKEN_EXPIRED` for this service's own registration token or a 503, is refused with 503 `FABRIC_TOKEN_UNCHECKED`, never with the code that answer carried
+- [ ] An attestation on a pass addressed to this service whose `cap` names `fabric:attest` is recorded; the same request on a registered component's token or a channel token is refused with `FORBIDDEN`, whatever capabilities that token names, on a person's operator token with `PASS_REQUIRED`, and on a pass addressed to another component with `PASS_AUDIENCE_MISMATCH`
+- [ ] Through the admin gateway, an attestation, a decision or a relocation on an operator token minted before its operator was removed, its credential revoked, or its role lowered to one without `fabric:attest` is refused by the exchange with `OPERATOR_REVOKED`, `CREDENTIAL_REVOKED` or `FORBIDDEN`, and this service is sent nothing and appends nothing
+- [ ] A person's attestation, decision or relocation records the pass's `identity_id` as the entry's `actor`, never its `sub`, so renaming the operator changes nothing the ledger holds, and its audit entry names the pass's `act.identity_id` as `via`; a producer's claims record the `identity_id` claim of the token it presented
+- [ ] With the orchestrator unreachable, an attestation on an unexpired pass whose `cap` names `fabric:attest` is recorded, because this service asks the orchestrator nothing about a pass, and one on a pass whose `exp` has passed is refused with `TOKEN_EXPIRED` and appends nothing
 - [ ] Recording, confirming, rejecting or retiring a relationship leaves both artifacts byte-identical
 - [ ] Projecting an unchanged ledger twice produces identical bytes, and every judgement in the projection can be recomputed from the content with a published digest tool
 - [ ] Every relationship reachable from one endpoint is reachable from the other, and a synthesised containment step is reported as synthesised

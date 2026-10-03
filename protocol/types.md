@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.14.4
+version: 1.15.0
 requires: []
 platform: any
 tier: free
@@ -149,8 +149,9 @@ below, with their HTTP status, category and retryability.
 | `POLICY_CONFLICT` | 409 | permanent | Conflicting active policies detected for the same scope |
 
 **Operator token codes** (produced by the orchestrator's judgement of an
-operator token, `architecture/admin`'s `token-status-on-use`, and answered by
-every component that asks it about one, `POST /v1/token/check`):
+operator token, `architecture/admin`'s `token-status-on-use`, on its own routes
+and at the token exchange, `POST /v1/token/exchange`, whose refusal the admin
+gateway answers its client with):
 
 | Code | HTTP | Category | Description |
 |------|------|----------|-------------|
@@ -164,13 +165,21 @@ every component that asks it about one, `POST /v1/token/check`):
 | `CREDENTIAL_EXPIRED` | 401 | permanent | The credential's attestation has passed its `not_after` |
 
 `architecture/admin` says when the orchestrator answers each and what a client
-does next. A token check can also report `INVALID_SIGNATURE` or
+does next. The exchange can also refuse a token with `INVALID_SIGNATURE` or
 `TOKEN_EXPIRED`, for a token whose signature does not verify or whose `exp`
 has passed, and those two are registered with their status in
-[Error Handling](#error-handling). A component that refuses an operator token
-because `POST /v1/token/check` reported it not live answers with the code
-`TokenStatus.code` names and the status this table or Error Handling gives
-it.
+[Error Handling](#error-handling). The admin gateway, refusing a request
+because the exchange refused the person's token, answers with the code
+`TokenExchangeResponse.code` names and the status this table or Error Handling
+gives it.
+
+**Pass codes** (produced by a component that a person's request reaches,
+[`protocol/identity`](identity.md#the-pass)):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `PASS_REQUIRED` | 401 | permanent | A component other than the orchestrator was presented an operator token, which no holder may present there. The request goes to the tenant's admin gateway. Logged as a security event |
+| `PASS_AUDIENCE_MISMATCH` | 401 | permanent | A pass was presented to a component its `aud` does not name, the orchestrator included. Logged as a security event |
 
 **Destination codes** (produced by the destination gate of `patterns/scope`,
 and answered by every sender it binds):
@@ -412,11 +421,12 @@ party outside it. It is not in the `admin` family, so `admin:*` does not carry
 it, and a role carries it only where
 [`architecture/admin`](../architecture/admin.md)'s roles table names it: today
 only `admin` does, so every admin holds it. What keeps it apart from `admin:*`
-is therefore that a token narrowed by `cap` for administration carries
-`admin:*` without it, and that a future role may administer without attesting
-agreements. No service could raise a ceiling through `admin:*` in any case:
-`/v1/admin/*` admits only operator tokens, which are people's, whichever
-component serves the route
+is therefore that a token narrowed by `cap`, or a pass exchanged for a route
+that needs `admin:*`, carries `admin:*` without it, and that a future role may
+administer without attesting agreements. No service could raise a ceiling
+through `admin:*` in any case: `/v1/admin/*` admits a person's operator token
+at the orchestrator and a pass exchanged for one at any other provider, and
+nothing else, whichever component serves the route
 ([`architecture/admin`](../architecture/admin.md#contracts),
 `admin-gateway-authorization`).
 
@@ -456,9 +466,11 @@ and so on. That keeps
 administration one authority system rather than a second one running alongside
 the first: whatever asks to administer a component presents capabilities, and
 the component checks them the same way it checks `agent:message`. On every
-`/v1/admin/*` route, the orchestrator's and any other component's, those
-capabilities arrive on an operator's token — a person's — and on no other kind
-of token, and the orchestrator judges what that token may use.
+`/v1/admin/*` route, those capabilities arrive on a person's operator token
+at the orchestrator and on a pass exchanged for one at any other component
+([`protocol/identity`](identity.md#the-pass)), and on no other kind of token.
+The orchestrator judges what the person may use: on its own routes as each
+request arrives, and at the exchange for a pass.
 
 `admin:*` is the only wildcard capability name. It exists because a full-access
 role has to be nameable, and it denotes the whole family rather than a resource
@@ -467,14 +479,29 @@ glob — resource scoping stays in `resources`, as for every other capability.
 > **Gap.** `architecture/admin`'s `admin` role relies on `admin:*` for operator
 > management, agent deregistration and federation approval, none of which is
 > separately nameable here. A deployment that wants an operator who may approve
-> federation but not deregister agents cannot express it. Nor can a route whose
-> minimum stands for `admin:*` be served by any component but the orchestrator:
-> a token that can use it reaches operator management wherever it is presented
-> ([`protocol/identity`](identity.md#a-token-names-no-audience)), so
-> `architecture/admin` answers such a route elsewhere as unavailable. Naming
-> those is `architecture/admin`'s to do, and this list will follow it —
-> inventing the names here would put the wrong document in charge of what
-> administration means.
+> federation but not deregister agents cannot express it. A route another
+> provider serves with the minimum `admin` is reached on a pass carrying
+> `admin:*`, which that provider alone accepts and which reaches no route of
+> the orchestrator's ([`protocol/identity`](identity.md#the-pass)), so the
+> missing names cost precision, not containment. Naming those is
+> `architecture/admin`'s to do, and this list will follow it — inventing the
+> names here would put the wrong document in charge of what administration
+> means.
+
+**Exchange capability:**
+- `token:exchange` — have the orchestrator exchange the operator token a person has just presented for a pass addressed to one component ([`protocol/identity`](identity.md#the-pass); `architecture/orchestrator`, `token-exchange`). The admin gateway declares it, and no other blueprint does. No role carries it
+
+`token:exchange` is what the admin gateway's registration declares, and the
+only capability it declares: the gateway reads the service directory, which
+any registration may, and exchanges, and holds no standing access to data
+([`architecture/admin`](../architecture/admin.md#contracts),
+`admin-gateway-authorization`). Nothing stops another component declaring it
+on its signed manifest today, as it may declare any service capability,
+because a registration is not yet an enrolment
+([`protocol/spec`](spec.md#post-v1register)). What that admits is bounded by
+the subject: the exchange takes a live operator token and nothing else, no
+component but the admin gateway is presented one, and a holder that had one
+could already use it at the orchestrator, further than any pass reaches.
 
 ### IOSpec
 
@@ -2142,66 +2169,74 @@ types:
         description: "Retained for the audit trail. No token is issued, and the name is not reusable"
 ```
 
-### TokenCheckRequest
+### TokenExchangeRequest
 
-What a registered component sends to ask whether an operator token presented
-to it is still live (`POST /v1/token/check`, `architecture/orchestrator`).
-The component authenticates with its own registration token, in the
-`Authorization` header and nowhere else. The token it asks about travels in
-this body under a name the orchestrator never reads as a caller's token.
+What the admin gateway sends the orchestrator to have the operator token a
+person has just presented exchanged for a pass addressed to one component
+(`POST /v1/token/exchange`, `architecture/orchestrator`;
+[`protocol/identity`](identity.md#the-pass)). Its fields are OAuth 2.0 Token
+Exchange's (RFC 8693 §2.1) where it has one. The gateway authenticates with
+its own registration token, in the `Authorization` header and nowhere else, so
+the token exchanged travels in this body under a name the orchestrator never
+reads as a caller's token.
 
 ```yaml
 types:
-  TokenCheckRequest:
+  TokenExchangeRequest:
     fields:
       subject_token:
         name: SubjectToken
         type: string
         required: true
-        description: "The operator token presented to the asking component, exactly as it arrived. Never the caller's own token, and never read as one"
+        description: "The operator token a person presented to the admin gateway in the request it is carrying, exactly as it arrived. Never the caller's own token, and never read as one"
+      audience:
+        name: Audience
+        type: string
+        required: true
+        description: "The identity id of the one component the pass is for: the fingerprint of the public key that component's directory entry carries (ServiceEntry.public_key)"
+      scope:
+        name: Scope
+        type: "[]string"
+        required: true
+        description: "The capabilities the request the gateway is carrying needs at that component, by the names the Capability list gives them, admin:* included"
 ```
 
-### TokenStatus
+### TokenExchangeResponse
 
-What the orchestrator answers a registered component that asks whether an
-operator token presented to it still rests on a live operator and credential
-(`POST /v1/token/check`, `architecture/orchestrator`). A WLT cannot be
-recalled, and only the orchestrator holds the records it rests on.
+What the orchestrator answers the admin gateway about the token it was asked
+to exchange (`POST /v1/token/exchange`, `architecture/orchestrator`). Every
+answer about the person's token is a 200 carrying this, so a status other
+than 200 only ever judged the gateway's own request.
 
 ```yaml
 types:
-  TokenStatus:
+  TokenExchangeResponse:
     fields:
-      live:
-        name: Live
+      issued:
+        name: Issued
         type: bool
         required: true
-        description: "True when the token is this orchestrator's, unexpired, an operator token with a cid, and its operator and credential are live in the orchestrator's own records"
+        description: "True when a pass was minted"
       code:
         name: Code
         type: string
         required: false
-        description: "Present when live is false: the code the orchestrator refuses that token with on its own routes, one of INVALID_SIGNATURE and TOKEN_EXPIRED (Error Handling) or an operator token code (Errors) — CREDENTIAL_REQUIRED, OPERATOR_UNKNOWN, OPERATOR_NOT_APPROVED, OPERATOR_REVOKED, CREDENTIAL_UNKNOWN, CREDENTIAL_OPERATOR_MISMATCH, CREDENTIAL_REVOKED or CREDENTIAL_EXPIRED. Each is registered here with its HTTP status"
-      identity_id:
-        name: IdentityID
+        description: "Present when issued is false: FORBIDDEN where the person may use none of the capabilities scope names, and otherwise the code the orchestrator refuses that token with on its own routes, one of INVALID_SIGNATURE and TOKEN_EXPIRED (Error Handling) or an operator token code (Errors) — CREDENTIAL_REQUIRED, OPERATOR_UNKNOWN, OPERATOR_NOT_APPROVED, OPERATOR_REVOKED, CREDENTIAL_UNKNOWN, CREDENTIAL_OPERATOR_MISMATCH, CREDENTIAL_REVOKED or CREDENTIAL_EXPIRED. Each is registered here with its HTTP status"
+      pass:
+        name: Pass
         type: string
         required: false
-        description: "Present when live: the operator's identity id"
-      identity_public_key:
-        name: IdentityPublicKey
-        type: string
+        description: "Present when issued: the pass, a WLT of type pass addressed to the audience (protocol/identity, The pass)"
+      expires_at:
+        name: ExpiresAt
+        type: int64
         required: false
-        description: "Present when live: the operator's current identity public key, against which an attestation the token's holder carries is checked"
-      role:
-        name: Role
-        type: OperatorRole
-        required: false
-        description: "Present when live: the role the operator holds now"
+        description: "Present when issued: the pass's exp, no more than 30 seconds after it was minted"
       capabilities:
         name: Capabilities
         type: "[]string"
         required: false
-        description: "Present when live: what that role carries now, never beyond the token's cap, each admin: capability by its own name and never admin:*. Empty for an operator token whose cap is absent or empty, which names nothing. What the asking component authorises the request against"
+        description: "Present when issued: the capabilities the pass carries, which are those scope named that the person may use now"
 ```
 
 ### AuditEntry
@@ -2225,6 +2260,11 @@ types:
         type: string
         required: true
         description: "Who performed the action"
+      via:
+        name: Via
+        type: string
+        required: false
+        description: "Where a pass carried the request, the identity id of the gateway that obtained it, the pass's act.identity_id (protocol/identity, The pass). Absent, and omitted from the canonical JSON, otherwise"
       action:
         name: Action
         type: string
@@ -2453,7 +2493,7 @@ All paths are prefixed with `/v1`.
 | `/v1/health` | GET | no | orchestrator | Orchestrator health |
 | `/v1/audit` | GET | yes | orchestrator | Audit log |
 | `/v1/rotate-key` | POST | yes | orchestrator | Key rotation (see identity.md) |
-| `/v1/token/check` | POST | yes | orchestrator | Whether an operator token presented to a component is still live, and what its operator's role carries now, never beyond the token's `cap` (`TokenStatus`) |
+| `/v1/token/exchange` | POST | yes | orchestrator | Exchange the operator token a person has just presented to the admin gateway for a pass addressed to one component (`TokenExchangeResponse`). The admin gateway's alone |
 | `/v1/model/ceiling` | GET | yes | orchestrator | What a model backend may be sent now, and where it is reached. Platform-provided (architecture/orchestrator) |
 
 ---
@@ -3106,5 +3146,6 @@ security:
 - [ ] Severity enum is constrained to `info`, `low`, `medium`, `high`, `critical` — used consistently across enforcement, security, and safety
 - [ ] Decision mapping table resolves policy/safety/enforcement decisions to canonical DecisionResult using most-restrictive-wins
 - [ ] All protocol-level error codes (standard, enforcement, contract, federation, safety, policy, operator token, destination, identity, common) are registered centrally; agent-local codes use domain-descriptive names and do not collide with registered codes
-- [ ] Every code a `TokenStatus` may carry in `code` is registered here with its HTTP status, so a component that refuses a token `POST /v1/token/check` reported not live answers with that status and never a guessed one
+- [ ] Every code a `TokenExchangeResponse` may carry in `code` is registered here with its HTTP status, so the admin gateway, refusing a request whose token the exchange refused, answers with that status and never a guessed one
+- [ ] `PASS_REQUIRED` and `PASS_AUDIENCE_MISMATCH` are registered with status 401, and `token:exchange` is in the Capability list
 - [ ] Administrative authority is expressed as `admin:` capabilities in the standard list — not as a separate role model — and `admin:*` denotes the whole family

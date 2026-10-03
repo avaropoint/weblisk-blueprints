@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.9.2
+version: 2.10.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -30,8 +30,9 @@ The CLI has two command surfaces:
 1. **Development commands** — project scaffolding, code generation, dev
    server, production builds (`weblisk new`, `weblisk dev`, `weblisk build`,
    `weblisk server init`, `weblisk agent create`)
-2. **Operations commands** — interrogate and manage a running hub via the
-   orchestrator's admin API (`weblisk status`, `weblisk agents`,
+2. **Operations commands** — interrogate and manage a running hub through
+   its admin gateway, which carries each request to the provider of the
+   admin API group it addresses (`weblisk status`, `weblisk agents`,
    `weblisk domains`, `weblisk audit`, `weblisk federations`)
 
 Operations commands authenticate with an operator's ML-DSA-65 identity — the
@@ -275,7 +276,7 @@ Studio's and the orchestrator's own surfaces.
   identity that attests it (`weblisk operator attest`)
 - Human-readable table output and `--json` machine-readable output formatting
 - Interactive confirmation for destructive actions
-- Connection management to orchestrator's admin API
+- Connection management to a hub's admin gateway
 
 ### Does NOT Own
 
@@ -310,29 +311,34 @@ the sections below: [Project Commands](#project-commands),
 1. Operator runs a CLI command (e.g., `weblisk agents list`)
 2. CLI resolves which identity acts — `--keys-dir`, else `--identity <label>`, else the unnamed default
 3. CLI loads the auth token stored beside that identity (refreshes if near expiry)
-4. CLI constructs HTTP request to the orchestrator's admin API endpoint, for a
-   group the orchestrator provides. A command for any other group is not sent
-   there (below)
+4. CLI constructs an HTTP request to the hub's admin gateway, the tenant's one
+   door for people, whatever group the command addresses
+   ([`protocol/identity`](../protocol/identity.md#the-pass))
 5. Token included in the `Authorization: Bearer` header
-6. Orchestrator validates token, and checks the request can use the capability the endpoint's minimum stands for: what the operator's role carries now, never beyond the token's `cap` ([`architecture/admin`](admin.md#auth-middleware), Auth Middleware)
-7. Orchestrator returns JSON response
+6. The gateway carries the request to the provider of its group: to the
+   orchestrator on the token as it arrived, where the orchestrator validates
+   it and checks the request can use the capability the endpoint's minimum
+   stands for, what the operator's role carries now, never beyond the token's
+   `cap` ([`architecture/admin`](admin.md#auth-middleware), Auth Middleware);
+   to any other provider on a pass the orchestrator exchanged the token for
+   ([`architecture/admin`](admin.md#contracts), `admin-gateway-authorization`)
+7. The provider returns a JSON response, through the gateway
 8. CLI formats response as human-readable table (or raw JSON with `--json`)
 9. For write operations: CLI prompts for interactive confirmation before sending
 10. Exit code set based on success/failure (0 = success, 1 = error, 2 = auth failure)
 
-**A group another component provides is not reached on the stored token.**
-The domain, workflow, approval, strategy and federation commands address
-groups [`architecture/admin`](admin.md#the-admin-api-is-an-aggregate) gives to
-a component other than the orchestrator. The token the CLI stores carries the
-role's full set, so it goes to the orchestrator alone
-([`protocol/identity`](../protocol/identity.md#a-token-names-no-audience)), and
-no such component's blueprint specifies an administrative route yet
-([`architecture/admin`](admin.md#the-admin-api-is-an-aggregate), the gap there).
-Each of these commands therefore reports its group unavailable, sends nothing
-and exits 1. Once a group's provider specifies a route, the command goes to it on
-a token minted with `--cap` naming only the capability that route requires,
-never on the stored one; a route whose minimum is `admin` stays unavailable,
-as `architecture/admin` says.
+**A group another component provides is reached on a pass, never on the
+stored token.** The domain, workflow, approval, strategy and federation
+commands address groups
+[`architecture/admin`](admin.md#the-admin-api-is-an-aggregate) gives to a
+component other than the orchestrator. The CLI sends them to the admin
+gateway as it sends every command, and the gateway, not the CLI, has the
+token exchanged for a pass addressed to that component alone. No such
+component's blueprint specifies an administrative route yet
+([`architecture/admin`](admin.md#the-admin-api-is-an-aggregate), the gap
+there), so the gateway answers each of these commands
+`ADMIN_GROUP_UNAVAILABLE`, and the command reports its group unavailable and
+exits 1.
 
 ---
 
@@ -1239,13 +1245,13 @@ Flags:
 
 | Flag | Purpose |
 |---|---|
-| `--orch <url>` | the hub's address. Required |
+| `--orch <url>` | the hub's address: its admin gateway, where the CLI sends every request it makes at the hub. Required |
 | `--name <name>` | the operator, as the hub will record them. Defaults to the stored identity's name |
 | `--identity <label>` | which identity signs, by label. The CLI resolves where it lives — see `architecture/admin` rule 2 |
 | `--keys-dir <path>` | which identity signs, by location. Outranks `--identity` |
 | `--json` | machine-readable result, for a console driving this |
 | `--no-store` | return the token — on stdout, or in the `--json` result — and write no token file |
-| `--cap <name,...>` | mint the token with `cap` naming only these capabilities, those the operator's role carries (`architecture/admin`, operator-token-issuance). For a token that will be presented to a component other than the orchestrator |
+| `--cap <name,...>` | mint the token with `cap` naming only these capabilities, those the operator's role carries (`architecture/admin`, operator-token-issuance). For a caller that needs less than the role carries, such as a script |
 | `--remember-passphrase` | where the credential key is kept in its own envelope ([A credential for each hub](#a-credential-for-each-hub)), have a source remember the passphrase chosen for it. Refused, keeping nothing, where no source that lists `store` is available |
 | `--passphrase-holder <source>` | with `--remember-passphrase`, the source that remembers it, where it is not the identity's own |
 
@@ -1285,15 +1291,16 @@ that holds the token itself passes it — a console does, because a console
 never writes an operator token anywhere
 ([`architecture/admin`](admin.md#a-console-holds-a-credential-never-a-token)).
 
-**A token goes to the orchestrator unless it was narrowed.** One minted with
-no `--cap` carries the role's full set and is presented to the orchestrator
-that issued it alone. A caller that will present a token to another
-component, the content service or the fabric, has `connect` or
-`token --refresh` mint it with `--cap` naming only what its requests there
-need, as every holder of an operator token must
-([`protocol/identity`](../protocol/identity.md#a-token-names-no-audience)). A
-narrowed token is never stored, so `--cap` requires `--no-store`, and the
-token the next command uses keeps the role's full set.
+**A token goes to the hub's admin gateway and nowhere else.** The CLI, and a
+caller it hands a token to, presents it at the hub's admin gateway alone, as
+every holder of an operator token must
+([`protocol/identity`](../protocol/identity.md#the-pass)). The content
+service, the fabric and every other component are reached through the
+gateway, on a pass addressed to them alone, so a token minted with no `--cap`,
+which carries the role's full set, reaches no component but the orchestrator
+that issued it. `--cap` narrows a token for a caller that needs less than the
+role carries. A narrowed token is never stored, so `--cap` requires
+`--no-store`, and the token the next command uses keeps the role's full set.
 
 ### `weblisk operator attest`
 
@@ -1474,7 +1481,10 @@ Strategies:
   Reduce page load time      ████████████░  82%  active
 ```
 
-- Calls `GET /v1/admin/overview`
+- Calls `GET /v1/admin/overview` at the hub's admin gateway, which composes
+  the overview: the orchestrator's figures, and each other figure asked of
+  the component that holds it on a pass, or reported unavailable
+  ([`architecture/admin`](admin.md#the-admin-api-is-an-aggregate))
 - `--json` for machine-readable output
 - `--watch` to refresh every 5 seconds (like `watch`)
 
@@ -2595,8 +2605,8 @@ security:
 - [ ] All commands output human-readable tables by default and structured JSON with --json flag
 - [ ] Destructive commands (agents deregister, federations revoke) require --confirm or interactive name-confirmation
 - [ ] `weblisk approvals reject` requires a --reason argument for every rejection
-- [ ] `weblisk approvals list`, `weblisk strategies list`, `weblisk federations peers`, `weblisk domains list` and `weblisk workflows list` report their group unavailable and exit 1 while no component other than the orchestrator serves its route, and send nothing, the stored token included, to any component
-- [ ] `weblisk status` calls GET /v1/admin/overview and displays agents, domains, workflows, approvals, federation, and health score
+- [ ] `weblisk approvals list`, `weblisk strategies list`, `weblisk federations peers`, `weblisk domains list` and `weblisk workflows list` are sent to the hub's admin gateway, and report their group unavailable and exit 1 when it answers `ADMIN_GROUP_UNAVAILABLE`, as it does while no provider's blueprint specifies the route; the stored token is sent nowhere but the admin gateway
+- [ ] `weblisk status` calls `GET /v1/admin/overview` at the hub's admin gateway and displays agents, domains, workflows, approvals, federation and health score, showing as unavailable, never as zero, each figure the gateway reports unavailable
 - [ ] Exit codes are 0=success, 1=general error, 2=auth error, 3=connection error, 4=not found, 5=permission denied
 - [ ] Config resolution order: command-line flags > environment variable > .weblisk/config.json (project) > ~/.weblisk/config.json (user)
 - [ ] Commands fail fast with a clear message and non-zero exit code when the orchestrator is unreachable

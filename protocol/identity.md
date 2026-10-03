@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.12.1
+version: 1.13.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -646,13 +646,26 @@ Fields:
   carries the id of the credential that obtained it
   ([`architecture/admin`](../architecture/admin.md#obtaining-a-token)), and says
   it is one in its `type` claim, so a verifier never takes a channel's id for a
-  credential's
+  credential's. A pass carries the `cid` of the operator token it was
+  exchanged for
 - `type`: what the token is for, where one issuer mints more than one kind
   (optional). `operator` administers a hub. `attestation` does one thing: it
   submits an attestation for its subject
-  ([`architecture/admin`](../architecture/admin.md#operator-token)). An agent
-  token and a channel token carry none, so a verifier that requires a `type`
-  refuses them. An empty `type` is no `type`
+  ([`architecture/admin`](../architecture/admin.md#operator-token)). `pass`
+  carries one person's request from the admin gateway to one component
+  ([The pass](#the-pass)). An agent token and a channel token carry none, so a
+  verifier that requires a `type` refuses them. An empty `type` is no `type`
+- `aud` (audience): on a pass alone, the identity id of the one component it
+  is addressed to ([The pass](#the-pass)). No other token carries one
+- `act` (actor): on a pass alone, the gateway that obtained it, as an object
+  carrying that gateway's `sub` and `identity_id`, as RFC 8693 §4.1 shapes
+  `act`
+- `identity_key`: on a pass alone, the fingerprint of its person's identity
+  public key when the pass was minted
+- `step_up_at`: when the subject last completed a step-up, in Unix seconds
+  (optional). An operator token carries it only where a blueprint specifies
+  how its issuer learns of a step-up, and none does yet. A pass carries its
+  person's token's, unchanged
 - `role`: the operator's role when an operator token was issued (optional). A
   verifier that holds the operator's record authorises against the role that
   record holds now, never against this claim alone
@@ -663,14 +676,15 @@ Fields:
   change of identity key the issuer accepts
   ([`architecture/admin`](../architecture/admin.md#changing-an-identity-key)).
   A registration token carries the fingerprint of the public key its manifest
-  registered. It is the issuer's statement, under its
+  registered, and a pass the `identity_id` of the operator token it was
+  exchanged for. It is the issuer's statement, under its
   signature, of who the subject is. A verifier that records who acted records
   this claim and never `sub`, which is a name
   ([`patterns/principal-identity`](../patterns/principal-identity.md) Design
   Principle 10). A token that carries none names nobody a record can join on
-- `record_keys`: on an operator token, the id of each sign-records credential
-  the subject held at the issuer, active and unexpired, when the token was
-  minted (optional). Each is the fingerprint of that credential's public key.
+- `record_keys`: on an operator token or a pass, the id of each sign-records
+  credential the subject held at the issuer, active and unexpired, when the
+  token was minted (optional). Each is the fingerprint of that credential's public key.
   It is the issuer's statement, under its signature, of which keys may sign
   records for that subject
   ([`patterns/principal-identity`](../patterns/principal-identity.md),
@@ -704,22 +718,80 @@ Fields:
 - Agent auth tokens: 24 hours (TokenTTL)
 - Channel tokens: 1 hour
 - Operator tokens: [`architecture/admin`](../architecture/admin.md#operator-token) states theirs
+- Passes: 30 seconds at most ([The pass](#the-pass))
 
-### A token names no audience
+### The pass
 
-A WLT carries no audience claim. A component a token is presented to can
-present it again, at any route of any component that accepts its issuer's
-tokens, as far as its capabilities reach, until it expires. So whoever holds
-an operator token, a console, the CLI or a script that took one from it,
-MUST present it to a component other than the orchestrator that issued it
-only when it was minted with `cap` naming nothing but what the requests sent
-there need ([`architecture/admin`](../architecture/admin.md#contracts),
-operator-token-issuance). A token minted with no `cap` carries its role's
-full set, and is presented to that orchestrator alone. An admin's token
-presented to the content service therefore carries `content:` capabilities
-and never `admin:*`, which the content service could otherwise replay at
-`/v1/admin/*`. This is the one statement of the rule; a blueprint whose
-client holds operator tokens points here.
+Of the WLTs, only a pass names an audience. A component that is presented
+an operator token, a registration token or a channel token can present it
+again, at any route of any component that accepts its issuer's tokens, as far
+as its capabilities reach, until it expires. A person's operator token reaches the
+furthest, so no component is ever given one:
+
+- **A person's operator token is presented at the tenant's admin gateway and
+  nowhere else.** Every holder of one, a console, the CLI or a script that
+  took one from either, sends every request it makes at the tenant to the
+  admin gateway, the tenant's one door for people
+  ([`architecture/admin`](../architecture/admin.md#contracts),
+  `admin-gateway-authorization`). The gateway presents it to one party: the
+  orchestrator that issued it, to have it exchanged, and with a request for a
+  group the orchestrator itself provides, which the orchestrator judges
+  itself. The issuer holds the records the token rests on, so presenting it
+  there tells no new party anything.
+- **Every other component is reached on a pass.** For each request it
+  carries to a component other than the orchestrator, the gateway has the
+  orchestrator exchange the person's token for a pass addressed to that one
+  component
+  ([`architecture/orchestrator`](../architecture/orchestrator.md#token-exchange-post-v1tokenexchange),
+  `token-exchange`), and sends the request on the pass. The component never
+  holds the person's token, so it holds nothing it could replay elsewhere.
+- **The orchestrator never presents a token it received to anyone.** What it
+  reports, it reports from the state it holds.
+
+A pass is a WLT the orchestrator signs, shaped as OAuth 2.0 Token Exchange
+([RFC 8693](https://www.rfc-editor.org/rfc/rfc8693)) shapes an issued token:
+the person's token is the subject token, and the gateway is the actor. It is
+signed as every WLT is, under ML-DSA-65, and carries:
+
+| Claim | On a pass |
+|---|---|
+| `type` | `pass` |
+| `aud` | The identity id of the one component it is addressed to: the fingerprint of the public key that component registered, which its own registration token carries as `identity_id` |
+| `sub`, `identity_id`, `cid` | The person's token's: its operator, that operator's identity id at the issuer, and the credential the token rests on |
+| `act` | The gateway that obtained it, as `{ "sub": <its registered name>, "identity_id": <its registration's identity id> }` |
+| `cap` | The intersection of what the exchange was asked for and what the person may use at the exchange, which is what their role carries then and never beyond their token's `cap`. A pass that would carry nothing is not minted |
+| `identity_key` | The fingerprint of the person's identity public key at the exchange, which differs from `identity_id` once that person has changed their identity key |
+| `record_keys` | The person's sign-records credentials at the issuer that are active and unexpired at the exchange |
+| `step_up_at` | The person's token's, unchanged, where that token carries one; absent otherwise |
+| `iat`, `exp` | `exp` no more than 30 seconds after `iat` |
+
+1. The orchestrator mints a pass at the exchange alone, and only for an
+   operator token it judges live at that moment. A component holding a pass
+   therefore holds the orchestrator's judgement of the person's token from
+   within the last 30 seconds, and asks nothing again: a removed operator, a
+   revoked credential or a lowered role reaches every component at the
+   person's next request.
+2. A pass is never exchanged again. The exchange takes an operator token as
+   its subject, and nothing else.
+3. A component accepts a pass only when it verifies under its own
+   orchestrator's key, its `type` is `pass`, its `aud` is that component's own
+   identity id, and it has not expired. A pass addressed to another component
+   is refused with `PASS_AUDIENCE_MISMATCH` and logged as a security event,
+   and so is a pass presented to the orchestrator, which is the audience of
+   none.
+4. Every component but the orchestrator and the admin gateway refuses an
+   operator token on every route with `PASS_REQUIRED`, whatever its `cap`, and
+   logs a security event: no holder may present one there.
+5. A component authorises a person's request against the pass's `cap` alone.
+   It records who acted by the pass's `identity_id`, and the gateway that
+   carried the request by `act.identity_id`, never by either `sub`: an audit
+   entry's `actor` and `via` ([`protocol/types`](types.md#auditentry)).
+6. A person-only capability ([`protocol/types`](types.md#capability)) counts
+   on an operator token at the orchestrator and on a pass at a component,
+   which are a person's, and on no other token.
+
+This is the one statement of the rule. A blueprint whose client holds operator
+tokens, or whose component serves people, points here.
 
 ### ID Generation
 ```
@@ -791,7 +863,8 @@ types:
             type: string
             description: The record the issuer minted this token under and can
               withdraw — a channel for a channel token, a credential for an
-              operator token
+              operator token, and for a pass the credential of the operator
+              token it was exchanged for
             required: false
           type:
             type: string
@@ -799,7 +872,33 @@ types:
               tokens
             required: false
             constraints:
-              enum: [operator, attestation]
+              enum: [operator, attestation, pass]
+          aud:
+            type: string
+            description: On a pass alone, the identity id of the one component
+              it is addressed to
+            required: false
+          act:
+            type: object
+            description: On a pass alone, the gateway that obtained it
+            required: false
+            fields:
+              sub:
+                type: string
+                description: The gateway's registered name
+              identity_id:
+                type: string
+                description: The identity id of the gateway's registration
+          identity_key:
+            type: string
+            description: On a pass alone, the fingerprint of its person's
+              identity public key when the pass was minted
+            required: false
+          step_up_at:
+            type: int64
+            description: When the subject last completed a step-up (Unix epoch
+              seconds). A pass carries its person's token's, unchanged
+            required: false
           role:
             type: string
             description: The operator's role when an operator token was issued.
@@ -815,7 +914,7 @@ types:
             required: false
           record_keys:
             type: "list<string>"
-            description: On an operator token, the ids of the subject's
+            description: On an operator token or a pass, the ids of the subject's
               sign-records credentials at the issuer that were active and
               unexpired when it was minted. The only keys a verifier holding
               the token accepts a record signature from
@@ -915,7 +1014,7 @@ authentication:
     structure: base64url(header).base64url(payload).base64url(signature)
     fields: [sub, iss, iat, exp, cap, cid]
     signing: ML-DSA-65
-    expiry: 24 hours (agent auth), 1 hour (channel)
+    expiry: 24 hours (agent auth), 1 hour (channel), 30 seconds at most (pass)
     verification: >
       Split on ".", decode header, verify alg == "ML-DSA-65",
       verify signature against issuer public key, check expiry
@@ -1081,6 +1180,8 @@ with deliberate deviations:
 | Three-part structure | RFC 7515 §3 | `header.payload.signature` |
 | Base64url encoding | RFC 4648 §5 | Same, no padding |
 | Standard claims | RFC 7519 §4.1 | `sub`, `iss`, `iat`, `exp` — same semantics |
+| Audience | RFC 7519 §4.1.3 | `aud`, on a pass alone, naming exactly one component by its identity id |
+| Actor | RFC 8693 §4.1 | `act`, on a pass alone, naming the gateway that obtained it |
 | Signature input | RFC 7515 §5.1 | `base64url(header) + "." + base64url(payload)` |
 
 ### What We Customized (and Why)
@@ -1207,7 +1308,12 @@ Implementation MUST:
 - [ ] Check token expiry on every verification
 - [ ] A record of who acted names the token's `identity_id`, never its `sub`
 - [ ] An operator token always carries `cap`, and one whose `cap` is absent or empty is read as naming no capability, never as carrying its role's full set
-- [ ] An operator token presented to a component other than the orchestrator that issued it, by any holder, was minted with `cap` naming only what the requests sent there need, and one minted with no `cap` is presented to that orchestrator alone
+- [ ] A person's operator token is presented by its holder at the tenant's admin gateway alone, and by the gateway to the orchestrator that issued it alone; every other component is sent a person's request on a pass
+- [ ] A pass is minted only by the token exchange, for an operator token judged live at that moment, carries the claims [The pass](#the-pass) gives it, expires no more than 30 seconds after it was issued, and is refused as the subject of another exchange
+- [ ] A component accepts a pass only when it verifies under its own orchestrator's key and its `aud` is that component's identity id; a pass addressed to another component, or presented to the orchestrator, is refused with `PASS_AUDIENCE_MISMATCH` and logged as a security event
+- [ ] Every component but the orchestrator and the admin gateway refuses an operator token on every route with `PASS_REQUIRED`, whatever its `cap`, and logs a security event
+- [ ] A component records a person's act by the pass's `identity_id` and the gateway that carried it by `act.identity_id`, as its audit entry's `actor` and `via`
+- [ ] The orchestrator never presents a token it received to any party
 - [ ] Enforce replay protection window (300 seconds) on registration
 - [ ] Validate public key size (1952 bytes) and signature size (3309 bytes)
 - [ ] Use constant-time comparison for signature verification

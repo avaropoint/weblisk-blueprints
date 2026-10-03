@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: lifecycle
-version: 1.0.1
+version: 1.0.2
 requires: [protocol/types, architecture/domain, architecture/agent, patterns/messaging]
 platform: any
 tier: free
@@ -679,20 +679,28 @@ security:
       mechanism: Feedback records before and after values for a named metric
 ```
 
-> **Gap — nothing here yet tells a person's approval from a component's.**
+> **Gap — nothing here yet tells a person's approval from a component's, and
+> nothing gives approved work an authority.**
 > `approve_recommendation` and `reject_recommendation` arrive as
 > `POST /v1/message` actions, which check a sender's signature where one is
 > present and no operator token
 > ([`protocol/spec`](../protocol/spec.md#post-v1message)), so any registered
 > component can send one, and nothing records which person decided. The
-> boundary *Recommendation → Approval* and the rule that execution runs under
-> the approver's scope hold only once the Lifecycle Agent serves the approval
-> queue's administrative routes, judging the person's operator token as
+> boundary *Recommendation → Approval* holds only once the Lifecycle Agent
+> serves the approval queue's administrative routes, taking a person's
+> approval on a pass addressed to it as
 > [`architecture/admin`](admin.md#contracts)'s
-> `admin-gateway-authorization` requires and resolving the approver's scope
-> from the `TokenStatus` that judgement answers. No such route is specified
-> yet, and until one is, `architecture/admin` reports the approval queue
-> unavailable.
+> `admin-gateway-authorization` requires, and recording the approval under
+> the pass's `identity_id`, which names the approver. The rule that execution
+> runs under the approver's scope needs more: the pass carries `admin:approve`
+> for the one request that approves, for at most 30 seconds
+> ([`protocol/identity`](../protocol/identity.md#the-pass)), so it cannot
+> carry the work that approval starts after it is answered. That work needs an
+> authority on the approver's behalf, which is
+> [`patterns/principal-identity`](../patterns/principal-identity.md)'s
+> `agent-delegation`, and no route for it is specified. Until both are
+> specified, `architecture/admin` reports the approval queue unavailable, and
+> no approved recommendation is executed.
 
 ---
 

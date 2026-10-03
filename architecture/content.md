@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.16.0
+version: 2.17.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -44,7 +44,7 @@ organisation can open.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.14.0 <2.0.0"
+    version: ">=1.15.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -52,28 +52,24 @@ requires:
         - name: AgentManifest
           fields_used: [name, capabilities]
         - name: AuditEntry
-          fields_used: [id, timestamp, actor, action, target, status]
+          fields_used: [id, timestamp, actor, via, action, target, status]
         - name: ProposedChange
           fields_used: [path, action]
-        # A person-only act is checked with the orchestrator first: the
-        # request POST /v1/token/check takes, and what it answers
-        - name: TokenCheckRequest
-          fields_used: [subject_token]
-        - name: TokenStatus
-          fields_used: [live, code, identity_id, identity_public_key, capabilities]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.11.0 <2.0.0"
+    version: ">=1.13.0 <2.0.0"
     bindings:
       types:
-        # identity_id is who a change names; type says whose token it is;
+        # identity_id is who a change names; type and aud say a person's
+        # request arrived on a pass addressed here; act names the gateway that
+        # carried it; identity_key is the person's current identity key;
         # record_keys and cid say which key may sign the change it carries
         - name: WLToken
-          fields_used: [cap, identity_id, type, cid, record_keys]
+          fields_used: [cap, identity_id, type, aud, act, identity_key, cid, record_keys]
     # The change statement is a fixed-form statement, registered there
     on_change:
       compatible: validate-and-adopt
@@ -191,17 +187,12 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.13.0 <3.0.0"
+    version: ">=2.15.0 <3.0.0"
     bindings:
       behaviors:
-        # Asked before every act only a person may perform. See Who may move an entry
-        - name: token-check
-          usage: Relied on, never served here. This service asks the orchestrator and acts on the TokenStatus it answers
-      endpoints:
-        - path: /v1/token/check
-          methods: [POST]
-          request_type: TokenCheckRequest
-          response_fields: [live, code, identity_id, identity_public_key, capabilities]
+        # What a pass this service accepts rests on. See Who may move an entry
+        - name: token-exchange
+          usage: Relied on, never called here. Every pass this service accepts was minted by the exchange, for an operator token the orchestrator judged live then, carrying no capability the person could not use then
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -643,10 +634,9 @@ that status wherever this service refuses: `validation` 400, `auth` 401,
 status. The Category column classes the fault. It is not
 `ErrorResponse.category`: there, an `io` or `partial` code is `transient` and
 `retryable`, and every other code is `permanent` and not `retryable`. A code
-another blueprint registers, such as `SCOPE_INVALID_LEVEL`, `FORBIDDEN`, or
-the code a token check reports for a token that is not live, keeps the status
-that blueprint gives it. [`protocol/types`](../protocol/types.md#errorresponse)
-registers every code a `TokenStatus` can carry.
+another blueprint registers, such as `SCOPE_INVALID_LEVEL`, `FORBIDDEN`,
+`PASS_REQUIRED` or `PASS_AUDIENCE_MISMATCH`, keeps the status that blueprint
+gives it ([`protocol/types`](../protocol/types.md#errorresponse)).
 
 Four codes take another status than their Category's. `CONTENT_STATEMENT_INVALID`
 is 400: the token was accepted and the statement it carried was not, so a
@@ -687,7 +677,6 @@ code here is enough, because a client does the same thing for both.
 | `CONTENT_PROPOSAL_UNKNOWN` | validation | No proposal of that id in the caller's scope | Refuse without disclosing whether it exists elsewhere |
 | `CONTENT_PROPOSAL_DECIDED` | conflict | A decision arrived for a proposal that is no longer `open`, including the second of two decisions that raced | Refuse, returning the proposal as recorded. A proposal leaves `open` once |
 | `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the identity the proposal names as its `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, the change has no scope, or the repository declares no ceiling. Or a repository declaration whose `self_decision_ceiling` is `critical`. See [Separation of duties](#separation-of-duties) | Refuse, naming the scope, or that there is none, and the ceiling. Nothing is recorded and the proposal stays `open` |
-| `CONTENT_TOKEN_UNCHECKED` | io | A write, removal, decision, replica declaration or retirement, or a declaration carrying `self_decision_ceiling` or `scope_floor`, arrived and the orchestrator could not be asked whether its token is live, or answered anything but 200 with a `TokenStatus` | Refuse and perform nothing. The request may be repeated once the orchestrator answers. Never proceed on the token alone |
 | `CONTENT_IDENTITY_REQUIRED` | auth | A write, removal, proposal, decision, replica declaration or retirement arrived on a token that carries no `identity_id` | Refuse. Never record a name, an address or a token's `sub` in its place |
 | `CONTENT_STATEMENT_INVALID` | auth | A write, removal or decision carried a `ChangeStatement` that does not verify: the attestation's `purpose` is not `sign-records`, its `identity_id` is not the token's, its identity key is not the operator's current one, its signature fails, its credential key is not ML-DSA-65, or its `not_after` has passed or is more than 90 days ahead; its credential key is not one of the token's `record_keys`, or is the credential the token's `cid` names; `signed_at` is more than 300 seconds from the service's clock; or the signature does not verify over the statement rebuilt from the change. See [The change statement](#the-change-statement) | Refuse, naming the check that failed. Nothing is written and a proposal stays `open`. The change is never recorded unsigned instead. Log as a security event |
 | `CONTENT_WRITE_UNCONFIRMED` | io | The digest of the bytes read back after a write is not the digest of the decoded bytes submitted | Refuse. The reservation is settled as one whose path holds neither `before` nor the reserved `after`: an `observe` entry under shared custody, an integrity anomaly under exclusive custody. No `change` entry records the write, because a statement over the submitted bytes could not be checked against other ones. See [Write Flow](#write-flow) |
@@ -723,7 +712,7 @@ code here is enough, because a client does the same thing for both.
    or containing a placement already declared (`CONTENT_PLACEMENT_DECLARED`).
    A declaration carrying `self_decision_ceiling` or `scope_floor` MUST come
    from a caller holding `content:decide` as well as `content:declare`
-   (`FORBIDDEN` otherwise), on a token the orchestrator reports live
+   (`FORBIDDEN` otherwise), both named by the `cap` of a pass
    ([Who may move an entry](#who-may-move-an-entry)).
    A declaration naming itself a records repository at a `scope_path` that
    has one → `CONTENT_REPOSITORY_EXISTS`. A `scope_floor` that is not a
@@ -810,12 +799,11 @@ code here is enough, because a client does the same thing for both.
    carry `pii`, into a repository that is not a records repository → refuse
    with `CONTENT_RECORDS_REPOSITORY_REQUIRED`
 4. The token is checked ([Who may move an entry](#who-may-move-an-entry)).
-   One whose `type` is not `operator` is refused here with `FORBIDDEN`, and
-   the orchestrator is not asked about it. An operator token is checked with
-   the orchestrator: one it reports not live is refused with the code it
-   names, one its role no longer lets write with `FORBIDDEN`, and a request
-   it cannot be asked about with `CONTENT_TOKEN_UNCHECKED`. The answer's `identity_public_key` is what
-   step 6 checks a statement against. Then the enforcement storage proxy
+   Only a pass addressed to this service carries a person's request. Any
+   other token that reaches this step, a registered component's or a
+   channel's, is refused with `FORBIDDEN` whatever its `cap`, and so is a
+   pass whose `cap` does not name `content:write`. The pass's `identity_key`
+   is what step 6 checks a statement against. Then the enforcement storage proxy
    intercepts with operation `create` when `if_match` is the empty string,
    and `modify` otherwise
 5. Precondition Gate reads the current digest and compares it to `if_match`.
@@ -890,14 +878,13 @@ code here is enough, because a client does the same thing for both.
 1. Caller submits a `DecisionRequest` for one proposal: `apply` or `reject`,
    and, where the person signs an `apply`, a `ChangeStatement`
 2. The proposal must be in the caller's scope (`CONTENT_PROPOSAL_UNKNOWN`) and
-   `open` (`CONTENT_PROPOSAL_DECIDED`). The token is checked with the
-   orchestrator as Write Flow step 4 says, and must carry `content:decide`
-   now. When step 5 runs the Write Flow for an `apply`, its step 4 uses this
-   answer rather than asking again, and the capability it requires there is
-   `content:decide`, never `content:write`: a decider applies a proposal
-   without holding `content:write`, and is refused with `FORBIDDEN` only when
-   its role no longer carries `content:decide` or its token's `cap` does not
-   name it
+   `open` (`CONTENT_PROPOSAL_DECIDED`). The token is checked as Write Flow
+   step 4 says, and must be a pass whose `cap` names `content:decide`. When
+   step 5 runs the Write Flow for an `apply`, its step 4 checks the same pass,
+   and the capability it requires there is `content:decide`, never
+   `content:write`: a decider applies a proposal without holding
+   `content:write`, and is refused with `FORBIDDEN` only when the pass's `cap`
+   does not name `content:decide`
 3. `reject` → the decision is recorded, the proposal becomes `rejected`, and
    `content.proposal_decided` is published. Nothing else happens
 4. `apply` → separation is checked: a decider whose token's `identity_id` equals
@@ -962,10 +949,10 @@ code here is enough, because a client does the same thing for both.
    where versions that would leave are unclassified, and `if_match`
 2. Enforcement storage proxy intercepts with operation `create` and the
    repository's `scope_path` as the resource scope
-3. The token is checked with the orchestrator as Write Flow step 4 says. The
-   caller must hold `content:replicate` and `content:connect`, both on a
-   person's token that the orchestrator reports live and whose role carries
-   both now (see [Who may declare a replica](#who-may-declare-a-replica) and
+3. The token is checked as Write Flow step 4 says. The caller must hold
+   `content:replicate` and `content:connect`, both named by the `cap` of a
+   pass, which carries only what the person's role carried at the exchange
+   (see [Who may declare a replica](#who-may-declare-a-replica) and
    [Who may move an entry](#who-may-move-an-entry))
 4. The destination is resolved as a placement is: its backend must be one this
    service holds for that `scope_path` (`CONTENT_BACKEND_UNKNOWN`) and able to
@@ -1035,8 +1022,8 @@ code here is enough, because a client does the same thing for both.
 
 The content service is a component in the mesh: it registers with the
 orchestrator, claims the `content.*` namespace exclusively, verifies caller
-tokens against the orchestrator's public key, and asks the orchestrator
-whether a token is still live before an act only a person may perform
+tokens against the orchestrator's public key, and takes a person's request
+only on a pass addressed to it
 ([Who may move an entry](#who-may-move-an-entry)).
 
 Its manifest declares `protocol_version` `"1"` — the wire protocol version from
@@ -1792,7 +1779,7 @@ ends when the operation does.
 `establish` requires `content:declare` **and** `content:establish`. `adopt`
 does not need `content:establish`. It needs `content:declare` alone only where
 the declaration carries neither `scope_floor` nor `self_decision_ceiling`; one
-carrying either also needs `content:decide`, checked live
+carrying either also needs `content:decide`, on a pass
 ([Declaration Flow](#declaration-flow) step 4). An adoption whose census
 reports `keeps_history` must carry a `scope_floor`, so adopting a store that
 keeps history, every git store included, is a person's act
@@ -2458,12 +2445,14 @@ Three rules keep every person-only capability with people:
   [`protocol/types`](../protocol/types.md#error-handling) registers for
   principal-identity's `capability_person_only`. A registered component that
   runs agents can therefore only propose their output.
-- **This service honours one only on a person's token.** A person-only
-  capability counts only on a token whose `type` is `operator`, which a hub
-  mints for an operator, a person, through a credential that person's identity
-  attested ([`architecture/admin`](admin.md#operator-token)). On any other
-  token — a registered component's, a channel's — this service treats it as
-  absent. A hub that issued one by mistake has still opened no route.
+- **This service honours one only on a pass.** A person-only capability
+  counts only on a pass addressed to this service
+  ([`protocol/identity`](../protocol/identity.md#the-pass) rule 6), which the
+  orchestrator mints for a person's operator token, a token a hub mints for an
+  operator, a person, through a credential that person's identity attested
+  ([`architecture/admin`](admin.md#operator-token)). On any other token — a
+  registered component's, a channel's — this service treats it as absent. A
+  hub that issued one by mistake has still opened no route.
 - **No agent holds a person's token.** An agent acts under an authorisation
   that never names a person-only capability (principal-identity,
   `agent-delegation`), or under a service identity, and a console never gives
@@ -2471,42 +2460,35 @@ Three rules keep every person-only capability with people:
   ([`architecture/admin`](admin.md), `console-credential-use`). So an agent's
   work reaches this service as a proposal made under a service identity, or
   in a request its person submits as their own act. For a run its person
-  attends, a console may read here on that person's token narrowed to
-  `content:read` and `content:describe`. Such a read is the person's, and it
-  changes nothing.
+  attends, a console may send reads here through the tenant's admin gateway,
+  which carries each on a pass naming `content:read` or `content:describe`.
+  Such a read is the person's, and it changes nothing.
 
 A decision is judgement, and a service has none to exercise
 (principal-identity Design Principle 11).
 
-**A person-only act is checked with the orchestrator.** Before it performs a
-write, a removal, a decision, a replica declaration or retirement, or a
-repository declaration that carries `self_decision_ceiling` or `scope_floor`,
-this service first looks at the token's `type`. One that is not `operator`
-does not hold the capability the act needs, as the rule above says, so the
-act is refused with `FORBIDDEN`, whatever its `cap` or the request carries,
-and the orchestrator is not asked about it: it is asked only about an
-operator token. For an operator token, this service asks the orchestrator
-whether the token is still live
-([`architecture/orchestrator`](orchestrator.md#token-check-post-v1tokencheck),
-`POST /v1/token/check`): its own registration token in the `Authorization`
-header, and the token it was presented as `subject_token` in a
-`TokenCheckRequest`. It authorises the act against the `capabilities`
-the answer reports: what the operator's role carries now, never beyond the
-token's `cap`. A token the answer reports not live is refused with the code
-it names, with the status
-[`protocol/types`](../protocol/types.md#errorresponse) registers for it. Where the
-orchestrator cannot be asked, or answers anything but 200 with a
-`TokenStatus` (a 401 for this service's own expired registration token, say,
-or a 5xx), the act is refused with `CONTENT_TOKEN_UNCHECKED` and nothing is
-performed. Such an answer judged this service's request, never the presented
-token, so its code is never relayed as the token's. So a removed operator, a
-revoked credential and a lowered role reach this service at the next such act,
-not when the token expires.
+**A person's request arrives on a pass.** Before it performs a write, a
+removal, a decision, a replica declaration or retirement, or a repository
+declaration that carries `self_decision_ceiling` or `scope_floor`, this
+service looks at the token. One that is not a pass addressed to it does not
+hold the capability the act needs, as the rule above says, so the act is
+refused with `FORBIDDEN`, whatever its `cap` or the request carries; an
+operator token is refused before this, on every route, with `PASS_REQUIRED`
+([`protocol/identity`](../protocol/identity.md#the-pass)). On a pass, it
+authorises the act against the pass's `cap`, which the orchestrator computed
+at the exchange from what the operator's role carried then, never beyond the
+token's `cap`, and only for a token it judged live then
+([`architecture/orchestrator`](orchestrator.md#token-exchange-post-v1tokenexchange),
+`token-exchange`). This service asks nothing again. So a removed operator, a
+revoked credential and a lowered role reach this service at the person's next
+request, and a pass minted before lives at most 30 seconds. The audit entry
+for a request a pass carried names the person as `actor`, by the pass's
+`identity_id`, and the gateway that carried it as `via`, by its
+`act.identity_id`.
 
 Every other request — a read, a listing, a proposal, a description, a
-checkpoint — is authorised on the token as verified. For those, a removal, a
-revocation or a lowered role takes effect when the token expires, at most one
-hour after it was minted. That window is stated here, as Design Principle 5
+checkpoint — is authorised on the token as verified. A person's arrives on a
+pass too, so the same 30 seconds bound it. That window is stated here, as Design Principle 5
 requires.
 
 **What the tenant cannot see.** A token is a bearer credential. This service can
@@ -2516,14 +2498,11 @@ rules hold at the tenant for every service and every registered component, and
 no client can loosen them. The third holds in the console: a request an agent
 sent with a person's token would be that person's to this service, and a
 console that let an agent use one would produce changes recorded as that
-person's own acts. Nor does a token name its audience: this service could
-present a token it receives at any route its capabilities reach until it
-expires, which is why every holder of an operator token, a console or any
-other client, presents one here narrowed to what its requests here need
-([`protocol/identity`](../protocol/identity.md#a-token-names-no-audience)).
-These limits are stated here,
-as Design Principle 5 requires, rather than hidden behind the two rules that
-do hold.
+person's own acts. These limits are stated here, as Design Principle 5
+requires, rather than hidden behind the two rules that do hold. One limit is
+not among them: what this service is sent on a person's behalf is a pass
+addressed to it alone, so it holds nothing of that person's it could present
+elsewhere ([`protocol/identity`](../protocol/identity.md#the-pass)).
 
 `content:write` and `content:propose` do not imply each other. A person who
 holds both may still propose, to ask for a review.
@@ -2730,7 +2709,7 @@ record name the same party.
   prepared the change and another let it land, and the record names both. The
   second is `approved_by`.
 - **`on_behalf_of`** is absent on a direct write. A direct write needs
-  `content:write`, which only a person's token carries, so the writer acts for
+  `content:write`, which counts only on a pass, a person's, so the writer acts for
   themselves and `actor` already names them. On a proposal, a client that
   carries out a person's instruction under its own service identity MUST send
   it. Without it that person is absent from the record, and separation cannot
@@ -2984,13 +2963,13 @@ to bytes its signer did not sign.
 A `ChangeStatement` verifies when all of these hold. They are checked before
 anything is written:
 
-1. The token's `identity_id` is the attestation's `identity_id`. Only a person
-   signs here, and only for themselves: a token whose `type` is not
-   `operator` was refused with `FORBIDDEN` before any statement is read
-   ([Who may move an entry](#who-may-move-an-entry)). The attestation's `identity_public_key` is the operator's
-   current identity key, as the orchestrator's check of the token reports it
-   (`TokenStatus.identity_public_key`), which every act that carries a
-   statement asks for ([Who may move an entry](#who-may-move-an-entry)).
+1. The pass's `identity_id` is the attestation's `identity_id`. Only a person
+   signs here, and only for themselves: a token that is not a pass was
+   refused with `FORBIDDEN` before any statement is read
+   ([Who may move an entry](#who-may-move-an-entry)). The fingerprint of the
+   attestation's `identity_public_key` is the pass's `identity_key`, the
+   person's current identity key as the orchestrator held it at the exchange
+   ([`protocol/identity`](../protocol/identity.md#the-pass)).
 2. The attestation's `purpose` is `sign-records`, and its signature verifies
    under `identity_public_key`
    ([`patterns/principal-identity`](../patterns/principal-identity.md),
@@ -3192,9 +3171,10 @@ from its last entry with nothing in the log to say so (Design Principle 5). An
 unsealed entry is recorded and not yet signed. A statement proves that a
 record-signing key attested by that identity signed the change. It does not
 prove who held the key. Check 4 of [The change statement](#the-change-statement)
-— that the hub named the key in the person's token, and that it was not the key
-that obtained the token — is the service's to witness. The log does not hold
-the token, so a verifier has that check only on the service's seal.
+— that the hub named the key in the pass the person's request arrived on, and
+that it was not the key that obtained the person's token — is the service's to
+witness. The log does not hold the pass, so a verifier has that check only on
+the service's seal.
 
 ---
 
@@ -4848,16 +4828,16 @@ security:
       mechanism: content:write and content:decide are person only in
         protocol/types. A hub grants neither to a service subject, mints no
         token for one that carries either, and refuses a registration that
-        declares either. This service honours them only on a token of type
-        operator, checked live with the orchestrator before the act. A console
+        declares either. This service honours them only on a pass addressed
+        to it, which the orchestrator mints at the exchange for an operator
+        token it judges live then (protocol/identity, The pass). A console
         gives no agent a person's token, narrowed or not
         (architecture/admin, console-credential-use). What the tenant cannot
-        see, a person's credential used by software and a token presented
-        where it was not sent, is stated with the rule
+        see, a person's credential used by software, is stated with the rule
     - rule: Only a person allows self-decision or sets a floor
       mechanism: A declaration carrying self_decision_ceiling or scope_floor
-        requires content:decide as well as content:declare, checked live with
-        the orchestrator before it is recorded
+        requires content:decide as well as content:declare, both named by a
+        pass, before it is recorded
     - rule: History a store kept is classified before it is adopted
       mechanism: An adoption whose census reports keeps_history carries a
         scope_floor, at or above the census's highest_scope, or is refused
@@ -5180,13 +5160,13 @@ security:
 - [ ] A `ContentChange` from `PUT /v1/content/entry` carries no `on_behalf_of`, `approved_by`, `proposal` or `separation`
 - [ ] A write or proposal whose body names an `actor` records the verified token's `identity_id`, never the named one and never the token's `sub`
 - [ ] A write, removal, proposal or decision on a token that carries no `identity_id` is refused with `CONTENT_IDENTITY_REQUIRED`, and nothing is recorded
-- [ ] A token whose `type` is not `operator` and whose `cap` holds `content:write` is refused `PUT /v1/content/entry` with `FORBIDDEN`, as though it did not hold it, whether or not the request carries a `statement`, and the service makes no `POST /v1/token/check` for it
+- [ ] A token that is not a pass and whose `cap` holds `content:write`, a registered component's or a channel's, is refused `PUT /v1/content/entry` with `FORBIDDEN`, as though it did not hold it, whether or not the request carries a `statement`; a person's operator token is refused there with `PASS_REQUIRED` whatever its `cap`, and a pass addressed to another component with `PASS_AUDIENCE_MISMATCH`
 - [ ] The service's own manifest declares none of `content:write`, `content:decide`, `content:replicate` and `content:connect`, and its registration succeeds
 - [ ] A declaration carrying `self_decision_ceiling` from a caller holding `content:declare` and not `content:decide` is refused, and no repository is recorded
 - [ ] A decider whose token's `cap` names `content:decide` and not `content:write` applies a proposal, and the write is recorded; the same token is refused with `FORBIDDEN` at `PUT /v1/content/entry`
 - [ ] A declaration whose `self_decision_ceiling` is `critical` is refused with `CONTENT_SEPARATION_REQUIRED` and no repository is recorded; one at `restricted` is declared, and a requester's decision to apply a `critical` change in it is refused with `CONTENT_SEPARATION_REQUIRED`
 - [ ] A declaration carrying `scope_floor` from a caller holding `content:declare` and not `content:decide`, a registered component's included, is refused with `FORBIDDEN`, and no repository is recorded
-- [ ] A declaration carrying `self_decision_ceiling` or `scope_floor` on a token whose operator was removed after it was minted is refused with `OPERATOR_REVOKED`, and one made while the orchestrator cannot be asked is refused with `CONTENT_TOKEN_UNCHECKED`; neither records a repository
+- [ ] A declaration carrying `self_decision_ceiling` or `scope_floor` is recorded only on a pass whose `cap` names both `content:declare` and `content:decide`; on a pass naming `content:declare` alone it is refused with `FORBIDDEN` and records no repository
 - [ ] An adoption of a store whose census reports `keeps_history`, confirmed with the census digest and carrying no `scope_floor`, is refused with `CONTENT_SCOPE_UNDECLARED`, returns the census, and declares nothing; the same adoption carrying a `scope_floor` at or above the census's `highest_scope` is declared
 - [ ] A census over a store holding an entry that declares no level and carries a label the tenant registers reports a `highest_scope` at least that label's `maps_to`, and an adoption carrying a `scope_floor` below it is refused with `CONTENT_SCOPE_LOWERED`
 - [ ] Where the tenant registers `pii` with `maps_to: restricted`, an adopted entry whose bytes carry `custom_labels: [pii]` beside `scope: internal`, or beside no level, is recorded at `restricted` on the `declare` entry and reported with `ContentEntry.scope` `restricted`; an out-of-band edit that adds the label to an `internal` entry is observed at `restricted`; and a version from before adoption that carries the label, in a repository floored at `internal`, is classified `restricted` for a replica and held from a plain one with `held_reason` `above-ceiling`
@@ -5197,7 +5177,7 @@ security:
 - [ ] A census over a placement whose backend's blueprint binds a `backend_report` covers that report in its `digest`, and an adoption whose store's report changed since the census is refused with `CONTENT_PRECONDITION_FAILED`
 - [ ] A first `POST /v1/content/repositories/{repository}/replicas` with no `if_match` is refused with `CONTENT_REPLICA_UNSEEN`, returns a `ReplicaCensus`, records no replica, creates no credential and sends nothing
 - [ ] A replica declaration whose `if_match` differs from a freshly computed census `digest`, because a version was recorded between the two calls, is refused with `CONTENT_PRECONDITION_FAILED`
-- [ ] A caller holding `content:replicate` and not `content:connect`, or `content:connect` and not `content:replicate`, is refused a replica declaration; a token whose `type` is not `operator` is refused it whatever its `cap` holds
+- [ ] A caller holding `content:replicate` and not `content:connect`, or `content:connect` and not `content:replicate`, is refused a replica declaration; a token that is not a pass is refused it whatever its `cap` holds
 - [ ] A replica declaration whose destination backend has no `held_by`, or `held_by: third-party`, is confirmed like any other replica when everything that would leave is classified and at or below its ceiling, and its census reports `held_by: third-party`
 - [ ] A plain replica whose destination demonstrates `shared` custody with all three attestations, and refuses anonymous read, has the ceiling `confidential`, whoever holds it; declaring it for a repository holding a `restricted` version is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED` naming that version's path
 - [ ] A replica declaration where an earlier version holds a path under `.weblisk` is refused with `CONTENT_RESERVED_PATH`, though no entry holds that path now
@@ -5236,10 +5216,10 @@ security:
 - [ ] A write whose `statement` was signed over other bytes, another path or another `before` is refused with `CONTENT_STATEMENT_INVALID`, and nothing is written or recorded
 - [ ] A `statement` whose attestation has no `purpose`, or `purpose` `authenticate`, is refused with `CONTENT_STATEMENT_INVALID`
 - [ ] A `statement` whose `signed_at` is more than 300 seconds from the service's clock is refused with `CONTENT_STATEMENT_INVALID`
-- [ ] A `statement` whose attestation names an `identity_id` other than the token's, or whose attestation's identity key is not the operator's current key as `POST /v1/token/check` reports it, is refused with `CONTENT_STATEMENT_INVALID`
-- [ ] A write, removal or decision on an unexpired token whose operator was removed, or whose credential was revoked, after it was minted is refused with `OPERATOR_REVOKED` or `CREDENTIAL_REVOKED` and nothing is written; one whose operator's role no longer carries the capability is refused with `FORBIDDEN`
-- [ ] A write, removal, decision or replica declaration made while the orchestrator cannot be asked is refused with `CONTENT_TOKEN_UNCHECKED`, and nothing is written, decided or recorded
-- [ ] A person-only act for which `POST /v1/token/check` answers anything but 200 with a `TokenStatus`, such as 401 `TOKEN_EXPIRED` for this service's own registration token or a 503, is refused with `CONTENT_TOKEN_UNCHECKED`, never with the code that answer carried
+- [ ] A `statement` whose attestation names an `identity_id` other than the pass's, or whose attestation's identity key is not the one whose fingerprint the pass's `identity_key` carries, is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] Through the admin gateway, a write, removal or decision on an unexpired operator token whose operator was removed, or whose credential was revoked, after it was minted is refused by the exchange with `OPERATOR_REVOKED` or `CREDENTIAL_REVOKED`, and one whose operator's role no longer carries the capability with `FORBIDDEN`; in each, this service is sent nothing and nothing is written
+- [ ] A write, removal, decision or replica declaration on a pass whose `exp` has passed is refused with `TOKEN_EXPIRED`, and nothing is written, decided or recorded; one on an unexpired pass naming the capability is performed with the orchestrator unreachable, because this service asks the orchestrator nothing about a pass
+- [ ] The audit entry for a request a pass carried names the pass's `identity_id` as `actor` and its `act.identity_id` as `via`
 - [ ] A `statement` signed by the credential key the token's `cid` names is refused with `CONTENT_STATEMENT_INVALID`, even where that key was also attested with `purpose` `sign-records`
 - [ ] A `statement` whose credential key is not one of the token's `record_keys` — never recorded at the hub, or revoked before the token was minted — is refused with `CONTENT_STATEMENT_INVALID`
 - [ ] A `statement` whose attestation's `not_after` is more than 90 days ahead of the service's clock is refused with `CONTENT_STATEMENT_INVALID`
