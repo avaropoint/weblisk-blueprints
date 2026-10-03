@@ -543,9 +543,8 @@ security:
 
 > **Gap — `classification` is not a scope.** `data_sensitivity`'s
 > `low|medium|high|critical` is this schema's own scale, not
-> [`patterns/scope`](../patterns/scope.md)'s `ScopeLevel`
-> (`public`, `internal`, `confidential`, `restricted`), which every gate,
-> ceiling and destination check reads. Nothing maps one onto the other, so
+> [`patterns/scope`](../patterns/scope.md#scope-levels)'s `ScopeLevel`, which
+> every gate, ceiling and destination check reads. Nothing maps one onto the other, so
 > no gate reads an agent's `data_sensitivity`, and a value here is never
 > evidence of what that agent may send or keep. The scale converges onto
 > `ScopeLevel` when the agent blueprints that declare it are re-classified,
