@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.13.0
+version: 1.13.1
 requires: [protocol/types]
 platform: any
 tier: free
@@ -118,7 +118,7 @@ of hash functions.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.15.0 <2.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -127,6 +127,10 @@ requires:
           fields_used: [manifest, signature, timestamp]
         - name: AgentMessage
           fields_used: [from, to, action, payload, signature]
+        # Where a component records a person's request a pass carried, and
+        # the gateway that carried it (The pass, rule 5)
+        - name: AuditEntry
+          fields_used: [actor, via]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
