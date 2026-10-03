@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: mcp
-version: 1.3.0
+version: 1.3.1
 requires: [protocol/types, protocol/spec, architecture/agent, architecture/gateway, patterns/scope, patterns/safety, patterns/auth-oauth]
 platform: any
 tier: free
@@ -217,6 +217,18 @@ reflects it without redeployment.
 8. The result is rendered back in MCP's vocabulary, and the call is audited with the
    person and the client the credential names, the tool, the outcome and the time, so
    the record names both whose authority was used and what used it.
+
+> **Gap — nothing tells this surface what the person may use now.** Step 2 bounds a
+> caller by what the person may use now, and no route answers that for this surface.
+> It is presented a credential [`patterns/auth-oauth`](../patterns/auth-oauth.md)
+> issued and never the person's operator token, so it has no token to have exchanged
+> ([`protocol/identity`](../protocol/identity.md#the-pass)). No route answers a
+> person's current capabilities for the principal a credential names, and nothing maps
+> a granted scope to capabilities. Until one is specified, a person removed or lowered
+> at the hub keeps what their client was granted here until `revoke_grant` withdraws
+> the grant or `grant_lifetime_seconds` ends it, because removing or lowering a person
+> at the hub withdraws no grant. This limit is stated here rather than left to be
+> found.
 
 ### The destination gate
 
