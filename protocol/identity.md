@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.12.0
+version: 1.12.1
 requires: [protocol/types]
 platform: any
 tier: free
@@ -239,8 +239,10 @@ When `kdf = none`:
    reach it. `kdf = none` is for service keys alone, and for those only in
    development (rule 6).
 2. Service key generation defaults to `kdf = none`, which rule 6 confines to
-   development, but SHOULD support encrypted keys whose passphrase comes from a
-   secret source ([`protocol/secret-source`](secret-source.md)).
+   development, and MUST support encrypted keys whose passphrase comes from a
+   secret source ([`protocol/secret-source`](secret-source.md)): rule 3 keeps
+   a key with `kdf = none` out of production, so a generator that could not
+   encrypt one could make no key production may run.
 3. In production a service key MUST NOT be kept with `kdf = none` (rule 6).
    One kept encrypted takes its passphrase at startup from a secret source,
    such as a secrets manager or a secret the platform mounts, which is
