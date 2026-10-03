@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.22.0
+version: 2.23.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -88,7 +88,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.15.0 <2.0.0"
+    version: ">=1.16.0 <2.0.0"
     bindings:
       types:
         - name: Strategy
@@ -1309,7 +1309,7 @@ a failed registration.
 
 | Role | Capabilities | Description |
 |------|-------------|-------------|
-| **admin** | `admin:*`, `model:attest`, every `content:` capability, `fabric:read` and `fabric:attest` | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, declare their replicas, record model provider agreements, and confirm or reject relationships |
+| **admin** | `admin:*`, `model:attest`, every `content:` capability, `content:declassify` among them, `fabric:read` and `fabric:attest` | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, declare their replicas, record model provider agreements, and confirm or reject relationships. The only role that carries `content:declassify` |
 | **operator** | `admin:read`, `admin:approve`, `admin:strategy`, `content:read`, `content:describe`, `content:write`, `content:propose`, `content:decide`, `content:reconcile`, `fabric:read`, `fabric:attest` | Day-to-day operations — view everything, approve recommendations, manage strategies, write documents, decide proposals, and confirm or reject relationships |
 | **viewer** | `admin:read`, `content:read`, `content:describe`, `fabric:read` | Read-only — view dashboards, logs, status, documents and relationships. Cannot modify anything |
 | **auditor** | `admin:read`, `admin:audit`, `content:read`, `content:describe`, `fabric:read` | Read-only plus full audit log access with export capability |
@@ -1321,6 +1321,13 @@ a person this way and reaches a service by no route: a service subject holds
 no role, and a registered component is refused one in its manifest
 ([`patterns/principal-identity`](../patterns/principal-identity.md),
 `service-subject-constraints`).
+
+`content:declassify` is person only, and `admin` carries it and no other role
+does: lowering a recorded scope decides what may then leave the tenant, as
+raising a model's ceiling does. No route admits it yet. The content service
+refuses every lowering until the tenant's approval queue can route the request
+to a second person
+([`architecture/content`](content.md#a-scope-only-rises), the gap there).
 
 `fabric:attest` is the person-only capability the fabric's person routes
 require ([`architecture/fabric`](fabric.md#registration-and-standalone-operation)):
@@ -2352,6 +2359,7 @@ The rest SHOULD be:
 - [ ] A `viewer` token carries `content:read` and `content:describe` and no other `content:` capability, and an `operator` token carries `content:write` and `content:decide`
 - [ ] An `operator` or `admin` token carries `fabric:read` and `fabric:attest`, a `viewer` or `auditor` token carries `fabric:read` and not `fabric:attest`
 - [ ] An `admin` token carries `content:replicate` and `content:connect`, an `operator` token carries neither, and no token minted for a service subject carries either
+- [ ] An `admin` token carries `content:declassify`, and an `operator`, `auditor` or `viewer` token, and every token minted for a service subject, does not
 - [ ] Removing an account from a console deletes its credential keys, revokes each credential first with the token of a signed-in person that hub permits to revoke it where there is one, and otherwise reports each credential live at its hub until its `not_after`
 
 - [ ] Admin gateway is a separate process/listener from the application gateway with its own TLS certificate and domain

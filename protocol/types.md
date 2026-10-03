@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.15.0
+version: 1.16.0
 requires: []
 platform: any
 tier: free
@@ -384,6 +384,7 @@ types:
 - `content:reconcile` — run custody reconciliation on a shared repository
 - `content:replicate` — declare a replica of a repository, and retire one. Declaring one also needs `content:connect`. *Person only*
 - `content:connect` — have the content service create and hold a credential that reaches a destination outside the tenant's store. Required in addition to `content:replicate` to declare a replica. *Person only*
+- `content:declassify` — lower a path's recorded scope. It guards no route yet: [`architecture/content`](../architecture/content.md) refuses every lowering until the tenant's approval queue can route such a request to a second person. *Person only*
 
 *Person only* marks a capability that no service and no agent may hold.
 [`patterns/principal-identity`](../patterns/principal-identity.md) keeps it out
@@ -3148,4 +3149,5 @@ security:
 - [ ] All protocol-level error codes (standard, enforcement, contract, federation, safety, policy, operator token, destination, identity, common) are registered centrally; agent-local codes use domain-descriptive names and do not collide with registered codes
 - [ ] Every code a `TokenExchangeResponse` may carry in `code` is registered here with its HTTP status, so the admin gateway, refusing a request whose token the exchange refused, answers with that status and never a guessed one
 - [ ] `PASS_REQUIRED` and `PASS_AUDIENCE_MISMATCH` are registered with status 401, and `token:exchange` is in the Capability list
+- [ ] `content:declassify` is in the Content capabilities and marked *person only*, so a registration whose manifest declares it is refused with `CAPABILITY_PERSON_ONLY`
 - [ ] Administrative authority is expressed as `admin:` capabilities in the standard list — not as a separate role model — and `admin:*` denotes the whole family

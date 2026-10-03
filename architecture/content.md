@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.17.0
+version: 2.18.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -44,7 +44,7 @@ organisation can open.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.15.0 <2.0.0"
+    version: ">=1.16.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -1042,6 +1042,7 @@ Its routes are guarded by the `content:` family that document declares:
 | `content:reconcile` | `POST /v1/content/reconcile` |
 | `content:replicate` | `POST /v1/content/repositories/{repository}/replicas`, with `content:connect`; `DELETE /v1/content/repositories/{repository}/replicas/{replica}`. Person only |
 | `content:connect` | `POST /v1/content/repositories/{repository}/replicas` — required **in addition to** `content:replicate`, because it gives the tenant a credential that reaches outside its store. Person only |
+| `content:declassify` | No route yet: every lowering of a recorded scope is refused until the tenant's approval queue exists ([A scope only rises](#a-scope-only-rises)). Person only |
 
 A capability name is `family:verb`. An invented name is refused at registration,
 so these MUST be the names `protocol/types` declares and no others. *Person
@@ -1052,9 +1053,9 @@ only* is `protocol/types`' marking too, and what it does to a grant is
 declares become the `cap` of the token the orchestrator issues the service at
 registration ([`protocol/spec`](../protocol/spec.md), `POST /v1/register`), so
 they are what the service may do as a caller as well as what it serves. Its
-manifest therefore declares every capability in the table except the four
-that are person only: `content:write`, `content:decide`, `content:replicate`
-and `content:connect`. It checks those on the requests it serves and never
+manifest therefore declares every capability in the table except the five
+that are person only: `content:write`, `content:decide`, `content:replicate`,
+`content:connect` and `content:declassify`. It checks those on the requests it serves and never
 holds them, and registration refuses a manifest that declares one, with
 `CAPABILITY_PERSON_ONLY`. For the same reason no channel grant to this service
 can carry one, because a grant is the intersection of what the requester
@@ -1463,15 +1464,15 @@ scope, so a write that creates the path again is checked against it.
 request that would lower one is refused by the rules above. A level set too
 high stays on the path it was set on, and on every version recorded under it.
 
-> **Gap — declassification has no capability yet.** The act it needs is
-> person only and takes two people: a request by one, approved by another
-> through the tenant's approval queue, recorded and signed with ML-DSA-65, and
-> never lowering the scope the repository holds. Its capability is not in
-> [`protocol/types`](../protocol/types.md#capability)' list, because
-> [`architecture/admin`](admin.md#contracts)'s `operator-roles` requires every
-> capability to be carried by some role, and which roles carry this one is not
-> decided. Nor has the tenant an approval queue that routes such a request to
-> an owner position. Until both exist, the refusal above is the whole answer.
+> **Gap — declassification has no route yet.** The act it needs is person
+> only and takes two people: a request by one, approved by another through the
+> tenant's approval queue, recorded and signed with ML-DSA-65, and never
+> lowering the scope the repository holds. Its capability, `content:declassify`,
+> is in [`protocol/types`](../protocol/types.md#capability)' list, and the
+> `admin` role carries it and no other role does
+> ([`architecture/admin`](admin.md#operator-roles)). The tenant has no approval
+> queue that routes such a request to an owner position, so no route admits
+> it, and until one exists the refusal above is the whole answer.
 
 **A copy is a new entry.** Bytes written to another path carry the level they
 declare in themselves, and nothing else of the entry they were copied from. An
@@ -5075,7 +5076,7 @@ security:
 - [ ] After a removal of an entry recorded at `restricted`, a write creating the same path that declares `internal`, or declares no scope, is refused with `CONTENT_SCOPE_LOWERED`, and one declaring `restricted` is recorded at `restricted`
 - [ ] In a repository with no `scope_floor`, a write that declares no scope, to a path with no recorded scope whose bytes declare none, records a `ContentChange` with no `scope` and no `scope_basis`, and the version it produces is counted `unclassified` by a replica census
 - [ ] A write declaring `confidential` to a path with no recorded scope, whose bytes declare none, records `scope_basis` `chosen`; one whose bytes declare `scope: confidential` records `bytes`; one declaring the path's recorded scope, with bytes that declare less, records `recorded`
-- [ ] No request lowers a path's recorded scope: every write, proposal and decision that would is refused with `CONTENT_SCOPE_LOWERED`
+- [ ] No request lowers a path's recorded scope: every write, proposal and decision that would is refused with `CONTENT_SCOPE_LOWERED`, on an admin's pass naming `content:declassify` as on any other
 - [ ] A replica census counts an earlier version of a path that no entry holds now at the scope the log recorded for it
 - [ ] A proposal whose path's recorded scope rose above the proposal's scope after it was made is refused with `CONTENT_SCOPE_LOWERED` when applied, and stays `open`
 - [ ] An out-of-band change under shared custody produces a `ContentObservation` with provenance `external` and raises no tampering alert
@@ -5161,7 +5162,7 @@ security:
 - [ ] A write or proposal whose body names an `actor` records the verified token's `identity_id`, never the named one and never the token's `sub`
 - [ ] A write, removal, proposal or decision on a token that carries no `identity_id` is refused with `CONTENT_IDENTITY_REQUIRED`, and nothing is recorded
 - [ ] A token that is not a pass and whose `cap` holds `content:write`, a registered component's or a channel's, is refused `PUT /v1/content/entry` with `FORBIDDEN`, as though it did not hold it, whether or not the request carries a `statement`; a person's operator token is refused there with `PASS_REQUIRED` whatever its `cap`, and a pass addressed to another component with `PASS_AUDIENCE_MISMATCH`
-- [ ] The service's own manifest declares none of `content:write`, `content:decide`, `content:replicate` and `content:connect`, and its registration succeeds
+- [ ] The service's own manifest declares none of `content:write`, `content:decide`, `content:replicate`, `content:connect` and `content:declassify`, and its registration succeeds
 - [ ] A declaration carrying `self_decision_ceiling` from a caller holding `content:declare` and not `content:decide` is refused, and no repository is recorded
 - [ ] A decider whose token's `cap` names `content:decide` and not `content:write` applies a proposal, and the write is recorded; the same token is refused with `FORBIDDEN` at `PUT /v1/content/entry`
 - [ ] A declaration whose `self_decision_ceiling` is `critical` is refused with `CONTENT_SEPARATION_REQUIRED` and no repository is recorded; one at `restricted` is declared, and a requester's decision to apply a `critical` change in it is refused with `CONTENT_SEPARATION_REQUIRED`
