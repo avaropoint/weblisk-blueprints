@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.11.0
+version: 2.12.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -147,15 +147,15 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/secret-source
-    version: ">=1.2.0 <2.0.0"
+    version: ">=1.4.0 <2.0.0"
     bindings:
       types:
         - name: HolderReference
           fields_used: [version, source, reference, options, holds]
         - name: SecretSourceRequest
-          fields_used: [version, action, reference, field, fields, label, alg, message, options]
+          fields_used: [version, action, reference, field, fields, label, alg, message, messages, options]
         - name: SecretSourceResponse
-          fields_used: [value, reference, actions, sign_algs, named_fields, withheld_fields, signature, error]
+          fields_used: [value, reference, actions, sign_algs, sign_batch, named_fields, withheld_fields, signature, signatures, error]
         - name: SecretSourceError
           fields_used: [code, message]
         - name: SecretSourceRegistryEntry
@@ -1091,14 +1091,65 @@ CLI holds one for each identity at each hub:
 - **Re-attested when it expires, replaced when the hub refuses it.** When the
   hub answers `CREDENTIAL_EXPIRED`, the key is sound and only its attestation
   lapsed, so the next `connect` re-attests the same key, which keeps its `cid`
-  and asks the identity once
   ([`architecture/admin`](admin.md#attesting-a-credential)). When it answers
   `CREDENTIAL_UNKNOWN` or `CREDENTIAL_REVOKED`, the CLI discards that
-  credential, and the next `connect` attests a new one. Before `not_after`,
-  the CLI gives the warning `architecture/admin` requires.
+  credential, and the next `connect` attests a new one. Either way it attests
+  as [One approval vouches for every hub](#one-approval-vouches-for-every-hub)
+  says, with every other attestation on this device that is due.
 
 `--no-store` is about the token. The credential is kept either way, because
 keeping it is what spares the identity.
+
+### One approval vouches for every hub
+
+The identity signs only to attest, and the CLI asks it to as seldom as that
+allows: **once on this device for every hub the identity is registered at**,
+never once for each hub.
+
+- **A separate attestation for each hub.** Each hub is sent an
+  [`Attestation`](../patterns/principal-identity.md#types) naming its own
+  `hub_id`, the `identity_id` that hub recorded, and the credential key made
+  for it, and nothing about any other hub. The CLI never signs one attestation
+  naming several hubs: every hub it was presented to would learn the person's
+  other tenants.
+- **Signed in one approval.** Whenever it attests, at a first `connect` or
+  `register`, at a renewal, or for `weblisk operator attest`, the CLI attests
+  together every credential on this device that is due: a new one, and every
+  one whose attestation has lapsed or has fewer than 7 days left, at every hub
+  it has a registration for. It opens the identity once, by one passphrase
+  or one unlock of the source that remembers it or holds the key, and signs
+  everything the batch needs while it is open: each hub's attestation-token
+  request, `{hub_id, name, timestamp}`, and each hub's `Attestation`, built
+  with the `identity_id` that hub's registration recorded. A source that signs
+  and never releases the key is sent all of them in one `sign` request, where
+  it lists `sign_batch`, so it asks its person once
+  ([`protocol/secret-source`](../protocol/secret-source.md#actions)). One that
+  does not is asked once for each, and the CLI says how many approvals that
+  will take before it asks for the first.
+- **Each hub is told only its own.** The attestation-token requests are sent
+  first, each to its own hub, inside the replay window. A hub's `Attestation`
+  is submitted only where its attestation-token answer names the
+  `identity_id` the CLI built it with. A hub that answers another is reported
+  and sent nothing more, and a hub that does not answer keeps the attestation
+  it had until the next batch.
+- **Renewed together.** A renewal asks for `not_after` 30 days ahead for
+  every attestation in it, within the 90-day cap
+  ([`architecture/admin`](admin.md#attesting-a-credential)), re-attesting
+  each key, which keeps its `cid`. A credential attested between renewals
+  takes the `not_after` the device's other attestations share, so all of them
+  fall due together; where fewer than 7 days of it remain, the batch renews
+  every attestation on the device instead. Once fewer than 7 days remain,
+  every command that mints a token warns the person, and the next `connect`
+  renews them all. So the person approves once in each 30 days, whatever the
+  number of hubs.
+- **Daily use asks the identity nothing.** Connecting, switching from one hub
+  to another and refreshing a token use the credential the CLI holds for that
+  hub ([Authentication Flow](#authentication-flow)). A console that drives the
+  CLI holds its own credential for each account at each hub, and mints with
+  it, asking nothing, while that account's person holds a live AAL2 session
+  with it ([`architecture/admin`](admin.md#a-console-holds-a-credential-never-a-token),
+  `console-credential-use`). It asks the CLI only to attest, for every hub at
+  once, with `weblisk operator attest --batch`.
 
 ### `weblisk operator init`
 
@@ -1323,11 +1374,13 @@ role carries. A narrowed token is never stored, so `--cap` requires
 
 ### `weblisk operator attest`
 
-Have an identity attest a credential that another program holds, at one hub.
+Have an identity attest credentials that another program holds, at one hub,
+or at several in one approval.
 
 ```bash
 $ weblisk operator attest --orch https://hub.example.com --identity alice \
     --credential-key ./credential.pub --device-label "console on build-01" --json
+$ weblisk operator attest --identity alice --batch ./attest.json --json
 ```
 
 For a console. The console generates the credential's key pair and keeps it;
@@ -1341,9 +1394,11 @@ The steps are [`architecture/admin`](admin.md#obtaining-a-token)'s:
   with the identity, with the `hub_id` of the registration recorded for that
   hub, and takes `identity_id` from the answer. Where none is recorded, it
   sends a registration first, as `connect` does
-- Builds the `Attestation` itself — the `identity_id` the hub answered with,
-  the identity's public key, the credential public key, `hub_id`,
-  `--device-label` and `not_after` — and signs its canonical form. It never
+- Builds the `Attestation` itself — the `identity_id` the registration
+  recorded for that hub, the identity's public key, the credential public
+  key, `hub_id`, `--device-label` and `not_after` — signs its canonical form,
+  and submits it only where the attestation-token answer names that same
+  `identity_id`. It never
   computes the identity id from the key: a hub keeps an operator's identity id
   across a change of identity key
   ([`architecture/admin`](admin.md#changing-an-identity-key)), so after one it
@@ -1355,6 +1410,13 @@ The steps are [`architecture/admin`](admin.md#obtaining-a-token)'s:
 - Submits the attestation and prints the credential's id and its `not_after`.
   `--json` gives them as `cid` and `not_after`
 - Writes nothing to disk, and unlocks the identity once for both signatures
+- `--batch <path>` names a JSON file listing several credentials, each entry
+  an object with `orch`, `credential_key` and `device_label`, in place of
+  `--orch`, `--credential-key` and `--device-label`. It attests them all as
+  [One approval vouches for every hub](#one-approval-vouches-for-every-hub)
+  says, a separate attestation for each hub in one approval of the identity,
+  and with `--json` answers an array in the order of the entries, each with
+  `orch` and either `cid` and `not_after` or `code`
 
 Its outcomes are `attested`, and `pending_approval`, `refused`,
 `identity_unavailable` and `unreachable` as `connect` reports them. With
@@ -2601,6 +2663,11 @@ security:
 - [ ] `--no-store` on `weblisk operator connect`, `weblisk operator register` and `weblisk operator token --refresh` returns the token on stdout or in the `--json` result, and writes no token file
 - [ ] `--cap content:read,content:describe` on `weblisk operator connect` or `weblisk operator token --refresh` returns a token whose `cap` names those two alone, and is refused without `--no-store`
 - [ ] `weblisk operator attest` signs only an `Attestation` it builds itself, refuses a `--days` beyond admin's cap, submits it, reports the credential's `cid` and `not_after`, and writes nothing to disk
+- [ ] Attesting at several hubs asks the identity once: one passphrase for an encrypted key file, or, for a source that lists `sign_batch`, one `sign` request carrying every hub's attestation-token request and `Attestation`; a source that does not list it is asked once for each, after the CLI has said how many approvals that takes
+- [ ] Each hub is sent an `Attestation` naming only its own `hub_id`, its recorded `identity_id` and the credential key made for it, no `Attestation` names more than one hub, and one is submitted only where that hub's attestation-token answer names the same `identity_id`
+- [ ] A credential attested between renewals takes the `not_after` the device's other attestations share; once one has fewer than 7 days left every command that mints a token warns, and the next `connect` renews every attestation on the device in one approval, each with `not_after` 30 days ahead and its `cid` unchanged
+- [ ] `weblisk operator attest --batch <path>` attests every entry in one approval of the identity and, with `--json`, answers an array in the order of the entries, each with `orch` and either `cid` and `not_after` or `code`
+- [ ] Connecting, switching from one hub to another and refreshing a token ask the identity to sign nothing while this device holds an attested credential at that hub that is not due
 - [ ] Every `Attestation` the CLI builds names the `identity_id` the hub's attestation-token answer carries, never one computed from the identity key, so an identity that changed its key still attests at every hub that accepted the change
 - [ ] `connect` and `register` generate one ML-DSA-65 credential per identity per hub the first time they reach it, have the identity attest it once, keep its private key only in the `weblisk-key-v1` envelope or a secret source, and mint every later token with it without asking the identity
 - [ ] For an identity held by a secret source whose `capabilities` do not list `store`, `connect` keeps the new credential key beside the identity in its own `weblisk-key-v1` envelope with `kdf` `argon2id`, under a passphrase the person chose for it, and never in the clear or under `kdf` `none`

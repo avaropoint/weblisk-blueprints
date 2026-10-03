@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.23.0
+version: 2.23.1
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -672,7 +672,7 @@ contracts:
         - An operator with no record MUST be refused with OPERATOR_UNKNOWN, since there is no stored key to verify against. Only once the signature has verified may the hub disclose the operator's status: a signature that does not verify MUST be refused with INVALID_SIGNATURE whatever that status is, and then a pending operator with OPERATOR_NOT_APPROVED and a revoked one with OPERATOR_REVOKED. Each refusal MUST be audited
         - The token it issues MUST have type attestation, carry no capability and no cid, and expire within 300 seconds
         - An attestation token MUST be accepted by `POST /v1/admin/operators/{name}/credentials` for its own subject, refused there for any other operator with OPERATOR_SUBJECT_MISMATCH, and refused by every other route with CREDENTIAL_REQUIRED
-        - The response MUST carry hub_id and the operator's identity_id at this hub, so the client can name this hub and this operator in the attestation it is about to have signed. A client MUST take identity_id from this answer, and never compute it from the identity key: a hub keeps it across a change of identity key, so after one it is not the current key's fingerprint
+        - The response MUST carry hub_id and the operator's identity_id at this hub, so the client can name this hub and this operator in the attestation it is about to have signed. The attestation a client submits MUST name the identity_id this answer carries, and a client MUST never compute it from the identity key: a hub keeps it across a change of identity key, so after one it is not the current key's fingerprint. A client that built the attestation beforehand, from the identity_id its registration answer named, submits it only where the two agree
         - It is the way to a first credential, and is deprecated as a way to an operator token. A hub built before the credential routes issues an operator token here, and a client MAY use one only from a hub that answers the credential routes with 404 or 405
 
     - name: operator-credential-attestation
@@ -963,11 +963,15 @@ for.
 }
 ```
 
-`identity_id` is what the attestation names the operator by. The client takes
-it from here and never computes it from the identity key: the hub keeps it
-across a change of identity key
+`identity_id` is what the attestation names the operator by. The attestation
+the client submits names the one this answer carries, which the client may
+already hold from its registration answer, and it never computes one from the
+identity key: the hub keeps it across a change of identity key
 ([Changing an identity key](#changing-an-identity-key)), so after one it is
-not the fingerprint of the key that signed this request.
+not the fingerprint of the key that signed this request. A client attesting
+at several hubs in one approval of the identity builds each attestation
+beforehand and submits it only where this answer agrees
+([`architecture/cli`](cli.md#one-approval-vouches-for-every-hub)).
 
 The token does one thing: it submits an attestation for this operator. Every
 other route refuses it. So this endpoint is not the authentication by identity

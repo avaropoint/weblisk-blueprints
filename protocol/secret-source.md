@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: secret-source
-version: 1.3.0
+version: 1.4.0
 requires: [protocol/identity, patterns/principal-identity]
 platform: any
 tier: free
@@ -128,11 +128,11 @@ Every source answers the same actions, however it is reached:
 
 | Action | Asks for | Answers with | Required of a source |
 |---|---|---|---|
-| `capabilities` | what this source can do | `actions`, `sign_algs`, `named_fields`, `withheld_fields` | Yes |
+| `capabilities` | what this source can do | `actions`, `sign_algs`, `sign_batch`, `named_fields`, `withheld_fields` | Yes |
 | `get` | one secret, by reference and field | `value` | Yes, for every field the source does not withhold |
 | `store` | keep these fields, somewhere the source chooses | `reference` | No |
 | `erase` | forget what a reference names | an empty object | No |
-| `sign` | an ML-DSA-65 signature from a key that never leaves the source | `signature` | No — OPTIONAL |
+| `sign` | an ML-DSA-65 signature from a key that never leaves the source, or one for each of several messages | `signature`, or `signatures` | No — OPTIONAL |
 
 A source lists the actions it answers in `capabilities`. A caller MUST ask for
 `capabilities` before it uses `store`, `erase` or `sign`, and a source MUST
@@ -360,6 +360,25 @@ which `protocol/identity` forbids.
 ```json
 { "version": 1, "action": "sign", "reference": "weblisk/identity-7f3a9c", "alg": "ml-dsa-65", "message": "<base64url>", "options": {} }
 { "signature": "<base64url, 3309 bytes decoded>" }
+```
+
+**Several signatures, one approval.** A request may carry `messages`, a list,
+in place of `message`, never both. The source answers `signatures`, one for
+each message in the same order, each made as a single `sign` makes one, and a
+source that asks its person to approve a signature asks once for the whole
+request, never once for each message. It is for a caller that needs several
+statements signed together, as the CLI needs a separate attestation for each
+hub an identity belongs to in one approval
+([`architecture/cli`](../architecture/cli.md#one-approval-vouches-for-every-hub)).
+A source lists `sign_batch: true` in `capabilities` where it accepts
+`messages`, and a caller sends `messages` only to a source that does. Every
+message is bound by the rule above: the caller built each itself. A list that
+fails part way answers an error and no signature, so a caller never holds
+signatures over part of what it asked for.
+
+```json
+{ "version": 1, "action": "sign", "reference": "weblisk/identity-7f3a9c", "alg": "ml-dsa-65", "messages": ["<base64url>", "<base64url>"], "options": {} }
+{ "signatures": ["<base64url>", "<base64url>"] }
 ```
 
 **An error** replaces the result. A response carries `error` or a result, never
@@ -702,8 +721,13 @@ types:
       message:
         type: string
         format: base64url
-        required_when: action = sign
+        required_when: action = sign and messages is absent
         description: For sign, the exact bytes to sign. The caller built them itself, as a fixed-form statement protocol/identity registers or under its Sign JSON, and never passes on bytes another program handed it
+      messages:
+        type: "list<string>"
+        format: base64url
+        required_when: action = sign and message is absent
+        description: For sign, several messages to sign in one approval, each bound as message is. Sent only to a source whose capabilities answer sign_batch true, and never beside message
       options:
         type: object
         required: false
@@ -731,6 +755,10 @@ types:
         type: "list<string>"
         required: false
         description: For capabilities, the algorithms sign accepts. Empty or absent when the source cannot sign, and absent means empty
+      sign_batch:
+        type: bool
+        required: false
+        description: For capabilities, whether sign accepts messages, signing several in one approval. Absent means false
       named_fields:
         type: bool
         required: false
@@ -747,6 +775,11 @@ types:
         format: base64url
         required: false
         description: For sign, the ML-DSA-65 signature over the message
+      signatures:
+        type: "list<string>"
+        format: base64url
+        required: false
+        description: For sign with messages, one ML-DSA-65 signature for each message, in the same order. Absent unless every message was signed
       error:
         type: object
         required: false
@@ -980,6 +1013,7 @@ security:
 - [ ] A report of a source failure names the source, the helper and the code, and machine-readable output carries `source` and `code` as fields
 - [ ] When a caller's deadline passes, the helper and every process it started are terminated and `timeout` is reported
 - [ ] A source that lists `sign` with `ml-dsa-65` in `sign_algs` is asked to sign and is never asked for `private_key`
+- [ ] A source that answers `sign_batch` true answers a `sign` carrying `messages` with `signatures` in the same order, asks its person at most once for the request, and answers an error and no signature when any message cannot be signed; a caller sends `messages` only to such a source, and never `messages` beside `message`
 - [ ] From a source that cannot sign, the caller gets `private_key` and `passphrase`, decrypts in memory, signs, and zeroises both
 - [ ] An identity created in a source is stored as the `weblisk-key-v1` envelope with `kdf = argon2id`, a generated `passphrase` of at least 256 bits from a cryptographically secure random source, and its `public_key`, never as a raw key
 - [ ] A source keeps only an identity's passphrase only when the operator asked for it, and only after the caller checked that the passphrase opens the key file
