@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.10.0
+version: 2.11.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1021,17 +1021,29 @@ CLI holds one for each identity at each hub:
   later token for that identity at that hub is minted with it, and the
   identity is not asked. The attestation is built as
   [`weblisk operator attest`](#weblisk-operator-attest) builds it, naming the
-  `hub_id` and `identity_id` the hub answered with.
+  `hub_id` recorded for that hub and the `identity_id` the hub answered with.
 - **Named by the hub, never by its address.** Each credential is kept under the
-  `hub_id` it was attested for. A challenge that answers with another `hub_id`
-  is a hub this identity holds no credential for, and `connect` attests one
-  there.
+  `hub_id` it was attested for. A hub at a recorded address whose challenge
+  names another `hub_id`, or that refuses the recorded one with
+  `CREDENTIAL_FOREIGN_HUB`, is refused: the CLI reports both, and signs
+  nothing more for it. Where it really is another hub, the
+  person registers there with `weblisk operator register`, which records that
+  hub's own registration.
 - **Each hub it is registered at is remembered.** Beside the identity, the
   CLI keeps one **registration** for each hub the identity registered or
   connected at: that hub's `hub_id`, the operator name the hub recorded, the
   `identity_id` it answered with, and the address it was last reached at.
-  `register` and `connect` write it, and update the address whenever they
-  reach the hub at another. The `hub_id` names the hub; the address is only
+  Only a registration answer writes one, approved or pending
+  ([`architecture/admin`](admin.md#the-registration-response)): `register`
+  sends one, and `connect` and `attest` send one first at an address no
+  registration names, which a hub that already knows the operator answers as
+  a repeat. A registration answer naming a `hub_id` the CLI has recorded
+  moves that registration to the address that answered, and an address is
+  held by one registration at a time. It is the only
+  `hub_id` the identity ever signs to ask for an attestation token, so a
+  signature it makes names a hub it chose, and no hub can relay it to
+  another ([`architecture/admin`](admin.md#the-identity-signs-only-to-attest)).
+  The `hub_id` names the hub; the address is only
   where to find it, so a hub reached there that answers another `hub_id` is
   not that hub. A registration outlives its credential: it is kept when the
   credential is discarded, and removed only when the person confirms it. A
@@ -1199,7 +1211,9 @@ Registering operator 'alice' with http://localhost:9800...
   with it, as the [Authentication Flow](#authentication-flow) says. The token is
   stored beside the identity that signed. `--no-store` returns it instead
   (stdout, or the `--json` result) and writes no token
-- If not the first operator, prints "Registration pending admin approval"
+- If not the first operator, prints "Registration pending admin approval".
+  Either way it records the registration the answer names: the hub's
+  `hub_id`, the operator's `identity_id` and the address
 - `--role <role>` to request a specific role (admin may override)
 
 ### `weblisk operator connect`
@@ -1224,9 +1238,14 @@ exactly the same terms as one in the next directory — see
 for why that separation matters.
 
 Idempotent, because it is the ordinary way to connect and will be run
-repeatedly. It asks for a token FIRST: a hub that already knows the operator
-needs no registration. A hub with no operators refuses a registration that
-does not present its bootstrap secret, so connecting never claims a hub.
+repeatedly. Where a registration names the address, it asks for a token
+FIRST: a hub that already knows the operator needs no registration. Where
+none does, it sends a registration first, which a hub that already knows the
+operator answers as a repeat, naming its `hub_id`
+([A credential for each hub](#a-credential-for-each-hub)), and it never asks
+for an attestation token without one. A hub with no operators refuses a
+registration that does not present its bootstrap secret, so connecting never
+claims a hub.
 `connect` obtains its token as the [Authentication Flow](#authentication-flow)
 says, and attests a credential first where this identity holds none the hub
 accepts ([A credential for each hub](#a-credential-for-each-hub)).
@@ -1318,8 +1337,10 @@ without the console ever holding the identity
 The steps are [`architecture/admin`](admin.md#obtaining-a-token)'s:
 
 - Reads the credential's public key from the file `--credential-key` names
-- Asks the hub for an attestation token, signing `{name, timestamp}` with the
-  identity, and takes `hub_id` and `identity_id` from the answer
+- Asks the hub for an attestation token, signing `{hub_id, name, timestamp}`
+  with the identity, with the `hub_id` of the registration recorded for that
+  hub, and takes `identity_id` from the answer. Where none is recorded, it
+  sends a registration first, as `connect` does
 - Builds the `Attestation` itself — the `identity_id` the hub answered with,
   the identity's public key, the credential public key, `hub_id`,
   `--device-label` and `not_after` — and signs its canonical form. It never
@@ -2414,7 +2435,7 @@ The CLI reads orchestrator connection details from (in priority order):
 
 ### Authentication Flow
 
-Every command that calls the orchestrator:
+Every command that calls the hub's admin gateway:
 
 ```
 1. Resolve which identity acts: --keys-dir, else --identity <label>, else the unnamed default
@@ -2425,7 +2446,9 @@ Every command that calls the orchestrator:
    challenge. The identity's holder (the encrypted key file, or a secret
    source) signs only to attest a credential where there is none the hub
    accepts. A hub that does not serve the credential routes still answers the
-   identity-signed request with an operator token, and that path is deprecated
+   identity-signed request with an operator token, and that path is deprecated.
+   The identity-signed request names the recorded hub_id whichever path
+   answers it, and is never sent to a hub with no registration recorded
 4. Set Authorization: Bearer <token> on request
 5. If 401 response → attempt token refresh → retry once
 6. If the hub refused the credential → print that the identity must attest a
@@ -2583,7 +2606,9 @@ security:
 - [ ] For an identity held by a secret source whose `capabilities` do not list `store`, `connect` keeps the new credential key beside the identity in its own `weblisk-key-v1` envelope with `kdf` `argon2id`, under a passphrase the person chose for it, and never in the clear or under `kdf` `none`
 - [ ] For an identity held by a source that lists `store` but answers `named_fields` false, or names `private_key` in `withheld_fields`, `connect` keeps the credential key in its own envelope beside the identity, never in that source, and signs every later challenge with it
 - [ ] `connect --remember-passphrase` for such an identity has a source that lists `store` keep the envelope's passphrase, and is refused, keeping nothing, when neither the identity's source nor one named with `--passphrase-holder` lists `store`
-- [ ] `register` and `connect` record a registration for each hub, naming its `hub_id`, the operator name it recorded, the `identity_id` it answered and the address it was reached at; discarding a credential after `CREDENTIAL_UNKNOWN` keeps the registration, and `OPERATOR_REVOKED` or `OPERATOR_UNKNOWN` is reported and removes it only when the person confirms; under `--json` it is kept
+- [ ] `register`, and `connect` and `attest` at an address no registration names, record a registration from the registration answer, approved or pending, naming its `hub_id`, the operator name it recorded, the `identity_id` it answered and the address it was reached at; discarding a credential after `CREDENTIAL_UNKNOWN` keeps the registration, and `OPERATOR_REVOKED` or `OPERATOR_UNKNOWN` is reported and removes it only when the person confirms; under `--json` it is kept
+- [ ] The CLI asks for an attestation token only by signing `{hub_id, name, timestamp}` with the `hub_id` of a recorded registration, never `{name, timestamp}`, and at an address no registration names sends a registration first, so an operator registered from another device records the hub's `hub_id` from the repeat's answer
+- [ ] A hub at a recorded address whose challenge names a `hub_id` other than the recorded one, or that refuses the recorded one with `CREDENTIAL_FOREIGN_HUB`, is reported naming both, and the CLI signs nothing more for it until `weblisk operator register` there records that hub's own registration
 - [ ] `weblisk operator rotate` writes the next key and a rotation record listing every registration `pending` before it sends anything, then sends `POST /v1/admin/operators/{name}/key` to each registration with its own name and `hub_id`, signed by the old key and the new, a hub whose credential was discarded included
 - [ ] With one of three hubs unreachable, `rotate` marks two `changed` and one `pending`, keeps the old key, and exits non-zero naming the pending hub; `operator.pub` holds the new key, and a `register` at a fourth hub signs with the new key
 - [ ] `weblisk operator rotate --resume` against the hub left `pending` signs the change with the old key it still records and the new key, the hub answers `200` with the same `identity_id`, and only then is the old private key destroyed and its public half kept as `operator.pub.retired`

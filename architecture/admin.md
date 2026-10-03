@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.21.0
+version: 2.22.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -306,7 +306,7 @@ because nothing was judged.
 | `CREDENTIAL_CHALLENGE_INVALID` | 401 | auth | The nonce was not issued for this credential, was already used or has expired, or the signature does not verify | Refuse and spend the nonce. Log a signature failure as a security event | `replay_detected` |
 | `CREDENTIAL_ATTESTATION_INVALID` | 400 | validation | The attestation's signature does not verify under ML-DSA-65 against the operator's recorded key, or the attestation names another identity key, or an `identity_id` that is not the operator's at this hub | Refuse. Log as a security event | `attestation_invalid`, `algorithm_not_permitted` |
 | `CREDENTIAL_FORM_UNSUPPORTED` | 400 | validation | The credential key is not an ML-DSA-65 public key, the one form these routes carry | Refuse. A form principal-identity permits beside it is admitted only by a route that declares its own registration and challenge | — |
-| `CREDENTIAL_FOREIGN_HUB` | 400 | validation | The `hub_id` an attestation or a key-change request names is not this hub's | Refuse. Log as a security event | `credential_foreign_hub` |
+| `CREDENTIAL_FOREIGN_HUB` | 400 | validation | The `hub_id` an attestation, an attestation-token request or a key-change request names is not this hub's | Refuse. Log as a security event | `credential_foreign_hub` |
 | `CREDENTIAL_IS_IDENTITY_KEY` | 400 | validation | The credential's public key is the operator's identity key, current or retired | Refuse. Log as a security event | `identity_key_as_credential` |
 | `CREDENTIAL_PURPOSE_REFUSED` | 400 | validation | The attestation names one purpose for a key this hub holds, or held, under the other; or a challenge or token request names a sign-records credential, which never signs anybody in | Refuse. Log as a security event. The client attests a separate key for each purpose | `credential_purpose_mismatch` |
 | `CREDENTIAL_LIFETIME_INVALID` | 400 | validation | `not_after` is not in the future, or is more than 90 days after the hub receives the attestation | Refuse, naming the cap | `attestation_expired`, where `not_after` has passed |
@@ -614,8 +614,10 @@ contracts:
         - The request MUST carry name, public_key, role, timestamp and signature
         - The signature MUST be verified against the SUBMITTED public key before any record is written
         - The record MUST carry identity_id, the fingerprint (protocol/identity) of the submitted public_key, which no later change alters (Operator Identity)
-        - A name already held MUST be refused with 409 and the existing record left untouched
-        - A public_key this hub records, or recorded, as any operator's identity key, current or retired, or as any credential MUST be refused with OPERATOR_KEY_REUSED, so no two operators share an identity id
+        - A request whose name is an operator's and whose public_key is that operator's current identity key is a repeat of its registration. Once its signature verifies it MUST be answered 200 with that operator's record, status, hub_id and identity_id, issuing no token and changing nothing, and a revoked operator's MUST be refused with OPERATOR_REVOKED. It is how a client that registered from another device records this hub's hub_id (attestation-token-issuance)
+        - Any other request whose name is already held MUST be refused with 409 and the existing record left untouched
+        - Any other request whose public_key this hub records, or recorded, as any operator's identity key, current or retired, or as any credential MUST be refused with OPERATOR_KEY_REUSED, so no two operators share an identity id
+        - Every answer that is not a refusal MUST carry the operator's record, its status, hub_id and its identity_id, a pending registration's included, and a token only where registration also approved the operator (first-operator-claim)
         - The timestamp MUST be inside the replay window, and the message MUST be refused on replay
         - Registration MUST be audited whether it succeeds or is refused
 
@@ -624,7 +626,7 @@ contracts:
       required: true
       rules:
         - The signed payload MUST be canonicalize({name, public_key, role, timestamp}) per RFC 8785
-        - It MUST NOT be the {name, timestamp} challenge the token request uses
+        - It MUST NOT be the {hub_id, name, timestamp} payload the attestation-token request signs
         - The public key MUST be inside the signature, so a key cannot be substituted in flight
         - The role MUST be inside the signature, because it is a privilege claim
         - The timestamp sent MUST be the timestamp signed — a second clock read produces a signature over a payload the server never sees
@@ -664,7 +666,9 @@ contracts:
       required: true
       rules:
         - The route `POST /v1/admin/operators/token` MUST require no bearer token
-        - The signed payload MUST be canonicalize({name, timestamp}), verified against the STORED public key for that operator, with the timestamp inside the 300-second replay window
+        - The signed payload MUST be canonicalize({hub_id, name, timestamp}), verified against the STORED public key for that operator, with the timestamp inside the 300-second replay window. hub_id is the one the client recorded for this hub from a registration answer (operator-registration)
+        - A request whose signature verifies over a hub_id other than this hub's MUST be refused with CREDENTIAL_FOREIGN_HUB and logged as a security event: the identity signed it for another hub, and it was relayed here
+        - A client MUST send this request only to a hub whose hub_id it has recorded, signing that hub_id, and MUST NOT sign a payload that names no hub for any hub, so neither an attestation token nor the deprecated operator token below is obtained with a signature another hub could relay. A client that has recorded none for a hub registers there first, which a hub that already knows the operator answers as a repeat
         - An operator with no record MUST be refused with OPERATOR_UNKNOWN, since there is no stored key to verify against. Only once the signature has verified may the hub disclose the operator's status: a signature that does not verify MUST be refused with INVALID_SIGNATURE whatever that status is, and then a pending operator with OPERATOR_NOT_APPROVED and a revoked one with OPERATOR_REVOKED. Each refusal MUST be audited
         - The token it issues MUST have type attestation, carry no capability and no cid, and expire within 300 seconds
         - An attestation token MUST be accepted by `POST /v1/admin/operators/{name}/credentials` for its own subject, refused there for any other operator with OPERATOR_SUBJECT_MISMATCH, and refused by every other route with CREDENTIAL_REQUIRED
@@ -864,8 +868,8 @@ defined:
 #### The registration signing input
 
 The signature is over `canonicalize({name, public_key, role, timestamp})` —
-**the whole payload**, not the `{name, timestamp}` challenge the attestation
-token request uses. RFC 8785 (JCS), as `protocol/spec` specifies for every
+**the whole payload**, not the `{hub_id, name, timestamp}` the attestation
+token request signs. RFC 8785 (JCS), as `protocol/spec` specifies for every
 signed payload. `bootstrap_secret` travels beside the signed fields and is not
 among them: whoever holds it may claim the hub, which is what it is for.
 
@@ -905,7 +909,7 @@ the identity is not asked.
 
 ```
 When a client holds no live credential at a hub — the only steps that need the identity
-  client ── sign {name, timestamp} with the identity ──▶ POST /v1/admin/operators/token
+  client ── sign {hub_id, name, timestamp}, its recorded hub_id ─▶ POST /v1/admin/operators/token
          ◀── attestation token (type attestation, 300 s), hub_id, identity_id
   client ── Attestation, signed by the identity ───────▶ POST /v1/admin/operators/{name}/credentials
          ◀── the credential, and its id
@@ -930,18 +934,25 @@ an operator with no credential here starts. The identity signs the request:
 ```
 POST /v1/admin/operators/token
 {
+  "hub_id": "<the hub_id the client recorded for this hub>",
   "name": "alice",
   "timestamp": 1712160000,
-  "signature": "<sign(canonicalize({name, timestamp}))>"
+  "signature": "<sign(canonicalize({hub_id, name, timestamp}))>"
 }
 ```
 
 The orchestrator looks the operator up by `name` in its OWN records, never in a
 directory, and verifies the signature against the public key there, over
-`canonicalize({name, timestamp})` as received, per
+`canonicalize({hub_id, name, timestamp})` as received, per
 [`protocol/spec`](../protocol/spec.md#signing-input). It refuses a `timestamp`
-outside the 300-second replay window, and an operator who is not approved — a
-registered but unapproved operator is a different fact from an unknown one.
+outside the 300-second replay window, a `hub_id` that is not its own with
+`CREDENTIAL_FOREIGN_HUB`, logged as a security event, and an operator who is
+not approved — a registered but unapproved operator is a different fact from
+an unknown one. The signature names the hub, so a hub the person also belongs
+to cannot relay it to this one. The client signs the `hub_id` it recorded from
+a [registration answer](#the-registration-response), never one it is told in
+the same exchange, and makes no such request to a hub it has recorded none
+for.
 
 ```
 200 {
@@ -1226,8 +1237,17 @@ and the response says so:
 
 ```
 200 { "operator": {...}, "status": "approved", "token": "<WLT, type attestation>", "expires_at": ..., "hub_id": ..., "identity_id": ... }
-200 { "operator": {...}, "status": "pending" }
+200 { "operator": {...}, "status": "pending", "hub_id": ..., "identity_id": ... }
 ```
+
+Every answer names the hub and the operator, because the client signs that
+`hub_id` to obtain an attestation token
+([The identity signs only to attest](#the-identity-signs-only-to-attest)): a
+pending operator learns it here and asks once approved. A registration that
+repeats an operator's own, the same name and the operator's current key, is
+answered the same way, with the operator's status and no token, and changes
+nothing, so a person who registered from another device records the hub's
+`hub_id` by registering again (`operator-registration`).
 
 Stated because it was not, and the omission broke the chain in a way that looked
 like success. A generated orchestrator returned the operator record alone; the
@@ -1520,7 +1540,7 @@ operator the system is quiet when it is simply not there.
 | Path | Method | Role | Purpose |
 |------|--------|------|---------|
 | `/v1/admin/operators/register` | POST | — | Register new operator (the first presents the bootstrap secret) |
-| `/v1/admin/operators/token` | POST | — | Obtain an attestation token by signing `{name, timestamp}` with the identity. Deprecated as a way to an operator token |
+| `/v1/admin/operators/token` | POST | — | Obtain an attestation token by signing `{hub_id, name, timestamp}` with the identity, `hub_id` the one the client recorded. Deprecated as a way to an operator token |
 | `/v1/admin/credentials/challenge` | POST | — | Issue a single-use nonce for a credential |
 | `/v1/admin/credentials/token` | POST | — | Obtain an operator token by signing the nonce with the credential |
 | `/v1/admin/operators/:name/key` | POST | — | Change the operator's identity key, signed by the current key and the new one. Keeps the operator and its identity id, and revokes its credentials |
@@ -2287,11 +2307,13 @@ The rest SHOULD be:
 - [ ] Provisioning against an existing identity reuses it; a passphrase that does not open it is an error and no new key is generated
 - [ ] Provisioning is re-runnable: an already-registered operator proceeds to obtain a token rather than failing
 - [ ] The passphrase is never written to disk, and a console never writes an operator token anywhere
-- [ ] `POST /v1/admin/operators/token` issues an attestation token (`type` `attestation`, no `cap`, no `cid`, at most 300 seconds, with `hub_id` and the operator's `identity_id`) to an approved operator who signs `{name, timestamp}` with their identity key, and every route but `POST /v1/admin/operators/{name}/credentials` refuses that token with `CREDENTIAL_REQUIRED`
+- [ ] `POST /v1/admin/operators/token` issues an attestation token (`type` `attestation`, no `cap`, no `cid`, at most 300 seconds, with `hub_id` and the operator's `identity_id`) to an approved operator who signs `{hub_id, name, timestamp}` with their identity key, and every route but `POST /v1/admin/operators/{name}/credentials` refuses that token with `CREDENTIAL_REQUIRED`
 - [ ] The signature is verified against the public key in the orchestrator's OWN operator record, never a directory
 - [ ] A token request outside the 300-second replay window is refused
 - [ ] A token request for a pending operator is refused with 403 `OPERATOR_NOT_APPROVED`, distinctly from an unknown operator (`OPERATOR_UNKNOWN`)
-- [ ] Registration that also approves returns an attestation token, `hub_id`, `identity_id` and `status: approved`; registration that does not returns `status: pending` and no token
+- [ ] Registration that also approves returns an attestation token, `hub_id`, `identity_id` and `status: approved`; registration that does not returns `status: pending`, `hub_id` and `identity_id`, and no token
+- [ ] A registration repeating an operator's name and current identity key, with a fresh timestamp, is answered `200` with that operator's record, status, `hub_id` and `identity_id`, no token and nothing changed, and for a revoked operator is refused with `OPERATOR_REVOKED`; the same name with another key is refused with 409
+- [ ] `POST /v1/admin/operators/token` signed by an approved operator over another hub's `hub_id` is refused with `CREDENTIAL_FOREIGN_HUB`, issues no token and is logged as a security event, and one signed over `{name, timestamp}` alone is refused with `INVALID_SIGNATURE`
 - [ ] A registered operator's `identity_id` is the fingerprint of the `public_key` its registration carried, and stays that value through every later change of identity key
 - [ ] After a change of identity key, `POST /v1/admin/operators/token` signed with the new key answers the operator's kept `identity_id`; an attestation naming that `identity_id` is accepted, and one naming the new key's fingerprint instead is refused with `CREDENTIAL_ATTESTATION_INVALID`
 - [ ] An expired operator token is replaced by a new challenge answered with the credential, without re-registering and without the identity

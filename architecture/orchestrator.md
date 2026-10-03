@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.15.0
+version: 2.15.1
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -707,7 +707,7 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 | Method | Path | Operation | Capability | Purpose |
 |--------|------|-----------|-----------|---------|
 | POST | /v1/admin/operators/register | OperatorRegister | — | Register an operator. The first presents the bootstrap secret this orchestrator emitted; every later one requires `admin:*`. Returns a token ONLY when registration also approved — see [`architecture/admin`](admin.md#the-registration-response) |
-| POST | /v1/admin/operators/token | OperatorToken | — | Issue an attestation token to a caller who signs `{name, timestamp}` with the private key matching this orchestrator's record. Unauthenticated by token, because it is what issues them. Deprecated as a way to an operator token — see [`architecture/admin`](admin.md#the-identity-signs-only-to-attest) |
+| POST | /v1/admin/operators/token | OperatorToken | — | Issue an attestation token to a caller who signs `{hub_id, name, timestamp}`, naming this hub, with the private key matching this orchestrator's record. Unauthenticated by token, because it is what issues them. Deprecated as a way to an operator token — see [`architecture/admin`](admin.md#the-identity-signs-only-to-attest) |
 | POST | /v1/admin/credentials/challenge | CredentialChallenge | — | Issue a single-use nonce for a credential |
 | POST | /v1/admin/credentials/token | CredentialToken | — | Issue an operator token to a credential that signed the nonce. The ordinary way to an operator token |
 | POST | /v1/admin/operators/{name}/key | OperatorKeyChange | — | Change an operator's identity key, signed by the current key and the new one. Unauthenticated by token, because the two signatures authenticate it and the operator may hold no live credential — see [`architecture/admin`](admin.md#changing-an-identity-key) |
