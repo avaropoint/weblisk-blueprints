@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.12.0
+version: 2.12.1
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -328,8 +328,8 @@ the sections below: [Project Commands](#project-commands),
 10. Exit code set based on success/failure (0 = success, 1 = error, 2 = auth failure)
 
 **A group another component provides is reached on a pass, never on the
-stored token.** The domain, workflow, approval, strategy and federation
-commands address groups
+stored token.** The domain, workflow, approval, strategy, observation and
+federation commands address groups
 [`architecture/admin`](admin.md#the-admin-api-is-an-aggregate) gives to a
 component other than the orchestrator. The CLI sends them to the admin
 gateway as it sends every command, and the gateway, not the CLI, has the
@@ -2697,7 +2697,7 @@ security:
 - [ ] All commands output human-readable tables by default and structured JSON with --json flag
 - [ ] Destructive commands (agents deregister, federations revoke) require --confirm or interactive name-confirmation
 - [ ] `weblisk approvals reject` requires a --reason argument for every rejection
-- [ ] `weblisk approvals list`, `weblisk strategies list`, `weblisk federations peers`, `weblisk domains list` and `weblisk workflows list` are sent to the hub's admin gateway, and report their group unavailable and exit 1 when it answers `ADMIN_GROUP_UNAVAILABLE`, as it does while no provider's blueprint specifies the route; the stored token is sent nowhere but the admin gateway
+- [ ] `weblisk approvals list`, `weblisk strategies list`, `weblisk strategies update`, `weblisk strategies delete`, `weblisk observations list`, `weblisk observations trends`, `weblisk federations peers`, `weblisk federations describe`, `weblisk federations contracts`, `weblisk domains list` and `weblisk workflows list` are sent to the hub's admin gateway, and report their group unavailable and exit 1 when it answers `ADMIN_GROUP_UNAVAILABLE`, as it does while no provider's blueprint specifies the route; the stored token is sent nowhere but the admin gateway
 - [ ] `weblisk status` calls `GET /v1/admin/overview` at the hub's admin gateway and displays agents, domains, workflows, approvals, federation and health score, showing as unavailable, never as zero, each figure the gateway reports unavailable
 - [ ] Exit codes are 0=success, 1=general error, 2=auth error, 3=connection error, 4=not found, 5=permission denied
 - [ ] Config resolution order: command-line flags > environment variable > .weblisk/config.json (project) > ~/.weblisk/config.json (user)
@@ -2727,16 +2727,16 @@ security:
 - [ ] `weblisk policy test` runs policy assertions from policies_test.yaml
 
 ### Strategies
-- [ ] `weblisk strategies update` modifies priority, deadline, or targets of an existing strategy
-- [ ] `weblisk strategies delete` archives a strategy (admin only, requires confirmation)
+- [ ] Once the Lifecycle Agent's blueprint specifies the route, `weblisk strategies update` modifies priority, deadline, or targets of an existing strategy
+- [ ] Once the Lifecycle Agent's blueprint specifies the route, `weblisk strategies delete` archives a strategy (admin only, requires confirmation)
 
 ### Observations
-- [ ] `weblisk observations list` shows observation history with strategy/agent filters
-- [ ] `weblisk observations trends` displays metric trend data for a strategy
+- [ ] Once the Lifecycle Agent's blueprint specifies the route, `weblisk observations list` shows observation history with strategy/agent filters
+- [ ] Once the Lifecycle Agent's blueprint specifies the route, `weblisk observations trends` displays metric trend data for a strategy
 
 ### Federation
-- [ ] `weblisk federations describe` shows full peer detail including data contract and metrics
-- [ ] `weblisk federations contracts` lists all active data contracts across peers
+- [ ] Once the federation layer's blueprint specifies the route, `weblisk federations describe` shows full peer detail including data contract and metrics
+- [ ] Once the federation layer's blueprint specifies the route, `weblisk federations contracts` lists all active data contracts across peers
 
 ### Marketplace
 - [ ] `weblisk marketplace search` queries the marketplace with text search
