@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.18.0
+version: 2.19.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -245,6 +245,8 @@ requires:
 │  ┌────────────────────────────────────────────────────┐  │
 │  │  Replica Sender            (push-only)             │  │
 │  │  - sends each replica what it lacks, in order      │  │
+│  │  - holds every send until it can leave a           │  │
+│  │    signed egress record of what left               │  │
 │  │  - from the service's own record, never the store  │  │
 │  │  - never reads from a replica                      │  │
 │  └────────────────────────────────────────────────────┘  │
@@ -292,7 +294,9 @@ evidence of record, and it is signed. See [The Change Log](#the-change-log).
 converts an unexplained change from an alarm into a recorded fact.
 
 **Replica Sender** sends each of a repository's replicas what it has not yet
-received, and takes nothing back. See [Replicas](#replicas).
+received, and takes nothing back. It sends nothing until a send can leave the
+signed egress record it owes, and holds every replica until then. See
+[Replicas](#replicas) and the [Replica Send Flow](#replica-send-flow).
 
 ---
 
@@ -989,7 +993,8 @@ code here is enough, because a client does the same thing for both.
     reaches its destination (see [Effective custody](#effective-custody)).
     Both are recomputed, the replica becomes `behind`, or `current` when there
     is nothing to send, and `content.replica_declared` is published. Sending
-    begins
+    begins once a send can leave its egress record
+    ([Replica Send Flow](#replica-send-flow), step 4)
 12. Should step 9 or 10 not finish, nothing is sent and nothing is rolled back:
     the caller is answered with `CONTENT_ESTABLISH_INCOMPLETE` carrying the
     replica, its `ReplicaEstablishment` and its credential
@@ -1009,12 +1014,20 @@ code here is enough, because a client does the same thing for both.
    such version is **held**: the replica is `behind`, `held_path` names the
    path and `held_reason` says which of the three it is, and neither that
    version nor anything recorded after it is sent. What was recorded before it
-   is sent
-4. A destination that cannot be reached, or that refuses the credential, makes
+   is sent, as step 4 allows
+4. **Nothing is sent before its egress record can be.** A send owes a signed
+   record of what left, which this service cannot yet make
+   ([The Change Log](#the-change-log), the gap on what a send leaves). Until it can,
+   what step 3 would let leave is not sent: the replica is `behind` with
+   `held_reason` `egress-unrecorded` and no `held_path`, unless step 3 held a
+   version first, and steps 5 and 6 send nothing. Steps 2 and 3 still run,
+   because they read and send nothing, so a held version and a changed
+   destination are reported as before
+5. A destination that cannot be reached, or that refuses the credential, makes
    the replica `unreachable` until the next attempt succeeds
-5. What was sent is recorded with `checked_at`. With nothing left to send, the
+6. What was sent is recorded with `checked_at`. With nothing left to send, the
    replica is `current`
-6. Each change of state publishes `content.replica_state`
+7. Each change of state publishes `content.replica_state`
 
 ---
 
@@ -2315,7 +2328,7 @@ Flow, step 10).
 |---|---|
 | `establishing` | Reserved and not yet confirmed. Nothing has been sent |
 | `current` | The destination held every recorded version when last checked |
-| `behind` | Versions are recorded and not yet sent. `held_path` and `held_reason` name a version the service will not send, if there is one |
+| `behind` | Versions are recorded and not yet sent. `held_reason` says why, where something holds them back: a version the service will not send, which `held_path` names, or `egress-unrecorded`, which holds every send ([Replica Send Flow](#replica-send-flow), step 4) |
 | `diverged` | The destination holds something this service did not send. Nothing is sent |
 | `unreachable` | The last attempt could not reach the destination, or its credential was refused |
 | `retired` | A person retired it. Nothing is sent, its credential is destroyed, and its record stays |
@@ -2796,20 +2809,19 @@ appended. A proposal that is `open`, `rejected` or `stale` changed no entry and
 is not in the log; the proposal is its record ([Proposals](#proposals)). Reads,
 replica sends and custody re-verification change no entry either.
 
-> **Gap — a replica send leaves no signed record of what left.** A send is
-> recorded only as its replica's `checked_at`, on replica state the next send
-> replaces ([Replica Send Flow](#replica-send-flow)), so the tenant keeps no
-> signed evidence of what left, for which destination, or under what
-> demonstrated ceiling. What a send owes is one entry in this log, sealed as
-> every entry is: the replica, its ceiling and the attestations it was
-> derived from, the version sent last, a sha256 manifest of the path, digest
-> and scope of every entry the send carried, the scope the repository holds,
-> and digests of the rules the send was checked against. It is not specified
-> here yet, because the scope a repository holds is not yet one of its fields
-> ([The recorded scope](#the-recorded-scope)). Until it is, nothing a send
-> leaves behind is evidence of what left: a consumer MUST NOT report what a
-> replica holds, or that it holds nothing above a level, from `checked_at` or
-> from the replica's state.
+> **Gap — a replica send would leave no signed record of what left, so
+> nothing is sent.** A send owes a signed egress record of what left, for
+> which destination, and under what demonstrated ceiling, and this service
+> cannot yet make one. That record is the next gap after this contract, and it
+> waits on two things: the signing that seals this log
+> ([`architecture/storage`](storage.md#sealing-a-chained-log)), and the test
+> vectors [`protocol/identity`](../protocol/identity.md#fixed-form-statements)
+> requires before any implementation signs under the prefixes that signing
+> uses. It is not specified here. Until it is, the
+> [Replica Send Flow](#replica-send-flow) sends nothing to any replica
+> (step 4), and a consumer MUST NOT report what a replica holds, or that it
+> holds nothing above a level, from `checked_at` or from the replica's
+> state.
 
 **A path's recorded digest is its last entry.** The last `change` or `observe`
 entry that names a path, or, where there is none, the `declare` entry, records
@@ -3730,11 +3742,13 @@ types:
           because of it — the reserved path, or a path the version changes
       held_reason:
         type: enum
-        values: [reserved-path, unclassified, above-ceiling]
+        values: [reserved-path, unclassified, above-ceiling, egress-unrecorded]
         required: false
-        description: Why the version is held — it holds a reserved path; it is
-          unclassified and the census did not count it; or its scope is above
-          the replica's ceiling. See Replica Send Flow
+        description: Why versions are held — a version holds a reserved path;
+          it is unclassified and the census did not count it; or its scope is
+          above the replica's ceiling; or, with no held_path, no send can yet
+          leave the signed egress record it owes, which holds every replica.
+          See Replica Send Flow
       checked_at:
         type: timestamp
         required: false
@@ -4725,6 +4739,11 @@ security:
         leave, the destination, held_by and the claims made for it, so a
         census taken for one destination confirms no other. content:replicate
         and content:connect are both required and both person only
+    - rule: Nothing is sent to a replica before the send can leave a signed
+        egress record of what left
+      mechanism: The Replica Send Flow holds every replica with held_reason
+        egress-unrecorded, and sends nothing, until that record is specified
+        (the gap under The Change Log)
     - rule: Nothing is sent to a replica that holds a reserved path, that
         nothing classified, or that is above the replica's ceiling
       mechanism: The census refuses each at declaration, an unclassified
@@ -5190,12 +5209,13 @@ security:
 - [ ] Retiring a confirmed replica, whether or not it was sent anything, leaves the repository's `ceiling` and `effective_custody` unchanged, destroys its credential, and deletes nothing at the destination
 - [ ] A replica confirmed while its destination is unreachable, and sent nothing, lowers the repository's `ceiling` at confirmation, and a write declaring a scope above the replica's ceiling is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
 - [ ] Retiring a replica that is already `retired` changes nothing and returns it with the first `retired_by`
-- [ ] A destination changed by somebody else makes its replica `diverged`; nothing is sent to it, nothing from it enters the repository, and sending resumes by itself once the destination again holds only what was sent
+- [ ] A destination changed by somebody else makes its replica `diverged`; nothing is sent to it, nothing from it enters the repository, and once the destination again holds only what was sent the replica leaves `diverged` by itself
+- [ ] No version is sent to any replica: a confirmed replica of a repository that holds a version is `behind` with `held_reason` `egress-unrecorded` and no `held_path`, unless step 3 of the Replica Send Flow held a version first, and its destination receives nothing
 - [ ] A version above a replica's ceiling holds the replica `behind` with `held_path` naming it and `held_reason` `above-ceiling`, and no version recorded after it is sent
 - [ ] A replica declaration confirming a census taken for another destination, or with other claimed custody, attestations or `history_scope`, is refused with `CONTENT_PRECONDITION_FAILED`, and so is one whose destination's backend changed `held_by` since the census
 - [ ] A replica declaration whose census counts unclassified versions and that carries no `history_scope` is refused with `CONTENT_SCOPE_UNDECLARED`; the same declaration with a `history_scope` at or below the prospective replica ceiling, and the digest of a census taken with it, is confirmed and records `history_scope`
 - [ ] An unclassified version recorded after a replica's census — an entry a person created in the store with no scope in its bytes, whether observed or not — holds the replica `behind` with `held_reason` `unclassified`, and nothing recorded after it is sent
-- [ ] An out-of-band edit, after a replica's census, to an entry whose path has a recorded scope is classified at that scope, or at the higher scope its bytes declare, and is sent when that is at or below the replica's ceiling
+- [ ] An out-of-band edit, after a replica's census, to an entry whose path has a recorded scope is classified at that scope, or at the higher scope its bytes declare, and holds no replica back when that is at or below the replica's ceiling, which is then `behind` with `held_reason` `egress-unrecorded`, never `above-ceiling`
 - [ ] A version recorded after a replica was confirmed that holds a path under `.weblisk`, anywhere in what it holds, holds the replica `behind` with `held_reason` `reserved-path` naming that path; it is never sent, and nothing recorded after it is sent
 - [ ] A backend's report of a copy of the store that no replica declares makes `effective_custody` `opaque`, lowers `ceiling` to `public`, as a replica declared at a place that demonstrated nothing would, and publishes `content.custody_degraded`; a write at `internal` is then refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
 - [ ] A copy the backend reported once and no longer reports stays in `reported_copies`; `effective_custody` stays `opaque` and `ceiling` stays `public`, and a write at `internal` is still refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`

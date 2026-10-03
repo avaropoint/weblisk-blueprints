@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: content-git
-version: 1.6.3
+version: 1.7.0
 requires: [architecture/content, patterns/content-identity, protocol/identity, patterns/secrets, patterns/principal-identity]
 platform: any
 tier: free
@@ -66,7 +66,7 @@ all of what this blueprint says about it.
 ```yaml
 requires:
   - blueprint: architecture/content
-    version: ">=2.14.0 <3.0.0"
+    version: ">=2.19.0 <3.0.0"
     bindings:
       types:
         - name: ContentChange
@@ -312,8 +312,9 @@ contracts:
         - A commit is a version, classified as architecture/content's What would leave classifies one. The commit of a ContentChange, found by ContentChange.version, is at that change's scope, and needs none when the change removes an entry. Any other commit - one from before adoption, one the service made for an observation, one a person made on the line - is classified by each path it adds or changes against its first parent, from the scope that path's bytes in the commit declare, the maps_to of each label they carry that the tenant registers included, as architecture/content reads bytes, and the path's recorded scope as last recorded, which a removal never clears and the repository's scope_floor bounds below, and is unclassified when one of those paths has neither
         - The commits a push could send are those reachable from the record mirror's newest anchored commit and not from the destination's head. Before each push, every one of them is checked, oldest first in topological order, as architecture/content's Replica Send Flow requires - every path its whole tree holds, recursively, against architecture/content's reserved names and this blueprint's reserved paths, every gitlink and symbolic link included, and not only the paths it changes; whether it is unclassified and the replica's census did not count it; and whether its scope is above the replica's ceiling
         - The first commit that fails holds the replica, with held_reason reserved-path, unclassified or above-ceiling. held_path is the reserved path it holds, or else the first path, in git's order, that it changes from its first parent. The commit to send is then the newest anchored commit on the record mirror's line that does not descend from it, and nothing is pushed when the destination already holds that commit
+        - Nothing is pushed while architecture/content's Replica Send Flow holds every send for the egress record a send owes (its step 4). The checks above and the ls-remote below still run, so a held commit and a diverged destination are reported, and a replica no commit holds is behind with held_reason egress-unrecorded and is pushed nothing
         - Before each push the service asks the destination for its line's head with ls-remote, over the same transport. That is the only thing it reads there. It never fetches
-        - A destination whose line names a commit that is not on the record mirror's line makes the replica diverged. Its head is recorded in backend_report, and pushing resumes by itself once the destination's line again names a commit on the mirror's line
+        - A destination whose line names a commit that is not on the record mirror's line makes the replica diverged. Its head is recorded in backend_report, and the replica leaves diverged by itself once the destination's line again names a commit on the mirror's line
         - A destination's refs other than its line are not the replica. They are counted in backend_report, and never sent, fetched or removed
         - anonymous_read is tested with ls-remote against the replica's locator at each of the backend's read_addresses, presenting no credential, and with an attempt over the replica's own ssh transport presenting no key. It is refused when every attempt is refused, readable when any lists a ref, and unknown when any cannot finish
 
@@ -751,7 +752,7 @@ from the line's, returning both of those digests.
 - [ ] A replica on a `git-remote` backend whose declaration claims `exclusive` custody and every attestation is recorded `custody` `opaque`, with every attestation `false` and the `ceiling` `public`
 - [ ] Under exclusive custody with a working tree, a write to a path a person edited in the working tree is refused with `CONTENT_PRECONDITION_FAILED` returning the line's and the working tree's digests, and no commit is made
 - [ ] A change whose `actor` is a service's identity id names that service by its pseudonym as author, never by its identity id
-- [ ] A push to a replica is made from the record mirror, names one refspec for the line, is never forced, and sends no tag
+- [ ] A push to a replica, once architecture/content's Replica Send Flow lets one be made, is made from the record mirror, names one refspec for the line, is never forced, and sends no tag
 - [ ] A destination whose host key is not in `host_keys`, or that does not offer `mlkem768x25519-sha256`, is sent nothing and is not presented the key
 - [ ] A destination whose line was moved to a commit not on the record mirror's line makes the replica `diverged`, records the destination's head in `backend_report`, and receives nothing more until its line again names a commit on the mirror's line
 - [ ] No operation fetches from a replica
@@ -759,6 +760,6 @@ from the line's, returning both of those digests.
 - [ ] A person's commit on the line, made after a replica was confirmed, that adds `.weblisk/secrets/x`, a gitlink or a symbolic link holds the replica `behind` with `held_reason` `reserved-path` naming the path; the commit is never pushed, and neither is any anchored commit that descends from it
 - [ ] A commit the service made for an observation after a replica's census, of a path with no recorded scope whose bytes declare none, holds the replica `behind` with `held_reason` `unclassified`, and the push sends the newest anchored commit before it
 - [ ] Where the tenant registers `pii` with `maps_to: restricted`, a commit from before adoption, in a repository floored at `internal`, that adds a file carrying `custom_labels: [pii]` beside `scope: internal` or beside no level is classified `restricted`, and holds a plain replica `behind` with `held_reason` `above-ceiling`
-- [ ] A commit a person made on the line after a replica's census, changing only paths that have a recorded scope at or below the replica's ceiling, is classified and pushed
+- [ ] A commit a person made on the line after a replica's census, changing only paths that have a recorded scope at or below the replica's ceiling, is classified and holds no replica back: the replica is `behind` with `held_reason` `egress-unrecorded`, and nothing is pushed
 - [ ] A repository declaration whose placement names a `git-remote` backend is refused with `CONTENT_BACKEND_UNKNOWN`
 - [ ] A store with a configured remote reports a `remote` finding, and its repository's `effective_custody` is `opaque`
