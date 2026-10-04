@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.13.0
+version: 2.13.1
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -135,7 +135,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.11.0 <2.0.0"
+    version: ">=1.13.0 <2.0.0"
     bindings:
       types:
         - name: WLToken
@@ -189,7 +189,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/admin
-    version: ">=2.13.0 <3.0.0"
+    version: ">=2.25.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/admin/operators/register
@@ -210,7 +210,14 @@ requires:
           methods: [GET]
         - path: /v1/admin/approvals
           methods: [GET, POST]
-      types:
+      behaviors:
+        - name: operator-registration
+        - name: registration-signing-input
+        - name: attestation-token-issuance
+        - name: operator-credential-attestation
+        - name: operator-token-issuance
+        - name: operator-key-change
+        - name: admin-gateway-authorization
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
