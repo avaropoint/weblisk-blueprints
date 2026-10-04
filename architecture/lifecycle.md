@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: lifecycle
-version: 1.0.2
+version: 1.0.3
 requires: [protocol/types, architecture/domain, architecture/agent, patterns/messaging]
 platform: any
 tier: free
@@ -699,8 +699,14 @@ security:
 > authority on the approver's behalf, which is
 > [`patterns/principal-identity`](../patterns/principal-identity.md)'s
 > `agent-delegation`, and no route for it is specified. Until both are
-> specified, `architecture/admin` reports the approval queue unavailable, and
-> no approved recommendation is executed.
+> specified, `architecture/admin` reports the approval queue unavailable. Phase
+> 4 still executes every accepted recommendation, those the approval workflow
+> accepts by itself in an `auto` domain and those a `POST /v1/message` action
+> approves, as the domain controller's own work: under no approver's authority,
+> with no person recorded as having decided, so neither the boundary
+> *Recommendation → Approval* nor the rule that execution runs under the
+> approver's scope holds for any of them yet. `agent-delegation` is what would
+> put an approver's authority behind that work.
 
 ---
 
