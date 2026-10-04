@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.26.1
+version: 2.26.2
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -813,7 +813,7 @@ contracts:
         - Capabilities MUST be derived from the role, never stored per operator
         - The `operator` role MUST carry `admin:read`, `admin:approve` and `admin:strategy` — it is the role every `operator+` endpoint in this document is gated on
         - Each `content:` capability, `model:attest`, `fabric:read` and `fabric:attest` MUST be carried by the roles the Operator Roles table gives it. Roles are held by operators, who are people, and by nothing else, so a role may carry a capability `protocol/types` marks person only
-        - Every capability this document names MUST be carried by some role; a capability no role holds is a constant, not a permission
+        - Every capability this document names for a person's token to carry MUST be carried by some role; a capability no role holds is a constant, not a permission. token:exchange, which this document names as what the admin gateway's registration declares, is a component's and not a person's, and no role carries it (protocol/types, Exchange capability)
         - The last active admin MUST NOT be removable or demotable
         - A role change MUST be audited with the previous and new role
 ```
@@ -2488,6 +2488,7 @@ The rest SHOULD be:
 - [ ] A token request whose `cap` names nothing the operator's role carries, such as a `viewer`'s or an `auditor`'s with `cap` `[fabric:attest]`, receives a token whose `cap` is the empty list. That token, and an operator token that carries no `cap` claim at all, is refused with `FORBIDDEN` at every route that requires a capability, and the token exchange answers it `issued: false` with `FORBIDDEN` for any `scope`, never minting a pass that carries the role's full set
 - [ ] An operator token carries `identity_id`, the `identity_id` of the credential its `cid` names
 - [ ] A `viewer` token carries `content:read` and `content:describe` and no other `content:` capability, and an `operator` token carries `content:write` and `content:decide`
+- [ ] Every capability this document names for a person's token is carried by at least one role in the Operator Roles table, and no role carries `token:exchange`, so no operator token's `cap` reaches it whatever it names
 - [ ] An `operator` or `admin` token carries `fabric:read` and `fabric:attest`, a `viewer` or `auditor` token carries `fabric:read` and not `fabric:attest`
 - [ ] An `admin` token carries `content:replicate` and `content:connect`, an `operator` token carries neither, and no token minted for a service subject carries either
 - [ ] An `admin` token carries `content:declassify`, and an `operator`, `auditor` or `viewer` token, and every token minted for a service subject, does not
