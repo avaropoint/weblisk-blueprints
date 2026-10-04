@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.24.1
+version: 2.25.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -616,10 +616,10 @@ contracts:
         - The request MUST carry name, public_key, role, timestamp and signature
         - The signature MUST be verified against the SUBMITTED public key before any record is written
         - The record MUST carry identity_id, the fingerprint (protocol/identity) of the submitted public_key, which no later change alters (Operator Identity)
-        - A request whose name is an operator's and whose public_key is that operator's current identity key is a repeat of its registration. Once its signature verifies it MUST be answered 200 with that operator's record, status, hub_id and identity_id, issuing no token and changing nothing, and a revoked operator's MUST be refused with OPERATOR_REVOKED. It is how a client that registered from another device records this hub's hub_id (attestation-token-issuance)
+        - A request whose name is an operator's and whose public_key is that operator's current identity key is a repeat of its registration. Once its signature verifies it MUST be answered 200 with hub_id and identity_id alone, carrying no record, role, status or token, whatever the operator's status, revoked included, and changing nothing. It is how a client that registered from another device records this hub's hub_id (attestation-token-issuance), and the operator's status is told only to a request signed for this hub. A registration names no hub, so another hub can relay one here, and a repeat tells it that this name and key are an operator's here, as a 409 to the same request always did, with those two identifiers and nothing else (The identity signs only to attest, the gap there)
         - Any other request whose name is already held MUST be refused with 409 and the existing record left untouched
         - Any other request whose public_key this hub records, or recorded, as any operator's identity key, current or retired, or as any credential MUST be refused with OPERATOR_KEY_REUSED, so no two operators share an identity id
-        - Every answer that is not a refusal MUST carry the operator's record, its status, hub_id and its identity_id, a pending registration's included, and a token only where registration also approved the operator (first-operator-claim)
+        - Every other answer that is not a refusal MUST carry the operator's record, its status, hub_id and its identity_id, a pending registration's included, and a token only where registration also approved the operator (first-operator-claim)
         - The timestamp MUST be inside the replay window, and the message MUST be refused on replay
         - Registration MUST be audited whether it succeeds or is refused
 
@@ -951,11 +951,12 @@ directory, and verifies the signature against the public key there, over
 outside the 300-second replay window, a `hub_id` that is not its own with
 `CREDENTIAL_FOREIGN_HUB`, logged as a security event, and an operator who is
 not approved — a registered but unapproved operator is a different fact from
-an unknown one. The signature names the hub, so a hub the person also belongs
-to cannot relay it to this one. The client signs the `hub_id` it recorded from
-a [registration answer](#the-registration-response), never one it is told in
-the same exchange, and makes no such request to a hub it has recorded none
-for.
+an unknown one. The signature names the hub, so it is refused at every hub
+but the one whose `hub_id` the client recorded. The client signs the `hub_id`
+it recorded from a [registration answer](#the-registration-response), never
+one it is told in the same exchange, and makes no such request to a hub it has
+recorded none for. Which hub gave that answer is a separate question, and the
+gap below says how far it is settled.
 
 ```
 200 {
@@ -981,6 +982,34 @@ other route refuses it. So this endpoint is not the authentication by identity
 key that [`patterns/principal-identity`](../patterns/principal-identity.md)
 forbids: an identity signature here obtains the right to attest, which is the
 one thing an identity is for.
+
+> **Gap — a recorded `hub_id` is what the answer said.** A client records a
+> hub's `hub_id` from a registration answer, and nothing the hub signs binds
+> that `hub_id` to the address the client reached. A registration names no hub
+> (`registration-signing-input`), so a hub the person registers or connects at
+> can relay it, inside the replay window, to another hub the person belongs
+> to, which answers it as a repeat with its own `hub_id`. A client that has
+> that `hub_id` recorded at another address refuses to move it there
+> ([`architecture/cli`](cli.md#a-credential-for-each-hub)). A client that has
+> it recorded nowhere, as on a new device, records the other hub's `hub_id` at
+> the relaying hub's address, and every signature it then makes there for
+> that `hub_id` — the attestation-token request, the `Attestation`, the
+> credential's answer to a challenge — is good at the other hub, through the
+> relaying one, which receives the operator token the other hub issues. HTTPS
+> does not stop it: the client is talking to the relaying hub's own address.
+> The same relay tells the relaying hub whether the person is an operator at
+> the other hub, with that hub's `hub_id` and the person's `identity_id`
+> there, and where the person is not one, leaves a pending registration in
+> their name there. Closing it needs what the person signs to name the
+> address or the channel the client reached, such as the TLS exporter of
+> [RFC 9266](https://www.rfc-editor.org/rfc/rfc9266), or a statement the hub
+> signs, with the key its `hub_id` is the fingerprint of, over the address it
+> was reached at. Neither is specified, and a statement the hub signs is a
+> fixed-form statement, which no implementation signs before its test vectors
+> exist ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)).
+> Until one is, a person relies on the hub at the address they gave not to
+> relay, and how a second device should learn a `hub_id`, which the repeat
+> answer provides today, is not decided.
 
 **Obtaining an operator token here is deprecated.** A hub built before the
 credential routes issues one here. A client MUST use the credential routes
@@ -1245,6 +1274,7 @@ and the response says so:
 ```
 200 { "operator": {...}, "status": "approved", "token": "<WLT, type attestation>", "expires_at": ..., "hub_id": ..., "identity_id": ... }
 200 { "operator": {...}, "status": "pending", "hub_id": ..., "identity_id": ... }
+200 { "hub_id": ..., "identity_id": ... }
 ```
 
 Every answer names the hub and the operator, because the client signs that
@@ -1252,9 +1282,14 @@ Every answer names the hub and the operator, because the client signs that
 ([The identity signs only to attest](#the-identity-signs-only-to-attest)): a
 pending operator learns it here and asks once approved. A registration that
 repeats an operator's own, the same name and the operator's current key, is
-answered the same way, with the operator's status and no token, and changes
-nothing, so a person who registered from another device records the hub's
-`hub_id` by registering again (`operator-registration`).
+answered as the third line is, and changes nothing, so a person who
+registered from another device records the hub's `hub_id` by registering
+again (`operator-registration`). It carries no record, role or status,
+whatever the operator's status: a registration names no hub, so a hub it was
+relayed from learns from the answer only what a `409` already told it, and
+those two identifiers
+([The identity signs only to attest](#the-identity-signs-only-to-attest), the
+gap there). The operator's status is told to a request signed for this hub.
 
 Stated because it was not, and the omission broke the chain in a way that looked
 like success. A generated orchestrator returned the operator record alone; the
@@ -2337,7 +2372,7 @@ The rest SHOULD be:
 - [ ] A token request outside the 300-second replay window is refused
 - [ ] A token request for a pending operator is refused with 403 `OPERATOR_NOT_APPROVED`, distinctly from an unknown operator (`OPERATOR_UNKNOWN`)
 - [ ] Registration that also approves returns an attestation token, `hub_id`, `identity_id` and `status: approved`; registration that does not returns `status: pending`, `hub_id` and `identity_id`, and no token
-- [ ] A registration repeating an operator's name and current identity key, with a fresh timestamp, is answered `200` with that operator's record, status, `hub_id` and `identity_id`, no token and nothing changed, and for a revoked operator is refused with `OPERATOR_REVOKED`; the same name with another key is refused with 409
+- [ ] A registration repeating an operator's name and current identity key, with a fresh timestamp, is answered `200` with `hub_id` and `identity_id` alone, carrying no record, role, status or token and changing nothing, for a pending, an approved and a revoked operator alike; the same name with another key is refused with 409
 - [ ] `POST /v1/admin/operators/token` signed by an approved operator over another hub's `hub_id` is refused with `CREDENTIAL_FOREIGN_HUB`, issues no token and is logged as a security event, and one signed over `{name, timestamp}` alone is refused with `INVALID_SIGNATURE`
 - [ ] A registered operator's `identity_id` is the fingerprint of the `public_key` its registration carried, and stays that value through every later change of identity key
 - [ ] After a change of identity key, `POST /v1/admin/operators/token` signed with the new key answers the operator's kept `identity_id`; an attestation naming that `identity_id` is accepted, and one naming the new key's fingerprint instead is refused with `CREDENTIAL_ATTESTATION_INVALID`

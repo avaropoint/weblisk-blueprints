@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.12.1
+version: 2.13.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1033,16 +1033,23 @@ CLI holds one for each identity at each hub:
   CLI keeps one **registration** for each hub the identity registered or
   connected at: that hub's `hub_id`, the operator name the hub recorded, the
   `identity_id` it answered with, and the address it was last reached at.
-  Only a registration answer writes one, approved or pending
+  Only a registration answer writes one, approved, pending or a repeat
   ([`architecture/admin`](admin.md#the-registration-response)): `register`
   sends one, and `connect` and `attest` send one first at an address no
   registration names, which a hub that already knows the operator answers as
-  a repeat. A registration answer naming a `hub_id` the CLI has recorded
-  moves that registration to the address that answered, and an address is
-  held by one registration at a time. It is the only
+  a repeat. An address is held by one registration at a time, and no answer
+  moves one. An address no registration names that answers with a `hub_id`
+  recorded at another address is refused: the CLI reports both addresses and
+  signs nothing more there, because a hub can relay a registration to another
+  hub and pass back its answer. The registration moves to that address only
+  when the person confirms at a terminal that the hub has moved there, never
+  with `--json` or `--batch` or with no terminal. It is the only
   `hub_id` the identity ever signs to ask for an attestation token, so a
-  signature it makes names a hub it chose, and no hub can relay it to
-  another ([`architecture/admin`](admin.md#the-identity-signs-only-to-attest)).
+  signature it makes is refused at every hub but the one whose answer
+  recorded it. Which hub gave that answer is not proven where the CLI
+  recorded it first, as on a new device
+  ([`architecture/admin`](admin.md#the-identity-signs-only-to-attest), the gap
+  there).
   The `hub_id` names the hub; the address is only
   where to find it, so a hub reached there that answers another `hub_id` is
   not that hub. A registration outlives its credential: it is kept when the
@@ -1126,6 +1133,18 @@ never once for each hub.
   ([`protocol/secret-source`](../protocol/secret-source.md#actions)). One that
   does not is asked once for each, and the CLI says how many approvals that
   will take before it asks for the first.
+- **A hub not yet registered on this device asks once more.** An
+  attestation-token request names the `hub_id` a registration answer
+  recorded, so where the batch includes a hub this device has no
+  registration for, the CLI first signs a registration for each such hub,
+  sends them and records their answers, and only then signs the requests and
+  attestations above. An identity it opens is opened once for both. A source
+  that signs and never releases the key is asked twice, once for all the
+  registrations and once for the rest, so there a device's first setup takes
+  two approvals and every later batch one. Before it asks, the CLI names on
+  standard error each address it will register at, and a console passes only
+  addresses its person entered or confirmed with it, so no list registers the
+  identity at a hub its person did not choose.
 - **Each hub is told only its own.** The attestation-token requests are sent
   first, each to its own hub, inside the replay window. A hub's `Attestation`
   is submitted only where its attestation-token answer names the
@@ -1264,7 +1283,9 @@ Registering operator 'alice' with http://localhost:9800...
   (stdout, or the `--json` result) and writes no token
 - If not the first operator, prints "Registration pending admin approval".
   Either way it records the registration the answer names: the hub's
-  `hub_id`, the operator's `identity_id` and the address
+  `hub_id`, the operator's `identity_id` and the address. A repeat's answer
+  names no status, so `register` then asks for an attestation token, as
+  `connect` does, and reports what that answer says
 - `--role <role>` to request a specific role (admin may override)
 
 ### `weblisk operator connect`
@@ -1415,7 +1436,8 @@ The steps are [`architecture/admin`](admin.md#obtaining-a-token)'s:
   `--orch`, `--credential-key` and `--device-label`. It attests them all as
   [One approval vouches for every hub](#one-approval-vouches-for-every-hub)
   says, a separate attestation for each hub in one approval of the identity,
-  and with `--json` answers an array in the order of the entries, each with
+  registering first at each entry's `orch` that no registration names, and
+  with `--json` answers an array in the order of the entries, each with
   `orch` and either `cid` and `not_after` or `code`
 
 Its outcomes are `attested`, and `pending_approval`, `refused`,
@@ -2673,8 +2695,10 @@ security:
 - [ ] For an identity held by a secret source whose `capabilities` do not list `store`, `connect` keeps the new credential key beside the identity in its own `weblisk-key-v1` envelope with `kdf` `argon2id`, under a passphrase the person chose for it, and never in the clear or under `kdf` `none`
 - [ ] For an identity held by a source that lists `store` but answers `named_fields` false, or names `private_key` in `withheld_fields`, `connect` keeps the credential key in its own envelope beside the identity, never in that source, and signs every later challenge with it
 - [ ] `connect --remember-passphrase` for such an identity has a source that lists `store` keep the envelope's passphrase, and is refused, keeping nothing, when neither the identity's source nor one named with `--passphrase-holder` lists `store`
-- [ ] `register`, and `connect` and `attest` at an address no registration names, record a registration from the registration answer, approved or pending, naming its `hub_id`, the operator name it recorded, the `identity_id` it answered and the address it was reached at; discarding a credential after `CREDENTIAL_UNKNOWN` keeps the registration, and `OPERATOR_REVOKED` or `OPERATOR_UNKNOWN` is reported and removes it only when the person confirms; under `--json` it is kept
+- [ ] `register`, and `connect` and `attest` at an address no registration names, record a registration from the registration answer, approved, pending or a repeat, naming its `hub_id`, the operator name it recorded, the `identity_id` it answered and the address it was reached at; discarding a credential after `CREDENTIAL_UNKNOWN` keeps the registration, and `OPERATOR_REVOKED` or `OPERATOR_UNKNOWN` is reported and removes it only when the person confirms; under `--json` it is kept
 - [ ] The CLI asks for an attestation token only by signing `{hub_id, name, timestamp}` with the `hub_id` of a recorded registration, never `{name, timestamp}`, and at an address no registration names sends a registration first, so an operator registered from another device records the hub's `hub_id` from the repeat's answer
+- [ ] A registration answer from an address no registration names, naming a `hub_id` recorded at another address, moves nothing: the CLI reports both addresses and signs nothing more there, and moves the registration only when the person confirms at a terminal, never with `--json`, `--batch` or no terminal
+- [ ] `weblisk operator attest --batch` whose entries include hubs this device has no registration for signs their registrations before the attestation-token requests and attestations, names each address it registers at on standard error before it asks, and asks a source that lists `sign_batch` and never releases the key twice, whatever the number of hubs
 - [ ] A hub at a recorded address whose challenge names a `hub_id` other than the recorded one, or that refuses the recorded one with `CREDENTIAL_FOREIGN_HUB`, is reported naming both, and the CLI signs nothing more for it until `weblisk operator register` there records that hub's own registration
 - [ ] `weblisk operator rotate` writes the next key and a rotation record listing every registration `pending` before it sends anything, then sends `POST /v1/admin/operators/{name}/key` to each registration with its own name and `hub_id`, signed by the old key and the new, a hub whose credential was discarded included
 - [ ] With one of three hubs unreachable, `rotate` marks two `changed` and one `pending`, keeps the old key, and exits non-zero naming the pending hub; `operator.pub` holds the new key, and a `register` at a fourth hub signs with the new key
