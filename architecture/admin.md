@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.26.0
+version: 2.26.1
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -2510,7 +2510,10 @@ The rest SHOULD be:
 - [ ] An admin's token minted with `cap` `[admin:read, admin:approve, admin:strategy, admin:audit]` reaches `PUT /v1/admin/operators/{name}/role` as one minted with `cap` `[admin:*]` does, and one naming only three of the four is refused there with `FORBIDDEN`
 - [ ] The admin gateway holds a registration whose manifest declares `token:exchange` and no other capability, calls no provider on its registration token, and adds no `X-Operator` header; the orchestrator receives the operator token the client sent, and every other provider receives a pass addressed to it, never that operator token
 - [ ] For a request to a route another component provides, the admin gateway sends `POST /v1/token/exchange` on its registration token with the person's token as `subject_token`, the provider's identity id as `audience` and as `scope` every capability the provider's blueprint requires for that request and no other, sends the request on the pass it is answered with, and keeps neither the person's token nor the pass once the request is answered
-- [ ] Through the admin gateway, an admin's `POST /v1/content/repositories` is exchanged with `scope` `[content:declare]` for an adoption carrying neither `scope_floor` nor `self_decision_ceiling`, `[content:declare, content:decide]` for one carrying either, as every adoption of a git store does, and `[content:declare, content:establish]` for `disposition: establish`, and an admin's `POST /v1/content/repositories/{repository}/replicas` with `[content:replicate, content:connect]`; the content service records each
+- [ ] Through the admin gateway, an admin's `POST /v1/content/repositories` carrying neither `scope_floor` nor `self_decision_ceiling`, and no `disposition: establish`, is exchanged with `scope` `[content:declare]` alone, and the content service records the repository
+- [ ] Through the admin gateway, an admin's `POST /v1/content/repositories` with `disposition: establish` is exchanged with `scope` `[content:declare, content:establish]`, reaches the content service on a pass whose `cap` names both, and the store is established
+- [ ] Through the admin gateway, an admin's `POST /v1/content/repositories` carrying `scope_floor`, as every adoption of a git store does, or `self_decision_ceiling` is exchanged with `scope` `[content:declare, content:decide]`, reaches the content service on a pass whose `cap` names both, and the declaration is recorded with that floor or ceiling
+- [ ] Through the admin gateway, an admin's `POST /v1/content/repositories/{repository}/replicas` is exchanged with `scope` `[content:replicate, content:connect]`, reaches the content service on a pass whose `cap` names both, and the replica is declared
 - [ ] Through the admin gateway, an `operator`'s `POST /v1/content/repositories` carrying `scope_floor` reaches the content service on a pass whose `cap` names `content:decide` alone, the one capability of the two that role carries, and is refused there with `FORBIDDEN`, recording no repository
 - [ ] An exchange answered `issued: false` is answered to the client with the code it names, at the status `protocol/types` registers for it, and one answered 404 because the provider is not registered now is answered `ADMIN_GROUP_UNAVAILABLE`; neither forwards anything
 - [ ] While no deployed component's blueprint specifies the route, a request for `/v1/admin/approvals`, `/v1/admin/strategies`, `/v1/admin/observations`, `/v1/admin/domains`, `/v1/admin/workflows` or `/v1/admin/federation/peers` is answered 503 `ADMIN_GROUP_UNAVAILABLE`, never with an empty result, and nothing is forwarded or sent as a `POST /v1/message` action
