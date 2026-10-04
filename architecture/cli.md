@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.14.0
+version: 2.14.1
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1604,21 +1604,22 @@ Weblisk — acme-corp (http://localhost:9800)
 Protocol: v1    Uptime: 2d 14h 32m
 
 Agents:     8 online, 1 degraded, 0 offline
-Domains:    3 online (seo, content, health)
-Workflows:  12 today (10 ✓, 2 ✗)
-Approvals:  5 pending
-Federation: 2 peers, 1 pending request
 Health:     94/100 ▲
-
-Strategies:
-  Improve organic traffic    ██████████░░  67%  active
-  Reduce page load time      ████████████░  82%  active
+Domains:    unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
+Workflows:  unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
+Approvals:  unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
+Federation: unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
+Strategies: unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
 ```
 
 - Calls `GET /v1/admin/overview` at the hub's admin gateway, which composes
-  the overview: the orchestrator's figures, and each other figure asked of
-  the component that holds it on a pass, or reported unavailable
-  ([`architecture/admin`](admin.md#the-admin-api-is-an-aggregate))
+  the overview: the orchestrator's figures, and each other group asked of
+  the component that holds it on a pass, or carried as an object holding
+  `unavailable` and a code
+  ([`architecture/admin`](admin.md#get-v1adminoverview)). A group carried
+  that way is shown as unavailable with its code, never as zero, and until
+  a provider's blueprint specifies its group on a pass every group but the
+  orchestrator's is shown that way
 - `--json` for machine-readable output
 - `--watch` to refresh every 5 seconds (like `watch`)
 

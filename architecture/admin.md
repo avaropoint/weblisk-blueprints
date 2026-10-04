@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.27.1
+version: 2.27.2
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1890,6 +1890,26 @@ Supports export to JSON and CSV for compliance.
 
 ### GET /v1/admin/overview
 
+The admin gateway answers this route with the System overview it composes
+(`admin-gateway-authorization`). The members the orchestrator holds come from
+its own `GET /v1/admin/overview`, which the gateway forwards as it forwards any
+request for the orchestrator's groups: `deployment`, `version`, `uptime`,
+`agents`, `namespaces` (how many namespaces are owned), `audit.depth` (how many
+entries its audit log holds) and `health_score`
+([`architecture/orchestrator`](orchestrator.md)). A refusal of that request is
+the answer, as on any route of the orchestrator's groups.
+
+Every other member is a group another component holds: `domains`, `workflows`,
+`approvals`, `federation` and `strategies`. Each is either the figures that
+component's blueprint specifies for it, asked of it on a pass, or, where the
+gateway may not ask or the asking fails, an object carrying `unavailable`
+alone, whose value is the code the gateway would answer a request for that
+group's route with. A figure the gateway cannot report is never a number, so a
+client cannot render it as zero, and an absent provider is never shown as a
+quiet one. No blueprint yet specifies one of those groups on a pass (the gap
+under [The admin API is an aggregate](#the-admin-api-is-an-aggregate)), so a
+conforming gateway answers each of them unavailable:
+
 ```json
 {
   "deployment": "acme-corp",
@@ -1902,32 +1922,14 @@ Supports export to JSON and CSV for compliance.
     "offline": 0,
     "by_type": {"domain": 3, "work": 3, "infrastructure": 2}
   },
-  "domains": {
-    "total": 3,
-    "online": 3,
-    "degraded": 0
-  },
-  "workflows": {
-    "today": 12,
-    "succeeded": 10,
-    "failed": 2,
-    "running": 0
-  },
-  "approvals": {
-    "pending": 5,
-    "accepted_24h": 12,
-    "rejected_24h": 2
-  },
-  "federation": {
-    "peers": 2,
-    "pending_requests": 1,
-    "federated_tasks_24h": 34
-  },
-  "strategies": {
-    "active": 2,
-    "completed": 1
-  },
+  "namespaces": 6,
+  "audit": {"depth": 18342},
   "health_score": 94,
+  "domains": {"unavailable": "ADMIN_GROUP_UNAVAILABLE"},
+  "workflows": {"unavailable": "ADMIN_GROUP_UNAVAILABLE"},
+  "approvals": {"unavailable": "ADMIN_GROUP_UNAVAILABLE"},
+  "federation": {"unavailable": "ADMIN_GROUP_UNAVAILABLE"},
+  "strategies": {"unavailable": "ADMIN_GROUP_UNAVAILABLE"},
   "timestamp": 1712160000
 }
 ```
@@ -2507,7 +2509,7 @@ The rest SHOULD be:
 - [ ] Role hierarchy admin > operator > auditor > viewer is enforced server-side on every /v1/admin/* endpoint
 - [ ] Destructive actions (deregister agent, revoke federation, delete operator) require 4-eyes approval and X-Confirm HMAC
 - [ ] Application gateway returns 404 for any request to /v1/admin/* paths
-- [ ] The System overview the admin gateway composes shows agent counts, domain status, workflow stats, approval counts and health score: the orchestrator's figures from its `GET /v1/admin/overview`, each other figure asked of the component that holds it on a pass addressed to that component, and every figure whose provider is not deployed, or whose provider's blueprint specifies no route for it, reported as unavailable rather than zero
+- [ ] The System overview the admin gateway composes shows agent counts, domain status, workflow stats, approval counts and health score: the orchestrator's figures from its `GET /v1/admin/overview`, each other figure asked of the component that holds it on a pass addressed to that component, and every group whose provider is not deployed, whose provider's blueprint specifies no route for it, or whose asking failed, carried as an object holding `unavailable` and the code the gateway would answer that group's route with, and never as a number
 - [ ] Each admin endpoint group is served by the component that owns its state; the admin service composes them and owns none of them
 - [ ] An admin endpoint whose provider is not deployed reports itself unavailable and never returns an empty result
 - [ ] Through the admin gateway, an admin's token minted with `cap` `[admin:*]` reaches `PUT /v1/admin/operators/{name}/role` and changes the role, and the same request on the same admin's token minted with `cap` `[content:read, content:describe]` is refused there with `FORBIDDEN`, by the orchestrator's Auth Middleware
