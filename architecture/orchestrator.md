@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.16.0
+version: 2.16.1
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -529,7 +529,8 @@ the last answer happened to say.
 |---|---|---|---|
 | Its anchor credential | Present it | **Refuse** — the address is not one the tenant declared | **Do not present it** — the credential is bound to the anchor, and a second host is a second place it can be taken from |
 | A grant naming that exact address | Present it | Never issued — see below | Present the grant's token, and only it |
-| Neither | — | Refuse, naming the undeclared address | Refuse, naming the credential it does not hold |
+| A pass, held by the admin gateway for the one request it carries | Present it at its audience's address | **Refuse**, naming the undeclared address; the gateway answers `ADMIN_GROUP_UNAVAILABLE` | Present it at its audience's address, and nowhere else |
+| None of these | — | Refuse, naming the undeclared address | Refuse, naming the credential it does not hold |
 
 Every refusal names **which fact was missing**, and the two are different
 remedies: an undeclared address is fixed in the tenant's configuration, and a
@@ -572,7 +573,11 @@ everything it authorises and a second host is a second place to lose it from.
 > ([`protocol/identity`](../protocol/identity.md#the-pass)), so it MUST refuse
 > every foreign address regardless of its `address_provenance`. A pass is not a
 > grant: it carries one person's request to one component for at most 30
-> seconds, and names no address. A client that must reach a component at a
+> seconds, and names no address, so the table above says where the gateway
+> may present one: at its audience's own address, on the anchor's host or at
+> an address the tenant declared, because a pass sent to a `self-asserted`
+> address on another host can be replayed to its audience, with any body its
+> `cap` admits, until it expires. A client that must reach a component at a
 > foreign address in its own right is what widening `/v1/channel` would serve;
 > inventing a second grant type for that act is not the change that lifts it.
 
