@@ -909,12 +909,17 @@ A repository that is not declared accepts no write, so install never writes
 into a store ahead of its declaration.
 
 **Install is a person's act.** Step 2's declaration carries a `scope_floor`,
-which needs `content:decide`, and step 3's writes need `content:write`, and
-both are *person only*, checked live on a person's operator token
-([`architecture/content`](../architecture/content.md#who-may-move-an-entry)).
-So whatever installs a programme does steps 2 and 3 on the token of the
-person installing it, and step 1 too wherever that declaration carries a
-`scope_floor`, as an adoption of a store that keeps history must. A service
+which needs `content:decide` beside `content:declare`, and step 3's writes
+need `content:write`, and both are *person only*. The content service takes
+them only on a pass addressed to it, which the tenant's admin gateway obtains
+for each of the person's requests, naming every capability that request needs,
+and which carries only those the person may use when it is exchanged
+([`architecture/content`](../architecture/content.md#who-may-move-an-entry);
+[`architecture/admin`](../architecture/admin.md#contracts),
+`admin-gateway-authorization`). So whatever installs a programme sends steps 2
+and 3 through the admin gateway on the token of the person installing it, and
+step 1 too wherever that declaration carries a `scope_floor`, as an adoption
+of a store that keeps history must. A service
 or an agent that installs on its own declares nothing that carries a floor
 and writes nothing: it stages each document as a proposal
 (`content:propose`) into a repository a person has declared, and a person
