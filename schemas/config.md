@@ -80,7 +80,7 @@ content:
         tamper_evident: boolean
   reconcile_interval: duration     # Shared custody only. 0 disables scheduled runs
   reverify_custody_interval: duration
-  replica_retry_interval: duration # How often a replica that lacks versions is sent them
+  replica_retry_interval: duration # How often a replica that lacks versions is tried again
   max_entry_bytes: integer         # Largest entry the service will write
 
 # Optional — federation configuration
@@ -170,7 +170,7 @@ backend owes once it exists, and what is refused, all live there.
 | `repositories` | list | no | `[]` | Stores declared at startup |
 | `reconcile_interval` | duration | no | `15m` | Out-of-band change detection for shared-custody repositories. `0` disables |
 | `reverify_custody_interval` | duration | no | `24h` | How often attestations are re-demonstrated, the store's and each replica's |
-| `replica_retry_interval` | duration | no | `15m` | How often a replica that lacks versions is sent them, besides after each version is recorded |
+| `replica_retry_interval` | duration | no | `15m` | How often a replica that lacks versions is tried again, besides after each version is recorded. A try sends only what [`architecture/content`](../architecture/content.md#replica-send-flow)'s Replica Send Flow lets leave, and its step 4 holds every send until a send can leave its egress record, so until then a try sends nothing |
 | `checkpoint_interval` | duration | no | `15m` | How often a change log whose tip has moved is sealed. `0` seals only at shutdown and on request ([`architecture/storage`](../architecture/storage.md#the-checkpoint)) |
 | `max_entry_bytes` | integer | no | `10485760` | Largest entry the service will write |
 

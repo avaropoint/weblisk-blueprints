@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.19.1
+version: 2.19.2
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -2053,12 +2053,16 @@ this section is where its ceiling and its gate are specified.
 - **A replica that diverged is reported, never pulled.** A destination that
   holds something this service did not send makes the replica `diverged`. The
   service records what it found, sends nothing more, and never overwrites the
-  destination to make it match. Sending resumes by itself once the destination
-  again holds only what the service sent. A change somebody made at the
+  destination to make it match. The replica leaves `diverged` by itself once
+  the destination again holds only what the service sent, and sending
+  resumes then only where [Replica Send Flow](#replica-send-flow) step 4
+  lets anything leave. A change somebody made at the
   destination reaches the repository only as that person's own write or
   proposal.
 - **Sending never holds up a write.** A write is complete when the repository
-  holds it. Sending follows, in the order the versions were recorded.
+  holds it. Sending follows, in the order the versions were recorded, once
+  [Replica Send Flow](#replica-send-flow) step 4 lets anything leave, and
+  until then the replica is `behind`.
 - **What is sent comes from the service's own record.** It is never read from
   the store at the moment of sending, because another authority can change the
   store. The blueprint that specifies the backend says where that record is
