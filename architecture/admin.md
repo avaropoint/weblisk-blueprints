@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.24.0
+version: 2.24.1
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -316,7 +316,7 @@ because nothing was judged.
 | `OPERATOR_KEY_REUSED` | 409 | conflict | A registration or a change of identity key offers a key this hub records, or recorded, as any operator's identity key, current or retired, or as any credential | Refuse permanently, naming no operator. The client generates a new key | — |
 | `OPERATOR_LAST_ADMINISTRATOR` | 409 | conflict | A request to revoke would end the last active authenticate credential of the last active admin. A sign-records credential signs nobody in and is not counted. A change of that admin's identity key is not refused | Refuse | `last_administrator` |
 | `ADMIN_TOKEN_UNCHECKED` | 503 | io | A request for a route another component provides reached the admin gateway, and the orchestrator could not be asked to exchange its operator token, or answered anything but 200 with a `TokenExchangeResponse` | Refuse and forward nothing, with `retry_after` 5. The request may be repeated once the orchestrator answers. Never forward on the person's token, and never relay the code that answer carried, which judged the gateway's own request | — |
-| `ADMIN_GROUP_UNAVAILABLE` | 503 | io | A request reached the admin gateway for a route no provider here may be sent: none is deployed, the one deployed is not registered now, or its blueprint specifies neither the route nor that it accepts a pass for it (`admin-gateway-authorization`) | Refuse and forward nothing. Never answer with an empty result: an absent provider and an empty one are different facts | — |
+| `ADMIN_GROUP_UNAVAILABLE` | 503 | io | A request reached the admin gateway for a route no provider here may be sent: none is deployed, the one deployed is not registered now, or its blueprint does not specify both the route and that it accepts a pass for it (`admin-gateway-authorization`) | Refuse and forward nothing. Never answer with an empty result: an absent provider and an empty one are different facts | — |
 
 `TOKEN_EXPIRED` ([`protocol/types`](../protocol/types.md#error-handling)) still
 answers a token past its `exp`. The client mints another with its credential,
@@ -739,8 +739,8 @@ contracts:
         - The gateway MUST hold a registration of its own (protocol/spec, POST /v1/register) whose manifest declares token:exchange and no other capability (protocol/types). It reads the service directory with it, and exchanges a token a person has just presented, and does nothing else with it. It MUST NOT call a provider on its registration token, exchange a token presented with any request but the one it is carrying, or keep a person's token or a pass once that request is answered. It holds no standing access to data
         - A provider other than the orchestrator MUST, on every request for an administrative route, accept a person's request only on a pass addressed to it, as protocol/identity's The pass requires, and refuse with FORBIDDEN a pass whose cap does not name every capability the request requires and any token that is neither a pass nor an operator token. It MUST record who acted as The pass requires, by the pass's identity_id with the gateway's act.identity_id beside it, never by sub or by a header
         - Work a request starts at a provider runs while that request is answered, on the pass that carried it. Work that outlives the request, executing an approved recommendation included, needs an authority on the approver's behalf that no blueprint specifies yet (architecture/lifecycle, the gap under its Security), so no provider performs any after the request that approved it is answered
-        - The System overview is composed by the gateway, from the orchestrator's GET /v1/admin/overview, forwarded as any request for its groups is, and from each figure another component holds, asked of that component on a pass addressed to it where its blueprint specifies a route for that figure. Every other figure MUST be reported unavailable, never zero, and the orchestrator asks no component for any
-        - The gateway MUST answer with ADMIN_GROUP_UNAVAILABLE, and forward nothing, a request for a route whose provider is not deployed, or whose provider's blueprint specifies neither that route nor that it accepts a pass for it. It MUST NOT carry such a request as a POST /v1/message action, which checks no operator token (protocol/spec)
+        - The System overview is composed by the gateway, from the orchestrator's GET /v1/admin/overview, forwarded as any request for its groups is, and from each figure another component holds, asked of that component on a pass addressed to it where its blueprint specifies both a route for that figure and that it accepts a pass for it. Every other figure MUST be reported unavailable, never zero, and the orchestrator asks no component for any
+        - The gateway MUST answer with ADMIN_GROUP_UNAVAILABLE, and forward nothing, a request for a route whose provider is not deployed, or whose provider's blueprint does not specify both that route and that it accepts a pass for it. It MUST NOT carry such a request as a POST /v1/message action, which checks no operator token (protocol/spec)
 
     - name: operator-credential-revocation
       description: Withdraw one credential, or every credential an operator holds
@@ -1498,7 +1498,7 @@ operator token, whichever component serves them (`admin-gateway-authorization`).
 
 Each group below is **served by the component that owns the state**, and its
 routes belong in that component's blueprint, which for every group but the
-orchestrator's specifies none yet (the gap below). The admin gateway composes one
+orchestrator's specifies none yet, or none a pass may reach (the gap below). The admin gateway composes one
 operator surface from them. It forwards a request for the orchestrator's groups
 on the person's own token, and sends one for any other provider's on a pass the
 orchestrator exchanged that token for, addressed to that provider alone; its
@@ -1521,6 +1521,9 @@ presents a token it received
 | Domain & workflow | Domain controllers | a domain controller is deployed |
 | Strategies, approvals, observations | Lifecycle Agent | the lifecycle agent is deployed |
 | Federation | Federation layer | the deployment federates |
+| Alerts | Alerting agent ([`agents/alerting`](../agents/alerting.md)) | the alerting agent is deployed |
+| Runbooks | Incident-response agent ([`agents/incident-response`](../agents/incident-response.md)) | the incident-response agent is deployed |
+| Rate limits | The component applying [`patterns/rate-limiting`](../patterns/rate-limiting.md) | that component is deployed |
 
 An earlier version of this section read *"These extend the orchestrator's
 existing endpoint set"*, which cannot be satisfied.
@@ -1534,17 +1537,25 @@ MUST NOT return an empty result.** An empty approval queue and an absent approva
 system are different facts, and a console that renders them identically tells an
 operator the system is quiet when it is simply not there.
 
-> **Gap — no provider but the orchestrator serves its group yet.** No
-> blueprint specifies the administrative routes of the Domain & workflow,
+> **Gap — no provider but the orchestrator serves its group on a pass yet.**
+> No blueprint specifies the administrative routes of the Domain & workflow,
 > Strategies, approvals, observations, or Federation groups.
 > [`architecture/lifecycle`](lifecycle.md) offers strategies and approvals only
 > as `POST /v1/message` actions, which check no operator token
 > ([`protocol/spec`](../protocol/spec.md#post-v1message)), and
 > [`protocol/federation`](../protocol/federation.md) declares no `/v1/admin/`
-> route. Until a provider's blueprint specifies a route and that it accepts a
-> pass for it, as `admin-gateway-authorization` requires, the gateway answers
-> that route `ADMIN_GROUP_UNAVAILABLE`, as it answers one whose provider is not
-> deployed. A route with the minimum `admin` needs no exception once it is
+> route. Three blueprints do specify routes under `/v1/admin/` that another
+> component serves: `GET /v1/admin/alerts`, `/v1/admin/alerts/{id}` and
+> `/v1/admin/alerts/stats` in [`agents/alerting`](../agents/alerting.md), the
+> five `/v1/admin/runbooks` routes in
+> [`agents/incident-response`](../agents/incident-response.md), and the four
+> `/v1/admin/rate-limits` routes in
+> [`patterns/rate-limiting`](../patterns/rate-limiting.md). None of them says
+> that its provider accepts a pass, checks one's `aud`, or refuses an operator
+> token with `PASS_REQUIRED`. Until a provider's blueprint specifies both a
+> route and that it accepts a pass for it, as `admin-gateway-authorization`
+> requires, the gateway answers that route `ADMIN_GROUP_UNAVAILABLE`, as it
+> answers one whose provider is not deployed, those twelve routes included. A route with the minimum `admin` needs no exception once it is
 > specified: its pass carries `admin:*` to that provider alone, which reaches
 > no route of the orchestrator's
 > ([`protocol/identity`](../protocol/identity.md#the-pass)).
@@ -2390,6 +2401,7 @@ The rest SHOULD be:
 - [ ] Through the admin gateway, an `operator`'s `POST /v1/content/repositories` carrying `scope_floor` reaches the content service on a pass whose `cap` names `content:decide` alone, the one capability of the two that role carries, and is refused there with `FORBIDDEN`, recording no repository
 - [ ] An exchange answered `issued: false` is answered to the client with the code it names, at the status `protocol/types` registers for it, and one answered 404 because the provider is not registered now is answered `ADMIN_GROUP_UNAVAILABLE`; neither forwards anything
 - [ ] While no deployed component's blueprint specifies the route, a request for `/v1/admin/approvals`, `/v1/admin/strategies`, `/v1/admin/observations`, `/v1/admin/domains`, `/v1/admin/workflows` or `/v1/admin/federation/peers` is answered 503 `ADMIN_GROUP_UNAVAILABLE`, never with an empty result, and nothing is forwarded or sent as a `POST /v1/message` action
+- [ ] While their blueprints do not say that they accept a pass, a request for `/v1/admin/alerts`, `/v1/admin/runbooks` or `/v1/admin/rate-limits`, or any route under them, is answered 503 `ADMIN_GROUP_UNAVAILABLE` even where the alerting agent, the incident-response agent or the component applying `patterns/rate-limiting` is deployed, and nothing is forwarded, on a pass or on the operator token
 - [ ] A request for a route whose minimum is `admin` and whose provider is not the orchestrator, such as `DELETE /v1/admin/strategies/:id`, is answered `ADMIN_GROUP_UNAVAILABLE` while that provider's blueprint specifies no such route, and once one does reaches that provider only on a pass addressed to it carrying `admin:*`, never on an operator token
 - [ ] A component other than the orchestrator that serves an administrative route acts only on a pass addressed to it whose `cap` names the route's capability: an `operator`'s approval carried on a pass naming `admin:approve` is recorded under the pass's `identity_id`, with the gateway's `act.identity_id` beside it, while an operator token is refused with `PASS_REQUIRED`, a pass addressed to another component with `PASS_AUDIENCE_MISMATCH`, and an agent's or a channel's token with `FORBIDDEN`, none of these refusals performing anything
 - [ ] Through the admin gateway, a request for a route another component provides is refused by the exchange with `OPERATOR_REVOKED` on the token of an operator removed since it was minted, and with `FORBIDDEN` on the token of an operator since lowered to `viewer`; while the orchestrator cannot be asked it is refused with 503 `ADMIN_TOKEN_UNCHECKED` carrying `retry_after`; in none of these is anything forwarded
