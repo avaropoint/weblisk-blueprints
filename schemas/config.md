@@ -27,6 +27,7 @@ orchestrator:
   health_interval: duration        # Health probe interval (default: 30s)
   health_timeout: duration         # Health probe timeout (default: 5s)
   health_failures: integer         # Failures before deregistration (default: 3)
+  admin_addresses: list[string]    # Origins the admin gateway is reached at (default: [])
 
 # Required — gateway configuration
 gateway:
@@ -118,6 +119,7 @@ observability:
 | `health_interval` | duration | no | `30s` | How often to probe registered agents |
 | `health_timeout` | duration | no | `5s` | Max wait for health response |
 | `health_failures` | integer | no | `3` | Consecutive failures before auto-deregistration |
+| `admin_addresses` | list | no | `[]` | The origins at which this hub's admin gateway is reached, each in the ASCII serialisation of RFC 6454 section 6.2 (`https://admin.example.org`, with a port only where it is not the scheme's default). The orchestrator signs a hub proof for these and no other ([`architecture/admin`](../architecture/admin.md#proving-the-hub-at-an-address)), so a hub that lists none proves its `hub_id` at no address. |
 
 ### gateway
 
@@ -299,6 +301,8 @@ orchestrator:
   storage_path: /var/lib/weblisk/orchestrator.db
   token_ttl: 12h
   health_interval: 15s
+  admin_addresses:
+    - https://admin.acme.com
 
 gateway:
   port: 8080

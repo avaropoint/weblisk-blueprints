@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.25.0
+version: 2.26.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -57,7 +57,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.13.0 <2.0.0"
+    version: ">=1.14.0 <2.0.0"
     bindings:
       types:
         - name: WLToken
@@ -307,6 +307,7 @@ because nothing was judged.
 | `CREDENTIAL_ATTESTATION_INVALID` | 400 | validation | The attestation's signature does not verify under ML-DSA-65 against the operator's recorded key, or the attestation names another identity key, or an `identity_id` that is not the operator's at this hub | Refuse. Log as a security event | `attestation_invalid`, `algorithm_not_permitted` |
 | `CREDENTIAL_FORM_UNSUPPORTED` | 400 | validation | The credential key is not an ML-DSA-65 public key, the one form these routes carry | Refuse. A form principal-identity permits beside it is admitted only by a route that declares its own registration and challenge | — |
 | `CREDENTIAL_FOREIGN_HUB` | 400 | validation | The `hub_id` an attestation, an attestation-token request or a key-change request names is not this hub's | Refuse. Log as a security event | `credential_foreign_hub` |
+| `HUB_ADDRESS_FOREIGN` | 400 | validation | A hub proof was asked for an address that is not one of this hub's admin addresses (`hub-proof`) | Refuse and sign nothing. Log as a security event: a hub asked to name another hub's address is being relayed through | — |
 | `CREDENTIAL_IS_IDENTITY_KEY` | 400 | validation | The credential's public key is the operator's identity key, current or retired | Refuse. Log as a security event | `identity_key_as_credential` |
 | `CREDENTIAL_PURPOSE_REFUSED` | 400 | validation | The attestation names one purpose for a key this hub holds, or held, under the other; or a challenge or token request names a sign-records credential, which never signs anybody in | Refuse. Log as a security event. The client attests a separate key for each purpose | `credential_purpose_mismatch` |
 | `CREDENTIAL_LIFETIME_INVALID` | 400 | validation | `not_after` is not in the future, or is more than 90 days after the hub receives the attestation | Refuse, naming the cap | `attestation_expired`, where `not_after` has passed |
@@ -670,12 +671,23 @@ contracts:
         - The route `POST /v1/admin/operators/token` MUST require no bearer token
         - The signed payload MUST be canonicalize({hub_id, name, timestamp}), verified against the STORED public key for that operator, with the timestamp inside the 300-second replay window. hub_id is the one the client recorded for this hub from a registration answer (operator-registration)
         - A request whose signature verifies over a hub_id other than this hub's MUST be refused with CREDENTIAL_FOREIGN_HUB and logged as a security event: the identity signed it for another hub, and it was relayed here
-        - A client MUST send this request only to a hub whose hub_id it has recorded, signing that hub_id, and MUST NOT sign a payload that names no hub for any hub, so neither an attestation token nor the deprecated operator token below is obtained with a signature another hub could relay. A client that has recorded none for a hub registers there first, which a hub that already knows the operator answers as a repeat
+        - A client MUST send this request only to a hub whose hub_id it has recorded, signing that hub_id, and MUST NOT sign a payload that names no hub for any hub, so neither an attestation token nor the deprecated operator token below is obtained with a signature good at every hub. That hub_id is the one a registration answer named, and which hub gave that answer only hub-proof settles, so until hub-proof has test vectors a hub that relays a first registration can have a client record another hub's hub_id at its address (The identity signs only to attest, the gap there). A client that has recorded none for a hub registers there first, which a hub that already knows the operator answers as a repeat
         - An operator with no record MUST be refused with OPERATOR_UNKNOWN, since there is no stored key to verify against. Only once the signature has verified may the hub disclose the operator's status: a signature that does not verify MUST be refused with INVALID_SIGNATURE whatever that status is, and then a pending operator with OPERATOR_NOT_APPROVED and a revoked one with OPERATOR_REVOKED. Each refusal MUST be audited
         - The token it issues MUST have type attestation, carry no capability and no cid, and expire within 300 seconds
         - An attestation token MUST be accepted by `POST /v1/admin/operators/{name}/credentials` for its own subject, refused there for any other operator with OPERATOR_SUBJECT_MISMATCH, and refused by every other route with CREDENTIAL_REQUIRED
         - The response MUST carry hub_id and the operator's identity_id at this hub, so the client can name this hub and this operator in the attestation it is about to have signed. The attestation a client submits MUST name the identity_id this answer carries, and a client MUST never compute it from the identity key: a hub keeps it across a change of identity key, so after one it is not the current key's fingerprint. A client that built the attestation beforehand, from the identity_id its registration answer named, submits it only where the two agree
         - It is the way to a first credential, and is deprecated as a way to an operator token. A hub built before the credential routes issues an operator token here, and a client MAY use one only from a hub that answers the credential routes with 404 or 405
+
+    - name: hub-proof
+      description: How a hub shows that it holds the key its hub_id names, at an address a client reached it at
+      required: true
+      rules:
+        - The route `POST /v1/admin/hub/proof` MUST require no bearer token. It MUST take address and challenge, and answer 200 with hub_id, public_key, address and signature
+        - The address MUST be an origin in the ASCII serialisation of RFC 6454 section 6.2 - the scheme, "://", the host in lowercase, and ":" and the port only where the port is not the scheme's default, with no path, query, fragment or trailing "/" - and the challenge MUST be base64url text without padding (RFC 4648 section 5) that decodes to between 16 and 64 bytes. Any other request MUST be refused with 400 INVALID_REQUEST, signing nothing
+        - The orchestrator MUST sign only an address that is, byte for byte, one of its admin addresses, the origins its admin gateway is reached at, which the hub's configuration lists (schemas/config, orchestrator.admin_addresses). It MUST NOT take an address from the request's Host header, from a forwarding header or from the connection, all of which a hub that relays the request sets. Any other address MUST be refused with HUB_ADDRESS_FOREIGN, signing nothing, and logged as a security event
+        - The signature MUST be the fixed-form statement weblisk/hub-proof/v1 (protocol/identity, Fixed-Form Statements) whose fields are this hub's hub_id as 64 lowercase hexadecimal characters, the address, and the challenge as the text it arrived, built by the orchestrator itself and never from bytes a caller supplies, and made by the private key whose fingerprint is hub_id. public_key MUST be that key's public half
+        - The orchestrator MUST keep the private key its hub_id names for as long as it keeps that hub_id, protected as a service key (protocol/identity, Key Categories). Once it signs tokens with another key, that key MUST sign this statement and nothing else, so the proof survives a rotation as hub_id does
+        - No implementation may sign it before this corpus publishes its test vectors (protocol/identity, Test vectors come before a signer). Once they are published, a hub MUST answer this route, and a client MUST hold a hub_id at an address no registration names only where a proof it asked for there, on a challenge it made, verifies for the address it reached (architecture/cli, A credential for each hub)
 
     - name: operator-credential-attestation
       description: Bind a client's credential to an operator's identity at this hub
@@ -732,7 +744,7 @@ contracts:
       rules:
         - The admin gateway is the tenant's one door for people. A client presents a person's operator token there and nowhere else, and the gateway presents it to the orchestrator and to nothing else (protocol/identity, The pass)
         - Every request it carries on a person's token MUST be authorised by the orchestrator's judgement of that token against every capability the request requires (Auth Middleware), as token-status-on-use authorises a request - what the operator's role carries now, never beyond the token's cap, admin:* read as each admin: capability by its own name - whichever component provides the route. The gateway MUST NOT authorise by the token's role claim, which is the role at mint and ignores cap, and judges nothing itself
-        - A request for a group the orchestrator provides MUST be forwarded to the orchestrator with the operator token as it arrived, in the Authorization header, and is judged by its Auth Middleware when it arrives. So is a request to a route that issues tokens, which carries none, and one carrying an attestation token to the attestation route
+        - A request for a group the orchestrator provides MUST be forwarded to the orchestrator with the operator token as it arrived, in the Authorization header, and is judged by its Auth Middleware when it arrives. So is a request to a route that issues tokens, which carries none, a request for a hub proof (hub-proof), which carries none either, and one carrying an attestation token to the attestation route
         - A request for a route any other component provides - an administrative group's (The admin API is an aggregate), or a route of a service whose blueprint admits a person's request on a pass, as architecture/content's and architecture/fabric's do - MUST be sent on a pass, and never on the operator token. For each such request the gateway MUST have the orchestrator exchange the token presented with it (architecture/orchestrator, token-exchange), naming as audience the identity id of that provider, the fingerprint of the public key its directory entry carries, and as scope what the next rule names, and MUST send the request on the pass it is answered with, in the Authorization header, with its body as it arrived
         - The scope of that exchange MUST name every capability the provider's blueprint requires for the request being carried, and nothing more: each capability the route requires, all of them where the blueprint requires several together, and each it requires because of what the request's body carries, which the gateway reads from the body for this alone - architecture/content's guard table, for one, requires content:establish beside content:declare for disposition establish, content:decide beside it for a declaration carrying scope_floor or self_decision_ceiling, and content:replicate with content:connect for a replica. The provider judges the pass's cap against the body as it reads it, so a body the gateway read otherwise is refused there with FORBIDDEN, and nothing is carried beyond what the pass names
         - An exchange answered issued false MUST be answered with the code it names, at the status protocol/types registers for it, FORBIDDEN included, whatever the role. An exchange answered 404 NOT_FOUND, because the provider is not registered now, MUST be answered ADMIN_GROUP_UNAVAILABLE. Where the orchestrator cannot be asked, or answers anything else, the request MUST be refused with ADMIN_TOKEN_UNCHECKED, never with the code that answer carried, which judged the gateway's own request. None of these refusals forwards anything
@@ -955,8 +967,10 @@ an unknown one. The signature names the hub, so it is refused at every hub
 but the one whose `hub_id` the client recorded. The client signs the `hub_id`
 it recorded from a [registration answer](#the-registration-response), never
 one it is told in the same exchange, and makes no such request to a hub it has
-recorded none for. Which hub gave that answer is a separate question, and the
-gap below says how far it is settled.
+recorded none for. Which hub gave that answer is a separate question, which
+[Proving the hub at an address](#proving-the-hub-at-an-address) answers once
+its test vectors are published, and the gap below says how far it is settled
+until then.
 
 ```
 200 {
@@ -983,13 +997,13 @@ key that [`patterns/principal-identity`](../patterns/principal-identity.md)
 forbids: an identity signature here obtains the right to attest, which is the
 one thing an identity is for.
 
-> **Gap — a recorded `hub_id` is what the answer said.** A client records a
-> hub's `hub_id` from a registration answer, and nothing the hub signs binds
-> that `hub_id` to the address the client reached. A registration names no hub
-> (`registration-signing-input`), so a hub the person registers or connects at
-> can relay it, inside the replay window, to another hub the person belongs
-> to, which answers it as a repeat with its own `hub_id`. A client that has
-> that `hub_id` recorded at another address refuses to move it there
+> **Gap — until a hub proves it, a recorded `hub_id` is what the answer
+> said.** A client records a hub's `hub_id` from a registration answer. A
+> registration names no hub (`registration-signing-input`), so a hub the
+> person registers or connects at can relay it, inside the replay window, to
+> another hub the person belongs to, which answers it as a repeat with its own
+> `hub_id`. A client that has that `hub_id` recorded at another address
+> refuses to move it there
 > ([`architecture/cli`](cli.md#a-credential-for-each-hub)). A client that has
 > it recorded nowhere, as on a new device, records the other hub's `hub_id` at
 > the relaying hub's address, and every signature it then makes there for
@@ -997,19 +1011,17 @@ one thing an identity is for.
 > credential's answer to a challenge — is good at the other hub, through the
 > relaying one, which receives the operator token the other hub issues. HTTPS
 > does not stop it: the client is talking to the relaying hub's own address.
-> The same relay tells the relaying hub whether the person is an operator at
+> [Proving the hub at an address](#proving-the-hub-at-an-address) closes it,
+> because the other hub signs only its own addresses, so no proof it gives
+> names the one the client reached. That proof is a fixed-form statement,
+> which no implementation signs before its test vectors are published
+> ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)), and
+> none are, so until they are a person relies on the hub at the address they
+> gave not to relay. The proof does not stop the relay of the registration
+> itself: the relaying hub still learns whether the person is an operator at
 > the other hub, with that hub's `hub_id` and the person's `identity_id`
 > there, and where the person is not one, leaves a pending registration in
-> their name there. Closing it needs what the person signs to name the
-> address or the channel the client reached, such as the TLS exporter of
-> [RFC 9266](https://www.rfc-editor.org/rfc/rfc9266), or a statement the hub
-> signs, with the key its `hub_id` is the fingerprint of, over the address it
-> was reached at. Neither is specified, and a statement the hub signs is a
-> fixed-form statement, which no implementation signs before its test vectors
-> exist ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)).
-> Until one is, a person relies on the hub at the address they gave not to
-> relay, and how a second device should learn a `hub_id`, which the repeat
-> answer provides today, is not decided.
+> their name there, because a registration names no hub.
 
 **Obtaining an operator token here is deprecated.** A hub built before the
 credential routes issues one here. A client MUST use the credential routes
@@ -1025,6 +1037,65 @@ when it rotates the key. So a hub that moves or rotates its key keeps its
 hub_id and every credential attested for it, and a client tells a rotation from
 a different hub by hub_id alone. A hub regenerated without its state has a new
 hub_id and holds no credentials.
+
+#### Proving the hub at an address
+
+A registration answer names a `hub_id`, and nothing in the answer shows that
+the hub the client reached holds the key that `hub_id` is the fingerprint of.
+A hub shows it by signing a
+[fixed-form statement](../protocol/identity.md#fixed-form-statements) over the
+address it was reached at and a challenge the client makes for that request:
+
+```
+"weblisk/hub-proof/v1" 0x00 <hub_id> 0x00 <address> 0x00 <challenge>
+
+<hub_id>     this hub's hub_id, as 64 lowercase hexadecimal characters
+<address>    the origin the client reached the hub at, in the ASCII
+             serialisation of RFC 6454 section 6.2: the scheme, "://", the
+             host in lowercase, and ":" and the port only where the port is
+             not the scheme's default. No path, query or trailing "/"
+<challenge>  the client's challenge, as the text it sent
+```
+
+```
+POST /v1/admin/hub/proof
+{
+  "address": "https://admin.example.org",
+  "challenge": "<base64url, 16 to 64 bytes from a cryptographically secure random source>"
+}
+
+200 {
+  "hub_id": "<fingerprint of public_key>",
+  "public_key": "<the public half of the key hub_id names>",
+  "address": "https://admin.example.org",
+  "signature": "<the statement above, signed by that key>"
+}
+```
+
+**The hub names no address but its own.** The orchestrator signs only an
+address its configuration lists as one of its **admin addresses**, the
+origins its admin gateway is reached at
+([`schemas/config`](../schemas/config.md#orchestrator), `admin_addresses`), and
+refuses any other with `HUB_ADDRESS_FOREIGN`. It never takes the address from
+the request's `Host` header, a forwarding header or the connection, because a
+hub that relays the request sets all three. So a hub that relays a client's
+request for a proof to another hub gets back a refusal, or a proof naming the
+other hub's own address, and a client that checks the proof against the
+origin it dialled refuses either.
+
+**The key is the one `hub_id` names.** The orchestrator signs with the private
+key whose fingerprint is its `hub_id`, the first key it signed tokens with,
+and keeps that key for as long as it keeps the `hub_id`. Once it signs tokens
+with another key, the first signs this statement and nothing else, so the
+proof survives a rotation as `hub_id` does.
+
+The behaviour is `hub-proof`, in [Contracts](#contracts), and the client's
+side is [`architecture/cli`](cli.md#a-credential-for-each-hub)'s. No
+implementation signs it before its test vectors are published
+([`protocol/identity`](../protocol/identity.md#fixed-form-statements)), and
+until they are, the gap under
+[The identity signs only to attest](#the-identity-signs-only-to-attest)
+stands.
 
 #### Attesting a credential
 
@@ -1284,7 +1355,9 @@ pending operator learns it here and asks once approved. A registration that
 repeats an operator's own, the same name and the operator's current key, is
 answered as the third line is, and changes nothing, so a person who
 registered from another device records the hub's `hub_id` by registering
-again (`operator-registration`). It carries no record, role or status,
+again (`operator-registration`), and, once the hub proof has test vectors,
+holds it only where the hub at that address proves it
+([Proving the hub at an address](#proving-the-hub-at-an-address)). It carries no record, role or status,
 whatever the operator's status: a registration names no hub, so a hub it was
 relayed from learns from the answer only what a `409` already told it, and
 those two identifiers
@@ -2306,11 +2379,13 @@ Every admin action is logged:
 
 ### Rate Limiting
 
-The auth endpoints MUST be rate-limited, before any signature is verified:
+The auth endpoints MUST be rate-limited, before any signature is verified or
+made:
 - Auth endpoints: 5 requests/minute per source — the four routes that issue
-  tokens and `POST /v1/admin/operators/{name}/key`, none of which carries an
-  operator token to count against. Each verifies an ML-DSA-65 signature, and
-  the key-change route admits a request with no token at all, so an
+  tokens, `POST /v1/admin/operators/{name}/key` and
+  `POST /v1/admin/hub/proof`, none of which carries an operator token to
+  count against. Each verifies or makes an ML-DSA-65 signature, and the
+  key-change and proof routes admit a request with no token at all, so an
   unlimited one is an oracle and a cost anybody can impose. A **source** is
   the client's IP address, as
   [`patterns/rate-limiting`](../patterns/rate-limiting.md#identification-keys)
@@ -2374,6 +2449,9 @@ The rest SHOULD be:
 - [ ] Registration that also approves returns an attestation token, `hub_id`, `identity_id` and `status: approved`; registration that does not returns `status: pending`, `hub_id` and `identity_id`, and no token
 - [ ] A registration repeating an operator's name and current identity key, with a fresh timestamp, is answered `200` with `hub_id` and `identity_id` alone, carrying no record, role, status or token and changing nothing, for a pending, an approved and a revoked operator alike; the same name with another key is refused with 409
 - [ ] `POST /v1/admin/operators/token` signed by an approved operator over another hub's `hub_id` is refused with `CREDENTIAL_FOREIGN_HUB`, issues no token and is logged as a security event, and one signed over `{name, timestamp}` alone is refused with `INVALID_SIGNATURE`
+- [ ] Once `weblisk/hub-proof/v1` has test vectors, `POST /v1/admin/hub/proof` with no token, for an address `orchestrator.admin_addresses` lists and a challenge decoding to between 16 and 64 bytes, answers `200` with `hub_id`, a `public_key` whose fingerprint is `hub_id`, the address, and a signature by that key that verifies over `weblisk/hub-proof/v1`, `0x00`, `hub_id`, `0x00`, the address, `0x00` and the challenge
+- [ ] `POST /v1/admin/hub/proof` for an address `orchestrator.admin_addresses` does not list is refused with `HUB_ADDRESS_FOREIGN`, signs nothing and is logged as a security event, also where the request's `Host` or `X-Forwarded-Host` header names a listed address; an address with a path or a trailing `/`, and a challenge that is padded, not base64url, or decodes to fewer than 16 or more than 64 bytes, are refused with `400` `INVALID_REQUEST` and sign nothing
+- [ ] After the orchestrator signs tokens with a key other than its first, `POST /v1/admin/hub/proof` still answers under the key whose fingerprint is its `hub_id`, and that key signs no token
 - [ ] A registered operator's `identity_id` is the fingerprint of the `public_key` its registration carried, and stays that value through every later change of identity key
 - [ ] After a change of identity key, `POST /v1/admin/operators/token` signed with the new key answers the operator's kept `identity_id`; an attestation naming that `identity_id` is accepted, and one naming the new key's fingerprint instead is refused with `CREDENTIAL_ATTESTATION_INVALID`
 - [ ] An expired operator token is replaced by a new challenge answered with the credential, without re-registering and without the identity

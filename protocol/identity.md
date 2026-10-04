@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.13.1
+version: 1.14.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -546,6 +546,7 @@ bytes itself, in one of those two forms, may ask a secret source to sign them
 | `weblisk/log-succession/v1` | A log owner's outgoing and incoming long-lived keys, each over the change from one to the other | [`architecture/storage`](../architecture/storage.md#a-change-of-long-lived-key) |
 | `weblisk/content-change/v1` | A person's sign-records credential, over a change to a content entry | [`architecture/content`](../architecture/content.md#the-change-statement) |
 | `weblisk/holder-probe/v1` | An identity held by a secret source, proving that the reference reaches it. Nothing accepts it as anything else | [`protocol/secret-source`](secret-source.md#an-identity-held-by-a-source) |
+| `weblisk/hub-proof/v1` | A hub, by the key its `hub_id` is the fingerprint of, over an address it is reached at and a client's challenge, proving that the hub at that address holds that key | [`architecture/admin`](../architecture/admin.md#proving-the-hub-at-an-address) |
 
 A kind of statement is registered here before any implementation signs it. A
 prefix names one layout for good. A changed layout gets a new prefix and a new
@@ -559,7 +560,8 @@ implementation, a hub's, a client's or a verifier's, tests against those same
 vectors. None is published yet. So no implementation may yet sign under
 `weblisk/credential-auth/v1`, `weblisk/log-key/v1`,
 `weblisk/log-checkpoint/v1`, `weblisk/log-succession/v1`,
-`weblisk/content-change/v1` or `weblisk/holder-probe/v1`, and
+`weblisk/content-change/v1`, `weblisk/holder-probe/v1` or
+`weblisk/hub-proof/v1`, and
 `weblisk/auth/v1`, which the CLI already signs and a console already
 verifies, is the one exception, until its vectors are published.
 

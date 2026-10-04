@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.15.3
+version: 2.16.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -59,7 +59,7 @@ this replaces.
 declaration:
   requires:
     - blueprint: protocol/identity
-      version: ">=1.13.0 <2.0.0"
+      version: ">=1.14.0 <2.0.0"
       bindings:
         types:
           - name: SigningKeyPair
@@ -127,7 +127,7 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/admin
-      version: ">=2.25.0 <3.0.0"
+      version: ">=2.26.0 <3.0.0"
       bindings:
         behaviors:
           - name: operator-registration
@@ -135,6 +135,7 @@ declaration:
           - name: first-operator-claim
           - name: operator-approval
           - name: attestation-token-issuance
+          - name: hub-proof
           - name: operator-credential-attestation
           - name: operator-token-issuance
           - name: token-status-on-use
@@ -209,6 +210,10 @@ declaration:
     - method: POST
       path: "/v1/admin/credentials/token"
       operation: CredentialToken
+      auth: "none"
+    - method: POST
+      path: "/v1/admin/hub/proof"
+      operation: HubProof
       auth: "none"
     - method: POST
       path: "/v1/admin/operators/{name}/key"
@@ -710,6 +715,7 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 | POST | /v1/admin/operators/token | OperatorToken | — | Issue an attestation token to a caller who signs `{hub_id, name, timestamp}`, naming this hub, with the private key matching this orchestrator's record. Unauthenticated by token, because it is what issues them. Deprecated as a way to an operator token — see [`architecture/admin`](admin.md#the-identity-signs-only-to-attest) |
 | POST | /v1/admin/credentials/challenge | CredentialChallenge | — | Issue a single-use nonce for a credential |
 | POST | /v1/admin/credentials/token | CredentialToken | — | Issue an operator token to a credential that signed the nonce. The ordinary way to an operator token |
+| POST | /v1/admin/hub/proof | HubProof | — | Sign, with the key `hub_id` names, that this hub is reached at one of its admin addresses. Unauthenticated by token, because a client asks it before it holds anything here — see [`architecture/admin`](admin.md#proving-the-hub-at-an-address) |
 | POST | /v1/admin/operators/{name}/key | OperatorKeyChange | — | Change an operator's identity key, signed by the current key and the new one. Unauthenticated by token, because the two signatures authenticate it and the operator may hold no live credential — see [`architecture/admin`](admin.md#changing-an-identity-key) |
 | POST | /v1/admin/operators/{name}/credentials | CredentialAttest | the operator's own token, able to use `admin:read`, or an attestation token for them | Attest a credential for that operator |
 | GET | /v1/admin/operators/{name}/credentials | CredentialList | `admin:read` | That operator's credentials, revoked included |
