@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.16.0
+version: 1.16.1
 requires: []
 platform: any
 tier: free
@@ -178,7 +178,7 @@ gives it.
 
 | Code | HTTP | Category | Description |
 |------|------|----------|-------------|
-| `PASS_REQUIRED` | 401 | permanent | A component other than the orchestrator was presented an operator token, which no holder may present there. The request goes to the tenant's admin gateway. Logged as a security event |
+| `PASS_REQUIRED` | 401 | permanent | A component other than the orchestrator and the admin gateway was presented an operator token, which no holder may present there ([`protocol/identity`](identity.md#the-pass), rule 4). A person's request goes to the tenant's admin gateway, which carries it on a pass, and a tool call to the MCP surface on a credential [`patterns/auth-oauth`](../patterns/auth-oauth.md) issued for it ([`architecture/mcp`](../architecture/mcp.md)). Logged as a security event |
 | `PASS_AUDIENCE_MISMATCH` | 401 | permanent | A pass was presented to a component its `aud` does not name, the orchestrator included. Logged as a security event |
 
 **Destination codes** (produced by the destination gate of `patterns/scope`,
