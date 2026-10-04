@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.26.2
+version: 2.26.3
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1587,8 +1587,9 @@ it may replay it. So a console keeps the thing that can **ask**, and never the
   ([`protocol/identity`](../protocol/identity.md#the-pass)). The content
   service, the fabric and every other component are sent the person's
   request on a pass addressed to them alone, carrying only what that request
-  needs, so none of them ever holds `admin:*`, or anything it could present
-  elsewhere.
+  needs, so none of them holds anything it could present elsewhere: a pass
+  carries `admin:*` only to the provider of a route whose minimum is `admin`,
+  for that one request, and is refused everywhere but there.
 - **Tokens stay in memory.** A console never writes an operator token anywhere,
   encrypted or not. A console that drives the CLI to connect asks it not to
   store one either (`--no-store`).
