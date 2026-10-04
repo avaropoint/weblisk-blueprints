@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: content-git
-version: 1.7.0
+version: 1.7.1
 requires: [architecture/content, patterns/content-identity, protocol/identity, patterns/secrets, patterns/principal-identity]
 platform: any
 tier: free
@@ -758,7 +758,7 @@ from the line's, returning both of those digests.
 - [ ] No operation fetches from a replica
 - [ ] A replica census over a store whose history holds a commit a person made with a real address lists that name and address in `backend_report`
 - [ ] A person's commit on the line, made after a replica was confirmed, that adds `.weblisk/secrets/x`, a gitlink or a symbolic link holds the replica `behind` with `held_reason` `reserved-path` naming the path; the commit is never pushed, and neither is any anchored commit that descends from it
-- [ ] A commit the service made for an observation after a replica's census, of a path with no recorded scope whose bytes declare none, holds the replica `behind` with `held_reason` `unclassified`, and the push sends the newest anchored commit before it
+- [ ] A commit the service made for an observation after a replica's census, of a path with no recorded scope whose bytes declare none, holds the replica `behind` with `held_reason` `unclassified`; the commit to send is the newest anchored commit before it, and nothing is pushed while architecture/content's Replica Send Flow holds every send
 - [ ] Where the tenant registers `pii` with `maps_to: restricted`, a commit from before adoption, in a repository floored at `internal`, that adds a file carrying `custom_labels: [pii]` beside `scope: internal` or beside no level is classified `restricted`, and holds a plain replica `behind` with `held_reason` `above-ceiling`
 - [ ] A commit a person made on the line after a replica's census, changing only paths that have a recorded scope at or below the replica's ceiling, is classified and holds no replica back: the replica is `behind` with `held_reason` `egress-unrecorded`, and nothing is pushed
 - [ ] A repository declaration whose placement names a `git-remote` backend is refused with `CONTENT_BACKEND_UNKNOWN`
