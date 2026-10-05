@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.14.4
+version: 2.15.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1042,7 +1042,8 @@ CLI holds one for each identity at each hub:
 - **Each hub it is registered at is remembered.** Beside the identity, the
   CLI keeps one **registration** for each hub the identity registered or
   connected at: that hub's `hub_id`, the operator name the hub recorded, the
-  `identity_id` it answered with, and the address it was last reached at.
+  `identity_id` it answered with, the address it was last reached at, and
+  whether that address has proven the `hub_id` (the hub proof below).
   Only a registration answer writes one, approved, pending or a repeat
   ([`architecture/admin`](admin.md#the-registration-response)): `register`
   sends one, and `connect` and `attest` send one first at an address no
@@ -1094,6 +1095,16 @@ CLI holds one for each identity at each hub:
   there. A `hub_id` the CLI holds at an address is then one the hub there
   holds the key for. Until those vectors are published no hub may sign the
   proof, and the CLI records the answer's `hub_id` as it is given.
+- **A registration recorded before the vectors is proven at its next
+  contact.** Once they are published, the first time the CLI contacts the
+  address of a registration that address has not proven, it asks the hub
+  proof there as above, before it signs anything there with the identity or
+  with a credential, and records that the address proved the `hub_id`. Where
+  the proof fails in any of the ways above, the address is reported and
+  nothing more is signed there. The registration is kept, and moves only as
+  any registration moves: on the person's confirmation, to an address that
+  proves its `hub_id`. So a registration recorded through a relay before the
+  vectors is held from then, never used.
 - **Kept as the identity is.** The private key sits beside the identity it
   belongs to, encrypted in the `weblisk-key-v1` envelope with `kdf` `argon2id`
   under the identity's own passphrase, or held by the secret source that
@@ -2733,6 +2744,7 @@ security:
 - [ ] The CLI asks for an attestation token only by signing `{hub_id, name, timestamp}` with the `hub_id` of a recorded registration, never `{name, timestamp}`, and at an address no registration names sends a registration first, so an operator registered from another device records the hub's `hub_id` from the repeat's answer
 - [ ] A registration answer from an address no registration names, naming a `hub_id` recorded at another address, moves nothing: the CLI reports both addresses and signs nothing more there, and moves the registration only when the person confirms at a terminal, never with `--json`, `--batch` or no terminal
 - [ ] Once `weblisk/hub-proof/v1` has test vectors, `register`, `connect` and `attest` at an address no registration names ask `POST /v1/admin/hub/proof` there with the origin dialled and a fresh challenge before they send a registration, and record nothing and sign nothing more there where the proof is refused or absent, names another origin, carries a `public_key` whose fingerprint is not its `hub_id`, does not verify, or names a `hub_id` the registration answer does not; a test hub that relays both requests to a second hub, which lists only its own address, leaves no registration recorded
+- [ ] Once `weblisk/hub-proof/v1` has test vectors, a registration recorded before them through a test hub that relays to a second hub is proven at its next contact, before any identity or credential signature is sent there, and the CLI then signs nothing more at that address and reports it; a registration whose address proves its `hub_id` is recorded as proven and not asked again
 - [ ] `weblisk operator attest --batch` whose entries include hubs this device has no registration for signs their registrations before the attestation-token requests and attestations, names each address it registers at on standard error before it asks, and asks a source that lists `sign_batch` and never releases the key twice, whatever the number of hubs
 - [ ] A hub at a recorded address whose challenge names a `hub_id` other than the recorded one, or that refuses the recorded one with `CREDENTIAL_FOREIGN_HUB`, is reported naming both, and the CLI signs nothing more for it until `weblisk operator register` there records that hub's own registration
 - [ ] `weblisk operator rotate` writes the next key and a rotation record listing every registration `pending` before it sends anything, then sends `POST /v1/admin/operators/{name}/key` to each registration with its own name and `hub_id`, signed by the old key and the new, a hub whose credential was discarded included

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.29.0
+version: 2.29.1
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1023,7 +1023,11 @@ one thing an identity is for.
 > which no implementation signs before its test vectors are published
 > ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)), and
 > none are, so until they are a person relies on the hub at the address they
-> gave not to relay. The proof does not stop the relay of the registration
+> gave not to relay. A registration a client recorded before then is proven
+> at its next contact once they are published
+> ([`architecture/cli`](cli.md#a-credential-for-each-hub)), so one recorded
+> through a relay is used until then and held from then, never moved on an
+> answer. The proof does not stop the relay of the registration
 > itself: the relaying hub still learns whether the person is an operator at
 > the other hub, with that hub's `hub_id` and the person's `identity_id`
 > there, and where the person is not one, leaves a pending registration in
