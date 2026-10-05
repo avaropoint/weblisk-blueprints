@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.33.3
+version: 2.33.4
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1738,6 +1738,7 @@ presents a token it received
 | Operator management | Orchestrator | always — it is the trust anchor and holds operator records |
 | Agent management | Orchestrator | always |
 | Audit | Orchestrator | always |
+| Model | Orchestrator, on the platform-provided routes the CLI installs: `/v1/admin/model` (GET and PUT), `/v1/admin/model/providers` (GET), `/v1/admin/complete` (POST), `/v1/admin/model/agreements` (POST and GET), `/v1/admin/model/agreements/{id}` (DELETE) and `/v1/admin/model/ceiling` (GET) ([`architecture/orchestrator`](orchestrator.md#administrative-endpoints)) | always |
 | System overview | composed by the admin gateway | always, with absent providers reported absent |
 | Domain & workflow | Domain controllers | a domain controller is deployed |
 | Strategies, approvals, observations | Lifecycle Agent | the lifecycle agent is deployed |
