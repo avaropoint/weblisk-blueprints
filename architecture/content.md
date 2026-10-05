@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.19.2
+version: 2.20.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -44,13 +44,20 @@ organisation can open.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.16.0 <2.0.0"
+    version: ">=1.17.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
           fields_used: [code, error, category, retryable]
+        # pass_routes is how the admin gateway learns what a person's request
+        # may reach here and what each needs. See Registration and
+        # Standalone Operation
         - name: AgentManifest
-          fields_used: [name, capabilities]
+          fields_used: [name, capabilities, pass_routes]
+        - name: PassRoute
+          fields_used: [method, path, capabilities, body]
+        - name: BodyRequirement
+          fields_used: [field, equals, capabilities]
         - name: AuditEntry
           fields_used: [id, timestamp, actor, via, action, target, status]
         - name: ProposedChange
@@ -1061,6 +1068,32 @@ A capability name is `family:verb`. An invented name is refused at registration,
 so these MUST be the names `protocol/types` declares and no others. *Person
 only* is `protocol/types`' marking too, and what it does to a grant is
 [Who may move an entry](#who-may-move-an-entry).
+
+**Its manifest declares every route the table guards as a pass route**
+([`protocol/types`](../protocol/types.md#passroute), `pass_routes`), because a
+person may reach each on a pass, and this table is the one statement of what
+each requires. Each route's entry names in `capabilities` every capability its
+rows give it on every request — both `content:replicate` and `content:connect`
+for declaring a replica — and in `body` each one its rows tie to the body.
+For `POST /v1/content/repositories` that is:
+
+```yaml
+method: POST
+path: /v1/content/repositories
+capabilities: [content:declare]
+body:
+  - {field: disposition, equals: establish, capabilities: [content:establish]}
+  - {field: scope_floor, capabilities: [content:decide]}
+  - {field: self_decision_ceiling, capabilities: [content:decide]}
+```
+
+The admin gateway carries a person's request here only on a route this list
+declares, and names on its pass exactly the capabilities the route's entry
+calls for ([`architecture/admin`](admin.md#contracts),
+`admin-gateway-authorization`). So a route the table guards that the list
+leaves out is one no person can reach, and a capability the list leaves out
+is refused here with `FORBIDDEN`: the two MUST agree, and when a row changes,
+the list changes with it.
 
 **Guarding a capability is not holding it.** The capabilities a manifest
 declares become the `cap` of the token the orchestrator issues the service at
@@ -5186,6 +5219,7 @@ security:
 - [ ] A write, removal, proposal or decision on a token that carries no `identity_id` is refused with `CONTENT_IDENTITY_REQUIRED`, and nothing is recorded
 - [ ] A token that is not a pass and whose `cap` holds `content:write`, a registered component's or a channel's, is refused `PUT /v1/content/entry` with `FORBIDDEN`, as though it did not hold it, whether or not the request carries a `statement`; a person's operator token is refused there with `PASS_REQUIRED` whatever its `cap`, and a pass addressed to another component with `PASS_AUDIENCE_MISMATCH`
 - [ ] The service's own manifest declares none of `content:write`, `content:decide`, `content:replicate`, `content:connect` and `content:declassify`, and its registration succeeds
+- [ ] The manifest's `pass_routes` declare every route the guard table guards and no other, each with the capabilities its rows give it, `POST /v1/content/repositories/{repository}/replicas` with both `content:replicate` and `content:connect`, and `POST /v1/content/repositories` with `content:declare` and the three body requirements for `disposition: establish`, `scope_floor` and `self_decision_ceiling`; the directory entry the orchestrator publishes carries them unchanged
 - [ ] A declaration carrying `self_decision_ceiling` from a caller holding `content:declare` and not `content:decide` is refused, and no repository is recorded
 - [ ] A decider whose token's `cap` names `content:decide` and not `content:write` applies a proposal, and the write is recorded; the same token is refused with `FORBIDDEN` at `PUT /v1/content/entry`
 - [ ] A declaration whose `self_decision_ceiling` is `critical` is refused with `CONTENT_SEPARATION_REQUIRED` and no repository is recorded; one at `restricted` is declared, and a requester's decision to apply a `critical` change in it is refused with `CONTENT_SEPARATION_REQUIRED`

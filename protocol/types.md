@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.16.1
+version: 1.17.0
 requires: []
 platform: any
 tier: free
@@ -337,6 +337,11 @@ types:
         type: "[]Subscription"
         required: false
         description: "Event subscription declarations. Each entry specifies a topic pattern, optional consumer group, scope, and concurrency limit. See [spec.md — Event Scoping](spec.md#event-scoping)."
+      pass_routes:
+        name: PassRoutes
+        type: "[]PassRoute"
+        required: false
+        description: "Every route at which this component admits a person's request on a pass, with every capability each requires. Absent or empty: the admin gateway carries no person's request here. See [PassRoute](#passroute)"
 ```
 
 ### Capability
@@ -503,6 +508,92 @@ because a registration is not yet an enrolment
 the subject: the exchange takes a live operator token and nothing else, no
 component but the admin gateway is presented one, and a holder that had one
 could already use it at the orchestrator, further than any pass reaches.
+
+### PassRoute
+
+A route at which a component admits a person's request on a pass, and every
+capability that request needs there. A component's manifest declares one for
+each such route (`AgentManifest.pass_routes`), and the orchestrator republishes
+them in its directory entry (`ServiceEntry.pass_routes`).
+
+```yaml
+types:
+  PassRoute:
+    fields:
+      method:
+        name: Method
+        type: string
+        required: true
+        description: "HTTP method, in upper case"
+      path:
+        name: Path
+        type: string
+        required: true
+        description: "The route's path as the component's blueprint writes it. A `{name}` segment matches any one non-empty path segment; nothing else is a pattern"
+      capabilities:
+        name: Capabilities
+        type: "[]string"
+        required: true
+        description: "Every capability the route requires on every request, all of them together"
+      body:
+        name: Body
+        type: "[]BodyRequirement"
+        required: false
+        description: "Each capability the route requires because of what a request's body carries, beside `capabilities`"
+```
+
+### BodyRequirement
+
+```yaml
+types:
+  BodyRequirement:
+    fields:
+      field:
+        name: Field
+        type: string
+        required: true
+        description: "A member at the top level of the request's JSON body"
+      equals:
+        name: Equals
+        type: string
+        required: false
+        description: "The string value of `field` that calls for `capabilities`. Absent: `field` being present and not null calls for them"
+      capabilities:
+        name: Capabilities
+        type: "[]string"
+        required: true
+        description: "The capabilities the request requires, beside the route's own, when its body meets this"
+```
+
+**The admin gateway reads these, and nothing else, to carry a person's
+request to a component other than the orchestrator.** It is generated from
+`architecture/admin` alone, which cannot require every blueprint whose
+component may serve people, so what each such route needs reaches it at
+runtime, from the directory. A request goes to the one directory entry whose
+`pass_routes` declare its method and path, on a pass whose scope names that
+route's `capabilities` and those of each `BodyRequirement` its body meets, and
+nothing more
+([`architecture/admin`](../architecture/admin.md#contracts),
+`admin-gateway-authorization`).
+
+**Each entry is its blueprint's own statement of the route, and no wider.** A
+component declares a route here only where its blueprint specifies both that
+route and that it accepts a pass for it, with every capability that blueprint
+requires for it. The component still judges each request against its
+blueprint: a route declared with less than that blueprint requires is
+refused at the component with `FORBIDDEN` for want of the capability the pass
+did not carry, and one declared with more carries the excess to that
+component alone, which is the pass's only audience. A pass route may name a
+person-only capability, because it states what the component checks on a
+person's pass, never what it holds: registration's refusal of a person-only
+capability reads `capabilities` alone, and nothing in `pass_routes` reaches
+the component's own token. Like any manifest field
+it is the registrant's claim, and a registration is not yet an enrolment
+([`protocol/spec`](spec.md#post-v1register)): what bounds a claimed route is
+that the gateway never sends a person's request to a route two entries
+declare, to a route of the orchestrator's own, or to an address
+`architecture/orchestrator`'s Presenting a credential to a component does not
+allow.
 
 ### IOSpec
 
@@ -1700,6 +1791,11 @@ types:
         type: string
         required: false
         description: "How the orchestrator came to hold `url`: `self-asserted` (a registrant claimed it and nothing confirmed it), `declared` (it matches the address the tenant declared for this component), `verified` (declared, and the registered key answered there). Absent means `self-asserted`."
+      pass_routes:
+        name: PassRoutes
+        type: "[]PassRoute"
+        required: false
+        description: "The `pass_routes` this component's manifest declared, as its registration recorded them. Absent or empty: no person's request is carried here. See [PassRoute](#passroute)"
 ```
 
 **`url` is what a registrant claimed; `address_provenance` is how much that is worth.**

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.17.0
+version: 2.18.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -73,7 +73,7 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: protocol/types
-      version: ">=1.16.0 <2.0.0"
+      version: ">=1.17.0 <2.0.0"
       bindings:
         types:
           - name: RegisterRequest
@@ -82,12 +82,16 @@ declaration:
             fields_used: [agent_id, token, expires_at, services]
           - name: ServiceDirectory
             fields_used: [services, routing_table, namespaces]
+          # Each entry republishes what the registration recorded, the routes
+          # at which the component admits a person's request on a pass included
+          - name: ServiceEntry
+            fields_used: [name, url, public_key, capabilities, status, address_provenance, pass_routes]
           - name: ChannelRequest
             fields_used: [from_agent, to_agent, purpose]
           - name: ChannelGrant
             fields_used: [channel_id, channel_token, target_url, target_pub_key]
           - name: AgentManifest
-            fields_used: [name, type, version, url, public_key, capabilities, publishes, subscriptions]
+            fields_used: [name, type, version, url, public_key, capabilities, publishes, subscriptions, pass_routes]
           - name: AuditEntry
             fields_used: [id, timestamp, actor, action, target, detail, status]
           - name: ChannelEntry
@@ -1025,7 +1029,9 @@ for the authoritative registration contract.
 ```
 1.  Parse and validate per spec.md contract. A manifest whose capabilities
     name one protocol/types marks person only → 403 CAPABILITY_PERSON_ONLY,
-    before anything is recorded
+    before anything is recorded. Its pass_routes are not read for this: a
+    pass route names what the component checks on a person's pass, never
+    what it holds, and none of it reaches the token of step 5
 2.  Verify signature and replay protection (see protocol/identity.md)
 3.  Validate namespace claims:
     a. For each namespace in manifest.publishes:
@@ -1048,6 +1054,9 @@ for the authoritative registration contract.
     - Expiry: 24 hours (configurable via token TTL setting)
 6.  Store agent in registry:
     {manifest, agentID, token, registeredAt, lastSeen, status: "online"}
+    Its ServiceEntry carries manifest.pass_routes unchanged, which is where
+    the admin gateway learns what a person's request may reach on this
+    component and what each needs (protocol/types, PassRoute)
 7.  Build routing table entries for this agent's subscriptions:
     For each subscription → add RouteEntry to routing_table[pattern]
 8.  Log audit entry: actor=orchestrator, action=register, target=agent_name
@@ -1578,6 +1587,7 @@ agents hold, which is theirs.
 - [ ] `POST /v1/register` returns `RegisterResponse` with agent ID, token, and service directory
 - [ ] `DELETE /v1/register` releases owned namespaces and routing table entries
 - [ ] Service directory includes `routing_table` and namespaces map
+- [ ] A `ServiceEntry` carries the `pass_routes` its manifest declared, unchanged, and a registration whose `pass_routes` name `content:write` or another person-only capability is not refused for it, while one whose `capabilities` names one still is with `CAPABILITY_PERSON_ONLY`
 - [ ] Service directory broadcast to ALL agents after every registration/deregistration
 - [ ] `POST /v1/register` refuses with `409 ADDRESS_CONFLICT` when the registered `url` contradicts the address the tenant declared for that component
 - [ ] Every `ServiceEntry` carries `address_provenance`, and an entry the orchestrator has not matched against the tenant's declaration reports `self-asserted` rather than omitting the field

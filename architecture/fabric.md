@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 1.4.2
+version: 1.5.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
@@ -48,15 +48,20 @@ and is reachable from either.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.15.0 <2.0.0"
+    version: ">=1.17.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
           fields_used: [code, error, category, retryable]
         - name: AuditEntry
           fields_used: [id, timestamp, actor, via, action, target, status]
+        # pass_routes is how the admin gateway learns which of these routes a
+        # person's request may reach and what each needs. See Registration
+        # and Standalone Operation
         - name: AgentManifest
-          fields_used: [name, capabilities]
+          fields_used: [name, capabilities, pass_routes]
+        - name: PassRoute
+          fields_used: [method, path, capabilities]
         - name: Capability
           fields_used: [name, resources]
         - name: HealthStatus
@@ -1444,6 +1449,17 @@ A capability name is `family:verb`, and an invented one is refused at
 registration — which is why these belong in
 [`protocol/types`](../protocol/types.md) before this component is built.
 
+**Its manifest declares the person's routes as pass routes**
+([`protocol/types`](../protocol/types.md#passroute), `pass_routes`): the three
+`fabric:attest` routes and the seven `fabric:read` routes of
+[Endpoints](#endpoints), each with the one capability the table above gives
+it and no body requirement. `POST /v1/fabric/sync` and
+`POST /v1/fabric/observations` are a producer's, which no person reaches, and
+are not among them. The admin gateway carries a person's request here only on
+a route this list declares, on a pass naming that capability
+([`architecture/admin`](admin.md#contracts), `admin-gateway-authorization`),
+so the list and the table MUST agree.
+
 **It also holds two capabilities as a client**, and they are the only reach it
 has outside itself: `content:read`, for the identity lookup and listing that
 version resolution and relocation need, and `content:describe`, for the custody
@@ -1647,6 +1663,7 @@ security:
 - [ ] A content service whose `ServiceEntry` is on another host is reached only with a grant for that address; absent one the repository is `unreachable` and no credential is sent
 - [ ] The fabric's manifest declares no `agent:message`, and a remote content service does not cause it to be added
 - [ ] The fabric's manifest declares no `fabric:attest`, and its registration succeeds; a component whose manifest declares `fabric:attest` is refused at registration with `CAPABILITY_PERSON_ONLY`, and an agent's authorisation naming it is refused
+- [ ] The fabric's manifest's `pass_routes` declare the three `fabric:attest` routes with `[fabric:attest]` and the seven `fabric:read` routes with `[fabric:read]`, and neither `POST /v1/fabric/sync` nor `POST /v1/fabric/observations`
 - [ ] An attestation on a pass addressed to this service whose `cap` names `fabric:attest` is recorded; the same request on a registered component's token or a channel token is refused with `FORBIDDEN`, whatever capabilities that token names, on a person's operator token with `PASS_REQUIRED`, and on a pass addressed to another component with `PASS_AUDIENCE_MISMATCH`
 - [ ] Through the admin gateway, an attestation, a decision or a relocation on an operator token minted before its operator was removed, its credential revoked, or its role lowered to one without `fabric:attest` is refused by the exchange with `OPERATOR_REVOKED`, `CREDENTIAL_REVOKED` or `FORBIDDEN`, and this service is sent nothing and appends nothing
 - [ ] A person's attestation, decision or relocation records the pass's `identity_id` as the entry's `actor`, never its `sub`, so renaming the operator changes nothing the ledger holds, and its audit entry names the pass's `act.identity_id` as `via`; a producer's claims record the `identity_id` claim of the token it presented
