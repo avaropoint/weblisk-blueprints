@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.14.3
+version: 1.14.4
 requires: [protocol/types]
 platform: any
 tier: free
@@ -800,6 +800,12 @@ signed as every WLT is, under ML-DSA-65, and carries:
 6. A person-only capability ([`protocol/types`](types.md#capability)) counts
    on an operator token at the orchestrator and on a pass at a component,
    which are a person's, and on no other token.
+7. A security event logged under rule 3 or 4 names the refused token by its
+   claims, never by the token: its `type`, `sub`, `identity_id` and `cid`, and
+   for a pass its `aud` and `act.identity_id`. It never records the
+   `Authorization` header or any part of the token's bytes. A refused
+   operator token is a live, full-role person's token until it expires, and
+   the component's log is the place the pass exists to keep it out of.
 
 This is the one statement of the rule. A blueprint whose client holds operator
 tokens, or whose component serves people, points here.
@@ -1347,6 +1353,7 @@ Implementation MUST:
 - [ ] A pass is minted only by the token exchange, for an operator token judged live at that moment, carries the claims [The pass](#the-pass) gives it, expires no more than 30 seconds after it was issued, and is refused as the subject of another exchange
 - [ ] A component accepts a pass only when it verifies under its own orchestrator's key and its `aud` is that component's identity id; a pass addressed to another component, or presented to the orchestrator, is refused with `PASS_AUDIENCE_MISMATCH` and logged as a security event
 - [ ] Every component but the orchestrator and the admin gateway refuses an operator token on every route with `PASS_REQUIRED`, whatever its `cap`, and logs a security event
+- [ ] The security event for a refused operator token or a foreign pass names its `type`, `sub`, `identity_id` and `cid`, and a pass's `aud` and `act.identity_id`, and holds no part of the token or the `Authorization` header
 - [ ] A component records a person's act by the pass's `identity_id` and the gateway that carried it by `act.identity_id`, as its audit entry's `actor` and `via`
 - [ ] The orchestrator never presents a token it received to any party
 - [ ] Enforce replay protection window (300 seconds) on registration
