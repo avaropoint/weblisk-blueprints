@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.14.2
+version: 1.14.3
 requires: [protocol/types]
 platform: any
 tier: free
@@ -1246,7 +1246,23 @@ error_codes:
     status: 400
     description: Public key or signature could not be decoded
     retryable: false
+  - code: PASS_AUDIENCE_MISMATCH
+    status: 401
+    description: A pass presented to a component its aud does not name,
+      the orchestrator included (The pass, rule 3). Logged as a security
+      event
+    retryable: false
+  - code: PASS_REQUIRED
+    status: 401
+    description: An operator token presented to a component other than the
+      orchestrator and the admin gateway (The pass, rule 4). Logged as a
+      security event
+    retryable: false
 ```
+
+Each is registered with its HTTP status in [`protocol/types`](types.md),
+which is the registry; this list names the codes this document's rules answer
+with.
 
 ---
 
