@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.20.0
+version: 2.20.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -648,6 +648,13 @@ status. The Category column classes the fault. It is not
 another blueprint registers, such as `SCOPE_INVALID_LEVEL`, `FORBIDDEN`,
 `PASS_REQUIRED` or `PASS_AUDIENCE_MISMATCH`, keeps the status that blueprint
 gives it ([`protocol/types`](../protocol/types.md#errorresponse)).
+
+A backend's own blueprint may register codes under this service's `CONTENT_`
+prefix, for a fault only that backend can meet, as
+[`patterns/content-git`](../patterns/content-git.md#error-handling) registers
+`CONTENT_PLACEMENT_PARTIAL` and `CONTENT_LINE_UNSETTLED`. This service returns
+each with the status its Category gives under the rule above, and no backend
+may register a code the table below registers.
 
 Four codes take another status than their Category's. `CONTENT_STATEMENT_INVALID`
 is 400: the token was accepted and the statement it carried was not, so a
