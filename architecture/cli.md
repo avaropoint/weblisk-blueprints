@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.18.0
+version: 2.18.1
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1682,8 +1682,8 @@ Strategies: unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABL
 
 - Calls `GET /v1/admin/overview` at the hub's admin gateway, which composes
   the overview: the orchestrator's figures, and each other group asked of
-  the component that holds it on a pass, or carried as an object holding
-  `unavailable` and a code
+  the component that holds it on a pass, or carried as an object whose one
+  member, `unavailable`, holds a code, as `{"unavailable": "ADMIN_GROUP_UNAVAILABLE"}`
   ([`architecture/admin`](admin.md#get-v1adminoverview)). A group carried
   that way is shown as unavailable with its code, never as zero, and until
   a provider's blueprint specifies its group on a pass every group but the
