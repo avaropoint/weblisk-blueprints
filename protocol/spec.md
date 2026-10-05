@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 2.0.8
+version: 2.1.0
 requires: [protocol/types, protocol/identity]
 platform: any
 tier: free
@@ -276,10 +276,26 @@ Signature covers: `canonicalize({from, to, action, payload})` per
 
 Accepts service directory and routing table updates pushed by the
 orchestrator. The agent MUST update its internal service list and
-routing table (thread-safe). Response: 200 OK (no body required).
+routing table (thread-safe), from the body, or from
+[`GET /v1/services`](#get-v1services), which it MAY read on its own token
+when a push arrives instead of reading the body. Response: 200 OK (no body
+required).
 
 **Request:** `ServiceDirectory` (now includes `routing_table` and
 `namespaces` — see [types.md](types.md))
+
+> **Gap — nothing authenticates a push.** `ServiceDirectory.signature` has no
+> signing input, and nothing verifies one, so a body arriving here is whatever
+> the party that reached this listener sent. Any registrant can reach it,
+> because a registration is not an enrolment (the gap under
+> [`POST /v1/register`](#post-v1register)), and every registrant's directory
+> names every other's `url`. An agent that takes a pushed body as its
+> directory follows the routes, addresses and `address_provenance` that party
+> chose. The admin gateway, which turns the directory into where it sends a
+> person's pass, therefore reads it only by `GET /v1/services` at its anchor
+> ([`architecture/admin`](../architecture/admin.md#contracts),
+> `admin-gateway-authorization`). Specifying the signature, and verifying it
+> here, is what closes the gap for every other agent.
 
 ### POST /v1/event
 
@@ -427,7 +443,10 @@ The orchestrator MUST:
 Service directory including routing table and namespace map.
 Requires valid auth token.
 
-**Response:** `ServiceDirectory` (signed by orchestrator)
+**Response:** `ServiceDirectory`. Its `signature` has no signing input yet
+(the gap under [`POST /v1/services`](#post-v1services)), so what makes this
+answer the orchestrator's is the connection the caller opened to the
+orchestrator address it registered at.
 
 The response includes:
 - `services` — all registered agents with URL, public key, capabilities, status

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: threat-model
-version: 1.2.5
+version: 1.3.0
 requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/content, architecture/data-security, architecture/admin, architecture/observability, architecture/enforcement, patterns/contract]
 platform: any
 tier: free
@@ -247,7 +247,7 @@ defines security contracts that other components implement:
 | Session binding and CSRF | Gateway + Browser Session | 1.9–1.13 |
 | Input validation and CSP | Gateway + Agents | 1.14–1.21 |
 | mTLS and agent identity verification | Orchestrator + Agents | 2.1–2.10 |
-| Component address provenance and the credential reach rule | Orchestrator + every caller | 2.11–2.15 |
+| Component address provenance, the credential reach rule and where the directory is read from | Orchestrator + every caller | 2.11–2.16 |
 | Encryption at rest and key management | Agents + Data Security | 3.1–3.11 |
 | Admin gateway separation, MFA and console credential custody | Admin Gateway + console | 4.1–4.9 |
 | Federation data contracts and trust tiers | Federation Protocol | 5.1–5.8 |
@@ -394,16 +394,17 @@ identity on every request.
 | 2.8 | **Data exfiltration via agent** | Compromised agent sends data to external endpoint | Enforcement external boundary intercepts all outbound calls; agents can only reach declared external endpoints; scope-based leakage prevention blocks restricted data from crossing boundaries; agent behavioral monitoring detects anomalous external call patterns | Enforcement external boundary + monitoring |
 | 2.9 | **Deserialization attack** | Malicious payload in agent request/response | JSON-only protocol (no binary serialization); strict schema validation on all messages; no arbitrary object deserialization | Protocol spec |
 | 2.10 | **Replay attack (internal)** | Replay a valid gateway-to-agent request | Request includes `X-Request-Id` (UUID) + `X-Trace-Id`; agents track recent request IDs; duplicate requests rejected within replay window (300 seconds) | Protocol spec |
-| 2.11 | **Directory address poisoning** | A registrant claims a `url` on a host the attacker controls. The orchestrator signs the directory, so the entry is authentic; a caller follows the address carrying a live credential | `manifest.url` is a claim, and `ServiceEntry.address_provenance` says so. A caller presents a credential only at its anchor host or at an address a grant names, and an address the tenant never declared is `self-asserted` and refused. A registered `url` contradicting the declaration is `409 ADDRESS_CONFLICT` at registration, not a published contradiction | Orchestrator address provenance + reach rule |
+| 2.11 | **Directory address poisoning** | A registrant claims a `url` on a host the attacker controls. The orchestrator publishes the entry, so it is authentic; a caller follows the address carrying a live credential | `manifest.url` is a claim, and `ServiceEntry.address_provenance` says so. A caller presents a credential only at its anchor host or at an address a grant names, and an address the tenant never declared is `self-asserted` and refused. A registered `url` contradicting the declaration is `409 ADDRESS_CONFLICT` at registration, not a published contradiction | Orchestrator address provenance + reach rule |
 | 2.12 | **Content substitution via a foreign component** | The poisoned address answers as the tenant's content service and returns documents of its own | As 2.11. A response is attributable to the key the registry holds for that component, never to the address it arrived from. This is worse than an empty answer because it is plausible: a governance surface reports the attacker's documents as the tenant's policy, and an auditor reads a corpus nobody in the tenant wrote | Orchestrator address provenance + protocol identity |
 | 2.13 | **Silent write absorption** | As 2.12 with a write capability. The attacker cannot write the tenant's real store, but it can return success, so the tenant believes an edit landed | As 2.11. Detection afterwards rests on content identity and reconciliation — a later read of the real repository does not carry the identity the write was acknowledged with. That is a poor second to not having sent the write, and is why the address rule is preventive rather than detective | Orchestrator address provenance + content identity |
 | 2.14 | **Takeover of a declared address** | The tenant genuinely declared the address; the name now resolves somewhere else | `declared` is authorisation and proves nothing about who answers, which is why it is a separate rung from `verified`. TLS server-certificate validation at the declared name; `verified` where the orchestrator can obtain a signed round trip. Residual where it cannot — see the register | Transport + orchestrator address provenance |
 | 2.15 | **Credential spread across hosts** | A caller re-presents its anchor credential at every component address it finds, so one credential exists on every host the tenant runs | A credential is presented only at the address it is bound to. A foreign address takes a grant: one target, one address, the intersection of the two capability sets, and an expiry. The capability itself is unchanged by distance — narrowing its meaning would give one name two readings — so containment is what the grant provides | Reach rule + channel grant |
+| 2.16 | **Directory push forgery** | A party that can reach a component's listener, which any registrant can, pushes it a `ServiceDirectory` naming its own `url` for a real component, with `address_provenance` `declared`. Nothing authenticates a push, so a recipient that takes the body as its directory sends what it would send that component to the attacker; the admin gateway would send a person's pass, which the attacker replays at the real component within its lifetime | The admin gateway reads the directory only by `GET /v1/services` at the orchestrator address it was configured with, and takes a push as a prompt to read it and nothing more ([`architecture/admin`](admin.md#contracts), `admin-gateway-authorization`). Every other agent still takes the pushed body: residual until the directory's signature is specified and verified ([`protocol/spec`](../protocol/spec.md#post-v1services), the gap there) | Admin gateway directory read; residual for other agents |
 
-**Address provenance note.** Vectors 2.11–2.15 exist because a signed service directory
-proves that a tenant *said* a component is at an address; it never proves the
+**Address provenance note.** Vectors 2.11–2.15 exist because a service directory the
+orchestrator serves proves that a tenant *said* a component is at an address; it never proves the
 tenant controls that address. The registration contract validates `manifest.url`
-non-empty and no further, so the signature covers a claim. What each entry's
+non-empty and no further, so the entry records a claim. What each entry's
 address is worth is published as `ServiceEntry.address_provenance`, and what a caller may
 do with each value is
 [`architecture/orchestrator`](orchestrator.md#presenting-a-credential-to-a-component).
@@ -684,6 +685,7 @@ After all mitigations, these residual risks remain:
 | A declared component address that no orchestrator can verify | Medium | High | `declared` authorises; TLS certificate validation at the declared name is the only authentication until a signed probe exists | The gap is named in `architecture/orchestrator`. An operator's declaration plus DNS is the whole trust chain for a remote component today |
 | A second process on the anchor's host under a different owner | Low | High | None at the client. Same-host is in bounds by the reach rule, and a caller cannot distinguish two processes on one host | The trusted-network position, stated rather than assumed. It is the residual that makes the anchor host's operator model load-bearing |
 | A key holder that genuinely controls a foreign address | Low | Critical | Address verification proves control of the address by the key holder, never that the key holder is the tenant's | Key issuance is the real boundary, and it is `protocol/identity`'s. `verified` narrows where a stolen key can be used, not whether it works |
+| A forged service directory pushed to an agent other than the admin gateway | Medium | High | None yet at the agent: nothing authenticates a push. The admin gateway reads the directory from its anchor and takes no push as one | The gap is named in `protocol/spec` under `POST /v1/services`. An agent that takes the pushed body follows the routes and addresses its sender chose until the directory's signature is specified and verified |
 
 ---
 
