@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.16.2
+version: 2.16.3
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -246,9 +246,9 @@ act on local files, and **operator** commands that act on a running hub.
    └────┬──────────────────────┬────────┘
         │ signs through it     │ authenticated per request
         ▼                      ▼
-   Identity holder        Orchestrator
-   (a secret source,      (over a transport
-    or a key file)         the operator named)
+   Identity holder        Admin gateway
+   (a secret source,      (the hub's one door, over
+    or a key file)         a transport the operator named)
 ```
 
 **Responsibilities.** Scaffolding and building projects, generating components from
@@ -2642,7 +2642,7 @@ Every command that calls the hub's admin gateway:
 | 0 | Success |
 | 1 | General error (invalid arguments, missing config) |
 | 2 | Authentication error (no keys, expired token, rejected) |
-| 3 | Connection error (orchestrator unreachable) |
+| 3 | Connection error (the hub unreachable at the address the command uses) |
 | 4 | Not found (agent, workflow, strategy not found) |
 | 5 | Permission denied (role insufficient) |
 
@@ -2669,9 +2669,14 @@ security:
         signs, and zeroises both (protocol/secret-source). An encrypted key file
         is decrypted in memory for one invocation, with the passphrase a person
         typed or a secret source remembers, and never written back in the clear
-    - boundary: CLI → Orchestrator. Authenticated per request with a short-lived
-        token minted with the credential for that hub, over a transport the
-        operator named
+    - boundary: CLI → Admin gateway. Every operator command, authenticated per
+        request with a short-lived token minted with the credential for that
+        hub, over a transport the operator named. The person's token is
+        presented there and nowhere else (protocol/identity, The pass)
+    - boundary: CLI → Orchestrator. Only a command that runs, registers or
+        tests a component, which acts as that component, and the first
+        operator's registration at provision, which presents the bootstrap
+        secret. Neither sends a person's token
     - boundary: CLI → Local filesystem. Confined to the project and the
         operator's own configuration directory
   enforcement:
