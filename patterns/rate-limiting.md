@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: rate-limiting
-version: 1.1.1
+version: 1.1.2
 requires: [protocol/types, protocol/identity, architecture/gateway, architecture/agent]
 platform: any
 tier: free
@@ -438,8 +438,9 @@ each `ADMIN_GROUP_UNAVAILABLE`
   limiting is optional and handles domain-specific concerns (external
   API budgets, resource-intensive operations).
 - Rate limit configuration supports hot-reload via the admin API, which
-  no person reaches yet ([Admin Operations](#admin-operations)), or the
-  CLI. No gateway restart required.
+  no person reaches yet ([Admin Operations](#admin-operations)). No
+  command of [`architecture/cli`](../architecture/cli.md) changes it. No
+  gateway restart required.
 - For development environments, rate limiting can be disabled entirely
   (`rate_limiting.enabled: false`).
 - Trusted proxy configuration is required for correct IP extraction
