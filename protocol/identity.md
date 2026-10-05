@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.14.0
+version: 1.14.1
 requires: [protocol/types]
 platform: any
 tier: free
@@ -1143,6 +1143,14 @@ handshake and trust store update procedure.
 | Channel tokens | 1 hour (automatic) | Built-in expiry |
 | Auth tokens | 24 hours (automatic) | Built-in expiry |
 
+**An orchestrator's first key leaves token signing and is kept.** The key
+whose fingerprint is its `hub_id` stops signing tokens when the orchestrator
+rotates its key, and is kept as a service key to sign `weblisk/hub-proof/v1`
+and nothing else, for as long as the hub keeps that `hub_id`
+([`architecture/admin`](../architecture/admin.md#proving-the-hub-at-an-address)).
+So rotating the orchestrator key does not end a compromise of that first key:
+only a new `hub_id`, which a hub regenerated without its state has, does.
+
 ---
 
 ## Multi-Key Scenarios
@@ -1281,7 +1289,7 @@ security:
 - WLT is structurally similar to JWT but uses `typ: WLT` to prevent cross-system confusion
 - Single-algorithm design (ML-DSA-65 for everything this protocol signs) eliminates algorithm confusion and downgrade attacks
 - The `alg` header field MUST be `ML-DSA-65` — any other value is rejected
-- Key rotation is atomic — old key is invalid immediately after rotation
+- Key rotation is atomic — old key is invalid immediately after rotation, save an orchestrator's first key, which is kept to sign its hub proof and nothing else (Recommended Rotation Schedule)
 - Federation key rotation uses dual-signature (old + new) for zero-downtime transitions
 - ML-DSA-65 signatures are ~3.3 KB — larger than classical algorithms but necessary for
   quantum resistance. This is an acceptable tradeoff for security
