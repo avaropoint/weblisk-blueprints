@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.16.2
+version: 2.17.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -127,7 +127,7 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/admin
-      version: ">=2.26.2 <3.0.0"
+      version: ">=2.29.0 <3.0.0"
       bindings:
         behaviors:
           - name: operator-registration
@@ -720,7 +720,7 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 | POST | /v1/admin/operators/token | OperatorToken | — | Issue an attestation token to a caller who signs `{hub_id, name, timestamp}`, naming this hub, with the private key matching this orchestrator's record. Unauthenticated by token, because it is what issues them. Deprecated as a way to an operator token — see [`architecture/admin`](admin.md#the-identity-signs-only-to-attest) |
 | POST | /v1/admin/credentials/challenge | CredentialChallenge | — | Issue a single-use nonce for a credential |
 | POST | /v1/admin/credentials/token | CredentialToken | — | Issue an operator token to a credential that signed the nonce. The ordinary way to an operator token |
-| POST | /v1/admin/hub/proof | HubProof | — | Sign, with the key `hub_id` names, that this hub is reached at one of its admin addresses. Unauthenticated by token, because a client asks it before it holds anything here — see [`architecture/admin`](admin.md#proving-the-hub-at-an-address) |
+| POST | /v1/admin/hub/proof | HubProof | — | Sign, with the key `hub_id` names, that this hub is reached at one of its admin addresses. Unauthenticated by token, because a client asks it before it holds anything here. Answered `501` `HUB_PROOF_UNAVAILABLE` until `weblisk/hub-proof/v1` has test vectors — see [`architecture/admin`](admin.md#proving-the-hub-at-an-address) |
 | POST | /v1/admin/operators/{name}/key | OperatorKeyChange | — | Change an operator's identity key, signed by the current key and the new one. Unauthenticated by token, because the two signatures authenticate it and the operator may hold no live credential — see [`architecture/admin`](admin.md#changing-an-identity-key) |
 | POST | /v1/admin/operators/{name}/credentials | CredentialAttest | the operator's own token, able to use `admin:read`, or an attestation token for them | Attest a credential for that operator |
 | GET | /v1/admin/operators/{name}/credentials | CredentialList | `admin:read` | That operator's credentials, revoked included |
@@ -1188,9 +1188,10 @@ never block.
 
 Applied to all endpoints except `/v1/health`, `POST /v1/register`, the four
 operator routes that establish or issue tokens — `OperatorRegister`,
-`OperatorToken`, `CredentialChallenge` and `CredentialToken` — and
-`OperatorKeyChange`, which the operator's current and new identity keys
-authenticate (see [Administrative endpoints](#administrative-endpoints)):
+`OperatorToken`, `CredentialChallenge` and `CredentialToken` — `HubProof`,
+which a client asks before it holds anything here, and `OperatorKeyChange`,
+which the operator's current and new identity keys authenticate (see
+[Administrative endpoints](#administrative-endpoints)):
 
 ```
 1. Check Authorization header for "Bearer <token>"
@@ -1552,7 +1553,7 @@ agents hold, which is theirs.
 - Namespace ownership is exclusive — once claimed, a namespace is locked to the registering agent
 - Service directory broadcasts are pushed to all agents after every registration or deregistration change
 - Channel brokering creates short-lived tokens scoped to a specific agent pair
-- Auth middleware validates ML-DSA-65 signatures and WLT tokens on every request (except /v1/health)
+- Auth middleware validates ML-DSA-65 signatures and WLT tokens on every request but the routes [Auth Middleware](#auth-middleware) names, which carry none
 - The orchestrator should be stateless where possible — registry data can be backed by the storage engine
 
 ---
@@ -1564,6 +1565,7 @@ agents hold, which is theirs.
 - [ ] `POST /v1/admin/credentials/challenge` and `POST /v1/admin/credentials/token` require no bearer token, and every other operator route refuses a token whose operator or credential is no longer live
 - [ ] The credential routes are served with the Operation names declared above: `CredentialChallenge`, `CredentialToken`, `CredentialAttest`, `CredentialList` and `CredentialRevoke`
 - [ ] `POST /v1/admin/operators/{name}/key` is served as `OperatorKeyChange`, requires no bearer token, and keeps the operator's `identity_id` while revoking its credentials (`architecture/admin`, `operator-key-change`)
+- [ ] `POST /v1/admin/hub/proof` is served as `HubProof` and requires no bearer token: a request carrying none reaches its handler, and is never answered `401` `valid token required` (`architecture/admin`, `hub-proof`)
 - [ ] A token with `type` `attestation` is refused with `CREDENTIAL_REQUIRED` on every route but `CredentialAttest`, `GET /v1/audit` and `POST /v1/channel` included, and on `CredentialAttest` for any operator but its `sub`
 - [ ] A token whose `type` is not `operator`, an agent token included, is refused with `CREDENTIAL_REQUIRED` on every `/v1/admin/*` route that requires a token, before the handler runs
 

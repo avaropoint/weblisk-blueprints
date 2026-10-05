@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.14.3
+version: 2.14.4
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -189,7 +189,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/admin
-    version: ">=2.28.0 <3.0.0"
+    version: ">=2.29.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/admin/operators/register
@@ -1088,7 +1088,8 @@ CLI holds one for each identity at each hub:
   of its `public_key` is its `hub_id` and its signature verifies over the
   statement the CLI builds itself from that `hub_id`, that origin and its own
   challenge. The registration answer must then name the same `hub_id`. A hub
-  that does not answer the proof, or whose proof or answer fails any of
+  that does not answer the proof, one built before the vectors that answers
+  `HUB_PROOF_UNAVAILABLE` included, or whose proof or answer fails any of
   these, is reported with the address, and nothing is recorded or signed
   there. A `hub_id` the CLI holds at an address is then one the hub there
   holds the key for. Until those vectors are published no hub may sign the
