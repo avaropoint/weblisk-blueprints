@@ -99,6 +99,18 @@ observability:
   otlp_endpoint: string            # OTLP collector URL (optional)
 ```
 
+> **Gap — no section declares the admin gateway.** The tenant's one door for
+> people ([`architecture/admin`](../architecture/admin.md#admin-gateway-separation))
+> is a component of its own, and nothing above declares it: no section gives
+> it a listener, an operator allowlist or an address, so a hub this file
+> describes has none, and `weblisk server start` starts none
+> ([`architecture/cli`](../architecture/cli.md#weblisk-server-start), the gap
+> there, which says what a person then cannot do). `gateway` is the
+> application gateway, which refuses every administrative route
+> ([`architecture/gateway`](../architecture/gateway.md)), and is not it.
+> `orchestrator.admin_addresses` names the admin gateway's origins, and is
+> written by whoever runs one, since no command does yet.
+
 ## Field Details
 
 ### hub
@@ -119,7 +131,7 @@ observability:
 | `health_interval` | duration | no | `30s` | How often to probe registered agents |
 | `health_timeout` | duration | no | `5s` | Max wait for health response |
 | `health_failures` | integer | no | `3` | Consecutive failures before auto-deregistration |
-| `admin_addresses` | list | no | `[]` | The origins at which this hub's admin gateway is reached, each in the ASCII serialisation of RFC 6454 section 6.2 (`https://admin.example.org`, with a port only where it is not the scheme's default). The orchestrator signs a hub proof for these and no other ([`architecture/admin`](../architecture/admin.md#proving-the-hub-at-an-address)), so a hub that lists none proves its `hub_id` at no address. |
+| `admin_addresses` | list | no | `[]` | The origins at which this hub's admin gateway is reached, each in the ASCII serialisation of RFC 6454 section 6.2 (`https://admin.example.org`, with a port only where it is not the scheme's default). The orchestrator signs a hub proof for these and no other ([`architecture/admin`](../architecture/admin.md#proving-the-hub-at-an-address)), so a hub that lists none proves its `hub_id` at no address, and once `weblisk/hub-proof/v1` has test vectors no client records it at a new address. Wherever an admin gateway runs, every origin it is reached at MUST be listed here. No command writes the key yet, because none stands an admin gateway up (the gap above): whoever runs one lists its origins. |
 
 ### gateway
 
