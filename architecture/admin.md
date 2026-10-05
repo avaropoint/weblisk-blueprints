@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.32.3
+version: 2.32.4
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -94,11 +94,12 @@ requires:
       types:
         - name: Strategy
           fields_used: [id, name, targets, status, priority]
-        # Every refusal Error Handling names: retry_after on
-        # ADMIN_TOKEN_UNCHECKED, and detail.address on ADMIN_GROUP_UNAVAILABLE
-        # for a provider whose only address is self-asserted on another host
+        # Every refusal Error Handling names, with the category and
+        # retryable it gives each code: retry_after on ADMIN_TOKEN_UNCHECKED,
+        # and detail.address on ADMIN_GROUP_UNAVAILABLE for a provider whose
+        # only address is self-asserted on another host
         - name: ErrorResponse
-          fields_used: [error, code, retry_after, detail]
+          fields_used: [error, code, category, retryable, retry_after, detail]
         # What the admin gateway asks the orchestrator for each request it
         # carries to a provider other than the orchestrator, and what it
         # sends that request on (admin-gateway-authorization)
