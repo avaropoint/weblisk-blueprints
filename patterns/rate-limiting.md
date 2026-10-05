@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: rate-limiting
-version: 1.1.0
+version: 1.1.1
 requires: [protocol/types, protocol/identity, architecture/gateway, architecture/agent]
 platform: any
 tier: free
@@ -409,7 +409,7 @@ without gateway restart.
 
 No person reaches these routes yet. The component that implements them
 refuses a person's operator token on each with `PASS_REQUIRED`, before
-anything is read or changed, as
+anything is read or changed, and logs a security event, as
 [`protocol/identity`](../protocol/identity.md#the-pass) requires of every
 component but the orchestrator and the admin gateway. A person would reach
 them through the admin gateway, on a pass addressed to that component, and
@@ -461,6 +461,6 @@ each `ADMIN_GROUP_UNAVAILABLE`
 - [ ] Sliding window correctly weights previous window
 - [ ] Per-route overrides take precedence over defaults
 - [ ] Rate limit configuration hot-reloads without restart
-- [ ] The four `/v1/admin/rate-limits` routes refuse a person's operator token with `PASS_REQUIRED`, reading and changing nothing, while the implementing component's manifest declares none of them among its `pass_routes`
+- [ ] The four `/v1/admin/rate-limits` routes refuse a person's operator token with `PASS_REQUIRED` and log a security event, reading and changing nothing, while the implementing component's manifest declares none of them among its `pass_routes`
 - [ ] Metrics emit for allowed and rejected requests
 - [ ] Auth endpoints have stricter limits than general routes

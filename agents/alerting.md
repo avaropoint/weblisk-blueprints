@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: alerting
-version: 1.1.0
+version: 1.1.1
 port: 9752
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/email-send]
 extends: [patterns/alerting, patterns/observability, patterns/storage, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -396,7 +396,7 @@ generator reads.
 
 **No person reaches the three `/v1/admin/alerts` routes yet.** This agent
 refuses a person's operator token on each with `PASS_REQUIRED`, before
-anything is read, as [`protocol/identity`](../protocol/identity.md#the-pass)
+anything is read, and logs a security event, as [`protocol/identity`](../protocol/identity.md#the-pass)
 requires of every component but the orchestrator and the admin gateway. A
 person would reach them through the admin gateway, on a pass addressed to
 this agent, and this blueprint does not yet say that the agent accepts one:
@@ -1616,7 +1616,7 @@ scaling:
 - [ ] Webhook channel includes HMAC-SHA256 signature
 - [ ] Webhook retries 3 times with exponential backoff on failure
 - [ ] Slack channel sends Block Kit formatted messages
-- [ ] Alert history is stored, and `GET /v1/admin/alerts`, `GET /v1/admin/alerts/{id}` and `GET /v1/admin/alerts/stats` refuse a person's operator token with `PASS_REQUIRED`, reading nothing, while the manifest declares none of them among its `pass_routes`
+- [ ] Alert history is stored, and `GET /v1/admin/alerts`, `GET /v1/admin/alerts/{id}` and `GET /v1/admin/alerts/stats` refuse a person's operator token with `PASS_REQUIRED` and log a security event, reading nothing, while the manifest declares none of them among its `pass_routes`
 - [ ] Stats endpoint returns correct counts by severity and source
 - [ ] Custom alerts from any agent are accepted and routed
 - [ ] Graceful degradation when email-send agent is unavailable

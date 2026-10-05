@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: incident-response
-version: 1.1.0
+version: 1.1.1
 port: 9760
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/alerting]
 extends: [patterns/incident-response, patterns/observability, patterns/storage, patterns/state-machine, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -523,7 +523,8 @@ GET /v1/admin/runbooks/:name
 ```
 
 No person reaches them yet. This agent refuses a person's operator token on
-each with `PASS_REQUIRED`, before anything is read or changed, as
+each with `PASS_REQUIRED`, before anything is read or changed, and logs a
+security event, as
 [`protocol/identity`](../protocol/identity.md#the-pass) requires of every
 component but the orchestrator and the admin gateway. A person would reach
 them through the admin gateway, on a pass addressed to this agent, and this
@@ -1476,7 +1477,7 @@ scaling:
 - [ ] Approval-required steps pause and wait for operator
 - [ ] Auto-resolved incidents confirm stability before closing
 - [ ] Post-incident reports generate for all resolved incidents
-- [ ] The five `/v1/admin/runbooks` routes refuse a person's operator token with `PASS_REQUIRED`, reading and changing nothing, while the manifest declares none of them among its `pass_routes`
+- [ ] The five `/v1/admin/runbooks` routes refuse a person's operator token with `PASS_REQUIRED` and log a security event, reading and changing nothing, while the manifest declares none of them among its `pass_routes`
 - [ ] Incident timeline records all events chronologically
 - [ ] Metrics emit for incidents, runbooks, and escalations
 - [ ] Graceful degradation when alerting agent or storage is unavailable
