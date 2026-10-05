@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: storage
-version: 1.4.0
+version: 1.4.1
 requires: [protocol/types, protocol/identity, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 tier: free
@@ -1136,7 +1136,7 @@ there. The first authority is the key that signed the log's first key entry.
 
 When the owner replaces its long-lived key while it still holds the one it is
 replacing, as a rotation does
-([`protocol/identity`](../protocol/identity.md#key-rotation)), it appends a
+([`protocol/identity`](../protocol/identity.md#rotation-flow)), it appends a
 **succession entry** to each log that has an authority, before the incoming key
 signs anything there. A log with no key entry yet has no authority to hand
 over, and its first key entry makes the incoming key its first. The outgoing

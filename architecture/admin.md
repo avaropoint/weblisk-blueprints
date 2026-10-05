@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.32.1
+version: 2.32.2
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1136,8 +1136,8 @@ proof survives a rotation as `hub_id` does.
 **No rotation ends a compromise of that key.** Whoever holds it can prove
 this hub at any address they serve, for as long as the hub keeps its
 `hub_id`, and nothing replaces the key while it does
-([`protocol/identity`](../protocol/identity.md#key-rotation) keeps it out of
-an orchestrator's rotation). Only a hub regenerated without its state ends
+([`protocol/identity`](../protocol/identity.md#recommended-rotation-schedule)
+keeps it out of an orchestrator's rotation). Only a hub regenerated without its state ends
 it: that hub has a new `hub_id` and holds no credentials, and every person
 registers there again as at any new hub.
 
