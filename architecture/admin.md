@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.33.1
+version: 2.33.2
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1648,7 +1648,11 @@ it may replay it. So a console keeps the thing that can **ask**, and never the
   itself there (`console-credential-use`). Until a route is specified, a
   console does no unattended work at a hub, and work that runs whether or
   not anybody is present belongs to the tenant's own services.
-- **An agent never holds a person's token.** A token's `cap` names the
+- **An agent a console runs never holds a person's token.** This binds a
+  console. A token a person's own CLI stores on their machine is outside it,
+  and any program that person runs can read that file, an agent among them,
+  which [`architecture/cli`](cli.md#weblisk-operator-token) states, with the
+  `--no-store` that keeps it from being written. A token's `cap` names the
   capabilities it keeps, and however little it names, the token is still the
   person's. The hub records whatever it is used for as the person's own act,
   cannot tell an agent's request from the person's, and could end the run
