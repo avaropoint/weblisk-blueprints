@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: secret-source
-version: 1.4.0
+version: 1.5.0
 requires: [protocol/identity, patterns/principal-identity]
 platform: any
 tier: free
@@ -443,7 +443,8 @@ for one.
 **Mapping an identity that is already in a source.** A caller reads
 `public_key` from the source. Before it records the holder reference, or writes
 the public key beside it, it MUST prove that the reference works and names that
-key. It signs a **probe** through the reference, as
+key, once the probe has test vectors (the gap below). It signs a **probe**
+through the reference, as
 [Signing with a held identity](#signing-with-a-held-identity) describes, and
 verifies the signature against the `public_key` it read. A reference that cannot
 be read, or whose key does not match its `public_key`, is refused. Finding that
@@ -462,6 +463,21 @@ The probe is a fixed-form statement
 
 Nothing accepts it as anything else, so a signature made to prove a reference
 proves nothing more, and the caller discards it once it has verified.
+
+> **Gap — until the probe has test vectors, a reference is mapped
+> unproven.** No implementation signs a probe before this corpus publishes
+> test vectors for `weblisk/holder-probe/v1`
+> ([`protocol/identity`](identity.md#fixed-form-statements)), and none are
+> published. Until they are, a caller records the reference and the
+> `public_key` it read without a probe, and tells the person that the
+> reference is unproven. It verifies the first signature it then gets through
+> the reference, over bytes it built itself, against that `public_key` before
+> it uses that signature. One that does not verify is refused as a failed
+> probe is, naming the reference, and is never sent. One that verifies proves
+> the reference as a probe would have. So a mapping made before the vectors
+> finds a broken reference at its first use, in the middle of something else,
+> which is the cost the probe exists to spare, and nothing worse: a signature
+> that does not verify never leaves the caller.
 
 ### Signing with a held identity
 
@@ -1017,7 +1033,8 @@ security:
 - [ ] From a source that cannot sign, the caller gets `private_key` and `passphrase`, decrypts in memory, signs, and zeroises both
 - [ ] An identity created in a source is stored as the `weblisk-key-v1` envelope with `kdf = argon2id`, a generated `passphrase` of at least 256 bits from a cryptographically secure random source, and its `public_key`, never as a raw key
 - [ ] A source keeps only an identity's passphrase only when the operator asked for it, and only after the caller checked that the passphrase opens the key file
-- [ ] A holder reference is recorded only after a `weblisk/holder-probe/v1` signature made through it, over a nonce the caller generated for it, verifies against the `public_key` read from it
+- [ ] Once `weblisk/holder-probe/v1` has test vectors, a holder reference is recorded only after a `weblisk/holder-probe/v1` signature made through it, over a nonce the caller generated for it, verifies against the `public_key` read from it
+- [ ] Before `weblisk/holder-probe/v1` has test vectors, a holder reference is recorded with no probe and reported unproven, and the first signature made through it that does not verify against the `public_key` read from it is refused, naming the reference, and never sent
 - [ ] A caller asks a source to `sign` only a fixed-form statement `protocol/identity` registers, or a value under Sign JSON, that it built itself, and never a message another program handed it
 - [ ] `key_protection` is `hardware` only for a source that lists `sign` with `ml-dsa-65` and lists `private_key` in `withheld_fields`, and is never reported stronger than the Protection table gives
 - [ ] `file:` with a relative path answers `invalid_reference`

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.17.0
+version: 2.18.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -147,7 +147,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/secret-source
-    version: ">=1.4.0 <2.0.0"
+    version: ">=1.5.0 <2.0.0"
     bindings:
       types:
         - name: HolderReference
@@ -1318,8 +1318,12 @@ $ weblisk operator store --identity alice --holder <source> --remember-passphras
 - `--holder <source>:<reference>` is the holder reference in its flag form
   ([`protocol/secret-source`](../protocol/secret-source.md#the-holder-reference))
 - Writes the public key, read from the source, and the holder reference beside
-  the selected identity, once a signature made through the reference verifies
-  against that key. The private half stays in the source
+  the selected identity, once a probe signed through the reference verifies
+  against that key. Before the probe has test vectors it writes them unproven
+  and says so, and verifies the first signature it later gets through the
+  reference instead
+  ([`protocol/secret-source`](../protocol/secret-source.md#an-identity-held-by-a-source),
+  the gap there). The private half stays in the source
 - Refuses where the selected location already holds a private key on disk: a
   subject holds one identity, and mapping over it would strand that one.
   `--remember-passphrase` is the exception, because the key file is what it
@@ -2788,7 +2792,7 @@ security:
 - [ ] `weblisk operator init` passphrase cannot be skipped or supplied as CLI argument
 - [ ] `weblisk operator init --holder <source>` writes no private key beside the identity and asks for no passphrase
 - [ ] `weblisk operator init --vault <vault>` behaves exactly as `--holder 1password --holder-opt vault=<vault>`
-- [ ] `weblisk operator store --holder <source>:<reference>` writes `operator.pub` and `holder.json` and no private key, and only once a signature made through the reference verifies against the public key
+- [ ] `weblisk operator store --holder <source>:<reference>` writes `operator.pub` and `holder.json` and no private key, and only once a probe signed through the reference verifies against the public key; before `weblisk/holder-probe/v1` has test vectors it writes them unproven, says so, and refuses the first signature through the reference that does not verify against that key, never sending it
 - [ ] `weblisk operator init --holder <source> --remember-passphrase` writes an encrypted `operator.key`, asks for the passphrase, and has the source keep only that passphrase; `holder.json` records `holds: ["passphrase"]`
 - [ ] `weblisk operator store --holder <source> --remember-passphrase` keeps the existing key file, and has the source keep its passphrase only after checking that it opens the key
 - [ ] `--identity <label>` resolves to the same location on every run, and `weblisk operator path --identity <label>` reports it
