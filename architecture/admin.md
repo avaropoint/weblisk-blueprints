@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.32.6
+version: 2.32.7
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1745,7 +1745,8 @@ operator the system is quiet when it is simply not there.
 
 > **Gap — no provider but the orchestrator serves its group on a pass yet.**
 > No blueprint specifies the administrative routes of the Domain & workflow,
-> Strategies, approvals, observations, or Federation groups.
+> Strategies, approvals, observations, or Federation groups, or
+> `/v1/admin/metrics` and `/v1/admin/agents/:name/metrics`.
 > [`architecture/lifecycle`](lifecycle.md) offers strategies and approvals only
 > as `POST /v1/message` actions, which check no operator token
 > ([`protocol/spec`](../protocol/spec.md#post-v1message)), and
@@ -1792,7 +1793,7 @@ operator the system is quiet when it is simply not there.
 | Path | Method | Role | Purpose |
 |------|--------|------|---------|
 | `/v1/admin/overview` | GET | viewer+ | System summary — agents, domains, workflows, health |
-| `/v1/admin/metrics` | GET | viewer+ | Aggregated system metrics |
+| `/v1/admin/metrics` | GET | viewer+ | Aggregated system metrics. No provider's blueprint specifies it, so the gateway answers it `ADMIN_GROUP_UNAVAILABLE` (the gap under [The admin API is an aggregate](#the-admin-api-is-an-aggregate)) |
 
 ### Agent Management
 
@@ -1801,7 +1802,7 @@ operator the system is quiet when it is simply not there.
 | `/v1/admin/agents` | GET | viewer+ | List all agents with status, type, metrics |
 | `/v1/admin/agents/:name` | GET | viewer+ | Full agent detail — manifest, metrics, recent tasks |
 | `/v1/admin/agents/:name/deregister` | POST | admin | Force-deregister an agent |
-| `/v1/admin/agents/:name/metrics` | GET | viewer+ | Agent performance metrics history |
+| `/v1/admin/agents/:name/metrics` | GET | viewer+ | Agent performance metrics history. The Lifecycle Agent holds agent metrics ([`architecture/storage`](storage.md#store-agent-metrics)), not the orchestrator, and no blueprint specifies this route, so the gateway answers it `ADMIN_GROUP_UNAVAILABLE` |
 
 ### Domain & Workflow Management
 
@@ -2652,7 +2653,7 @@ The rest SHOULD be:
 - [ ] A request for a route no directory entry declares among its `pass_routes`, or two entries declare, is answered 503 `ADMIN_GROUP_UNAVAILABLE` and nothing is exchanged or sent; a pass route an entry declares for a route of the orchestrator's own is never used, and that request is forwarded to the orchestrator on the operator token
 - [ ] Every route `architecture/orchestrator`'s Administrative endpoints lists is forwarded to the orchestrator on the operator token as it arrived, `GET /v1/admin/model`, `POST /v1/admin/complete`, `GET /v1/admin/model/ceiling`, the agreement routes and `GET /v1/admin/audit` and `GET /v1/admin/audit/export` included, and never answered `ADMIN_GROUP_UNAVAILABLE`; a request for a path outside `/v1/admin/`, such as `GET /v1/audit`, is never forwarded to the orchestrator
 - [ ] An exchange answered `issued: false` is answered to the client with the code it names, at the status `protocol/types` registers for it, and one answered 404 because the provider is not registered now is answered `ADMIN_GROUP_UNAVAILABLE`; neither forwards anything
-- [ ] While no deployed component's blueprint specifies the route, a request for `/v1/admin/approvals`, `/v1/admin/strategies`, `/v1/admin/observations`, `/v1/admin/domains`, `/v1/admin/workflows` or `/v1/admin/federation/peers` is answered 503 `ADMIN_GROUP_UNAVAILABLE`, never with an empty result, and nothing is forwarded or sent as a `POST /v1/message` action
+- [ ] While no deployed component's blueprint specifies the route, a request for `/v1/admin/approvals`, `/v1/admin/strategies`, `/v1/admin/observations`, `/v1/admin/domains`, `/v1/admin/workflows`, `/v1/admin/federation/peers`, `/v1/admin/metrics` or `/v1/admin/agents/{name}/metrics` is answered 503 `ADMIN_GROUP_UNAVAILABLE`, never with an empty result, and nothing is forwarded or sent as a `POST /v1/message` action
 - [ ] While their blueprints do not say that they accept a pass, a request for `/v1/admin/alerts`, `/v1/admin/runbooks` or `/v1/admin/rate-limits`, or any route under them, is answered 503 `ADMIN_GROUP_UNAVAILABLE` even where the alerting agent, the incident-response agent or the component applying `patterns/rate-limiting` is deployed, and nothing is forwarded, on a pass or on the operator token
 - [ ] A request for a route whose minimum is `admin` and whose provider is not the orchestrator, such as `DELETE /v1/admin/strategies/:id`, is answered `ADMIN_GROUP_UNAVAILABLE` while that provider's blueprint specifies no such route, and once one does reaches that provider only on a pass addressed to it carrying `admin:*`, never on an operator token
 - [ ] A component other than the orchestrator that serves an administrative route acts only on a pass addressed to it whose `cap` names every capability the request requires: an `operator`'s approval carried on a pass naming `admin:approve` is recorded under the pass's `identity_id`, with the gateway's `act.identity_id` beside it, while an operator token is refused with `PASS_REQUIRED`, a pass addressed to another component with `PASS_AUDIENCE_MISMATCH`, and an agent's or a channel's token with `FORBIDDEN`, none of these refusals performing anything
