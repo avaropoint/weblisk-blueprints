@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.32.9
+version: 2.33.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -821,6 +821,17 @@ contracts:
         - It MUST NOT be refused with OPERATOR_LAST_ADMINISTRATOR, although it revokes the last admin's credentials - the new key attests a new one (patterns/principal-identity, revocation and identity-rotation)
         - The response MUST carry the operator record, its identity_id and hub_id, and MUST NOT carry a token. The operator obtains an attestation token with the new key and attests a credential
         - The change MUST be audited with the operator's identity id and the fingerprints of the old and new keys
+
+    - name: auth-route-rate-limit
+      description: How the routes served without a token are limited, at the admin gateway and at the orchestrator, and by whose address
+      required: true
+      rules:
+        - The routes Auth Middleware lists as served without a token, the four that issue tokens, POST /v1/admin/operators/{name}/key and POST /v1/admin/hub/proof, MUST each be limited to 5 requests a minute per source, each route counted on its own, before any signature is verified or made
+        - A source is the client's IP address as patterns/rate-limiting derives the IP key, the connection's address or, only where the connection comes from a proxy the component is configured to trust, the address that proxy names in X-Forwarded-For. It is never a name, cid or key in the request, which whoever sends it chooses
+        - The admin gateway MUST apply the limit before it forwards anything, and MUST send each request it forwards to the orchestrator with X-Forwarded-For naming the source it counted, in place of any value the request arrived with
+        - The orchestrator MUST apply the limit to every request for those routes, trusting X-Forwarded-For from the addresses its configuration names as the admin gateway's (schemas/config, orchestrator.admin_gateway_from) and from no other address. So it counts a request the gateway forwarded by its client, never by the gateway's address, which every client of the gateway shares, and a request from any other address by that address, whatever X-Forwarded-For it carries
+        - An orchestrator whose configuration names no such address counts every request by its connection's address, so the clients of an admin gateway it was not told of share one count there, and one of them reaching the limit refuses the rest until the minute passes
+        - Where the admin gateway's address is one other callers share, as on one host, the orchestrator trusts every caller there to name its own source, so each of them chooses the count it is held to. That is the same-host position architecture/threat-model records as residual, and no wider
 
     - name: console-credential-use
       description: How a console that acts for signed-in people holds and uses their credentials
@@ -2495,31 +2506,27 @@ Every admin action is logged:
 
 ### Rate Limiting
 
-The auth endpoints MUST be rate-limited, before any signature is verified or
-made:
-- Auth endpoints: 5 requests/minute per source — the four routes that issue
-  tokens, `POST /v1/admin/operators/{name}/key` and
-  `POST /v1/admin/hub/proof`, none of which carries an operator token to
-  count against. Each verifies or makes an ML-DSA-65 signature, and the
-  key-change and proof routes admit a request with no token at all, so an
-  unlimited one is an oracle and a cost anybody can impose. A **source** is
-  the client's IP address, as
-  [`patterns/rate-limiting`](../patterns/rate-limiting.md#identification-keys)
-  derives the IP key: the connection's address, or `X-Forwarded-For` only
-  where it comes from a proxy the hub is configured to trust. Never a name,
-  `cid` or key in the request, which whoever sends it chooses. Each route is
-  counted on its own, so a person minting a token is never refused for
-  having changed a key
+The auth endpoints MUST be rate-limited before any signature is verified or
+made, at 5 requests a minute per source for each of the routes served without
+a token, none of which carries an operator token to count against. Each
+verifies or makes an ML-DSA-65 signature, and the key-change and proof routes
+admit a request with no token at all, so an unlimited one is an oracle and a
+cost anybody can impose. Each route is counted on its own, so a person
+minting a token is never refused for having changed a key. A **source** is the
+client's IP address, as
+[`patterns/rate-limiting`](../patterns/rate-limiting.md#identification-keys)
+derives the IP key, never a name, `cid` or key in the request.
 
-The admin gateway applies these limits at step 3 of the
+The admin gateway applies the limit at step 3 of the
 [Admin Gateway Request Lifecycle](#admin-gateway-request-lifecycle), before
-it forwards anything, counting each source by the address the request
-reached the gateway from. Every request it forwards reaches the orchestrator
-from the gateway's own address, which all its clients share there, so the
-orchestrator never counts a request arriving from that address by it: one
-client reaching the limit would refuse every other. A request that reaches
-the orchestrator from any other address is limited by the orchestrator,
-counted by that address.
+it forwards anything, and the orchestrator applies it again. Every request
+the gateway forwards reaches the orchestrator from the gateway's own address,
+which all its clients share, so the gateway names the client's address in
+`X-Forwarded-For`, and the orchestrator trusts that header from the addresses
+its configuration names as the gateway's and from nobody else. The behaviour
+is `auth-route-rate-limit`, in [Contracts](#contracts), which says what an
+orchestrator told of no such address does, and what sharing the gateway's
+address with other callers costs.
 
 The rest SHOULD be:
 - Read endpoints: 60 requests/minute per operator
@@ -2670,6 +2677,7 @@ The rest SHOULD be:
 - [ ] A token presented in the request body rather than the `Authorization` header is refused on every `/v1/admin/*` route
 - [ ] A console holds no registration at any hub: it never sends `POST /v1/register` with its own key or any key it holds, and does no work at a hub while no signed-in person is present
 - [ ] A sixth `POST /v1/admin/credentials/token` within a minute from one client address is refused before its signature is verified, whatever `cid` each names, while requests from another address, and to `POST /v1/admin/operators/{name}/key` from the same one, are not
+- [ ] The admin gateway forwards each request for a route served without a token with `X-Forwarded-For` naming the client address it counted, replacing any the request carried; the orchestrator counts such a request by that header only where it arrives from an address `orchestrator.admin_gateway_from` names, and a request from any other address by that address, so a sixth from one client through the gateway is refused at both and a first from another client is not
 - [ ] Bootstrap event (first operator registration) is permanently recorded in the audit log
 - [ ] While no provider's blueprint specifies `/v1/admin/ws`, a request for it is answered 503 `ADMIN_GROUP_UNAVAILABLE`, and the gateway opens no subscription and holds no connection to serve it
 - [ ] Admin gateway and application gateway share NO session state, cookie domain, or network listener

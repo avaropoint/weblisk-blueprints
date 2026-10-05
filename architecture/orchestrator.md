@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.20.1
+version: 2.21.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -131,7 +131,7 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/admin
-      version: ">=2.30.4 <3.0.0"
+      version: ">=2.33.0 <3.0.0"
       bindings:
         behaviors:
           - name: operator-registration
@@ -145,6 +145,7 @@ declaration:
           - name: token-status-on-use
           - name: operator-credential-revocation
           - name: operator-key-change
+          - name: auth-route-rate-limit
           - name: operator-roles
       on_change:
         compatible: validate-and-adopt
@@ -1236,7 +1237,10 @@ operator routes that establish or issue tokens — `OperatorRegister`,
 `OperatorToken`, `CredentialChallenge` and `CredentialToken` — `HubProof`,
 which a client asks before it holds anything here, and `OperatorKeyChange`,
 which the operator's current and new identity keys authenticate (see
-[Administrative endpoints](#administrative-endpoints)):
+[Administrative endpoints](#administrative-endpoints)). Each of those six
+administrative routes is limited per source before any signature is verified
+or made, counted by the client's address and never by the admin gateway's
+([`architecture/admin`](admin.md#contracts), `auth-route-rate-limit`):
 
 ```
 1. Check Authorization header for "Bearer <token>"
@@ -1443,6 +1447,8 @@ and [protocol/types.md](../protocol/types.md) for type definitions.
 | Identity key path | `--keys` | Implementation-defined |
 | Audit log path | `--audit` | Implementation-defined |
 | Channel TTL | — | `3600` (1 hour) |
+| Admin addresses, the origins the admin gateway is reached at | `orchestrator.admin_addresses` ([`schemas/config`](../schemas/config.md#orchestrator)) | none |
+| The addresses the admin gateway's requests arrive from | `orchestrator.admin_gateway_from` ([`schemas/config`](../schemas/config.md#orchestrator)) | none |
 
 ---
 
@@ -1637,6 +1643,7 @@ agents hold, which is theirs.
 - [ ] Service directory includes `routing_table` and namespaces map
 - [ ] A `ServiceEntry` carries the `pass_routes` its manifest declared, unchanged, and a registration whose `pass_routes` name `content:write` or another person-only capability is not refused for it, while one whose `capabilities` names one still is with `CAPABILITY_PERSON_ONLY`
 - [ ] `POST /v1/register` refuses with 400 `INVALID_REQUEST`, recording nothing, a manifest with a pass route naming a capability `protocol/types` does not list, in `capabilities` or a body requirement, and one with two pass routes that can match one request, such as `GET /v1/x/{id}` and `GET /v1/x/special`
+- [ ] A sixth request within a minute from one source to any one of the six administrative routes served without a token is refused before any signature is verified or made, the source being the `X-Forwarded-For` address only on a request from an address `orchestrator.admin_gateway_from` names, and the connection's address on every other, whatever `X-Forwarded-For` it carries (`auth-route-rate-limit`)
 - [ ] Service directory broadcast to ALL agents after every registration/deregistration
 - [ ] `POST /v1/register` refuses with `409 ADDRESS_CONFLICT` when the registered `url` contradicts the address the tenant declared for that component
 - [ ] Every `ServiceEntry` carries `address_provenance`, and an entry the orchestrator has not matched against the tenant's declaration reports `self-asserted` rather than omitting the field
