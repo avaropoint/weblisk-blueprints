@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.16.1
+version: 2.16.2
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1137,7 +1137,10 @@ CLI holds one for each identity at each hub:
   nothing more is signed there. The registration is kept, and moves only as
   any registration moves: on the person's confirmation, to an address that
   proves its `hub_id`. So a registration recorded through a relay before the
-  vectors is held from then, never used.
+  vectors is held from then, never used. A hub built before the vectors
+  answers `HUB_PROOF_UNAVAILABLE`, which fails the proof, so once the CLI has
+  the vectors it signs nothing more at such a hub until that hub is built
+  again from a corpus that has them.
 - **Kept as the identity is.** The private key sits beside the identity it
   belongs to, encrypted in the `weblisk-key-v1` envelope with `kdf` `argon2id`
   under the identity's own passphrase, or held by the secret source that
