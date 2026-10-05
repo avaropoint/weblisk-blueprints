@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.18.2
+version: 2.18.3
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -333,6 +333,8 @@ declaration:
       endpoint: POST /v1/admin/credentials/token
     - check: endpoint-routed
       endpoint: POST /v1/admin/operators/{name}/key
+    - check: endpoint-routed
+      endpoint: POST /v1/admin/hub/proof
     - check: endpoint-routed
       endpoint: POST /v1/admin/operators/{name}/credentials
     - check: endpoint-routed
