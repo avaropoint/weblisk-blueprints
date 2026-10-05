@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 1.4.1
+version: 1.4.2
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
@@ -198,7 +198,7 @@ requires:
 │  │  Ledger              (append-only, hash-chained)   │  │
 │  │  - one log per scope; never per kind or relation   │  │
 │  │  - exclusive lock, tip re-read under it, fsync     │  │
-│  │  - producer pass writes as one batch               │  │
+│  │  - producer run writes as one batch                │  │
 │  └────────────────────────────────────────────────────┘  │
 │  ┌────────────────────────────────────────────────────┐  │
 │  │  Derivation            (nothing here is stored)    │  │
@@ -534,7 +534,7 @@ status that blueprint gives it
 6. The gate records each claim as `inferred`; an edge a person decided is
    deferred to, not revised
 7. Claims in that partition which the producer no longer makes are retired
-8. The whole pass is appended as one batch — one lock, one durability barrier —
+8. The whole run is appended as one batch — one lock, one durability barrier —
    because a crash mid-batch leaves a valid prefix, and a producer's claims can
    be derived again by running it
 
@@ -915,7 +915,7 @@ forked chain — which is indistinguishable from tampering, and is exactly what
 [`architecture/storage`](storage.md) requires a mutual exclusion primitive to
 prevent.
 
-**A producer pass is one batch; a person's act is not.** A batch takes one lock
+**A producer run is one batch; a person's act is not.** A batch takes one lock
 and pays one durability barrier, and a crash part way through truncates the
 chain rather than corrupting it, leaving a valid prefix. A producer's claims can
 be derived again by running it; a person's cannot, so each is written alone and
@@ -1280,7 +1280,7 @@ types:
         required: false
 
   SyncResult:
-    description: What one producer pass changed
+    description: What one producer run changed
     fields:
       asserted:
         type: integer
@@ -1365,7 +1365,7 @@ fabric:
   ledger:
     partition_by: scope            # never by kind and never by relation
     retention: none                # a compliance relationship is a permanent record
-    batch_producer_writes: true    # one lock and one durability barrier per pass
+    batch_producer_writes: true    # one lock and one durability barrier per producer run
   resolution:
     unqualified_reference: refuse  # two sources answering is no answer
     prefer_content_identifier: true
@@ -1561,8 +1561,8 @@ security:
   one quadratic; at twenty thousand edges that stops finishing.
 
 - **Measure the durability barrier before batching anything else.** In one
-  implementation it was 97% of an append's cost, and a producer pass finding a
-  thousand relationships spent seconds in it. Batching a producer pass is the
+  implementation it was 97% of an append's cost, and a producer run finding a
+  thousand relationships spent seconds in it. Batching a producer run is the
   fix; batching a person's act is not, because the two differ in whether the work
   can be re-derived.
 
@@ -1574,7 +1574,7 @@ security:
   rather than being named as the place somebody's evidence now lives.
 
 - **Never let a producer read what a sync writes.** A projection once shared a
-  path with a producer's input; the next pass parsed the projection, recognised
+  path with a producer's input; the next run parsed the projection, recognised
   no relationships, and withdrew every one in the ledger. Nothing this service
   writes may sit inside anything a producer scans.
 
@@ -1639,7 +1639,7 @@ security:
 - [ ] A second process appending concurrently cannot produce two entries with the same predecessor digest
 - [ ] An entry altered on disk makes `Verify` report `valid` false and name the first entry that does not follow
 - [ ] A ledger whose byte length decreased is re-read in full and reported, and no answer is served from the incremental parse
-- [ ] A producer pass writes one batch, and a person's act writes alone
+- [ ] A producer run writes one batch, and a person's act writes alone
 - [ ] Every answer carries an `AnswerCompleteness`, and a coverage result of zero states how many partitions have never been scanned
 - [ ] An answer whose traversal limit was reached says so on its completeness rather than returning a trimmed result as whole
 - [ ] Every answer citing a repository whose `effective_custody` is shared or opaque carries `access_complete` false, and no caller can set it true
