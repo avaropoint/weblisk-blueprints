@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.18.1
+version: 2.18.2
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -131,7 +131,7 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/admin
-      version: ">=2.30.2 <3.0.0"
+      version: ">=2.30.4 <3.0.0"
       bindings:
         behaviors:
           - name: operator-registration
@@ -898,7 +898,9 @@ Recording one publishes `system.model.agreement_recorded`, and withdrawing one
 identity id.
 
 `/v1/admin/overview` reports what the orchestrator holds — agent counts,
-namespace count, audit depth, health — and nothing else. It asks no other
+namespace count, audit depth, health — and nothing else, in the members and
+shapes [`architecture/admin`](admin.md#get-v1adminoverview) names, which are
+stated there alone. It asks no other
 component for a figure: the orchestrator never presents a token it received to
 anyone ([`protocol/identity`](../protocol/identity.md#the-pass)). The System
 overview an operator sees is composed by the admin gateway, which asks each

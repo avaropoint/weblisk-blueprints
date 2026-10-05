@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.30.3
+version: 2.30.4
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1946,9 +1946,12 @@ The admin gateway answers this route with the System overview it composes
 its own `GET /v1/admin/overview`, which the gateway forwards as it forwards any
 request for the orchestrator's groups: `deployment`, `version`, `uptime`,
 `agents`, `namespaces` (how many namespaces are owned), `audit.depth` (how many
-entries its audit log holds) and `health_score`
-([`architecture/orchestrator`](orchestrator.md)). A refusal of that request is
-the answer, as on any route of the orchestrator's groups.
+entries its audit log holds) and `health_score`. The orchestrator answers its
+own route with these members and no other, each named and shaped as the
+example below gives it, and this section is the one statement of their names
+and shapes ([`architecture/orchestrator`](orchestrator.md#administrative-endpoints)
+says only that it reports what it holds). A refusal of that request is the
+answer, as on any route of the orchestrator's groups.
 
 Every other member is a group another component holds: `domains`, `workflows`,
 `approvals`, `federation` and `strategies`. Each is either the figures that
