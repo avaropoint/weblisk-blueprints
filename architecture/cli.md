@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.16.3
+version: 2.17.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1065,6 +1065,19 @@ CLI holds one for each identity at each hub:
   identity is not asked. The attestation is built as
   [`weblisk operator attest`](#weblisk-operator-attest) builds it, naming the
   `hub_id` recorded for that hub and the `identity_id` the hub answered with.
+- **Not before the credential's answer has test vectors.** A credential's
+  answer to a challenge is signed under `weblisk/credential-auth/v1`, which
+  the CLI signs only once that prefix has test vectors
+  ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)).
+  Until then it makes no credential and asks for no attestation token at a
+  hub that serves the credential routes, and reports that the hub issues
+  operator tokens only to a credential, which no client signs with before
+  those vectors. The command then exits 2, `register` once it has recorded
+  the registration the answer names. It obtains an operator token only from a hub
+  that answers `POST /v1/admin/credentials/challenge` with `404` or `405`, by
+  the deprecated path, and so from no hub built from this corpus
+  ([`architecture/admin`](admin.md#minting-a-token-with-the-credential), the
+  gap there).
 - **Named by the hub, never by its address.** Each credential is kept under the
   `hub_id` it was attested for. A hub at a recorded address whose challenge
   names another `hub_id`, or that refuses the recorded one with
@@ -2626,7 +2639,11 @@ Every command that calls the hub's admin gateway:
    accepts. A hub that does not serve the credential routes still answers the
    identity-signed request with an operator token, and that path is deprecated.
    The identity-signed request names the recorded hub_id whichever path
-   answers it, and is never sent to a hub with no registration recorded
+   answers it, and is never sent to a hub with no registration recorded.
+   Until weblisk/credential-auth/v1 has test vectors no credential answers a
+   challenge, so only that deprecated path yields a token, and a hub that
+   serves the credential routes is reported and the command exits 2
+   (A credential for each hub)
 4. Set Authorization: Bearer <token> on request
 5. If 401 response → attempt token refresh → retry once
 6. If the hub refused the credential → print that the identity must attest a
@@ -2791,7 +2808,8 @@ security:
 - [ ] `weblisk operator attest --batch <path>` attests every entry in one approval of the identity and, with `--json`, answers an array in the order of the entries, each with `orch` and either `cid` and `not_after` or `code`
 - [ ] Connecting, switching from one hub to another and refreshing a token ask the identity to sign nothing while this device holds an attested credential at that hub that is not due
 - [ ] Every `Attestation` the CLI builds names the `identity_id` the hub's attestation-token answer carries, never one computed from the identity key, so an identity that changed its key still attests at every hub that accepted the change
-- [ ] `connect` and `register` generate one ML-DSA-65 credential per identity per hub the first time they reach it, have the identity attest it once, keep its private key only in the `weblisk-key-v1` envelope or a secret source, and mint every later token with it without asking the identity
+- [ ] Once `weblisk/credential-auth/v1` has test vectors, `connect` and `register` generate one ML-DSA-65 credential per identity per hub the first time they reach it, have the identity attest it once, keep its private key only in the `weblisk-key-v1` envelope or a secret source, and mint every later token with it without asking the identity
+- [ ] Before `weblisk/credential-auth/v1` has test vectors, `connect`, `register` and `operator token` at a hub that serves `POST /v1/admin/credentials/challenge` sign nothing under that prefix, make no credential, ask for no attestation token and exit 2 saying why, `register` after recording the registration the answer names; at a hub that answers it `404` or `405` they take the deprecated identity-signed path
 - [ ] For an identity held by a secret source whose `capabilities` do not list `store`, `connect` keeps the new credential key beside the identity in its own `weblisk-key-v1` envelope with `kdf` `argon2id`, under a passphrase the person chose for it, and never in the clear or under `kdf` `none`
 - [ ] For an identity held by a source that lists `store` but answers `named_fields` false, or names `private_key` in `withheld_fields`, `connect` keeps the credential key in its own envelope beside the identity, never in that source, and signs every later challenge with it
 - [ ] `connect --remember-passphrase` for such an identity has a source that lists `store` keep the envelope's passphrase, and is refused, keeping nothing, when neither the identity's source nor one named with `--passphrase-holder` lists `store`

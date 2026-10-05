@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.30.7
+version: 2.30.8
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1057,7 +1057,10 @@ one thing an identity is for.
 credential routes issues one here. A client MUST use the credential routes
 wherever a hub serves them, and MAY accept an operator token from this endpoint
 only from a hub that answers `POST /v1/admin/credentials/challenge` with `404`
-or `405`.
+or `405`. No hub built from this corpus issues one here, so until its
+credential routes can be used, which waits on test vectors, it issues none
+(the gap under
+[Minting a token with the credential](#minting-a-token-with-the-credential)).
 
 `hub_id` names this hub as an [`Attestation`](../patterns/principal-identity.md#types)
 does: the fingerprint ([`protocol/identity`](../protocol/identity.md#key-fingerprint))
@@ -1260,6 +1263,27 @@ which the hub proof closes.
 Refresh is the same pair of calls. A separate refresh endpoint would need a
 valid token to obtain a token, which fails exactly when it is needed — after
 expiry.
+
+> **Gap — no operator token before `weblisk/credential-auth/v1` has test
+> vectors.** A credential's answer to a challenge is a fixed-form statement,
+> and no implementation signs one before this corpus publishes its test
+> vectors ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)).
+> None are published. A hub built from this corpus issues an operator token
+> to a credential alone, never on the identity's signature, which
+> [`patterns/principal-identity`](../patterns/principal-identity.md) forbids
+> a hub to accept as authentication. So until those vectors are published no
+> client obtains an operator token from such a hub, and no person reaches a
+> route there that needs one, which is every administrative route but those
+> [Auth Middleware](#auth-middleware) lists as served without a token. The
+> hub still serves both credential routes as this section says, because the
+> rule gates signing and the hub only verifies. A client signs nothing there
+> to obtain a token: it makes no credential, asks for no attestation token,
+> and reports that the hub issues operator tokens only to a credential, which
+> no client signs with before those vectors
+> ([`architecture/cli`](cli.md#a-credential-for-each-hub)). Only a hub built
+> before the credential routes, which answers the challenge with `404` or
+> `405`, issues an operator token until then, by the deprecated path under
+> [The identity signs only to attest](#the-identity-signs-only-to-attest).
 
 #### Where the second factor is
 
@@ -2529,6 +2553,7 @@ The rest SHOULD be:
 - [ ] After a change of identity key, `POST /v1/admin/operators/token` signed with the new key answers the operator's kept `identity_id`; an attestation naming that `identity_id` is accepted, and one naming the new key's fingerprint instead is refused with `CREDENTIAL_ATTESTATION_INVALID`
 - [ ] An expired operator token is replaced by a new challenge answered with the credential, without re-registering and without the identity
 - [ ] `POST /v1/admin/credentials/token` issues an operator token carrying `cid`, expiring one hour after issue and never after the attestation's `not_after`, only for a signature by the stored credential key over `weblisk/credential-auth/v1`, 0x00, `hub_id` as its 64 hex characters, 0x00 and the base64url text of a nonce this hub issued for that credential
+- [ ] `POST /v1/admin/operators/token` never issues an operator token, whatever its request carries
 - [ ] A hub that rotates its orchestrator key answers every challenge with the `hub_id` it had before, and every credential attested for that `hub_id` still mints
 - [ ] A nonce from `POST /v1/admin/credentials/challenge` is spent by the first token request that presents it, whether or not the signature verifies, and a revoked or expired credential's status is disclosed only after its signature verifies
 - [ ] An attestation whose `hub_id` is not this hub's, whose credential key is not an ML-DSA-65 key, whose credential key is the identity key, whose `not_after` has passed or is more than 90 days away, or whose key was revoked here before is refused with `CREDENTIAL_FOREIGN_HUB`, `CREDENTIAL_FORM_UNSUPPORTED`, `CREDENTIAL_IS_IDENTITY_KEY`, `CREDENTIAL_LIFETIME_INVALID` or `CREDENTIAL_PREVIOUSLY_REVOKED`
