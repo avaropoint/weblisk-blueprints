@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.20.0
+version: 2.20.1
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -1538,12 +1538,21 @@ security:
     - boundary: Agent → Orchestrator. Identity is established by ML-DSA-65
         signature over the manifest before any record is written; see
         protocol/identity
-    - boundary: Operator → Orchestrator. Registration and token issuance are
-        signed and verified per architecture/admin; the orchestrator never
-        authenticates an end user
-    - boundary: Admin gateway → Orchestrator. A person's token arrives only
-        from the admin gateway, to be judged on a route here or exchanged for a
-        pass addressed to one other component (protocol/identity, The pass)
+    - boundary: Operator → Orchestrator, through the admin gateway.
+        Registration and token issuance are signed and verified per
+        architecture/admin; the orchestrator never authenticates an end user
+    - boundary: Admin gateway → Orchestrator. A person's token is meant to
+        arrive only from the admin gateway, to be judged on a route here or
+        exchanged for a pass addressed to one other component
+        (protocol/identity, The pass). Nothing here enforces that yet, which
+        is a gap. The orchestrator serves /v1/admin/* on the listener
+        components reach, to any caller, so a token a client sends here
+        directly, as its own blueprint forbids, is judged by the same Auth
+        Middleware as one the gateway forwarded. What such a request escapes
+        is the gateway's own network controls, its operator IP allowlist
+        among them, never the judgement of the token. Serving the
+        administrative routes on a listener only the admin gateway reaches is
+        what would enforce the boundary
     - boundary: Orchestrator → Agent. Events reach the URL a verified manifest
         declared, never a URL supplied in a request
     - boundary: Orchestrator → Storage. Only the stores architecture/storage
