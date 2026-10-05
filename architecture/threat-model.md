@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: threat-model
-version: 1.3.0
+version: 1.3.1
 requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/content, architecture/data-security, architecture/admin, architecture/observability, architecture/enforcement, patterns/contract]
 platform: any
 tier: free
@@ -686,6 +686,7 @@ After all mitigations, these residual risks remain:
 | A second process on the anchor's host under a different owner | Low | High | None at the client. Same-host is in bounds by the reach rule, and a caller cannot distinguish two processes on one host | The trusted-network position, stated rather than assumed. It is the residual that makes the anchor host's operator model load-bearing |
 | A key holder that genuinely controls a foreign address | Low | Critical | Address verification proves control of the address by the key holder, never that the key holder is the tenant's | Key issuance is the real boundary, and it is `protocol/identity`'s. `verified` narrows where a stolen key can be used, not whether it works |
 | A forged service directory pushed to an agent other than the admin gateway | Medium | High | None yet at the agent: nothing authenticates a push. The admin gateway reads the directory from its anchor and takes no push as one | The gap is named in `protocol/spec` under `POST /v1/services`. An agent that takes the pushed body follows the routes and addresses its sender chose until the directory's signature is specified and verified |
+| A registrant other than the admin gateway that declares `token:exchange` | Low | High | None yet: registration admits the capability from any registrant. Using it needs a person's live operator token, which only the admin gateway is presented | The gap is named in `protocol/types` under the exchange capability. With a stolen token such a holder obtains passes for everything the person may use at any component, beyond the orchestrator's own routes and outside the admin gateway's network controls |
 
 ---
 

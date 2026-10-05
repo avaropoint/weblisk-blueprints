@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.17.2
+version: 1.17.3
 requires: []
 platform: any
 tier: free
@@ -502,10 +502,19 @@ any registration may, and exchanges, and holds no standing access to data
 `admin-gateway-authorization`). Nothing stops another component declaring it
 on its signed manifest today, as it may declare any service capability,
 because a registration is not yet an enrolment
-([`protocol/spec`](spec.md#post-v1register)). What that admits is bounded by
-the subject: the exchange takes a live operator token and nothing else, no
-component but the admin gateway is presented one, and a holder that had one
-could already use it at the orchestrator, further than any pass reaches.
+([`protocol/spec`](spec.md#post-v1register)). That is a gap, and what it
+admits is this. The exchange takes a live operator token and nothing else, and
+no component but the admin gateway is presented one, so such a holder needs a
+person's token it has stolen. With one, it can have the token exchanged for a
+pass to any component, carrying everything that person may use there:
+`content:write`, `content:decide` and `fabric:attest` included, which no route
+of the orchestrator's gives, and without the admin gateway's network controls,
+its operator IP allowlist among them. So a stolen operator token reaches
+further through a rogue `token:exchange` holder than at the orchestrator.
+Admitting `token:exchange` only for the registration the tenant declares as
+its admin gateway closes it, and waits on the tenant being able to declare
+that component ([`architecture/orchestrator`](../architecture/orchestrator.md#what-the-directorys-signature-attests-and-what-it-does-not),
+the gap that the declaration has nowhere to live).
 
 ### PassRoute
 
