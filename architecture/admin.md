@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.28.1
+version: 2.28.2
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -684,7 +684,7 @@ contracts:
       rules:
         - The route `POST /v1/admin/hub/proof` MUST require no bearer token. It MUST take address and challenge, and answer 200 with hub_id, public_key, address and signature
         - The address MUST be an origin in the ASCII serialisation of RFC 6454 section 6.2 - the scheme, "://", the host in lowercase, and ":" and the port only where the port is not the scheme's default, with no path, query, fragment or trailing "/" - and the challenge MUST be base64url text without padding (RFC 4648 section 5) that decodes to between 16 and 64 bytes. Any other request MUST be refused with 400 INVALID_REQUEST, signing nothing
-        - The orchestrator MUST sign only an address that is, byte for byte, one of its admin addresses, the origins its admin gateway is reached at, which the hub's configuration lists (schemas/config, orchestrator.admin_addresses). It MUST NOT take an address from the request's Host header, from a forwarding header or from the connection, all of which a hub that relays the request sets. Any other address MUST be refused with HUB_ADDRESS_FOREIGN, signing nothing, and logged as a security event
+        - The orchestrator MUST sign only an address that is, byte for byte, one of its admin addresses, the origins its admin gateway is reached at, which the hub's configuration lists (schemas/config, orchestrator.admin_addresses). It MUST NOT take an address from the request's Host header, from a forwarding header or from the connection, all of which a hub that relays the request controls. Any other address MUST be refused with HUB_ADDRESS_FOREIGN, signing nothing, and logged as a security event
         - The signature MUST be the fixed-form statement weblisk/hub-proof/v1 (protocol/identity, Fixed-Form Statements) whose fields are this hub's hub_id as 64 lowercase hexadecimal characters, the address, and the challenge as the text it arrived, built by the orchestrator itself and never from bytes a caller supplies, and made by the private key whose fingerprint is hub_id. public_key MUST be that key's public half
         - The orchestrator MUST keep the private key its hub_id names for as long as it keeps that hub_id, protected as a service key (protocol/identity, Key Categories). Once it signs tokens with another key, that key MUST sign this statement and nothing else, so the proof survives a rotation as hub_id does
         - No implementation may sign it before this corpus publishes its test vectors (protocol/identity, Test vectors come before a signer). Once they are published, a hub MUST answer this route, and a client MUST hold a hub_id at an address no registration names only where a proof it asked for there, on a challenge it made, verifies for the address it reached (architecture/cli, A credential for each hub)
@@ -1081,7 +1081,7 @@ origins its admin gateway is reached at
 ([`schemas/config`](../schemas/config.md#orchestrator), `admin_addresses`), and
 refuses any other with `HUB_ADDRESS_FOREIGN`. It never takes the address from
 the request's `Host` header, a forwarding header or the connection, because a
-hub that relays the request sets all three. So a hub that relays a client's
+hub that relays the request controls all three. So a hub that relays a client's
 request for a proof to another hub gets back a refusal, or a proof naming the
 other hub's own address, and a client that checks the proof against the
 origin it dialled refuses either.
