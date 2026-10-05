@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.30.2
+version: 2.30.3
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1247,7 +1247,15 @@ signed bytes stops a signature made for one hub from being spent at another. It
 does not stop an impostor at the hub's address from relaying this hub's
 challenge to the client. The transport stops that: HTTPS to the hub's address,
 with its certificate verified, which this surface requires everywhere
-([Implementation Notes](#implementation-notes)).
+([Implementation Notes](#implementation-notes)). HTTPS does not stop a hub
+the client reaches at that hub's own address from relaying another hub's
+challenge. A challenge naming a `hub_id` other than the one recorded at the
+address the client reached is refused
+([`architecture/cli`](cli.md#a-credential-for-each-hub)), so that relay works
+only where a registration answer recorded the other hub's `hub_id` at the
+relaying address: the gap under
+[The identity signs only to attest](#the-identity-signs-only-to-attest),
+which the hub proof closes.
 
 Refresh is the same pair of calls. A separate refresh endpoint would need a
 valid token to obtain a token, which fails exactly when it is needed — after
