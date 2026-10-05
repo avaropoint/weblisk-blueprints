@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.14.1
+version: 2.14.2
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1290,11 +1290,14 @@ that signs, `operator.key.next` for an encrypted file
 
 ### `weblisk operator register`
 
-Register with a running orchestrator.
+Register at a hub, through its admin gateway, which carries the registration
+to the orchestrator that keeps operator records
+([`architecture/admin`](admin.md#contracts), `admin-gateway-authorization`).
+`--orch` names the gateway, as it does for every operator command.
 
 ```bash
-$ weblisk operator register --orch http://localhost:9800 --bootstrap ./acme/.weblisk/bootstrap
-Registering operator 'alice' with http://localhost:9800...
+$ weblisk operator register --orch https://hub.example.com --bootstrap ./acme/.weblisk/bootstrap
+Registering operator 'alice' with https://hub.example.com...
 ✓ Registered as admin (first operator — bootstrap secret accepted)
   Token stored: ~/.weblisk/keys/token
   Expires: 2026-04-26T10:00:00Z
@@ -1389,7 +1392,7 @@ $ weblisk operator token
 Operator: alice
 Role:     admin
 Expires:  2026-04-26T10:00:00Z (52m remaining)
-Orch:     http://localhost:9800
+Hub:      https://hub.example.com
 
 $ weblisk operator token --refresh
 ✓ Token refreshed. Expires: 2026-04-26T11:00:00Z
@@ -1600,7 +1603,7 @@ System overview — the CLI equivalent of the admin dashboard landing page.
 
 ```bash
 $ weblisk status
-Weblisk — acme-corp (http://localhost:9800)
+Weblisk — acme-corp (https://hub.example.com)
 Protocol: v1    Uptime: 2d 14h 32m
 
 Agents:     8 online, 1 degraded, 0 offline
@@ -2520,19 +2523,19 @@ $ weblisk marketplace terminate mkt-001
 
 | Source | Precedence | Location |
 |---|---|---|
-| Command-line flag | 1 — highest | `--orch http://localhost:9800` |
+| Command-line flag | 1 — highest | `--orch https://hub.example.com` |
 | Environment variable | 2 | Implementation-defined |
 | Project config | 3 | `.weblisk/config.json` in the working directory |
 | User config | 4 — lowest | `~/.weblisk/config.json` |
 
 | Key | Type | Description |
 |---|---|---|
-| `orchestrator_url` | string | Which orchestrator commands act against |
+| `orchestrator_url` | string | The hub's address an operator command uses when `--orch` is omitted: its admin gateway, where every request carrying the person's token goes, and never the orchestrator's own address. The key keeps the name it had before the admin gateway was the hub's one door |
 | `operator_name` | string | Which identity to resolve; never a key or a passphrase |
 | `default_format` | string | Output shape — `table` or `json` |
-The CLI reads orchestrator connection details from (in priority order):
+The CLI reads the hub's address, its admin gateway, from (in priority order):
 
-1. Command-line flags: `--orch http://localhost:9800`
+1. Command-line flags: `--orch https://hub.example.com`
 2. Environment variable (implementation-defined)
 3. Project config: `.weblisk/config.json` in the working directory
 4. User config: `~/.weblisk/config.json`
@@ -2541,7 +2544,7 @@ The CLI reads orchestrator connection details from (in priority order):
 
 ```json
 {
-  "orchestrator_url": "http://localhost:9800",
+  "orchestrator_url": "https://hub.example.com",
   "operator_name": "alice",
   "default_format": "table"
 }
