@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.30.6
+version: 2.30.7
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -2465,9 +2465,8 @@ reached the gateway from. Every request it forwards reaches the orchestrator
 from the gateway's own address, which all its clients share there, so the
 orchestrator never counts a request arriving from that address by it: one
 client reaching the limit would refuse every other. A request that reaches
-the orchestrator's own address without passing the gateway, as
-[`weblisk server provision`](cli.md#weblisk-server-provision)'s registration
-does, is limited by the orchestrator, counted by its own source.
+the orchestrator from any other address is limited by the orchestrator,
+counted by that address.
 
 The rest SHOULD be:
 - Read endpoints: 60 requests/minute per operator
