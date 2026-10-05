@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.30.8
+version: 2.31.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -32,9 +32,10 @@ that operators can confidently run in production.
 ## Overview
 
 The admin interface is a web-based dashboard that consumes the
-orchestrator's existing endpoints (`/v1/services`, `/v1/audit`,
-`/v1/approve`, `/v1/strategy`, `/v1/health`) plus new admin-specific
-endpoints defined in this blueprint. It provides real-time visibility
+administrative groups the admin gateway composes
+([The admin API is an aggregate](#the-admin-api-is-an-aggregate)): the
+orchestrator's own, and each other provider's once its blueprint specifies
+routes a pass may reach. It provides real-time visibility
 into the entire system and is the primary tool for human operators
 interacting with a Weblisk deployment.
 
@@ -128,7 +129,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.18.0 <3.0.0"
+    version: ">=2.19.0 <3.0.0"
     bindings:
       behaviors:
         # Called by the admin gateway for each request it carries to a
@@ -136,18 +137,27 @@ requires:
         - name: token-exchange
           usage: Relied on, never served here. The admin gateway sends a request to a provider other than the orchestrator only on the pass it answers
       endpoints:
-        # The orchestrator-provided groups only. Strategies, approvals,
+        # The orchestrator-provided groups only: every route under
+        # /v1/admin/ that architecture/orchestrator's Administrative
+        # endpoints lists, which the admin gateway forwards on the person's
+        # own token (admin-gateway-authorization). Strategies, approvals,
         # workflows and federation would be bound from their own providers,
         # and none specifies its routes yet — see the gap under "The admin
         # API is an aggregate".
         - path: /v1/admin/operators
+        - path: /v1/admin/credentials
+        - path: /v1/admin/hub/proof
+          methods: [POST]
         - path: /v1/admin/agents
+        - path: /v1/admin/audit
+          methods: [GET]
+        - path: /v1/admin/model
+        - path: /v1/admin/complete
+          methods: [POST]
         - path: /v1/admin/overview
-          methods: [GET, POST, PUT, DELETE]
+          methods: [GET]
         - path: /v1/services
           methods: [GET, POST]
-        - path: /v1/audit
-          methods: [GET]
         - path: /v1/token/exchange
           methods: [POST]
           request_type: TokenExchangeRequest
@@ -767,7 +777,7 @@ contracts:
       rules:
         - The admin gateway is the tenant's one door for people. A client presents a person's operator token there and nowhere else, and the gateway presents it to the orchestrator and to nothing else (protocol/identity, The pass)
         - Every request it carries on a person's token MUST be authorised by the orchestrator's judgement of that token against every capability the request requires (Auth Middleware), as token-status-on-use authorises a request - what the operator's role carries now, never beyond the token's cap, admin:* read as each admin: capability by its own name - whichever component provides the route. The gateway MUST NOT authorise by the token's role claim, which is the role at mint and ignores cap, and judges nothing itself
-        - A request for a group the orchestrator provides MUST be forwarded to the orchestrator with the operator token as it arrived, in the Authorization header, and is judged by its Auth Middleware when it arrives. So is a request to a route that issues tokens, which carries none, a request for a hub proof (hub-proof), which carries none either, and one carrying an attestation token to the attestation route
+        - A request for a group the orchestrator provides MUST be forwarded to the orchestrator with the operator token as it arrived, in the Authorization header, and is judged by its Auth Middleware when it arrives. So is a request to a route that issues tokens, which carries none, a request for a hub proof (hub-proof), which carries none either, and one carrying an attestation token to the attestation route. The orchestrator's routes are those architecture/orchestrator's Administrative endpoints lists, every one under /v1/admin/ and none outside it, which this document's dependency contract binds: Operator management, Agent management, Audit, the Model routes and its overview (The admin API is an aggregate). The gateway forwards no other path to the orchestrator
         - A request for a route any other component provides - an administrative group's (The admin API is an aggregate), or a route of a service whose blueprint admits a person's request on a pass, as architecture/content's and architecture/fabric's do - MUST be sent on a pass, and never on the operator token. The gateway learns such a route, which component provides it and what it requires from the service directory alone, never from a blueprint it was not generated from: it is a route that is not one of the orchestrator's and that exactly one directory entry declares among its pass_routes (protocol/types, PassRoute), matched by method and by path. For each such request the gateway MUST have the orchestrator exchange the token presented with it (architecture/orchestrator, token-exchange), naming as audience the identity id of that entry's component, the fingerprint of the public key the entry carries, and as scope what the next rule names, and MUST send the request on the pass it is answered with, in the Authorization header, with its body as it arrived, at that entry's url and nowhere else
         - The gateway MUST send a pass only where architecture/orchestrator's Presenting a credential to a component allows one: at an address on the orchestrator's host, or at one whose address_provenance is declared or verified. A request whose provider's directory address is on another host and only self-asserted MUST be answered ADMIN_GROUP_UNAVAILABLE, naming that address in the ErrorResponse's detail.address, and nothing is exchanged or sent
         - The scope of that exchange MUST name every capability the provider's blueprint requires for the request being carried, and nothing more, as the entry's pass route declares it: every capability in its capabilities, and those of each of its body requirements the request's body meets, which the gateway reads from the body for this alone - architecture/content's pass route for POST /v1/content/repositories, for one, declares content:establish beside content:declare for disposition establish, and content:decide beside it for a declaration carrying scope_floor or self_decision_ceiling, and its replica route declares content:replicate with content:connect. The provider judges the pass's cap against the body as it reads it, so a body the gateway read otherwise is refused there with FORBIDDEN, and nothing is carried beyond what the pass names
@@ -2620,6 +2630,7 @@ The rest SHOULD be:
 - [ ] Through the admin gateway, an `operator`'s `POST /v1/content/repositories` carrying `scope_floor` reaches the content service on a pass whose `cap` names `content:decide` alone, the one capability of the two that role carries, and is refused there with `FORBIDDEN`, recording no repository
 - [ ] With the content service and the fabric registered, a gateway built from this document alone exchanges an operator's `GET /v1/content/entry` with `scope` `[content:read]`, `POST /v1/content/proposals/{id}/decision` with `[content:decide]` and `POST /v1/fabric/attestations` with `[fabric:attest]`, each read from the `pass_routes` of the provider's directory entry, and sends each to that entry's `url`
 - [ ] A request for a route no directory entry declares among its `pass_routes`, or two entries declare, is answered 503 `ADMIN_GROUP_UNAVAILABLE` and nothing is exchanged or sent; a pass route an entry declares for a route of the orchestrator's own is never used, and that request is forwarded to the orchestrator on the operator token
+- [ ] Every route `architecture/orchestrator`'s Administrative endpoints lists is forwarded to the orchestrator on the operator token as it arrived, `GET /v1/admin/model`, `POST /v1/admin/complete`, `GET /v1/admin/model/ceiling`, the agreement routes and `GET /v1/admin/audit` and `GET /v1/admin/audit/export` included, and never answered `ADMIN_GROUP_UNAVAILABLE`; a request for a path outside `/v1/admin/`, such as `GET /v1/audit`, is never forwarded to the orchestrator
 - [ ] An exchange answered `issued: false` is answered to the client with the code it names, at the status `protocol/types` registers for it, and one answered 404 because the provider is not registered now is answered `ADMIN_GROUP_UNAVAILABLE`; neither forwards anything
 - [ ] While no deployed component's blueprint specifies the route, a request for `/v1/admin/approvals`, `/v1/admin/strategies`, `/v1/admin/observations`, `/v1/admin/domains`, `/v1/admin/workflows` or `/v1/admin/federation/peers` is answered 503 `ADMIN_GROUP_UNAVAILABLE`, never with an empty result, and nothing is forwarded or sent as a `POST /v1/message` action
 - [ ] While their blueprints do not say that they accept a pass, a request for `/v1/admin/alerts`, `/v1/admin/runbooks` or `/v1/admin/rate-limits`, or any route under them, is answered 503 `ADMIN_GROUP_UNAVAILABLE` even where the alerting agent, the incident-response agent or the component applying `patterns/rate-limiting` is deployed, and nothing is forwarded, on a pass or on the operator token
