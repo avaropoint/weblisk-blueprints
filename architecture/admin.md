@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.33.0
+version: 2.33.1
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1779,6 +1779,19 @@ operator the system is quiet when it is simply not there.
 > specified: its pass carries `admin:*` to that provider alone, which reaches
 > no route of the orchestrator's
 > ([`protocol/identity`](../protocol/identity.md#the-pass)).
+
+> **Gap — any registrant can make a route unavailable to people.** A route
+> two directory entries declare among their `pass_routes` names no one
+> provider, so the gateway answers it `ADMIN_GROUP_UNAVAILABLE` and sends no
+> pass for it (`admin-gateway-authorization`). A registration is not an
+> enrolment ([`protocol/spec`](../protocol/spec.md#post-v1register)), so any
+> registrant can declare a route another component's blueprint specifies,
+> `architecture/content`'s or `architecture/fabric`'s among them, and cut every
+> person off from that route for as long as it stays registered. It gains no
+> pass by it. Binding each route to the one component the tenant declares for
+> it closes this, and waits on the tenant being able to declare its
+> components. Refusing the second declaration at registration would only move
+> the denial to whoever registers first.
 
 ### Operator Management
 

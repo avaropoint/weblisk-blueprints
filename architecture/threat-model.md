@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: threat-model
-version: 1.3.1
+version: 1.3.2
 requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/content, architecture/data-security, architecture/admin, architecture/observability, architecture/enforcement, patterns/contract]
 platform: any
 tier: free
@@ -687,6 +687,7 @@ After all mitigations, these residual risks remain:
 | A key holder that genuinely controls a foreign address | Low | Critical | Address verification proves control of the address by the key holder, never that the key holder is the tenant's | Key issuance is the real boundary, and it is `protocol/identity`'s. `verified` narrows where a stolen key can be used, not whether it works |
 | A forged service directory pushed to an agent other than the admin gateway | Medium | High | None yet at the agent: nothing authenticates a push. The admin gateway reads the directory from its anchor and takes no push as one | The gap is named in `protocol/spec` under `POST /v1/services`. An agent that takes the pushed body follows the routes and addresses its sender chose until the directory's signature is specified and verified |
 | A registrant other than the admin gateway that declares `token:exchange` | Low | High | None yet: registration admits the capability from any registrant. Using it needs a person's live operator token, which only the admin gateway is presented | The gap is named in `protocol/types` under the exchange capability. With a stolen token such a holder obtains passes for everything the person may use at any component, beyond the orchestrator's own routes and outside the admin gateway's network controls |
+| A registrant that declares a pass route another component's blueprint specifies | Medium | Medium | None yet. While two entries declare a route the gateway answers it `ADMIN_GROUP_UNAVAILABLE`, so no pass is misdirected, and people are cut off from it | The gap is named in `architecture/admin` under The admin API is an aggregate. It lasts until the registrant is deregistered, and closes when each route is bound to the component the tenant declares for it |
 
 ---
 
