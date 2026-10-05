@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.19.3
+version: 2.19.4
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -1029,12 +1029,19 @@ contracts:
 ## Startup Sequence
 
 ```
-1. Load or generate ML-DSA-65 identity (name: "orchestrator")
+1. Load or generate ML-DSA-65 identity (name: "orchestrator"), the key that
+   signs tokens. A first start records the hub_id, the fingerprint of that
+   first key, with its own state. Once the key has rotated, also load the
+   first key, which is kept to sign the hub proof and nothing else
+   (architecture/admin, Proving the hub at an address)
 2. Initialize empty agent registry, namespace map, routing table, audit log
 3. Reserve "system" namespace for orchestrator
-4. Register HTTP routes for all 6 endpoints
+4. Register HTTP routes for every endpoint the declaration lists, the
+   protocol endpoints, the token exchange and the administrative endpoints;
+   the platform-provided model routes are installed by the CLI ahead of the
+   generated router (Administrative endpoints)
 5. Start HTTP server on configured port
-6. Print startup info (URL, public key, how to register agents)
+6. Print startup info (URL, public key, hub_id, how to register agents)
 7. Block and serve requests
 ```
 
