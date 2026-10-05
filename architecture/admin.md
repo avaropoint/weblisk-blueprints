@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.29.1
+version: 2.29.2
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -317,7 +317,7 @@ because nothing was judged.
 | `OPERATOR_KEY_CHANGE_INVALID` | 401 | auth | A change of identity key whose `current_signature` does not verify under the operator's recorded key, whose `new_signature` does not verify under `new_public_key`, whose `new_public_key` is not an ML-DSA-65 key, or whose timestamp is outside the 300-second window or was seen before | Refuse and change nothing. Log as a security event | `replay_detected`, where the timestamp is the fault |
 | `OPERATOR_KEY_REUSED` | 409 | conflict | A registration or a change of identity key offers a key this hub records, or recorded, as any operator's identity key, current or retired, or as any credential | Refuse permanently, naming no operator. The client generates a new key | — |
 | `OPERATOR_LAST_ADMINISTRATOR` | 409 | conflict | A request to revoke would end the last active authenticate credential of the last active admin. A sign-records credential signs nobody in and is not counted. A change of that admin's identity key is not refused | Refuse | `last_administrator` |
-| `ADMIN_TOKEN_UNCHECKED` | 503 | io | A request for a route another component provides reached the admin gateway, and the orchestrator could not be asked to exchange its operator token, or answered anything but 200 with a `TokenExchangeResponse`; or the provider refused, with a `401`, the pass the gateway sent it | Refuse and forward nothing more, with `retry_after` 5. The request may be repeated once the orchestrator answers. Never forward on the person's token, and never relay the code that answer or that refusal carried, which judged the gateway's own request or its pass, never the person's token | — |
+| `ADMIN_TOKEN_UNCHECKED` | 503 | io | A request for a route another component provides reached the admin gateway, and the orchestrator could not be asked to exchange its operator token, or answered anything but 200 with a `TokenExchangeResponse` or the `404` `NOT_FOUND` that says the provider is not registered now, which is `ADMIN_GROUP_UNAVAILABLE`; or the provider refused, with a `401`, the pass the gateway sent it | Refuse and forward nothing more, with `retry_after` 5. The request may be repeated once the orchestrator answers. Never forward on the person's token, and never relay the code that answer or that refusal carried, which judged the gateway's own request or its pass, never the person's token | — |
 | `ADMIN_GROUP_UNAVAILABLE` | 503 | io | A request reached the admin gateway for a route no provider here may be sent: none is deployed, the one deployed is not registered now, its blueprint does not specify both the route and that it accepts a pass for it, or its directory address is on another host than the orchestrator's and only `self-asserted`, which the answer names (`admin-gateway-authorization`) | Refuse and forward nothing. Never answer with an empty result: an absent provider and an empty one are different facts | — |
 
 `TOKEN_EXPIRED` ([`protocol/types`](../protocol/types.md#error-handling)) still
@@ -520,9 +520,11 @@ Critical rules:
    │   those its body calls for included (POST /v1/token/exchange, on the
    │   gateway's own registration token). The gateway judges nothing itself
    └── Refused by the exchange → the code it names, FORBIDDEN for a person
-       who may not use the capability, whatever the role; the orchestrator
-       not answering with a TokenExchangeResponse → 503 ADMIN_TOKEN_UNCHECKED.
-       Nothing is forwarded
+       who may not use the capability, whatever the role; the exchange
+       answering 404 NOT_FOUND, because the provider is not registered now
+       → 503 ADMIN_GROUP_UNAVAILABLE; the orchestrator not answering, or
+       answering anything else but a TokenExchangeResponse → 503
+       ADMIN_TOKEN_UNCHECKED. Nothing is forwarded
 
 7. REQUEST FORWARDING
    ├── To the provider of the route (The admin API is an aggregate): the
@@ -2545,7 +2547,7 @@ The rest SHOULD be:
 - [ ] While their blueprints do not say that they accept a pass, a request for `/v1/admin/alerts`, `/v1/admin/runbooks` or `/v1/admin/rate-limits`, or any route under them, is answered 503 `ADMIN_GROUP_UNAVAILABLE` even where the alerting agent, the incident-response agent or the component applying `patterns/rate-limiting` is deployed, and nothing is forwarded, on a pass or on the operator token
 - [ ] A request for a route whose minimum is `admin` and whose provider is not the orchestrator, such as `DELETE /v1/admin/strategies/:id`, is answered `ADMIN_GROUP_UNAVAILABLE` while that provider's blueprint specifies no such route, and once one does reaches that provider only on a pass addressed to it carrying `admin:*`, never on an operator token
 - [ ] A component other than the orchestrator that serves an administrative route acts only on a pass addressed to it whose `cap` names the route's capability: an `operator`'s approval carried on a pass naming `admin:approve` is recorded under the pass's `identity_id`, with the gateway's `act.identity_id` beside it, while an operator token is refused with `PASS_REQUIRED`, a pass addressed to another component with `PASS_AUDIENCE_MISMATCH`, and an agent's or a channel's token with `FORBIDDEN`, none of these refusals performing anything
-- [ ] Through the admin gateway, a request for a route another component provides is refused by the exchange with `OPERATOR_REVOKED` on the token of an operator removed since it was minted, and with `FORBIDDEN` on the token of an operator since lowered to `viewer`; while the orchestrator cannot be asked it is refused with 503 `ADMIN_TOKEN_UNCHECKED` carrying `retry_after`; in none of these is anything forwarded
+- [ ] Through the admin gateway, a request for a route another component provides is refused by the exchange with `OPERATOR_REVOKED` on the token of an operator removed since it was minted, and with `FORBIDDEN` on the token of an operator since lowered to `viewer`; while the orchestrator cannot be asked it is refused with 503 `ADMIN_TOKEN_UNCHECKED` carrying `retry_after`; where the exchange answers `404` `NOT_FOUND` because the provider is not registered now it is refused with 503 `ADMIN_GROUP_UNAVAILABLE`, never `ADMIN_TOKEN_UNCHECKED`; in none of these is anything forwarded
 - [ ] All admin API responses include Cache-Control: no-store header
 - [ ] Admin auth middleware verifies `type` is `operator`, checks that the operator and credential the token names are live, and checks that the request can use the capability the endpoint's minimum stands for, from the role the operator holds now narrowed to the token's `cap`
 - [ ] An admin's token minted with `cap` `[admin:read]` carries `admin:read`, reaches a `viewer+` route and `POST /v1/admin/complete`, and is refused with `FORBIDDEN` on an `admin` route such as `PUT /v1/admin/operators/{name}/role`
