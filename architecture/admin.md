@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.29.3
+version: 2.29.4
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -349,8 +349,11 @@ which does not ask the identity.
    where no provider here may be sent it, and `ADMIN_TOKEN_UNCHECKED` where the
    token could not be exchanged (`admin-gateway-authorization`)
 8. Capability authorization, by the orchestrator's judgement whichever
-   component provides the route: the request must be able to use the
-   capability the endpoint's minimum stands for — never the token's role claim
+   component provides the route: the request must be able to use every
+   capability it requires — for a route the endpoint tables give a minimum,
+   the capability that minimum stands for, and for any other provider's
+   route, every capability its provider requires for that request, its
+   body's included — never the token's role claim
    alone. The orchestrator judges it in its Auth Middleware when a request for
    its own group arrives, and at the exchange, before anything is forwarded,
    for any other provider, which acts on the pass's `cap` alone
@@ -508,10 +511,11 @@ Critical rules:
 
 6. CAPABILITY AUTHORIZATION (the orchestrator's judgement, never the
    gateway's own; admin-gateway-authorization is the rule)
-   ├── The request must be able to use the capability the endpoint's
-   │   minimum stands for: one the operator's role carries now and the
-   │   token's cap names (Auth Middleware, below). token.role is the role
-   │   at mint and ignores cap, so it is never the judgement
+   ├── The request must be able to use every capability it requires — on
+   │   an administrative route, the one the endpoint's minimum stands for —
+   │   each one the operator's role carries now and the token's cap names
+   │   (Auth Middleware, below). token.role is the role at mint and
+   │   ignores cap, so it is never the judgement
    ├── A group the orchestrator provides: its Auth Middleware judges the
    │   token when the request arrives
    ├── A route another component provides: the gateway has the orchestrator
@@ -2337,8 +2341,10 @@ capability, which is this document's to define. An endpoint another component
 provides never reaches that sequence. The orchestrator makes the same
 judgement at the token exchange, before the admin gateway sends the request
 there on a pass, and that component acts on the pass's `cap` alone
-(`admin-gateway-authorization` in [Contracts](#contracts)). Either way the rule
-is this one:
+(`admin-gateway-authorization` in [Contracts](#contracts)). Either way, for an
+administrative route, the rule is this one, and a route of a service such as
+`architecture/content`'s is judged the same way against every capability its
+provider requires for the request, its body's included:
 
 **The request must be able to use the capability the endpoint's minimum stands
 for** (the table below): one the operator's role carries now and the token's
@@ -2360,7 +2366,7 @@ A role in the endpoint tables names the least role, and stands for a
 capability ([`protocol/types`](../protocol/types.md), Administrative
 capabilities). The request must be able to use that capability, so a token
 whose `cap` leaves it out reaches none of these routes, an admin's included,
-and a pass carries only the capability its route requires
+and a pass carries every capability its request requires and nothing more
 ([A console holds a credential, never a token](#a-console-holds-a-credential-never-a-token)):
 
 | Minimum | The request must be able to use |
@@ -2546,7 +2552,7 @@ The rest SHOULD be:
 - [ ] While no deployed component's blueprint specifies the route, a request for `/v1/admin/approvals`, `/v1/admin/strategies`, `/v1/admin/observations`, `/v1/admin/domains`, `/v1/admin/workflows` or `/v1/admin/federation/peers` is answered 503 `ADMIN_GROUP_UNAVAILABLE`, never with an empty result, and nothing is forwarded or sent as a `POST /v1/message` action
 - [ ] While their blueprints do not say that they accept a pass, a request for `/v1/admin/alerts`, `/v1/admin/runbooks` or `/v1/admin/rate-limits`, or any route under them, is answered 503 `ADMIN_GROUP_UNAVAILABLE` even where the alerting agent, the incident-response agent or the component applying `patterns/rate-limiting` is deployed, and nothing is forwarded, on a pass or on the operator token
 - [ ] A request for a route whose minimum is `admin` and whose provider is not the orchestrator, such as `DELETE /v1/admin/strategies/:id`, is answered `ADMIN_GROUP_UNAVAILABLE` while that provider's blueprint specifies no such route, and once one does reaches that provider only on a pass addressed to it carrying `admin:*`, never on an operator token
-- [ ] A component other than the orchestrator that serves an administrative route acts only on a pass addressed to it whose `cap` names the route's capability: an `operator`'s approval carried on a pass naming `admin:approve` is recorded under the pass's `identity_id`, with the gateway's `act.identity_id` beside it, while an operator token is refused with `PASS_REQUIRED`, a pass addressed to another component with `PASS_AUDIENCE_MISMATCH`, and an agent's or a channel's token with `FORBIDDEN`, none of these refusals performing anything
+- [ ] A component other than the orchestrator that serves an administrative route acts only on a pass addressed to it whose `cap` names every capability the request requires: an `operator`'s approval carried on a pass naming `admin:approve` is recorded under the pass's `identity_id`, with the gateway's `act.identity_id` beside it, while an operator token is refused with `PASS_REQUIRED`, a pass addressed to another component with `PASS_AUDIENCE_MISMATCH`, and an agent's or a channel's token with `FORBIDDEN`, none of these refusals performing anything
 - [ ] Through the admin gateway, a request for a route another component provides is refused by the exchange with `OPERATOR_REVOKED` on the token of an operator removed since it was minted, and with `FORBIDDEN` on the token of an operator since lowered to `viewer`; while the orchestrator cannot be asked it is refused with 503 `ADMIN_TOKEN_UNCHECKED` carrying `retry_after`; where the exchange answers `404` `NOT_FOUND` because the provider is not registered now it is refused with 503 `ADMIN_GROUP_UNAVAILABLE`, never `ADMIN_TOKEN_UNCHECKED`; in none of these is anything forwarded
 - [ ] All admin API responses include Cache-Control: no-store header
 - [ ] Admin auth middleware verifies `type` is `operator`, checks that the operator and credential the token names are live, and checks that the request can use the capability the endpoint's minimum stands for, from the role the operator holds now narrowed to the token's `cap`
