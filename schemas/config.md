@@ -81,6 +81,7 @@ content:
   reconcile_interval: duration     # Shared custody only. 0 disables scheduled runs
   reverify_custody_interval: duration
   replica_retry_interval: duration # How often a replica that lacks versions is tried again
+  checkpoint_interval: duration    # How often a change log whose tip has moved is sealed
   max_entry_bytes: integer         # Largest entry the service will write
 
 # Optional — federation configuration
