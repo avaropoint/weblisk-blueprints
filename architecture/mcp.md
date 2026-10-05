@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: mcp
-version: 1.4.0
+version: 1.4.1
 requires: [protocol/types, protocol/identity, protocol/spec, architecture/agent, architecture/gateway, patterns/scope, patterns/safety, patterns/auth-oauth]
 platform: any
 tier: free
@@ -43,8 +43,10 @@ requires:
       types:
         - name: ErrorResponse
           fields_used: [error, code, category, retryable, detail]
+        # A tool projects a capability by its name. Capability carries no
+        # description: a tool's is its ToolDefinition's own (Types)
         - name: Capability
-          fields_used: [name, description]
+          fields_used: [name]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
