@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.14.1
+version: 1.14.2
 requires: [protocol/types]
 platform: any
 tier: free
@@ -564,6 +564,11 @@ vectors. None is published yet. So no implementation may yet sign under
 `weblisk/hub-proof/v1`, and
 `weblisk/auth/v1`, which the CLI already signs and a console already
 verifies, is the one exception, until its vectors are published.
+
+The document that defines a prefix, the last column above, states what a
+conforming implementation does until that prefix has vectors, and never
+requires the signature before then. A rule there that needs one holds from
+the day they are published.
 
 ### Proving an identity to a service that is not a hub
 
