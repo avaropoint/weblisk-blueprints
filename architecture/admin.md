@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.32.5
+version: 2.32.6
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -2531,8 +2531,14 @@ The rest SHOULD be:
   gateway. In Go deployments, it is a separate binary. In
   Cloudflare deployments, it is a separate Worker.
 - The SPA uses the Weblisk client-side framework for UI components
-- WebSocket connection to `/v1/admin/ws` for real-time status updates
-  (agent status changes, new approvals, workflow completions)
+- A WebSocket at `/v1/admin/ws` for real-time status updates (agent status
+  changes, new approvals, workflow completions) is a gap. The gateway holds
+  no subscription and no standing access to data
+  (`admin-gateway-authorization`), so it has nothing to feed one from, and
+  no provider's blueprint specifies the feed or a pass for it. Until one
+  does, the gateway answers a request for it as it answers any route that
+  is not the orchestrator's and that no pass route declares, with
+  `ADMIN_GROUP_UNAVAILABLE`, and a console refreshes by asking again
 - All admin API responses include `Cache-Control: no-store` to prevent
   caching of sensitive operational data
 - The admin interface MUST work over HTTPS in production. HTTP is
@@ -2659,5 +2665,5 @@ The rest SHOULD be:
 - [ ] A console holds no registration at any hub: it never sends `POST /v1/register` with its own key or any key it holds, and does no work at a hub while no signed-in person is present
 - [ ] A sixth `POST /v1/admin/credentials/token` within a minute from one client address is refused before its signature is verified, whatever `cid` each names, while requests from another address, and to `POST /v1/admin/operators/{name}/key` from the same one, are not
 - [ ] Bootstrap event (first operator registration) is permanently recorded in the audit log
-- [ ] WebSocket /v1/admin/ws provides real-time status updates for agent changes, approvals, and workflow completions
+- [ ] While no provider's blueprint specifies `/v1/admin/ws`, a request for it is answered 503 `ADMIN_GROUP_UNAVAILABLE`, and the gateway opens no subscription and holds no connection to serve it
 - [ ] Admin gateway and application gateway share NO session state, cookie domain, or network listener
