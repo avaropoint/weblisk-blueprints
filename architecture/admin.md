@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.32.4
+version: 2.32.5
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1127,6 +1127,17 @@ hub that relays the request controls all three. So a hub that relays a client's
 request for a proof to another hub gets back a refusal, or a proof naming the
 other hub's own address, and a client that checks the proof against the
 origin it dialled refuses either.
+
+**A proof is only as specific as the origin it names.** An origin more than
+one hub can list, such as a loopback address (`http://localhost:9443`), a
+private address, or the local end of an SSH tunnel, which
+[`schemas/config`](../schemas/config.md#orchestrator) requires to be listed
+wherever the gateway is reached through one, names no one hub. A relay
+listening at that origin on the client's machine can pass back the proof of
+any hub that lists it, and the client cannot tell. At such an origin the proof
+shows that the hub answering holds the key its `hub_id` names, and nothing
+about what sits between the client and that hub: the tunnel or local route
+the person set up is what they rely on there.
 
 **The key is the one `hub_id` names.** The orchestrator signs with the private
 key whose fingerprint is its `hub_id`, the first key it signed tokens with,
