@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.19.1
+version: 2.19.2
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -1549,9 +1549,12 @@ security:
         token is minted, and again on every request that bears one; the request
         body supplies neither
     - rule: Administration is a capability, not a position
-      mechanism: Every admin endpoint states which admin capability it
-        requires and the auth middleware checks the token for it, so an
-        administrative interface is a service holding a grant
+      mechanism: Every admin endpoint states which capability it requires,
+        and Auth Middleware checks that the request can use it, on an
+        operator's token alone (step 6). So no address, host or deployment
+        position confers it, and an administrative interface holds no grant
+        of its own; the admin gateway carries a person's token here as it
+        arrived
     - rule: A token this orchestrator receives goes no further
       mechanism: It calls no component on a token it was presented, and a
         person's request reaches another component only on a pass the token
