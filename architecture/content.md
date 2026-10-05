@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.20.1
+version: 2.21.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -177,7 +177,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/storage
-    version: ">=1.3.0 <2.0.0"
+    version: ">=1.4.0 <2.0.0"
     bindings:
       types:
         # The change log's own key, succession and checkpoint entries
@@ -1123,7 +1123,9 @@ in the registration response:
 ```
 1. Load configuration and open storage
 2. Load or generate the ML-DSA-65 key pair, and mint the log key it
-   introduces into each change log (architecture/storage, The log key)
+   introduces into each change log, once architecture/storage's The log key
+   says one is minted: none is before the sealed log's statements have test
+   vectors, and every change log is then reported with sealing paused
 3. Check every change log from its latest checkpoint (A log that does not
    verify), then settle every reserved change in each log that passed, then
    reconcile the configured repositories against the registry — establish the
@@ -3072,7 +3074,11 @@ A statement is optional. A write, removal or decision without one is recorded
 as it always was, and that person's part is `witnessed`. So a client that
 relays a person's statement can drop it and still have the change recorded. A
 client that sent a statement MUST check that the `ContentChange` it gets back
-carries it, and report the change as unsigned where it does not.
+carries it, and report the change as unsigned where it does not. No client
+signs one before `weblisk/content-change/v1` has test vectors
+([`protocol/identity`](../protocol/identity.md#fixed-form-statements)), so
+until they are published every change is recorded without a statement, and
+every person's part is `witnessed`.
 
 ### Design Principle 6, strictly
 
@@ -4582,7 +4588,9 @@ types:
         required: true
         description: paused while no log key can sign a checkpoint for this
           log, because none is live and the long-lived key cannot introduce
-          another. unsealed then counts what waits
+          another, which is so for every log until the sealed log's
+          statements have test vectors (architecture/storage, The log key).
+          unsealed then counts what waits
       chain:
         type: enum
         values: [continuous, broken, unreadable]
@@ -5295,6 +5303,7 @@ security:
 - [ ] An offline verifier reports inconsistent a `change` entry recording `separation` `independent` whose `approved_by` is its `actor`, one recording `separation` `self` whose `scope` is above the `self_decision_ceiling` in the `declare` entry, and one recording `separation` `self` on a change with no scope — none declared, and on a removal no recorded scope for the path, the floor included
 - [ ] Every signature in a change log is ML-DSA-65, and a signature on a commit in a version-controlled store appears nowhere in the log
 - [ ] With the log key unavailable, writes still succeed, their entries are appended, and `LogHead.unsealed` counts them; the next checkpoint covers them all
+- [ ] Before the sealed log's statements have test vectors, the service starts without minting a log key, appends no `key` or `checkpoint` entry, answers every `LogHead` with `sealing` `paused`, and refuses a checkpoint request with `CONTENT_SEALING_PAUSED`
 - [ ] `POST /v1/content/repositories/{repository}/log/checkpoint` on a log whose tip has moved appends a `checkpoint` entry covering the tip, and on one whose tip has not moved appends nothing
 - [ ] A service started over a change log whose lines after its latest checkpoint were altered settles no reservation in it, refuses writes, removals, decisions to apply, reconciles and checkpoints on that repository with `CONTENT_LOG_BROKEN` naming the `seq`, still serves its entries and its log, reports health `degraded` naming it, and reports `chain` `broken` with that `broken_at` in its `LogHead`
 - [ ] Rotating the service's registered key appends a succession entry to every change log, and a verifier that brings only the key the tenant's directory now lists verifies checkpoints sealed before the rotation
