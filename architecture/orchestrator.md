@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.19.2
+version: 2.19.3
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -777,14 +777,17 @@ cannot do that without reproducing the CLI's provider catalogue. The CLI
 chooses a model of its own only where no tenant's model applies: when it
 creates a tenant, and for work a person starts outside any tenant.
 
-**Every one of them is authorised by the orchestrator.** The gateway that
-serves them has the orchestrator judge the caller's token on each request, by
+**Every one of them is authorised by the orchestrator.** The code the CLI
+installs to serve them, inside the orchestrator's own process and called the
+model gateway there, is neither the tenant's admin gateway nor its
+application gateway. It has the orchestrator judge the caller's token on each
+request, by
 the middleware that guards every route under the same prefix: every step of
 [Auth Middleware](#auth-middleware) under `/v1/admin/`, step 6 included, and
 every step but 6 for `/v1/model/ceiling`. It never accepts a token on its
 shape, and a request it cannot get a judgement on is refused.
 Asking a model for them produced four handlers against an unspecified
-contract, all of them shadowed the moment the gateway was installed. So this
+contract, all of them shadowed the moment the model gateway was installed. So this
 document specifies one thing about them and nothing else of their behaviour:
 what a model destination requires, below.
 
