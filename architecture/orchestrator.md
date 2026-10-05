@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.16.1
+version: 2.16.2
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -127,7 +127,7 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/admin
-      version: ">=2.26.0 <3.0.0"
+      version: ">=2.26.2 <3.0.0"
       bindings:
         behaviors:
           - name: operator-registration

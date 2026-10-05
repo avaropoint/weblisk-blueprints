@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.14.2
+version: 2.14.3
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -189,7 +189,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/admin
-    version: ">=2.26.0 <3.0.0"
+    version: ">=2.28.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/admin/operators/register
