@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.18.3
+version: 2.18.4
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -622,12 +622,11 @@ everything it authorises and a second host is a second place to lose it from.
 ```
 
 **Auth middleware** resolves a token to capabilities and refuses a request the
-endpoint's declared capability does not permit. It sits in front of everything
-except `GET /v1/health`, `POST /v1/register` — where the manifest signature is
-the credential — and the operator routes that establish or issue tokens and
-therefore cannot require one: `POST /v1/admin/operators/register`,
-`POST /v1/admin/operators/token`, `POST /v1/admin/credentials/challenge` and
-`POST /v1/admin/credentials/token`. For an operator token it also looks up the
+endpoint's declared capability does not permit. It sits in front of every route
+but the ones [Auth Middleware](#auth-middleware) lists, each of which is
+authenticated by something other than a token or is asked before the caller
+can hold one. That list is the one statement of which routes those are; this
+paragraph does not repeat it. For an operator token it also looks up the
 operator and the credential the token names, in this orchestrator's own
 records, on every request — `token-status-on-use` in
 [`architecture/admin`](admin.md#contracts).
