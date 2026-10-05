@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.17.1
+version: 1.17.2
 requires: []
 platform: any
 tier: free
@@ -527,7 +527,7 @@ types:
         name: Path
         type: string
         required: true
-        description: "The route's path as the component's blueprint writes it. A `{name}` segment matches any one non-empty path segment; nothing else is a pattern"
+        description: "The route's path as the component's blueprint writes it. A `{name}` segment matches any one non-empty path segment; nothing else is a pattern. No two of one manifest's pass routes may match one request, and registration refuses a manifest whose do, as it refuses one naming a capability this document does not list (architecture/orchestrator, Registration Flow)"
       capabilities:
         name: Capabilities
         type: "[]string"
