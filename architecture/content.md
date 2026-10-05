@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.21.0
+version: 2.21.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -3982,6 +3982,7 @@ types:
           writer is a person acting for themselves
       approved_by:
         type: list
+        items: string
         required: false
         description: Witnessed. The identity ids of the persons whose decision
           applied the change — one, under this contract, taken from the
@@ -4342,6 +4343,7 @@ types:
     fields:
       proposals:
         type: list
+        items: ContentProposal
         required: true
         description: ContentProposal records the caller may read, each without
           bytes
