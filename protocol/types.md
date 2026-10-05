@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.17.0
+version: 1.17.1
 requires: []
 platform: any
 tier: free
@@ -405,10 +405,8 @@ request is [`architecture/content`](../architecture/content.md#proposals).
 `content:replicate` and `content:connect` are two capabilities so that sending
 a repository outside the tenant takes two grants: a replica with no credential
 reaches nothing, and a credential with no replica is sent nothing
-([`architecture/content`](../architecture/content.md#who-may-declare-a-replica)).
-They separate two people only where two people hold them. Today only the
-`admin` role carries either, and a role is a fixed bundle, so every admin
-holds both and one admin can send a repository outside the tenant alone.
+([`architecture/content`](../architecture/content.md#who-may-declare-a-replica),
+which also says whom the two grants separate today).
 
 **Model capabilities:**
 - `model:attest` — record and withdraw an agreement attestation, which raises what a model provider may be sent ([`patterns/scope`](../patterns/scope.md#model-providers)). *Person only*
