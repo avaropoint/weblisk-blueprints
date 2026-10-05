@@ -2,9 +2,9 @@
 type: agent
 kind: infrastructure
 name: incident-response
-version: 1.0.1
+version: 1.1.0
 port: 9760
-requires: [protocol/spec, protocol/types, architecture/agent, agents/alerting]
+requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/alerting]
 extends: [patterns/incident-response, patterns/observability, patterns/storage, patterns/state-machine, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
 depends_on: [alerting]
 platform: any
@@ -66,13 +66,27 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.16.1 <2.0.0"
     bindings:
       types:
         - name: TaskResult
           fields_used: [task_id, agent_name, status, summary, timestamp]
     on_change:
       compatible: validate
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/identity
+    version: ">=1.13.0 <2.0.0"
+    bindings:
+      types:
+        # Read only to recognise a person's operator token and refuse it on
+        # the /v1/admin/runbooks routes (The pass, rule 4). Nothing here is
+        # authorised on one
+        - name: WLToken
+          fields_used: [type]
+    on_change:
+      compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 
@@ -498,7 +512,7 @@ runbook:
 
 ### Custom Runbooks
 
-Operators can add custom runbooks via the admin gateway:
+Custom runbooks are managed at these routes:
 
 ```
 POST /v1/admin/runbooks
@@ -507,6 +521,17 @@ DELETE /v1/admin/runbooks/:name
 GET /v1/admin/runbooks
 GET /v1/admin/runbooks/:name
 ```
+
+No person reaches them yet. This agent refuses a person's operator token on
+each with `PASS_REQUIRED`, before anything is read or changed, as
+[`protocol/identity`](../protocol/identity.md#the-pass) requires of every
+component but the orchestrator and the admin gateway. A person would reach
+them through the admin gateway, on a pass addressed to this agent, and this
+blueprint does not yet say that the agent accepts one: its manifest declares
+none of them among its `pass_routes`
+([`protocol/types`](../protocol/types.md#passroute)), so the gateway answers
+each `ADMIN_GROUP_UNAVAILABLE`
+([`architecture/admin`](../architecture/admin.md#the-admin-api-is-an-aggregate)).
 
 Custom runbooks follow the same YAML structure and can reference any
 action the incident-response agent supports.
@@ -583,8 +608,9 @@ report:
 }
 ```
 
-Reports are stored and accessible via the admin gateway for trend
-analysis and process improvement.
+Reports are stored for trend analysis and process improvement. No route
+serves them to a person yet: the admin gateway reaches nothing of this
+agent's ([Custom Runbooks](#custom-runbooks)).
 
 ---
 
@@ -1450,7 +1476,7 @@ scaling:
 - [ ] Approval-required steps pause and wait for operator
 - [ ] Auto-resolved incidents confirm stability before closing
 - [ ] Post-incident reports generate for all resolved incidents
-- [ ] Custom runbooks can be added via admin API
+- [ ] The five `/v1/admin/runbooks` routes refuse a person's operator token with `PASS_REQUIRED`, reading and changing nothing, while the manifest declares none of them among its `pass_routes`
 - [ ] Incident timeline records all events chronologically
 - [ ] Metrics emit for incidents, runbooks, and escalations
 - [ ] Graceful degradation when alerting agent or storage is unavailable

@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: rate-limiting
-version: 1.0.0
-requires: [protocol/types, architecture/gateway, architecture/agent]
+version: 1.1.0
+requires: [protocol/types, protocol/identity, architecture/gateway, architecture/agent]
 platform: any
 tier: free
 -->
@@ -34,13 +34,26 @@ domain-specific throttling (e.g., external API call budgets).
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.16.1 <2.0.0"
     bindings:
       types:
         - name: RateLimitConfig
           fields_used: [algorithm, storage, defaults, routes]
         - name: ErrorResponse
           fields_used: [code, error, category, retryable]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/identity
+    version: ">=1.13.0 <2.0.0"
+    bindings:
+      types:
+        # Read only to recognise a person's operator token and refuse it on
+        # the /v1/admin/rate-limits routes (The pass, rule 4). Nothing here
+        # is authorised on one
+        - name: WLToken
+          fields_used: [type]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -382,7 +395,7 @@ request.
 
 ## Admin Operations
 
-Rate limits are manageable via the admin gateway:
+Rate limits are managed at these routes, under the admin API:
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
@@ -393,6 +406,18 @@ Rate limits are manageable via the admin gateway:
 
 Configuration changes via the admin API take effect immediately
 without gateway restart.
+
+No person reaches these routes yet. The component that implements them
+refuses a person's operator token on each with `PASS_REQUIRED`, before
+anything is read or changed, as
+[`protocol/identity`](../protocol/identity.md#the-pass) requires of every
+component but the orchestrator and the admin gateway. A person would reach
+them through the admin gateway, on a pass addressed to that component, and
+this pattern does not yet say that it accepts one: its manifest declares
+none of them among its `pass_routes`
+([`protocol/types`](../protocol/types.md#passroute)), so the gateway answers
+each `ADMIN_GROUP_UNAVAILABLE`
+([`architecture/admin`](../architecture/admin.md#the-admin-api-is-an-aggregate)).
 
 ---
 
@@ -412,8 +437,9 @@ without gateway restart.
 - The gateway is the primary enforcement point. Agent-level rate
   limiting is optional and handles domain-specific concerns (external
   API budgets, resource-intensive operations).
-- Rate limit configuration supports hot-reload via admin API or CLI.
-  No gateway restart required.
+- Rate limit configuration supports hot-reload via the admin API, which
+  no person reaches yet ([Admin Operations](#admin-operations)), or the
+  CLI. No gateway restart required.
 - For development environments, rate limiting can be disabled entirely
   (`rate_limiting.enabled: false`).
 - Trusted proxy configuration is required for correct IP extraction
@@ -435,6 +461,6 @@ without gateway restart.
 - [ ] Sliding window correctly weights previous window
 - [ ] Per-route overrides take precedence over defaults
 - [ ] Rate limit configuration hot-reloads without restart
-- [ ] Admin API returns current counters and configuration
+- [ ] The four `/v1/admin/rate-limits` routes refuse a person's operator token with `PASS_REQUIRED`, reading and changing nothing, while the implementing component's manifest declares none of them among its `pass_routes`
 - [ ] Metrics emit for allowed and rejected requests
 - [ ] Auth endpoints have stricter limits than general routes

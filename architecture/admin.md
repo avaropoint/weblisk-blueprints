@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.30.5
+version: 2.30.6
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1709,9 +1709,9 @@ operator the system is quiet when it is simply not there.
 > five `/v1/admin/runbooks` routes in
 > [`agents/incident-response`](../agents/incident-response.md), and the four
 > `/v1/admin/rate-limits` routes in
-> [`patterns/rate-limiting`](../patterns/rate-limiting.md). None of them says
-> that its provider accepts a pass, checks one's `aud`, or refuses an operator
-> token with `PASS_REQUIRED`. Until a provider's blueprint specifies both a
+> [`patterns/rate-limiting`](../patterns/rate-limiting.md). Each says that its
+> provider refuses a person's operator token with `PASS_REQUIRED`, and none
+> that it accepts a pass or checks one's `aud`. Until a provider's blueprint specifies both a
 > route and that it accepts a pass for it, and so declares it among its
 > manifest's `pass_routes` ([`protocol/types`](../protocol/types.md#passroute)),
 > as `admin-gateway-authorization` requires, the gateway answers that route

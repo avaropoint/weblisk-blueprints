@@ -2,9 +2,9 @@
 type: agent
 kind: infrastructure
 name: alerting
-version: 1.0.1
+version: 1.1.0
 port: 9752
-requires: [protocol/spec, protocol/types, architecture/agent, agents/email-send]
+requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/email-send]
 extends: [patterns/alerting, patterns/observability, patterns/storage, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
 depends_on: [email-send]
 platform: any
@@ -52,7 +52,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.16.1 <2.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -67,6 +67,19 @@ requires:
           fields_used: [status, checks]
     on_change:
       compatible: validate
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/identity
+    version: ">=1.13.0 <2.0.0"
+    bindings:
+      types:
+        # Read only to recognise a person's operator token and refuse it on
+        # the /v1/admin/alerts routes (The pass, rule 4). Nothing here is
+        # authorised on one
+        - name: WLToken
+          fields_used: [type]
+    on_change:
+      compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
@@ -380,6 +393,17 @@ blueprint's mapping table.
 The path parameter is spelled `{id}` here and `:id` in the Query API section
 below; `{id}` is the form `schemas/architecture` uses and is the one a
 generator reads.
+
+**No person reaches the three `/v1/admin/alerts` routes yet.** This agent
+refuses a person's operator token on each with `PASS_REQUIRED`, before
+anything is read, as [`protocol/identity`](../protocol/identity.md#the-pass)
+requires of every component but the orchestrator and the admin gateway. A
+person would reach them through the admin gateway, on a pass addressed to
+this agent, and this blueprint does not yet say that the agent accepts one:
+its manifest declares none of them among its `pass_routes`
+([`protocol/types`](../protocol/types.md#passroute)), so the gateway answers
+each `ADMIN_GROUP_UNAVAILABLE`
+([`architecture/admin`](../architecture/admin.md#the-admin-api-is-an-aggregate)).
 
 ---
 
@@ -979,7 +1003,8 @@ HTTP POST to a Slack incoming webhook URL.
 
 ### Storage
 
-Alerts are stored for querying via the admin API and CLI.
+Alerts are stored for querying through the admin API, which no person
+reaches yet ([Endpoints](#endpoints)).
 
 ```yaml
 types:
@@ -1031,7 +1056,8 @@ types:
 
 ### Query API
 
-The admin API provides alert querying:
+The admin API provides alert querying, which no person reaches yet
+([Endpoints](#endpoints)):
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -1590,7 +1616,7 @@ scaling:
 - [ ] Webhook channel includes HMAC-SHA256 signature
 - [ ] Webhook retries 3 times with exponential backoff on failure
 - [ ] Slack channel sends Block Kit formatted messages
-- [ ] Alert history is stored and queryable via admin API
+- [ ] Alert history is stored, and `GET /v1/admin/alerts`, `GET /v1/admin/alerts/{id}` and `GET /v1/admin/alerts/stats` refuse a person's operator token with `PASS_REQUIRED`, reading nothing, while the manifest declares none of them among its `pass_routes`
 - [ ] Stats endpoint returns correct counts by severity and source
 - [ ] Custom alerts from any agent are accepted and routed
 - [ ] Graceful degradation when email-send agent is unavailable
