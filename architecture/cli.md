@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.16.0
+version: 2.16.1
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -638,7 +638,7 @@ $ weblisk component content stop
 |------|-------------|
 | `--detach` | Run in the background and record it, as `server start --detach` does, so `status`, `logs` and `stop` find it |
 | `--port <n>` | Listen port. Omitted: what `.weblisk/config.yaml` declares for this component, else the convention [`schemas/config`](../schemas/config.md) gives it. A kind with a range rather than a port — an agent, a domain — must be given one |
-| `--orch <url>` | Orchestrator to register with. Omitted: the one this CLI has running for the tenant |
+| `--orch <url>` | The orchestrator's own address, to register with, never the admin gateway ([Configuration](#configuration)). Omitted: the one this CLI has running for the tenant |
 
 A kind a tenant may hold several of takes the instance's name after the verb.
 With no orchestrator named and none running, the component is started without
@@ -867,7 +867,7 @@ $ weblisk agent start seo --orch http://localhost:9800 --port 9710
 
 | Flag | Description |
 |------|-------------|
-| `--orch <url>` | Orchestrator URL |
+| `--orch <url>` | The orchestrator's own address, which the agent registers with — never the admin gateway an operator command's `--orch` names ([Configuration](#configuration)) |
 | `--port <n>` | Listen port (default: auto-assigned) |
 
 ### `weblisk agent verify`
@@ -2215,7 +2215,7 @@ Results: 38/38 passed (0 failed, 0 skipped)
 
 | Flag | Description |
 |------|-------------|
-| `--orch <url>` | Orchestrator URL to test against |
+| `--orch <url>` | The orchestrator's own address to test against, which is sent no person's token ([Configuration](#configuration)) |
 | `--level <n>` | Run specific level only (1, 2, or 3) |
 | `--test <id>` | Run a single test by ID (e.g., `L1-03`) |
 | `--verbose` | Show request/response details for each test |
@@ -2584,6 +2584,19 @@ The CLI reads the hub's address, its admin gateway, from (in priority order):
 2. Environment variable (implementation-defined)
 3. Project config: `.weblisk/config.json` in the working directory
 4. User config: `~/.weblisk/config.json`
+
+**`--orch` names one of two addresses, by command.** On an operator command,
+one a person runs against a hub — every `weblisk operator` command and every
+command that calls the hub's administrative routes — it is the hub's admin
+gateway, and the sources above supply it when the flag is omitted. On a
+command that runs, registers or tests a component —
+[`weblisk component <name> init`](#weblisk-component-name-init),
+[`weblisk agent start`](#weblisk-agent-start),
+[`weblisk test conformance`](#weblisk-test-conformance), and the address
+[`weblisk server start`](#weblisk-server-start) passes each sibling — it is
+the orchestrator's own address, which a component registers with, and the
+sources above are never read for it. Only the first is ever sent a person's
+token.
 
 ### Config File
 
