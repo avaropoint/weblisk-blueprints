@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.32.8
+version: 2.32.9
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -789,7 +789,7 @@ contracts:
         - The gateway MUST read the service directory only by GET /v1/services, on its registration token, at the orchestrator address it was configured with to register, which is its anchor (architecture/orchestrator, Presenting a credential to a component), over a connection it opened - when it starts, and again after each POST /v1/services it receives, with no more than one such read in flight. It MUST NOT take a pushed body as the directory, signed or not, and MUST NOT let anything in one choose a provider, an audience, a url, an address_provenance or a pass route. Nothing authenticates a push (protocol/spec, the gap under POST /v1/services), and any party that reaches this listener could otherwise choose where a person's pass is sent, and replay it at its real audience within its lifetime. So everything that decides where a pass goes arrives from the orchestrator
         - A provider other than the orchestrator MUST, on every request for an administrative route, accept a person's request only on a pass addressed to it, as protocol/identity's The pass requires, and refuse with FORBIDDEN a pass whose cap does not name every capability the request requires and any token that is neither a pass nor an operator token. It MUST record who acted as The pass requires, by the pass's identity_id with the gateway's act.identity_id beside it, never by sub or by a header
         - Work a request starts at a provider runs while that request is answered, on the pass that carried it. Work that outlives the request, executing an approved recommendation included, needs an authority on the approver's behalf that no blueprint specifies yet (architecture/lifecycle, the gap under its Security), so no provider performs any on a person's behalf after the request the gateway carried on a pass is answered. Work a provider performs as its own, as a domain controller still executes accepted recommendations under no approver's authority, rests on no pass and on no approval the gateway carried, which is that gap
-        - The System overview is composed by the gateway, from the orchestrator's GET /v1/admin/overview, forwarded as any request for its groups is, and from each figure another component holds, asked of that component on a pass addressed to it at a route for that figure its directory entry declares among its pass_routes, as the rules above carry any request. Every other figure MUST be reported unavailable, never zero, and the orchestrator asks no component for any
+        - The System overview is composed by the gateway, from the orchestrator's GET /v1/admin/overview, forwarded as any request for its groups is, and from each group another component holds, asked of that component on a pass addressed to it as the rules above carry any request, once a pass route can name the overview group it answers. None can yet (protocol/types, PassRoute, which has no such field), so the gateway asks no component for one and MUST report every such group unavailable, never zero. The orchestrator asks no component for any
         - The gateway MUST answer with ADMIN_GROUP_UNAVAILABLE, and forward nothing, a request for a route that is not one of the orchestrator's and that no directory entry declares among its pass_routes, or that more than one declares, since the directory then names no one provider. A component declares a pass route only where its blueprint specifies both the route and that it accepts a pass for it (protocol/types, PassRoute), so a route whose provider is not deployed, or whose provider's blueprint specifies no pass for it, is answered so. It MUST NOT carry such a request as a POST /v1/message action, which checks no operator token (protocol/spec)
 
     - name: operator-credential-revocation
@@ -2001,16 +2001,21 @@ and shapes ([`architecture/orchestrator`](orchestrator.md#administrative-endpoin
 says only that it reports what it holds). A refusal of that request is the
 answer, as on any route of the orchestrator's groups.
 
-Every other member is a group another component holds: `domains`, `workflows`,
-`approvals`, `federation` and `strategies`. Each is either the figures that
-component's blueprint specifies for it, asked of it on a pass, or, where the
-gateway may not ask or the asking fails, an object carrying `unavailable`
-alone, whose value is the code the gateway would answer a request for that
-group's route with. A figure the gateway cannot report is never a number, so a
-client cannot render it as zero, and an absent provider is never shown as a
-quiet one. No blueprint yet specifies one of those groups on a pass (the gap
-under [The admin API is an aggregate](#the-admin-api-is-an-aggregate)), so a
-conforming gateway answers each of them unavailable:
+Every other member but `timestamp` is a group another component holds:
+`domains`, `workflows`, `approvals`, `federation` and `strategies`. Each is
+either the figures that component's blueprint specifies for it, asked of it on
+a pass, or, where the gateway may not ask or the asking fails, an object
+carrying `unavailable` alone, whose value is the code the gateway would answer
+a request for that group's route with. A figure the gateway cannot report is
+never a number, so a client cannot render it as zero, and an absent provider is
+never shown as a quiet one. No blueprint yet specifies one of those groups on a
+pass (the gap under
+[The admin API is an aggregate](#the-admin-api-is-an-aggregate)), and no
+`PassRoute` can yet name the group a route answers
+([`protocol/types`](../protocol/types.md#passroute)), so a conforming gateway
+asks no component and answers each of them unavailable. `timestamp` is the
+gateway's own: when it composed the answer, in Unix seconds. The
+orchestrator's answer carries none:
 
 ```json
 {
@@ -2633,7 +2638,7 @@ The rest SHOULD be:
 - [ ] Role hierarchy admin > operator > auditor > viewer is enforced server-side on every /v1/admin/* endpoint
 - [ ] Destructive actions (deregister agent, revoke federation, delete operator) require 4-eyes approval and X-Confirm HMAC
 - [ ] Application gateway returns 404 for any request to /v1/admin/* paths
-- [ ] The System overview the admin gateway composes shows agent counts, domain status, workflow stats, approval counts and health score: the orchestrator's figures from its `GET /v1/admin/overview`, each other figure asked of the component that holds it on a pass addressed to that component, and every group whose provider is not deployed, whose provider's blueprint specifies no route for it, or whose asking failed, carried as an object whose one member, `unavailable`, holds the code the gateway would answer that group's route with, and never as a number
+- [ ] The System overview the admin gateway composes shows agent counts, domain status, workflow stats, approval counts and health score: the orchestrator's figures from its `GET /v1/admin/overview`, and, while no `PassRoute` can name the overview group a route answers, every other group carried as an object whose one member, `unavailable`, holds the code the gateway would answer that group's route with, and never as a number
 - [ ] Each admin endpoint group is served by the component that owns its state; the admin service composes them and owns none of them
 - [ ] An admin endpoint whose provider is not deployed reports itself unavailable and never returns an empty result
 - [ ] Through the admin gateway, an admin's token minted with `cap` `[admin:*]` reaches `PUT /v1/admin/operators/{name}/role` and changes the role, and the same request on the same admin's token minted with `cap` `[content:read, content:describe]` is refused there with `FORBIDDEN`, by the orchestrator's Auth Middleware
