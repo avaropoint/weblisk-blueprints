@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.30.4
+version: 2.30.5
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -2457,6 +2457,17 @@ made:
   `cid` or key in the request, which whoever sends it chooses. Each route is
   counted on its own, so a person minting a token is never refused for
   having changed a key
+
+The admin gateway applies these limits at step 3 of the
+[Admin Gateway Request Lifecycle](#admin-gateway-request-lifecycle), before
+it forwards anything, counting each source by the address the request
+reached the gateway from. Every request it forwards reaches the orchestrator
+from the gateway's own address, which all its clients share there, so the
+orchestrator never counts a request arriving from that address by it: one
+client reaching the limit would refuse every other. A request that reaches
+the orchestrator's own address without passing the gateway, as
+[`weblisk server provision`](cli.md#weblisk-server-provision)'s registration
+does, is limited by the orchestrator, counted by its own source.
 
 The rest SHOULD be:
 - Read endpoints: 60 requests/minute per operator
