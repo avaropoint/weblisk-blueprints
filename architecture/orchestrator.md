@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.21.9
+version: 2.22.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -1065,18 +1065,20 @@ for the authoritative registration contract.
 
 ```
 1.  Parse and validate per spec.md contract. A manifest whose capabilities
-    name one protocol/types marks person only → 403 CAPABILITY_PERSON_ONLY,
-    before anything is recorded. Its pass_routes are not read for this: a
-    pass route names what the component checks on a person's pass, never
-    what it holds, and none of it reaches the token of step 5. They are
-    read for two things, each → 400 INVALID_REQUEST before anything is
-    recorded: a pass route naming a capability protocol/types does not
-    list, in its capabilities or in a body requirement; and two pass routes
-    that can match one request, which are two with the same method whose
-    paths have as many segments, each pair of segments equal or one of
-    them a {name} segment. So no exchange the admin gateway asks names a
-    capability that does not exist, and a request matches at most one of
-    a component's pass routes
+    name one protocol/types does not list → 400 INVALID_REQUEST, and one
+    whose capabilities name one protocol/types marks person only → 403
+    CAPABILITY_PERSON_ONLY, each before anything is recorded. Its
+    pass_routes are not read for the second: a pass route names what the
+    component checks on a person's pass, never what it holds, and none of
+    it reaches the token of step 5. They are read for two things, each →
+    400 INVALID_REQUEST before anything is recorded: a pass route naming a
+    capability protocol/types does not list, in its capabilities or in a
+    body requirement; and two pass routes that can match one request,
+    which are two with the same method whose paths have as many segments,
+    each pair of segments equal or one of them a {name} segment. So
+    neither the token of step 5 nor an exchange the admin gateway asks
+    names a capability that does not exist, and a request matches at most
+    one of a component's pass routes
 2.  Verify signature and replay protection (see protocol/identity.md)
 3.  Validate namespace claims:
     a. For each namespace in manifest.publishes:
@@ -1167,7 +1169,7 @@ and namespace map:
     {
       "name": "seo-analyzer",
       "url": "http://localhost:9801",
-      "capabilities": ["task:execute", "agent:message"],
+      "capabilities": ["file:read", "agent:message"],
       "type": "agent",
       "domain": "seo",
       "status": "online"
@@ -1657,7 +1659,7 @@ agents hold, which is theirs.
 - [ ] `DELETE /v1/register` releases owned namespaces and routing table entries
 - [ ] Service directory includes `routing_table` and namespaces map
 - [ ] A `ServiceEntry` carries the `pass_routes` its manifest declared, unchanged, and a registration whose `pass_routes` name `content:write` or another person-only capability is not refused for it, while one whose `capabilities` names one still is with `CAPABILITY_PERSON_ONLY`
-- [ ] `POST /v1/register` refuses with 400 `INVALID_REQUEST`, recording nothing, a manifest with a pass route naming a capability `protocol/types` does not list, in `capabilities` or a body requirement, and one with two pass routes that can match one request, such as `GET /v1/x/{id}` and `GET /v1/x/special`
+- [ ] `POST /v1/register` refuses with 400 `INVALID_REQUEST`, recording nothing, a manifest naming a capability `protocol/types` does not list, in its `capabilities` or in a pass route's `capabilities` or body requirement, and one with two pass routes that can match one request, such as `GET /v1/x/{id}` and `GET /v1/x/special`
 - [ ] A sixth request within a minute from one source to any one of the six administrative routes served without a token is refused before any signature is verified or made, the source being the `X-Forwarded-For` address only on a request from an address `orchestrator.admin_gateway_from` names, and the connection's address on every other, whatever `X-Forwarded-For` it carries (`auth-route-rate-limit`)
 - [ ] Service directory broadcast to ALL agents after every registration/deregistration
 - [ ] `POST /v1/register` refuses with `409 ADDRESS_CONFLICT` when the registered `url` contradicts the address the tenant declared for that component
