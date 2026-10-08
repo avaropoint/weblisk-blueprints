@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.33.13
+version: 2.33.14
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -785,7 +785,7 @@ contracts:
         - An operator token without a cid MUST be refused with CREDENTIAL_REQUIRED
         - The request MUST be refused when the operator has no record (OPERATOR_UNKNOWN), is pending (OPERATOR_NOT_APPROVED) or is revoked (OPERATOR_REVOKED), and when the credential is not that operator's (CREDENTIAL_OPERATOR_MISMATCH), is revoked (CREDENTIAL_REVOKED) or its attestation has expired (CREDENTIAL_EXPIRED)
         - The request MUST be authorised against the capabilities the operator's role carries now, and never beyond the token's cap - what it may use is the capabilities of both. A role changed since the token was issued takes effect on the next request
-        - An administrative route MUST refuse with FORBIDDEN a request that cannot use the capability its minimum stands for (Auth Middleware), whatever role the operator holds. A route only a named operator may use, alone or beside an admin, needs admin:read from that operator. So a token whose cap leaves out a route's capability reaches no such route, an admin's included, whichever component provides it - the orchestrator refuses it on its own routes, and the token exchange mints no pass for it (admin-gateway-authorization)
+        - An administrative route MUST refuse with FORBIDDEN a request that cannot use the capability its minimum stands for (Auth Middleware), whatever role the operator holds. A route only a named operator may use, alone or beside an admin, needs admin:read from that operator. So a token whose cap leaves out a route's capability reaches no such route, an admin's included, whichever component provides it - the orchestrator refuses it on its own routes, and for any other provider the exchange mints a pass naming only what the token may use, which that provider refuses with FORBIDDEN, or mints none and answers FORBIDDEN where nothing the request needs is left (admin-gateway-authorization; architecture/orchestrator, token-exchange)
         - Removing an operator, revoking a credential or rotating an operator's identity key therefore ends every token resting on it at its next request, not when the token expires - at the orchestrator when that request arrives, and for every other component at the exchange, which mints no pass on it (architecture/orchestrator, token-exchange). A pass minted before lives at most 30 seconds (protocol/identity, The pass)
         - An admin gateway in front of the orchestrator MUST NOT stand in for this check. The orchestrator holds the records, and a signature check alone proves only that a token was once issued
 
