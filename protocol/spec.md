@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 2.2.1
+version: 2.2.2
 requires: [protocol/types, protocol/identity]
 platform: any
 tier: free
@@ -291,7 +291,10 @@ required).
 > [`POST /v1/register`](#post-v1register)), and every registrant's directory
 > names every other's `url`. An agent that takes a pushed body as its
 > directory follows the routes, addresses and `address_provenance` that party
-> chose. The admin gateway, which turns the directory into where it sends a
+> chose, and checks a message's signature
+> ([`POST /v1/message`](#post-v1message), step 2) against a public key that
+> party chose, so it accepts a message that party signed in another agent's
+> name. The admin gateway, which turns the directory into where it sends a
 > person's pass, therefore reads it only by `GET /v1/services` at its anchor
 > ([`architecture/admin`](../architecture/admin.md#contracts),
 > `admin-gateway-authorization`). A task's `context.services`, from which
