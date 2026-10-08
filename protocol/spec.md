@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 2.2.2
+version: 2.2.3
 requires: [protocol/types, protocol/identity]
 platform: any
 tier: free
@@ -46,11 +46,15 @@ over standard HTTP endpoints.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.16.0 <2.0.0"
+    version: ">=1.17.2 <2.0.0"
     bindings:
       types:
         - name: AgentManifest
-          fields_used: [name, type, version, description, url, public_key, capabilities, inputs, outputs, collaborators, approval, max_concurrent, publishes, subscriptions]
+          fields_used: [name, type, version, description, url, public_key, capabilities, inputs, outputs, collaborators, approval, max_concurrent, publishes, subscriptions, pass_routes]
+        - name: PassRoute
+          fields_used: [method, path, capabilities, body]
+        - name: BodyRequirement
+          fields_used: [field, equals, capabilities]
         - name: TaskRequest
           fields_used: [id, from, action, payload, context, token, signature, timestamp]
         - name: TaskResult
