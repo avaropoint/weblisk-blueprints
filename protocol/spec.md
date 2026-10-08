@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 2.2.5
+version: 2.3.0
 requires: [protocol/types, protocol/identity]
 platform: any
 tier: free
@@ -393,7 +393,11 @@ The orchestrator MUST:
    or in a pass route (`pass_routes`, its `capabilities` or a body
    requirement), and one two of whose pass routes can match one request.
    [`architecture/orchestrator`](../architecture/orchestrator.md#registration-flow-post-v1register),
-   step 1 of its notes, says when two can
+   step 1 of its notes, says when two can. Refuse with 409 `ADDRESS_CONFLICT`,
+   before anything is recorded, a manifest whose `url` contradicts the
+   address the tenant declared for that component;
+   [`architecture/orchestrator`](../architecture/orchestrator.md#what-the-directory-attests-and-what-it-does-not)
+   says when one does, and that no tenant can declare one yet
 2. Verify `signature` against `manifest.public_key` over `canonicalize(manifest)` per RFC 8785,
    canonicalizing the manifest **as received** — see [Signing input](#signing-input) below
 3. Reject if `|server_time - timestamp|` > 300 seconds (replay protection)
@@ -439,7 +443,9 @@ The orchestrator MUST:
   or two pass routes that can match one request (`INVALID_REQUEST`)
 - 401: Invalid signature or stale timestamp
 - 403: Reserved namespace, unauthorized scope, or a person-only capability
-- 409: Namespace already owned by another agent
+- 409: Namespace already owned by another agent (`NAMESPACE_CONFLICT`), or a
+  `url` that contradicts the address the tenant declared for that component
+  (`ADDRESS_CONFLICT`)
 - 500: Internal error
 
 ### DELETE /v1/register
@@ -1019,6 +1025,9 @@ error_codes:
     raised_by: POST /v1/register, where the namespace is already owned
   - code: NAMESPACE_RESERVED
     raised_by: POST /v1/register, for a reserved namespace
+  - code: ADDRESS_CONFLICT
+    raised_by: POST /v1/register, where the url contradicts the address the
+      tenant declared for that component
   - code: CAPABILITY_PERSON_ONLY
     raised_by: POST /v1/register, where the manifest declares a capability
       protocol/types marks person only

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.17.6
+version: 1.18.0
 requires: []
 platform: any
 tier: free
@@ -2677,6 +2677,11 @@ error_codes:
     category: permanent
     retryable: false
     description: Requested namespace is reserved (e.g., `system.*`)
+  - code: ADDRESS_CONFLICT
+    status: 409
+    category: permanent
+    retryable: false
+    description: A registration's `url` contradicts the address the tenant declared for that component. Nothing is recorded (architecture/orchestrator, What the directory attests)
   - code: SCOPE_UNAUTHORIZED
     status: 403
     category: permanent
@@ -3252,5 +3257,6 @@ security:
 - [ ] All protocol-level error codes (standard, enforcement, contract, federation, safety, policy, operator token, destination, identity, common) are registered centrally; agent-local codes use domain-descriptive names and do not collide with registered codes
 - [ ] Every code a `TokenExchangeResponse` may carry in `code` is registered here with its HTTP status, so the admin gateway, refusing a request whose token the exchange refused, answers with that status and never a guessed one
 - [ ] `PASS_REQUIRED` and `PASS_AUDIENCE_MISMATCH` are registered with status 401, and `token:exchange` is in the Capability list
+- [ ] `ADDRESS_CONFLICT` is registered with status 409, beside `NAMESPACE_CONFLICT`
 - [ ] `content:declassify` is in the Content capabilities and marked *person only*, so a registration whose manifest declares it is refused with `CAPABILITY_PERSON_ONLY`
 - [ ] Administrative authority is expressed as `admin:` capabilities in the standard list — not as a separate role model — and `admin:*` denotes the whole family

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.25.3
+version: 2.25.4
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -1071,9 +1071,11 @@ for the authoritative registration contract.
 
 ```
 1.  Parse and validate per spec.md contract. A manifest whose capabilities
-    name one protocol/types does not list → 400 INVALID_REQUEST, and one
-    whose capabilities name one protocol/types marks person only → 403
-    CAPABILITY_PERSON_ONLY, each before anything is recorded. Its
+    name one protocol/types does not list → 400 INVALID_REQUEST, one whose
+    capabilities name one protocol/types marks person only → 403
+    CAPABILITY_PERSON_ONLY, and one whose url contradicts the address the
+    tenant declared for that component → 409 ADDRESS_CONFLICT (What the
+    directory attests), each before anything is recorded. Its
     pass_routes are not read for the second: a pass route names what the
     component checks on a person's pass, never what it holds, and none of
     it reaches the token of step 5. They are read for two things, each →
