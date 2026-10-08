@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: incident-response
-version: 1.2.0
+version: 1.3.0
 port: 9760
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/alerting]
 extends: [patterns/incident-response, patterns/observability, patterns/storage, patterns/state-machine, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -1160,6 +1160,37 @@ constraints:
     max_timeline_entries_per_incident: 500
     incident_storage: governed by config.history_retention
 ```
+
+---
+
+## Storage
+
+The three stores this agent's `database:read` and `database:write` name
+([Security](#security)), declared here because
+[`schemas/compliance`](../schemas/compliance.md#capability-model) requires a
+capability's tables to match this section:
+
+```yaml
+storage:
+  tables:
+    incidents:
+      source_type: Incident
+      primary_key: incident_id
+    runbooks:
+      source_type: Runbook
+      primary_key: name
+    reports:
+      source_type: PostIncidentReport
+      primary_key: incident_id
+```
+
+The agent keeps them with `patterns/storage`'s flat-file engine, as JSONL in
+its storage directory ([Lifecycle](#lifecycle), step 3): `incidents` is
+`incidents.jsonl`, `runbooks` holds the custom runbooks
+([Custom Runbooks](#custom-runbooks)), loaded beside the built-in ones at
+startup (step 4), and `reports` holds a post-incident report for each
+resolved incident. Which backend satisfies each store is the platform
+blueprint's answer, per `architecture/storage`.
 
 ---
 
