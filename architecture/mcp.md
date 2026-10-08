@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: mcp
-version: 1.4.2
+version: 1.4.3
 requires: [protocol/types, protocol/identity, protocol/spec, architecture/agent, architecture/gateway, patterns/scope, patterns/safety, patterns/auth-oauth]
 platform: any
 tier: free
@@ -82,7 +82,9 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=2.0.0 <3.0.0"
+    # 2.1.0 is the first version that certainly holds DestinationRefusal and
+    # DestinationItem: 2.0.0 named two states, the first without either
+    version: ">=2.1.0 <3.0.0"
     bindings:
       types:
         # An enum: it declares values, not fields, so nothing is bound FROM it.
