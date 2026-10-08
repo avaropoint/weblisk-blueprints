@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.21.6
+version: 2.21.7
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -3083,10 +3083,10 @@ carries it, and report the change as unsigned where it does not. No client
 signs one before `weblisk/content-change/v1` has test vectors
 ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)), so
 until they are published no conforming client's change carries a statement,
-and every person's part is `witnessed`. The service verifies a statement
-whenever one arrives, before the vectors as after, because that rule gates
-signing and the service only verifies, as a hub verifies a credential's
-answer before its vectors
+and the person's part in each is `witnessed`. The service verifies a
+statement whenever one arrives, before the vectors as after, because the
+vectors rule gates signing and the service only verifies, as a hub verifies a
+credential's answer before its vectors
 ([`architecture/admin`](admin.md#minting-a-token-with-the-credential), the
 gap there). One that verifies is recorded, and one that fails refuses the
 request, as [Security](#security) requires.
