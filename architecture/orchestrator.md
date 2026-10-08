@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.22.0
+version: 2.23.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -554,7 +554,7 @@ the last answer happened to say.
 
 | The client holds | Same host as the anchor | Foreign host, `self-asserted` | Foreign host, `declared` or `verified` |
 |---|---|---|---|
-| Its anchor credential | Present it | **Refuse** — the address is not one the tenant declared | **Do not present it** — the credential is bound to the anchor, and a second host is a second place it can be taken from |
+| Its anchor credential | Present it — except a person's operator token, which a console, the CLI or a script presents at the admin gateway alone, and the gateway at the orchestrator alone, at no other address on that host either ([`protocol/identity`](../protocol/identity.md#the-pass)) | **Refuse** — the address is not one the tenant declared | **Do not present it** — the credential is bound to the anchor, and a second host is a second place it can be taken from |
 | A grant naming that exact address | Present it | Never issued — see below | Present the grant's token, and only it |
 | A pass, held by the admin gateway for the one request it carries | Present it at its audience's address | **Refuse**, naming the undeclared address; the gateway answers `ADMIN_GROUP_UNAVAILABLE` | Present it at its audience's address, and nowhere else |
 | None of these | — | Refuse, naming the undeclared address | Refuse, naming the credential it does not hold |
@@ -569,7 +569,10 @@ already at that host, so presenting it on another port there tells no new party
 anything. What that does assume is that a second process on the anchor's host is
 not a separate adversary, which is the trusted-network position
 [`architecture/threat-model`](threat-model.md) Boundary 2 already takes and
-records as residual. It is not an additional claim made here.
+records as residual. It is not an additional claim made here. A person's
+operator token is excepted for a reason that is not about the host: it reaches
+furthest, so no component but the admin gateway is ever given one, whatever
+host the two share.
 
 **The orchestrator MUST NOT place an address in a grant that it would not
 publish as `declared`.** A grant carries the orchestrator's signature over
