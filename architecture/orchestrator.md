@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.21.5
+version: 2.21.6
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -762,7 +762,7 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 | POST | /v1/admin/agents/{name}/deregister | AdminAgentDeregister | `admin:*` | Force-deregister an agent |
 | GET | /v1/admin/overview | AdminOverview | `admin:read` | Summary of the state this orchestrator holds |
 | GET | /v1/admin/audit | AdminAuditList | `admin:audit` | This orchestrator's audit log, with the query parameters and the answer of `GET /v1/audit` ([`protocol/spec`](../protocol/spec.md#get-v1audit)). The route a person reads it at; `GET /v1/audit` is a registered component's |
-| GET | /v1/admin/audit/export | AdminAuditExport | `admin:audit` | The entries `AdminAuditList` would answer for the same filters, unpaged, as `format=json`, an array of `AuditEntry`, or `format=csv`, a header row naming `AuditEntry`'s fields and one row for each entry |
+| GET | /v1/admin/audit/export | AdminAuditExport | `admin:audit` | The entries `AdminAuditList` would answer for the same filters, unpaged. `format=json`, the default where `format` is absent, answers an array of `AuditEntry`. `format=csv` answers `text/csv` as RFC 4180 writes it: a header row naming `AuditEntry`'s fields in the order [`protocol/types`](../protocol/types.md) declares them, then one row for each entry, each field its value as text and an absent field empty. Any other `format` is refused with 400 `INVALID_REQUEST` |
 | GET | /v1/admin/model | AdminModelGet | `admin:read` | This tenant's model backend — Studio is a client of it (platform-provided) |
 | PUT | /v1/admin/model | AdminModelPut | `admin:*` | Set this tenant's model backend (platform-provided) |
 | GET | /v1/admin/model/providers | AdminModelProviders | `admin:read` | Discovery on **this hub's host** (platform-provided) |
@@ -1679,7 +1679,7 @@ agents hold, which is theirs.
 - [ ] Administrative endpoints are gated on the capability each declares — an `admin:` capability, or `model:attest` — carried in the caller's token, not on a separate role model
 - [ ] An admin's token whose `cap` names only `content:` capabilities is refused with `FORBIDDEN` at `OperatorApprove`, `OperatorRole`, `OperatorDelete`, `AdminAgentDeregister` and `CredentialRevoke`, its own credential included, and at `CredentialAttest` for the admin
 - [ ] The orchestrator serves only the administrative endpoints backed by state it owns — operators, agents, its audit log, its own overview, and the tenant's model surface the CLI installs
-- [ ] `GET /v1/admin/audit` and `GET /v1/admin/audit/export` answer a request that can use `admin:audit` and refuse any other with `FORBIDDEN`, an agent token with `CREDENTIAL_REQUIRED`; the export answers the entries the list would for the same filters, as JSON or CSV by `format`
+- [ ] `GET /v1/admin/audit` and `GET /v1/admin/audit/export` answer a request that can use `admin:audit` and refuse any other with `FORBIDDEN`, an agent token with `CREDENTIAL_REQUIRED`; the export answers the entries the list would for the same filters, as JSON where `format` is `json` or absent and as RFC 4180 CSV with a header row where it is `csv`, and refuses any other `format` with 400 `INVALID_REQUEST`
 - [ ] `/v1/admin/overview` reports only figures this orchestrator holds, and never reports a figure another component owns, as zero or otherwise
 - [ ] `POST /v1/admin/complete` with no `scope` is refused with `SCOPE_MISSING`, one above the ceiling `GET /v1/admin/model/ceiling` reports for the backend and model it would run is refused with `SCOPE_CEILING_EXCEEDED`, and one at `restricted` is refused whatever the ceiling; none of them runs a backend
 - [ ] `POST /v1/admin/model/agreements` and `DELETE /v1/admin/model/agreements/{id}` refuse a token without `model:attest` with `FORBIDDEN`, including one holding `admin:*`, and a service's or an agent's token with `CREDENTIAL_REQUIRED`
