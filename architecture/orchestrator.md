@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.26.0
+version: 2.26.1
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -406,12 +406,14 @@ ways, and each matters:
 
 | Question | Home | Why there |
 |---|---|---|
-| What is this tenant running, right now? | `GET /v1/services` | Derived from registration. A component that is not running is not in it, and no file can claim otherwise |
+| What is this tenant running, right now? | This orchestrator's registry: `GET /v1/services` for a registered component, and `GET /v1/admin/agents`, through the admin gateway, for a person | Derived from registration. A component that is not running is not in it, and no file can claim otherwise |
 | What should this tenant build and start? | `.weblisk/config.yaml`, per [`schemas/config`](../schemas/config.md) | An operator's intent, which is a declared fact and belongs in a declared file |
 | Where may a component legitimately be? | the same declared file, republished per entry as `ServiceEntry.address_provenance` | A component's address is part of the operator's intent. A registrant asserting one is making a claim, and the registry must be able to say which it is holding |
 
-The first is what a client asks. Treating the second as the answer is how a
-tenant comes to report a component it has never started, and the specification
+The first is what a client asks: a person's client at `GET /v1/admin/agents`,
+since a person's token reaches no route a component uses
+([Auth Middleware](#auth-middleware), step 6). Treating the second as the
+answer is how a tenant comes to report a component it has never started, and the specification
 of the second is `schemas/config.md`'s, not this document's.
 
 ### Composing a tenant

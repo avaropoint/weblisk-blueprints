@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.19.8
+version: 2.19.9
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -551,8 +551,9 @@ component <name> init` or the matching `create` verb, except the admin
 gateway, which no command builds yet, so a tenant `create` makes has no
 address to connect to (the gap under [`weblisk server start`](#weblisk-server-start)). See
 [`architecture/orchestrator`](orchestrator.md), "What a tenant consists of",
-for the two homes a tenant's components have: what it is running, which
-`GET /v1/services` answers and no file can, and what it declares it should run,
+for the two homes a tenant's components have: what it is running, which the
+orchestrator's registry answers and no file can, and which the CLI reads at
+`GET /v1/admin/agents` through the admin gateway, and what it declares it should run,
 which `.weblisk/config.yaml` states and [`weblisk server start`](#weblisk-server-start)
 reads.
 
