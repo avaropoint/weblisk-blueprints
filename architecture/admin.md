@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.33.4
+version: 2.33.5
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -2611,21 +2611,21 @@ The rest SHOULD be:
 - [ ] Once `weblisk/hub-proof/v1` has test vectors, and after the orchestrator signs tokens with a key other than its first, `POST /v1/admin/hub/proof` still answers under the key whose fingerprint is its `hub_id`, and that key signs no token
 - [ ] A registered operator's `identity_id` is the fingerprint of the `public_key` its registration carried, and stays that value through every later change of identity key
 - [ ] After a change of identity key, `POST /v1/admin/operators/token` signed with the new key answers the operator's kept `identity_id`; an attestation naming that `identity_id` is accepted, and one naming the new key's fingerprint instead is refused with `CREDENTIAL_ATTESTATION_INVALID`
-- [ ] An expired operator token is replaced by a new challenge answered with the credential, without re-registering and without the identity
-- [ ] `POST /v1/admin/credentials/token` issues an operator token carrying `cid`, expiring one hour after issue and never after the attestation's `not_after`, only for a signature by the stored credential key over `weblisk/credential-auth/v1`, 0x00, `hub_id` as its 64 hex characters, 0x00 and the base64url text of a nonce this hub issued for that credential
+- [ ] Once `weblisk/credential-auth/v1` has test vectors, an expired operator token is replaced by a new challenge answered with the credential, without re-registering and without the identity
+- [ ] Once `weblisk/credential-auth/v1` has test vectors, `POST /v1/admin/credentials/token` issues an operator token carrying `cid`, expiring one hour after issue and never after the attestation's `not_after`, only for a signature by the stored credential key over `weblisk/credential-auth/v1`, 0x00, `hub_id` as its 64 hex characters, 0x00 and the base64url text of a nonce this hub issued for that credential
 - [ ] `POST /v1/admin/operators/token` never issues an operator token, whatever its request carries
-- [ ] A hub that rotates its orchestrator key answers every challenge with the `hub_id` it had before, and every credential attested for that `hub_id` still mints
+- [ ] A hub that rotates its orchestrator key answers every challenge with the `hub_id` it had before, and, once `weblisk/credential-auth/v1` has test vectors, every credential attested for that `hub_id` still mints
 - [ ] A nonce from `POST /v1/admin/credentials/challenge` is spent by the first token request that presents it, whether or not the signature verifies, and a revoked or expired credential's status is disclosed only after its signature verifies
 - [ ] An attestation whose `hub_id` is not this hub's, whose credential key is not an ML-DSA-65 key, whose credential key is the identity key, whose `not_after` has passed or is more than 90 days away, or whose key was revoked here before is refused with `CREDENTIAL_FOREIGN_HUB`, `CREDENTIAL_FORM_UNSUPPORTED`, `CREDENTIAL_IS_IDENTITY_KEY`, `CREDENTIAL_LIFETIME_INVALID` or `CREDENTIAL_PREVIOUSLY_REVOKED`
 - [ ] An attestation with `purpose` `sign-records` is recorded under the same checks and 90-day cap as any other, appears in the operator's credential list, and can be revoked; a challenge or token request for its key is refused with `CREDENTIAL_PURPOSE_REFUSED` and no nonce is issued
 - [ ] An attestation naming one purpose for a key this hub holds, or held and revoked, under the other is refused with `CREDENTIAL_PURPOSE_REFUSED`
-- [ ] An operator attesting a key that is another operator's active, expired or revoked credential, or another operator's identity key, is refused with `CREDENTIAL_KEY_BOUND`; the other operator's credential keeps its operator and its attestation, and their next token is minted for them
+- [ ] An operator attesting a key that is another operator's active, expired or revoked credential, or another operator's identity key, is refused with `CREDENTIAL_KEY_BOUND`; the other operator's credential keeps its operator and its attestation, and, once `weblisk/credential-auth/v1` has test vectors, their next token is minted for them
 - [ ] Every operator token names in `record_keys` each active, unexpired sign-records credential its operator holds here, and a token minted after one is revoked does not name it
 - [ ] Revoking the last authenticate credential of the last active admin is refused with `OPERATOR_LAST_ADMINISTRATOR` whatever sign-records credentials that admin holds
 - [ ] A console holds no key attested with `purpose` `sign-records`, for any account
 - [ ] Removing an operator, or revoking one of its credentials, refuses its next request with `OPERATOR_REVOKED` or `CREDENTIAL_REVOKED` without waiting for its token to expire
 - [ ] A removed operator keeps its record with status `revoked`, and a request naming it is refused with `OPERATOR_REVOKED`, never `OPERATOR_UNKNOWN`
-- [ ] The sole admin's change of identity key revokes their credentials and is not refused with `OPERATOR_LAST_ADMINISTRATOR`; the new identity then attests a credential and mints
+- [ ] The sole admin's change of identity key revokes their credentials and is not refused with `OPERATOR_LAST_ADMINISTRATOR`; the new identity then attests a credential and, once `weblisk/credential-auth/v1` has test vectors, mints
 - [ ] `POST /v1/admin/operators/{name}/key` signed by the recorded key and the new key over `canonicalize({hub_id, name, new_public_key, timestamp})` keeps the operator's name, role, status and `identity_id`, moves the old key to `retired_keys` with the time of the change as its `retired_at`, and revokes every credential; one whose `current_signature` is by any other key, apart from the repeat below, or that is replayed, is refused with `OPERATOR_KEY_CHANGE_INVALID` and changes nothing; one naming another hub's `hub_id` is refused with `CREDENTIAL_FOREIGN_HUB`
 - [ ] After a key change the hub accepted, the same change sent again with a fresh timestamp, signed by the key it retired and by the new key, is answered `200` with the same operator record, `identity_id` and `hub_id`, revokes nothing, leaves `retired_keys` as it was, and is audited as a repeat; with a `new_signature` that does not verify, or signed by a key retired before that change, it is refused with `OPERATOR_KEY_CHANGE_INVALID`
 - [ ] A registration or a change of identity key offering a key this hub records or recorded as any identity key or credential is refused with `OPERATOR_KEY_REUSED`

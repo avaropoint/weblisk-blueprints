@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.21.2
+version: 2.21.3
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -5289,26 +5289,26 @@ security:
 - [ ] `GET /v1/content/repositories/{repository}/log` with no query returns at most 1000 lines from `seq` 1; a page that reaches the tip has no `next`; a `from` beyond the tip returns no lines; a `limit` above 10000, or a `from` or `limit` below 1 or not an integer, is refused with `INVALID_REQUEST`
 - [ ] Each log route answers an `establishing` repository with `CONTENT_LOG_NOT_BEGUN` and one outside the caller's scope with `CONTENT_REPOSITORY_UNKNOWN`
 - [ ] With the log key unavailable, `POST /v1/content/repositories/{repository}/log/checkpoint` appends nothing and is refused with `CONTENT_SEALING_PAUSED` carrying a `LogHead` whose `sealing` is `paused`
-- [ ] `DELETE /v1/content/entry` reads an `EntryRemoval` from its JSON body, and a `statement` in it is verified and recorded as a write's is
+- [ ] `DELETE /v1/content/entry` reads an `EntryRemoval` from its JSON body, and, once `weblisk/content-change/v1` has test vectors, a `statement` in it is verified and recorded as a write's is
 - [ ] A write whose read-back digest differs from the digest of its decoded bytes is refused with `CONTENT_WRITE_UNCONFIRMED`, and no `change` entry records it
 - [ ] An `observe` entry becomes its path's recorded digest: a second read of the same changed bytes under shared custody appends nothing
 - [ ] A caller whom the storage proxy refuses `read` at the highest scope the log records is refused the whole log, and is never served part of it
 - [ ] `GET /v1/content/repositories/{repository}/log/head` names no path, and a caller holding `content:describe` and not `content:read` is served it
 - [ ] No log entry holds an entry's bytes or a proposal's bytes
-- [ ] A write carrying a `statement` that verifies records it on its `ContentChange` with `signer` set to the token's `identity_id`, and an offline verifier rebuilding `weblisk/content-change/v1` from the entry verifies it
-- [ ] A write whose `statement` was signed over other bytes, another path or another `before` is refused with `CONTENT_STATEMENT_INVALID`, and nothing is written or recorded
-- [ ] A `statement` whose attestation has no `purpose`, or `purpose` `authenticate`, is refused with `CONTENT_STATEMENT_INVALID`
-- [ ] A `statement` whose `signed_at` is more than 300 seconds from the service's clock is refused with `CONTENT_STATEMENT_INVALID`
-- [ ] A `statement` whose attestation names an `identity_id` other than the pass's, or whose attestation's identity key is not the one whose fingerprint the pass's `identity_key` carries, is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] Once `weblisk/content-change/v1` has test vectors, a write carrying a `statement` that verifies records it on its `ContentChange` with `signer` set to the token's `identity_id`, and an offline verifier rebuilding `weblisk/content-change/v1` from the entry verifies it
+- [ ] Once `weblisk/content-change/v1` has test vectors, a write whose `statement` was signed over other bytes, another path or another `before` is refused with `CONTENT_STATEMENT_INVALID`, and nothing is written or recorded
+- [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` whose attestation has no `purpose`, or `purpose` `authenticate`, is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` whose `signed_at` is more than 300 seconds from the service's clock is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` whose attestation names an `identity_id` other than the pass's, or whose attestation's identity key is not the one whose fingerprint the pass's `identity_key` carries, is refused with `CONTENT_STATEMENT_INVALID`
 - [ ] Through the admin gateway, a write, removal or decision on an unexpired operator token whose operator was removed, or whose credential was revoked, after it was minted is refused by the exchange with `OPERATOR_REVOKED` or `CREDENTIAL_REVOKED`, and one whose operator's role no longer carries the capability with `FORBIDDEN`; in each, this service is sent nothing and nothing is written
 - [ ] A write, removal, decision or replica declaration on a pass whose `exp` has passed is refused with `TOKEN_EXPIRED`, and nothing is written, decided or recorded; one on an unexpired pass naming the capability is performed with the orchestrator unreachable, because this service asks the orchestrator nothing about a pass
 - [ ] The audit entry for a request a pass carried names the pass's `identity_id` as `actor` and its `act.identity_id` as `via`
-- [ ] A `statement` signed by the credential key the token's `cid` names is refused with `CONTENT_STATEMENT_INVALID`, even where that key was also attested with `purpose` `sign-records`
-- [ ] A `statement` whose credential key is not one of the token's `record_keys` — never recorded at the hub, or revoked before the token was minted — is refused with `CONTENT_STATEMENT_INVALID`
-- [ ] A `statement` whose attestation's `not_after` is more than 90 days ahead of the service's clock is refused with `CONTENT_STATEMENT_INVALID`
-- [ ] A decision to apply that carries the decider's `statement` records it, and an offline verifier reports that approval `signed`; the same decision without one is reported `witnessed`
-- [ ] An offline verifier does not report `signed` a statement whose attestation is by one of the signer's retired identity keys and whose entry was recorded at or after that key's `retired_at`, and does report `signed` one recorded before it
-- [ ] A decision whose `statement` fails is refused with `CONTENT_STATEMENT_INVALID`, and the proposal stays `open`
+- [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` signed by the credential key the token's `cid` names is refused with `CONTENT_STATEMENT_INVALID`, even where that key was also attested with `purpose` `sign-records`
+- [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` whose credential key is not one of the token's `record_keys` — never recorded at the hub, or revoked before the token was minted — is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` whose attestation's `not_after` is more than 90 days ahead of the service's clock is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] Once `weblisk/content-change/v1` has test vectors, a decision to apply that carries the decider's `statement` records it, and an offline verifier reports that approval `signed`; the same decision without one is reported `witnessed`
+- [ ] Once `weblisk/content-change/v1` has test vectors, an offline verifier does not report `signed` a statement whose attestation is by one of the signer's retired identity keys and whose entry was recorded at or after that key's `retired_at`, and does report `signed` one recorded before it
+- [ ] Once `weblisk/content-change/v1` has test vectors, a decision whose `statement` fails is refused with `CONTENT_STATEMENT_INVALID`, and the proposal stays `open`
 - [ ] An offline verifier reports inconsistent a `change` entry recording `separation` `independent` whose `approved_by` is its `actor`, one recording `separation` `self` whose `scope` is above the `self_decision_ceiling` in the `declare` entry, and one recording `separation` `self` on a change with no scope — none declared, and on a removal no recorded scope for the path, the floor included
 - [ ] Every signature in a change log is ML-DSA-65, and a signature on a commit in a version-controlled store appears nowhere in the log
 - [ ] With the log key unavailable, writes still succeed, their entries are appended, and `LogHead.unsealed` counts them; once a log key can sign, the next checkpoint covers them all
