@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: incident-response
-version: 1.1.2
+version: 1.2.0
 port: 9760
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/alerting]
 extends: [patterns/incident-response, patterns/observability, patterns/storage, patterns/state-machine, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -386,7 +386,7 @@ types:
 
 ## Capabilities
 
-`agent:message`, `storage:read`, `storage:write`
+`agent:message`, `database:read`, `database:write`
 
 ## HandleMessage Actions
 
@@ -1241,11 +1241,11 @@ security:
       resources: ["alerting"]
       description: Send escalation notifications via alerting agent
 
-    - capability: storage:read
+    - capability: database:read
       resources: [incidents, runbooks, reports]
       description: Read own data stores
 
-    - capability: storage:write
+    - capability: database:write
       resources: [incidents, runbooks, reports]
       description: Write own data stores
 

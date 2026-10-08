@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: lifecycle
-version: 1.0.2
+version: 1.1.0
 port: 9782
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/lifecycle]
 extends: [patterns/messaging, patterns/scope, patterns/policy]
@@ -339,9 +339,10 @@ types:
 ```json
 {
   "capabilities": [
-    {"name": "task:execute", "resources": []},
     {"name": "agent:message", "resources": []},
-    {"name": "event:observe", "resources": []}
+    {"name": "event:observe", "resources": []},
+    {"name": "database:read", "resources": ["strategies", "observations", "recommendations", "feedback", "agent_metrics", "entity_context"]},
+    {"name": "database:write", "resources": ["strategies", "observations", "recommendations", "feedback", "agent_metrics", "entity_context"]}
   ]
 }
 ```
@@ -384,9 +385,10 @@ to observe ALL workflow results, not just ones addressed to it.
   "url": "http://localhost:9782",
   "public_key": "<hex>",
   "capabilities": [
-    {"name": "task:execute", "resources": []},
     {"name": "agent:message", "resources": []},
-    {"name": "event:observe", "resources": []}
+    {"name": "event:observe", "resources": []},
+    {"name": "database:read", "resources": ["strategies", "observations", "recommendations", "feedback", "agent_metrics", "entity_context"]},
+    {"name": "database:write", "resources": ["strategies", "observations", "recommendations", "feedback", "agent_metrics", "entity_context"]}
   ],
   "publishes": ["lifecycle"],
   "subscriptions": [
@@ -1156,11 +1158,11 @@ security:
       resources: ["*"]
       description: Trigger workflows via event bus
 
-    - capability: storage:read
+    - capability: database:read
       resources: [strategies, observations, recommendations, feedback, agent_metrics, entity_context]
       description: Read own data stores
 
-    - capability: storage:write
+    - capability: database:write
       resources: [strategies, observations, recommendations, feedback, agent_metrics, entity_context]
       description: Write own data stores
 
