@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.19.6
+version: 2.19.7
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1099,9 +1099,11 @@ CLI holds one for each identity at each hub:
   whether that address has proven the `hub_id` (the hub proof below).
   Only a registration answer writes one, approved, pending or a repeat
   ([`architecture/admin`](admin.md#the-registration-response)): `register`
-  sends one, and `connect` and `attest` send one first at an address no
-  registration names, which a hub that already knows the operator answers as
-  a repeat. An address is held by one registration at a time, and no answer
+  sends one, and `connect` sends one first at an address no registration
+  names, which a hub that already knows the operator answers as a repeat.
+  `attest` does the same once `weblisk/credential-auth/v1` has test vectors,
+  and until then sends nothing to any hub
+  ([`weblisk operator attest`](#weblisk-operator-attest)). An address is held by one registration at a time, and no answer
   moves one. An address no registration names that answers with a `hub_id`
   recorded at another address is refused: the CLI reports both addresses and
   signs nothing more there, because a hub can relay a registration to another
@@ -1513,7 +1515,8 @@ For a console. The console generates the credential's key pair and keeps it;
 this verb is how the account's operator identity attests the public half
 without the console ever holding the identity
 ([`protocol/secret-source`](../protocol/secret-source.md#a-console-never-holds-the-secrets-of-an-identity-it-acts-for)).
-The steps are [`architecture/admin`](admin.md#obtaining-a-token)'s:
+Once `weblisk/credential-auth/v1` has test vectors, and not before (below),
+the steps are [`architecture/admin`](admin.md#obtaining-a-token)'s:
 
 - Reads the credential's public key from the file `--credential-key` names
 - Asks the hub for an attestation token, signing `{hub_id, name, timestamp}`
@@ -1615,8 +1618,9 @@ Rotation pending at 1 hub. The old key is kept until it finishes:
   written, and every signature the identity makes is made with the new key,
   a registration at a new hub included. The old key signs one thing only: the
   continuity of a key change at a hub still `pending`, which records the old
-  key and nothing else. So `connect` and `attest` to a `pending` hub first
-  send it the key change, whether or not a credential there is still live,
+  key and nothing else. So `connect` to a `pending` hub, and `attest` once it
+  sends anything ([`weblisk operator attest`](#weblisk-operator-attest)),
+  first send it the key change, whether or not a credential there is still live,
   and the identity signs there with the new key once the change is accepted.
   A refusal leaves the hub `pending`, and the command has the identity sign
   nothing there and reports the code. For an encrypted file the key that
@@ -1632,8 +1636,8 @@ Rotation pending at 1 hub. The old key is kept until it finishes:
   the one a hub that never applied the change still records, so it is the one
   that can hand the operator on. A hub that applied the change and whose
   answer was lost answers the same request as a repeat, `200`, and is marked
-  `changed`. With `connect` and
-  `attest` doing the same, a hub that was unreachable during the rotation
+  `changed`. With `connect`, and `attest` once it sends anything, doing the
+  same, a hub that was unreachable during the rotation
   finishes it the next time it is reached. `rotate` without `--resume` while a
   rotation is pending is refused, so a second new key never strands the
   first.
