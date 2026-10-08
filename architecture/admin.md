@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.34.3
+version: 2.34.4
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -2712,6 +2712,7 @@ The rest SHOULD be:
 - [ ] Destructive actions (deregister agent, revoke federation, delete operator) require 4-eyes approval and X-Confirm HMAC
 - [ ] Application gateway returns 404 for any request to /v1/admin/* paths
 - [ ] The System overview the admin gateway composes shows the orchestrator's figures from its `GET /v1/admin/overview`, agent counts, namespaces and audit depth, and no health score, and, while no `PassRoute` can name the overview group a route answers, every other group carried as an object whose one member, `unavailable`, holds the code the gateway would answer that group's route with, and never as a number
+- [ ] The agent detail page and `GET /v1/admin/agents/{name}` show no `token` member: an agent's registration token is never answered to an operator, a `viewer` included, whatever the orchestrator's `AgentEntry` holds
 - [ ] Each admin endpoint group is served by the component that owns its state; the admin service composes them and owns none of them
 - [ ] An admin endpoint whose provider is not deployed reports itself unavailable and never returns an empty result
 - [ ] Through the admin gateway, an admin's token minted with `cap` `[admin:*]` reaches `PUT /v1/admin/operators/{name}/role` and changes the role, and the same request on the same admin's token minted with `cap` `[content:read, content:describe]` is refused there with `FORBIDDEN`, by the orchestrator's Auth Middleware
