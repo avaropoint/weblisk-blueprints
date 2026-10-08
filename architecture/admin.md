@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.33.5
+version: 2.33.6
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -716,9 +716,9 @@ contracts:
       description: How a hub shows that it holds the key its hub_id names, at an address a client reached it at
       required: true
       rules:
-        - The route `POST /v1/admin/hub/proof` MUST require no bearer token. It MUST take address and challenge, and answer 200 with hub_id, public_key, address and signature
-        - The address MUST be an origin in the ASCII serialisation of RFC 6454 section 6.2 - the scheme, "://", the host in lowercase, and ":" and the port only where the port is not the scheme's default, with no path, query, fragment or trailing "/" - and the challenge MUST be base64url text without padding (RFC 4648 section 5) that decodes to between 16 and 64 bytes. Any other request MUST be refused with 400 INVALID_REQUEST, signing nothing
-        - The orchestrator MUST sign only an address that is, byte for byte, one of its admin addresses, the origins its admin gateway is reached at, which the hub's configuration lists (schemas/config, orchestrator.admin_addresses). It MUST NOT take an address from the request's Host header, from a forwarding header or from the connection, all of which a hub that relays the request controls. Any other address MUST be refused with HUB_ADDRESS_FOREIGN, signing nothing, and logged as a security event
+        - The route `POST /v1/admin/hub/proof` MUST require no bearer token. Once weblisk/hub-proof/v1 has test vectors (the last rule), it MUST take address and challenge, and answer 200 with hub_id, public_key, address and signature
+        - The address MUST be an origin in the ASCII serialisation of RFC 6454 section 6.2 - the scheme, "://", the host in lowercase, and ":" and the port only where the port is not the scheme's default, with no path, query, fragment or trailing "/" - and the challenge MUST be base64url text without padding (RFC 4648 section 5) that decodes to between 16 and 64 bytes. Once those vectors are published, any other request MUST be refused with 400 INVALID_REQUEST, signing nothing
+        - The orchestrator MUST sign only an address that is, byte for byte, one of its admin addresses, the origins its admin gateway is reached at, which the hub's configuration lists (schemas/config, orchestrator.admin_addresses). It MUST NOT take an address from the request's Host header, from a forwarding header or from the connection, all of which a hub that relays the request controls. Once those vectors are published, any other address MUST be refused with HUB_ADDRESS_FOREIGN, signing nothing, and logged as a security event
         - The signature MUST be the fixed-form statement weblisk/hub-proof/v1 (protocol/identity, Fixed-Form Statements) whose fields are this hub's hub_id as 64 lowercase hexadecimal characters, the address, and the challenge as the text it arrived, built by the orchestrator itself and never from bytes a caller supplies, and made by the private key whose fingerprint is hub_id. public_key MUST be that key's public half
         - The orchestrator MUST keep the private key its hub_id names for as long as it keeps that hub_id, protected as a service key (protocol/identity, Key Categories). Once it signs tokens with another key, the first key, whose fingerprint is hub_id, MUST sign this statement and nothing else, so the proof survives a rotation as hub_id does
         - No implementation may sign it before this corpus publishes its test vectors (protocol/identity, Test vectors come before a signer). Until they are published, the route MUST answer every request 501 HUB_PROOF_UNAVAILABLE, signing nothing, so a client tells a hub that cannot prove yet from one that refused the address. Once they are published, a hub MUST answer this route, and a client MUST hold a hub_id at an address no registration names only where a proof it asked for there, on a challenge it made, verifies for the address it reached (architecture/cli, A credential for each hub)
