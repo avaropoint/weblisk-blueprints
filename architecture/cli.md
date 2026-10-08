@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.19.0
+version: 2.19.1
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1681,7 +1681,6 @@ Weblisk — acme-corp (https://hub.example.com)
 Protocol: v1    Uptime: 2d 14h 32m
 
 Agents:     8 online, 1 degraded, 0 offline
-Health:     94/100 ▲
 Domains:    unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
 Workflows:  unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
 Approvals:  unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
@@ -1710,19 +1709,22 @@ List all registered agents.
 
 ```bash
 $ weblisk agents list
-NAME              TYPE            STATUS    VERSION   TASKS(24h)  AVG LATENCY
-seo-analyzer      work            online    1.0.0     45          2.3s
-a11y-checker      work            online    1.0.0     23          1.1s
-content-analyzer  work            online    1.0.0     18          3.4s
-meta-checker      work            online    1.0.0     18          1.8s
-uptime-checker    work            online    1.0.0     288         0.4s
-perf-auditor      work            online    1.0.0     12          8.2s
-cron              infrastructure  online    1.0.0     —           —
-email-send        infrastructure  degraded  1.0.0     5           1.2s
+NAME              TYPE            STATUS    VERSION   LAST SEEN
+seo-analyzer      work            online    1.0.0     10s ago
+a11y-checker      work            online    1.0.0     12s ago
+content-analyzer  work            online    1.0.0     8s ago
+meta-checker      work            online    1.0.0     15s ago
+uptime-checker    work            online    1.0.0     3s ago
+perf-auditor      work            online    1.0.0     21s ago
+cron              infrastructure  online    1.0.0     5s ago
+email-send        infrastructure  degraded  1.0.0     2m ago
 
 8 agents (7 online, 1 degraded)
 ```
 
+- Shows what the orchestrator's registry holds of each agent, from
+  `GET /v1/admin/agents`, and no metrics, which no component serves to a
+  person yet ([`architecture/admin`](admin.md#agent-management))
 - `--type <domain|work|infrastructure>` to filter
 - `--status <online|degraded|offline>` to filter
 - `--json` for machine-readable output
@@ -1736,34 +1738,29 @@ $ weblisk agents describe seo-analyzer
 Agent: seo-analyzer
 Type:  work    Domain: seo    Version: 1.0.0
 URL:   http://localhost:9710
-Status: online    Uptime: 2d 14h
+Status: online    Registered: 2d 14h ago
 
 Capabilities:
   file:read     **/*.html
   llm:chat      *
   agent:message *
 
-Metrics (24h):
-  Tasks:          45
-  Success rate:   97.8%
-  Avg latency:    2.3s
-  P95 latency:    5.1s
-  Observations:   120
-  Recommendations: 38
-
-Recent Tasks:
-  TIME        STATUS     DURATION  SUMMARY
-  10:30:01    success    2.1s      Scanned 3 files
-  10:25:12    success    3.4s      Analyzed metadata for 5 files
-  09:15:00    failed     0.8s      File not found: missing.html
+Metrics:    unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
 
 Behavioral Fingerprint:
   Manifest hash: a1b2c3...  (unchanged since registration)
   Last change: none
 ```
 
+- Reads the agent from `GET /v1/admin/agents/{name}`, and its metrics from
+  `GET /v1/admin/agents/{name}/metrics`, which the admin gateway answers
+  `ADMIN_GROUP_UNAVAILABLE` while no blueprint specifies that route
+  ([`architecture/admin`](admin.md#agent-management)). Metrics are then shown
+  as unavailable with that code, never as zero. No recent tasks are shown:
+  the orchestrator handles none, and no component serves them to a person
 - `--json` for machine-readable output
-- `--metrics-range <1h|24h|7d|30d>` to change metrics window
+- `--metrics-range <1h|24h|7d|30d>` to change the metrics window, once a
+  provider serves them
 
 ### `weblisk agents deregister <name>`
 
@@ -2856,7 +2853,7 @@ security:
 - [ ] Destructive commands (agents deregister, federations revoke) require --confirm or interactive name-confirmation
 - [ ] `weblisk approvals reject` requires a --reason argument for every rejection
 - [ ] `weblisk approvals list`, `weblisk strategies list`, `weblisk strategies update`, `weblisk strategies delete`, `weblisk observations list`, `weblisk observations trends`, `weblisk federations peers`, `weblisk federations describe`, `weblisk federations contracts`, `weblisk domains list` and `weblisk workflows list` are sent to the hub's admin gateway, and report their group unavailable and exit 1 when it answers `ADMIN_GROUP_UNAVAILABLE`, as it does while no provider's blueprint specifies the route; the stored token is sent nowhere but the admin gateway
-- [ ] `weblisk status` calls `GET /v1/admin/overview` at the hub's admin gateway and displays agents, domains, workflows, approvals, federation and health score, showing as unavailable, never as zero, each figure the gateway reports unavailable
+- [ ] `weblisk status` calls `GET /v1/admin/overview` at the hub's admin gateway and displays agents, domains, workflows, approvals, federation and strategies, showing as unavailable, never as zero, each figure the gateway reports unavailable, and shows no health score
 - [ ] Exit codes are 0=success, 1=general error, 2=auth error, 3=connection error, 4=not found, 5=permission denied
 - [ ] Config resolution order: command-line flags > environment variable > .weblisk/config.json (project) > ~/.weblisk/config.json (user)
 - [ ] Commands fail fast with a clear message and non-zero exit code when the orchestrator is unreachable

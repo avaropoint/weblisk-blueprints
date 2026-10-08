@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.33.6
+version: 2.33.7
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1821,15 +1821,15 @@ operator the system is quiet when it is simply not there.
 
 | Path | Method | Role | Purpose |
 |------|--------|------|---------|
-| `/v1/admin/overview` | GET | viewer+ | System summary — agents, domains, workflows, health |
+| `/v1/admin/overview` | GET | viewer+ | System summary — the orchestrator's agents, namespaces and audit depth, and every other group from its provider or reported unavailable ([GET /v1/admin/overview](#get-v1adminoverview)) |
 | `/v1/admin/metrics` | GET | viewer+ | Aggregated system metrics. No provider's blueprint specifies it, so the gateway answers it `ADMIN_GROUP_UNAVAILABLE` (the gap under [The admin API is an aggregate](#the-admin-api-is-an-aggregate)) |
 
 ### Agent Management
 
 | Path | Method | Role | Purpose |
 |------|--------|------|---------|
-| `/v1/admin/agents` | GET | viewer+ | List all agents with status, type, metrics |
-| `/v1/admin/agents/:name` | GET | viewer+ | Full agent detail — manifest, metrics, recent tasks |
+| `/v1/admin/agents` | GET | viewer+ | List all agents with what the orchestrator's registry holds of each: name, type, version, status, `registered_at` and `last_seen`. No metrics: they are another component's (below), and the orchestrator reports no figure it does not hold |
+| `/v1/admin/agents/:name` | GET | viewer+ | Agent detail — its manifest and the registry's record of it. No metrics and no recent tasks: the orchestrator holds neither and handles no task |
 | `/v1/admin/agents/:name/deregister` | POST | admin | Force-deregister an agent |
 | `/v1/admin/agents/:name/metrics` | GET | viewer+ | Agent performance metrics history. The Lifecycle Agent holds agent metrics ([`architecture/storage`](storage.md#store-agent-metrics)), not the orchestrator, and no blueprint specifies this route, so the gateway answers it `ADMIN_GROUP_UNAVAILABLE` |
 
@@ -2022,8 +2022,8 @@ The admin gateway answers this route with the System overview it composes
 (`admin-gateway-authorization`). The members the orchestrator holds come from
 its own `GET /v1/admin/overview`, which the gateway forwards as it forwards any
 request for the orchestrator's groups: `deployment`, `version`, `uptime`,
-`agents`, `namespaces` (how many namespaces are owned), `audit.depth` (how many
-entries its audit log holds) and `health_score`. The orchestrator answers its
+`agents`, `namespaces` (how many namespaces are owned) and `audit.depth` (how
+many entries its audit log holds). The orchestrator answers its
 own route with these members and no other, each named and shaped as the
 example below gives it, and this section is the one statement of their names
 and shapes ([`architecture/orchestrator`](orchestrator.md#administrative-endpoints)
@@ -2060,7 +2060,6 @@ orchestrator's answer carries none:
   },
   "namespaces": 6,
   "audit": {"depth": 18342},
-  "health_score": 94,
   "domains": {"unavailable": "ADMIN_GROUP_UNAVAILABLE"},
   "workflows": {"unavailable": "ADMIN_GROUP_UNAVAILABLE"},
   "approvals": {"unavailable": "ADMIN_GROUP_UNAVAILABLE"},
@@ -2081,14 +2080,7 @@ orchestrator's answer carries none:
       "version": "1.0.0",
       "status": "online",
       "registered_at": 1712073600,
-      "last_seen": 1712159900,
-      "metrics": {
-        "tasks_24h": 45,
-        "avg_latency_ms": 2300,
-        "error_rate": 0.02,
-        "observations": 120,
-        "recommendations": 38
-      }
+      "last_seen": 1712159900
     }
   ],
   "pagination": {
@@ -2663,7 +2655,7 @@ The rest SHOULD be:
 - [ ] Role hierarchy admin > operator > auditor > viewer is enforced server-side on every /v1/admin/* endpoint
 - [ ] Destructive actions (deregister agent, revoke federation, delete operator) require 4-eyes approval and X-Confirm HMAC
 - [ ] Application gateway returns 404 for any request to /v1/admin/* paths
-- [ ] The System overview the admin gateway composes shows agent counts, domain status, workflow stats, approval counts and health score: the orchestrator's figures from its `GET /v1/admin/overview`, and, while no `PassRoute` can name the overview group a route answers, every other group carried as an object whose one member, `unavailable`, holds the code the gateway would answer that group's route with, and never as a number
+- [ ] The System overview the admin gateway composes shows the orchestrator's figures from its `GET /v1/admin/overview`, agent counts, namespaces and audit depth, and no health score, and, while no `PassRoute` can name the overview group a route answers, every other group carried as an object whose one member, `unavailable`, holds the code the gateway would answer that group's route with, and never as a number
 - [ ] Each admin endpoint group is served by the component that owns its state; the admin service composes them and owns none of them
 - [ ] An admin endpoint whose provider is not deployed reports itself unavailable and never returns an empty result
 - [ ] Through the admin gateway, an admin's token minted with `cap` `[admin:*]` reaches `PUT /v1/admin/operators/{name}/role` and changes the role, and the same request on the same admin's token minted with `cap` `[content:read, content:describe]` is refused there with `FORBIDDEN`, by the orchestrator's Auth Middleware

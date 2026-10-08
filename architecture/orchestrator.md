@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.21.6
+version: 2.21.7
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -757,8 +757,8 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 | DELETE | /v1/admin/operators/{name} | OperatorDelete | `admin:*` | Remove an operator |
 | POST | /v1/admin/operators/{name}/approve | OperatorApprove | `admin:*` | Admit a registered operator |
 | PUT | /v1/admin/operators/{name}/role | OperatorRole | `admin:*` | Change an operator's role |
-| GET | /v1/admin/agents | AdminAgentList | `admin:read` | Agents with status, type and metrics |
-| GET | /v1/admin/agents/{name} | AdminAgentGet | `admin:read` | Agent detail — manifest, metrics, recent tasks |
+| GET | /v1/admin/agents | AdminAgentList | `admin:read` | Agents with what the registry holds of each: name, type, version, status, `registered_at` and `last_seen`, and no metrics, which another component holds ([`architecture/admin`](admin.md#get-v1adminagents)) |
+| GET | /v1/admin/agents/{name} | AdminAgentGet | `admin:read` | Agent detail — its manifest and the registry's record of it, and no metrics or recent tasks, which this orchestrator neither holds nor handles |
 | POST | /v1/admin/agents/{name}/deregister | AdminAgentDeregister | `admin:*` | Force-deregister an agent |
 | GET | /v1/admin/overview | AdminOverview | `admin:read` | Summary of the state this orchestrator holds |
 | GET | /v1/admin/audit | AdminAuditList | `admin:audit` | This orchestrator's audit log, with the query parameters and the answer of `GET /v1/audit` ([`protocol/spec`](../protocol/spec.md#get-v1audit)). The route a person reads it at; `GET /v1/audit` is a registered component's |
@@ -926,7 +926,7 @@ Recording one publishes `system.model.agreement_recorded`, and withdrawing one
 identity id.
 
 `/v1/admin/overview` reports what the orchestrator holds — agent counts,
-namespace count, audit depth, health — and nothing else, in the members and
+namespace count and audit depth — and nothing else, in the members and
 shapes [`architecture/admin`](admin.md#get-v1adminoverview) names, which are
 stated there alone. It asks no other
 component for a figure: the orchestrator never presents a token it received to
