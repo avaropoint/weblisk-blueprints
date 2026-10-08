@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.33.9
+version: 2.33.10
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -49,9 +49,24 @@ requires:
     version: ">=2.1.0 <3.0.0"
     bindings:
       endpoints:
+        # The admin gateway registers like any component, and serves the
+        # six agent endpoints on its own listener (admin-gateway-authorization):
+        # describe, health and services as protocol/spec says, the last only
+        # as a prompt to read the directory, and execute, message and event
+        # each refused with FORBIDDEN
         - path: /v1/register
           methods: [POST]
+        - path: /v1/describe
+          methods: [POST]
         - path: /v1/health
+          methods: [POST]
+        - path: /v1/services
+          methods: [POST]
+        - path: /v1/execute
+          methods: [POST]
+        - path: /v1/message
+          methods: [POST]
+        - path: /v1/event
           methods: [POST]
     on_change:
       compatible: validate-and-adopt
@@ -157,8 +172,10 @@ requires:
           methods: [POST]
         - path: /v1/admin/overview
           methods: [GET]
+        # Read by GET alone, at the gateway's anchor. POST /v1/services is an
+        # endpoint each agent serves, bound above from protocol/spec
         - path: /v1/services
-          methods: [GET, POST]
+          methods: [GET]
         - path: /v1/token/exchange
           methods: [POST]
           request_type: TokenExchangeRequest
