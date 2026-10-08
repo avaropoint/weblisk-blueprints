@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: threat-model
-version: 1.3.7
+version: 1.3.8
 requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/content, architecture/data-security, architecture/admin, architecture/observability, architecture/enforcement, patterns/contract]
 platform: any
 tier: free
@@ -784,6 +784,7 @@ security:
 - [ ] Every numbered attack vector (1.1–6.8) has a corresponding test in the conformance test suite
 - [ ] A caller refuses an address whose `ServiceEntry.address_provenance` is `self-asserted` and whose host is not its anchor's, and names the undeclared address rather than reporting the component unavailable
 - [ ] No caller presents its anchor credential at a host other than its anchor's, whatever the entry's `address_provenance` says
+- [ ] A caller compares an address's host with its anchor's as text and never by resolving either: with the anchor at `localhost`, an address at `127.0.0.1` is on the anchor's host, and an address at a name that resolves to the anchor's address is on a foreign host
 - [ ] Attack chains 1–7 are validated during penetration testing to confirm all stated control layers hold
 - [ ] Continuous security checks run at specified frequencies: dependency scan on every deploy, TLS expiry daily, OWASP baseline weekly
 - [ ] Residual risks are documented and accepted by the deployment operator in the deployment's risk register

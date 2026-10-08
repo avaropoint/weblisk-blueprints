@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.25.5
+version: 2.26.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -563,6 +563,19 @@ Every refusal names **which fact was missing**, and the two are different
 remedies: an undeclared address is fixed in the tenant's configuration, and a
 missing grant is fixed by obtaining one. A client that collapses them into
 "unavailable" has reported a state nobody can act on.
+
+**Two hosts are compared as text, never by resolving them.** A client compares
+the host of the address it would send to with its anchor's host after
+lowercasing both, writing an IPv4 literal in dotted decimal and an IPv6
+literal in the form RFC 5952 gives it, and taking `localhost` and every
+loopback literal, in `127.0.0.0/8` or `::1`, as one host. Any other pair that
+differs as text is two hosts, a name and an address it resolves to included,
+so a deployment names each component on the anchor's host as the anchor names
+that host. The client then sends the credential, or a person's pass, only on a
+connection to the host it compared. Comparing by resolution would let a
+registrant whose `url` names a host it controls resolve it to the anchor's
+address when the check is made and rebind it afterwards, sending what is bound
+to the anchor's host off it.
 
 Same-host is not a special case in the rule; it is the rule. The credential is
 already at that host, so presenting it on another port there tells no new party
