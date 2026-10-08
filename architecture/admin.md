@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.33.7
+version: 2.33.8
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1792,11 +1792,24 @@ operator the system is quiet when it is simply not there.
 > enrolment ([`protocol/spec`](../protocol/spec.md#post-v1register)), so any
 > registrant can declare a route another component's blueprint specifies,
 > `architecture/content`'s or `architecture/fabric`'s among them, and cut every
-> person off from that route for as long as it stays registered. It gains no
-> pass by it. Binding each route to the one component the tenant declares for
-> it closes this, and waits on the tenant being able to declare its
-> components. Refusing the second declaration at registration would only move
-> the denial to whoever registers first.
+> person off from that route for as long as it stays registered. While the
+> component whose blueprint specifies the route is registered, that denial is
+> all it gains. While that component is not registered, because it is not
+> deployed, is restarting or was deregistered, the squatter's entry is the only
+> one declaring the route, so the gateway exchanges passes addressed to the
+> squatter and sends it people's requests for that route: a write's bytes, a
+> decision, a read it can answer with documents of its own
+> ([`architecture/threat-model`](threat-model.md), vectors 2.12 and 2.13). A
+> pass addressed to it reaches no other component. The gateway sends one only
+> to an address on the orchestrator's host or one the tenant declared, and no
+> address can be declared yet
+> ([`architecture/orchestrator`](orchestrator.md#what-the-directory-attests-and-what-it-does-not),
+> the gap there), so the squatter must listen on the orchestrator's host: the
+> same-host position the threat model records as residual, and no wider.
+> Binding each route to the one component the tenant declares for it closes
+> this, and waits on the tenant being able to declare its components.
+> Refusing the second declaration at registration would only move the denial
+> to whoever registers first.
 
 ### Operator Management
 
