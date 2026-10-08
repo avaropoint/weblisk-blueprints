@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 2.1.0
+version: 2.2.0
 requires: [protocol/types, protocol/identity]
 platform: any
 tier: free
@@ -377,7 +377,13 @@ The orchestrator MUST:
    capability [`protocol/types`](types.md) marks *person only*. A registered
    component is a service, and a service never holds one
    ([`patterns/principal-identity`](../patterns/principal-identity.md),
-   `service-subject-constraints`). The token of step 7 would otherwise carry it
+   `service-subject-constraints`). The token of step 7 would otherwise carry it.
+   Refuse with 400 `INVALID_REQUEST`, before anything is recorded, a manifest
+   that names a capability `protocol/types` does not list, in `capabilities`
+   or in a pass route (`pass_routes`, its `capabilities` or a body
+   requirement), and one two of whose pass routes can match one request.
+   [`architecture/orchestrator`](../architecture/orchestrator.md#registration-flow-post-v1register),
+   step 1 of its notes, says when two can
 2. Verify `signature` against `manifest.public_key` over `canonicalize(manifest)` per RFC 8785,
    canonicalizing the manifest **as received** — see [Signing input](#signing-input) below
 3. Reject if `|server_time - timestamp|` > 300 seconds (replay protection)
@@ -419,7 +425,8 @@ The orchestrator MUST:
 > ([`architecture/admin`](../architecture/admin.md#a-console-holds-a-credential-never-a-token)).
 
 **Error responses:**
-- 400: Missing required fields
+- 400: Missing required fields, a capability `protocol/types` does not list,
+  or two pass routes that can match one request (`INVALID_REQUEST`)
 - 401: Invalid signature or stale timestamp
 - 403: Reserved namespace, unauthorized scope, or a person-only capability
 - 409: Namespace already owned by another agent
@@ -1162,6 +1169,7 @@ security:
 - [ ] The token `POST /v1/register` issues carries `identity_id`, the fingerprint of `manifest.public_key`
 - [ ] Orchestrator `DELETE /v1/register` releases namespaces and routing entries
 - [ ] Orchestrator `GET /v1/services` returns service directory with routing table and namespace map
+- [ ] Orchestrator `POST /v1/register` refuses with 400 `INVALID_REQUEST`, recording nothing, a manifest naming a capability `protocol/types` does not list, in `capabilities` or in a pass route, and one two of whose pass routes can match one request
 - [ ] Orchestrator `POST /v1/channel` verifies `agent:message` capability
 - [ ] Orchestrator `GET /v1/health` returns without auth
 - [ ] Orchestrator `GET /v1/audit` returns audit entries with pagination
