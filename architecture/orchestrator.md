@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.24.1
+version: 2.25.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -764,7 +764,7 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 | GET | /v1/admin/agents/{name} | AdminAgentGet | `admin:read` | Agent detail — its [AgentEntry](#agententry) without the token: `manifest`, `agent_id`, `status`, `registered_at` and `last_seen` ([`architecture/admin`](admin.md#get-v1adminagentsname)), and no metrics or recent tasks, which this orchestrator neither holds nor handles. The entry's `token` is never answered |
 | POST | /v1/admin/agents/{name}/deregister | AdminAgentDeregister | `admin:*` | Force-deregister an agent |
 | GET | /v1/admin/overview | AdminOverview | `admin:read` | Summary of the state this orchestrator holds |
-| GET | /v1/admin/audit | AdminAuditList | `admin:audit` | This orchestrator's audit log, with the query parameters and the answer of `GET /v1/audit` ([`protocol/spec`](../protocol/spec.md#get-v1audit)). The route a person reads it at; `GET /v1/audit` is a registered component's |
+| GET | /v1/admin/audit | AdminAuditList | `admin:audit` | This orchestrator's audit log, with the query parameters and the answer of `GET /v1/audit` ([`protocol/spec`](../protocol/spec.md#get-v1audit)). The route a person reads it at; `GET /v1/audit` is a registered component's, and refuses a person's token ([Auth Middleware](#auth-middleware), step 6) |
 | GET | /v1/admin/audit/export | AdminAuditExport | `admin:audit` | The entries `AdminAuditList` would answer for the same filters, unpaged. `format=json`, the default where `format` is absent, answers an array of `AuditEntry`. `format=csv` answers `text/csv` as RFC 4180 writes it: a header row naming `AuditEntry`'s fields in the order [`protocol/types`](../protocol/types.md) declares them, then one row for each entry, each field its value as text and an absent field empty. Any other `format` is refused with 400 `INVALID_REQUEST` |
 | GET | /v1/admin/model | AdminModelGet | `admin:read` | This tenant's model backend — Studio is a client of it (platform-provided) |
 | PUT | /v1/admin/model | AdminModelPut | `admin:*` | Set this tenant's model backend (platform-provided) |
@@ -795,8 +795,9 @@ model gateway there, is neither the tenant's admin gateway nor its
 application gateway. It has the orchestrator judge the caller's token on each
 request, by
 the middleware that guards every route under the same prefix: every step of
-[Auth Middleware](#auth-middleware) under `/v1/admin/`, step 6 included, and
-every step but 6 for `/v1/model/ceiling`. It never accepts a token on its
+[Auth Middleware](#auth-middleware), step 6 included, which admits an
+operator token alone under `/v1/admin/` and a registration token alone at
+`/v1/model/ceiling`. It never accepts a token on its
 shape, and a request it cannot get a judgement on is refused.
 Asking a model for them produced four handlers against an unspecified
 contract, all of them shadowed the moment the model gateway was installed. So this
@@ -906,8 +907,10 @@ and it records `withdrawn_by` from that request's token.
   tenant's model backend, the one whose address these routes know.
 - `GET /v1/model/ceiling` returns the same `ProviderCeiling` to a registered
   component, on its own registration token. It is not an administrative
-  route, so step 6 of Auth Middleware does not refuse that token, and an
-  attestation token is refused there as everywhere but `CredentialAttest`. It
+  route, so step 6 of Auth Middleware admits that token there and refuses an
+  operator token, a channel token and the admin gateway's registration token,
+  and an attestation token is refused there as everywhere but
+  `CredentialAttest`. It
   is how an api-ai endpoint takes each provider's ceiling
   ([`patterns/api-ai`](../patterns/api-ai.md#destination-ceilings)) and how the
   external boundary of [`architecture/enforcement`](enforcement.md) recognises
@@ -1027,7 +1030,7 @@ contracts:
       rules:
         - The route POST /v1/token/exchange MUST take a TokenExchangeRequest and answer every judgement of its subject_token with 200 and a TokenExchangeResponse (protocol/types)
         - It MUST read the caller's token from the Authorization header alone (Auth Middleware step 2), so nothing in the body, the token it exchanges included, authenticates the request. A request with no Authorization header MUST be refused with 401, as on any other route
-        - It MUST admit only a registration token, one with no type and no cid, whose sub is a component registered here now, whose identity_id is that registration's (protocol/identity), and whose registration declares token:exchange (protocol/types). Every other token Auth Middleware lets through MUST be refused with FORBIDDEN, disclosing nothing about subject_token - an operator token, a channel token, a registration token whose registration does not declare token:exchange, and one whose component has deregistered or whose identity_id is no longer its registration's, as after POST /v1/rotate-key (protocol/spec). An attestation token and a pass are refused before this, at Auth Middleware step 5, a pass with PASS_AUDIENCE_MISMATCH
+        - It MUST admit only a registration token, one with no type and no cid, whose sub is a component registered here now, whose identity_id is that registration's (protocol/identity), and whose registration declares token:exchange (protocol/types). Every other token Auth Middleware lets through MUST be refused with FORBIDDEN, disclosing nothing about subject_token - a registration token whose registration does not declare token:exchange, and one whose component has deregistered or whose identity_id is no longer its registration's, as after POST /v1/rotate-key (protocol/spec). An attestation token and a pass are refused before this, at Auth Middleware step 5, a pass with PASS_AUDIENCE_MISMATCH, and an operator token and a channel token at step 6, with FORBIDDEN
         - A body with no subject_token or no audience, or whose scope names no capability or a name protocol/types does not list, MUST be refused with 400 INVALID_REQUEST. An audience that is not the identity id of a component registered here now, other than the caller, MUST be refused with 404 NOT_FOUND. Neither mints anything
         - It MUST judge subject_token as Auth Middleware judges a token on an operator route - its signature and expiry, that it is an operator token carrying cid, and token-status-on-use (architecture/admin) - and answer issued false with the code it would refuse that token with on its own routes. A pass, a registration token, a channel token and an attestation token are each refused with CREDENTIAL_REQUIRED, so a pass is never exchanged again. A token it cannot judge MUST NOT be exchanged
         - The pass's cap MUST be the intersection of scope and what the person may use now - what the operator's role carries now, never beyond the token's cap, read as Auth Middleware step 8 reads a role and a cap - keeping each name scope gives only where the person may use it, and admin:* only where they may use every capability of the admin family by name. Where the intersection is empty it MUST mint nothing and answer issued false with FORBIDDEN
@@ -1275,7 +1278,15 @@ one count ([`architecture/admin`](admin.md#contracts),
 6. On every /v1/admin/* route, refuse a token whose type is not "operator"
    with CREDENTIAL_REQUIRED. CredentialAttest also takes the attestation
    token step 5 let through. An agent token and a channel token carry no type,
-   so neither reaches an administrative handler
+   so neither reaches an administrative handler.
+   On every other route, each of them a registered component's, admit only a
+   registration token, one with no type and no cid: refuse an operator token
+   and a channel token with FORBIDDEN, and log a refused operator token as a
+   security event that names it by its claims and never by the token
+   (protocol/identity, The pass, rule 7). A registration token whose cap names
+   token:exchange, or whose sub's registration declares it, as the admin
+   gateway's does, is admitted at GET /v1/services and TokenExchange alone,
+   and refused with FORBIDDEN at every other such route
 7. For an operator token, check the operator and the credential it names are
    live in this orchestrator's own records (architecture/admin,
    token-status-on-use)
@@ -1290,7 +1301,7 @@ one count ([`architecture/admin`](admin.md#contracts),
 9. On failure → 401: INVALID_SIGNATURE from step 3, malformed tokens
    included, TOKEN_EXPIRED from step 4, PASS_AUDIENCE_MISMATCH from step 5,
    and {"error": "valid token required — register first"} where no token was
-   presented; 403 FORBIDDEN from step 8; or the operator code
+   presented; 403 FORBIDDEN from steps 6 and 8; or the operator code
    architecture/admin's Error Handling names
 10. On success → pass TokenClaims to handler
 ```
@@ -1307,7 +1318,18 @@ attestation token, obtained with nothing but an identity signature, would read
 the audit log and broker channels, which is the login by identity key that
 [`patterns/principal-identity`](../patterns/principal-identity.md) forbids. And
 an agent token whose `sub` happened to match an operator's name would reach that
-operator's credentials.
+operator's credentials. In the other direction, a person's operator token
+presented here directly would read the whole audit log at `GET /v1/audit`,
+which `AdminAuditList` answers only a request that can use `admin:audit`, and
+would deregister the agent its `sub` names at `DELETE /v1/register`, which
+`AdminAgentDeregister` leaves to `admin:*`. A person's token reaches this
+orchestrator only for a route under `/v1/admin/*` and as the subject of an
+exchange ([`protocol/identity`](../protocol/identity.md#the-pass)), so no
+route a component uses takes one. The admin gateway's registration reads the
+service directory and exchanges, and does nothing else
+([`architecture/admin`](admin.md#contracts), `admin-gateway-authorization`),
+so step 6 admits its token at those two routes alone, and the audit log,
+channels and a model's ceiling are refused it.
 
 ---
 
@@ -1568,17 +1590,22 @@ security:
         token issuance are signed and verified per architecture/admin; the
         orchestrator never authenticates an end user
     - boundary: Admin gateway → Orchestrator. A person's token is meant to
-        arrive only from the admin gateway, to be judged on a route here or
-        exchanged for a pass addressed to one other component
-        (protocol/identity, The pass). Nothing here enforces that yet, which
-        is a gap. The orchestrator serves /v1/admin/* on the listener
-        components reach, to any caller, so a token a client sends here
-        directly, as its own blueprint forbids, is judged by the same Auth
-        Middleware as one the gateway forwarded. What such a request escapes
-        is the gateway's own network controls, its operator IP allowlist
-        among them, never the judgement of the token. Serving the
-        administrative routes on a listener only the admin gateway reaches is
-        what would enforce the boundary
+        arrive only from the admin gateway, to be judged on a route under
+        /v1/admin/* or exchanged for a pass addressed to one other component
+        (protocol/identity, The pass). Auth Middleware refuses it on every
+        other route here (step 6), so it reaches no route a component uses.
+        Nothing here enforces that it arrives from the gateway, which is a
+        gap. The orchestrator serves /v1/admin/* on the listener components
+        reach, to any caller, so a token a client sends there directly, as its
+        own blueprint forbids, is judged by the same Auth Middleware as one
+        the gateway forwarded, and can use there what it could have used
+        through the gateway and nothing more. What such a request escapes is
+        what the gateway checks before it forwards anything, its operator IP
+        allowlist and the confirmation it asks before a destructive action
+        among them (architecture/admin, Admin Gateway Request Lifecycle),
+        never the judgement of the token. architecture/threat-model records
+        it as residual. Serving the administrative routes on a listener only
+        the admin gateway reaches is what would enforce the boundary
     - boundary: Orchestrator → Agent. Events reach the URL a verified manifest
         declared, never a URL supplied in a request
     - boundary: Orchestrator → Storage. Only the stores architecture/storage
@@ -1694,7 +1721,7 @@ agents hold, which is theirs.
 - [ ] An agreement whose `level` is `restricted` is refused with `MODEL_AGREEMENT_LEVEL_REFUSED`, one whose `not_after` is 91 days ahead with `MODEL_AGREEMENT_LAPSE_INVALID`, one with no `models` with `INVALID_REQUEST`, and one listing a model at a backend a current agreement covers for that model with `MODEL_AGREEMENT_EXISTS`
 - [ ] `GET /v1/admin/model/ceiling` answers `internal` for a backend no current agreement lists, for a model the agreement listing the backend does not list, and for a backend asked for no model, and `internal` again once the agreement that listed it lapses or is withdrawn
 - [ ] Either ceiling route answers a `?backend=` name the tenant's model configuration does not name, such as an api-ai endpoint's `providers:` key, with `internal` and no `address` where no current agreement lists it, and with the agreement's level where one does, and never with `NOT_FOUND`
-- [ ] `GET /v1/model/ceiling` answers a registered component's token with the `ProviderCeiling` `GET /v1/admin/model/ceiling` gives an operator for the same backend, `address` included where the backend has one, and refuses an attestation token with `CREDENTIAL_REQUIRED`
+- [ ] `GET /v1/model/ceiling` answers a registered component's token with the `ProviderCeiling` `GET /v1/admin/model/ceiling` gives an operator for the same backend, `address` included where the backend has one, refuses an attestation token with `CREDENTIAL_REQUIRED`, and refuses an operator token, a channel token and the admin gateway's registration token with `FORBIDDEN`
 - [ ] Every platform-provided model route is authorised by the orchestrator's own judgement of the caller's token, and a `/v1/admin/*` one refuses an agent token with `CREDENTIAL_REQUIRED`
 - [ ] `POST /v1/token/exchange` reads the caller's token from its `Authorization` header only: with no header it answers 401 whatever the body holds, and a body with no `subject_token` or no `audience` is refused with 400 `INVALID_REQUEST`
 - [ ] `POST /v1/token/exchange` answers `issued: false` with `OPERATOR_REVOKED` for a token minted before its operator was removed, with `CREDENTIAL_REVOKED` after its credential was revoked, and with `TOKEN_EXPIRED` past its `exp`, each as a 200, and mints no pass
@@ -1707,5 +1734,8 @@ agents hold, which is theirs.
 - [ ] An operator token whose `cap` is the empty list, as a `viewer` gets asking for `cap` `[fabric:attest]`, or that carries no `cap` claim, is refused with `FORBIDDEN` at every `/v1/admin/*` route Auth Middleware step 8 covers, and `POST /v1/token/exchange` answers it `issued: false` with `FORBIDDEN` for any `scope`
 - [ ] Every exchange is audited, refused or not, with the person's identity id, the gateway's identity id, the audience and the scope, and `subject_token` is never kept or presented anywhere
 - [ ] A pass presented at any route of the orchestrator is refused with `PASS_AUDIENCE_MISMATCH` and logged as a security event
+- [ ] An operator token is refused with `FORBIDDEN`, before any handler, at every route outside `/v1/admin/*` that requires a token, and logged as a security event that names it by its claims and records no part of its bytes: a `viewer`'s token gets no entry from `GET /v1/audit`, and `DELETE /v1/register` on an operator token whose `sub` is a registered agent's name leaves that agent registered
+- [ ] A channel token is refused with `FORBIDDEN` at every route outside `/v1/admin/*` that requires a token, and with `CREDENTIAL_REQUIRED` under it
+- [ ] The admin gateway's registration token, whose `cap` names `token:exchange`, is answered at `GET /v1/services` and `POST /v1/token/exchange`, and refused with `FORBIDDEN` at `GET /v1/audit`, `POST /v1/channel`, `GET /v1/model/ceiling`, `DELETE /v1/register` and `POST /v1/rotate-key`
 - [ ] The orchestrator presents no token it received to any party: `GET /v1/admin/overview` asks no other component for a figure
 - [ ] A token whose signature does not verify is refused with 401 `INVALID_SIGNATURE`, and one past `exp` with 401 `TOKEN_EXPIRED`, on every route Auth Middleware covers

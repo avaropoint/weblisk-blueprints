@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 2.2.3
+version: 2.2.4
 requires: [protocol/types, protocol/identity]
 platform: any
 tier: free
@@ -444,7 +444,8 @@ The orchestrator MUST:
 
 ### DELETE /v1/register
 
-Agent deregistration. Requires valid auth token.
+Agent deregistration. Requires the deregistering agent's own registration
+token ([Authentication](#authentication)).
 
 The orchestrator MUST:
 1. Authenticate the request
@@ -519,7 +520,10 @@ namespace count, and active channel count.
 
 ### GET /v1/audit
 
-Audit log. Requires valid auth token.
+Audit log. Requires a registered component's registration token
+([Authentication](#authentication)). A person reads the same log at
+`GET /v1/admin/audit`, which needs `admin:audit`
+([`architecture/orchestrator`](../architecture/orchestrator.md#administrative-endpoints)).
 
 **Response:** Array of `AuditEntry` (most recent first)
 
@@ -895,6 +899,14 @@ Flow:
 6. On failure: 401 `{"error": "valid token required — register first"}`
 7. On success: pass decoded claims to handler
 
+Every orchestrator endpoint here that takes a token takes a registered
+component's registration token and no other kind: a person's operator token,
+a channel token, a pass and an attestation token are each refused there.
+[`architecture/orchestrator`](../architecture/orchestrator.md#auth-middleware)
+states the whole sequence and the code each refusal carries, and serves
+people's administrative routes under `/v1/admin/*`, which take a person's
+operator token ([`protocol/identity`](identity.md#the-pass)).
+
 ---
 
 ## Token Renewal
@@ -1183,6 +1195,7 @@ security:
 - [ ] Orchestrator `POST /v1/channel` verifies `agent:message` capability
 - [ ] Orchestrator `GET /v1/health` returns without auth
 - [ ] Orchestrator `GET /v1/audit` returns audit entries with pagination
+- [ ] Orchestrator `GET /v1/audit` and `DELETE /v1/register` refuse a person's operator token and a channel token, so neither reads the audit log or deregisters an agent
 - [ ] Orchestrator broadcasts updated service directory on registration changes
 - [ ] Orchestrator rejects unsupported protocol_version with `UNSUPPORTED_VERSION`
 - [ ] RegisterResponse includes negotiated protocol_version and routing table
