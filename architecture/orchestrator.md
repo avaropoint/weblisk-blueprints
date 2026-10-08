@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.21.3
+version: 2.21.4
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -1453,14 +1453,14 @@ and [protocol/types.md](../protocol/types.md) for type definitions.
 
 ## Configuration
 
-| Setting | Flag | Default |
-|---------|------|---------|
-| Port | `--port` | `9800` |
-| Identity key path | `--keys` | Implementation-defined |
-| Audit log path | `--audit` | Implementation-defined |
-| Channel TTL | — | `3600` (1 hour) |
-| Admin addresses, the origins the admin gateway is reached at | `orchestrator.admin_addresses` ([`schemas/config`](../schemas/config.md#orchestrator)) | none |
-| The addresses the admin gateway's requests arrive from | `orchestrator.admin_gateway_from` ([`schemas/config`](../schemas/config.md#orchestrator)) | none |
+| Setting | Flag | Configuration key | Default |
+|---------|------|-------------------|---------|
+| Port | `--port` | `orchestrator.port` | `9800` |
+| Identity key path | `--keys` | — | Implementation-defined |
+| Audit log path | `--audit` | — | Implementation-defined |
+| Channel TTL | — | — | `3600` (1 hour) |
+| Admin addresses, the origins the admin gateway is reached at | — | `orchestrator.admin_addresses` ([`schemas/config`](../schemas/config.md#orchestrator)) | none |
+| The addresses the admin gateway's requests arrive from | — | `orchestrator.admin_gateway_from` ([`schemas/config`](../schemas/config.md#orchestrator)) | none |
 
 ---
 
