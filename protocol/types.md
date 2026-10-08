@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.17.5
+version: 1.17.6
 requires: []
 platform: any
 tier: free
@@ -1851,7 +1851,7 @@ types:
         name: Signature
         type: string
         required: false
-        description: "Orchestrator signature"
+        description: "Reserved for the orchestrator's signature over the directory, which has no signing input yet. Nothing verifies it, so no reader takes it for a check (protocol/spec, the gap under POST /v1/services)"
 ```
 
 ---

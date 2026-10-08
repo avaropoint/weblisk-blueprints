@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 2.2.4
+version: 2.2.5
 requires: [protocol/types, protocol/identity]
 platform: any
 tier: free
@@ -471,7 +471,9 @@ The response includes:
 - `routing_table` — topic pattern → subscriber list (URL, group, scope)
 - `namespaces` — namespace → owning agent name
 - `updated_at` — timestamp of last change
-- `signature` — orchestrator's ML-DSA-65 signature
+- `signature` — a field with no signing input yet, which nothing verifies
+  (the gap under [`POST /v1/services`](#post-v1services)), so no reader
+  takes it for a check
 
 ### POST /v1/channel
 
