@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.23.0
+version: 2.24.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -761,7 +761,7 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 | POST | /v1/admin/operators/{name}/approve | OperatorApprove | `admin:*` | Admit a registered operator |
 | PUT | /v1/admin/operators/{name}/role | OperatorRole | `admin:*` | Change an operator's role |
 | GET | /v1/admin/agents | AdminAgentList | `admin:read` | Agents with what the registry holds of each: name, type, version, status, `registered_at` and `last_seen`, and no metrics, which another component holds ([`architecture/admin`](admin.md#get-v1adminagents)) |
-| GET | /v1/admin/agents/{name} | AdminAgentGet | `admin:read` | Agent detail — its manifest and the registry's record of it, and no metrics or recent tasks, which this orchestrator neither holds nor handles |
+| GET | /v1/admin/agents/{name} | AdminAgentGet | `admin:read` | Agent detail — its [AgentEntry](#agententry) without the token: `manifest`, `agent_id`, `status`, `registered_at` and `last_seen` ([`architecture/admin`](admin.md#get-v1adminagentsname)), and no metrics or recent tasks, which this orchestrator neither holds nor handles. The entry's `token` is never answered |
 | POST | /v1/admin/agents/{name}/deregister | AdminAgentDeregister | `admin:*` | Force-deregister an agent |
 | GET | /v1/admin/overview | AdminOverview | `admin:read` | Summary of the state this orchestrator holds |
 | GET | /v1/admin/audit | AdminAuditList | `admin:audit` | This orchestrator's audit log, with the query parameters and the answer of `GET /v1/audit` ([`protocol/spec`](../protocol/spec.md#get-v1audit)). The route a person reads it at; `GET /v1/audit` is a registered component's |

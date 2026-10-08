@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.33.14
+version: 2.34.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1859,7 +1859,7 @@ operator the system is quiet when it is simply not there.
 | Path | Method | Role | Purpose |
 |------|--------|------|---------|
 | `/v1/admin/agents` | GET | viewer+ | List all agents with what the orchestrator's registry holds of each: name, type, version, status, `registered_at` and `last_seen`. No metrics: they are another component's (below), and the orchestrator reports no figure it does not hold |
-| `/v1/admin/agents/:name` | GET | viewer+ | Agent detail — its manifest and the registry's record of it. No metrics and no recent tasks: the orchestrator holds neither and handles no task |
+| `/v1/admin/agents/:name` | GET | viewer+ | Agent detail — the orchestrator's registry entry for it without its token: `manifest`, `agent_id`, `status`, `registered_at` and `last_seen` ([below](#get-v1adminagentsname)). No metrics and no recent tasks: the orchestrator holds neither and handles no task |
 | `/v1/admin/agents/:name/deregister` | POST | admin | Force-deregister an agent |
 | `/v1/admin/agents/:name/metrics` | GET | viewer+ | Agent performance metrics history. The Lifecycle Agent holds agent metrics ([`architecture/storage`](storage.md#store-agent-metrics)), not the orchestrator, and no blueprint specifies this route, so the gateway answers it `ADMIN_GROUP_UNAVAILABLE` |
 
@@ -1973,18 +1973,17 @@ Table of all registered agents with real-time status:
 | Type | `domain`, `work`, `infrastructure` |
 | Status | `online` ●, `degraded` ●, `offline` ● |
 | Version | Agent version |
-| Uptime | Time since last registration |
-| Tasks (24h) | Task count in last 24 hours |
-| Avg Latency | Average task execution time |
-| Last Seen | Timestamp of last health check |
+| Uptime | Time since `registered_at` |
+| Tasks (24h) | Task count in the last 24 hours, from the agent's metrics, which no provider serves to a person yet ([Agent Management](#agent-management)), so shown unavailable, never zero |
+| Avg Latency | Average task execution time, from the same metrics and shown the same way |
+| Last Seen | `last_seen`, the last health check or request |
 
 #### Agent Detail (`/admin/agents/:name`)
 
-- Full manifest display
-- Performance metrics graph (tasks/hour, latency p50/p95/p99)
-- Recent task execution history
-- Error log
-- Behavioral fingerprint + change history
+- Full manifest display, from [`GET /v1/admin/agents/{name}`](#get-v1adminagentsname)
+- Performance metrics graph (tasks/hour, latency p50/p95/p99), from `GET /v1/admin/agents/:name/metrics`, shown unavailable with the code the gateway answers, never as zero, while no blueprint specifies that route
+- No recent task history: the orchestrator handles no task, and no component serves one to a person
+- Error log and behavioral fingerprint with change history, shown unavailable while no component serves them to a person
 - Deregister button (admin only, with confirmation)
 
 #### Approval Queue (`/admin/approvals`)
@@ -2117,6 +2116,32 @@ orchestrator's answer carries none:
     "next_cursor": "",
     "has_more": false
   }
+}
+```
+
+### GET /v1/admin/agents/{name}
+
+The orchestrator's registry entry for the agent
+([`architecture/orchestrator`](orchestrator.md#agententry), `AgentEntry`),
+never with its `token`:
+
+```json
+{
+  "manifest": {
+    "name": "seo-analyzer",
+    "type": "agent",
+    "version": "1.0.0",
+    "url": "http://localhost:9801",
+    "public_key": "<ML-DSA-65 public key (base64url)>",
+    "capabilities": [
+      {"name": "file:read", "resources": ["**/*.html"]},
+      {"name": "llm:chat", "resources": []}
+    ]
+  },
+  "agent_id": "3f9a1c2e7b4d4e0f8a6b5c1d2e3f4a5b",
+  "status": "online",
+  "registered_at": 1712073600,
+  "last_seen": 1712159900
 }
 ```
 
