@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 2.2.0
+version: 2.2.1
 requires: [protocol/types, protocol/identity]
 platform: any
 tier: free
@@ -294,8 +294,11 @@ required).
 > chose. The admin gateway, which turns the directory into where it sends a
 > person's pass, therefore reads it only by `GET /v1/services` at its anchor
 > ([`architecture/admin`](../architecture/admin.md#contracts),
-> `admin-gateway-authorization`). Specifying the signature, and verifying it
-> here, is what closes the gap for every other agent.
+> `admin-gateway-authorization`). A task's `context.services`, from which
+> [`POST /v1/execute`](#post-v1execute) step 2 updates the same list, is no
+> better: it is whatever the task's caller sent. The admin gateway refuses
+> every task, so it takes none. Specifying the signature, and verifying it
+> here and there, is what closes the gap for every other agent.
 
 ### POST /v1/event
 
@@ -1166,10 +1169,10 @@ security:
 - [ ] Orchestrator `POST /v1/register` enforces replay protection (300s window)
 - [ ] Orchestrator `POST /v1/register` rejects `system.*` namespace claims (403)
 - [ ] Orchestrator `POST /v1/register` refuses a manifest whose `capabilities` names any capability `protocol/types` marks person only — `content:write`, `content:decide`, `content:replicate`, `content:connect`, `content:declassify`, `model:attest` or `fabric:attest` — with 403 `CAPABILITY_PERSON_ONLY`, and issues no token
+- [ ] Orchestrator `POST /v1/register` refuses with 400 `INVALID_REQUEST`, recording nothing, a manifest naming a capability `protocol/types` does not list, in `capabilities` or in a pass route, and one two of whose pass routes can match one request
 - [ ] The token `POST /v1/register` issues carries `identity_id`, the fingerprint of `manifest.public_key`
 - [ ] Orchestrator `DELETE /v1/register` releases namespaces and routing entries
 - [ ] Orchestrator `GET /v1/services` returns service directory with routing table and namespace map
-- [ ] Orchestrator `POST /v1/register` refuses with 400 `INVALID_REQUEST`, recording nothing, a manifest naming a capability `protocol/types` does not list, in `capabilities` or in a pass route, and one two of whose pass routes can match one request
 - [ ] Orchestrator `POST /v1/channel` verifies `agent:message` capability
 - [ ] Orchestrator `GET /v1/health` returns without auth
 - [ ] Orchestrator `GET /v1/audit` returns audit entries with pagination
