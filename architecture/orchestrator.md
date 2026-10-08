@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.21.0
+version: 2.21.1
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -472,7 +472,7 @@ it takes one from the custody its host demonstrates, never from
 `address_provenance`, waits on a way to demonstrate it
 ([`patterns/scope`](../patterns/scope.md#destination-ceilings), the gap note).
 
-### What the directory's signature attests, and what it does not
+### What the directory attests, and what it does not
 
 `manifest.url` is supplied by the registrant. The registration contract in
 [`protocol/spec`](../protocol/spec.md) validates it non-empty and nothing more,
@@ -480,14 +480,22 @@ so the registration signature proves that the key holder **asserted** an
 address. It does not prove the tenant chose that address, and it does not prove
 anything the tenant owns answers there.
 
-The directory's signature therefore attests *this orchestrator accepted these
-registrations* — the names, the keys, the capabilities, and the addresses as
-claimed. It is an authenticity statement about the registry. It is not an
-authorisation statement about the addresses inside it, and the two are easy to
-conflate precisely because both halves are true.
+The directory therefore says *this orchestrator accepted these registrations* —
+the names, the keys, the capabilities, and the addresses as claimed. It says
+so only to a reader that has it from this orchestrator: one that read it by
+[`GET /v1/services`](../protocol/spec.md#get-v1services) over a connection it
+opened to its anchor, the orchestrator address it registered at (below).
+Nothing else makes it this orchestrator's. `ServiceDirectory.signature` has no
+signing input yet and nothing verifies one, so a body pushed to an agent's
+`POST /v1/services` is whatever the party that reached that listener sent, and
+says nothing about this orchestrator
+([`protocol/spec`](../protocol/spec.md#post-v1services), the gap there). Read
+from the anchor, the directory is an authenticity statement about the
+registry. It is not an authorisation statement about the addresses inside it,
+and the two are easy to conflate precisely because both halves are true.
 
-Signing a self-asserted address without saying that it is self-asserted is what
-makes the conflation invisible. So an entry MUST say how this orchestrator came
+Publishing a self-asserted address without saying that it is self-asserted is
+what makes the conflation invisible. So an entry MUST say how this orchestrator came
 to hold its address. The field is `ServiceEntry.address_provenance` in
 [`protocol/types`](../protocol/types.md), and an absent value means
 `self-asserted`: an orchestrator that does not say how it knows has not

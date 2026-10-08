@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.17.3
+version: 1.17.4
 requires: []
 platform: any
 tier: free
@@ -513,7 +513,7 @@ its operator IP allowlist among them. So a stolen operator token reaches
 further through a rogue `token:exchange` holder than at the orchestrator.
 Admitting `token:exchange` only for the registration the tenant declares as
 its admin gateway closes it, and waits on the tenant being able to declare
-that component ([`architecture/orchestrator`](../architecture/orchestrator.md#what-the-directorys-signature-attests-and-what-it-does-not),
+that component ([`architecture/orchestrator`](../architecture/orchestrator.md#what-the-directory-attests-and-what-it-does-not),
 the gap that the declaration has nowhere to live).
 
 ### PassRoute

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 1.5.0
+version: 1.5.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
@@ -743,10 +743,21 @@ it describes is not a client of it.
 ### Where the content service is
 
 Being a client of the content service means the fabric resolves that service's
-address out of the signed directory, and a tenant's components may
+address out of the service directory, and a tenant's components may
 legitimately be on different hosts. So this is the first place in the corpus
 where one component presents a credential across a host boundary, and it is
 worth working through rather than assuming.
+
+The directory is the orchestrator's only as read from the fabric's anchor by
+[`GET /v1/services`](../protocol/spec.md#get-v1services). Its signature has no
+signing input yet and nothing verifies one, so a body pushed to the fabric's
+`POST /v1/services` is whatever the party that reached that listener sent
+([`protocol/spec`](../protocol/spec.md#post-v1services), the gap there). What
+keeps the fabric's credential in bounds is therefore the table below, which
+never sends it off the anchor's host whoever wrote the address. On that host a
+pushed address can still choose the port, and a listener there is the
+same-host residual the threat model records
+([`architecture/threat-model`](threat-model.md#residual-risk-register)).
 
 The fabric's **anchor** is the orchestrator address it was configured with. It
 holds `content:read` and `content:describe`, and it calls identity lookup and
@@ -779,10 +790,12 @@ content service is the same condition arrived at by a different route — nothin
 was read, so nothing is claimed — and it lands on the one status that says so.
 
 The alternative, which must not be taken, is for the fabric to follow the
-address with its anchor credential because the directory was signed. That would
+address with its anchor credential because the directory names it. That would
 put a credential holding `content:read` over a tenant's whole governed corpus
-onto a host chosen by whatever last registered under that name. The signature
-makes the address authentic; it was never a statement that the tenant chose it.
+onto a host chosen by whatever last registered under that name, or by whatever
+last pushed the fabric a directory. Even read from the anchor, the directory
+says only that this orchestrator accepted the registration; it was never a
+statement that the tenant chose the address.
 
 ---
 
