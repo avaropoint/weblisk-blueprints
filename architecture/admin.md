@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.34.2
+version: 2.34.3
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -2131,6 +2131,7 @@ never with its `token`:
     "name": "seo-analyzer",
     "type": "agent",
     "version": "1.0.0",
+    "description": "Analyses HTML pages for search engine optimisation",
     "url": "http://localhost:9801",
     "public_key": "<ML-DSA-65 public key (base64url)>",
     "capabilities": [
