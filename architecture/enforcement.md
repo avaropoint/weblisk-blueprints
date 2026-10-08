@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: enforcement
-version: 2.3.3
+version: 2.3.4
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, patterns/privacy, architecture/orchestrator, architecture/gateway]
 platform: any
 tier: free
@@ -283,8 +283,11 @@ operational scope.
 **External Boundary** — Intercepts every outbound call before it
 leaves the platform. Extracts the agent identity, target URL/service,
 protocol (HTTP, SMTP, webhook), and payload scope. Verifies that the
-agent has declared the external capability and that the target is not
-on a blocked list. Evaluates payload scope to prevent scope leakage
+agent has declared the capability the call's protocol needs, which is
+`http:send`, for a target its resources match, over HTTP or to a webhook
+([`protocol/types`](../protocol/types.md#capability) lists none for SMTP or
+gRPC yet, so a call over either is denied), and that the target is not on a
+blocked list. Evaluates payload scope to prevent scope leakage
 — restricted-scope data cannot be sent to unclassified external
 endpoints, and nothing above its ceiling, or undeclared, is sent to a
 destination [`patterns/scope`](../patterns/scope.md#destination-ceilings)
@@ -567,7 +570,7 @@ external_proxy:
       violation: ViolationRecord | null
     behavior:
       - Check quarantine store — if agent quarantined → deny
-      - Verify agent has declared external capability for the protocol
+      - Verify the agent has declared the capability the protocol needs - http:send, whose resources match the target, for http, https and webhook, as schemas/compliance's agent → external path requires. protocol/types lists no capability for smtp or grpc, so no agent can declare one and a call over either is denied with ENFORCEMENT_CAPABILITY_MISMATCH, as deny-by-default requires. That is a gap until protocol/types lists one, and agents/email-send's smtp provider is behind it
       - Check target against blocked endpoint list
       - A target whose address GET /v1/model/ceiling reports is a model provider's — a call to it from an agent whose manifest does not declare model:route, the capability protocol/types gives the tenant's model route → deny with ENFORCEMENT_BLOCKED_TARGET
       - Evaluate payload scope — restricted+ data to unclassified endpoints → deny
@@ -594,7 +597,7 @@ external_proxy:
       - code: SCOPE_MISSING
         when: Payload scope is undeclared and the target has a ceiling in patterns/scope
       - code: ENFORCEMENT_CAPABILITY_MISMATCH
-        when: Agent lacks declared external capability
+        when: Agent has not declared http:send with resources that match an http, https or webhook target, or calls over smtp or grpc, for which protocol/types lists no capability
       - code: ENFORCEMENT_CONSENT_REQUIRED
         when: Outbound payload contains subject data without consent for external sharing
 ```
@@ -873,7 +876,7 @@ External Boundary intercepts
   ├─ Extract: agent, protocol (https), target URL, method (POST),
   │           payload scope (restricted), payload size
   │
-  ├─ Verify agent has declared "external:http" capability
+  ├─ Verify agent has declared "http:send" with a resource matching the target
   │  └─ If missing → DENY + capability_mismatch violation
   │
   ├─ Check target against blocked endpoint list
