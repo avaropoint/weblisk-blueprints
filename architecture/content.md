@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.21.1
+version: 2.21.2
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -1137,7 +1137,8 @@ in the registration response:
 6. Register with the orchestrator, if an orchestrator URL is configured
 7. On the registration response, set the issuer public key on the authenticator
 8. Start the reconcile, re-verify and checkpoint loops
-9. Serve until signalled, then seal every change log whose tip has moved
+9. Serve until signalled, then seal every change log whose tip has moved, where
+   a log key can sign one
 ```
 
 Step 3 is fatal in neither direction: a configured repository that could not be
@@ -2978,10 +2979,14 @@ names, and the tenant's directory lists it (`ServiceEntry.public_key`,
 [`protocol/types`](../protocol/types.md)). Its fingerprint is the one a
 verifier brings ([`architecture/storage`](storage.md#verifying-a-sealed-log)),
 and it takes it from the tenant, never from the log. When the service rotates
-that key, it appends a succession entry to every change log
-([`architecture/storage`](storage.md#a-change-of-long-lived-key)), so the key
-the directory lists now vouches for every key the log used before it. A key
-generated afresh because the one before it was lost has no succession entry.
+that key, it appends a succession entry to every change log that has an
+authority ([`architecture/storage`](storage.md#a-change-of-long-lived-key)), so
+the key the directory lists now vouches for every key the log used before it.
+A change log has an authority once it holds a key entry, and none does before
+the sealed log's statements have test vectors
+([`architecture/storage`](storage.md#the-log-key), the gap there), so a
+rotation before then appends nothing. A key generated afresh because the one
+before it was lost has no succession entry.
 A verifier holding only the directory's key then reports every earlier
 authority `unvouched`, and the service's latest checkpoint still seals
 everything before it.
@@ -4778,9 +4783,11 @@ security:
     - rule: A change log verifies without this service
       mechanism: Sealed per architecture/storage, which lists what a verifier
         needs. The one fingerprint it brings is the service's registered key,
-        from the tenant's directory, and a rotation of that key is recorded in
-        every log by a succession entry both keys sign. Checking a person's
-        statement needs what Verifying a log without this service adds
+        from the tenant's directory, and a rotation of that key is recorded by
+        a succession entry both keys sign in every log that has an authority,
+        which no log has before the sealed log's statements have test vectors.
+        Checking a person's statement needs what Verifying a log without this
+        service adds
     - rule: Nothing is appended to a change log that does not verify
       mechanism: The service checks each log from its latest checkpoint at
         start, before settling reservations, and before each checkpoint. A
@@ -5304,8 +5311,8 @@ security:
 - [ ] A decision whose `statement` fails is refused with `CONTENT_STATEMENT_INVALID`, and the proposal stays `open`
 - [ ] An offline verifier reports inconsistent a `change` entry recording `separation` `independent` whose `approved_by` is its `actor`, one recording `separation` `self` whose `scope` is above the `self_decision_ceiling` in the `declare` entry, and one recording `separation` `self` on a change with no scope — none declared, and on a removal no recorded scope for the path, the floor included
 - [ ] Every signature in a change log is ML-DSA-65, and a signature on a commit in a version-controlled store appears nowhere in the log
-- [ ] With the log key unavailable, writes still succeed, their entries are appended, and `LogHead.unsealed` counts them; the next checkpoint covers them all
+- [ ] With the log key unavailable, writes still succeed, their entries are appended, and `LogHead.unsealed` counts them; once a log key can sign, the next checkpoint covers them all
 - [ ] Before the sealed log's statements have test vectors, the service starts without minting a log key, appends no `key` or `checkpoint` entry, answers every `LogHead` with `sealing` `paused`, and refuses a checkpoint request with `CONTENT_SEALING_PAUSED`
-- [ ] `POST /v1/content/repositories/{repository}/log/checkpoint` on a log whose tip has moved appends a `checkpoint` entry covering the tip, and on one whose tip has not moved appends nothing
+- [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, `POST /v1/content/repositories/{repository}/log/checkpoint` on a log whose tip has moved appends a `checkpoint` entry covering the tip, and on one whose tip has not moved appends nothing
 - [ ] A service started over a change log whose lines after its latest checkpoint were altered settles no reservation in it, refuses writes, removals, decisions to apply, reconciles and checkpoints on that repository with `CONTENT_LOG_BROKEN` naming the `seq`, still serves its entries and its log, reports health `degraded` naming it, and reports `chain` `broken` with that `broken_at` in its `LogHead`
-- [ ] Rotating the service's registered key appends a succession entry to every change log, and a verifier that brings only the key the tenant's directory now lists verifies checkpoints sealed before the rotation
+- [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, rotating the service's registered key appends a succession entry to every change log that has an authority, and a verifier that brings only the key the tenant's directory now lists verifies checkpoints sealed before the rotation
