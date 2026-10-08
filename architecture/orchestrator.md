@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.21.1
+version: 2.21.2
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -617,10 +617,10 @@ everything it authorises and a second host is a second place to lose it from.
    agents ──register──▶ │        Orchestrator         │
           ──services──▶ │                             │
           ──channel───▶ │  ┌───────────────────────┐  │
-                        │  │ Auth middleware       │  │  every endpoint except
-   operators ─token───▶ │  │  token → capabilities │  │  /v1/health and
-             ─admin ──▶ │  └───────────┬───────────┘  │  those that issue
-                        │              │              │  tokens
+                        │  │ Auth middleware       │  │  every endpoint but
+   operators ─token───▶ │  │  token → capabilities │  │  those Auth Middleware
+             ─admin ──▶ │  └───────────┬───────────┘  │  lists
+                        │              │              │
                         │  ┌───────────▼───────────┐  │
                         │  │ Registry              │  │  agents, namespaces,
                         │  │  identity · ownership │  │  routing table
@@ -1247,8 +1247,12 @@ which a client asks before it holds anything here, and `OperatorKeyChange`,
 which the operator's current and new identity keys authenticate (see
 [Administrative endpoints](#administrative-endpoints)). Each of those six
 administrative routes is limited per source before any signature is verified
-or made, counted by the client's address and never by the admin gateway's
-([`architecture/admin`](admin.md#contracts), `auth-route-rate-limit`):
+or made. A request from an address `orchestrator.admin_gateway_from` lists is
+counted by the client the admin gateway names in `X-Forwarded-For`, never by
+the gateway's own address, and any other request by its connection's address,
+so where the configuration names no such address the gateway's clients share
+one count ([`architecture/admin`](admin.md#contracts),
+`auth-route-rate-limit`):
 
 ```
 1. Check Authorization header for "Bearer <token>"
