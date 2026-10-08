@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.34.5
+version: 2.34.6
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1323,17 +1323,21 @@ expiry.
 > to a credential alone, never on the identity's signature, which
 > [`patterns/principal-identity`](../patterns/principal-identity.md) forbids
 > a hub to accept as authentication. So until those vectors are published no
-> client obtains an operator token from such a hub, and no person reaches a
-> route there that needs one, which is every administrative route but those
-> [Auth Middleware](#auth-middleware) lists as served without a token. The
-> hub still serves both credential routes as this section says, because the
-> rule gates signing and the hub only verifies. A client signs nothing there
-> to obtain a token: it makes no credential, asks for no attestation token,
-> and reports that the hub issues operator tokens only to a credential, which
-> no client signs with before those vectors
+> conforming client obtains an operator token from such a hub, and no person
+> using one reaches a route there that needs one, which is every
+> administrative route but those [Auth Middleware](#auth-middleware) lists as
+> served without a token. The hub still serves both credential routes as
+> this section says, because the rule gates signing and the hub only
+> verifies, so a client that signs a credential's answer before then, which
+> no conforming client does, is given a token all the same. A conforming
+> client signs nothing there to obtain a token: it makes no credential, asks
+> for no attestation token, and reports that the hub issues operator tokens
+> only to a credential, which no conforming client signs with before those
+> vectors
 > ([`architecture/cli`](cli.md#a-credential-for-each-hub)). Only a hub built
 > before the credential routes, which answers the challenge with `404` or
-> `405`, issues an operator token until then, by the deprecated path under
+> `405`, issues a conforming client an operator token until then, by the
+> deprecated path under
 > [The identity signs only to attest](#the-identity-signs-only-to-attest).
 
 #### Where the second factor is

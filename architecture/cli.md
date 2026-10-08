@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.19.7
+version: 2.19.8
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1077,8 +1077,8 @@ CLI holds one for each identity at each hub:
   ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)).
   Until then it makes no credential and asks for no attestation token at a
   hub that serves the credential routes, and reports that the hub issues
-  operator tokens only to a credential, which no client signs with before
-  those vectors. The command then exits 2, `register` once it has recorded
+  operator tokens only to a credential, which no conforming client signs with
+  before those vectors. The command then exits 2, `register` once it has recorded
   the registration the answer names. It obtains an operator token only from a hub
   that answers `POST /v1/admin/credentials/challenge` with `404` or `405`, by
   the deprecated path, and so from no hub built from this corpus
