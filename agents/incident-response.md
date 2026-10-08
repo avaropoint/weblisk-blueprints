@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: incident-response
-version: 1.1.1
+version: 1.1.2
 port: 9760
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/alerting]
 extends: [patterns/incident-response, patterns/observability, patterns/storage, patterns/state-machine, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -77,7 +77,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.13.0 <2.0.0"
+    version: ">=1.14.4 <2.0.0"
     bindings:
       types:
         # Read only to recognise a person's operator token and refuse it on

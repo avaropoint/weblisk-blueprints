@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.21.3
+version: 2.21.4
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -68,7 +68,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.13.0 <2.0.0"
+    version: ">=1.14.4 <2.0.0"
     bindings:
       types:
         # identity_id is who a change names; type and aud say a person's

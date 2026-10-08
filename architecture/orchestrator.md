@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.21.7
+version: 2.21.8
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -59,7 +59,7 @@ this replaces.
 declaration:
   requires:
     - blueprint: protocol/identity
-      version: ">=1.14.0 <2.0.0"
+      version: ">=1.14.4 <2.0.0"
       bindings:
         types:
           - name: SigningKeyPair

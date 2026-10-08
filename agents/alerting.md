@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: alerting
-version: 1.1.1
+version: 1.1.2
 port: 9752
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/email-send]
 extends: [patterns/alerting, patterns/observability, patterns/storage, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -70,7 +70,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.13.0 <2.0.0"
+    version: ">=1.14.4 <2.0.0"
     bindings:
       types:
         # Read only to recognise a person's operator token and refuse it on
