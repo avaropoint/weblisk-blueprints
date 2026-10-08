@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.19.3
+version: 2.19.4
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -182,8 +182,10 @@ requires:
       endpoints:
         - path: /v1/admin/*
           methods: [GET, POST, PUT, DELETE]
+        # weblisk test conformance reads the directory on its test agent's
+        # registration token; POST /v1/services is each agent's endpoint
         - path: /v1/services
-          methods: [POST]
+          methods: [GET]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
