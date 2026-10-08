@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.33.11
+version: 2.33.12
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1157,7 +1157,7 @@ other hub's own address, and a client that checks the proof against the
 origin it dialled refuses either.
 
 **A proof is only as specific as the origin it names.** An origin more than
-one hub can list, such as a loopback address (`http://localhost:9443`), a
+one hub can list, such as a loopback address (`https://localhost:9443`), a
 private address, or the local end of an SSH tunnel, which
 [`schemas/config`](../schemas/config.md#orchestrator) requires to be listed
 wherever the gateway is reached through one, names no one hub. A relay
