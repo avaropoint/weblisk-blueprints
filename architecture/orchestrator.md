@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.25.2
+version: 2.25.3
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -1166,19 +1166,20 @@ domain's `required_agents` are all registered:
 
 ## Service Directory (GET /v1/services)
 
-Returns the complete service directory including the routing table
-and namespace map:
+Returns the complete service directory, a `ServiceDirectory`
+([`protocol/types`](../protocol/types.md#servicedirectory)), including the
+routing table and namespace map:
 
 ```json
 {
-  "agents": [
+  "services": [
     {
       "name": "seo-analyzer",
       "url": "http://localhost:9801",
+      "public_key": "<ML-DSA-65 public key (base64url)>",
       "capabilities": ["file:read", "agent:message"],
-      "type": "agent",
-      "domain": "seo",
-      "status": "online"
+      "status": "online",
+      "address_provenance": "self-asserted"
     }
   ],
   "routing_table": {
@@ -1198,7 +1199,8 @@ and namespace map:
     "seo": "seo",
     "content": "content",
     "health": "health"
-  }
+  },
+  "updated_at": 1712160000
 }
 ```
 
