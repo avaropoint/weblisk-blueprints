@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.34.4
+version: 2.34.5
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1970,7 +1970,7 @@ Table of all registered agents with real-time status:
 | Column | Description |
 |--------|-------------|
 | Name | Agent name (linked to detail) |
-| Type | `domain`, `work`, `infrastructure` |
+| Type | The manifest's `type`: `domain`, `agent` or `infrastructure`, an absent `type` shown as `agent` ([`protocol/types`](../protocol/types.md#agentmanifest)) |
 | Status | `online` ●, `degraded` ●, `offline` ● |
 | Version | Agent version |
 | Uptime | Time since `registered_at` |
@@ -2051,8 +2051,10 @@ The admin gateway answers this route with the System overview it composes
 (`admin-gateway-authorization`). The members the orchestrator holds come from
 its own `GET /v1/admin/overview`, which the gateway forwards as it forwards any
 request for the orchestrator's groups: `deployment`, `version`, `uptime`,
-`agents`, `namespaces` (how many namespaces are owned) and `audit.depth` (how
-many entries its audit log holds). The orchestrator answers its
+`agents` (how many are registered, by status and in `by_type` by the
+manifest's `type`, an absent `type` counted as `agent`), `namespaces` (how
+many namespaces are owned) and `audit.depth` (how many entries its audit log
+holds). The orchestrator answers its
 own route with these members and no other, each named and shaped as the
 example below gives it, and this section is the one statement of their names
 and shapes ([`architecture/orchestrator`](orchestrator.md#administrative-endpoints)
@@ -2085,7 +2087,7 @@ orchestrator's answer carries none:
     "online": 7,
     "degraded": 1,
     "offline": 0,
-    "by_type": {"domain": 3, "work": 3, "infrastructure": 2}
+    "by_type": {"domain": 3, "agent": 3, "infrastructure": 2}
   },
   "namespaces": 6,
   "audit": {"depth": 18342},

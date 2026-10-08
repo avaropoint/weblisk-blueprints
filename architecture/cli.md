@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.19.4
+version: 2.19.5
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1717,12 +1717,12 @@ List all registered agents.
 ```bash
 $ weblisk agents list
 NAME              TYPE            STATUS    VERSION   LAST SEEN
-seo-analyzer      work            online    1.0.0     10s ago
-a11y-checker      work            online    1.0.0     12s ago
-content-analyzer  work            online    1.0.0     8s ago
-meta-checker      work            online    1.0.0     15s ago
-uptime-checker    work            online    1.0.0     3s ago
-perf-auditor      work            online    1.0.0     21s ago
+seo-analyzer      agent           online    1.0.0     10s ago
+a11y-checker      agent           online    1.0.0     12s ago
+content-analyzer  agent           online    1.0.0     8s ago
+meta-checker      agent           online    1.0.0     15s ago
+uptime-checker    agent           online    1.0.0     3s ago
+perf-auditor      agent           online    1.0.0     21s ago
 cron              infrastructure  online    1.0.0     5s ago
 email-send        infrastructure  degraded  1.0.0     2m ago
 
@@ -1732,7 +1732,7 @@ email-send        infrastructure  degraded  1.0.0     2m ago
 - Shows what the orchestrator's registry holds of each agent, from
   `GET /v1/admin/agents`, and no metrics, which no component serves to a
   person yet ([`architecture/admin`](admin.md#agent-management))
-- `--type <domain|work|infrastructure>` to filter
+- `--type <domain|agent|infrastructure>` to filter, by the manifest's `type`, an absent one read as `agent`
 - `--status <online|degraded|offline>` to filter
 - `--json` for machine-readable output
 
@@ -1743,7 +1743,7 @@ Full detail for a single agent.
 ```bash
 $ weblisk agents describe seo-analyzer
 Agent: seo-analyzer
-Type:  work    Domain: seo    Version: 1.0.0
+Type:  agent    Version: 1.0.0
 URL:   http://localhost:9710
 Status: online    Registered: 2d 14h ago
 
