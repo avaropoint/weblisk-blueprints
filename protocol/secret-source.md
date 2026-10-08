@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: secret-source
-version: 1.5.0
+version: 1.6.0
 requires: [protocol/identity, patterns/principal-identity]
 platform: any
 tier: free
@@ -470,11 +470,12 @@ proves nothing more, and the caller discards it once it has verified.
 > ([`protocol/identity`](identity.md#fixed-form-statements)), and none are
 > published. Until they are, a caller records the reference and the
 > `public_key` it read without a probe, and tells the person that the
-> reference is unproven. It verifies the first signature it then gets through
-> the reference, over bytes it built itself, against that `public_key` before
-> it uses that signature. One that does not verify is refused as a failed
-> probe is, naming the reference, and is never sent. One that verifies proves
-> the reference as a probe would have. So a mapping made before the vectors
+> reference is unproven. Every signature it then gets through the reference
+> is verified, over bytes it built itself, against that `public_key` before it
+> is used, as every signature through a holder reference is
+> ([Signing with a held identity](#signing-with-a-held-identity)). One that
+> does not verify is refused as a failed probe is, naming the reference, and
+> is never sent. One that verifies proves the reference as a probe would have. So a mapping made before the vectors
 > finds a broken reference at its first use, in the middle of something else,
 > which is the cost the probe exists to spare, and nothing worse: a signature
 > that does not verify never leaves the caller.
@@ -498,6 +499,18 @@ An identity kept in an encrypted key file is decrypted in memory the same way,
 with the passphrase from a person or from a source that remembers it. It is
 never written anywhere in the clear, and is zeroised after use
 ([`protocol/identity`](identity.md) rule 10).
+
+**Every signature is verified before it is used.** However it was made, a
+caller MUST verify a signature it gets through a holder reference, over the
+bytes it built, against the `public_key` recorded beside the reference, before
+it uses or sends that signature. One that does not verify is refused, naming
+the reference, and is never sent. A probe proves a reference when it is mapped,
+and nothing proves it stays so: the identity in the source can be replaced
+since. Verifying costs one ML-DSA-65 verification. It is also what holds a
+reference mapped before the probe had test vectors (the gap under
+[An identity held by a source](#an-identity-held-by-a-source)), because nothing
+records whether a reference was ever proven, and a caller that runs once for
+each command, as the CLI does, remembers no first signature.
 
 ### Protection
 
@@ -1034,7 +1047,8 @@ security:
 - [ ] An identity created in a source is stored as the `weblisk-key-v1` envelope with `kdf = argon2id`, a generated `passphrase` of at least 256 bits from a cryptographically secure random source, and its `public_key`, never as a raw key
 - [ ] A source keeps only an identity's passphrase only when the operator asked for it, and only after the caller checked that the passphrase opens the key file
 - [ ] Once `weblisk/holder-probe/v1` has test vectors, a holder reference is recorded only after a `weblisk/holder-probe/v1` signature made through it, over a nonce the caller generated for it, verifies against the `public_key` read from it
-- [ ] Before `weblisk/holder-probe/v1` has test vectors, a holder reference is recorded with no probe and reported unproven, and the first signature made through it that does not verify against the `public_key` read from it is refused, naming the reference, and never sent
+- [ ] Before `weblisk/holder-probe/v1` has test vectors, a holder reference is recorded with no probe and reported unproven, and any signature made through it that does not verify against the `public_key` read from it is refused, naming the reference, and never sent, in whatever process it is made
+- [ ] A signature made through a holder reference, probed or not, is verified against the `public_key` recorded beside the reference before it is used, and one that does not verify, as after the identity in the source was replaced, is refused, naming the reference, and never sent
 - [ ] A caller asks a source to `sign` only a fixed-form statement `protocol/identity` registers, or a value under Sign JSON, that it built itself, and never a message another program handed it
 - [ ] `key_protection` is `hardware` only for a source that lists `sign` with `ml-dsa-65` and lists `private_key` in `withheld_fields`, and is never reported stronger than the Protection table gives
 - [ ] `file:` with a relative path answers `invalid_reference`
