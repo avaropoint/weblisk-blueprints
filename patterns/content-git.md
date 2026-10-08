@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: content-git
-version: 1.7.3
+version: 1.7.4
 requires: [architecture/content, patterns/content-identity, protocol/identity, patterns/secrets, patterns/principal-identity]
 platform: any
 tier: free
@@ -485,12 +485,14 @@ types:
         description: Present when state is unsettled or diverted
       differs:
         type: list
+        items: string
         required: false
         description: In a census whose reason is worktree-differs, each path
           whose working-tree bytes differ from the line's, including paths
           on only one side
       findings:
         type: list
+        items: GitFinding
         required: true
         description: GitFinding records. Empty means none was found
       observed_at:
@@ -544,11 +546,13 @@ types:
     fields:
       host_keys:
         type: list
+        items: string
         required: true
         description: The destination host's public keys, in known_hosts form.
           The only keys ssh accepts from it. Never learned on first use
       read_addresses:
         type: list
+        items: string
         required: false
         description: Every other address at which a stranger could read a
           repository under this root, as a URL the locator is appended to.
