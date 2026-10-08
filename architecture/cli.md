@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.19.5
+version: 2.19.6
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1754,9 +1754,7 @@ Capabilities:
 
 Metrics:    unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
 
-Behavioral Fingerprint:
-  Manifest hash: a1b2c3...  (unchanged since registration)
-  Last change: none
+Behavioral Fingerprint: unavailable — no component serves it or its change history
 ```
 
 - Reads the agent from `GET /v1/admin/agents/{name}`, and its metrics from
@@ -1764,7 +1762,10 @@ Behavioral Fingerprint:
   `ADMIN_GROUP_UNAVAILABLE` while no blueprint specifies that route
   ([`architecture/admin`](admin.md#agent-management)). Metrics are then shown
   as unavailable with that code, never as zero. No recent tasks are shown:
-  the orchestrator handles none, and no component serves them to a person
+  the orchestrator handles none, and no component serves them to a person.
+  The behavioural fingerprint and its change history are shown unavailable,
+  as admin's Agent Detail shows them, while no component serves them to a
+  person: no figure stands in for one, and no change history reads as none
 - `--json` for machine-readable output
 - `--metrics-range <1h|24h|7d|30d>` to change the metrics window, once a
   provider serves them
