@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.21.2
+version: 2.21.3
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -1556,9 +1556,12 @@ security:
     - boundary: Agent → Orchestrator. Identity is established by ML-DSA-65
         signature over the manifest before any record is written; see
         protocol/identity
-    - boundary: Operator → Orchestrator, through the admin gateway.
-        Registration and token issuance are signed and verified per
-        architecture/admin; the orchestrator never authenticates an end user
+    - boundary: Operator → Orchestrator, through the admin gateway, but for
+        the first operator's registration at provision, which the CLI sends
+        to the orchestrator's own address with the bootstrap secret and no
+        token (architecture/cli, weblisk server provision). Registration and
+        token issuance are signed and verified per architecture/admin; the
+        orchestrator never authenticates an end user
     - boundary: Admin gateway → Orchestrator. A person's token is meant to
         arrive only from the admin gateway, to be judged on a route here or
         exchanged for a pass addressed to one other component
