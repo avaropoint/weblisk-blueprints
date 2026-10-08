@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.25.0
+version: 2.25.1
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -571,8 +571,8 @@ not a separate adversary, which is the trusted-network position
 [`architecture/threat-model`](threat-model.md) Boundary 2 already takes and
 records as residual. It is not an additional claim made here. A person's
 operator token is excepted for a reason that is not about the host: it reaches
-furthest, so no component but the admin gateway is ever given one, whatever
-host the two share.
+furthest, so no component but the admin gateway, and from it the orchestrator
+that issued it, is ever given one, whatever host it shares with the gateway.
 
 **The orchestrator MUST NOT place an address in a grant that it would not
 publish as `declared`.** A grant carries the orchestrator's signature over

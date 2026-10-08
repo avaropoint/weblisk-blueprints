@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.17.4
+version: 1.17.5
 requires: []
 platform: any
 tier: free
@@ -504,8 +504,8 @@ on its signed manifest today, as it may declare any service capability,
 because a registration is not yet an enrolment
 ([`protocol/spec`](spec.md#post-v1register)). That is a gap, and what it
 admits is this. The exchange takes a live operator token and nothing else, and
-no component but the admin gateway is presented one, so such a holder needs a
-person's token it has stolen. With one, it can have the token exchanged for a
+no component but the admin gateway, and from it the orchestrator, is presented
+one, so such a holder needs a person's token it has stolen. With one, it can have the token exchanged for a
 pass to any component, carrying everything that person may use there:
 `content:write`, `content:decide` and `fabric:attest` included, which no route
 of the orchestrator's gives, and without the admin gateway's network controls,
