@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.21.8
+version: 2.21.9
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -618,8 +618,8 @@ everything it authorises and a second host is a second place to lose it from.
           ──services──▶ │                             │
           ──channel───▶ │  ┌───────────────────────┐  │
                         │  │ Auth middleware       │  │  every endpoint but
-   operators ─token───▶ │  │  token → capabilities │  │  those Auth Middleware
-             ─admin ──▶ │  └───────────┬───────────┘  │  lists
+admin gateway ─token──▶ │  │  token → capabilities │  │  those Auth Middleware
+ (operators) ─admin ──▶ │  └───────────┬───────────┘  │  lists
                         │              │              │
                         │  ┌───────────▼───────────┐  │
                         │  │ Registry              │  │  agents, namespaces,
