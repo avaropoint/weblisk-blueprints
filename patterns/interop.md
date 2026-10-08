@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: interop
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/types, architecture/agent]
 platform: any
 tier: free
@@ -212,7 +212,7 @@ adapter is a Python process that imports the framework.
   "url": "http://localhost:9830",
   "description": "Research agent powered by LangChain RAG chain",
   "capabilities": [
-    {"name": "execute:research", "resources": ["*"]}
+    {"name": "llm:chat", "resources": []}
   ],
   "adapter": {
     "framework": "langchain",
@@ -221,6 +221,11 @@ adapter is a Python process that imports the framework.
   }
 }
 ```
+
+Its capability is one [`protocol/types`](../protocol/types.md#capability)
+lists, as registration requires
+([`protocol/spec`](../protocol/spec.md#post-v1register)). The research it
+offers is what it does, not a capability.
 
 ### Type 2: Sidecar Adapter
 

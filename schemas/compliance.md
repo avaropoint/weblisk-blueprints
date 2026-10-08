@@ -691,6 +691,14 @@ marketplace_requirements:
 
 The Weblisk capability model is **deny-by-default**. An agent has zero
 capabilities unless explicitly declared in its blueprint's Security section.
+Every name is one [`protocol/types`](../protocol/types.md#capability) lists,
+and a manifest naming any other is refused at registration
+([`protocol/spec`](../protocol/spec.md#post-v1register)); this schema says
+only how the names below are scoped. Publishing and subscribing take no
+capability of their own: a namespace declared in `publishes` and a
+subscription declared in `subscriptions` admit them, and only a subscription
+with scope `*` needs `event:observe` (protocol/spec, POST /v1/register,
+steps 4 and 5).
 
 ```yaml
 capability_model:
@@ -710,19 +718,15 @@ capability_model:
       description: Write to storage tables
       resources: [table names — must match Storage section]
 
-    - name: event:publish
-      description: Publish events to topics
-      resources: [namespace patterns — must be owned by this agent]
-
-    - name: event:subscribe
-      description: Subscribe to event topics
+    - name: event:observe
+      description: Observe every event on a topic whatever its scope, as a subscription with scope "*" needs
       resources: [topic patterns — must be declared in Dependencies]
 
     - name: realtime:publish
       description: Push to real-time channels
       resources: [channel patterns]
 
-    - name: http:outbound
+    - name: http:send
       description: Make outbound HTTP requests
       resources: [URL patterns or domains]
 
@@ -764,7 +768,7 @@ isolation_model:
       purpose: direct messaging for synchronous operations
 
     - path: agent → agent (via events)
-      requires: event:publish + event:subscribe capabilities
+      requires: the namespace in publishes and the subscription in subscriptions, and event:observe for a subscription with scope "*"
       purpose: asynchronous coordination
 
     - path: agent → storage
@@ -773,7 +777,7 @@ isolation_model:
       purpose: persistent data management
 
     - path: agent → external
-      requires: http:outbound capability
+      requires: http:send capability
       scope: declared URL patterns only
       purpose: external integrations (webhooks, APIs)
 

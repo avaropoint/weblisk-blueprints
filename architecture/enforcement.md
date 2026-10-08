@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: enforcement
-version: 2.3.2
+version: 2.3.3
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, patterns/privacy, architecture/orchestrator, architecture/gateway]
 platform: any
 tier: free
@@ -85,7 +85,7 @@ Enforcement operates on four principles:
 
 3. **Declared authority only** — an agent can only perform operations
    it has explicitly declared in its manifest AND that match its
-   active operational data contract. Having storage:read capability
+   active operational data contract. Having database:read capability
    does not grant access to all readable data — only to the tables,
    columns, and row scopes declared in the agent's data contract.
 
@@ -843,7 +843,7 @@ Storage Boundary intercepts
   │
   │  (If scope check passes:)
   │
-  ├─ Verify agent capability includes "storage:write"
+  ├─ Verify agent capability includes "database:write"
   │  └─ If missing → DENY + capability_mismatch violation
   │
   ├─ Check safety intent for write operations:
@@ -937,8 +937,8 @@ Behavior Analyzer receives signals continuously from all boundaries
 Accumulate signals per agent in rolling windows
   │
   ├─ Capability Mismatch Detection:
-  │    Agent declares: [storage:read, message:send]
-  │    Agent attempts: storage:write
+  │    Agent declares: [database:read, agent:message]
+  │    Agent attempts: database:write
   │  └─ IMMEDIATE violation → block + escalate
   │
   ├─ Scope Violation Detection:
@@ -1621,7 +1621,7 @@ in the relevant `platforms/*.md` blueprint. All platforms MUST satisfy:
 - [ ] Response boundary blocks output contract violations — agent cannot return fields outside its declared output contract (ENFORCEMENT_OUTPUT_CONTRACT_VIOLATION)
 - [ ] Response boundary blocks output scope exceeded — agent cannot return data at a scope higher than its declared operational scope (ENFORCEMENT_OUTPUT_SCOPE_EXCEEDED)
 - [ ] Quarantine blocks all four boundaries — quarantined agent's messages, storage writes, external calls, and responses are all rejected
-- [ ] Capability mismatch detected — agent with `[storage:read]` cannot perform `storage:create` (capability_mismatch violation)
+- [ ] Capability mismatch detected — agent with `[database:read]` cannot write, which needs `database:write` (capability_mismatch violation)
 - [ ] Data contract enforcement — storage proxy verifies operations match declared data contract; undeclared resource access blocked (ENFORCEMENT_DATA_CONTRACT_VIOLATION)
 - [ ] Volume anomaly triggers graduated response — 10x spike emits audit alert; sustained 5 minutes triggers quarantine
 - [ ] Pattern deviation triggers auto-quarantine — sustained deviation beyond configurable threshold (default: 30 minutes) triggers automatic quarantine without operator confirmation
