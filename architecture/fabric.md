@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 1.6.1
+version: 1.6.2
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
@@ -122,7 +122,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/content
-    version: ">=2.22.9 <3.0.0"
+    version: ">=2.22.10 <3.0.0"
     bindings:
       types:
         - name: ContentEntry
@@ -956,10 +956,16 @@ re-reading history.
 
 Packs, standards catalogues, templates and domain material are given freely, and
 live in repositories outside any tenant, never resident in an installation
-([`architecture/content`](content.md#repositories-outside-a-tenant)). A ledger
-over what those repositories hold is kept apart from every tenant's, and each
-tenant keeps a ledger over its own. That is not duplication; it is the same split
-custody already makes, and this blueprint is the contract both implement.
+([`architecture/content`](content.md#repositories-outside-a-tenant)). Each
+tenant keeps a ledger over its own. No tenant keeps one over what lies outside
+every tenant, so a ledger over those repositories is a cache, as content defines
+one: whatever reads them may keep it, it holds only what producers derived from
+them — every claim `inferred` — and it is rebuilt by reading them again and
+never cited. No person's judgement is kept there — nothing in it is
+`confirmed`, `rejected` or `retired` — because a judgement is not derived from
+the repositories and reading them again cannot rebuild it: it is kept only in a
+tenant's ledger. That is not duplication; it is the same split custody already
+makes, and both follow this blueprint's claim model.
 
 A citation across the split is an ordinary edge whose far endpoint names another
 scope's source, which the endpoint model already carries. It records that the

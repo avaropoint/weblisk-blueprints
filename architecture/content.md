@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.22.9
+version: 2.22.10
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -2141,10 +2141,11 @@ not a repository outside a tenant: it is a tenant's repository sent to a second
 place, counted in that repository's [effective custody](#effective-custody).
 Nor is a client's installation state a home ([Reserved Paths](#reserved-paths)).
 What a client keeps there for a repository outside a tenant is a reference to
-where it lives, or a cache of it, never the repository itself. A cache is a
-copy taken from where the repository lives and refreshed only from there. The
-client never edits the repository's files in it, so losing it costs a fetch and
-nothing else: the repository is still where it lives. The CLI's blueprint cache
+where it lives, or a cache of it, never the repository itself. A cache is taken
+from where the repository lives — a copy of it, or what was derived from reading
+it — and refreshed only from there. The client never edits the repository's
+files in it, so losing it costs a fetch or a re-read and nothing else: the
+repository is still where it lives. The CLI's blueprint cache
 is one, for each source no tenant has declared
 ([`weblisk blueprint update`](cli.md#weblisk-blueprint-update)).
 
