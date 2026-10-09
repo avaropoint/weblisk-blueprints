@@ -910,10 +910,11 @@ body is a [`CompletionRequest`](#completionrequest): the conversation, and the
 backend and no model. The configuration chooses, and a request carrying
 `provider` or `model` is refused with `INVALID_REQUEST`, so a client that
 believed it was choosing learns that it was not. The model is the one `roles`
-gives the request's `role`, else `model`, else the backend's choice. The route
-records the completion before anything else and again when it ends
-([Recording what the model routes do](#recording-what-the-model-routes-do)),
-applies the destination gate before it runs anything
+gives the request's `role`, else `model`, else the backend's choice. Once it
+has read the body, the route records the completion before anything else,
+and again when it ends
+([Recording what the model routes do](#recording-what-the-model-routes-do)).
+It applies the destination gate before it runs anything
 ([A model is a destination](#a-model-is-a-destination)), and is refused:
 
 - with `MODEL_NOT_CONFIGURED` where the hub holds no configuration;
@@ -1008,7 +1009,7 @@ a closed set, each judged as the route it records is:
 | `action` | Records | The request must be able to use |
 |---|---|---|
 | `model_set` | A change `PUT /v1/admin/model` is about to make: the configuration before and after, and each agreement it withdraws | `admin:*` |
-| `model_complete` | A completion, twice. First, before anything else: the `role`, the `scope`, the backend, and the model it will ask for or that the backend chooses. Then, when it ends: the model the backend reported running or that it reported none, with `status` `failed` where the backend failed and `denied` where the gate refused it | `llm:chat` |
+| `model_complete` | A completion, twice. First, once its body is read and before anything else: the `role`, the `scope`, the backend, and the model it will ask for or that the backend chooses. Then, when it ends: the model the backend reported running or that it reported none, with `status` `denied` where the gate refused it and `failed` where it could not run or the backend failed | `llm:chat` |
 | `model_agreement_record` | An agreement recorded | `model:attest` |
 | `model_agreement_withdraw` | An agreement withdrawn at `DELETE /v1/admin/model/agreements/{id}` | `model:attest` |
 
@@ -1021,11 +1022,12 @@ outside the set, and a `status` other than `ok`, `failed` or `denied`, with
 says what changed or what ran and never carries a prompt, an answer or a key.
 
 A model route acts only on a `201`. `PUT /v1/admin/model` records before it
-writes the configuration, and a completion's first entry is appended before
-the gate or anything else, which is where its `llm:chat` is judged. Its
-answer goes back only once its second entry is appended. A route that cannot
-record answers `MODEL_UNRECORDED`, and a refusal of the token is relayed as
-the orchestrator gave it.
+writes the configuration, and a completion's first entry is appended once
+its body is read, before the gate or anything else, which is where its
+`llm:chat` is judged. Its answer, or its refusal, goes back only once its
+second entry is appended. A route that cannot record answers
+`MODEL_UNRECORDED`, and a refusal of the token is relayed as the
+orchestrator gave it.
 
 On a hub whose platform installs no model gateway, nothing intercepts the
 path, and a person whose token can use an action's capability can append that
@@ -2077,7 +2079,7 @@ agents hold, which is theirs.
 - [ ] `GET /v1/admin/model/providers` gives each `ModelBackend` the `models` its backend's own list answered for that request, names no default model, and reports `available` false for a backend that needs a key and for a coding agent's command-line tool
 - [ ] `POST /v1/admin/complete` refuses a body naming `provider` or `model` with `INVALID_REQUEST`, runs the model `roles` gives the request's `role` and `model` otherwise, and answers a `CompletionResponse` whose `model` is the one the backend's answer names, absent where it names none
 - [ ] A completion whose backend fails, or refuses its model, is answered `MODEL_BACKEND_FAILED` and runs no other backend or model, and one with no model chosen at a local model server that reports none loaded is answered `MODEL_NONE_LOADED` and loads nothing
-- [ ] A completion appends a `model_complete` entry before the gate or anything else and a second when it ends, with `status` `ok`, `failed` or `denied`, and returns no answer whose second entry was not appended
+- [ ] A completion appends a `model_complete` entry once its body is read and before the gate or anything else, and a second when it ends, with `status` `ok`, `denied` where the gate refused it or `failed` where it could not run, and returns no answer or refusal whose second entry was not appended
 - [ ] `POST /v1/admin/model/audit` from outside the process is answered `404` where the model gateway is installed; dispatched in process, it judges the token on the capability its `action` names, appends an `AuditEntry` whose `actor` is the token's `identity_id`, and refuses an `action` outside its set with `INVALID_REQUEST`
 - [ ] An admin's token whose `cap` names only `content:` capabilities is refused with `FORBIDDEN` at `OperatorApprove`, `OperatorRole`, `OperatorDelete`, `AdminAgentDeregister` and `CredentialRevoke`, its own credential included, and at `CredentialAttest` for the admin
 - [ ] The orchestrator serves only the administrative endpoints backed by state it owns — operators, agents, its audit log, its own overview, and the tenant's model surface the CLI installs
