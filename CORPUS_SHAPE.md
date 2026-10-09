@@ -221,7 +221,11 @@ complimentary content through the blueprint order (`blueprints/` →
 blueprints. Content authored here is embedded in the Studio release as a floor,
 materialised into `<instance>/.weblisk/content/` on first start, and read back
 from there as an override. Same three-tier shape, different mechanism. The one
-home for that fact is Studio's MISSION.md — this file does not restate it.
+home for that fact is Studio's MISSION.md — this file does not restate it. That
+is the mechanism as built: its second tier, and the override read back from it,
+are the residency
+[`architecture/fabric`](architecture/fabric.md#two-ledgers-and-that-is-correct)
+rules out for published content.
 
 *(Resolved 2026-09-26: the wording in Studio's MISSION.md and CLAUDE.md now says
 so, and CLAUDE.md no longer keeps a second copy of the mechanism.)*
