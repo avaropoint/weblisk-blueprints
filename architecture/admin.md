@@ -1704,9 +1704,10 @@ it may replay it. So a console keeps the thing that can **ask**, and never the
   Each is the person's own request, sent by the console to the tenant's
   admin gateway on the person's token: the gateway carries a read to the
   content service on a pass naming `content:read` or `content:describe`, and
-  a completion to the orchestrator's model route as it arrived. Neither
-  changes anything at the hub, which is why they are admitted before
-  agent-delegation has a route.
+  a completion to the orchestrator's model route as it arrived, where it is
+  admitted only for a person whose role carries `llm:chat`
+  ([Operator Roles](#operator-roles)). Neither changes anything at the hub,
+  which is why they are admitted before agent-delegation has a route.
   The hub records them as the person's and cannot attribute them to the run,
   a limit stated here rather than left to be found. They stop when
   the person's session ends. Nothing an agent chose that would change
