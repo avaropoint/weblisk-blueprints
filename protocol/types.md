@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.18.1
+version: 1.18.2
 requires: []
 platform: any
 tier: free
@@ -367,7 +367,7 @@ types:
 **Standard capabilities:**
 - `file:read` — read files (resources: glob patterns)
 - `file:write` — write/modify files
-- `llm:chat` — use a language model. A person's request needs it to ask the tenant's model for a completion at `POST /v1/admin/complete` ([`architecture/orchestrator`](../architecture/orchestrator.md#administrative-endpoints)), and `architecture/admin`'s roles table says which roles carry it. It is the one capability for using a model: no other is minted for it
+- `llm:chat` — use a language model. A person's request needs it to ask the tenant's model for a completion at `POST /v1/admin/complete` ([`architecture/orchestrator`](../architecture/orchestrator.md#administrative-endpoints)), and `architecture/admin`'s roles table says which roles carry it. It is the one capability a requester needs to ask a model, and no other is minted for that: the model capabilities below are for recording an agreement (`model:attest`) and for serving the tenant's model route (`model:route`)
 - `agent:message` — communicate with other agents
 - `workflow:execute` — execute multi-agent workflows (domain controllers)
 - `http:get` — make external HTTP requests
