@@ -325,6 +325,12 @@ declaration:
       operation: ModelCeiling
       auth: "token"
       provided: platform
+    # Generated, not platform-provided: the model gateway records through it
+    # in process, judged on the capability its action names
+    - method: POST
+      path: "/v1/admin/model/audit"
+      operation: AdminModelAudit
+      auth: "token"
   checks:
     - check: no-path-literals
       subject: route registration
@@ -354,6 +360,8 @@ declaration:
       endpoint: GET /v1/admin/audit
     - check: endpoint-routed
       endpoint: GET /v1/admin/audit/export
+    - check: endpoint-routed
+      endpoint: POST /v1/admin/model/audit
     - check: endpoint-routed
       endpoint: POST /v1/token/exchange
     - check: endpoint-routed
@@ -784,28 +792,34 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 | GET | /v1/admin/overview | AdminOverview | `admin:read` | Summary of the state this orchestrator holds |
 | GET | /v1/admin/audit | AdminAuditList | `admin:audit` | This orchestrator's audit log, with the query parameters and the answer of `GET /v1/audit` ([`protocol/spec`](../protocol/spec.md#get-v1audit)). The route a person reads it at; `GET /v1/audit` is a registered component's, and refuses a person's token ([Auth Middleware](#auth-middleware), step 6) |
 | GET | /v1/admin/audit/export | AdminAuditExport | `admin:audit` | The entries `AdminAuditList` would answer for the same filters, unpaged. `format=json`, the default where `format` is absent, answers an array of `AuditEntry`. `format=csv` answers `text/csv` as RFC 4180 writes it: a header row naming `AuditEntry`'s fields in the order [`protocol/types`](../protocol/types.md) declares them, then one row for each entry, each field its value as text and an absent field empty. A field whose text begins with `=`, `+`, `-`, `@`, a tab or a carriage return has a single quote (`'`) put before it, before it is quoted as RFC 4180 requires, so a spreadsheet that opens the file evaluates no field as a formula: `AuditEntry`'s `target` and `detail` can carry text a registrant chose. Any other `format` is refused with 400 `INVALID_REQUEST` |
-| GET | /v1/admin/model | AdminModelGet | `admin:read` | This tenant's model backend — Studio is a client of it (platform-provided) |
-| PUT | /v1/admin/model | AdminModelPut | `admin:*` | Set this tenant's model backend (platform-provided) |
-| GET | /v1/admin/model/providers | AdminModelProviders | `admin:read` | Discovery on **this hub's host** (platform-provided) |
-| POST | /v1/admin/complete | AdminComplete | `llm:chat` | Run a completion under this tenant's model policy, behind the destination gate (platform-provided) |
+| GET | /v1/admin/model | AdminModelGet | `admin:read` | The tenant's model configuration, a `ModelConfig` ([The tenant's model](#the-tenants-model)), which every client reads here (platform-provided) |
+| PUT | /v1/admin/model | AdminModelPut | `admin:*` | Replace it, refusing a backend this hub cannot run now, and record the change (platform-provided) |
+| GET | /v1/admin/model/providers | AdminModelProviders | `admin:read` | Each backend this hub knows how to drive, whether it can run it now, and the models the backend's own list answers on **this hub's host** (platform-provided) |
+| POST | /v1/admin/complete | AdminComplete | `llm:chat` | Run a completion on the tenant's model, behind the destination gate, and say which model ran (platform-provided) |
 | POST | /v1/admin/model/agreements | AdminModelAgreementRecord | `model:attest` | Record a model provider agreement (platform-provided) |
 | GET | /v1/admin/model/agreements | AdminModelAgreementList | `admin:read` | Every agreement, withdrawn and lapsed ones included (platform-provided) |
 | DELETE | /v1/admin/model/agreements/{id} | AdminModelAgreementWithdraw | `model:attest` | Withdraw an agreement (platform-provided) |
 | GET | /v1/admin/model/ceiling | AdminModelCeiling | `admin:read` | What a model backend may be sent now (platform-provided) |
+| POST | /v1/admin/model/audit | AdminModelAudit | the one its `action` names | Append a model route's entry to this orchestrator's audit log, for the model gateway inside its own process alone ([Recording what the model routes do](#recording-what-the-model-routes-do)). Generated, and not platform-provided |
 
 The model routes are marked `provided: platform` in the declaration. They are
 NOT generated: the CLI installs them after generation, and they intercept their
 own paths ahead of the generated router. A hub MUST serve all of them as this
-section specifies; today's CLI serves four, authorised as the table says and
-with no destination gate
-([A model is a destination](#a-model-is-a-destination), the gap note).
+section specifies; today's CLI serves four, and none of them as specified
+([The tenant's model](#the-tenants-model), the gap note).
 
-They are the tenant's model surface. The CLI installs them because they read
-the tenant's model configuration, discover which provider binaries are on the
-hub's host, and run a completion through them, and a generated component
-cannot do that without reproducing the CLI's provider catalogue. The CLI
-chooses a model of its own only where no tenant's model applies: when it
-creates a tenant, and for work a person starts outside any tenant.
+They are the tenant's model surface, and the model is the tenant's. Which
+backend runs a completion, and which model it asks for, is the tenant's own
+configuration, changed by a person at `PUT /v1/admin/model` and recorded in
+this orchestrator's audit log ([The tenant's model](#the-tenants-model)).
+Every client, the CLI and every console included, reads it here and keeps no
+choice of its own for the tenant's work. The CLI installs the routes because
+they find which backends the hub's host can run and run a completion through
+one, which a generated component cannot do without reproducing the CLI's
+provider catalogue. So the code is the CLI's and what it does is this
+document's. The CLI chooses a model of its own only where no tenant's model
+applies: when it creates a tenant, and for work a person starts outside any
+tenant.
 
 **Every one of them is authorised by the orchestrator.** The code the CLI
 installs to serve them, inside the orchestrator's own process and called the
@@ -818,9 +832,205 @@ operator token alone under `/v1/admin/` and a registration token alone at
 `/v1/model/ceiling`. It never accepts a token on its
 shape, and a request it cannot get a judgement on is refused.
 Asking a model for them produced four handlers against an unspecified
-contract, all of them shadowed the moment the model gateway was installed. So this
-document specifies one thing about them and nothing else of their behaviour:
-what a model destination requires, below.
+contract, all of them shadowed the moment the model gateway was installed.
+That is why the marker exists, and all it changes is who writes them
+([`schemas/architecture`](../schemas/architecture.md)). What they do is
+specified below, in [The tenant's model](#the-tenants-model),
+[Recording what the model routes do](#recording-what-the-model-routes-do) and
+[A model is a destination](#a-model-is-a-destination), and the CLI's gateway is
+held to it as generated code is held to its blueprint.
+
+### The tenant's model
+
+The tenant's model configuration is a [`ModelConfig`](#modelconfig): the
+backend completions run on (`provider`), the model a person chose for it
+(`model`), where a backend reached over HTTP listens (`base_url`), and a model
+for each role a person gave one (`roles`). The hub keeps it as
+`.weblisk/model.json` under its root. It holds no secret and names none: no
+key, and no environment variable to read one from. `PUT /v1/admin/model` is
+the one way it changes and the one way a change is recorded. An edit made to
+the file by any other means is recorded nowhere.
+
+**Nothing names a default model.** Where the configuration names no model,
+the backend decides. A local model server is asked what it has loaded, as
+its kind is asked, on every completion, and runs the first model it reports
+loaded; a server that reports none is refused, and nothing is loaded on the
+tenant's behalf. A person may choose a moving alias the backend lists, which
+then moves with the backend. No model name is written as a default into the
+CLI's gateway, a hub or this corpus, and the model that ran is taken from the
+backend's answer, never from what was asked for.
+
+**`GET /v1/admin/model`** answers the configuration as the hub holds it, and
+`{}` where it holds none.
+
+**`PUT /v1/admin/model`** replaces the configuration with its body. It is
+refused, and changes nothing:
+
+- with `INVALID_REQUEST` where the body is not a `ModelConfig`: `provider` is
+  absent, a member `ModelConfig` does not declare is present, `api_key_env`
+  among them, or a `roles` key is not a role name;
+- with `MODEL_BACKEND_UNAVAILABLE` where the backend it names is not one this
+  hub can run now, judged as `GET /v1/admin/model/providers` judges it and at
+  the body's `base_url` where it has one;
+- with `MODEL_NOT_LISTED` where `model`, or a model `roles` names, is not one
+  that backend's own list answers just then, spelt as the list spells it. A
+  backend whose list is empty takes neither, and decides.
+
+It records the change before it makes it, and makes no change it cannot
+record ([Recording what the model routes do](#recording-what-the-model-routes-do)).
+It answers `{"config": <the ModelConfig as recorded>, "withdrawn": [<id>, ...]}`,
+where `withdrawn` lists each agreement the change withdrew
+([A model is a destination](#a-model-is-a-destination), Agreements) and is
+empty where it withdrew none.
+
+**`GET /v1/admin/model/providers`** answers, for each kind of backend this hub
+knows how to drive, a [`ModelBackend`](#modelbackend): whether this hub can run
+it now, why not where it cannot, and `models`, what the backend's own list
+answered when this request asked it, on this hub's host. No entry names a
+default model, and a list the backend did not answer is empty, never filled
+in. A backend is available only where all three of these hold:
+
+- **It answers here.** Its program is installed where the hub can run it, or a
+  server answers at its address.
+- **It needs no key.** The model gateway reads no key from its environment,
+  because a key there reaches everything that process runs, and no blueprint
+  yet says where else a tenant holds a model key or what makes a call with
+  one. A backend that needs a key is listed, and is not available.
+- **It only answers.** A coding agent's command-line tool reads files and runs
+  commands as well as answering. Run by the gateway, it would act beside the
+  hub's keys with nothing to confine it, so it is listed, and is not
+  available.
+
+`PUT /v1/admin/model` accepts only a backend this route would report
+available, and `POST /v1/admin/complete` runs only one.
+
+**`POST /v1/admin/complete`** runs one completion on the tenant's backend. Its
+body is a [`CompletionRequest`](#completionrequest): the conversation, and the
+`role` it is for and the `scope` it carries where it has them. It names no
+backend and no model. The configuration chooses, and a request carrying
+`provider` or `model` is refused with `INVALID_REQUEST`, so a client that
+believed it was choosing learns that it was not. The model is the one `roles`
+gives the request's `role`, else `model`, else the backend's choice. The route
+records the completion before anything else and again when it ends
+([Recording what the model routes do](#recording-what-the-model-routes-do)),
+applies the destination gate before it runs anything
+([A model is a destination](#a-model-is-a-destination)), and is refused:
+
+- with `MODEL_NOT_CONFIGURED` where the hub holds no configuration;
+- with `MODEL_BACKEND_UNAVAILABLE` where its backend is not one this hub can
+  run now;
+- with `MODEL_NONE_LOADED` where the configuration names no model for the
+  request's role and the backend, a local model server, reports none loaded;
+- with `MODEL_BACKEND_FAILED` where the backend fails, or refuses the model it
+  was asked for.
+
+Nothing runs in place of what was refused or failed: no other backend, and no
+other model. The route answers a [`CompletionResponse`](#completionresponse):
+the answer, the backend that ran it, and `model`, the model the backend's own
+answer says ran. Where the backend reports a model other than the one it was
+asked for, as a moving alias does, `model` is the one it reports. Where its
+answer names none, `model` is absent, so no client reads the name it asked
+for as the one that ran.
+
+| Code | HTTP | When |
+|---|---|---|
+| `INVALID_REQUEST` | 400 | `PUT /v1/admin/model`'s body is not a `ModelConfig`; `POST /v1/admin/complete`'s carries no message, or names `provider` or `model` |
+| `MODEL_BACKEND_UNAVAILABLE` | 409 | The backend `PUT /v1/admin/model` names, or the one the configuration names at `POST /v1/admin/complete`, is not one this hub can run now. `detail` carries its `kind` and `detail` as `GET /v1/admin/model/providers` reports them |
+| `MODEL_NOT_LISTED` | 409 | A model `PUT /v1/admin/model` names is not in its backend's own list just then |
+| `MODEL_NOT_CONFIGURED` | 409 | `POST /v1/admin/complete` at a hub that holds no configuration |
+| `MODEL_NONE_LOADED` | 409 | At `POST /v1/admin/complete`, the configuration names no model for the request's role and its backend, a local model server, reports none loaded. Nothing is loaded on the tenant's behalf |
+| `MODEL_BACKEND_FAILED` | 502 | The backend failed to answer, or refused the model it was asked for. Nothing else was run |
+| `MODEL_UNRECORDED` | 503 | The route could not record what it was about to do, so it did not do it, or what it did, so it does not answer with it |
+
+> **Gap — the CLI's gateway serves four of the nine routes, and none of them
+> as specified.** The model gateway the CLI installs today serves `GET` and
+> `PUT /v1/admin/model`, `GET /v1/admin/model/providers` and
+> `POST /v1/admin/complete`. It does not serve the three agreement routes,
+> `GET /v1/admin/model/ceiling` or `GET /v1/model/ceiling`, and being
+> `provided: platform` they are not generated either, so a request to any of
+> them falls through to the generated router and is answered `404`. Of the
+> four it serves:
+>
+> - `PUT /v1/admin/model` takes any `provider`, any `model` and an
+>   `api_key_env`, asks no backend anything, and records nothing;
+> - `GET /v1/admin/model/providers` gives each backend at most one model, from
+>   a table the CLI wrote, asks no backend for its list, and reports available
+>   a backend whose key is in the hub's environment and a coding agent's tool
+>   that is installed;
+> - `POST /v1/admin/complete` is judged on `admin:read`, takes `model` from the
+>   request, and where neither the request nor the configuration names one
+>   asks for a model from that table, or for an empty name; it reports the
+>   model it asked for as the one that ran; it records nothing; and it reads no
+>   `scope` and applies none of the gate
+>   ([A model is a destination](#a-model-is-a-destination)): it never refuses
+>   `SCOPE_MISSING` or `SCOPE_CEILING_EXCEEDED`, and runs whatever it is sent,
+>   `restricted` included.
+>
+> No hub serves `POST /v1/admin/model/audit` yet, so nothing a model route does
+> is recorded at any tenant. Until a hub serves all nine as specified:
+>
+> - a client MUST NOT read a `404` from either ceiling route as a ceiling. It
+>   cannot learn one, so it uses `internal`, the ceiling a provider has with
+>   nothing attested, as an api-ai endpoint that cannot learn a ceiling does
+>   ([`patterns/api-ai`](../patterns/api-ai.md#destination-ceilings));
+> - a client MUST apply the gate itself before it sends to `complete`, with
+>   that ceiling, and MUST NOT rely on the hub to refuse anything: nothing
+>   undeclared and nothing above `internal` is sent
+>   ([`patterns/scope`](../patterns/scope.md#the-gate), every sender);
+> - a client MUST NOT read the `model` of `complete`'s answer as the model that
+>   ran, nor the one model `GET /v1/admin/model/providers` gives a backend as
+>   what that backend lists;
+> - no agreement can be recorded, so no provider's ceiling is above
+>   `internal` at any tenant.
+>
+> Closing it is the CLI's: serve all nine routes as this document specifies
+> them, and record through `POST /v1/admin/model/audit` once the orchestrator
+> serves it.
+
+### Recording what the model routes do
+
+Every change `PUT /v1/admin/model` makes, every completion
+`POST /v1/admin/complete` runs, and every agreement recorded or withdrawn is
+an entry in this orchestrator's audit log. The model gateway cannot append one
+itself: the log is this orchestrator's hash chain
+([`architecture/storage`](storage.md#hash-chain-integrity)), and the gateway
+can call nothing a generated orchestrator names. So the orchestrator serves
+`POST /v1/admin/model/audit` (`AdminModelAudit`) for it, and the gateway
+dispatches to it inside the process, with the token of the request it
+records, as it already has the orchestrator judge every token. The gateway
+intercepts that path ahead of the generated router, as it does the routes it
+serves, and answers `404` to a request for it that arrives from outside the
+process.
+
+The route takes `action`, `target`, `detail` and `status`. `action` is one of
+a closed set, each judged as the route it records is:
+
+| `action` | Records | The request must be able to use |
+|---|---|---|
+| `model_set` | A change `PUT /v1/admin/model` is about to make: the configuration before and after, and each agreement it withdraws | `admin:*` |
+| `model_complete` | A completion, twice. First, before anything else: the `role`, the `scope`, the backend, and the model it will ask for or that the backend chooses. Then, when it ends: the model the backend reported running or that it reported none, with `status` `failed` where the backend failed and `denied` where the gate refused it | `llm:chat` |
+| `model_agreement_record` | An agreement recorded | `model:attest` |
+| `model_agreement_withdraw` | An agreement withdrawn at `DELETE /v1/admin/model/agreements/{id}` | `model:attest` |
+
+The orchestrator judges the token by [Auth Middleware](#auth-middleware), step
+8 requiring the capability the action's row names, and appends an `AuditEntry`
+with that `action`, `target`, `detail` and `status`, whose `actor` is the
+token's `identity_id`. It answers `201` with the entry. It refuses an `action`
+outside the set, and a `status` other than `ok`, `failed` or `denied`, with
+`INVALID_REQUEST`. `target` names the backend or the agreement, and `detail`
+says what changed or what ran and never carries a prompt, an answer or a key.
+
+A model route acts only on a `201`. `PUT /v1/admin/model` records before it
+writes the configuration, and a completion's first entry is appended before
+the gate or anything else, which is where its `llm:chat` is judged. Its
+answer goes back only once its second entry is appended. A route that cannot
+record answers `MODEL_UNRECORDED`, and a refusal of the token is relayed as
+the orchestrator gave it.
+
+On a hub whose platform installs no model gateway, nothing intercepts the
+path, and a person whose token can use an action's capability can append that
+action's entry. It names them as its actor, so it records nothing in anyone
+else's name.
 
 ### A model is a destination
 
@@ -847,31 +1057,9 @@ the gate here is as good as the caller: that is why
 [`patterns/scope`](../patterns/scope.md#the-gate) binds every sender, a client
 included.
 
-> **Gap — the CLI's gateway serves four of these nine routes, with no
-> destination gate.** The model gateway the CLI installs today serves `GET` and
-> `PUT /v1/admin/model`, `GET /v1/admin/model/providers` and
-> `POST /v1/admin/complete`. It does not serve the three agreement routes,
-> `GET /v1/admin/model/ceiling` or `GET /v1/model/ceiling`, and being
-> `provided: platform` they are not generated either, so a request to any of
-> them falls through to the generated router and is answered `404`. Its
-> `POST /v1/admin/complete` reads no `scope` and runs with none of the gate
-> above: it never refuses `SCOPE_MISSING` or `SCOPE_CEILING_EXCEEDED`, and runs
-> whatever it is sent, `restricted` included. Until a hub serves all nine and
-> gates `complete`:
->
-> - a client MUST NOT read a `404` from either ceiling route as a ceiling. It
->   cannot learn one, so it uses `internal`, the ceiling a provider has with
->   nothing attested, as an api-ai endpoint that cannot learn a ceiling does
->   ([`patterns/api-ai`](../patterns/api-ai.md#destination-ceilings));
-> - a client MUST apply the gate itself before it sends to `complete`, with
->   that ceiling, and MUST NOT rely on the hub to refuse anything: nothing
->   undeclared and nothing above `internal` is sent
->   ([`patterns/scope`](../patterns/scope.md#the-gate), every sender);
-> - no agreement can be recorded, so no provider's ceiling is above
->   `internal` at any tenant.
->
-> Closing it is the CLI's: serve the agreement and ceiling routes, and gate
-> `complete` on `scope`, as this section specifies.
+The CLI's gateway applies none of this gate today, and serves none of the
+agreement or ceiling routes: what a client does until it does is the gap note
+under [The tenant's model](#the-tenants-model).
 
 **Agreements.** A `ProviderAgreement`
 ([`patterns/scope`](../patterns/scope.md#model-providers)) is recorded only on
@@ -947,7 +1135,7 @@ and it records `withdrawn_by` from that request's token.
 
 Recording one publishes `system.model.agreement_recorded`, and withdrawing one
 `system.model.agreement_withdrawn`. Each is audited, recording who acted by
-identity id.
+identity id ([Recording what the model routes do](#recording-what-the-model-routes-do)).
 
 `/v1/admin/overview` reports what the orchestrator holds — agent counts,
 namespace count and audit depth — and nothing else, in the members and
@@ -1448,6 +1636,8 @@ Every operation creates an AuditEntry:
 | `event` | System event published |
 | `model_agreement_record` | A model provider agreement recorded |
 | `model_agreement_withdraw` | A model provider agreement withdrawn |
+| `model_set` | The tenant's model configuration about to be changed, before and after |
+| `model_complete` | A completion: what it will ask, before anything else, and what ran, when it ends |
 
 Log to stderr in real-time AND persist to append-only flat-file
 storage (JSONL).
@@ -1556,6 +1746,155 @@ types:
         type: string
         required: true
         description: "`online`, `offline` or `degraded`"
+```
+
+### ModelConfig
+
+The tenant's model configuration
+([The tenant's model](#the-tenants-model)). The hub keeps it as
+`.weblisk/model.json`. `GET /v1/admin/model` answers it and
+`PUT /v1/admin/model` replaces it. It holds no secret and names none.
+
+```yaml
+types:
+  ModelConfig:
+    fields:
+      provider:
+        name: Provider
+        type: string
+        required: false
+        description: "The backend completions run on: a `kind` `GET /v1/admin/model/providers` lists, lower-case. `PUT /v1/admin/model` requires it. Only the answer of `GET /v1/admin/model` at a hub that holds no configuration, `{}`, lacks it"
+      model:
+        name: Model
+        type: string
+        required: false
+        description: "The model a person chose for `provider`, as the backend's own list spelt it when it was chosen. Absent: the backend decides, and a local model server runs the first model it reports loaded, asked on each completion"
+      base_url:
+        name: BaseURL
+        type: string
+        required: false
+        description: "Where `provider` listens, for a backend reached over HTTP. Absent: where that kind of backend listens by default on this hub's host"
+      roles:
+        name: Roles
+        type: "map[string]string"
+        required: false
+        description: "A model for each role a person gave one, on `provider`. Each key is a role a completion may state (`CompletionRequest.role`), made of lower-case letters, digits and `-`; each value a model, as `model` is. A role it does not name runs `model`"
+```
+
+### ModelBackend
+
+One kind of backend this hub knows how to drive, as
+`GET /v1/admin/model/providers` answers it
+([The tenant's model](#the-tenants-model)).
+
+```yaml
+types:
+  ModelBackend:
+    fields:
+      kind:
+        name: Kind
+        type: string
+        required: true
+        description: "The backend, as `ModelConfig.provider` names it"
+      label:
+        name: Label
+        type: string
+        required: true
+        description: "Its name for a person"
+      local:
+        name: Local
+        type: bool
+        required: true
+        description: "True where it runs on this hub's host: a program here, or a server at an address on it"
+      available:
+        name: Available
+        type: bool
+        required: true
+        description: "True where this hub can run it now: it answers here, needs no key and only answers"
+      detail:
+        name: Detail
+        type: string
+        required: true
+        description: "In a sentence, why it is or is not available: where it was found, or what is missing"
+      models:
+        name: Models
+        type: "[]string"
+        required: true
+        description: "What the backend's own list answered when this request asked it, on this hub's host, spelt as it spells them: for a local model server, the models it has loaded and those it can load. Empty where it lists nothing, cannot list, or is not available. Never a name written down in advance"
+      loaded:
+        name: Loaded
+        type: "[]string"
+        required: false
+        description: "Of `models`, those a local model server reports loaded now, in its own order. With no model chosen, the first of them runs. Absent for a backend that does not say what it has loaded"
+```
+
+### CompletionRequest
+
+The body of `POST /v1/admin/complete`
+([The tenant's model](#the-tenants-model)). It names no backend and no model.
+
+```yaml
+types:
+  CompletionRequest:
+    fields:
+      messages:
+        name: Messages
+        type: "[]CompletionMessage"
+        required: true
+        description: "The conversation, oldest first. At least one"
+      system:
+        name: System
+        type: string
+        required: false
+        description: "Instructions put before the conversation"
+      role:
+        name: Role
+        type: string
+        required: false
+        description: "The role the completion is for. Its model is the one `ModelConfig.roles` gives it, else `ModelConfig.model`"
+      scope:
+        name: Scope
+        type: ScopeLevel
+        required: false
+        description: "The highest scope of what the prompt carries, as the tenant reported it to the caller. Absent is refused with `SCOPE_MISSING` (A model is a destination)"
+  CompletionMessage:
+    fields:
+      role:
+        name: Role
+        type: string
+        required: true
+        description: "`system`, `user` or `assistant`"
+      content:
+        name: Content
+        type: string
+        required: true
+        description: "The message, as text"
+```
+
+### CompletionResponse
+
+The answer of `POST /v1/admin/complete`
+([The tenant's model](#the-tenants-model)).
+
+```yaml
+types:
+  CompletionResponse:
+    fields:
+      content:
+        name: Content
+        type: string
+        required: true
+        description: "The answer, as text"
+      provider:
+        name: Provider
+        type: string
+        required: true
+        description: "The backend that ran it, as `ModelConfig.provider` names it"
+      model:
+        name: Model
+        type: string
+        required: false
+        description: "The model the backend's own answer says ran, spelt as it spells it, so a moving alias is reported as the model it reached. Absent where the backend's answer names none, and never filled in with the model it was asked for"
 ```
 
 ---
@@ -1732,6 +2071,14 @@ agents hold, which is theirs.
 - [ ] Orchestrator does NOT handle tasks, strategies, context, observations, or approvals
 - [ ] Administrative endpoints are gated on the capability each declares — an `admin:` capability, `llm:chat` or `model:attest` — carried in the caller's token, not on a separate role model
 - [ ] `POST /v1/admin/complete` refuses with `FORBIDDEN` a token that cannot use `llm:chat`, one carrying `admin:read` or `admin:*` without it included, and sends nothing to a backend
+- [ ] `GET /v1/admin/model` answers the hub's `ModelConfig`, and `{}` at a hub that holds none
+- [ ] `PUT /v1/admin/model` naming a backend `GET /v1/admin/model/providers` reports unavailable is refused with `MODEL_BACKEND_UNAVAILABLE`, one naming a `model` or a `roles` model the backend's own list does not hold with `MODEL_NOT_LISTED`, and one carrying `api_key_env` with `INVALID_REQUEST`; none of them changes `.weblisk/model.json` or appends a `model_set` entry
+- [ ] An accepted `PUT /v1/admin/model` appends a `model_set` entry naming the configuration before and after before it writes anything, answers `config` and `withdrawn`, and changes nothing, answering `MODEL_UNRECORDED`, where `POST /v1/admin/model/audit` does not answer `201`
+- [ ] `GET /v1/admin/model/providers` gives each `ModelBackend` the `models` its backend's own list answered for that request, names no default model, and reports `available` false for a backend that needs a key and for a coding agent's command-line tool
+- [ ] `POST /v1/admin/complete` refuses a body naming `provider` or `model` with `INVALID_REQUEST`, runs the model `roles` gives the request's `role` and `model` otherwise, and answers a `CompletionResponse` whose `model` is the one the backend's answer names, absent where it names none
+- [ ] A completion whose backend fails, or refuses its model, is answered `MODEL_BACKEND_FAILED` and runs no other backend or model, and one with no model chosen at a local model server that reports none loaded is answered `MODEL_NONE_LOADED` and loads nothing
+- [ ] A completion appends a `model_complete` entry before the gate or anything else and a second when it ends, with `status` `ok`, `failed` or `denied`, and returns no answer whose second entry was not appended
+- [ ] `POST /v1/admin/model/audit` from outside the process is answered `404` where the model gateway is installed; dispatched in process, it judges the token on the capability its `action` names, appends an `AuditEntry` whose `actor` is the token's `identity_id`, and refuses an `action` outside its set with `INVALID_REQUEST`
 - [ ] An admin's token whose `cap` names only `content:` capabilities is refused with `FORBIDDEN` at `OperatorApprove`, `OperatorRole`, `OperatorDelete`, `AdminAgentDeregister` and `CredentialRevoke`, its own credential included, and at `CredentialAttest` for the admin
 - [ ] The orchestrator serves only the administrative endpoints backed by state it owns — operators, agents, its audit log, its own overview, and the tenant's model surface the CLI installs
 - [ ] `GET /v1/admin/audit` and `GET /v1/admin/audit/export` answer a request that can use `admin:audit` and refuse any other with `FORBIDDEN`, an agent token with `CREDENTIAL_REQUIRED`; the export answers the entries the list would for the same filters, as JSON where `format` is `json` or absent and as RFC 4180 CSV with a header row where it is `csv`, a field beginning with `=`, `+`, `-`, `@`, a tab or a carriage return written with a single quote before it, and refuses any other `format` with 400 `INVALID_REQUEST`
