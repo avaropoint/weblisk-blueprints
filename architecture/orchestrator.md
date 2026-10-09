@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.27.2
+version: 2.27.3
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -326,7 +326,8 @@ declaration:
       auth: "token"
       provided: platform
     # Generated, not platform-provided: the model gateway records through it
-    # in process, judged on the capability its action names
+    # in process. "token" admits any operator token; the capability judged is
+    # the one its body's action names (Auth Middleware, step 8)
     - method: POST
       path: "/v1/admin/model/audit"
       operation: AdminModelAudit
@@ -1513,17 +1514,21 @@ one count ([`architecture/admin`](admin.md#contracts),
    live in this orchestrator's own records (architecture/admin,
    token-status-on-use)
 8. On every /v1/admin/* route, check that the request can use the capability
-   the route requires: the auth its declaration names, or, for a route
+   the route requires: the auth its declaration names; for a route
    architecture/admin's tables give a minimum role, the capability that
-   minimum stands for. The request can use a capability when the operator's
-   role carries it now and the token's cap names it, admin:* being read as
-   each admin: capability by name. An operator token whose cap is absent or
-   empty names none. Otherwise FORBIDDEN, whatever the role
-   (architecture/admin, Auth Middleware)
+   minimum stands for; and for AdminModelAudit, whose declaration names
+   "token", the capability its body's action requires (Recording what the
+   model routes do), a body whose action is outside that set being refused
+   with INVALID_REQUEST and judged no further. The request can use a
+   capability when the operator's role carries it now and the token's cap
+   names it, admin:* being read as each admin: capability by name. An
+   operator token whose cap is absent or empty names none. Otherwise
+   FORBIDDEN, whatever the role (architecture/admin, Auth Middleware)
 9. On failure → 401: INVALID_SIGNATURE from step 3, malformed tokens
    included, TOKEN_EXPIRED from step 4, PASS_AUDIENCE_MISMATCH from step 5,
    and {"error": "valid token required — register first"} where no token was
-   presented; 403 FORBIDDEN from steps 6 and 8; or the operator code
+   presented; 403 FORBIDDEN from steps 6 and 8; 400 INVALID_REQUEST from
+   step 8, for AdminModelAudit alone; or the operator code
    architecture/admin's Error Handling names
 10. On success → pass TokenClaims to handler
 ```
@@ -2090,7 +2095,7 @@ agents hold, which is theirs.
 - [ ] `POST /v1/admin/complete` refuses a body naming `provider` or `model` with `INVALID_REQUEST`, runs the model `roles` gives the request's `role` and `model` otherwise, and answers a `CompletionResponse` whose `model` is the one the backend's answer names, absent where it names none
 - [ ] A completion whose backend fails, or refuses its model, is answered `MODEL_BACKEND_FAILED` and runs no other backend or model, and one with no model chosen at a local model server that reports none loaded is answered `MODEL_NONE_LOADED` and loads nothing
 - [ ] A completion appends a `model_complete` entry once its body is read and before the gate or anything else, and a second when it ends, with `status` `ok`, `denied` where the gate refused it or `failed` where it could not run, and returns no answer or refusal whose second entry was not appended
-- [ ] `POST /v1/admin/model/audit` from outside the process is answered `404` where the model gateway is installed; dispatched in process, it judges the token on the capability its `action` names, appends an `AuditEntry` whose `actor` is the token's `identity_id`, and refuses an `action` outside its set with `INVALID_REQUEST`
+- [ ] `POST /v1/admin/model/audit` from outside the process is answered `404` where the model gateway is installed; dispatched in process, it judges the token on the capability its `action` names, refusing with `FORBIDDEN` a `model_complete` on a token that cannot use `llm:chat` and a `model_set` on one that cannot use `admin:*`, appends an `AuditEntry` whose `actor` is the token's `identity_id`, and refuses an `action` outside its set with `INVALID_REQUEST` before it judges any capability
 - [ ] An admin's token whose `cap` names only `content:` capabilities is refused with `FORBIDDEN` at `OperatorApprove`, `OperatorRole`, `OperatorDelete`, `AdminAgentDeregister` and `CredentialRevoke`, its own credential included, and at `CredentialAttest` for the admin
 - [ ] The orchestrator serves only the administrative endpoints backed by state it owns — operators, agents, its audit log, its own overview, and the tenant's model surface the CLI installs
 - [ ] `GET /v1/admin/audit` and `GET /v1/admin/audit/export` answer a request that can use `admin:audit` and refuse any other with `FORBIDDEN`, an agent token with `CREDENTIAL_REQUIRED`; the export answers the entries the list would for the same filters, as JSON where `format` is `json` or absent and as RFC 4180 CSV with a header row where it is `csv`, a field beginning with `=`, `+`, `-`, `@`, a tab or a carriage return written with a single quote before it, and refuses any other `format` with 400 `INVALID_REQUEST`
