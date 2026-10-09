@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: content-git
-version: 1.5.2
+version: 1.7.4
 requires: [architecture/content, patterns/content-identity, protocol/identity, patterns/secrets, patterns/principal-identity]
 platform: any
 tier: free
@@ -66,7 +66,7 @@ all of what this blueprint says about it.
 ```yaml
 requires:
   - blueprint: architecture/content
-    version: ">=2.5.0 <3.0.0"
+    version: ">=2.21.1 <3.0.0"
     bindings:
       types:
         - name: ContentChange
@@ -76,7 +76,7 @@ requires:
         - name: ContentRepository
           fields_used: [placement, custody, attestations, backend_report]
         - name: ContentAdoption
-          fields_used: [digest, entries, backend_report]
+          fields_used: [digest, entries, keeps_history, backend_report]
         - name: ContentReplica
           fields_used: [destination, state, custody, anonymous_read, attestations, credential, credential_fingerprint, held_path, held_reason, backend_report]
         - name: ReplicaCensus
@@ -160,8 +160,9 @@ requires:
    made for somebody else.
 
 4. **History names a person by a pseudonym** — History is what a replica
-   later publishes. An identity id is the same at every hub its person joins,
-   so publishing one lets anyone link that person across tenants. A commit
+   later publishes. An identity id is the fingerprint of the key a person
+   registered with, so it is the same at every hub they joined with that key,
+   and publishing one can let anyone link that person across tenants. A commit
    names each person by a pseudonym, and only the tenant can map it back. A
    service it names is named the same way, so no rule depends on telling the
    two apart.
@@ -190,6 +191,7 @@ contracts:
       rules:
         - A placement's locator names the top level of exactly one git repository, and the whole of it. Establishing or adopting a locator inside a git repository that is not its top level is refused with CONTENT_PLACEMENT_PARTIAL
         - Adopting a store whose git directory, common directory or object store lies outside the locator, that borrows objects through alternates, or that is shallow or a partial clone, is refused with CONTENT_PLACEMENT_PARTIAL. Such a store does not hold its own history
+        - A git store keeps its history, and every version on its line leaves with a copy of it. The census over one reports keeps_history true, so adopting it needs a scope_floor, per architecture/content's rule that history a store kept is classified before it is adopted
         - establish runs git init with no template, so nothing is copied into the git directory, with the backend's object_format and with default_line as the initial branch, bare when the backend's worktree option is none. The line is left unborn. The service writes no commit, no .gitignore and no README, per architecture/content's rule that it writes nothing into a store it establishes
         - On adopt, the line is the branch the store's HEAD names when the census is taken. The census shows it, and the census digest covers it
         - Adopting a store whose HEAD names no branch, that is in the middle of a merge, rebase, cherry-pick, revert or bisect, whose index has unmerged entries, or whose working tree differs from its line, is refused with CONTENT_LINE_UNSETTLED. A person settles it with git and takes a new census
@@ -256,7 +258,7 @@ contracts:
         - A process that must reach another repository allows only the transport it needs, on that process alone - file, for the record mirror to fetch from its store; ssh, to push to a replica or ask a replica's head; and, with no credential, the transports of a replica's read addresses, to test anonymous read
         - The service runs only these git commands - init, rev-parse, symbolic-ref, for-each-ref, cat-file, ls-tree, ls-files, check-ignore, hash-object, read-tree, update-index, write-tree, commit-tree, update-ref, merge-base, rev-list, diff-tree with --no-ext-diff and --no-textconv, config reading the store's own file, fetch run in the record mirror from its store, push from the record mirror to a replica, and ls-remote against a replica
         - The service never runs gc, repack or prune on a store, and never checks out, resets, merges, rebases or stashes
-        - The git binary is found once, at start, by absolute path. Below version 2.36.0, the release that added core.fsync for references, or where no git is found, the backend is unavailable. The service does not exit, health reports degraded naming the backend and what was found, and every operation on the backend's repositories answers CONTENT_UNREADABLE
+        - The git binary is found once, at start, by absolute path. Below version 2.38.0, the first release that honours safe.directory given with -c (earlier ones read it only from system or global configuration, which the environment above empties, and refuse a store another user owns), or where no git is found, the backend is unavailable. The service does not exit, health reports degraded naming the backend and what was found, and every operation on the backend's repositories answers CONTENT_UNREADABLE
 
     - name: git-control-census
       description: What an adoption census reports about the store's control state
@@ -307,11 +309,12 @@ contracts:
         - What a git store sends is its line. A destination holds only what the service sent when its line is absent or names a commit on the record mirror's line
         - Pushes come from the record mirror, never from the store, and send only commits the service has anchored
         - Each push names one refspec, the commit to send and refs/heads/<line> at the destination. It is never forced and sends no tag and no other ref
-        - A commit is a version, classified as architecture/content's What would leave classifies one. The commit of a ContentChange, found by ContentChange.version, is at that change's scope, and needs none when the change removes an entry. Any other commit - one from before adoption, one the service made for an observation, one a person made on the line - is classified by each path it adds or changes against its first parent, from the scope that path's bytes in the commit declare and the path's recorded scope as last recorded, which a removal never clears and the repository's scope_floor bounds below, and is unclassified when one of those paths has neither
+        - A commit is a version, classified as architecture/content's What would leave classifies one. The commit of a ContentChange, found by ContentChange.version, is at that change's scope, and needs none when the change removes an entry. Any other commit - one from before adoption, one the service made for an observation, one a person made on the line - is classified by each path it adds or changes against its first parent, from the scope that path's bytes in the commit declare, the maps_to of each label they carry that the tenant registers included, as architecture/content reads bytes, and the path's recorded scope as last recorded, which a removal never clears and the repository's scope_floor bounds below, and is unclassified when one of those paths has neither
         - The commits a push could send are those reachable from the record mirror's newest anchored commit and not from the destination's head. Before each push, every one of them is checked, oldest first in topological order, as architecture/content's Replica Send Flow requires - every path its whole tree holds, recursively, against architecture/content's reserved names and this blueprint's reserved paths, every gitlink and symbolic link included, and not only the paths it changes; whether it is unclassified and the replica's census did not count it; and whether its scope is above the replica's ceiling
         - The first commit that fails holds the replica, with held_reason reserved-path, unclassified or above-ceiling. held_path is the reserved path it holds, or else the first path, in git's order, that it changes from its first parent. The commit to send is then the newest anchored commit on the record mirror's line that does not descend from it, and nothing is pushed when the destination already holds that commit
+        - Nothing is pushed while architecture/content's Replica Send Flow holds every send for the egress record a send owes (its step 4). The checks above and the ls-remote below still run, so a held commit and a diverged destination are reported, and a replica no commit holds is behind with held_reason egress-unrecorded and is pushed nothing
         - Before each push the service asks the destination for its line's head with ls-remote, over the same transport. That is the only thing it reads there. It never fetches
-        - A destination whose line names a commit that is not on the record mirror's line makes the replica diverged. Its head is recorded in backend_report, and pushing resumes by itself once the destination's line again names a commit on the mirror's line
+        - A destination whose line names a commit that is not on the record mirror's line makes the replica diverged. Its head is recorded in backend_report, and the replica leaves diverged by itself once the destination's line again names a commit on the mirror's line
         - A destination's refs other than its line are not the replica. They are counted in backend_report, and never sent, fetched or removed
         - anonymous_read is tested with ls-remote against the replica's locator at each of the backend's read_addresses, presenting no credential, and with an attempt over the replica's own ssh transport presenting no key. It is refused when every attempt is refused, readable when any lists a ref, and unknown when any cannot finish
 
@@ -482,12 +485,14 @@ types:
         description: Present when state is unsettled or diverted
       differs:
         type: list
+        items: string
         required: false
         description: In a census whose reason is worktree-differs, each path
           whose working-tree bytes differ from the line's, including paths
           on only one side
       findings:
         type: list
+        items: GitFinding
         required: true
         description: GitFinding records. Empty means none was found
       observed_at:
@@ -541,11 +546,13 @@ types:
     fields:
       host_keys:
         type: list
+        items: string
         required: true
         description: The destination host's public keys, in known_hosts form.
           The only keys ssh accepts from it. Never learned on first use
       read_addresses:
         type: list
+        items: string
         required: false
         description: Every other address at which a stranger could read a
           repository under this root, as a URL the locator is appended to.
@@ -663,6 +670,10 @@ machine the tenant owns is `held_by: tenant`.
 
 ## Error Handling
 
+Each code is returned with the HTTP status its Category gives under
+[`architecture/content`](../architecture/content.md#error-handling)'s
+status-by-Category rule, as content's own codes are.
+
 | Code | Category | When | Behaviour |
 |---|---|---|---|
 | `CONTENT_PLACEMENT_PARTIAL` | validation | On establish or adopt, the locator is inside a git repository and is not its top level; or, on adopt, the store's git directory, common directory or objects lie outside the locator, it borrows objects through alternates, or it is shallow or a partial clone | Refuse. Create nothing and adopt nothing. A placement governs a whole store or none of one |
@@ -734,23 +745,25 @@ from the line's, returning both of those digests.
 - [ ] A write racing a person's commit that changed the same path is refused with `CONTENT_PRECONDITION_FAILED`, and the line keeps the person's commit
 - [ ] Adopting a subdirectory of a git repository is refused with `CONTENT_PLACEMENT_PARTIAL`, and so is adopting a store that uses alternates or is shallow
 - [ ] Adopting a store with a detached HEAD, or whose working tree differs from its line, is refused with `CONTENT_LINE_UNSETTLED`, and the census's `backend_report` names the reason
+- [ ] The census over a git store reports `keeps_history` true, and adopting one whose declaration carries no `scope_floor` is refused with `CONTENT_SCOPE_UNDECLARED`
 - [ ] An adoption whose store gained a configured remote after the census is refused with `CONTENT_PRECONDITION_FAILED`
 - [ ] After a person resets the line to an earlier commit, every read and write answers `CONTENT_UNREADABLE`, health reports degraded naming `line-rewritten`, and nothing in the store is changed by the service
 - [ ] A path inside a nested repository, and a path the line records as a symbolic link, are refused with `CONTENT_RESERVED_PATH`
-- [ ] With git below 2.36.0 on the host, the service starts, health reports degraded naming the backend, and reads of its repositories answer `CONTENT_UNREADABLE`
+- [ ] With git below 2.38.0 on the host, the service starts, health reports degraded naming the backend, and reads of its repositories answer `CONTENT_UNREADABLE`
 - [ ] `tamper_evident` is false after an anchored commit is removed from the record mirror, and the ceiling is recomputed
 - [ ] A replica on a `git-remote` backend returns `credential` as an OpenSSH `ssh-ed25519` public key, and the private key appears in no response, log or event, and in no file at any time, including while a push runs
 - [ ] Outside development, a replica's private key is held in a store that meets `protocol/identity` rule 8, never under file permissions alone
 - [ ] A replica on a `git-remote` backend whose declaration claims `exclusive` custody and every attestation is recorded `custody` `opaque`, with every attestation `false` and the `ceiling` `public`
 - [ ] Under exclusive custody with a working tree, a write to a path a person edited in the working tree is refused with `CONTENT_PRECONDITION_FAILED` returning the line's and the working tree's digests, and no commit is made
 - [ ] A change whose `actor` is a service's identity id names that service by its pseudonym as author, never by its identity id
-- [ ] A push to a replica is made from the record mirror, names one refspec for the line, is never forced, and sends no tag
+- [ ] A push to a replica, once architecture/content's Replica Send Flow lets one be made, is made from the record mirror, names one refspec for the line, is never forced, and sends no tag
 - [ ] A destination whose host key is not in `host_keys`, or that does not offer `mlkem768x25519-sha256`, is sent nothing and is not presented the key
 - [ ] A destination whose line was moved to a commit not on the record mirror's line makes the replica `diverged`, records the destination's head in `backend_report`, and receives nothing more until its line again names a commit on the mirror's line
 - [ ] No operation fetches from a replica
 - [ ] A replica census over a store whose history holds a commit a person made with a real address lists that name and address in `backend_report`
 - [ ] A person's commit on the line, made after a replica was confirmed, that adds `.weblisk/secrets/x`, a gitlink or a symbolic link holds the replica `behind` with `held_reason` `reserved-path` naming the path; the commit is never pushed, and neither is any anchored commit that descends from it
-- [ ] A commit the service made for an observation after a replica's census, of a path with no recorded scope whose bytes declare none, holds the replica `behind` with `held_reason` `unclassified`, and the push sends the newest anchored commit before it
-- [ ] A commit a person made on the line after a replica's census, changing only paths that have a recorded scope at or below the replica's ceiling, is classified and pushed
+- [ ] A commit the service made for an observation after a replica's census, of a path with no recorded scope whose bytes declare none, holds the replica `behind` with `held_reason` `unclassified`; the commit to send is the newest anchored commit before it, and nothing is pushed while architecture/content's Replica Send Flow holds every send
+- [ ] Where the tenant registers `pii` with `maps_to: restricted`, a commit from before adoption, in a repository floored at `internal`, that adds a file carrying `custom_labels: [pii]` beside `scope: internal` or beside no level is classified `restricted`, and holds a plain replica `behind` with `held_reason` `above-ceiling`
+- [ ] A commit a person made on the line after a replica's census, changing only paths that have a recorded scope at or below the replica's ceiling, is classified and holds no replica back: the replica is `behind` with `held_reason` `egress-unrecorded`, and nothing is pushed
 - [ ] A repository declaration whose placement names a `git-remote` backend is refused with `CONTENT_BACKEND_UNKNOWN`
 - [ ] A store with a configured remote reports a `remote` finding, and its repository's `effective_custody` is `opaque`

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.2.0
+version: 2.6.3
 requires: [protocol/types]
 platform: any
 tier: free
@@ -41,7 +41,7 @@ Scope is the primitive; everything else is a consumer.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.13.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -231,7 +231,7 @@ contracts:
       description: The tenant's record of the agreement that raises a model provider's ceiling
       inherited_by: Scope Types section
     - name: ProviderCeiling
-      description: What a model backend may be sent now
+      description: What a model backend may be sent now, for the model asked about
       inherited_by: Scope Types section
     - name: DestinationRefusal
       description: Why the destination gate refused a send
@@ -340,6 +340,23 @@ read:
 |---|---|---|
 | A replica of a content repository | [`architecture/content`](../architecture/content.md#derived-scope-ceiling), Derived Scope Ceiling | `GET /v1/content/repositories/{repository}/replicas` |
 | A model provider | [Model providers](#model-providers), below | `GET /v1/admin/model/ceiling` on a person's token, and `GET /v1/model/ceiling` on a registered component's ([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)) |
+| A caller of a hub's MCP surface | Always `internal`, as [`architecture/mcp`](../architecture/mcp.md#the-destination-gate) says: its caller is a model whose provider the tenant cannot see, so it is a model provider no agreement can name | Not read by a client: the MCP surface applies it to every tool result |
+
+> **Gap — a tenant component on another host has no ceiling yet.** A tenant
+> component on a host other than the one holding the content takes its
+> ceiling from the custody that host has demonstrated, and never from
+> `ServiceEntry.address_provenance`, which says where a component is and not
+> who can read its bytes. No blueprint yet specifies how a host
+> demonstrates custody, so no such row stands in the table above, and what
+> the content service serves a component, `content:read` included, is bounded
+> today by that component's grant and scope alone, wherever it runs. A tenant
+> that places a component that reads content on another host
+> ([`architecture/orchestrator`](../architecture/orchestrator.md#a-tenants-components-may-be-distributed))
+> therefore sends that host whatever the component may read, `restricted`
+> included, with nothing demonstrated about who else can read it there.
+> Closing it is a custody demonstration for a component's host, with a
+> ceiling derived from it as a replica's is, and the gate above applied to
+> every read served across hosts.
 
 ### The gate
 
@@ -397,6 +414,29 @@ above it with its level, or that the item's level is undeclared. It emits
 `scope.violation`. A person may then send what is at or below the ceiling, as a
 new request of their own, told what it leaves out.
 
+> **Gap — a register is not yet masked by column for a model provider.**
+> A register sent to a model provider is meant to have the columns its
+> schema declares above the provider's ceiling masked, rather than the whole
+> register refused, with the masking following
+> [`patterns/privacy`](privacy.md)'s activation matrix. Nothing here does that
+> yet, so today a register with one column declared above the ceiling is
+> refused whole. A sender cannot do it: a model route cannot see where the
+> text in a prompt came from, and a client takes a level only from what the
+> tenant reported with it, which is the whole entry's. Only the tenant can,
+> because it alone holds what a column's level is: a column `scope` is
+> declared on the register's spec
+> ([`schemas/programme`](../schemas/programme.md#scope)) and the entry's bytes
+> carry only the register's level, so
+> [`architecture/content`](../architecture/content.md#the-recorded-scope)
+> records no column's. What closes it is a read the tenant answers with the
+> register less every column declared above a named ceiling, reported at the
+> scope of what remains and naming each column it left out, so that the
+> removal is the tenant's declared act, shown to whoever asked and audited,
+> and never a sender's silent one. That read is a different item from the
+> entry, at its own scope, and the gate and the rule above apply to it
+> unchanged. A register whose spec, rather than a column, puts it at
+> `restricted` or above stays refused whole.
+
 **Every sender, a client included.** The gate binds whatever sends: a
 component, an agent, a gateway, and a client outside the tenant, such as an
 operator console or the CLI, that holds content it read from the tenant and is
@@ -413,25 +453,46 @@ has with nothing demonstrated or attested.
   of [`patterns/api-ai`](api-ai.md#destination-ceilings), and
   `POST /v1/admin/complete`
   ([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)).
-  Each applies the gate itself before it sends. A model backend that runs as a
-  program on the tenant's host makes no outbound call a boundary can see.
+  Each applies the gate itself before it sends. A component serving
+  api-ai's endpoints declares `model:route`
+  ([`protocol/types`](../protocol/types.md)), which is how a boundary tells it
+  from anything else. `POST /v1/admin/complete` is the orchestrator's own
+  route, served by the model gateway the CLI installs in it, and neither
+  registers a manifest: the external boundary wraps an agent's outbound
+  calls, and the orchestrator is not an agent, so `model:route` is not how
+  that route is told apart, and what holds there is the gate it applies
+  itself. A model backend that runs as a program on the tenant's host makes
+  no outbound call a boundary can see.
 - A component's outbound call to a model provider's endpoint also passes the
   external boundary of
   [`architecture/enforcement`](../architecture/enforcement.md#external-proxy),
   which recognises the endpoint by the address `GET /v1/model/ceiling` reports,
   applies the gate with the provider's ceiling, and refuses a call made around
-  the model route.
+  the model route: one from a caller whose manifest does not declare
+  `model:route`. That refusal holds only against a component that does not
+  declare it. A registration is not yet an enrolment, so any component may
+  declare `model:route` on its own signed manifest
+  ([`protocol/types`](../protocol/types.md), model capabilities, and
+  [`protocol/spec`](../protocol/spec.md#post-v1register)). Against one that
+  does, what still holds is the gate: nothing above the provider's ceiling
+  passes the boundary.
+- A tool result is checked by a hub's MCP surface before it is returned to
+  its caller, as [`architecture/mcp`](../architecture/mcp.md#the-destination-gate)
+  says. Its caller is a model, so nothing `restricted` or above is returned
+  to one ([Model providers](#model-providers)).
 - A replica is checked by the content service, when it is declared and before
   every send, as [`architecture/content`](../architecture/content.md#replicas)
   says.
 
 **Another destination is another gate.** Whatever chooses where a request
-goes — resolving a model by name, a fallback chain, a failover when the first
-provider fails, a budget downgrade, a caller's override — may choose only a
-destination whose ceiling covers what is sent. With none, the request is
-refused. It never goes, transparently or otherwise, to a destination whose
-ceiling is below it, and the response names the destination that received
-it. A copy sent on to a second place is checked against that place.
+goes — resolving a model by name, a failover when the first provider fails, a
+caller's override — may choose only a destination whose ceiling covers what is
+sent. With none, the request is refused. For a model, none of them changes
+which model the request runs: a failover reaches the same model elsewhere or
+nothing ([`patterns/api-ai`](api-ai.md#model-routing)). It never goes,
+transparently or otherwise, to a destination whose ceiling is below it, and
+the response names the destination that received it. A copy sent on to a
+second place is checked against that place.
 
 ### Model providers
 
@@ -451,16 +512,47 @@ an **agreement attestation** for it.
   keeps, whether it trains on it, to whom it discloses it — and covers content
   up to a stated level, `internal` or `confidential`. It names the party, every
   name under which the tenant's model configuration reaches it (`backends`),
-  the agreement, the SHA-256 of the tenant's own copy of it, the level, who
-  recorded it, and when it lapses. Where the tenant runs the model itself, it
-  names the component.
+  every model it covers at those names (`models`), the agreement, the SHA-256
+  of the tenant's own copy of it, the level, who recorded it, and when it
+  lapses. Where the tenant runs the model itself, it names the component.
 - **How a request finds its provider.** By the name the tenant's model
   configuration gives the backend the request reaches: the `provider` value
   `GET /v1/admin/model` reports, or the provider's key under `patterns/api-ai`'s
-  `providers:`. The name is compared exactly as the configuration spells it.
-  A backend no current agreement lists has the ceiling `internal`, so a name
-  nobody listed is never given more. A backend is listed by at most one
-  current agreement.
+  `providers:`; and by the model the request asks that backend for: the model
+  `GET /v1/admin/model` reports for the role the request states, its `roles`
+  entry or else `model`, or the model an api-ai request names or else that
+  endpoint's `defaults.model`. Where none of these names a model, the request
+  names none and runs the backend's choice, even where a local model server
+  is then asked for the first model it reports loaded, and its ceiling is
+  `internal`, as the next item says. Each is compared exactly as the
+  configuration or the request spells it. A backend no current agreement
+  lists, and a model the agreement that lists it does not list, has the
+  ceiling `internal`, so a name or a model nobody listed is never given more,
+  and the ceiling routes answer every name and model that way, ones the
+  tenant's model configuration does not know included. A model at a backend
+  is covered by at most one current agreement.
+- **Why an agreement lists models.** At a backend whose model chooses who
+  runs it, such as an aggregator or a gateway that forwards each model to
+  whichever organisation hosts it, the name alone names no party. An
+  agreement that covered a name whatever model it was asked for would cover
+  parties nobody attested, and a change of model alone would send content up
+  to its level to one of them. So an agreement covers the models it lists and
+  no other, at every backend it lists, whichever kind of backend that is. A
+  request that names no model goes to whatever the backend chooses, which no
+  agreement can name, so its ceiling is `internal`.
+- **What an agreement does not bind.** It binds names and models, never what a
+  name reaches. So changing what a listed name reaches ends the agreement
+  where the tenant can see the change. The orchestrator holds both the model
+  configuration and the agreements, and `PUT /v1/admin/model` withdraws what
+  it could carry past one, by the one rule
+  [`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)
+  states, so the name falls to `internal` until a person holding
+  `model:attest` records a new one. An api-ai `providers:` entry is configured
+  where the orchestrator cannot see it: changing its endpoint keeps the
+  agreement's level, and content up to that level would go to a party no
+  agreement covers. Until an agreement records what each name it lists
+  reaches, whoever changes a listed `providers:` entry withdraws that
+  agreement first, and the tenant cannot check that they did.
 - **Who records it.** A person, on their own operator token, holding
   `model:attest`. [`protocol/types`](../protocol/types.md) marks it *person
   only*, and the mechanism that list names keeps it from every service
@@ -469,22 +561,27 @@ an **agreement attestation** for it.
   `service-subject-constraints` and `agent-delegation`). `admin:*` does not
   include it. The tenant takes who recorded it from the token's `identity_id`
   ([`protocol/identity`](../protocol/identity.md#payload-claims)), and
-  withdrawing one takes the same capability.
+  withdrawing one by `DELETE /v1/admin/model/agreements/{id}` takes the same
+  capability. The one other withdrawal is the side effect of
+  `PUT /v1/admin/model`, which `admin:*` reaches
+  ([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)):
+  it only ever lowers a ceiling, so it needs no attestation.
 - **Where it is held.** At the tenant, beside the model configuration it
   qualifies, through the routes
   [`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)
   declares. It is a fact about the tenant, so a client never keeps one, never
   infers one, and never treats a setting of its own as one.
-- **What it changes.** While it is current, the provider's ceiling is the
-  level it names. It lapses at `not_after`, which is no more than 90 days after
+- **What it changes.** While it is current, the provider's ceiling, for the
+  models it lists at the names it lists, is the level it names. It lapses at `not_after`, which is no more than 90 days after
   it is recorded, or when a person withdraws it. From that moment the ceiling
   is `internal` again.
 
 **Nothing `restricted` or above is sent to a model provider, whatever its
-ceiling,** a model the tenant runs itself included. That is why an agreement
-names `confidential` at most. A request that carries any part of an entry
-whose `ContentEntry.scope` is `restricted` or `critical` is refused, whichever
-of its rows, sections or columns the request drew on.
+ceiling,** a model the tenant runs itself and the model behind an MCP caller
+included. That is why an agreement names `confidential` at most. A request
+that carries any part of an entry whose `ContentEntry.scope` is `restricted`
+or `critical` is refused, whichever of its rows, sections or columns the
+request drew on.
 
 ---
 
@@ -662,7 +759,11 @@ types:
       - name: backends
         type: "[]string"
         required: true
-        description: Every name under which the tenant's model configuration reaches the party, spelled as the configuration spells it. At least one. A name a current agreement already lists is refused
+        description: Every name under which the tenant's model configuration reaches the party, spelled as the configuration spells it. At least one
+      - name: models
+        type: "[]string"
+        required: true
+        description: Every model the agreement covers at each name in backends, spelled as the configuration or a request spells it and compared exactly. At least one. A model it does not list has the ceiling internal at those names, and a model at a name a current agreement already covers is refused. See Model providers, Why an agreement lists models
       - name: component
         type: string
         required: false
@@ -708,11 +809,15 @@ types:
       - name: backend
         type: string
         required: true
-        description: The name the tenant's model configuration gives the backend
+        description: The name asked about — the backend GET /v1/admin/model reports, or the name ?backend= gave, which may be an api-ai providers key the tenant's model configuration does not know
+      - name: model
+        type: string
+        required: false
+        description: The model asked about — the model GET /v1/admin/model reports, or the one ?model= gave. Absent where none is named, and then the ceiling is internal
       - name: ceiling
         type: ScopeLevel
         required: true
-        description: internal, or the level of the current agreement that lists the backend
+        description: internal, or the level of the current agreement that lists both the backend and the model
       - name: agreement
         type: string
         required: false
@@ -734,7 +839,7 @@ types:
       - name: destination
         type: string
         required: true
-        description: The destination refused — a replica's id, or a model backend's name
+        description: The destination refused, as the gate that refused it names it — a replica's id, a model backend's or an api-ai provider's name, `mcp` for the caller of a hub's MCP surface, or the target an external boundary refused
       - name: ceiling
         type: ScopeLevel
         required: true
@@ -1063,7 +1168,7 @@ scope:
   escalation_strategy: maximum           # default escalation strategy
   violation_action: deny                 # default action on scope violation
   environment: production                # active environment profile
-  custom_labels: {}                      # domain-registered custom labels
+  custom_labels: {}                      # labels this component registers (Label Registration)
   audit:
     log_all_access: false                # log every access, not just violations
     tamper_evident: false                # enable cryptographic audit integrity
@@ -1230,8 +1335,12 @@ replacing it.
 
 ### Label Registration
 
-Custom labels are registered at the domain level. Each names in
-`maps_to` the least level it may be declared with:
+Custom labels are registered in the `scope.custom_labels` configuration of
+the component that enforces them: a domain's for what that domain enforces,
+and the content service's for every repository it holds
+([`architecture/content`](../architecture/content.md#an-entrys-scope), where
+the tenant registers a label). Each names in `maps_to` the least level it may
+be declared with:
 
 ```yaml
 custom_labels:
@@ -1259,7 +1368,8 @@ the two combine, for every entity including a content entry:
 
 1. **The level is always one of the five.** A declaration whose level is a
    label, registered or not, or any other value, is refused with
-   `SCOPE_INVALID_LEVEL`. A label with no level beside it declares no level.
+   `SCOPE_INVALID_LEVEL`. A label with no level beside it declares no level;
+   rule 4 says what a registered one gives where nothing checked it.
 2. **A registered label sets the least level it may be declared with.** Its
    `maps_to` is that level. A declaration whose level is below the `maps_to` of
    a registered label it carries is refused, and never raised to fit. The
@@ -1270,10 +1380,20 @@ the two combine, for every entity including a content entry:
    uses `CONTENT_SCOPE_LOWERED`.
 3. **A label the component has not registered sets nothing.** It is carried
    and preserved, and the declared level is enforced.
+4. **Where nothing checked a declaration, a registered label still sets its
+   least level.** A level a component reads from something rule 2 was never
+   applied to — bytes it did not write, a version kept from before it held
+   them, a copy it observed — is the higher of the level declared beside the
+   label and the label's `maps_to`, and a registered label with no level
+   beside it gives its `maps_to`. What rule 2 would have refused is never
+   classified below the label, so an entity that carries a registered label
+   is never sent, copied or recorded below its `maps_to`.
 
 So `scope: confidential` with `pii`, where `pii` is registered as above, is
-refused, and `scope: restricted` with `pii` is `restricted`. Where `pii` is
-not registered, the first is `confidential`, carrying `pii`.
+refused, and `scope: restricted` with `pii` is `restricted`. Found in bytes
+nothing checked, the first is `restricted`, and so is `pii` with no level
+beside it. Where `pii` is not registered, the first is `confidential`,
+carrying `pii`.
 
 `pii` is also a label the platform acts on, registered or not:
 [`architecture/content`](../architecture/content.md#where-an-entry-labelled-pii-is-kept)
@@ -1293,8 +1413,8 @@ Component B (doesn't know "hipaa"): enforces "critical", the declared level
 
 This ensures interoperability: custom labels add context for components that
 understand them, and every component enforces the level. Where `hipaa` is
-registered, that level is at least its `maps_to`, because rule 2 was checked
-when it was declared.
+registered, that level is at least its `maps_to`: rule 2 was checked where it
+was declared, and rule 4 sets it where nothing checked it.
 
 ---
 
@@ -1338,11 +1458,16 @@ federation_transfer:
 | Code | HTTP | Category | Description |
 |------|------|----------|-------------|
 | `SCOPE_EXCEEDED` | 403 | permanent | Entity scope exceeds component's operational scope |
-| `SCOPE_MISSING` | 400 | permanent | Entity has no scope declaration and `reject_unscoped` is enabled, or it would be sent to a destination ([Destination Ceilings](#destination-ceilings)). At a destination, the detail is a `DestinationRefusal` |
-| `SCOPE_CEILING_EXCEEDED` | 403 | permanent | Content would be sent to a destination whose ceiling is below its scope, or `restricted` or above would be sent to a model provider. The detail is a `DestinationRefusal` |
 | `SCOPE_PROPAGATION_FAILED` | 500 | transient | Scope metadata could not be attached to transfer envelope |
 | `SCOPE_INVALID_LEVEL` | 400 | permanent | Declared scope level is not one of the five built-in levels, or is below the `maps_to` of a registered custom label the declaration carries ([A label and its level](#a-label-and-its-level)) |
 | `SCOPE_FEDERATION_DENIED` | 403 | permanent | Receiving hub does not accept this scope level from federated peers |
+
+`SCOPE_MISSING` and `SCOPE_CEILING_EXCEEDED` are registered with their HTTP
+status in [`protocol/types`](../protocol/types.md#errorresponse), because
+every sender [The gate](#the-gate) binds answers with them, whatever component
+it is. [The gate](#the-gate), and `reject_unscoped` under
+[Configuration](#configuration), say when each is answered, and a refusal at
+a destination carries a `DestinationRefusal` as its detail.
 
 ### Error Response Examples
 
@@ -1430,6 +1555,7 @@ federation_transfer:
 - [ ] Critical scope is enforced (not just audited) in ALL environments including development
 - [ ] A declaration whose level is a custom label, or anything but one of the five built-in levels, is refused with `SCOPE_INVALID_LEVEL`
 - [ ] A declaration whose level is below the `maps_to` of a registered custom label it carries is refused, naming the label and both levels, and is never raised to fit
+- [ ] Bytes a component did not write, carrying a registered label whose `maps_to` is `restricted` beside `scope: internal` or beside no level, are classified `restricted` wherever the component records, copies or sends them
 - [ ] A component that does not know a custom label preserves it and enforces the level declared beside it, during cross-boundary transfers included
 - [ ] `scope.violation` events are emitted on every scope boundary violation
 - [ ] `scope.override` events are emitted when environment profiles modify enforcement
@@ -1441,8 +1567,12 @@ federation_transfer:
 - [ ] A client takes the scope of what it would send, and a destination's ceiling, from the tenant; a level it cannot learn is undeclared, and a ceiling it cannot learn is the one the destination has with nothing attested
 - [ ] The destination gate denies in every environment profile, `development` included, and no profile makes it audit-only
 - [ ] A model provider with no current agreement attestation has the ceiling `internal`, and a `confidential` request to it is refused with `SCOPE_CEILING_EXCEEDED`
-- [ ] A `ProviderAgreement` is recorded or withdrawn only on a person's operator token holding `model:attest`; a token holding `admin:*` and not `model:attest` is refused; one naming a level above `confidential`, or a `not_after` more than 90 days ahead, is refused; and after `not_after` or withdrawal the provider's ceiling is `internal`
+- [ ] A `ProviderAgreement` is recorded, or withdrawn by `DELETE /v1/admin/model/agreements/{id}`, only on a person's operator token holding `model:attest`; a token holding `admin:*` and not `model:attest` is refused at both routes; one naming a level above `confidential`, or a `not_after` more than 90 days ahead, is refused; and after `not_after` or withdrawal the provider's ceiling is `internal`
+- [ ] A `PUT /v1/admin/model` withdraws exactly what [`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination) says it withdraws, and the ceiling routes then answer each name it withdrew `internal`
 - [ ] A backend is found by the name the tenant's model configuration spells, and a name no current agreement lists has the ceiling `internal`
+- [ ] An agreement listing the backend `gateway` and the model `vendor-a/model-x` at `confidential` gives that name `confidential` for `vendor-a/model-x` alone: the ceiling routes answer `internal` for `gateway` asked for `vendor-b/model-y`, or asked for no model, and a `confidential` request for either is refused with `SCOPE_CEILING_EXCEEDED`, whether its model came from `PUT /v1/admin/model`, a route or a caller's override
+- [ ] A request that names no model has the ceiling `internal`, even where the backend is a local model server whose first loaded model a current agreement lists, and a `confidential` one is refused with `SCOPE_CEILING_EXCEEDED`
+- [ ] An agreement that lists no model is refused, and so is one listing a model at a backend a current agreement already covers for that model
 - [ ] Nothing `restricted` or `critical` is sent to a model provider, whatever its ceiling, a model the tenant runs itself included
 - [ ] Any part of a content entry is sent at that entry's `ContentEntry.scope`, and any part of an unclassified entry is refused with `SCOPE_MISSING`
-- [ ] Resolution, fallback, failover, budget downgrade and a caller's override each choose only a destination whose ceiling covers what is sent, refuse when none does, and never send to a lower-ceiling destination transparently
+- [ ] Resolution, failover and a caller's override each choose only a destination whose ceiling covers what is sent, refuse when none does, never send to a lower-ceiling destination transparently, and never change which model a request runs

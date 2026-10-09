@@ -46,7 +46,7 @@ One file per standard, named for its `id`: `standards/<id>.json`.
 | `description` | string | what it requires and what distinguishes it. Prose, for a person choosing between standards |
 | `authority` | string | who publishes it |
 | `scope` | string | who it applies to |
-| `category` | enum | `operational` · `cybersecurity` · `privacy` · `industry` · `government` |
+| `category` | enum | `operational` · `cybersecurity` · `privacy` · `industry` · `government` · `code` |
 | `status` | enum | `active` · `superseded` · `withdrawn` |
 | `families` | array | its control families, below |
 
@@ -188,13 +188,24 @@ relations point at.
 | `family` | string | the family `id` this belongs to |
 | `framework` | string | the standard `id` — carried so a control travels without its parent |
 | `domains` | string[] | the policy domains it concerns. 25 are in use across the corpus |
-| `priority` | enum | `critical` · `high` · `medium` |
+| `priority` | enum | `critical` · `high` · `medium` · `low` |
 | `requires_policy` | bool | a statement of intent is needed |
 | `requires_procedure` | bool | an operational process is needed |
 | `requires_technical` | bool | an implementation is needed |
 | `requires_evidence` | bool | a record of it having happened is needed |
 | `keywords` | string[] | terms that suggest a document may answer this |
 | `mapped_controls` | string[] | equivalent controls in other standards, as `<standard>:<control>` |
+
+### `code` and `low`
+
+Two values are there for the framework catalogue generated from `schemas/`
+([`../standards/README.md`](../standards/README.md#one-is-generated-and-is-here)):
+
+- **`code`** is its `category`. Its controls are the sections the blueprint
+  schemas list, and none of the five compliance domains describes that.
+- **`low`** is the `priority` of its controls for the sections a blueprint
+  schema marks optional, which a conforming blueprint may leave out and which
+  no rung up to `medium` describes.
 
 ### The four `requires_*` flags are the point
 
@@ -230,7 +241,7 @@ holds an accreditation it has never been assessed for.
 - [ ] A standard declaring `supersedes` names the prior edition in prose, and does not claim an `id` this corpus carries
 - [ ] Every `mapped_controls` entry is `<standard>:<control>` and names a standard the corpus carries
 - [ ] No standard records an organisation's adoption, score or evidence
-- [ ] `weblisk_framework` is absent — it is generated from `schemas/`, not authored
+- [ ] `weblisk_framework` is generated from `schemas/` and never edited by hand — see [`../standards/README.md`](../standards/README.md#one-is-generated-and-is-here)
 - [ ] Every standard carries `applies_in` — optional in the schema so a customer's file still loads, filled in everywhere here
 - [ ] Every `applies_in` entry is an ISO 3166-1 alpha-2 code, an ISO 3166-2 subdivision code, or `international`
 - [ ] `international`, where it appears, is the only entry

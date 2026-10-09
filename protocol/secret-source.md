@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: secret-source
-version: 1.1.0
+version: 1.6.0
 requires: [protocol/identity, patterns/principal-identity]
 platform: any
 tier: free
@@ -128,11 +128,11 @@ Every source answers the same actions, however it is reached:
 
 | Action | Asks for | Answers with | Required of a source |
 |---|---|---|---|
-| `capabilities` | what this source can do | `actions`, `sign_algs`, `named_fields`, `withheld_fields` | Yes |
+| `capabilities` | what this source can do | `actions`, `sign_algs`, `sign_batch`, `named_fields`, `withheld_fields` | Yes |
 | `get` | one secret, by reference and field | `value` | Yes, for every field the source does not withhold |
 | `store` | keep these fields, somewhere the source chooses | `reference` | No |
 | `erase` | forget what a reference names | an empty object | No |
-| `sign` | an ML-DSA-65 signature from a key that never leaves the source | `signature` | No — OPTIONAL |
+| `sign` | an ML-DSA-65 signature from a key that never leaves the source, or one for each of several messages | `signature`, or `signatures` | No — OPTIONAL |
 
 A source lists the actions it answers in `capabilities`. A caller MUST ask for
 `capabilities` before it uses `store`, `erase` or `sign`, and a source MUST
@@ -150,6 +150,18 @@ not listed is one the source releases.
 
 A `capabilities` response that leaves a field out is read as the smaller claim:
 `named_fields` false, `sign_algs` empty, `withheld_fields` empty.
+
+**A source never puts a secret where another process can read it.** A
+source, built in or a helper, MUST NOT place a secret value, a passphrase or a
+key on the command line or in the environment of any program it runs, its
+store's own command-line tool included. It hands one to that program on the
+program's standard input, or through an interface no other process can read,
+such as a library call or a descriptor it opened. A store whose tool takes a
+secret only as an argument is not written through that tool: a keychain's
+command that sets a password from its command line, such as `security
+add-generic-password -w <value>` or `cmdkey /pass:<value>`, puts on view to
+every local process the very passphrase a source keeps beside an identity
+(see [An identity held by a source](#an-identity-held-by-a-source)).
 
 A source is reached in one of two ways, and a caller cannot tell them apart on
 the wire:
@@ -170,12 +182,21 @@ hardware token. None is required, and none is special.
 | `1password` | the CLI | what its vault item holds, as named fields |
 | `file` | every caller that runs unattended | one value, read from a file ([Headless references](#headless-references-file-and-fd)) |
 | `fd` | every caller that runs unattended | one value, read from an inherited file descriptor |
+| `keychain` | the CLI, on each platform below | an identity whole, or only its passphrase where the person asks ([An identity held by a source](#an-identity-held-by-a-source)) |
 
 **The CLI MUST carry a `1password` source built in, and MUST reach it through
 this protocol.** That makes it the protocol's first user: every request the CLI
 makes of 1Password is one a helper could answer, so nothing about 1Password is
 known outside that source. It needs nothing installed beyond the vault's own
 command-line tool, and answers `not_installed` where that tool is missing.
+
+**The CLI MUST carry a `keychain` source built in** for its platform's
+keychain, reached through this protocol as every source is: macOS's first,
+then the Secret Service on Linux, then Windows', in that order. It holds an
+identity whole unless the person asks it to remember only the passphrase. On
+a platform it carries none for, it answers `not_installed`. No CLI carries
+one yet, so until it does, a person who wants a keychain names a helper that
+speaks for it.
 
 ### Discovery
 
@@ -341,6 +362,25 @@ which `protocol/identity` forbids.
 { "signature": "<base64url, 3309 bytes decoded>" }
 ```
 
+**Several signatures, one approval.** A request may carry `messages`, a list,
+in place of `message`, never both. The source answers `signatures`, one for
+each message in the same order, each made as a single `sign` makes one, and a
+source that asks its person to approve a signature asks once for the whole
+request, never once for each message. It is for a caller that needs several
+statements signed together, as the CLI needs a separate attestation for each
+hub an identity belongs to in one approval
+([`architecture/cli`](../architecture/cli.md#one-approval-vouches-for-every-hub)).
+A source lists `sign_batch: true` in `capabilities` where it accepts
+`messages`, and a caller sends `messages` only to a source that does. Every
+message is bound by the rule above: the caller built each itself. A list that
+fails part way answers an error and no signature, so a caller never holds
+signatures over part of what it asked for.
+
+```json
+{ "version": 1, "action": "sign", "reference": "weblisk/identity-7f3a9c", "alg": "ml-dsa-65", "messages": ["<base64url>", "<base64url>"], "options": {} }
+{ "signatures": ["<base64url>", "<base64url>"] }
+```
+
 **An error** replaces the result. A response carries `error` or a result, never
 both.
 
@@ -403,7 +443,8 @@ for one.
 **Mapping an identity that is already in a source.** A caller reads
 `public_key` from the source. Before it records the holder reference, or writes
 the public key beside it, it MUST prove that the reference works and names that
-key. It signs a **probe** through the reference, as
+key, once the probe has test vectors (the gap below). It signs a **probe**
+through the reference, as
 [Signing with a held identity](#signing-with-a-held-identity) describes, and
 verifies the signature against the `public_key` it read. A reference that cannot
 be read, or whose key does not match its `public_key`, is refused. Finding that
@@ -422,6 +463,22 @@ The probe is a fixed-form statement
 
 Nothing accepts it as anything else, so a signature made to prove a reference
 proves nothing more, and the caller discards it once it has verified.
+
+> **Gap — until the probe has test vectors, a reference is mapped
+> unproven.** No implementation signs a probe before this corpus publishes
+> test vectors for `weblisk/holder-probe/v1`
+> ([`protocol/identity`](identity.md#fixed-form-statements)), and none are
+> published. Until they are, a caller records the reference and the
+> `public_key` it read without a probe, and tells the person that the
+> reference is unproven. Every signature it then gets through the reference
+> is verified, over bytes it built itself, against that `public_key` before it
+> is used, as every signature through a holder reference is
+> ([Signing with a held identity](#signing-with-a-held-identity)). One that
+> does not verify is refused as a failed probe is, naming the reference, and
+> is never sent. One that verifies proves the reference as a probe would have. So a mapping made before the vectors
+> finds a broken reference at its first use, in the middle of something else,
+> which is the cost the probe exists to spare, and nothing worse: a signature
+> that does not verify never leaves the caller.
 
 ### Signing with a held identity
 
@@ -442,6 +499,18 @@ An identity kept in an encrypted key file is decrypted in memory the same way,
 with the passphrase from a person or from a source that remembers it. It is
 never written anywhere in the clear, and is zeroised after use
 ([`protocol/identity`](identity.md) rule 10).
+
+**Every signature is verified before it is used.** However it was made, a
+caller MUST verify a signature it gets through a holder reference, over the
+bytes it built, against the `public_key` recorded beside the reference, before
+it uses or sends that signature. One that does not verify is refused, naming
+the reference, and is never sent. A probe proves a reference when it is mapped,
+and nothing proves it stays so: the identity in the source can be replaced
+since. Verifying costs one ML-DSA-65 verification. It is also what holds a
+reference mapped before the probe had test vectors (the gap under
+[An identity held by a source](#an-identity-held-by-a-source)), because nothing
+records whether a reference was ever proven, and a caller that runs once for
+each command, as the CLI does, remembers no first signature.
 
 ### Protection
 
@@ -681,8 +750,13 @@ types:
       message:
         type: string
         format: base64url
-        required_when: action = sign
+        required_when: action = sign and messages is absent
         description: For sign, the exact bytes to sign. The caller built them itself, as a fixed-form statement protocol/identity registers or under its Sign JSON, and never passes on bytes another program handed it
+      messages:
+        type: "list<string>"
+        format: base64url
+        required_when: action = sign and message is absent
+        description: For sign, several messages to sign in one approval, each bound as message is. Sent only to a source whose capabilities answer sign_batch true, and never beside message
       options:
         type: object
         required: false
@@ -710,6 +784,10 @@ types:
         type: "list<string>"
         required: false
         description: For capabilities, the algorithms sign accepts. Empty or absent when the source cannot sign, and absent means empty
+      sign_batch:
+        type: bool
+        required: false
+        description: For capabilities, whether sign accepts messages, signing several in one approval. Absent means false
       named_fields:
         type: bool
         required: false
@@ -726,6 +804,11 @@ types:
         format: base64url
         required: false
         description: For sign, the ML-DSA-65 signature over the message
+      signatures:
+        type: "list<string>"
+        format: base64url
+        required: false
+        description: For sign with messages, one ML-DSA-65 signature for each message, in the same order. Absent unless every message was signed
       error:
         type: object
         required: false
@@ -867,6 +950,13 @@ security:
     - >-
       A helper's standard error is for diagnostics. It never carries a secret,
       and a caller MAY show it to a person.
+    - >-
+      A source, built in or a helper, places no secret, passphrase or key on
+      the command line or in the environment of any program it runs, its
+      store's own command-line tool included. It hands one over on that
+      program's standard input, or through an interface no other process can
+      read. The rule for the hop from caller to helper holds for every hop
+      after it.
   signing:
     algorithm: ML-DSA-65 (FIPS 204), named ml-dsa-65 on the wire
     process: >-
@@ -937,6 +1027,7 @@ security:
 - [ ] A registry file, a helper program, registered or found on the search path, and a `file:` reference are each refused as `denied` unless the file and its directory are owned by the caller's user or an administrator and nobody else can write them; nothing is used in a refused program's place
 - [ ] A registered command names its program by an absolute path
 - [ ] No field of a `SecretSourceRequest` appears on a helper's command line or in its environment
+- [ ] While a source, built in or a helper, runs its store's own tool to store, read or erase a secret, no secret value, passphrase or key appears on that tool's command line or in its environment, as `ps` or the process's environment would show; the `1password` source and a keychain source included
 - [ ] A helper's environment carries no variable holding a secret the caller was given
 - [ ] A helper answers a request whose `version` it does not speak with `unsupported`
 - [ ] A valid response is the helper's answer whatever its exit status, and only a helper that wrote no valid response is reported as `unsupported`
@@ -951,10 +1042,13 @@ security:
 - [ ] A report of a source failure names the source, the helper and the code, and machine-readable output carries `source` and `code` as fields
 - [ ] When a caller's deadline passes, the helper and every process it started are terminated and `timeout` is reported
 - [ ] A source that lists `sign` with `ml-dsa-65` in `sign_algs` is asked to sign and is never asked for `private_key`
+- [ ] A source that answers `sign_batch` true answers a `sign` carrying `messages` with `signatures` in the same order, asks its person at most once for the request, and answers an error and no signature when any message cannot be signed; a caller sends `messages` only to such a source, and never `messages` beside `message`
 - [ ] From a source that cannot sign, the caller gets `private_key` and `passphrase`, decrypts in memory, signs, and zeroises both
 - [ ] An identity created in a source is stored as the `weblisk-key-v1` envelope with `kdf = argon2id`, a generated `passphrase` of at least 256 bits from a cryptographically secure random source, and its `public_key`, never as a raw key
 - [ ] A source keeps only an identity's passphrase only when the operator asked for it, and only after the caller checked that the passphrase opens the key file
-- [ ] A holder reference is recorded only after a `weblisk/holder-probe/v1` signature made through it, over a nonce the caller generated for it, verifies against the `public_key` read from it
+- [ ] Once `weblisk/holder-probe/v1` has test vectors, a holder reference is recorded only after a `weblisk/holder-probe/v1` signature made through it, over a nonce the caller generated for it, verifies against the `public_key` read from it
+- [ ] Before `weblisk/holder-probe/v1` has test vectors, a holder reference is recorded with no probe and reported unproven, and any signature made through it that does not verify against the `public_key` read from it is refused, naming the reference, and never sent, in whatever process it is made
+- [ ] A signature made through a holder reference, probed or not, is verified against the `public_key` recorded beside the reference before it is used, and one that does not verify, as after the identity in the source was replaced, is refused, naming the reference, and never sent
 - [ ] A caller asks a source to `sign` only a fixed-form statement `protocol/identity` registers, or a value under Sign JSON, that it built itself, and never a message another program handed it
 - [ ] `key_protection` is `hardware` only for a source that lists `sign` with `ml-dsa-65` and lists `private_key` in `withheld_fields`, and is never reported stronger than the Protection table gives
 - [ ] `file:` with a relative path answers `invalid_reference`

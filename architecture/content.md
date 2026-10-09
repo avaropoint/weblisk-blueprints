@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.8.2
-requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage]
+version: 2.22.15
+requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
 -->
@@ -44,33 +44,39 @@ organisation can open.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.8.0 <2.0.0"
+    version: ">=1.17.2 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
           fields_used: [code, error, category, retryable]
+        # pass_routes is how the admin gateway learns what a person's request
+        # may reach here and what each needs. See Registration and
+        # Standalone Operation
         - name: AgentManifest
-          fields_used: [name, capabilities]
+          fields_used: [name, capabilities, pass_routes]
+        - name: PassRoute
+          fields_used: [method, path, capabilities, body]
+        - name: BodyRequirement
+          fields_used: [field, equals, capabilities]
         - name: AuditEntry
-          fields_used: [id, timestamp, actor, action, target, status]
+          fields_used: [id, timestamp, actor, via, action, target, status]
         - name: ProposedChange
           fields_used: [path, action]
-        # A person-only act is checked with the orchestrator first
-        - name: TokenStatus
-          fields_used: [live, code, identity_id, identity_public_key, capabilities]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.9.0 <2.0.0"
+    version: ">=1.14.4 <2.0.0"
     bindings:
       types:
-        # identity_id is who a change names; type says whose token it is;
+        # identity_id is who a change names; type and aud say a person's
+        # request arrived on a pass addressed here; act names the gateway that
+        # carried it; identity_key is the person's current identity key;
         # record_keys and cid say which key may sign the change it carries
         - name: WLToken
-          fields_used: [cap, identity_id, type, cid, record_keys]
+          fields_used: [cap, identity_id, type, aud, act, identity_key, cid, record_keys]
     # The change statement is a fixed-form statement, registered there
     on_change:
       compatible: validate-and-adopt
@@ -94,7 +100,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/scope
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.3.0 <3.0.0"
     bindings:
       types:
         # An enum: it declares values, not fields, so nothing is bound FROM it.
@@ -171,7 +177,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/storage
-    version: ">=1.2.0 <2.0.0"
+    version: ">=1.4.2 <2.0.0"
     bindings:
       types:
         # The change log's own key, succession and checkpoint entries
@@ -183,6 +189,17 @@ requires:
           fields_used: [seq, tip, issued_at, key, signature]
       behaviors:
         - name: sealed-log
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/orchestrator
+    version: ">=2.15.0 <3.0.0"
+    bindings:
+      behaviors:
+        # What a pass this service accepts rests on. See Who may move an entry
+        - name: token-exchange
+          usage: Relied on, never called here. Every pass this service accepts was minted by the exchange, for an operator token the orchestrator judged live then, carrying no capability the person could not use then
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -235,6 +252,8 @@ requires:
 │  ┌────────────────────────────────────────────────────┐  │
 │  │  Replica Sender            (push-only)             │  │
 │  │  - sends each replica what it lacks, in order      │  │
+│  │  - holds every send until it can leave a           │  │
+│  │    signed egress record of what left               │  │
 │  │  - from the service's own record, never the store  │  │
 │  │  - never reads from a replica                      │  │
 │  └────────────────────────────────────────────────────┘  │
@@ -282,7 +301,9 @@ evidence of record, and it is signed. See [The Change Log](#the-change-log).
 converts an unexplained change from an alarm into a recorded fact.
 
 **Replica Sender** sends each of a repository's replicas what it has not yet
-received, and takes nothing back. See [Replicas](#replicas).
+received, and takes nothing back. It sends nothing until a send can leave the
+signed egress record it owes, and holds every replica until then. See
+[Replicas](#replicas) and the [Replica Send Flow](#replica-send-flow).
 
 ---
 
@@ -324,6 +345,10 @@ received, and takes nothing back. See [Replicas](#replicas).
   supplies the resource scope and custody facts the decision is made from)
 - The backend's own permission system — this service reads it where it can and
   declares it unknown where it cannot; it never administers it
+- Repositories outside any tenant — authored, versioned, validated and offered
+  where no tenant has declared them. This service holds none of them, and what
+  one holds reaches a tenant only as
+  [Repositories Outside a Tenant](#repositories-outside-a-tenant) says
 
 ---
 
@@ -624,8 +649,23 @@ that status wherever this service refuses: `validation` 400, `auth` 401,
 status. The Category column classes the fault. It is not
 `ErrorResponse.category`: there, an `io` or `partial` code is `transient` and
 `retryable`, and every other code is `permanent` and not `retryable`. A code
-another blueprint registers, such as `SCOPE_INVALID_LEVEL` or
-`FORBIDDEN`, keeps the status that blueprint gives it.
+another blueprint registers, such as `SCOPE_INVALID_LEVEL`, `FORBIDDEN`,
+`PASS_REQUIRED` or `PASS_AUDIENCE_MISMATCH`, keeps the status that blueprint
+gives it ([`protocol/types`](../protocol/types.md#errorresponse)).
+
+A backend's own blueprint may register codes under this service's `CONTENT_`
+prefix, for a fault only that backend can meet, as
+[`patterns/content-git`](../patterns/content-git.md#error-handling) registers
+`CONTENT_PLACEMENT_PARTIAL` and `CONTENT_LINE_UNSETTLED`. This service returns
+each with the status its Category gives under the rule above, and no backend
+may register a code the table below registers.
+
+Four codes take another status than their Category's. `CONTENT_STATEMENT_INVALID`
+is 400: the token was accepted and the statement it carried was not, so a
+client told to authenticate again would send the same statement.
+`CONTENT_REPOSITORY_UNKNOWN`, `CONTENT_PROPOSAL_UNKNOWN` and
+`CONTENT_REPLICA_UNKNOWN` are 404, because the request was well formed and
+names nothing the caller may see.
 
 `CONTENT_STATEMENT_INVALID` is this surface's wire form of
 [`patterns/principal-identity`](../patterns/principal-identity.md#error-handling)'s
@@ -638,9 +678,9 @@ code here is enough, because a client does the same thing for both.
 |---|---|---|---|
 | `CONTENT_PRECONDITION_FAILED` | conflict | `if_match` does not equal the identity of what it names — an entry's stored digest on a write or a proposal, a placement's census digest on an adoption, a replica census's digest, over what would leave and where it would go, on a replica declaration, a proposal's `before` on a decision to apply it. The empty string where an entry exists, on a write, a proposal to create, or a decision to apply one | Refuse. Return both digests. Never merge, never overwrite, never adopt. On a decision to apply, record the proposal `stale` and write nothing |
 | `CONTENT_IF_MATCH_REQUIRED` | validation | A write, a removal or a proposal arrived with no `if_match`. The empty string is a precondition, not its absence | Refuse. A write with no precondition is a blind overwrite, and a proposal with none cannot be told stale |
-| `CONTENT_CUSTODY_CEILING_EXCEEDED` | policy | Declared scope exceeds the repository ceiling, or something a replica would receive exceeds that replica's ceiling, or a records repository's derived ceiling is below `restricted` | Refuse, naming required and actual, and on a replica each path above it. Never downgrade the scope |
+| `CONTENT_CUSTODY_CEILING_EXCEEDED` | policy | Declared scope exceeds the repository ceiling, or something a replica would receive exceeds that replica's ceiling, or a records repository's derived ceiling is below `restricted`, or a declaration's `scope_floor` is above the ceiling derived at declaration. See [`scope_floor`](#scope_floor-covers-what-declares-nothing) | Refuse, naming required and actual, and on a replica each path above it. Never downgrade the scope |
 | `CONTENT_RECORDS_REPOSITORY_REQUIRED` | policy | A write or a proposal whose bytes carry the label `pii`, into a repository that is not a records repository. See [Where an entry labelled `pii` is kept](#where-an-entry-labelled-pii-is-kept) | Refuse, naming the path and the `scope_path`'s records repository where there is one. Nothing is written, and the label is never dropped to fit |
-| `CONTENT_SCOPE_LOWERED` | policy | A write or a proposal declares a scope below its path's recorded scope, below the scope its own bytes declare, or below the `maps_to` of a label its bytes carry that the tenant registers, or declares none where a recorded scope, the bytes or such a label give one; or its bytes declare a scope below the path's recorded scope. A removal never ends a recorded scope, so this also refuses a path created again below the scope last recorded for it. See [An Entry's Scope](#an-entrys-scope) | Refuse, naming both levels and where each was declared. Never record the lower scope, and never raise the declared one to fit |
+| `CONTENT_SCOPE_LOWERED` | policy | A write or a proposal declares a scope below its path's recorded scope, below the scope its own bytes declare, or below the `maps_to` of a label its bytes carry that the tenant registers, or declares none where a recorded scope, the bytes or such a label give one; or its bytes declare a scope below the path's recorded scope. A removal never ends a recorded scope, so this also refuses a path created again below the scope last recorded for it. An adoption whose `scope_floor` is below the census's `highest_scope` is refused with it too. See [An Entry's Scope](#an-entrys-scope) and [`scope_floor`](#scope_floor-covers-what-declares-nothing) | Refuse, naming both levels and where each was declared. Never record the lower scope, and never raise the declared one to fit |
 | `SCOPE_INVALID_LEVEL` | validation | A write or a proposal declares a scope, on the change or under `scope:` or `classification:` in its bytes, that is not a `ScopeLevel`. The code is [`patterns/scope`](../patterns/scope.md#scope-related-errors)'s | Refuse, naming where the value was found and the value |
 | `CONTENT_CUSTODY_UNDECLARED` | policy | Repository has no declared custody | Treat as `opaque`, apply the `internal` ceiling, and record the degradation |
 | `CONTENT_PATH_REFUSED` | validation | Traversal segment or escaping symlink — including a placement locator that is absolute, carries a scheme or an authority, or climbs out of its backend's root | Refuse the request as written. Do not normalise and proceed |
@@ -658,16 +698,15 @@ code here is enough, because a client does the same thing for both.
 | `CONTENT_PLACEMENT_DECLARED` | conflict | The placement is equal to, inside, or contains an already-declared repository; or a replica's destination is equal to, inside or contains a declared repository's placement or another replica's destination | Refuse. Two ceilings over one set of bytes means the lower one is unenforceable, and a replica sent into a store would make a copy a source |
 | `CONTENT_PROPOSAL_UNKNOWN` | validation | No proposal of that id in the caller's scope | Refuse without disclosing whether it exists elsewhere |
 | `CONTENT_PROPOSAL_DECIDED` | conflict | A decision arrived for a proposal that is no longer `open`, including the second of two decisions that raced | Refuse, returning the proposal as recorded. A proposal leaves `open` once |
-| `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the identity the proposal names as its `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, the change has no scope, or the repository declares no ceiling. See [Separation of duties](#separation-of-duties) | Refuse, naming the scope, or that there is none, and the ceiling. Nothing is recorded and the proposal stays `open` |
-| `CONTENT_TOKEN_UNCHECKED` | io | A write, removal, decision, replica declaration or retirement, or a declaration carrying `self_decision_ceiling`, arrived and the orchestrator could not be asked whether its token is live | Refuse and perform nothing. The request may be repeated once the orchestrator answers. Never proceed on the token alone |
+| `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the identity the proposal names as its `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, the change has no scope, or the repository declares no ceiling. Or a repository declaration whose `self_decision_ceiling` is `critical`. See [Separation of duties](#separation-of-duties) | Refuse, naming the scope, or that there is none, and the ceiling. Nothing is recorded and the proposal stays `open` |
 | `CONTENT_IDENTITY_REQUIRED` | auth | A write, removal, proposal, decision, replica declaration or retirement arrived on a token that carries no `identity_id` | Refuse. Never record a name, an address or a token's `sub` in its place |
-| `CONTENT_STATEMENT_INVALID` | auth | A write, removal or decision carried a `ChangeStatement` that does not verify: the token is not a person's; the attestation's `purpose` is not `sign-records`, its `identity_id` is not the token's, its identity key is not the operator's current one, its signature fails, its credential key is not ML-DSA-65, or its `not_after` has passed or is more than 90 days ahead; its credential key is not one of the token's `record_keys`, or is the credential the token's `cid` names; `signed_at` is more than 300 seconds from the service's clock; or the signature does not verify over the statement rebuilt from the change. See [The change statement](#the-change-statement) | Refuse, naming the check that failed. Nothing is written and a proposal stays `open`. The change is never recorded unsigned instead. Log as a security event |
+| `CONTENT_STATEMENT_INVALID` | auth | A write, removal or decision carried a `ChangeStatement` that does not verify: the attestation's `purpose` is not `sign-records`, its `identity_id` is not the token's, its identity key is not the operator's current one, its signature fails, its credential key is not ML-DSA-65, or its `not_after` has passed or is more than 90 days ahead; its credential key is not one of the token's `record_keys`, or is the credential the token's `cid` names; `signed_at` is more than 300 seconds from the service's clock; or the signature does not verify over the statement rebuilt from the change. See [The change statement](#the-change-statement) | Refuse, naming the check that failed. Nothing is written and a proposal stays `open`. The change is never recorded unsigned instead. Log as a security event |
 | `CONTENT_WRITE_UNCONFIRMED` | io | The digest of the bytes read back after a write is not the digest of the decoded bytes submitted | Refuse. The reservation is settled as one whose path holds neither `before` nor the reserved `after`: an `observe` entry under shared custody, an integrity anomaly under exclusive custody. No `change` entry records the write, because a statement over the submitted bytes could not be checked against other ones. See [Write Flow](#write-flow) |
 | `CONTENT_LOG_NOT_BEGUN` | conflict | A log route named a repository that is `establishing`. Its log begins with the `declare` entry when it is recorded `declared` | Refuse. The caller learns the repository's state from `GET /v1/content/repositories` |
 | `CONTENT_SEALING_PAUSED` | io | A checkpoint was asked for and no log key can sign one: none is live and the long-lived key cannot introduce another | Refuse, carrying the `LogHead`, whose `unsealed` counts what waits. Nothing is appended. The request may be repeated once sealing resumes |
 | `CONTENT_LOG_BROKEN` | integrity | The repository's change log failed this service's check from its latest checkpoint, because a line breaks the chain or cannot be read, and the request would append to it: a write, a removal, a decision to apply, a reconcile or a checkpoint. See [A log that does not verify](#a-log-that-does-not-verify) | Refuse, naming the `seq` where the check failed. Nothing is written to the store and nothing is appended. Reads, the log's included, are still served |
 | `CONTENT_REPLICA_UNSEEN` | conflict | A replica declaration with no `if_match` | Refuse and return the `ReplicaCensus`. Nothing is recorded and nothing is sent. The caller re-submits with the census digest |
-| `CONTENT_SCOPE_UNDECLARED` | policy | A replica declaration where a version that would leave is unclassified, and the declaration carries no `history_scope`. See [What would leave](#what-would-leave) | Refuse, naming how many versions are unclassified. Nothing is recorded and nothing is sent. No version is assumed to be at any level |
+| `CONTENT_SCOPE_UNDECLARED` | policy | A replica declaration where a version that would leave is unclassified, and the declaration carries no `history_scope`. See [What would leave](#what-would-leave). Or an adoption whose census reports `keeps_history`, and the declaration carries no `scope_floor`. See [`scope_floor` covers what declares nothing](#scope_floor-covers-what-declares-nothing) | Refuse, naming how many versions are unclassified, or, on an adoption, returning the census, whose `highest_scope` is the least floor it may carry. Nothing is recorded and nothing is sent. No version is assumed to be at any level |
 | `CONTENT_REPLICA_EXISTS` | conflict | The replica id is taken in that repository, by a replica that is not `establishing` or whose recorded arguments differ from this request's | Refuse, naming the recorded destination. An identical retry against an `establishing` replica is a resumption, not this |
 | `CONTENT_REPLICA_UNKNOWN` | validation | No replica of that id in that repository | Refuse |
 | `CONTENT_REPLICA_UNSUPPORTED` | policy | The destination's backend cannot receive a replica, or cannot receive one of the repository's backend | Refuse. Nothing is recorded |
@@ -693,11 +732,16 @@ code here is enough, because a client does the same thing for both.
 4. Registry checks: the id must be free at that `scope_path`
    (`CONTENT_REPOSITORY_EXISTS`), and the placement must not be equal to, inside
    or containing a placement already declared (`CONTENT_PLACEMENT_DECLARED`).
-   A declaration carrying `self_decision_ceiling` MUST come from a caller
-   holding `content:decide` as well as `content:declare`. A declaration
-   naming itself a records repository at a `scope_path` that has one →
-   `CONTENT_REPOSITORY_EXISTS`. A `scope_floor` that is not a `ScopeLevel` →
-   `SCOPE_INVALID_LEVEL`
+   A declaration carrying `self_decision_ceiling` or `scope_floor` MUST come
+   from a caller holding `content:decide` as well as `content:declare`
+   (`FORBIDDEN` otherwise), both named by the `cap` of a pass
+   ([Who may move an entry](#who-may-move-an-entry)).
+   A declaration naming itself a records repository at a `scope_path` that
+   has one → `CONTENT_REPOSITORY_EXISTS`. A `scope_floor` that is not a
+   `ScopeLevel` → `SCOPE_INVALID_LEVEL`. A `self_decision_ceiling` of
+   `critical` → `CONTENT_SEPARATION_REQUIRED`, because separation at
+   `critical` is not configurable
+   ([Separation of duties](#separation-of-duties))
 5. `establish` — the caller MUST hold `content:establish` as well as
    `content:declare`; a backend that cannot create is refused with
    `CONTENT_ESTABLISH_UNSUPPORTED`; a placement already holding entries is
@@ -710,7 +754,11 @@ code here is enough, because a client does the same thing for both.
    With no `if_match`, it returns the census, refuses with
    `CONTENT_ADOPTION_UNSEEN`, and declares nothing. With an `if_match` that does
    not equal the census digest it has just computed, it refuses with
-   `CONTENT_PRECONDITION_FAILED` and returns both digests. `adopt` never creates
+   `CONTENT_PRECONDITION_FAILED` and returns both digests. Where the census
+   reports `keeps_history` and the declaration carries no `scope_floor`, it
+   refuses with `CONTENT_SCOPE_UNDECLARED`, returns the census, and declares
+   nothing ([`scope_floor` covers what declares nothing](#scope_floor-covers-what-declares-nothing)).
+   `adopt` never creates
 7. Each claimed attestation is demonstrated — on `establish`, against the store
    that now exists. An undemonstrated claim becomes `false`; a declaration with
    no custody is recorded `opaque` and the degradation is recorded, per
@@ -764,7 +812,7 @@ code here is enough, because a client does the same thing for both.
    [A scope only rises](#a-scope-only-rises): none, or one below the path's
    recorded scope or below the scope the bytes declare, where either exists;
    one below the `maps_to` of a registered label the bytes carry; or bytes
-   declaring a scope below the recorded one → refuse with
+   whose frontmatter names a level below the recorded one → refuse with
    `CONTENT_SCOPE_LOWERED`; a scope that is not a `ScopeLevel` → refuse with
    `SCOPE_INVALID_LEVEL`. Nothing is raised to fit. Then the declared scope
    against the repository's derived ceiling; a change that declares none is
@@ -772,8 +820,14 @@ code here is enough, because a client does the same thing for both.
    place. Exceeded → refuse, publish `content.ceiling_exceeded`. Bytes that
    carry `pii`, into a repository that is not a records repository → refuse
    with `CONTENT_RECORDS_REPOSITORY_REQUIRED`
-4. Enforcement storage proxy intercepts with operation `create` when `if_match`
-   is the empty string, and `modify` otherwise
+4. The token is checked ([Who may move an entry](#who-may-move-an-entry)).
+   Only a pass addressed to this service carries a person's request. Any
+   other token that reaches this step, a registered component's or a
+   channel's, is refused with `FORBIDDEN` whatever its `cap`, and so is a
+   pass whose `cap` does not name `content:write`. The pass's `identity_key`
+   is what step 6 checks a statement against. Then the enforcement storage proxy
+   intercepts with operation `create` when `if_match` is the empty string,
+   and `modify` otherwise
 5. Precondition Gate reads the current digest and compares it to `if_match`.
    Mismatch → refuse with both digests. No merge is attempted
 6. A statement, where one was sent, is verified against the change this write
@@ -846,7 +900,13 @@ code here is enough, because a client does the same thing for both.
 1. Caller submits a `DecisionRequest` for one proposal: `apply` or `reject`,
    and, where the person signs an `apply`, a `ChangeStatement`
 2. The proposal must be in the caller's scope (`CONTENT_PROPOSAL_UNKNOWN`) and
-   `open` (`CONTENT_PROPOSAL_DECIDED`)
+   `open` (`CONTENT_PROPOSAL_DECIDED`). The token is checked as Write Flow
+   step 4 says, and must be a pass whose `cap` names `content:decide`. When
+   step 5 runs the Write Flow for an `apply`, its step 4 checks the same pass,
+   and the capability it requires there is `content:decide`, never
+   `content:write`: a decider applies a proposal without holding
+   `content:write`, and is refused with `FORBIDDEN` only when the pass's `cap`
+   does not name `content:decide`
 3. `reject` → the decision is recorded, the proposal becomes `rejected`, and
    `content.proposal_decided` is published. Nothing else happens
 4. `apply` → separation is checked: a decider whose token's `identity_id` equals
@@ -898,7 +958,7 @@ code here is enough, because a client does the same thing for both.
    store's, and each replica's that is not retired, with its `anonymous_read`
 2. A property that cannot be demonstrated becomes `false`
 3. The backend reports any copy of the store it can see that no replica
-   declares
+   declares, and each one not yet in `reported_copies` is added to it
 4. The ceiling is recomputed from every place the bytes live (see
    [Effective custody](#effective-custody))
 5. If the ceiling dropped, `content.custody_degraded` is published naming the
@@ -911,9 +971,10 @@ code here is enough, because a client does the same thing for both.
    where versions that would leave are unclassified, and `if_match`
 2. Enforcement storage proxy intercepts with operation `create` and the
    repository's `scope_path` as the resource scope
-3. The caller must hold `content:replicate` and `content:connect`, both on a
-   person's token that the orchestrator reports live and whose role carries
-   both now (see [Who may declare a replica](#who-may-declare-a-replica) and
+3. The token is checked as Write Flow step 4 says. The caller must hold
+   `content:replicate` and `content:connect`, both named by the `cap` of a
+   pass, which carries only what the person's role carried at the exchange
+   (see [Who may declare a replica](#who-may-declare-a-replica) and
    [Who may move an entry](#who-may-move-an-entry))
 4. The destination is resolved as a placement is: its backend must be one this
    service holds for that `scope_path` (`CONTENT_BACKEND_UNKNOWN`) and able to
@@ -950,7 +1011,8 @@ code here is enough, because a client does the same thing for both.
     reaches its destination (see [Effective custody](#effective-custody)).
     Both are recomputed, the replica becomes `behind`, or `current` when there
     is nothing to send, and `content.replica_declared` is published. Sending
-    begins
+    begins once a send can leave its egress record
+    ([Replica Send Flow](#replica-send-flow), step 4)
 12. Should step 9 or 10 not finish, nothing is sent and nothing is rolled back:
     the caller is answered with `CONTENT_ESTABLISH_INCOMPLETE` carrying the
     replica, its `ReplicaEstablishment` and its credential
@@ -970,12 +1032,20 @@ code here is enough, because a client does the same thing for both.
    such version is **held**: the replica is `behind`, `held_path` names the
    path and `held_reason` says which of the three it is, and neither that
    version nor anything recorded after it is sent. What was recorded before it
-   is sent
-4. A destination that cannot be reached, or that refuses the credential, makes
+   is sent, as step 4 allows
+4. **Nothing is sent before its egress record can be.** A send owes a signed
+   record of what left, which this service cannot yet make
+   ([The Change Log](#the-change-log), the gap on what a send leaves). Until it can,
+   what step 3 would let leave is not sent: the replica is `behind` with
+   `held_reason` `egress-unrecorded` and no `held_path`, unless step 3 held a
+   version first, and steps 5 and 6 send nothing. Steps 2 and 3 still run,
+   because they read and send nothing, so a held version and a changed
+   destination are reported as before
+5. A destination that cannot be reached, or that refuses the credential, makes
    the replica `unreachable` until the next attempt succeeds
-5. What was sent is recorded with `checked_at`. With nothing left to send, the
+6. What was sent is recorded with `checked_at`. With nothing left to send, the
    replica is `current`
-6. Each change of state publishes `content.replica_state`
+7. Each change of state publishes `content.replica_state`
 
 ---
 
@@ -983,8 +1053,8 @@ code here is enough, because a client does the same thing for both.
 
 The content service is a component in the mesh: it registers with the
 orchestrator, claims the `content.*` namespace exclusively, verifies caller
-tokens against the orchestrator's public key, and asks the orchestrator
-whether a token is still live before an act only a person may perform
+tokens against the orchestrator's public key, and takes a person's request
+only on a pass addressed to it
 ([Who may move an entry](#who-may-move-an-entry)).
 
 Its manifest declares `protocol_version` `"1"` — the wire protocol version from
@@ -996,26 +1066,53 @@ Its routes are guarded by the `content:` family that document declares:
 | `content:read` | `GET /v1/content`, `GET /v1/content/entry`, `GET /v1/content/stat`, `GET /v1/content/proposals`, `GET /v1/content/proposals/{id}`, `GET /v1/content/repositories/{repository}/log` |
 | `content:write` | `PUT /v1/content/entry`, `DELETE /v1/content/entry`. Person only |
 | `content:propose` | `POST /v1/content/proposals` |
-| `content:decide` | `POST /v1/content/proposals/{id}/decision`. Person only |
+| `content:decide` | `POST /v1/content/proposals/{id}/decision`; `POST /v1/content/repositories` carrying `scope_floor` or `self_decision_ceiling` — required **in addition to** `content:declare` ([Declaration Flow](#declaration-flow) step 4). Person only |
 | `content:describe` | `GET /v1/content/repositories`, `GET /v1/content/repositories/{repository}/replicas`, `GET /v1/content/repositories/{repository}/log/head`, `POST /v1/content/repositories/{repository}/log/checkpoint` |
 | `content:declare` | `POST /v1/content/repositories` |
 | `content:establish` | `POST /v1/content/repositories` with `disposition: establish` — required **in addition to** `content:declare`, because creating a store is more than declaring one |
 | `content:reconcile` | `POST /v1/content/reconcile` |
 | `content:replicate` | `POST /v1/content/repositories/{repository}/replicas`, with `content:connect`; `DELETE /v1/content/repositories/{repository}/replicas/{replica}`. Person only |
 | `content:connect` | `POST /v1/content/repositories/{repository}/replicas` — required **in addition to** `content:replicate`, because it gives the tenant a credential that reaches outside its store. Person only |
+| `content:declassify` | No route yet: every lowering of a recorded scope is refused until the tenant's approval queue exists ([A scope only rises](#a-scope-only-rises)). Person only |
 
 A capability name is `family:verb`. An invented name is refused at registration,
 so these MUST be the names `protocol/types` declares and no others. *Person
 only* is `protocol/types`' marking too, and what it does to a grant is
 [Who may move an entry](#who-may-move-an-entry).
 
+**Its manifest declares every route the table guards as a pass route**
+([`protocol/types`](../protocol/types.md#passroute), `pass_routes`), because a
+person may reach each on a pass, and this table is the one statement of what
+each requires. Each route's entry names in `capabilities` every capability its
+rows give it on every request — both `content:replicate` and `content:connect`
+for declaring a replica — and in `body` each one its rows tie to the body.
+For `POST /v1/content/repositories` that is:
+
+```yaml
+method: POST
+path: /v1/content/repositories
+capabilities: [content:declare]
+body:
+  - {field: disposition, equals: establish, capabilities: [content:establish]}
+  - {field: scope_floor, capabilities: [content:decide]}
+  - {field: self_decision_ceiling, capabilities: [content:decide]}
+```
+
+The admin gateway carries a person's request here only on a route this list
+declares, and names on its pass exactly the capabilities the route's entry
+calls for ([`architecture/admin`](admin.md#contracts),
+`admin-gateway-authorization`). So a route the table guards that the list
+leaves out is one no person can reach, and a capability the list leaves out
+is refused here with `FORBIDDEN`: the two MUST agree, and when a row changes,
+the list changes with it.
+
 **Guarding a capability is not holding it.** The capabilities a manifest
 declares become the `cap` of the token the orchestrator issues the service at
 registration ([`protocol/spec`](../protocol/spec.md), `POST /v1/register`), so
 they are what the service may do as a caller as well as what it serves. Its
-manifest therefore declares every capability in the table except the four
-that are person only: `content:write`, `content:decide`, `content:replicate`
-and `content:connect`. It checks those on the requests it serves and never
+manifest therefore declares every capability in the table except the five
+that are person only: `content:write`, `content:decide`, `content:replicate`,
+`content:connect` and `content:declassify`. It checks those on the requests it serves and never
 holds them, and registration refuses a manifest that declares one, with
 `CAPABILITY_PERSON_ONLY`. For the same reason no channel grant to this service
 can carry one, because a grant is the intersection of what the requester
@@ -1030,7 +1127,9 @@ in the registration response:
 ```
 1. Load configuration and open storage
 2. Load or generate the ML-DSA-65 key pair, and mint the log key it
-   introduces into each change log (architecture/storage, The log key)
+   introduces into each change log, once architecture/storage's The log key
+   says one is minted: none is before the sealed log's statements have test
+   vectors, and every change log is then reported with sealing paused
 3. Check every change log from its latest checkpoint (A log that does not
    verify), then settle every reserved change in each log that passed, then
    reconcile the configured repositories against the registry — establish the
@@ -1042,7 +1141,8 @@ in the registration response:
 6. Register with the orchestrator, if an orchestrator URL is configured
 7. On the registration response, set the issuer public key on the authenticator
 8. Start the reconcile, re-verify and checkpoint loops
-9. Serve until signalled, then seal every change log whose tip has moved
+9. Serve until signalled, then seal every change log whose tip has moved, where
+   a log key can sign one
 ```
 
 Step 3 is fatal in neither direction: a configured repository that could not be
@@ -1150,7 +1250,7 @@ does not work rather than a component that was not given a mesh.
    [`architecture/fabric`](fabric.md) Design Principle 9 says of the fabric.
    What the verifier checks is still, in part, this service's word. A
    checkpoint is the service's own statement that the log is what it recorded,
-   and it is reported `unwitnessed`, because this contract defines no
+   and it is reported `uncountersigned`, because this contract defines no
    countersignature. A checkpoint somebody else kept does not change that
    verdict; it is what exposes a log rewritten after it
    ([`architecture/storage`](storage.md#verifying-a-sealed-log)). A person's
@@ -1219,21 +1319,24 @@ the lowest of them (see [Effective custody](#effective-custody)).
 
 **A replica's ceiling** starts from the same table, applied to what was
 demonstrated about its destination. The first of these rows that applies then
-lowers it:
+gives it:
 
 | The replica's destination | Ceiling |
 |---|---|
+| It holds nothing but ciphertext under a key the tenant alone holds, as the blueprint that specifies its backend demonstrates | the ceiling of the repository's own store |
 | Anyone can read it, or its refusal of a read with no credential (`anonymous_read`) was not demonstrated | `public` |
 | Its custody is not `exclusive`, and it has not demonstrated `enumerable_principals` | `public` |
 | It is **plain**: it holds the bytes as they are, so whoever can read it reads them | the lower of the table's and `confidential` |
-| It holds nothing but ciphertext under a key the tenant alone holds, as the blueprint that specifies its backend demonstrates | the table's |
 
-The first two rows give `public` because, away from the store, a place nobody
-can say who reads cannot be told apart from a place anyone reads (Design
-Principle 2). The third holds whoever holds the destination and whatever
-custody it demonstrated. The `restricted` row of the table rests on approval
-and masking remaining enforceable, and nobody reading a destination passes
-through either.
+A **sealed** replica, the first row, takes the ceiling of whoever holds its
+key, and only the tenant does: whoever reads the destination reads
+ciphertext, wherever it is and whoever else holds it. The second and third
+rows give `public` because, away from the store, a place nobody can say who
+reads cannot be told apart from a place anyone reads (Design Principle 2).
+The fourth holds whoever holds the destination and whatever custody it
+demonstrated. The `restricted` row of the table rests on approval and masking
+remaining enforceable, and nobody reading a destination passes through
+either. No backend this corpus specifies demonstrates the first row yet.
 
 ### What Shared Custody Changes
 
@@ -1296,6 +1399,29 @@ the two. Whatever writes a document writes `scope:`, and never
 `classification:`. The alias exists so that nothing a person wrote goes
 unread, and it is never written so that the second spelling does not spread.
 
+**A registered label counts.** Wherever this contract reads the scope bytes
+declare, bytes that carry a label the tenant registers declare at least
+that label's `maps_to`, with or without a level beside it
+([`patterns/scope`](../patterns/scope.md#a-label-and-its-level), rule 4). A
+write is refused when the level its bytes name, or the scope
+it declares, is below such a label's `maps_to`, or when neither names one
+([A scope only rises](#a-scope-only-rises), rule 4), so this reading
+decides the level only of bytes nothing checked: an adopted store's files
+and history, an observed edit, a version made in the store directly. It is
+what their `AdoptedEntry.scope`, `ContentObservation.scope`,
+`ContentEntry.scope`, [What would leave](#what-would-leave) and the
+census's `highest_scope` all read, so a version that carries `pii`
+registered at `restricted` is never recorded, counted or sent below
+`restricted`.
+
+**Where the tenant registers a label.** Throughout this contract, a label the
+tenant registers is one in this service's own `scope.custom_labels`
+configuration ([Configuration](#configuration), in
+[`patterns/scope`](../patterns/scope.md#label-registration)'s shape), and it
+is the one registry for every repository the service holds, at every
+`scope_path`. No domain's registry applies to a repository, and two
+repositories never read a label differently.
+
 - **On the repository.** A declaration may carry `scope_floor`: the least
   scope of every entry the repository holds, has held or will hold. It is the
   one statement that covers entries whose bytes declare no level, such as a
@@ -1337,6 +1463,15 @@ That is a rule for deciding in place and never a declaration: an unclassified
 entry stays unclassified for everything that would leave
 ([What would leave](#what-would-leave)).
 
+> **Gap — a repository does not yet report what it holds.** The highest
+> scope recorded for any of a repository's paths (`scope_held`), and how many
+> of its entries are unclassified, are not yet fields of `ContentRepository`.
+> Nor are an adoption's count of entries at each scope, and of those above the
+> ceiling derived for it, fields of `ContentAdoption`. A replica's census
+> counts what would leave unclassified or above that replica's ceiling
+> (`ReplicaCensus`), and nothing counts the rest. Until they are specified,
+> what a repository holds is read entry by entry, from each entry's scope.
+
 ### A scope only rises
 
 [`patterns/scope`](../patterns/scope.md#key-distinction-classification-vs-enforcement)
@@ -1347,16 +1482,17 @@ makes a classification permanent, and nothing in this contract lowers one.
    its own bytes declare. It is refused the same way when it declares no scope
    and either of those exists. The refusal names both levels, or the one level
    and that the change declared none.
-2. It is refused the same way when its bytes declare a scope below the path's
-   recorded scope, whatever the change declares. A file that understates its
-   own level misstates it wherever a copy of it goes.
+2. It is refused the same way when the level its bytes' frontmatter names is
+   below the path's recorded scope, whatever the change declares. A file that
+   understates its own level misstates it wherever a copy of it goes.
 3. A write or a proposal whose declared scope, on the change or in its bytes,
    is not a `ScopeLevel` is refused with `SCOPE_INVALID_LEVEL`, naming the
    value and where it was found. A level somebody wrote and nobody can read is
    not the absence of one.
 4. A write or a proposal is refused with `CONTENT_SCOPE_LOWERED` when its
-   bytes carry a label the tenant has registered, and it declares no scope or
-   one below that label's `maps_to`
+   bytes carry a label the tenant has registered, and the level its bytes
+   name beside that label, or the scope it declares on the change, is below
+   the label's `maps_to`, or neither names a level
    ([`patterns/scope`](../patterns/scope.md#a-label-and-its-level)). The
    refusal names the label and both levels.
 
@@ -1387,6 +1523,16 @@ scope, so a write that creates the path again is checked against it.
 **declassification**, and this contract has no operation for it. Every
 request that would lower one is refused by the rules above. A level set too
 high stays on the path it was set on, and on every version recorded under it.
+
+> **Gap — declassification has no route yet.** The act it needs is person
+> only and takes two people: a request by one, approved by another through the
+> tenant's approval queue, recorded and signed with ML-DSA-65, and never
+> lowering the scope the repository holds. Its capability, `content:declassify`,
+> is in [`protocol/types`](../protocol/types.md#capability)' list, and the
+> `admin` role carries it and no other role does
+> ([`architecture/admin`](admin.md#operator-roles)). The tenant has no approval
+> queue that routes such a request to an owner position, so no route admits
+> it, and until one exists the refusal above is the whole answer.
 
 **A copy is a new entry.** Bytes written to another path carry the level they
 declare in themselves, and nothing else of the entry they were copied from. An
@@ -1431,6 +1577,17 @@ repository**: a repository whose declaration names it one (`records: true`).
   be read from the log. An entry carrying `pii` that a person puts in another
   repository out of band is observed like any other change, as Design
   Principle 4 requires, and its observation records the label.
+- **Removing it is not erasing it.** A removal of a path whose last recorded
+  labels include `pii` records `erasure_complete` on its `ContentChange`.
+  It is `false` where the placement's backend keeps earlier versions of its
+  entries, as the blueprint that specifies it says, or where any replica was
+  sent a version holding the entry, because those bytes remain there; and
+  `true` only where neither holds. The change log keeps the path and digests
+  it recorded either way. A statement that a person's data was erased MUST
+  NOT be made from a removal whose `erasure_complete` is `false`, for the
+  reason a statement of who has accessed content carries `access_complete:
+  false` wherever this service cannot see every path to it
+  ([The Custody Model](#the-custody-model)).
 
 `records` is declared through `POST /v1/content/repositories` and fixed there.
 It is never configured: choosing where a tenant keeps records about people is
@@ -1681,7 +1838,13 @@ ends when the operation does.
 ### Creating is not declaring
 
 `establish` requires `content:declare` **and** `content:establish`. `adopt`
-requires `content:declare` alone.
+does not need `content:establish`. It needs `content:declare` alone only where
+the declaration carries neither `scope_floor` nor `self_decision_ceiling`; one
+carrying either also needs `content:decide`, on a pass
+([Declaration Flow](#declaration-flow) step 4). An adoption whose census
+reports `keeps_history` must carry a `scope_floor`, so adopting a store that
+keeps history, every git store included, is a person's act
+([`scope_floor` covers what declares nothing](#scope_floor-covers-what-declares-nothing)).
 
 The argument that split `content:declare` off `content:write` was that writing a
 document and deciding which stores a tenant governs are different acts by
@@ -1802,11 +1965,29 @@ unclassified and holds every replica.
   what its bytes declare and the floor. A write or a proposal declaring a
   scope below the floor is refused with `CONTENT_SCOPE_LOWERED`, as one below
   any recorded scope is ([A scope only rises](#a-scope-only-rises)).
+- **Only a person declares it.** A floor classifies every entry and version
+  that declares nothing, history included, so it is a person's judgement, as
+  a scope on a change is, and a model never chooses one. A declaration
+  carrying `scope_floor` requires `content:decide` as well as
+  `content:declare`, and is checked with the orchestrator before it is
+  recorded, as `self_decision_ceiling` is
+  ([Who may move an entry](#who-may-move-an-entry)). `content:decide` is
+  person only, so no service and no agent can declare a store public.
+- **It is required where adopting takes in history.** A backend whose store
+  keeps earlier versions of its entries that this service can read, such as
+  one under version control, says so in the blueprint that specifies it, and
+  the census over such a store reports `keeps_history`. Nobody classified
+  that history, and a replica would send it. So an adoption whose census
+  reports `keeps_history` and whose declaration carries no `scope_floor` is
+  refused with `CONTENT_SCOPE_UNDECLARED`, returning the census. `establish`
+  takes in nothing, and needs none.
 - **It is at least what the store already declares.** On `adopt`, the census
-  reports `highest_scope`, the highest scope the bytes of the entries it found
-  declare. A `scope_floor` below it is refused with `CONTENT_SCOPE_LOWERED`,
-  naming both, so a floor never states that a store is less sensitive than
-  its own files say.
+  reports `highest_scope`: the highest scope the entries it found declare in
+  their bytes, a registered label's `maps_to` included
+  ([A registered label counts](#where-a-scope-is-declared)). A
+  `scope_floor` below it is refused with `CONTENT_SCOPE_LOWERED`, naming
+  both, so a floor never states that a store is less sensitive than its own
+  files say. It is the least floor the census proposes to the person.
 - **It fits the place.** A `scope_floor` above the ceiling derived at
   declaration is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`, because
   every entry would be above it.
@@ -1890,6 +2071,121 @@ control", and naming the system would be naming a product.
 
 ---
 
+## Repositories Outside a Tenant
+
+Everything else in this document describes a repository a tenant has declared.
+Some repositories belong to no tenant: the published corpus, a repository of
+standards somebody is writing, a programme authored to be offered to
+organisations that have not taken it. No tenant has declared them, so nothing
+here — custody, scope, proposals, the change log — covers them, and this service
+holds none of them.
+
+**What one may be.** It may be authored, versioned, validated and offered: edited
+where it lives, kept under version control, checked against the schema for each
+family it holds ([`schemas/README`](../schemas/README.md#schema-files) names
+which schema governs which), and listed to somebody deciding whether to take it.
+
+**What it never is.** A claim that a tenant conforms — that it meets a standard,
+a control or an obligation — the evidence chain under such a claim, and an
+export of either MUST NOT cite it, or anything it holds. What they cite comes
+from a tenant — for content, an entry of a repository the tenant declared, at a
+version its change log records ([The Change Log](#the-change-log)). A
+repository outside a tenant has no declared custody, no recorded scope and no
+log, and anybody who reaches it can change it with no record any tenant can
+see. Its own history is a copy and a convenience, as a backend's is (Design
+Principle 9), never evidence.
+
+**What it holds reaches a tenant only by the tenant's own act**, made in the
+tenant and recorded there:
+
+- **The tenant declares it**, as a store that already holds bytes —
+  `disposition: adopt` ([Declaring a Repository](#declaring-a-repository)). From
+  then on it is that tenant's repository, governed as any other, and no longer
+  outside a tenant. Every entry it holds is recorded with provenance `unknown`,
+  and the census records the digest of each one it could read
+  ([What an adopted entry is, and is not](#what-an-adopted-entry-is-and-is-not)).
+- **The tenant installs a copy** into a repository it has declared — a standard
+  it will be measured against, a programme it takes on
+  ([`schemas/programme`](../schemas/programme.md#installation-checklist))
+  — written as any change is ([Who may move an entry](#who-may-move-an-entry)),
+  so the change log of the repository written to holds the digest of every
+  file written. The copy is the tenant's, and the repository it came from stays
+  outside. Where the copy came from belongs in the tenant: the commit the
+  repository was read at, where it has commits, and the digest of every file
+  taken. That record may give the repository's name or address, to say where
+  to look, and nothing in the record joins on either: a repository outside a
+  tenant has no durable identifier, and both move.
+
+> **Gap.** No field of this contract records where a copy came from. Neither
+> `EntryWrite` nor `ContentChange` carries an origin, so the log of the
+> repository written to shows each file written and not what it was taken
+> from. Until a field does, whatever installs a copy MUST say with its answer
+> that the copy's origin is not recorded in the tenant (Design Principle 5).
+> This line exists so the absence is a known gap rather than an oversight.
+
+A build that reads such a repository as a blueprint source records it, with its
+revision, in the provenance it writes into what it generates
+([`architecture/cli`](cli.md#weblisk-server-init)). Where the build is a
+tenant's, that record and what the build generated are the tenant's. The
+repository it names stays outside either way. Verifying what the build generated
+against its blueprints is a different claim, about an implementation rather than
+a tenant's conformance ([`architecture/testing`](testing.md#architecture)): the
+checks its result names come from those blueprints, and it cites them at the
+revision that record holds.
+
+**Each repository has exactly one home**: the tenant that declared it, or none.
+It is never kept outside a tenant while a tenant holds it, and never declared by
+two tenants. A copy a tenant installs is not a second home for the repository it
+came from; it is content of a repository with a home of its own. A replica is
+not a repository outside a tenant: it is a tenant's repository sent to a second
+place, counted in that repository's [effective custody](#effective-custody).
+Nor is a copy of a tenant's repository that a backend reports and no replica
+declares, such as a remote its history was pushed to: it counts in the same
+effective custody, where the repository records it in `reported_copies`.
+Nor is a client's installation state a home ([Reserved Paths](#reserved-paths)).
+What a client keeps there for a repository outside a tenant is a reference to
+where it lives, or a cache of it, never the repository itself. A cache is taken
+from where the repository lives — a copy of it, or what was derived from reading
+it — and refreshed only from there. The client never edits the repository's
+files in it, so losing it costs a fetch or a re-read and nothing else: the
+repository is still where it lives. The CLI's blueprint cache
+is one, for each source no tenant has declared
+([`weblisk blueprint update`](cli.md#weblisk-blueprint-update)).
+
+**The rule can be checked only where both homes are visible.** This service sees
+its own placements alone — among which
+[One placement, one repository](#one-placement-one-repository) already refuses an
+overlap — and neither another tenant's nor what a client keeps outside every
+tenant. A client that keeps repositories outside a tenant can check the rule only
+against local paths. It refuses to keep, as outside a tenant, a path that equals,
+contains or sits inside a path it knows is a tenant's — an overlap in either
+direction, as One placement, one repository refuses one:
+
+- a **tenant directory** it recorded: the directory a tenant was built into,
+  which [`weblisk tenant create`](cli.md#weblisk-tenant-create-name) produces
+  and which holds the tenant's keys. A path that encloses one holds what the
+  tenant's builds generated, which is the tenant's;
+- a path at which it reads a tenant's repository itself, where it reads one at
+  a local path.
+
+It refuses too a path that is, or sits inside, its own installation state,
+where it keeps no repository. Two paths are compared as the filesystem holding
+them resolves them, never as strings: a string comparison puts `/x/tenant-2`
+inside `/x/tenant`, and lets a link, or a letter in another case, take a
+tenant's path outside the tenant. Every link in either path is resolved first,
+and the two are then compared segment by segment, two segments matching
+wherever that filesystem opens one entry for both — without regard to case
+where it folds case — as [Reserved Paths](#reserved-paths) compares a name by
+what is opened rather than by its bytes.
+
+It cannot see where a tenant keeps any other repository — a placement names a
+backend, never a location
+([A placement names a backend, never a location](#a-placement-names-a-backend-never-a-location))
+— so a path that passes has been shown only not to overlap a path that client
+knows is a tenant's, never to belong to no tenant (Design Principle 5).
+
+---
+
 ## Replicas
 
 A **replica** is a copy of a repository that this service keeps at a second
@@ -1919,12 +2215,16 @@ this section is where its ceiling and its gate are specified.
 - **A replica that diverged is reported, never pulled.** A destination that
   holds something this service did not send makes the replica `diverged`. The
   service records what it found, sends nothing more, and never overwrites the
-  destination to make it match. Sending resumes by itself once the destination
-  again holds only what the service sent. A change somebody made at the
+  destination to make it match. The replica leaves `diverged` by itself once
+  the destination again holds only what the service sent, and sending
+  resumes then only where [Replica Send Flow](#replica-send-flow) step 4
+  lets anything leave. A change somebody made at the
   destination reaches the repository only as that person's own write or
   proposal.
 - **Sending never holds up a write.** A write is complete when the repository
-  holds it. Sending follows, in the order the versions were recorded.
+  holds it. Sending follows, in the order the versions were recorded, once
+  [Replica Send Flow](#replica-send-flow) step 4 lets anything leave, and
+  until then the replica is `behind`.
 - **What is sent comes from the service's own record.** It is never read from
   the store at the moment of sending, because another authority can change the
   store. The blueprint that specifies the backend says where that record is
@@ -2017,6 +2317,13 @@ grants, the rule `content:establish` already follows beside `content:declare`
 (see [Creating is not declaring](#creating-is-not-declaring)). Retiring a replica
 needs `content:replicate` alone, because it only ever reduces where bytes go.
 
+Two grants separate two people only where two people hold them, and today
+nothing makes them: only the `admin` role carries either
+([`architecture/admin`](admin.md#operator-roles)), and a role is a fixed
+bundle, so every admin holds both and one admin can declare a replica alone.
+What the two grants guarantee is that no other role, and nothing that is not
+a person, can.
+
 Both are *person only* in [`protocol/types`](../protocol/types.md). Sending a
 tenant's history to another place is a judgement, and a service has none to
 exercise (principal-identity Design Principle 11). The rules that keep a
@@ -2034,8 +2341,9 @@ for it ([An Entry's Scope](#an-entrys-scope)):
 - Any other version — one the store held before it was adopted, one recorded
   for an observation, one a person made in the store directly — takes, for
   each entry it adds or changes, the higher of the scope that entry's bytes
-  declare and its path's recorded scope. The version is at the highest of
-  those.
+  declare, a registered label's `maps_to` included
+  ([Where a scope is declared](#where-a-scope-is-declared)), and its path's
+  recorded scope. The version is at the highest of those.
 
 A path's recorded scope is never cleared by a removal
 ([The recorded scope](#the-recorded-scope)), so an earlier version of a path
@@ -2123,7 +2431,7 @@ store, is capped the same way, because whoever can read that machine reads the
 copy without passing through this service. Where nothing demonstrates who else
 can read it, as nothing does for a destination reached by a key registered
 there ([`patterns/content-git`](../patterns/content-git.md)), its ceiling is
-`public` by the second row of the replica table under
+`public` by the third row of the replica table under
 [Derived Scope Ceiling](#derived-scope-ceiling), and confirming it makes the repository's
 ceiling `public` for good ([Effective custody](#effective-custody)). Such a
 copy gives durability only to a repository that holds nothing above
@@ -2155,10 +2463,20 @@ places.
   ceiling and never narrows effective custody.
 - **An undeclared copy counts.** A backend that can see a copy of the store
   that no replica declares MUST report it. It counts as a place whose custody
-  is `opaque`, with the `internal` ceiling the table gives that custody; its
-  anonymous read is not tested, because the service does not reach it.
-  Effective custody becomes `opaque`, the ceiling is `internal` at most, and
-  `content.custody_degraded` is published naming the content now above it.
+  is `opaque` and whose ceiling is `public`, by the second row of the replica
+  table under [Derived Scope Ceiling](#derived-scope-ceiling): it is a copy
+  away from the store, nothing demonstrates who reads it, and its anonymous
+  read is never tested, because the service does not reach it. A copy nobody
+  declared is trusted no more than a replica declared at the same place
+  would be. Effective custody becomes `opaque`, the ceiling becomes
+  `public`, and `content.custody_degraded` is published naming the content
+  now above it. A copy once reported counts for good, as a retired replica
+  does: the repository records where it was seen, in `reported_copies`, and a
+  later report that no longer names it removes nothing, because what was
+  copied there may still be read. So a store whose history may have been
+  sent to a place such as a public forge accepts nothing above `public` from
+  the first report of that copy, and removing the remote that pointed there
+  does not raise the ceiling again.
 
 **A replica counts from the moment it is confirmed** (Replica Declaration
 Flow, step 11), whether or not anything has reached its destination, and it
@@ -2176,7 +2494,7 @@ Flow, step 10).
 |---|---|
 | `establishing` | Reserved and not yet confirmed. Nothing has been sent |
 | `current` | The destination held every recorded version when last checked |
-| `behind` | Versions are recorded and not yet sent. `held_path` and `held_reason` name a version the service will not send, if there is one |
+| `behind` | Versions are recorded and not yet sent. `held_reason` says why, where something holds them back: a version the service will not send, which `held_path` names, or `egress-unrecorded`, which holds every send ([Replica Send Flow](#replica-send-flow), step 4) |
 | `diverged` | The destination holds something this service did not send. Nothing is sent |
 | `unreachable` | The last attempt could not reach the destination, or its credential was refused |
 | `retired` | A person retired it. Nothing is sent, its credential is destroyed, and its record stays |
@@ -2307,51 +2625,64 @@ Three rules keep every person-only capability with people:
   [`protocol/types`](../protocol/types.md#error-handling) registers for
   principal-identity's `capability_person_only`. A registered component that
   runs agents can therefore only propose their output.
-- **This service honours one only on a person's token.** A person-only
-  capability counts only on a token whose `type` is `operator`, which a hub
-  mints for an operator, a person, through a credential that person's identity
-  attested ([`architecture/admin`](admin.md#operator-token)). On any other
-  token — a registered component's, a channel's — this service treats it as
-  absent. A hub that issued one by mistake has still opened no route.
-- **An agent runs on a token that holds none of them.** A console runs an
-  agent a person starts on a token minted with that person's credential and
-  narrowed to leave out every person-only capability
-  ([`architecture/admin`](admin.md), `console-credential-use`), so the run can
-  only propose, and never beyond what that person may do. An agent's
-  authorisation never names one either (principal-identity, `agent-delegation`).
+- **This service honours one only on a pass.** A person-only capability
+  counts only on a pass addressed to this service
+  ([`protocol/identity`](../protocol/identity.md#the-pass) rule 6), which the
+  orchestrator mints for a person's operator token, a token a hub mints for an
+  operator, a person, through a credential that person's identity attested
+  ([`architecture/admin`](admin.md#operator-token)). On any other token — a
+  registered component's, a channel's — this service treats it as absent. A
+  hub that issued one by mistake has still opened no route.
+- **No agent holds a person's token.** An agent acts under an authorisation
+  that never names a person-only capability (principal-identity,
+  `agent-delegation`), or under a service identity, and a console never gives
+  one a token minted with a person's credential, narrowed or not
+  ([`architecture/admin`](admin.md), `console-credential-use`). So an agent's
+  work reaches this service as a proposal made under a service identity, or
+  in a request its person submits as their own act. For a run its person
+  attends, a console may send reads here through the tenant's admin gateway,
+  which carries each on a pass naming `content:read` or `content:describe`.
+  Such a read is the person's, and it changes nothing.
 
 A decision is judgement, and a service has none to exercise
 (principal-identity Design Principle 11).
 
-**A person-only act is checked with the orchestrator.** Before it performs a
-write, a removal, a decision, a replica declaration or retirement, or a
-repository declaration that carries `self_decision_ceiling`, this service asks
-the orchestrator whether the token is still live
-([`architecture/orchestrator`](orchestrator.md#token-check-post-v1tokencheck),
-`POST /v1/token/check`), and authorises the act against the `capabilities`
-the answer reports: what the operator's role carries now, never beyond the
-token's `cap`. A token the answer reports not live is refused with the code
-it names ([`architecture/admin`](admin.md#error-handling)). Where the
-orchestrator cannot be asked, the act is refused with
-`CONTENT_TOKEN_UNCHECKED` and nothing is performed. So a removed operator, a
-revoked credential and a lowered role reach this service at the next such act,
-not when the token expires.
+**A person's request arrives on a pass.** Before it performs a write, a
+removal, a decision, a replica declaration or retirement, or a repository
+declaration that carries `self_decision_ceiling` or `scope_floor`, this
+service looks at the token. One that is not a pass addressed to it does not
+hold the capability the act needs, as the rule above says, so the act is
+refused with `FORBIDDEN`, whatever its `cap` or the request carries; an
+operator token is refused before this, on every route, with `PASS_REQUIRED`
+([`protocol/identity`](../protocol/identity.md#the-pass)). On a pass, it
+authorises the act against the pass's `cap`, which the orchestrator computed
+at the exchange from what the operator's role carried then, never beyond the
+token's `cap`, and only for a token it judged live then
+([`architecture/orchestrator`](orchestrator.md#token-exchange-post-v1tokenexchange),
+`token-exchange`). This service asks nothing again. So a removed operator, a
+revoked credential and a lowered role reach this service at the person's next
+request, and a pass minted before lives at most 30 seconds. The audit entry
+for a request a pass carried names the person as `actor`, by the pass's
+`identity_id`, and the gateway that carried it as `via`, by its
+`act.identity_id`.
 
 Every other request — a read, a listing, a proposal, a description, a
-checkpoint — is authorised on the token as verified. For those, a removal, a
-revocation or a lowered role takes effect when the token expires, at most one
-hour after it was minted. That window is stated here, as Design Principle 5
+checkpoint — is authorised on the token as verified. A person's arrives on a
+pass too, so the same 30 seconds bound it. That window is stated here, as Design Principle 5
 requires.
 
 **What the tenant cannot see.** A token is a bearer credential. This service can
 tell whose credential a request used. It cannot tell whether that person sent
 the request or software they run sent it with their credential. The first two
 rules hold at the tenant for every service and every registered component, and
-no client can loosen them. The third holds in the console: a narrowed token and
-a full one are both that person's, and this service cannot tell which a client
-asked for. A console that ran an agent on a full token would produce a change
-recorded as that person's direct write. This limit is stated here, as Design Principle 5
-requires, rather than hidden behind the two rules that do hold.
+no client can loosen them. The third holds in the console: a request an agent
+sent with a person's token would be that person's to this service, and a
+console that let an agent use one would produce changes recorded as that
+person's own acts. These limits are stated here, as Design Principle 5
+requires, rather than hidden behind the two rules that do hold. One limit is
+not among them: what this service is sent on a person's behalf is a pass
+addressed to it alone, so it holds nothing of that person's it could present
+elsewhere ([`protocol/identity`](../protocol/identity.md#the-pass)).
 
 `content:write` and `content:propose` do not imply each other. A person who
 holds both may still propose, to ask for a review.
@@ -2430,8 +2761,8 @@ change between one read and the next.
 
 The **requester** of a proposal is its `actor` and, when present, its
 `on_behalf_of`. The person who started an agent is a requester of its
-proposal: its `actor`, where the run used that person's narrowed token, or its
-`on_behalf_of`, where a service ran it for them.
+proposal: its `actor`, where that person submitted it under their own token,
+or its `on_behalf_of`, where a service submitted it for them.
 
 Requester and decider are compared by identity id and by nothing else (see
 [Who a change was for](#who-a-change-was-for)). A name, an email address or a
@@ -2457,7 +2788,11 @@ A repository MAY allow one person to decide their own change, up to a scope it
 declares. This is the one exception `patterns/approval` names to its separation
 of duties, and it is bounded there as it is here. `self_decision_ceiling` on
 the repository's declaration is the highest `ScopeLevel` at which it is
-allowed:
+allowed, and it is never `critical`: `patterns/approval` Design Principle 2
+requires a different approver for a critical change and makes that not
+configurable, so a declaration naming `critical` is refused with
+`CONTENT_SEPARATION_REQUIRED`. A `critical` change is therefore never
+self-decided, whatever a repository declares:
 
 - **Absent**, the default: a requester's decision to apply is refused with
   `CONTENT_SEPARATION_REQUIRED`.
@@ -2554,17 +2889,18 @@ record name the same party.
   prepared the change and another let it land, and the record names both. The
   second is `approved_by`.
 - **`on_behalf_of`** is absent on a direct write. A direct write needs
-  `content:write`, which only a person's token carries, so the writer acts for
+  `content:write`, which counts only on a pass, a person's, so the writer acts for
   themselves and `actor` already names them. On a proposal, a client that
   carries out a person's instruction under its own service identity MUST send
   it. Without it that person is absent from the record, and separation cannot
-  see them. An agent run a person started on their own narrowed token needs
+  see them. A person who submits an agent's work under their own token needs
   none: the token names that person, so `actor` is them, witnessed. A
   scheduled job is not a person and is never `on_behalf_of`. It names itself
   in `run`, and `on_behalf_of` names the person it acts for, where there is
   one.
 - **`agent` and `run`**: a client submitting a change that an agent prepared
-  MUST send `agent` and `run` with the proposal, as well as `on_behalf_of`.
+  MUST send `agent` and `run` with the proposal, and `on_behalf_of` as well
+  where it submits under its own service identity for a person.
   principal-identity Design Principle 13 requires the record to name the agent
   and the run that used a subject's authority, and the proposal is where the
   record holds them. Both are asserted. `proposal` leads from the change to
@@ -2626,7 +2962,7 @@ Each entry records one act, once:
 
 | `act` | Appended when | Holds |
 |---|---|---|
-| `declare` | The repository is recorded `declared`. Always the first entry, so its digest is the log id | `LogDeclaration`: the repository's id, `scope_path`, disposition, custody, store ceiling and `self_decision_ceiling`, and on adoption every entry the census found, with the scope its bytes declared |
+| `declare` | The repository is recorded `declared`. Always the first entry, so its digest is the log id | `LogDeclaration`: the repository's id, `scope_path`, disposition, custody, store ceiling, `self_decision_ceiling` and `scope_floor`, and on adoption every entry the census found, with the scope its bytes declared |
 | `change` | This service made a change: a write, a removal, or a decision that applied a proposal | `ContentChange`, with the person's `ChangeStatement` where one verified |
 | `observe` | This service observed a change it did not make — an observation of state `changed` or `removed`, from the Custody Reconciler or from a read | `ContentObservation` |
 | `key` | This service introduced a log key | `LogKey`, from [`architecture/storage`](storage.md#types) |
@@ -2638,6 +2974,20 @@ is recorded as one. An observation of state `unknown` changes nothing and is not
 appended. A proposal that is `open`, `rejected` or `stale` changed no entry and
 is not in the log; the proposal is its record ([Proposals](#proposals)). Reads,
 replica sends and custody re-verification change no entry either.
+
+> **Gap — a replica send would leave no signed record of what left, so
+> nothing is sent.** A send owes a signed egress record of what left, for
+> which destination, and under what demonstrated ceiling, and this service
+> cannot yet make one. That record is the next gap after this contract, and it
+> waits on two things: the signing that seals this log
+> ([`architecture/storage`](storage.md#sealing-a-chained-log)), and the test
+> vectors [`protocol/identity`](../protocol/identity.md#fixed-form-statements)
+> requires before any implementation signs under the prefixes that signing
+> uses. It is not specified here. Until it is, the
+> [Replica Send Flow](#replica-send-flow) sends nothing to any replica
+> (step 4), and a consumer MUST NOT report what a replica holds, or that it
+> holds nothing above a level, from `checked_at` or from the replica's
+> state.
 
 **A path's recorded digest is its last entry.** The last `change` or `observe`
 entry that names a path, or, where there is none, the `declare` entry, records
@@ -2662,8 +3012,9 @@ a caller who may read everything the repository has held
 holds wherever it goes. An export that includes log lines discloses every path
 in them, the identity id of every party they name, and, in each statement, the
 signer's identity public key and any `device_label` their attestation carries.
-An identity id is the same at every hub its person joins, so those lines also
-link a person across tenants, which is why
+An identity id is the fingerprint of the key a person registered with, so it
+is the same at every hub they joined with that key, and those lines can link
+a person across tenants. That is why
 [`patterns/content-git`](../patterns/content-git.md) keeps identity ids out of
 a store's history.
 
@@ -2738,19 +3089,23 @@ Two parties sign, and nobody else.
   carries it, and that person's part in the change is `signed`.
 
 An agent, a schedule and a service sign nothing here. Only a person moves an
-entry (Design Principle 7), and an agent runs on a token that holds no
-person-only capability ([Who may move an entry](#who-may-move-an-entry)). Their part is witnessed,
+entry (Design Principle 7), and no agent holds a person's token
+([Who may move an entry](#who-may-move-an-entry)). Their part is witnessed,
 where the token that carried it names them, or asserted.
 
 The service's registered key is the long-lived key `architecture/storage`
-names, and the tenant's directory lists it (`ServiceEntry.public_key`,
+names, and the tenant's service directory lists it (`ServiceEntry.public_key`,
 [`protocol/types`](../protocol/types.md)). Its fingerprint is the one a
 verifier brings ([`architecture/storage`](storage.md#verifying-a-sealed-log)),
 and it takes it from the tenant, never from the log. When the service rotates
-that key, it appends a succession entry to every change log
-([`architecture/storage`](storage.md#a-change-of-long-lived-key)), so the key
-the directory lists now vouches for every key the log used before it. A key
-generated afresh because the one before it was lost has no succession entry.
+that key, it appends a succession entry to every change log that has an
+authority ([`architecture/storage`](storage.md#a-change-of-long-lived-key)), so
+the key the directory lists now vouches for every key the log used before it.
+A change log has an authority once it holds a key entry, and none does before
+the sealed log's statements have test vectors
+([`architecture/storage`](storage.md#the-log-key), the gap there), so a
+rotation before then appends nothing. A key generated afresh because the one
+before it was lost has no succession entry.
 A verifier holding only the directory's key then reports every earlier
 authority `unvouched`, and the service's latest checkpoint still seals
 everything before it.
@@ -2791,12 +3146,13 @@ to bytes its signer did not sign.
 A `ChangeStatement` verifies when all of these hold. They are checked before
 anything is written:
 
-1. The token is a person's, of `type` `operator`, and its `identity_id` is the
-   attestation's `identity_id`. Only a person signs here, and only for
-   themselves. The attestation's `identity_public_key` is the operator's
-   current identity key, as the orchestrator's check of the token reports it
-   (`TokenStatus.identity_public_key`), which every act that carries a
-   statement asks for ([Who may move an entry](#who-may-move-an-entry)).
+1. The pass's `identity_id` is the attestation's `identity_id`. Only a person
+   signs here, and only for themselves: a token that is not a pass was
+   refused with `FORBIDDEN` before any statement is read
+   ([Who may move an entry](#who-may-move-an-entry)). The fingerprint of the
+   attestation's `identity_public_key` is the pass's `identity_key`, the
+   person's current identity key as the orchestrator held it at the exchange
+   ([`protocol/identity`](../protocol/identity.md#the-pass)).
 2. The attestation's `purpose` is `sign-records`, and its signature verifies
    under `identity_public_key`
    ([`patterns/principal-identity`](../patterns/principal-identity.md),
@@ -2842,7 +3198,17 @@ A statement is optional. A write, removal or decision without one is recorded
 as it always was, and that person's part is `witnessed`. So a client that
 relays a person's statement can drop it and still have the change recorded. A
 client that sent a statement MUST check that the `ContentChange` it gets back
-carries it, and report the change as unsigned where it does not.
+carries it, and report the change as unsigned where it does not. No client
+signs one before `weblisk/content-change/v1` has test vectors
+([`protocol/identity`](../protocol/identity.md#fixed-form-statements)), so
+until they are published no conforming client's change carries a statement,
+and the person's part in each is `witnessed`. The service verifies a
+statement whenever one arrives, before the vectors as after, because the
+vectors rule gates signing and the service only verifies, as a hub verifies a
+credential's answer before its vectors
+([`architecture/admin`](admin.md#minting-a-token-with-the-credential), the
+gap there). One that verifies is recorded, and one that fails refuses the
+request, as [Security](#security) requires.
 
 ### Design Principle 6, strictly
 
@@ -2949,7 +3315,7 @@ content service's registered key, from the tenant, as the fingerprint it brings
   own records. The log names people by identity id and never by name, and it
   cannot vouch for whose an identity is;
 - the identity keys the tenant records for each such identity id — an
-  operator's `public_key` and its `retired_keys`
+  operator's `public_key` and its `retired_keys`, each with its `retired_at`
   ([`protocol/types`](../protocol/types.md#operator)) — because an identity id
   is kept across a change of identity key, and a statement signed after one
   carries an attestation by the new key;
@@ -2967,9 +3333,12 @@ After storage's three steps — chain, keys, checkpoint — it checks:
    of the service's clock: `not_after` no earlier than `recorded_at`, and no
    more than 90 days after it. Check its `hub_id` against the tenant's. Check
    that `signer` is the attestation's `identity_id`, that the attestation's
-   identity key is one the tenant records for that identity id, and that
-   `signer` is the `actor` on a write or in `approved_by` on an apply. Then
-   verify the signature.
+   identity key is one the tenant records for that identity id and, where it
+   is a retired one, that the entry's `recorded_at` is before that key's
+   `retired_at`, and that `signer` is the `actor` on a write or in
+   `approved_by` on an apply. Then verify the signature. A key retired before
+   the entry was recorded had had every credential it attested revoked, so
+   the service could not have accepted its attestation then.
 5. **Separation.** As [Approvals and separation in the log](#approvals-and-separation-in-the-log)
    says.
 6. **A file.** Compute the SHA-256 of its bytes. The last `change` or `observe`
@@ -2995,9 +3364,10 @@ from its last entry with nothing in the log to say so (Design Principle 5). An
 unsealed entry is recorded and not yet signed. A statement proves that a
 record-signing key attested by that identity signed the change. It does not
 prove who held the key. Check 4 of [The change statement](#the-change-statement)
-— that the hub named the key in the person's token, and that it was not the key
-that obtained the token — is the service's to witness. The log does not hold
-the token, so a verifier has that check only on the service's seal.
+— that the hub named the key in the pass the person's request arrived on, and
+that it was not the key that obtained the person's token — is the service's to
+witness. The log does not hold the pass, so a verifier has that check only on
+the service's seal.
 
 ---
 
@@ -3048,8 +3418,8 @@ types:
         required: true
         description: The most permissive custody of any place the bytes live
           — the store, every replica that has been confirmed, retired or not,
-          and any copy the backend reports that no replica declares. Equal to
-          custody for a repository with no replica
+          and every copy in reported_copies. Equal to custody for a repository
+          with no replica and no reported copy
       attestations:
         type: CustodyAttestations
         required: true
@@ -3073,7 +3443,7 @@ types:
         required: false
         description: The highest scope at which a requester may apply their own
           proposal, recording separation self. Absent means no requester may.
-          Fixed at declaration
+          Never critical. Fixed at declaration
       scope_floor:
         type: ScopeLevel
         required: false
@@ -3093,6 +3463,14 @@ types:
           says it reports about the store — its control state, and whether the
           store is as the service left it — in the form that blueprint
           declares. Absent when that blueprint declares none
+      reported_copies:
+        type: "[]string"
+        required: false
+        description: Where each copy of the store that no replica declares was
+          seen, as the backend's report named it, in the order first reported.
+          Only ever added to. A copy the backend stops reporting stays, as a
+          retired replica does, because bytes that have left have left. See
+          Effective custody
 
   CustodyAttestations:
     description: What a repository can demonstrate. Unknown is recorded as false
@@ -3214,16 +3592,20 @@ types:
         type: ScopeLevel
         required: false
         description: The highest scope at which a requester may apply their own
-          proposal. Absent means no requester may. Declaring it requires
-          content:decide as well as content:declare, so only a person declares
-          it. Not configurable
+          proposal, and never critical, which is refused with
+          CONTENT_SEPARATION_REQUIRED. Absent means no requester may. Declaring
+          it requires content:decide as well as content:declare, so only a
+          person declares it. Not configurable
       scope_floor:
         type: ScopeLevel
         required: false
         description: The least scope of every entry the repository will hold,
-          past versions included. Refused above the derived ceiling, and on
-          adopt below the census's highest_scope. Not configurable, and never
-          lowered. See scope_floor covers what declares nothing
+          past versions included. Declaring it requires content:decide as
+          well as content:declare, so only a person declares it. Required on
+          adopt where the census reports keeps_history. Refused above the
+          derived ceiling, and on adopt below the census's highest_scope. Not
+          configurable, and never lowered. See scope_floor covers what
+          declares nothing
       records:
         type: bool
         required: false
@@ -3258,9 +3640,18 @@ types:
       highest_scope:
         type: ScopeLevel
         required: false
-        description: The highest scope the bytes of the entries found declare.
-          The least scope_floor the declaration may carry. Absent when none
-          declares one this service can read
+        description: The highest scope the entries found are at by their
+          bytes, each at the level it declares or, where higher, the maps_to
+          of a label it carries that the tenant registers. The least
+          scope_floor the declaration may carry. Absent when no entry declares
+          a level or carries such a label this service can read
+      keeps_history:
+        type: bool
+        required: true
+        description: True when the placement's backend keeps earlier versions
+          of its entries that this service can read, as the blueprint that
+          specifies it says. A declaration adopting it MUST then carry
+          scope_floor. See scope_floor covers what declares nothing
       backend_report:
         type: object
         required: false
@@ -3531,11 +3922,13 @@ types:
           because of it — the reserved path, or a path the version changes
       held_reason:
         type: enum
-        values: [reserved-path, unclassified, above-ceiling]
+        values: [reserved-path, unclassified, above-ceiling, egress-unrecorded]
         required: false
-        description: Why the version is held — it holds a reserved path; it is
-          unclassified and the census did not count it; or its scope is above
-          the replica's ceiling. See Replica Send Flow
+        description: Why versions are held — a version holds a reserved path;
+          it is unclassified and the census did not count it; or its scope is
+          above the replica's ceiling; or, with no held_path, no send can yet
+          leave the signed egress record it owes, which holds every replica.
+          See Replica Send Flow
       checked_at:
         type: timestamp
         required: false
@@ -3696,6 +4089,14 @@ types:
         required: false
         description: Recorded. The custom_labels the bytes carry under
           scope_metadata. Absent when they carry none, and on delete
+      erasure_complete:
+        type: bool
+        required: false
+        description: Recorded. Present on a delete of a path whose last
+          recorded labels include pii. False where the placement's backend
+          keeps earlier versions of its entries or a replica was sent a
+          version holding the entry, true only where neither holds. See
+          Where an entry labelled pii is kept
       actor:
         type: string
         required: true
@@ -3711,6 +4112,7 @@ types:
           writer is a person acting for themselves
       approved_by:
         type: list
+        items: string
         required: false
         description: Witnessed. The identity ids of the persons whose decision
           applied the change — one, under this contract, taken from the
@@ -4071,6 +4473,7 @@ types:
     fields:
       proposals:
         type: list
+        items: ContentProposal
         required: true
         description: ContentProposal records the caller may read, each without
           bytes
@@ -4317,7 +4720,9 @@ types:
         required: true
         description: paused while no log key can sign a checkpoint for this
           log, because none is live and the long-lived key cannot introduce
-          another. unsealed then counts what waits
+          another, which is so for every log until the sealed log's
+          statements have test vectors (architecture/storage, The log key).
+          unsealed then counts what waits
       chain:
         type: enum
         values: [continuous, broken, unreadable]
@@ -4368,6 +4773,10 @@ content:
                                  # is sealed; 0 seals only at shutdown and on
                                  # request (architecture/storage)
   max_entry_bytes: 10485760
+  scope:
+    custom_labels: {}            # the labels the tenant registers, for every
+                                 # repository this service holds, in
+                                 # patterns/scope's Label Registration shape
 ```
 
 `held_by` is stated where the host is named, and what it means is under
@@ -4499,9 +4908,11 @@ security:
     - rule: A change log verifies without this service
       mechanism: Sealed per architecture/storage, which lists what a verifier
         needs. The one fingerprint it brings is the service's registered key,
-        from the tenant's directory, and a rotation of that key is recorded in
-        every log by a succession entry both keys sign. Checking a person's
-        statement needs what Verifying a log without this service adds
+        from the tenant's service directory, and a rotation of that key is recorded by
+        a succession entry both keys sign in every log that has an authority,
+        which no log has before the sealed log's statements have test vectors.
+        Checking a person's statement needs what Verifying a log without this
+        service adds
     - rule: Nothing is appended to a change log that does not verify
       mechanism: The service checks each log from its latest checkpoint at
         start, before settling reservations, and before each checkpoint. A
@@ -4514,6 +4925,11 @@ security:
         leave, the destination, held_by and the claims made for it, so a
         census taken for one destination confirms no other. content:replicate
         and content:connect are both required and both person only
+    - rule: Nothing is sent to a replica before the send can leave a signed
+        egress record of what left
+      mechanism: The Replica Send Flow holds every replica with held_reason
+        egress-unrecorded, and sends nothing, until that record is specified
+        (the gap under The Change Log)
     - rule: Nothing is sent to a replica that holds a reserved path, that
         nothing classified, or that is above the replica's ceiling
       mechanism: The census refuses each at declaration, an unclassified
@@ -4618,14 +5034,20 @@ security:
       mechanism: content:write and content:decide are person only in
         protocol/types. A hub grants neither to a service subject, mints no
         token for one that carries either, and refuses a registration that
-        declares either. This service honours them only on a token of type
-        operator, checked live with the orchestrator before the act. A console
-        runs an agent a person starts on that person's token narrowed of every
-        person-only capability. What the tenant cannot see, a person's
-        credential used by software, is stated with the rule
-    - rule: Only a person allows self-decision
-      mechanism: A declaration carrying self_decision_ceiling requires
-        content:decide as well as content:declare
+        declares either. This service honours them only on a pass addressed
+        to it, which the orchestrator mints at the exchange for an operator
+        token it judges live then (protocol/identity, The pass). A console
+        gives no agent a person's token, narrowed or not
+        (architecture/admin, console-credential-use). What the tenant cannot
+        see, a person's credential used by software, is stated with the rule
+    - rule: Only a person allows self-decision or sets a floor
+      mechanism: A declaration carrying self_decision_ceiling or scope_floor
+        requires content:decide as well as content:declare, both named by a
+        pass, before it is recorded
+    - rule: History a store kept is classified before it is adopted
+      mechanism: An adoption whose census reports keeps_history carries a
+        scope_floor, at or above the census's highest_scope, or is refused
+        with CONTENT_SCOPE_UNDECLARED
     - rule: A proposal writes nothing
       mechanism: Proposed bytes are held in the service's own state, never in
         the repository, until a decision applies them
@@ -4846,6 +5268,7 @@ security:
 - [ ] A write declaring a scope below its path's recorded scope, or whose bytes declare a scope below it, is refused with `CONTENT_SCOPE_LOWERED`, and nothing is written
 - [ ] A write or a proposal whose frontmatter carries a `scope:` or `classification:` that is not a `ScopeLevel` is refused with `SCOPE_INVALID_LEVEL` naming the value
 - [ ] A document whose frontmatter carries `classification: restricted` and no `scope:` declares `restricted`; one carrying `scope: internal` and `classification: confidential` declares `confidential`
+- [ ] A label in the service's `scope.custom_labels` configuration is applied to writes in every repository the service holds, at every `scope_path`, and a label only a domain's configuration registers is not applied to any
 - [ ] Where the tenant registers `pii` with `maps_to: restricted`, a write declaring `confidential` whose bytes carry `scope: confidential` and `scope_metadata: {custom_labels: [pii]}` is refused with `CONTENT_SCOPE_LOWERED` naming `pii`; where it registers no `pii`, the same write is recorded at `confidential`
 - [ ] A frontmatter `scope: pii` is refused with `SCOPE_INVALID_LEVEL`, whether or not `pii` is a registered label
 - [ ] A `scope:` line inside a fenced block, or anywhere but a frontmatter block that begins on the first line, declares nothing
@@ -4853,11 +5276,12 @@ security:
 - [ ] An entry with no recorded scope and no scope in its bytes reports no `scope`, never `internal`
 - [ ] A write whose bytes carry `scope_metadata: {custom_labels: [pii]}` into a repository whose `records` is false is refused with `CONTENT_RECORDS_REPOSITORY_REQUIRED` and nothing is written; the same write into the `scope_path`'s records repository is recorded with `labels` `[pii]`
 - [ ] A second declaration with `records: true` at a `scope_path` that has a records repository is refused with `CONTENT_REPOSITORY_EXISTS`, and one whose derived ceiling is below `restricted` with `CONTENT_CUSTODY_CEILING_EXCEEDED`
+- [ ] Removing an entry labelled `pii` from a records repository whose backend keeps earlier versions, the git backend among them, records `erasure_complete: false` on its `ContentChange`, as does removing one that any replica was sent; only where the backend keeps none and no replica was sent it is `erasure_complete` true, and a removal of an entry not labelled `pii` carries no `erasure_complete`
 - [ ] No configuration key declares a records repository
 - [ ] After a removal of an entry recorded at `restricted`, a write creating the same path that declares `internal`, or declares no scope, is refused with `CONTENT_SCOPE_LOWERED`, and one declaring `restricted` is recorded at `restricted`
 - [ ] In a repository with no `scope_floor`, a write that declares no scope, to a path with no recorded scope whose bytes declare none, records a `ContentChange` with no `scope` and no `scope_basis`, and the version it produces is counted `unclassified` by a replica census
 - [ ] A write declaring `confidential` to a path with no recorded scope, whose bytes declare none, records `scope_basis` `chosen`; one whose bytes declare `scope: confidential` records `bytes`; one declaring the path's recorded scope, with bytes that declare less, records `recorded`
-- [ ] No request lowers a path's recorded scope: every write, proposal and decision that would is refused with `CONTENT_SCOPE_LOWERED`
+- [ ] No request lowers a path's recorded scope: every write, proposal and decision that would is refused with `CONTENT_SCOPE_LOWERED`, on an admin's pass naming `content:declassify` as on any other
 - [ ] A replica census counts an earlier version of a path that no entry holds now at the scope the log recorded for it
 - [ ] A proposal whose path's recorded scope rose above the proposal's scope after it was made is refused with `CONTENT_SCOPE_LOWERED` when applied, and stays `open`
 - [ ] An out-of-band change under shared custody produces a `ContentObservation` with provenance `external` and raises no tampering alert
@@ -4897,7 +5321,8 @@ security:
 - [ ] A repeated `establish` differing in `placement`, `custody` or `attestations` is refused with `CONTENT_REPOSITORY_EXISTS`, and the reserved declaration is unchanged
 - [ ] A repeated `establish` with identical arguments against a repository already `declared` is refused with `CONTENT_REPOSITORY_EXISTS` and is not treated as a no-op
 - [ ] A resumed `establish` whose store has since been written to is refused with `CONTENT_NOT_EMPTY`, and the entries are neither adopted nor touched
-- [ ] A caller holding `content:declare` and not `content:establish` is refused `disposition: establish` and succeeds at `disposition: adopt`
+- [ ] A caller holding `content:declare` and not `content:establish` is refused `disposition: establish` and succeeds at `disposition: adopt` of a store whose census does not report `keeps_history`, with a declaration carrying neither `scope_floor` nor `self_decision_ceiling`
+- [ ] A caller holding `content:declare` and not `content:decide`, a registered component's included, cannot adopt a store whose census reports `keeps_history`: confirmed with the census digest and without a `scope_floor` it is refused with `CONTENT_SCOPE_UNDECLARED`, with one it is refused with `FORBIDDEN`, and no repository is recorded either way
 - [ ] A configured repository already `declared` with the same `id`, `scope_path` and `placement` is reconciled on every subsequent start — nothing is created, nothing is refused, and health does not report `degraded` for it
 - [ ] A configured repository left `establishing` by a crashed boot is resumed on the next start with no operator action
 - [ ] With an orchestrator URL configured, a failed registration is fatal
@@ -4941,16 +5366,25 @@ security:
 - [ ] A `ContentChange` from `PUT /v1/content/entry` carries no `on_behalf_of`, `approved_by`, `proposal` or `separation`
 - [ ] A write or proposal whose body names an `actor` records the verified token's `identity_id`, never the named one and never the token's `sub`
 - [ ] A write, removal, proposal or decision on a token that carries no `identity_id` is refused with `CONTENT_IDENTITY_REQUIRED`, and nothing is recorded
-- [ ] A token whose `type` is not `operator` and whose `cap` holds `content:write` is refused `PUT /v1/content/entry` as though it did not hold it
-- [ ] The service's own manifest declares none of `content:write`, `content:decide`, `content:replicate` and `content:connect`, and its registration succeeds
+- [ ] A token that is not a pass and whose `cap` holds `content:write`, a registered component's or a channel's, is refused `PUT /v1/content/entry` with `FORBIDDEN`, as though it did not hold it, whether or not the request carries a `statement`; a person's operator token is refused there with `PASS_REQUIRED` whatever its `cap`, and a pass addressed to another component with `PASS_AUDIENCE_MISMATCH`
+- [ ] The service's own manifest declares none of `content:write`, `content:decide`, `content:replicate`, `content:connect` and `content:declassify`, and its registration succeeds
+- [ ] The manifest's `pass_routes` declare every route the guard table guards and no other, each with the capabilities its rows give it, `POST /v1/content/repositories/{repository}/replicas` with both `content:replicate` and `content:connect`, and `POST /v1/content/repositories` with `content:declare` and the three body requirements for `disposition: establish`, `scope_floor` and `self_decision_ceiling`; the directory entry the orchestrator publishes carries them unchanged
 - [ ] A declaration carrying `self_decision_ceiling` from a caller holding `content:declare` and not `content:decide` is refused, and no repository is recorded
+- [ ] A decider whose token's `cap` names `content:decide` and not `content:write` applies a proposal, and the write is recorded; the same token is refused with `FORBIDDEN` at `PUT /v1/content/entry`
+- [ ] A declaration whose `self_decision_ceiling` is `critical` is refused with `CONTENT_SEPARATION_REQUIRED` and no repository is recorded; one at `restricted` is declared, and a requester's decision to apply a `critical` change in it is refused with `CONTENT_SEPARATION_REQUIRED`
+- [ ] A declaration carrying `scope_floor` from a caller holding `content:declare` and not `content:decide`, a registered component's included, is refused with `FORBIDDEN`, and no repository is recorded
+- [ ] A declaration carrying `self_decision_ceiling` or `scope_floor` is recorded only on a pass whose `cap` names both `content:declare` and `content:decide`; on a pass naming `content:declare` alone it is refused with `FORBIDDEN` and records no repository
+- [ ] An adoption of a store whose census reports `keeps_history`, confirmed with the census digest and carrying no `scope_floor`, is refused with `CONTENT_SCOPE_UNDECLARED`, returns the census, and declares nothing; the same adoption carrying a `scope_floor` at or above the census's `highest_scope` is declared
+- [ ] A census over a store holding an entry that declares no level and carries a label the tenant registers reports a `highest_scope` at least that label's `maps_to`, and an adoption carrying a `scope_floor` below it is refused with `CONTENT_SCOPE_LOWERED`
+- [ ] Where the tenant registers `pii` with `maps_to: restricted`, an adopted entry whose bytes carry `custom_labels: [pii]` beside `scope: internal`, or beside no level, is recorded at `restricted` on the `declare` entry and reported with `ContentEntry.scope` `restricted`; an out-of-band edit that adds the label to an `internal` entry is observed at `restricted`; and a version from before adoption that carries the label, in a repository floored at `internal`, is classified `restricted` for a replica and held from a plain one with `held_reason` `above-ceiling`
+- [ ] Where `pii` is registered with `maps_to: restricted`, a write whose bytes carry `custom_labels: [pii]` beside `scope: internal` is refused with `CONTENT_SCOPE_LOWERED` even when the change declares `restricted`, and one whose bytes carry the label and no level, declaring `restricted` on the change, is recorded at `restricted`
 - [ ] A repository declared with `scope_floor` `internal` reports an entry whose bytes and path declare nothing at `internal`, records its floor on the `declare` entry, refuses a write declaring `public` or declaring none with `CONTENT_SCOPE_LOWERED`, and has no version a replica census counts `unclassified`
 - [ ] An adoption whose census reports `highest_scope` `confidential` is refused with `CONTENT_SCOPE_LOWERED` when it carries `scope_floor` `internal`, and a declaration whose `scope_floor` is above its derived ceiling is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
 - [ ] `ContentChange.version` is absent when the backend keeps no version marker
 - [ ] A census over a placement whose backend's blueprint binds a `backend_report` covers that report in its `digest`, and an adoption whose store's report changed since the census is refused with `CONTENT_PRECONDITION_FAILED`
 - [ ] A first `POST /v1/content/repositories/{repository}/replicas` with no `if_match` is refused with `CONTENT_REPLICA_UNSEEN`, returns a `ReplicaCensus`, records no replica, creates no credential and sends nothing
 - [ ] A replica declaration whose `if_match` differs from a freshly computed census `digest`, because a version was recorded between the two calls, is refused with `CONTENT_PRECONDITION_FAILED`
-- [ ] A caller holding `content:replicate` and not `content:connect`, or `content:connect` and not `content:replicate`, is refused a replica declaration; a token whose `type` is not `operator` is refused it whatever its `cap` holds
+- [ ] A caller holding `content:replicate` and not `content:connect`, or `content:connect` and not `content:replicate`, is refused a replica declaration; a token that is not a pass is refused it whatever its `cap` holds
 - [ ] A replica declaration whose destination backend has no `held_by`, or `held_by: third-party`, is confirmed like any other replica when everything that would leave is classified and at or below its ceiling, and its census reports `held_by: third-party`
 - [ ] A plain replica whose destination demonstrates `shared` custody with all three attestations, and refuses anonymous read, has the ceiling `confidential`, whoever holds it; declaring it for a repository holding a `restricted` version is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED` naming that version's path
 - [ ] A replica declaration where an earlier version holds a path under `.weblisk` is refused with `CONTENT_RESERVED_PATH`, though no entry holds that path now
@@ -4962,14 +5396,16 @@ security:
 - [ ] Retiring a confirmed replica, whether or not it was sent anything, leaves the repository's `ceiling` and `effective_custody` unchanged, destroys its credential, and deletes nothing at the destination
 - [ ] A replica confirmed while its destination is unreachable, and sent nothing, lowers the repository's `ceiling` at confirmation, and a write declaring a scope above the replica's ceiling is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
 - [ ] Retiring a replica that is already `retired` changes nothing and returns it with the first `retired_by`
-- [ ] A destination changed by somebody else makes its replica `diverged`; nothing is sent to it, nothing from it enters the repository, and sending resumes by itself once the destination again holds only what was sent
+- [ ] A destination changed by somebody else makes its replica `diverged`; nothing is sent to it, nothing from it enters the repository, and once the destination again holds only what was sent the replica leaves `diverged` by itself
+- [ ] No version is sent to any replica: a confirmed replica of a repository that holds a version is `behind` with `held_reason` `egress-unrecorded` and no `held_path`, unless step 3 of the Replica Send Flow held a version first, and its destination receives nothing
 - [ ] A version above a replica's ceiling holds the replica `behind` with `held_path` naming it and `held_reason` `above-ceiling`, and no version recorded after it is sent
 - [ ] A replica declaration confirming a census taken for another destination, or with other claimed custody, attestations or `history_scope`, is refused with `CONTENT_PRECONDITION_FAILED`, and so is one whose destination's backend changed `held_by` since the census
 - [ ] A replica declaration whose census counts unclassified versions and that carries no `history_scope` is refused with `CONTENT_SCOPE_UNDECLARED`; the same declaration with a `history_scope` at or below the prospective replica ceiling, and the digest of a census taken with it, is confirmed and records `history_scope`
 - [ ] An unclassified version recorded after a replica's census — an entry a person created in the store with no scope in its bytes, whether observed or not — holds the replica `behind` with `held_reason` `unclassified`, and nothing recorded after it is sent
-- [ ] An out-of-band edit, after a replica's census, to an entry whose path has a recorded scope is classified at that scope, or at the higher scope its bytes declare, and is sent when that is at or below the replica's ceiling
+- [ ] An out-of-band edit, after a replica's census, to an entry whose path has a recorded scope is classified at that scope, or at the higher scope its bytes declare, and holds no replica back when that is at or below the replica's ceiling, which is then `behind` with `held_reason` `egress-unrecorded`, never `above-ceiling`
 - [ ] A version recorded after a replica was confirmed that holds a path under `.weblisk`, anywhere in what it holds, holds the replica `behind` with `held_reason` `reserved-path` naming that path; it is never sent, and nothing recorded after it is sent
-- [ ] A backend's report of a copy of the store that no replica declares makes `effective_custody` `opaque`, lowers `ceiling` to `internal` at most, and publishes `content.custody_degraded`
+- [ ] A backend's report of a copy of the store that no replica declares makes `effective_custody` `opaque`, lowers `ceiling` to `public`, as a replica declared at a place that demonstrated nothing would, and publishes `content.custody_degraded`; a write at `internal` is then refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
+- [ ] A copy the backend reported once and no longer reports stays in `reported_copies`; `effective_custody` stays `opaque` and `ceiling` stays `public`, and a write at `internal` is still refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
 - [ ] No configuration key declares a replica, and a configuration file naming one declares nothing
 - [ ] Every write, removal and applied proposal appends exactly one `change` entry to its repository's change log, and every observation of state `changed` or `removed` one `observe` entry; an observation of state `unknown` appends nothing
 - [ ] A repository's first log entry has `act` `declare` and `seq` 1, records its `self_decision_ceiling`, its `scope_floor` and, on adoption, every entry the census found; the SHA-256 of its stored line is the `log` its `LogHead` reports
@@ -4978,27 +5414,30 @@ security:
 - [ ] `GET /v1/content/repositories/{repository}/log` with no query returns at most 1000 lines from `seq` 1; a page that reaches the tip has no `next`; a `from` beyond the tip returns no lines; a `limit` above 10000, or a `from` or `limit` below 1 or not an integer, is refused with `INVALID_REQUEST`
 - [ ] Each log route answers an `establishing` repository with `CONTENT_LOG_NOT_BEGUN` and one outside the caller's scope with `CONTENT_REPOSITORY_UNKNOWN`
 - [ ] With the log key unavailable, `POST /v1/content/repositories/{repository}/log/checkpoint` appends nothing and is refused with `CONTENT_SEALING_PAUSED` carrying a `LogHead` whose `sealing` is `paused`
-- [ ] `DELETE /v1/content/entry` reads an `EntryRemoval` from its JSON body, and a `statement` in it is verified and recorded as a write's is
+- [ ] `DELETE /v1/content/entry` reads an `EntryRemoval` from its JSON body, and, once `weblisk/content-change/v1` has test vectors, a `statement` in it is verified and recorded as a write's is
 - [ ] A write whose read-back digest differs from the digest of its decoded bytes is refused with `CONTENT_WRITE_UNCONFIRMED`, and no `change` entry records it
 - [ ] An `observe` entry becomes its path's recorded digest: a second read of the same changed bytes under shared custody appends nothing
 - [ ] A caller whom the storage proxy refuses `read` at the highest scope the log records is refused the whole log, and is never served part of it
 - [ ] `GET /v1/content/repositories/{repository}/log/head` names no path, and a caller holding `content:describe` and not `content:read` is served it
 - [ ] No log entry holds an entry's bytes or a proposal's bytes
-- [ ] A write carrying a `statement` that verifies records it on its `ContentChange` with `signer` set to the token's `identity_id`, and an offline verifier rebuilding `weblisk/content-change/v1` from the entry verifies it
-- [ ] A write whose `statement` was signed over other bytes, another path or another `before` is refused with `CONTENT_STATEMENT_INVALID`, and nothing is written or recorded
-- [ ] A `statement` whose attestation has no `purpose`, or `purpose` `authenticate`, is refused with `CONTENT_STATEMENT_INVALID`
-- [ ] A `statement` whose `signed_at` is more than 300 seconds from the service's clock is refused with `CONTENT_STATEMENT_INVALID`
-- [ ] A `statement` on a token whose `type` is not `operator`, or whose attestation names an `identity_id` other than the token's, or whose attestation's identity key is not the operator's current key as `POST /v1/token/check` reports it, is refused with `CONTENT_STATEMENT_INVALID`
-- [ ] A write, removal or decision on an unexpired token whose operator was removed, or whose credential was revoked, after it was minted is refused with `OPERATOR_REVOKED` or `CREDENTIAL_REVOKED` and nothing is written; one whose operator's role no longer carries the capability is refused with `FORBIDDEN`
-- [ ] A write, removal, decision or replica declaration made while the orchestrator cannot be asked is refused with `CONTENT_TOKEN_UNCHECKED`, and nothing is written, decided or recorded
-- [ ] A `statement` signed by the credential key the token's `cid` names is refused with `CONTENT_STATEMENT_INVALID`, even where that key was also attested with `purpose` `sign-records`
-- [ ] A `statement` whose credential key is not one of the token's `record_keys` — never recorded at the hub, or revoked before the token was minted — is refused with `CONTENT_STATEMENT_INVALID`
-- [ ] A `statement` whose attestation's `not_after` is more than 90 days ahead of the service's clock is refused with `CONTENT_STATEMENT_INVALID`
-- [ ] A decision to apply that carries the decider's `statement` records it, and an offline verifier reports that approval `signed`; the same decision without one is reported `witnessed`
-- [ ] A decision whose `statement` fails is refused with `CONTENT_STATEMENT_INVALID`, and the proposal stays `open`
+- [ ] Once `weblisk/content-change/v1` has test vectors, a write carrying a `statement` that verifies records it on its `ContentChange` with `signer` set to the token's `identity_id`, and an offline verifier rebuilding `weblisk/content-change/v1` from the entry verifies it
+- [ ] Once `weblisk/content-change/v1` has test vectors, a write whose `statement` was signed over other bytes, another path or another `before` is refused with `CONTENT_STATEMENT_INVALID`, and nothing is written or recorded
+- [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` whose attestation has no `purpose`, or `purpose` `authenticate`, is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` whose `signed_at` is more than 300 seconds from the service's clock is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` whose attestation names an `identity_id` other than the pass's, or whose attestation's identity key is not the one whose fingerprint the pass's `identity_key` carries, is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] Through the admin gateway, a write, removal or decision on an unexpired operator token whose operator was removed, or whose credential was revoked, after it was minted is refused by the exchange with `OPERATOR_REVOKED` or `CREDENTIAL_REVOKED`, and one whose operator's role no longer carries the capability with `FORBIDDEN`; in each, this service is sent nothing and nothing is written
+- [ ] A write, removal, decision or replica declaration on a pass whose `exp` has passed is refused with `TOKEN_EXPIRED`, and nothing is written, decided or recorded; one on an unexpired pass naming the capability is performed with the orchestrator unreachable, because this service asks the orchestrator nothing about a pass
+- [ ] The audit entry for a request a pass carried names the pass's `identity_id` as `actor` and its `act.identity_id` as `via`
+- [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` signed by the credential key the token's `cid` names is refused with `CONTENT_STATEMENT_INVALID`, even where that key was also attested with `purpose` `sign-records`
+- [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` whose credential key is not one of the token's `record_keys` — never recorded at the hub, or revoked before the token was minted — is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` whose attestation's `not_after` is more than 90 days ahead of the service's clock is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] Once `weblisk/content-change/v1` has test vectors, a decision to apply that carries the decider's `statement` records it, and an offline verifier reports that approval `signed`; the same decision without one is reported `witnessed`
+- [ ] Once `weblisk/content-change/v1` has test vectors, an offline verifier does not report `signed` a statement whose attestation is by one of the signer's retired identity keys and whose entry was recorded at or after that key's `retired_at`, and does report `signed` one recorded before it
+- [ ] Once `weblisk/content-change/v1` has test vectors, a decision whose `statement` fails is refused with `CONTENT_STATEMENT_INVALID`, and the proposal stays `open`
 - [ ] An offline verifier reports inconsistent a `change` entry recording `separation` `independent` whose `approved_by` is its `actor`, one recording `separation` `self` whose `scope` is above the `self_decision_ceiling` in the `declare` entry, and one recording `separation` `self` on a change with no scope — none declared, and on a removal no recorded scope for the path, the floor included
 - [ ] Every signature in a change log is ML-DSA-65, and a signature on a commit in a version-controlled store appears nowhere in the log
-- [ ] With the log key unavailable, writes still succeed, their entries are appended, and `LogHead.unsealed` counts them; the next checkpoint covers them all
-- [ ] `POST /v1/content/repositories/{repository}/log/checkpoint` on a log whose tip has moved appends a `checkpoint` entry covering the tip, and on one whose tip has not moved appends nothing
+- [ ] With the log key unavailable, writes still succeed, their entries are appended, and `LogHead.unsealed` counts them; once a log key can sign, the next checkpoint covers them all
+- [ ] Before the sealed log's statements have test vectors, the service starts without minting a log key, appends no `key` or `checkpoint` entry, answers every `LogHead` with `sealing` `paused`, and refuses a checkpoint request with `CONTENT_SEALING_PAUSED`
+- [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, `POST /v1/content/repositories/{repository}/log/checkpoint` on a log whose tip has moved appends a `checkpoint` entry covering the tip, and on one whose tip has not moved appends nothing
 - [ ] A service started over a change log whose lines after its latest checkpoint were altered settles no reservation in it, refuses writes, removals, decisions to apply, reconciles and checkpoints on that repository with `CONTENT_LOG_BROKEN` naming the `seq`, still serves its entries and its log, reports health `degraded` naming it, and reports `chain` `broken` with that `broken_at` in its `LogHead`
-- [ ] Rotating the service's registered key appends a succession entry to every change log, and a verifier that brings only the key the tenant's directory now lists verifies checkpoints sealed before the rotation
+- [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, rotating the service's registered key appends a succession entry to every change log that has an authority, and a verifier that brings only the key the tenant's service directory now lists verifies checkpoints sealed before the rotation

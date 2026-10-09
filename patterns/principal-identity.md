@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.8.2
+version: 1.8.7
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -72,7 +72,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.5.0 <2.0.0"
+    version: ">=1.16.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -109,6 +109,14 @@ requires:
    identifiable, not admitted. Every capability comes from a grant issued by a
    hub, exercised through a credential that hub attested. Identity is the
    subject of an authorization decision, never the decision.
+
+   The authority to issue a grant is written `grant:issue` in this pattern. It
+   is the pattern's name for that authority, not a capability name in
+   [`protocol/types`](../protocol/types.md)' list: no manifest declares it and
+   no token carries it under that name. A blueprint that applies this pattern
+   says which of its own capabilities carries it, and at a Weblisk hub that is
+   `admin:*`, which admits operators and sets their roles
+   ([`architecture/admin`](../architecture/admin.md#operator-roles)).
 
 3. **A subject is a person or a service, treated identically** — Service
    accounts are identities. Same algorithm, same binding, same revocation, same
@@ -359,6 +367,10 @@ contracts:
           records by rotating
         - A subject without the old key cannot announce a rotation. It is
           admitted afresh, as a new subject with a new identifier
+        - A component registered with an orchestrator is not yet under the
+          rule that keeps its identifier. Its identity id is the fingerprint
+          of its current key, and changes when POST /v1/rotate-key replaces
+          that key. protocol/spec states that gap
 
     - name: service-subject-constraints
       description: What a non-human subject may not do, and must carry
@@ -841,8 +853,11 @@ binding from grants resting on a pasted string.
 first identity to create a hub is verified by nobody, because there is nobody to
 verify against — but an unauthenticated bootstrap endpoint reachable on a network
 is claimable by whoever reaches it first, which need not be the operator who
-started the process. Implementations MUST require a bootstrap secret emitted to
-the console or log at first start, and MUST NOT treat mere arrival as authority.
+started the process. Implementations MUST require a bootstrap secret emitted at
+first start where only whoever started the process can read it — a file only
+that user can read, or a terminal attached to the process — and never to a log,
+which others read and which outlives the claim. They MUST NOT treat mere arrival
+as authority.
 Implementations SHOULD additionally confine bootstrap to console or local access,
 time-box it, close the window permanently once claimed, and record the resulting
 grant with `key_provenance: unverified`.
@@ -1008,15 +1023,16 @@ credential revocation, which costs nothing else.
 44. Whatever a hub issues on the strength of an identity signature submits an
     attestation for that identity and is refused for every other request.
 45. A grant to a service subject carrying any person-only capability —
-    `content:write`, `content:decide`, `content:replicate`, `content:connect`
-    or `model:attest` — is refused at issue with `capability_person_only`.
-46. An `AgentAuthorization` naming any of those five is refused with
+    `content:write`, `content:decide`, `content:replicate`, `content:connect`,
+    `content:declassify`, `model:attest` or `fabric:attest` — is refused at
+    issue with `capability_person_only`.
+46. An `AgentAuthorization` naming any of those seven is refused with
     `capability_person_only`, so an agent acting under a subject who holds
     `content:write` cannot write an entry directly.
-47. A service subject whose role comes to carry any of those five after its
+47. A service subject whose role comes to carry any of those seven after its
     grant was issued is refused a token with `capability_person_only`, and is
     never issued one with the capability removed.
-48. A registration whose manifest declares any of those five is refused with
+48. A registration whose manifest declares any of those seven is refused with
     `capability_person_only`, whose wire form is `CAPABILITY_PERSON_ONLY`, and
     no token is issued.
 49. An attestation with `purpose` `sign-records` is recorded, can be revoked,

@@ -191,18 +191,22 @@ declaration and in the endpoint table: removing it would make the blueprint
 understate what the hub exposes. What the marker changes is who writes it — a
 generator is not asked for it, and no generated file is expected to satisfy it.
 
-Use it only where the endpoint is genuinely not the tenant's to implement. The
-case it exists for is the orchestrator's model routes: they read the model
-backend the operator's workstation is configured with, discover which provider
-binaries are on its PATH, and run completions through them. A generated
-component cannot implement that without reproducing the CLI's provider
-catalogue, and a blueprint MUST NOT specify behaviour it does not own — which
-is why those rows carry a purpose and nothing else.
+Use it only where a generated component cannot implement the endpoint. The
+case it exists for is the orchestrator's model routes: they find which model
+backends the hub's own host can run, and run a completion through one, which a
+generated component cannot do without reproducing the CLI's provider
+catalogue. So the CLI installs them.
 
-Marking an endpoint `provided: platform` while ALSO specifying its behaviour is
-a contradiction: either the behaviour is the component's, in which case the
-component implements it, or it is not, in which case this blueprint should not
-be describing it.
+The marker changes who writes an endpoint, never whether its behaviour is
+specified. The blueprint specifies a `provided: platform` endpoint as it does
+any other — what it takes, what it answers and what it refuses — and the
+platform's code is held to that statement as generated code is. An endpoint
+whose behaviour no blueprint states has a contract only in the platform's
+code, which its clients cannot read and which can change under them. The
+model routes serve the tenant's model, which is the tenant's
+([`architecture/orchestrator`](../architecture/orchestrator.md#the-tenants-model)),
+so what they do is the orchestrator's to state even though the CLI writes
+them.
 
 Without the marker a generator is asked for an endpoint the tooling installs
 anyway, and produces a handler that is shadowed at runtime and reached by

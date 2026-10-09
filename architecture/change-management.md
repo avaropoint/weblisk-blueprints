@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: change-management
-version: 1.0.2
-requires: [protocol/spec, protocol/types, architecture/orchestrator, architecture/agent, architecture/lifecycle, patterns/messaging, patterns/versioning]
+version: 1.0.3
+requires: [protocol/spec, protocol/types, architecture/orchestrator, architecture/agent, patterns/messaging, patterns/versioning]
 platform: any
 tier: free
 -->
@@ -95,12 +95,6 @@ requires:
       types:
         - name: AgentContext
           fields_used: [identity, services, token]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/lifecycle
-    version: ">=1.0.0 <2.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

@@ -788,8 +788,11 @@ column. That is the escalation
 [`patterns/scope`](../patterns/scope.md#scope-escalation) requires of anything
 composed. It holds for both forms: a standing register takes its own spec's
 `artifact_scope`, and a record log declared under `declares.register` takes
-the declaring spec's. A register nothing gives a level is created with none,
-and is unclassified.
+the declaring spec's. A register nothing gives a level is created with no
+`scope:` of its own. In a repository declared with a `scope_floor` it is at
+the floor, and the write that creates it declares the floor
+([Where a record holding `pii` lives](#where-a-record-holding-pii-lives)).
+Anywhere else it is unclassified.
 
 ### Records about a person
 
@@ -859,7 +862,8 @@ a scope finds that scope's records repository once, at install: the repository
 - Where the scope has no records repository, install creates nothing that
   holds `pii`. It reports each register and form it did not create with
   `CONTENT_RECORDS_REPOSITORY_REQUIRED`, the code its first write would be
-  refused with, naming the scope that has no records repository. It reports
+  refused with ([`architecture/content`](../architecture/content.md#error-handling)),
+  naming the scope that has no records repository. It reports
   every obligation that records into one as unable to record. Nothing that
   holds `pii` is created in the programme's repository instead.
 
@@ -883,15 +887,44 @@ entry labelled `pii` may be kept. So, in this order:
 2. The repository that holds the programme's other documents is declared,
    where it is not already. Its spec files declare no level of their own
    ([`artifact_scope` is never spelled `scope`](#artifact_scope-is-never-spelled-scope)),
-   so a declaration made for it carries a `scope_floor`
+   so a declaration made for it MUST carry a `scope_floor`
    ([`architecture/content`](../architecture/content.md#scope_floor-covers-what-declares-nothing)).
+   A person chooses its level. Only a person may declare one, it is at least
+   the `highest_scope` an adoption's census reports, and this schema names
+   no level for it: what a tenant's programmes may hold is the tenant's
+   judgement.
 3. The programme is installed. Every document it creates is written through
    the content service's write route into the repository its path resolves
    to, each record holding `pii` into the records repository, and only then
-   is the first row written.
+   is the first row written. Each write declares a scope on the change: the
+   higher of the level the spec or form gives the document and its path's
+   recorded scope, which in a floored repository is never below the floor.
+   Where the document carries `scope:`, it carries that level too
+   ([What the created document carries](#what-the-created-document-carries)).
+   A write there that declares none, or less, is refused with
+   `CONTENT_SCOPE_LOWERED`
+   ([`architecture/content`](../architecture/content.md#a-scope-only-rises)).
 
 A repository that is not declared accepts no write, so install never writes
 into a store ahead of its declaration.
+
+**Install is a person's act.** Step 2's declaration carries a `scope_floor`,
+which needs `content:decide` beside `content:declare`, and step 3's writes
+need `content:write`, and both are *person only*. The content service takes
+them only on a pass addressed to it, which the tenant's admin gateway obtains
+for each of the person's requests, naming every capability that request needs,
+and which carries only those the person may use when it is exchanged
+([`architecture/content`](../architecture/content.md#who-may-move-an-entry);
+[`architecture/admin`](../architecture/admin.md#contracts),
+`admin-gateway-authorization`). So whatever installs a programme sends steps 2
+and 3 through the admin gateway on the token of the person installing it, and
+step 1 too wherever that declaration carries a `scope_floor`, as an adoption
+of a store that keeps history must. A service
+or an agent that installs on its own declares nothing that carries a floor
+and writes nothing: it stages each document as a proposal
+(`content:propose`) into a repository a person has declared, and a person
+decides them. Until a person does, the programme is not installed, and
+install reports so rather than reporting success.
 
 Placed anywhere else, every write to a record holding `pii` is refused with
 `CONTENT_RECORDS_REPOSITORY_REQUIRED` from the moment the repository it sits in
@@ -1533,4 +1566,6 @@ files; these are acts of the tenant and the client that installs into it.
 - [ ] Where the scope has no records repository, nothing holding `pii` is created, each register and form not created is reported with `CONTENT_RECORDS_REPOSITORY_REQUIRED`, and every obligation that records into one is reported as unable to record
 - [ ] A register's `path`, an obligation's `records:`, a `for.records` and a `relation` column's `target` resolve in the records repository when the register named holds `pii`, and in the programme's repository otherwise, for install, derive and the occurrence engine alike
 - [ ] The records repository, and the repository that holds the rest of the programme, are declared before install creates anything, and every document install creates is written through the content service's write route into the repository its path resolves to
+- [ ] The declaration of the repository that holds the rest of the programme carries a `scope_floor` a person chose, and every write install makes into it declares on the change the higher of the level the spec or form gives the document and the floor
 - [ ] The client writing a person's next change to a document created from a spec or a form adds `scope:` and `scope_metadata:` from the spec or form where the document lacks them, never on open, and never below the entry's recorded scope
+- [ ] An install that copies a programme from a repository outside a tenant says with its answer that where the copy came from is not recorded in the tenant, because no field of `architecture/content` records it ([Repositories Outside a Tenant](../architecture/content.md#repositories-outside-a-tenant))

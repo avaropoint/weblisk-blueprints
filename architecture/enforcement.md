@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: enforcement
-version: 2.2.1
+version: 2.3.4
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, patterns/privacy, architecture/orchestrator, architecture/gateway]
 platform: any
 tier: free
@@ -85,7 +85,7 @@ Enforcement operates on four principles:
 
 3. **Declared authority only** — an agent can only perform operations
    it has explicitly declared in its manifest AND that match its
-   active operational data contract. Having storage:read capability
+   active operational data contract. Having database:read capability
    does not grant access to all readable data — only to the tables,
    columns, and row scopes declared in the agent's data contract.
 
@@ -100,7 +100,7 @@ Enforcement operates on four principles:
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.13.0 <2.0.0"
     bindings:
       types:
         - name: ServiceDirectory
@@ -118,7 +118,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=2.2.0 <3.0.0"
+    version: ">=2.6.0 <3.0.0"
     bindings:
       types:
         - name: ScopeLevel
@@ -181,7 +181,11 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.4.0 <3.0.0"
+    version: ">=2.14.0 <3.0.0"
+    bindings:
+      endpoints:
+        - path: /v1/model/ceiling
+          methods: [GET]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -279,8 +283,11 @@ operational scope.
 **External Boundary** — Intercepts every outbound call before it
 leaves the platform. Extracts the agent identity, target URL/service,
 protocol (HTTP, SMTP, webhook), and payload scope. Verifies that the
-agent has declared the external capability and that the target is not
-on a blocked list. Evaluates payload scope to prevent scope leakage
+agent has declared the capability the call's protocol needs, which is
+`http:send`, for a target its resources match, over HTTP or to a webhook
+([`protocol/types`](../protocol/types.md#capability) lists none for SMTP or
+gRPC yet, so a call over either is denied), and that the target is not on a
+blocked list. Evaluates payload scope to prevent scope leakage
 — restricted-scope data cannot be sent to unclassified external
 endpoints, and nothing above its ceiling, or undeclared, is sent to a
 destination [`patterns/scope`](../patterns/scope.md#destination-ceilings)
@@ -293,14 +300,24 @@ model provider's when its address is the `address` that
 `GET /v1/model/ceiling` reports for the tenant's model backend
 ([`architecture/orchestrator`](orchestrator.md#a-model-is-a-destination)),
 which the external boundary reads with its own registration token, and whose
-`ceiling` it applies. Such a target is reached only through the tenant's model
+`ceiling` it applies. That ceiling is the one the tenant gives its backend for
+the model its configuration names. A ceiling is a model's as well as a
+name's ([`patterns/scope`](../patterns/scope.md#model-providers)), and the
+boundary does not read which model a call asks for, so at a backend whose
+model chooses who runs it, what holds for any other model is the model
+route's own gate, which applies the ceiling of the model it asks for. Such a
+target is reached only through the tenant's model
 route ([`patterns/scope`](../patterns/scope.md#the-gate)), and a call to it
 from anything else is denied. A provider an api-ai endpoint reaches under its
 own `providers:` ([`patterns/api-ai`](../patterns/api-ai.md#blueprint-format))
-is recognised only where that route reports an address for its key. A model
-endpoint no such answer names cannot be recognised here: a call to it is
-judged as a call to any unclassified endpoint is. This limit is stated with
-the rule so that the rule is not read as covering every model.
+is recognised only where that route reports an address for its key. The
+boundary cannot know an api-ai endpoint's provider keys, and no route a
+registered component may call lists the backends a tenant configures, so in
+practice the one model endpoint it
+recognises is the tenant's model backend. A model endpoint no such answer
+names cannot be recognised here: a call to it is judged as a call to any
+unclassified endpoint is. This limit is stated with the rule so that the rule
+is not read as covering every model.
 
 **Response Boundary** — Intercepts every response produced by an
 agent before it is delivered to the calling party (gateway, another
@@ -553,9 +570,9 @@ external_proxy:
       violation: ViolationRecord | null
     behavior:
       - Check quarantine store — if agent quarantined → deny
-      - Verify agent has declared external capability for the protocol
+      - Verify the agent has declared the capability the protocol needs - http:send, whose resources match the target, for http, https and webhook, as schemas/compliance's agent → external path requires. protocol/types lists no capability for smtp or grpc, so no agent can declare one and a call over either is denied with ENFORCEMENT_CAPABILITY_MISMATCH, as deny-by-default requires. That is a gap until protocol/types lists one, and agents/email-send's smtp provider is behind it
       - Check target against blocked endpoint list
-      - A target whose address GET /v1/model/ceiling reports is a model provider's — a call to it from anything but the tenant's model route → deny with ENFORCEMENT_BLOCKED_TARGET
+      - A target whose address GET /v1/model/ceiling reports is a model provider's — a call to it from an agent whose manifest does not declare model:route, the capability protocol/types gives the tenant's model route → deny with ENFORCEMENT_BLOCKED_TARGET
       - Evaluate payload scope — restricted+ data to unclassified endpoints → deny
       - A target patterns/scope gives a ceiling (Destination Ceilings), such as a model provider, is classified by that ceiling — payload scope above it → deny with SCOPE_CEILING_EXCEEDED; payload scope undeclared → deny with SCOPE_MISSING. Each carries a DestinationRefusal. This is the destination gate, and it resolves to deny in every environment profile, never audit-only. Deny before any masking below, never mask to fit
       - Build PolicyContext from agent, target, scope
@@ -572,15 +589,15 @@ external_proxy:
       - code: ENFORCEMENT_QUARANTINED
         when: Agent is in quarantine store
       - code: ENFORCEMENT_BLOCKED_TARGET
-        when: Target is on the blocked endpoint list, or is a model provider's endpoint and the caller is not the tenant's model route
+        when: Target is on the blocked endpoint list, or is a model provider's endpoint and the caller's manifest does not declare model:route
       - code: ENFORCEMENT_SCOPE_LEAKAGE
         when: Payload scope exceeds the classification of a target patterns/scope gives no ceiling
       - code: SCOPE_CEILING_EXCEEDED
-        when: Payload scope is above the ceiling patterns/scope gives the target. The code and its DestinationRefusal are patterns/scope's, as every sender's refusal at a destination is
+        when: Payload scope is above the ceiling patterns/scope gives the target. The code is registered in protocol/types and its DestinationRefusal is patterns/scope's, as for every sender's refusal at a destination
       - code: SCOPE_MISSING
         when: Payload scope is undeclared and the target has a ceiling in patterns/scope
       - code: ENFORCEMENT_CAPABILITY_MISMATCH
-        when: Agent lacks declared external capability
+        when: Agent has not declared http:send with resources that match an http, https or webhook target, or calls over smtp or grpc, for which protocol/types lists no capability
       - code: ENFORCEMENT_CONSENT_REQUIRED
         when: Outbound payload contains subject data without consent for external sharing
 ```
@@ -829,7 +846,7 @@ Storage Boundary intercepts
   │
   │  (If scope check passes:)
   │
-  ├─ Verify agent capability includes "storage:write"
+  ├─ Verify agent capability includes "database:write"
   │  └─ If missing → DENY + capability_mismatch violation
   │
   ├─ Check safety intent for write operations:
@@ -859,7 +876,7 @@ External Boundary intercepts
   ├─ Extract: agent, protocol (https), target URL, method (POST),
   │           payload scope (restricted), payload size
   │
-  ├─ Verify agent has declared "external:http" capability
+  ├─ Verify agent has declared "http:send" with a resource matching the target
   │  └─ If missing → DENY + capability_mismatch violation
   │
   ├─ Check target against blocked endpoint list
@@ -923,8 +940,8 @@ Behavior Analyzer receives signals continuously from all boundaries
 Accumulate signals per agent in rolling windows
   │
   ├─ Capability Mismatch Detection:
-  │    Agent declares: [storage:read, message:send]
-  │    Agent attempts: storage:write
+  │    Agent declares: [database:read, agent:message]
+  │    Agent attempts: database:write
   │  └─ IMMEDIATE violation → block + escalate
   │
   ├─ Scope Violation Detection:
@@ -1603,11 +1620,11 @@ in the relevant `platforms/*.md` blueprint. All platforms MUST satisfy:
 - [ ] Storage boundary blocks scope violations — agent with `internal` scope cannot write to `restricted` resource (ENFORCEMENT_SCOPE_VIOLATION)
 - [ ] External boundary prevents scope leakage — `restricted`-scope data cannot be sent to unclassified external endpoints (ENFORCEMENT_SCOPE_LEAKAGE)
 - [ ] A model provider is sent nothing above the ceiling [`patterns/scope`](../patterns/scope.md#model-providers) gives it (`SCOPE_CEILING_EXCEEDED`), and nothing undeclared (`SCOPE_MISSING`), each refusal carrying a `DestinationRefusal`; the call is denied before any masking, never masked to fit, and is denied in the `development` profile as in `production`
-- [ ] A call to the address `GET /v1/model/ceiling` reports for a model backend, from anything but the tenant's model route, is denied with `ENFORCEMENT_BLOCKED_TARGET`
+- [ ] A call to the address `GET /v1/model/ceiling` reports for a model backend, from an agent whose manifest does not declare `model:route`, is denied with `ENFORCEMENT_BLOCKED_TARGET`; from one that declares it, the call reaches the destination gate and a payload above the provider's ceiling is denied with `SCOPE_CEILING_EXCEEDED`
 - [ ] Response boundary blocks output contract violations — agent cannot return fields outside its declared output contract (ENFORCEMENT_OUTPUT_CONTRACT_VIOLATION)
 - [ ] Response boundary blocks output scope exceeded — agent cannot return data at a scope higher than its declared operational scope (ENFORCEMENT_OUTPUT_SCOPE_EXCEEDED)
 - [ ] Quarantine blocks all four boundaries — quarantined agent's messages, storage writes, external calls, and responses are all rejected
-- [ ] Capability mismatch detected — agent with `[storage:read]` cannot perform `storage:create` (capability_mismatch violation)
+- [ ] Capability mismatch detected — agent with `[database:read]` cannot write, which needs `database:write` (capability_mismatch violation)
 - [ ] Data contract enforcement — storage proxy verifies operations match declared data contract; undeclared resource access blocked (ENFORCEMENT_DATA_CONTRACT_VIOLATION)
 - [ ] Volume anomaly triggers graduated response — 10x spike emits audit alert; sustained 5 minutes triggers quarantine
 - [ ] Pattern deviation triggers auto-quarantine — sustained deviation beyond configurable threshold (default: 30 minutes) triggers automatic quarantine without operator confirmation

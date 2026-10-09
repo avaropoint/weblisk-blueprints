@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: client
-version: 1.0.1
+version: 1.0.2
 requires: [protocol/types, protocol/identity, architecture/gateway, architecture/agent, patterns/scope]
 platform: any
 tier: free
@@ -238,16 +238,23 @@ Every type in the table above reaches the framework through the application
 gateway, and that is why this document can speak of one ingress. Two kinds of
 caller do not, and neither is in the taxonomy:
 
-- an **operator console**, which addresses a hub's administrative surface with
-  an operator token — [`architecture/admin`](admin.md)'s, not this document's;
+- an **operator console**, which addresses a hub's administrative surface, its
+  admin gateway, with an operator token — [`architecture/admin`](admin.md)'s,
+  not this document's;
 - a **sibling component**, which addresses another component in the same tenant
   with its own registered identity.
 
-Both resolve an address out of the signed service directory, and for both the
-address may be on a different host from the one they were configured with,
-because a tenant's components may legitimately be distributed. Which addresses
-such a caller may present a credential to is **not decided here and MUST NOT be
-re-derived here**. It is
+An operator console resolves no address out of the service directory: it
+presents a person's token at the admin gateway it was given and nowhere else
+([`protocol/identity`](../protocol/identity.md#the-pass)). A sibling component
+resolves one out of the service directory, which is the orchestrator's only as
+read from the component's anchor by `GET /v1/services`; a body pushed to its
+`POST /v1/services` is unauthenticated
+([`protocol/spec`](../protocol/spec.md#post-v1services), the gap there). That
+address may be on a different host from the one the component was configured
+with, because a tenant's components may legitimately be distributed. Which
+addresses either caller may present a credential to is **not decided here and
+MUST NOT be re-derived here**. It is
 [`architecture/orchestrator`](orchestrator.md#presenting-a-credential-to-a-component),
 which owns the directory that publishes those addresses and the `address_provenance`
 that says what each one is worth.
@@ -1187,8 +1194,10 @@ security:
   boundaries:
     - boundary: Client → Gateway. The only ingress for every client type in this
         document's taxonomy. Such a client never addresses an agent, an
-        orchestrator or a store. An operator console and a sibling component do,
-        and are bound by architecture/orchestrator's reach rule instead
+        orchestrator or a store. An operator console addresses the tenant's
+        admin gateway and nothing else, and a sibling component addresses
+        components and the orchestrator; both are bound by
+        architecture/orchestrator's reach rule instead
     - boundary: Client credential → Session. Bound to the device and origin it
         was issued for
     - boundary: Client input → Server logic. Untrusted, validated against a

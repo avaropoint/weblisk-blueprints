@@ -27,6 +27,8 @@ orchestrator:
   health_interval: duration        # Health probe interval (default: 30s)
   health_timeout: duration         # Health probe timeout (default: 5s)
   health_failures: integer         # Failures before deregistration (default: 3)
+  admin_addresses: list[string]    # Origins the admin gateway is reached at (default: [])
+  admin_gateway_from: list[string] # Addresses the admin gateway's requests reach the orchestrator from (default: [])
 
 # Required — gateway configuration
 gateway:
@@ -79,7 +81,8 @@ content:
         tamper_evident: boolean
   reconcile_interval: duration     # Shared custody only. 0 disables scheduled runs
   reverify_custody_interval: duration
-  replica_retry_interval: duration # How often a replica that lacks versions is sent them
+  replica_retry_interval: duration # How often a replica that lacks versions is tried again
+  checkpoint_interval: duration    # How often a change log whose tip has moved is sealed
   max_entry_bytes: integer         # Largest entry the service will write
 
 # Optional — federation configuration
@@ -97,6 +100,18 @@ observability:
   metrics_enabled: boolean         # Expose /metrics endpoint (default: true)
   otlp_endpoint: string            # OTLP collector URL (optional)
 ```
+
+> **Gap — no section declares the admin gateway.** The tenant's one door for
+> people ([`architecture/admin`](../architecture/admin.md#admin-gateway-separation))
+> is a component of its own, and nothing above declares it: no section gives
+> it a listener, an operator allowlist or an address, so a hub this file
+> describes has none, and `weblisk server start` starts none
+> ([`architecture/cli`](../architecture/cli.md#weblisk-server-start), the gap
+> there, which says what a person then cannot do). `gateway` is the
+> application gateway, which refuses every administrative route
+> ([`architecture/gateway`](../architecture/gateway.md)), and is not it.
+> `orchestrator.admin_addresses` names the admin gateway's origins, and is
+> written by whoever runs one, since no command does yet.
 
 ## Field Details
 
@@ -118,6 +133,8 @@ observability:
 | `health_interval` | duration | no | `30s` | How often to probe registered agents |
 | `health_timeout` | duration | no | `5s` | Max wait for health response |
 | `health_failures` | integer | no | `3` | Consecutive failures before auto-deregistration |
+| `admin_addresses` | list | no | `[]` | The origins at which this hub's admin gateway is reached, each in the ASCII serialisation of RFC 6454 section 6.2 (`https://admin.example.org`, with a port only where it is not the scheme's default). The orchestrator signs a hub proof for these and no other ([`architecture/admin`](../architecture/admin.md#proving-the-hub-at-an-address)), so a hub that lists none proves its `hub_id` at no address, and once `weblisk/hub-proof/v1` has test vectors no client records it at a new address. Wherever an admin gateway runs, every origin it is reached at MUST be listed here. No command writes the key yet, because none stands an admin gateway up (the gap above): whoever runs one lists its origins. |
+| `admin_gateway_from` | list | no | `[]` | The IP addresses the admin gateway's requests reach the orchestrator from. The orchestrator trusts `X-Forwarded-For` from these and no other, to count a request the gateway forwards to a route served without a token by the client's address rather than the gateway's ([`architecture/admin`](../architecture/admin.md#contracts), `auth-route-rate-limit`). Empty, it counts every such request by its connection's address, so the clients of a gateway share one count, and one client sending a route the five requests a minute the gateway lets it send uses up that route's count for every other person until the minute passes. Wherever an admin gateway runs, every address its requests reach the orchestrator from MUST be listed here. An address other callers share, such as loopback on one host, lets each of them name its own source. No command writes the key yet, because none stands an admin gateway up (the gap above): whoever runs one lists its addresses |
 
 ### gateway
 
@@ -168,7 +185,7 @@ backend owes once it exists, and what is refused, all live there.
 | `repositories` | list | no | `[]` | Stores declared at startup |
 | `reconcile_interval` | duration | no | `15m` | Out-of-band change detection for shared-custody repositories. `0` disables |
 | `reverify_custody_interval` | duration | no | `24h` | How often attestations are re-demonstrated, the store's and each replica's |
-| `replica_retry_interval` | duration | no | `15m` | How often a replica that lacks versions is sent them, besides after each version is recorded |
+| `replica_retry_interval` | duration | no | `15m` | How often a replica that lacks versions is tried again, besides after each version is recorded. A try sends only what [`architecture/content`](../architecture/content.md#replica-send-flow)'s Replica Send Flow lets leave, and its step 4 holds every send until a send can leave its egress record, so until then a try sends nothing |
 | `checkpoint_interval` | duration | no | `15m` | How often a change log whose tip has moved is sealed. `0` seals only at shutdown and on request ([`architecture/storage`](../architecture/storage.md#the-checkpoint)) |
 | `max_entry_bytes` | integer | no | `10485760` | Largest entry the service will write |
 
@@ -299,6 +316,8 @@ orchestrator:
   storage_path: /var/lib/weblisk/orchestrator.db
   token_ttl: 12h
   health_interval: 15s
+  admin_addresses:
+    - https://admin.acme.com
 
 gateway:
   port: 8080
@@ -325,9 +344,6 @@ agents:
     domain: inventory
     port: 9710
     replicas: 3
-    env:
-      ai_provider: openai
-      ai_model: gpt-4o
   - name: forecaster
     type: work
     domain: analytics

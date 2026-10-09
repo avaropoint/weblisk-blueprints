@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.8.0
+version: 1.18.3
 requires: []
 platform: any
 tier: free
@@ -104,8 +104,8 @@ below, with their HTTP status, category and retryability.
 | `ENFORCEMENT_MISSING_INTENT` | 403 | permanent | Safety intent required but not filed |
 | `ENFORCEMENT_CAPABILITY_MISMATCH` | 403 | permanent | Agent lacks declared capability for operation |
 | `ENFORCEMENT_SCOPE_VIOLATION` | 403 | permanent | Resource scope exceeds agent operational scope |
-| `ENFORCEMENT_SCOPE_LEAKAGE` | 403 | permanent | Payload scope exceeds target endpoint classification |
-| `ENFORCEMENT_BLOCKED_TARGET` | 403 | permanent | Target is on the blocked endpoint list |
+| `ENFORCEMENT_SCOPE_LEAKAGE` | 403 | permanent | Payload scope exceeds the classification of a target `patterns/scope` gives no ceiling. A target with a ceiling refuses with `SCOPE_CEILING_EXCEEDED` |
+| `ENFORCEMENT_BLOCKED_TARGET` | 403 | permanent | Target is on the blocked endpoint list, or is the address of a model provider and the caller's manifest does not declare `model:route` ([`architecture/enforcement`](../architecture/enforcement.md#external-proxy)) |
 | `ENFORCEMENT_DATA_CONTRACT_VIOLATION` | 403 | permanent | Operation targets resources outside agent's declared data contract |
 | `ENFORCEMENT_OUTPUT_CONTRACT_VIOLATION` | 403 | permanent | Response contains fields outside declared output contract |
 | `ENFORCEMENT_OUTPUT_SCOPE_EXCEEDED` | 403 | permanent | Response scope exceeds agent's operational scope |
@@ -148,6 +148,50 @@ below, with their HTTP status, category and retryability.
 | `POLICY_LIFECYCLE_INVALID` | 409 | permanent | Invalid policy state transition (e.g., modifying an archived policy) |
 | `POLICY_CONFLICT` | 409 | permanent | Conflicting active policies detected for the same scope |
 
+**Operator token codes** (produced by the orchestrator's judgement of an
+operator token, `architecture/admin`'s `token-status-on-use`, on its own routes
+and at the token exchange, `POST /v1/token/exchange`, whose refusal the admin
+gateway answers its client with):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `CREDENTIAL_REQUIRED` | 401 | permanent | The token is not an operator token carrying `cid` where one is required |
+| `OPERATOR_UNKNOWN` | 401 | permanent | The hub records no operator of the token's `sub` |
+| `OPERATOR_NOT_APPROVED` | 403 | permanent | The operator is registered and pending |
+| `OPERATOR_REVOKED` | 401 | permanent | The operator was removed |
+| `CREDENTIAL_UNKNOWN` | 401 | permanent | The hub holds no credential with the token's `cid` |
+| `CREDENTIAL_OPERATOR_MISMATCH` | 401 | permanent | The credential the token's `cid` names is held by an operator other than its `sub` |
+| `CREDENTIAL_REVOKED` | 401 | permanent | The credential was revoked |
+| `CREDENTIAL_EXPIRED` | 401 | permanent | The credential's attestation has passed its `not_after` |
+
+`architecture/admin` says when the orchestrator answers each and what a client
+does next. The exchange can also refuse a token with `INVALID_SIGNATURE` or
+`TOKEN_EXPIRED`, for a token whose signature does not verify or whose `exp`
+has passed, and those two are registered with their status in
+[Error Handling](#error-handling). The admin gateway, refusing a request
+because the exchange refused the person's token, answers with the code
+`TokenExchangeResponse.code` names and the status this table or Error Handling
+gives it.
+
+**Pass codes** (produced by a component that a person's request reaches,
+[`protocol/identity`](identity.md#the-pass)):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `PASS_REQUIRED` | 401 | permanent | A component other than the orchestrator and the admin gateway was presented an operator token, which no holder may present there ([`protocol/identity`](identity.md#the-pass), rule 4). A person's request goes to the tenant's admin gateway, which carries it on a pass, and a tool call to the MCP surface on a credential [`patterns/auth-oauth`](../patterns/auth-oauth.md) issued for it ([`architecture/mcp`](../architecture/mcp.md)). Logged as a security event |
+| `PASS_AUDIENCE_MISMATCH` | 401 | permanent | A pass was presented to a component its `aud` does not name, the orchestrator included. Logged as a security event |
+
+**Destination codes** (produced by the destination gate of `patterns/scope`,
+and answered by every sender it binds):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `SCOPE_MISSING` | 400 | permanent | An entity has no scope declaration where one is required: `reject_unscoped` is enabled, or it would be sent to a destination. At a destination, `detail` is a `DestinationRefusal` |
+| `SCOPE_CEILING_EXCEEDED` | 403 | permanent | Content would be sent to a destination whose ceiling is below its scope. `detail` is a `DestinationRefusal` |
+
+What the gate refuses, and what a `DestinationRefusal` carries, are
+`patterns/scope`'s.
+
 **Identity error codes** (produced by `protocol/identity`):
 
 | Code | HTTP | Category | Description |
@@ -178,8 +222,9 @@ originating subsystem.
 
 **Registry vs. local codes:**
 - All protocol-level, enforcement, policy, contract, federation,
-  safety, identity, and common codes are registered in this central
-  table. These codes may appear in any component.
+  safety, operator token, destination, identity, and common codes are
+  registered in this central table. These codes may appear in any
+  component.
 - Agent-local codes (specific to a single agent's domain logic) are
   defined in the agent's own blueprint. Agent-local codes MUST NOT
   collide with registered codes and SHOULD use a descriptive name
@@ -187,6 +232,16 @@ originating subsystem.
   cron agent, `HARD_BOUNCE` in the email-send agent).
 - When an agent-local code is used by two or more unrelated agents,
   it SHOULD be promoted to the common codes table in this registry.
+- A blueprint that reports or cites the code another component refuses
+  with does not use that code in this sense, and the code stays local to
+  the component that refuses with it. `schemas/programme` reports
+  `CONTENT_RECORDS_REPOSITORY_REQUIRED` for what install did not create,
+  because it is the code the content service would refuse the first write
+  with, and `patterns/scope` and `schemas/programme` cite
+  `CONTENT_SCOPE_LOWERED`, `CONTENT_SCOPE_UNDECLARED` and
+  `CONTENT_CUSTODY_CEILING_EXCEEDED` as `architecture/content`'s refusals. Each
+  is registered once, with its status, in `architecture/content`'s Error
+  Handling, and each of those blueprints points there.
 
 ### AgentManifest
 
@@ -282,6 +337,11 @@ types:
         type: "[]Subscription"
         required: false
         description: "Event subscription declarations. Each entry specifies a topic pattern, optional consumer group, scope, and concurrency limit. See [spec.md — Event Scoping](spec.md#event-scoping)."
+      pass_routes:
+        name: PassRoutes
+        type: "[]PassRoute"
+        required: false
+        description: "Every route at which this component admits a person's request on a pass, with every capability each requires. Absent or empty: the admin gateway carries no person's request here. See [PassRoute](#passroute)"
 ```
 
 ### Capability
@@ -307,7 +367,7 @@ types:
 **Standard capabilities:**
 - `file:read` — read files (resources: glob patterns)
 - `file:write` — write/modify files
-- `llm:chat` — use LLM for analysis
+- `llm:chat` — use a language model. A person's request needs it to ask the tenant's model for a completion at `POST /v1/admin/complete` ([`architecture/orchestrator`](../architecture/orchestrator.md#administrative-endpoints)), and `architecture/admin`'s roles table says which roles carry it. It is the one capability a requester needs to ask a model, and no other is minted for that: the model capabilities below are for recording an agreement (`model:attest`) and for serving the tenant's model route (`model:route`)
 - `agent:message` — communicate with other agents
 - `workflow:execute` — execute multi-agent workflows (domain controllers)
 - `http:get` — make external HTTP requests
@@ -322,13 +382,14 @@ types:
 - `content:read` — read entries and list a content repository, read the proposals made against it, and read its change log
 - `content:write` — create, modify and remove entries directly. *Person only*
 - `content:propose` — stage a change to one entry for a person to decide. Writes nothing
-- `content:decide` — apply or reject a proposed change. *Person only*
+- `content:decide` — apply or reject a proposed change, and, beside `content:declare`, declare a repository's `self_decision_ceiling` or `scope_floor`. *Person only*
 - `content:describe` — read a repository's custody class, attestations and derived ceiling, its replicas, and its change log's head, and have that log sealed
-- `content:declare` — bring a store under governance. Sufficient to adopt one that already holds bytes; establishing a new one also needs `content:establish`
+- `content:declare` — bring a store under governance. Adopting one that already holds bytes needs it alone only where the census does not report `keeps_history` and the declaration carries neither `scope_floor` nor `self_decision_ceiling`; adopting a store that keeps history must carry a `scope_floor`, so it also needs `content:decide`. Establishing a new store also needs `content:establish`
 - `content:establish` — create a store and declare it. Required in addition to `content:declare` for `disposition: establish`; adoption does not need it
 - `content:reconcile` — run custody reconciliation on a shared repository
 - `content:replicate` — declare a replica of a repository, and retire one. Declaring one also needs `content:connect`. *Person only*
 - `content:connect` — have the content service create and hold a credential that reaches a destination outside the tenant's store. Required in addition to `content:replicate` to declare a replica. *Person only*
+- `content:declassify` — lower a path's recorded scope. It guards no route yet: [`architecture/content`](../architecture/content.md) refuses every lowering until the tenant's approval queue can route such a request to a second person. *Person only*
 
 *Person only* marks a capability that no service and no agent may hold.
 [`patterns/principal-identity`](../patterns/principal-identity.md) keeps it out
@@ -344,26 +405,50 @@ request is [`architecture/content`](../architecture/content.md#proposals).
 `content:replicate` and `content:connect` are two capabilities so that sending
 a repository outside the tenant takes two grants: a replica with no credential
 reaches nothing, and a credential with no replica is sent nothing
-([`architecture/content`](../architecture/content.md#who-may-declare-a-replica)).
+([`architecture/content`](../architecture/content.md#who-may-declare-a-replica),
+which also says whom the two grants separate today).
 
 **Model capabilities:**
 - `model:attest` — record and withdraw an agreement attestation, which raises what a model provider may be sent ([`patterns/scope`](../patterns/scope.md#model-providers)). *Person only*
+- `model:route` — send to a model provider's endpoint as the tenant's model route ([`patterns/scope`](../patterns/scope.md#the-gate)). Declared by a component that serves `patterns/api-ai`'s endpoints, and by nothing else. `POST /v1/admin/complete` is the orchestrator's own route and is served by no component, so nothing declares it there ([`patterns/scope`](../patterns/scope.md#the-gate), Where the tenant applies it)
+
+`model:route` is how [`architecture/enforcement`](../architecture/enforcement.md#external-proxy)'s
+external boundary tells the model route from a call made around it. It
+admits a call to a provider's address and nothing past the destination gate:
+the boundary still refuses whatever is above the provider's ceiling. Any
+component may declare it on its signed manifest today, as it may any service
+capability, because a registration is not yet an enrolment
+([`protocol/spec`](spec.md#post-v1register)).
 
 `model:attest` is person only because it decides what leaves the tenant for a
-party outside it, and it is not in the `admin` family, so `admin:*` does not
-carry it. A service that administers a tenant therefore cannot raise a model
-provider's ceiling.
+party outside it. It is not in the `admin` family, so `admin:*` does not carry
+it, and a role carries it only where
+[`architecture/admin`](../architecture/admin.md)'s roles table names it: today
+only `admin` does, so every admin holds it. What keeps it apart from `admin:*`
+is therefore that a token narrowed by `cap`, or a pass exchanged for a route
+that needs `admin:*`, carries `admin:*` without it, and that a future role may
+administer without attesting agreements. No service could raise a ceiling
+through `admin:*` in any case: `/v1/admin/*` admits a person's operator token
+at the orchestrator and a pass exchanged for one at any other provider, and
+nothing else, whichever component serves the route
+([`architecture/admin`](../architecture/admin.md#contracts),
+`admin-gateway-authorization`).
 
 **Fabric capabilities:**
 - `fabric:read` — read relationships, coverage, impact, lineage and the ledger projection
 - `fabric:produce` — state a producer's full current view for one partition
 - `fabric:observe` — report one relationship incrementally
-- `fabric:attest` — assert, judge or re-anchor a relationship as a person
+- `fabric:attest` — assert, judge or re-anchor a relationship as a person. *Person only*
 
 `fabric:attest` is separate from `fabric:observe` for the reason
 `architecture/fabric` is built around: only a person reaches `confirmed`. One
 capability covering both would make that rule unenforceable at the boundary
-where it has to hold.
+where it has to hold, and for the same reason it is *person only*: a service or
+an agent holding it would reach `confirmed` without a person. A person holds it,
+and `fabric:read`, only through a role that
+[`architecture/admin`](../architecture/admin.md)'s roles table gives it to, as
+for every person-only capability. `fabric:produce` and `fabric:observe` are a
+producer's, which is a registered component.
 
 A capability name is `family:verb`. A component that invents one is refused at
 registration with `INVALID_REQUEST` — which is correct, and is why a component's
@@ -379,13 +464,17 @@ family, and the orchestrator rejected it exactly as it should.
 - `admin:*` — every capability in the `admin` family
 
 Administration is expressed in capabilities like everything else, and an
-operator's **role is a bundle of them** — `architecture/admin` defines `viewer` as
-`admin:read`, `auditor` as `admin:read` plus `admin:audit`, and so on. That keeps
+operator's **role is a bundle of them** — `architecture/admin` defines each
+bundle in its Operator Roles table, `auditor` being `viewer` plus `admin:audit`,
+and so on. That keeps
 administration one authority system rather than a second one running alongside
 the first: whatever asks to administer a component presents capabilities, and
-the component checks them the same way it checks `agent:message`. On the
-`/v1/admin/*` routes of `architecture/orchestrator`, those capabilities arrive on
-an operator's token — a person's — and on no other kind of token.
+the component checks them the same way it checks `agent:message`. On every
+`/v1/admin/*` route, those capabilities arrive on a person's operator token
+at the orchestrator and on a pass exchanged for one at any other component
+([`protocol/identity`](identity.md#the-pass)), and on no other kind of token.
+The orchestrator judges what the person may use: on its own routes as each
+request arrives, and at the exchange for a pass.
 
 `admin:*` is the only wildcard capability name. It exists because a full-access
 role has to be nameable, and it denotes the whole family rather than a resource
@@ -394,9 +483,124 @@ glob — resource scoping stays in `resources`, as for every other capability.
 > **Gap.** `architecture/admin`'s `admin` role relies on `admin:*` for operator
 > management, agent deregistration and federation approval, none of which is
 > separately nameable here. A deployment that wants an operator who may approve
-> federation but not deregister agents cannot express it. Naming those is
+> federation but not deregister agents cannot express it. A route another
+> provider serves with the minimum `admin` is reached on a pass carrying
+> `admin:*`, which that provider alone accepts and which reaches no route of
+> the orchestrator's ([`protocol/identity`](identity.md#the-pass)), so the
+> missing names cost precision, not containment. Naming those is
 > `architecture/admin`'s to do, and this list will follow it — inventing the
-> names here would put the wrong document in charge of what administration means.
+> names here would put the wrong document in charge of what administration
+> means.
+
+**Exchange capability:**
+- `token:exchange` — have the orchestrator exchange the operator token a person has just presented for a pass addressed to one component ([`protocol/identity`](identity.md#the-pass); `architecture/orchestrator`, `token-exchange`). The admin gateway declares it, and no other blueprint does. No role carries it
+
+`token:exchange` is what the admin gateway's registration declares, and the
+only capability it declares: the gateway reads the service directory, which
+any registration may, and exchanges, and holds no standing access to data
+([`architecture/admin`](../architecture/admin.md#contracts),
+`admin-gateway-authorization`). Nothing stops another component declaring it
+on its signed manifest today, as it may declare any service capability,
+because a registration is not yet an enrolment
+([`protocol/spec`](spec.md#post-v1register)). That is a gap, and what it
+admits is this. The exchange takes a live operator token and nothing else, and
+no component but the admin gateway, and from it the orchestrator, is presented
+one, so such a holder needs a person's token it has stolen. With one, it can have the token exchanged for a
+pass to any component, carrying everything that person may use there:
+`content:write`, `content:decide` and `fabric:attest` included, which no route
+of the orchestrator's gives, and without the admin gateway's network controls,
+its operator IP allowlist among them. So a stolen operator token reaches
+further through a rogue `token:exchange` holder than at the orchestrator.
+Admitting `token:exchange` only for the registration the tenant declares as
+its admin gateway closes it, and waits on the tenant being able to declare
+that component ([`architecture/orchestrator`](../architecture/orchestrator.md#what-the-directory-attests-and-what-it-does-not),
+the gap that the declaration has nowhere to live).
+
+### PassRoute
+
+A route at which a component admits a person's request on a pass, and every
+capability that request needs there. A component's manifest declares one for
+each such route (`AgentManifest.pass_routes`), and the orchestrator republishes
+them in its directory entry (`ServiceEntry.pass_routes`).
+
+```yaml
+types:
+  PassRoute:
+    fields:
+      method:
+        name: Method
+        type: string
+        required: true
+        description: "HTTP method, in upper case"
+      path:
+        name: Path
+        type: string
+        required: true
+        description: "The route's path as the component's blueprint writes it. A `{name}` segment matches any one non-empty path segment; nothing else is a pattern. No two of one manifest's pass routes may match one request, and registration refuses a manifest whose do, as it refuses one naming a capability this document does not list (architecture/orchestrator, Registration Flow)"
+      capabilities:
+        name: Capabilities
+        type: "[]string"
+        required: true
+        description: "Every capability the route requires on every request, all of them together"
+      body:
+        name: Body
+        type: "[]BodyRequirement"
+        required: false
+        description: "Each capability the route requires because of what a request's body carries, beside `capabilities`"
+```
+
+### BodyRequirement
+
+```yaml
+types:
+  BodyRequirement:
+    fields:
+      field:
+        name: Field
+        type: string
+        required: true
+        description: "A member at the top level of the request's JSON body"
+      equals:
+        name: Equals
+        type: string
+        required: false
+        description: "The string value of `field` that calls for `capabilities`. Absent: `field` being present and not null calls for them"
+      capabilities:
+        name: Capabilities
+        type: "[]string"
+        required: true
+        description: "The capabilities the request requires, beside the route's own, when its body meets this"
+```
+
+**The admin gateway reads these, and nothing else, to carry a person's
+request to a component other than the orchestrator.** It is generated from
+`architecture/admin` alone, which cannot require every blueprint whose
+component may serve people, so what each such route needs reaches it at
+runtime, from the directory. A request goes to the one directory entry whose
+`pass_routes` declare its method and path, on a pass whose scope names that
+route's `capabilities` and those of each `BodyRequirement` its body meets, and
+nothing more
+([`architecture/admin`](../architecture/admin.md#contracts),
+`admin-gateway-authorization`).
+
+**Each entry is its blueprint's own statement of the route, and no wider.** A
+component declares a route here only where its blueprint specifies both that
+route and that it accepts a pass for it, with every capability that blueprint
+requires for it. The component still judges each request against its
+blueprint: a route declared with less than that blueprint requires is
+refused at the component with `FORBIDDEN` for want of the capability the pass
+did not carry, and one declared with more carries the excess to that
+component alone, which is the pass's only audience. A pass route may name a
+person-only capability, because it states what the component checks on a
+person's pass, never what it holds: registration's refusal of a person-only
+capability reads `capabilities` alone, and nothing in `pass_routes` reaches
+the component's own token. Like any manifest field
+it is the registrant's claim, and a registration is not yet an enrolment
+([`protocol/spec`](spec.md#post-v1register)): what bounds a claimed route is
+that the gateway never sends a person's request to a route two entries
+declare, to a route of the orchestrator's own, or to an address
+`architecture/orchestrator`'s Presenting a credential to a component does not
+allow.
 
 ### IOSpec
 
@@ -1594,6 +1798,11 @@ types:
         type: string
         required: false
         description: "How the orchestrator came to hold `url`: `self-asserted` (a registrant claimed it and nothing confirmed it), `declared` (it matches the address the tenant declared for this component), `verified` (declared, and the registered key answered there). Absent means `self-asserted`."
+      pass_routes:
+        name: PassRoutes
+        type: "[]PassRoute"
+        required: false
+        description: "The `pass_routes` this component's manifest declared, as its registration recorded them. Absent or empty: no person's request is carried here. See [PassRoute](#passroute)"
 ```
 
 **`url` is what a registrant claimed; `address_provenance` is how much that is worth.**
@@ -1642,7 +1851,7 @@ types:
         name: Signature
         type: string
         required: false
-        description: "Orchestrator signature"
+        description: "Reserved for the orchestrator's signature over the directory, which has no signing input yet. Nothing verifies it, so no reader takes it for a check (protocol/spec, the gap under POST /v1/services)"
 ```
 
 ---
@@ -1971,9 +2180,9 @@ types:
         description: "The operator's identity id at this tenant: the fingerprint of the identity key its registration recorded, kept across every change of identity key. What tokens, credentials and records name the operator by, never the name. Never reused"
       retired_keys:
         name: RetiredKeys
-        type: "[]string"
+        type: "[]RetiredKey"
         required: false
-        description: "Identity public keys this operator held before a change of identity key, oldest first. None is accepted again as any operator's identity key or credential. A verifier that is not the hub reads them to check an attestation made before a change"
+        description: "Identity keys this operator held before a change of identity key, oldest first, each with when it was retired. None is accepted again as any operator's identity key or credential, the operator's own included. A verifier that is not the hub reads them to check an attestation made before a change, and only for what was recorded before that key's retired_at"
       role:
         name: Role
         type: OperatorRole
@@ -1996,7 +2205,33 @@ types:
         description: "Unix epoch seconds of the most recent token issued to this operator"
 ```
 
+### RetiredKey
+
+An identity key an operator held before a change of identity key
+(`architecture/admin`, Changing an identity key), and when the change took
+it out of use.
+
+```yaml
+types:
+  RetiredKey:
+    fields:
+      public_key:
+        name: PublicKey
+        type: string
+        required: true
+        description: "Base64url-encoded ML-DSA-65 identity public key the operator held"
+      retired_at:
+        name: RetiredAt
+        type: int64
+        required: true
+        description: "Unix epoch seconds of the change that retired it. No attestation it signed vouches for anything recorded at or after this time, because the change revoked every credential it attested"
+```
+
 ### OperatorRole
+
+The four roles an operator may hold. Which capabilities each carries is
+[`architecture/admin`](../architecture/admin.md#operator-roles)'s roles table,
+and only that table: these values name the roles and do not restate it.
 
 ```yaml
 types:
@@ -2005,13 +2240,13 @@ types:
     base: string
     values:
       - value: viewer
-        description: "Read the administrative surface"
+        description: "Reads. The capabilities it carries are architecture/admin's roles table's"
       - value: auditor
-        description: "Viewer, plus the full audit trail"
+        description: "Reads, and the full audit trail. The capabilities it carries are architecture/admin's roles table's"
       - value: operator
-        description: "Day-to-day operations — read, act on the approval queue, manage strategies. Cannot admit, remove or re-role operators"
+        description: "Day-to-day operations. The capabilities it carries are architecture/admin's roles table's"
       - value: admin
-        description: "Every administrative capability, including admitting and removing operators"
+        description: "Full administration. The capabilities it carries are architecture/admin's roles table's"
 ```
 
 `operator` was missing from this enum while `architecture/admin` named it in
@@ -2038,47 +2273,74 @@ types:
         description: "Retained for the audit trail. No token is issued, and the name is not reusable"
 ```
 
-### TokenStatus
+### TokenExchangeRequest
 
-What the orchestrator answers a registered component that asks whether an
-operator token presented to it still rests on a live operator and credential
-(`POST /v1/token/check`, `architecture/orchestrator`). A WLT cannot be
-recalled, and only the orchestrator holds the records it rests on.
+What the admin gateway sends the orchestrator to have the operator token a
+person has just presented exchanged for a pass addressed to one component
+(`POST /v1/token/exchange`, `architecture/orchestrator`;
+[`protocol/identity`](identity.md#the-pass)). Its fields are OAuth 2.0 Token
+Exchange's (RFC 8693 §2.1) where it has one. The gateway authenticates with
+its own registration token, in the `Authorization` header and nowhere else, so
+the token exchanged travels in this body under a name the orchestrator never
+reads as a caller's token.
 
 ```yaml
 types:
-  TokenStatus:
+  TokenExchangeRequest:
     fields:
-      live:
-        name: Live
+      subject_token:
+        name: SubjectToken
+        type: string
+        required: true
+        description: "The operator token a person presented to the admin gateway in the request it is carrying, exactly as it arrived. Never the caller's own token, and never read as one"
+      audience:
+        name: Audience
+        type: string
+        required: true
+        description: "The identity id of the one component the pass is for: the fingerprint of the public key that component's directory entry carries (ServiceEntry.public_key)"
+      scope:
+        name: Scope
+        type: "[]string"
+        required: true
+        description: "The capabilities the request the gateway is carrying needs at that component, by the names the Capability list gives them, admin:* included"
+```
+
+### TokenExchangeResponse
+
+What the orchestrator answers the admin gateway about the token it was asked
+to exchange (`POST /v1/token/exchange`, `architecture/orchestrator`). Every
+answer about the person's token is a 200 carrying this, so a status other
+than 200 only ever judged the gateway's own request.
+
+```yaml
+types:
+  TokenExchangeResponse:
+    fields:
+      issued:
+        name: Issued
         type: bool
         required: true
-        description: "True when the token is this orchestrator's, unexpired, an operator token with a cid, and its operator and credential are live in the orchestrator's own records"
+        description: "True when a pass was minted"
       code:
         name: Code
         type: string
         required: false
-        description: "Present when live is false: the code the orchestrator refuses that token with on its own routes — INVALID_SIGNATURE, TOKEN_EXPIRED, CREDENTIAL_REQUIRED, or one of architecture/admin's operator and credential codes"
-      identity_id:
-        name: IdentityID
+        description: "Present when issued is false: FORBIDDEN where the person may use none of the capabilities scope names, and otherwise the code the orchestrator refuses that token with on its own routes, one of INVALID_SIGNATURE and TOKEN_EXPIRED (Error Handling) or an operator token code (Errors) — CREDENTIAL_REQUIRED, OPERATOR_UNKNOWN, OPERATOR_NOT_APPROVED, OPERATOR_REVOKED, CREDENTIAL_UNKNOWN, CREDENTIAL_OPERATOR_MISMATCH, CREDENTIAL_REVOKED or CREDENTIAL_EXPIRED. Each is registered here with its HTTP status"
+      pass:
+        name: Pass
         type: string
         required: false
-        description: "Present when live: the operator's identity id"
-      identity_public_key:
-        name: IdentityPublicKey
-        type: string
+        description: "Present when issued: the pass, a WLT of type pass addressed to the audience (protocol/identity, The pass)"
+      expires_at:
+        name: ExpiresAt
+        type: int64
         required: false
-        description: "Present when live: the operator's current identity public key, against which an attestation the token's holder carries is checked"
-      role:
-        name: Role
-        type: OperatorRole
-        required: false
-        description: "Present when live: the role the operator holds now"
+        description: "Present when issued: the pass's exp, no more than 30 seconds after it was minted"
       capabilities:
         name: Capabilities
         type: "[]string"
         required: false
-        description: "Present when live: what that role carries now, never beyond the token's cap. What the asking component authorises the request against"
+        description: "Present when issued: the capabilities the pass carries, which are those scope named that the person may use now"
 ```
 
 ### AuditEntry
@@ -2102,6 +2364,11 @@ types:
         type: string
         required: true
         description: "Who performed the action"
+      via:
+        name: Via
+        type: string
+        required: false
+        description: "Where a pass carried the request, the identity id of the gateway that obtained it, the pass's act.identity_id (protocol/identity, The pass). Absent, and omitted from the canonical JSON, otherwise"
       action:
         name: Action
         type: string
@@ -2130,7 +2397,11 @@ types:
 ```
 
 **Action types:** `register`, `deregister`, `channel`, `message`,
-`event`, `namespace_grant`, `namespace_release`
+`event`, `namespace_grant`, `namespace_release`, and the model routes'
+`model_set`, `model_complete`, `model_agreement_record` and
+`model_agreement_withdraw`. The orchestrator's
+[Audit Actions](../architecture/orchestrator.md#audit-actions) table says what
+each one it writes records
 
 ---
 
@@ -2330,7 +2601,7 @@ All paths are prefixed with `/v1`.
 | `/v1/health` | GET | no | orchestrator | Orchestrator health |
 | `/v1/audit` | GET | yes | orchestrator | Audit log |
 | `/v1/rotate-key` | POST | yes | orchestrator | Key rotation (see identity.md) |
-| `/v1/token/check` | POST | yes | orchestrator | Whether an operator token presented to a component is still live, and what its operator's role carries now |
+| `/v1/token/exchange` | POST | yes | orchestrator | Exchange the operator token a person has just presented to the admin gateway for a pass addressed to one component (`TokenExchangeResponse`). The admin gateway's alone |
 | `/v1/model/ceiling` | GET | yes | orchestrator | What a model backend may be sent now, and where it is reached. Platform-provided (architecture/orchestrator) |
 
 ---
@@ -2410,6 +2681,11 @@ error_codes:
     category: permanent
     retryable: false
     description: Requested namespace is reserved (e.g., `system.*`)
+  - code: ADDRESS_CONFLICT
+    status: 409
+    category: permanent
+    retryable: false
+    description: A registration's `url` contradicts the address the tenant declared for that component. Nothing is recorded (architecture/orchestrator, What the directory attests)
   - code: SCOPE_UNAUTHORIZED
     status: 403
     category: permanent
@@ -2446,54 +2722,9 @@ Implementations MUST:
 
 ## Scope
 
-### ScopeLevel
-
-Enumeration of universal scope levels. Scope classifies any resource,
-operation, message, or data field.
-
-| Value | Ordinal | Description |
-|-------|---------|-------------|
-| `public` | 0 | No restrictions — visible to anyone |
-| `internal` | 1 | Visible within the hub only |
-| `confidential` | 2 | Need-to-know basis with audit trail |
-| `restricted` | 3 | Limited to authorized agents/roles |
-| `critical` | 4 | Highest protection — requires approval for access |
-
-### ScopeDeclaration
-
-Attached to any resource, field, message, or operation to declare
-its scope level.
-
-```yaml
-types:
-  ScopeDeclaration:
-    fields:
-      target:
-        name: Target
-        type: string
-        required: true
-        description: "What is being scoped (field path, resource ID, operation name)"
-      level:
-        name: Level
-        type: string
-        required: true
-        description: "ScopeLevel value"
-      declared_by:
-        name: DeclaredBy
-        type: string
-        required: true
-        description: "Agent or system that declared the scope"
-      timestamp:
-        name: Timestamp
-        type: int64
-        required: true
-        description: "When the scope was declared"
-      justification:
-        name: Justification
-        type: string
-        required: false
-        description: "Why this scope level was chosen"
-```
+`ScopeLevel` and `ScopeDeclaration` are
+[`patterns/scope`](../patterns/scope.md#types)'s, and are defined there alone.
+A blueprint that uses either binds it from `patterns/scope`.
 
 ---
 
@@ -2768,39 +2999,9 @@ types:
 
 ### KeyRotationRequest
 
-Defined in [protocol/identity.md](identity.md#key-rotation). Included
-here for completeness — identity.md is the authoritative source.
-
-```yaml
-types:
-  KeyRotationRequest:
-    fields:
-      agent_id:
-        name: AgentID
-        type: string
-        required: true
-        description: "Agent ID (32 hex chars)"
-      new_public_key:
-        name: NewPublicKey
-        type: string
-        required: true
-        description: "New ML-DSA-65 public key (base64url-encoded, 1952 bytes)"
-      current_signature:
-        name: CurrentSignature
-        type: string
-        required: true
-        description: "Agent manifest signed with current private key (base64url-encoded, 3309 bytes)"
-      new_signature:
-        name: NewSignature
-        type: string
-        required: true
-        description: "Same manifest signed with new private key (base64url-encoded, 3309 bytes)"
-      timestamp:
-        name: Timestamp
-        type: int64
-        required: true
-        description: "Unix epoch seconds"
-```
+[`protocol/identity`](identity.md#types)'s, and defined there alone, for
+[agent key rotation](identity.md#rotation-flow). A blueprint that uses it binds
+it from `protocol/identity`.
 
 ---
 
@@ -3050,8 +3251,6 @@ security:
 - [ ] ChannelGrant includes `channel_id`, scoped `channel_token`, `target_url`, `target_pub_key`, and `expires_at`
 - [ ] Protocol paths are all prefixed with `/v1` and method/auth requirements match the Protocol Paths table
 - [ ] DeadLetterEntry includes `original_event`, `failure_reason`, `last_error`, `attempts`, and `subscriber`
-- [ ] ScopeLevel enum is constrained to `public`, `internal`, `confidential`, `restricted`, `critical`
-- [ ] ScopeDeclaration requires `target`, `level`, `declared_by`, and `timestamp`
 - [ ] PolicyDecision requires `policy_name`, `decision`, and `timestamp`; decision uses DecisionResult enum
 - [ ] OperationIntent requires `id`, `agent`, `operation`, `resource`, `resource_class`, `scope`, `environment`, and `timestamp`; operation includes `list` and `query`
 - [ ] IntentDecision requires `intent_id`, `decision`, `authority`, and `timestamp`; decision uses DecisionResult enum
@@ -3059,5 +3258,9 @@ security:
 - [ ] DecisionResult enum is constrained to `allow`, `audit`, `require_approval`, `escalate`, `deny`, `quarantine` with ordinal-based comparison
 - [ ] Severity enum is constrained to `info`, `low`, `medium`, `high`, `critical` — used consistently across enforcement, security, and safety
 - [ ] Decision mapping table resolves policy/safety/enforcement decisions to canonical DecisionResult using most-restrictive-wins
-- [ ] All protocol-level error codes (standard, enforcement, contract, federation, safety, policy, identity, common) are registered centrally; agent-local codes use domain-descriptive names and do not collide with registered codes
+- [ ] All protocol-level error codes (standard, enforcement, contract, federation, safety, policy, operator token, destination, identity, common) are registered centrally; agent-local codes use domain-descriptive names and do not collide with registered codes
+- [ ] Every code a `TokenExchangeResponse` may carry in `code` is registered here with its HTTP status, so the admin gateway, refusing a request whose token the exchange refused, answers with that status and never a guessed one
+- [ ] `PASS_REQUIRED` and `PASS_AUDIENCE_MISMATCH` are registered with status 401, and `token:exchange` is in the Capability list
+- [ ] `ADDRESS_CONFLICT` is registered with status 409, beside `NAMESPACE_CONFLICT`
+- [ ] `content:declassify` is in the Content capabilities and marked *person only*, so a registration whose manifest declares it is refused with `CAPABILITY_PERSON_ONLY`
 - [ ] Administrative authority is expressed as `admin:` capabilities in the standard list — not as a separate role model — and `admin:*` denotes the whole family

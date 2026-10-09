@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: storage
-version: 1.2.1
+version: 1.4.2
 requires: [protocol/types, protocol/identity, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 tier: free
@@ -90,11 +90,11 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.10.0 <3.0.0"
     bindings:
       types:
         - name: AgentEntry
-          fields_used: [Manifest, AgentID, Token, Status]
+          fields_used: [manifest, agent_id, token, registered_at, last_seen, status]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -319,14 +319,14 @@ contracts:
         - Every entry MUST be stored as its RFC 8785 canonical bytes and one line feed, and MUST NOT be re-serialised
         - seq MUST start at 1 and rise by one. previous_digest MUST be the SHA-256 of the previous stored line without its line feed, and 64 zeros on the first entry
         - Checkpoints MUST be signed by a log key, an ML-DSA-65 key held in memory only, whose key entry, signed by the log's authority, is in the log before the log key signs
-        - The owner MUST mint a log key when its process starts, and MUST mint the next and append its key entry to each log before the current log key's not_after passes. Sealing pauses only while the long-lived key cannot sign that key entry
-        - Whenever the tip has moved since the last checkpoint, a checkpoint MUST be issued at each checkpoint_interval, at clean shutdown, and on request. A checkpoint entry does not move the tip
-        - A change of the owner's long-lived key MUST be recorded in each log by a succession entry both keys sign, before the incoming key signs anything in that log, wherever the owner still holds the outgoing key
+        - Once weblisk/log-key/v1, weblisk/log-checkpoint/v1 and weblisk/log-succession/v1 have test vectors (protocol/identity, Fixed-Form Statements), the owner MUST mint a log key when its process starts, and MUST mint the next and append its key entry to each log before the current log key's not_after passes. Sealing then pauses only while the long-lived key cannot sign that key entry. Until those vectors are published the owner mints no log key, so no log key is available and nothing is sealed (Sealing a Chained Log, the gap under The log key)
+        - While a log key is available, and whenever the tip has moved since the last checkpoint, a checkpoint MUST be issued at each checkpoint_interval, at clean shutdown, and on request. A checkpoint entry does not move the tip
+        - A change of the owner's long-lived key MUST be recorded in each log that has an authority by a succession entry both keys sign, before the incoming key signs anything in that log, wherever the owner still holds the outgoing key. A log with no key entry has no authority and takes no succession entry, and until weblisk/log-key/v1, weblisk/log-checkpoint/v1 and weblisk/log-succession/v1 have test vectors no log has a key entry
         - An unavailable log key MUST stop sealing and MUST NOT stop appending. Unsealed entries MUST be counted wherever the log is reported
         - A key entry MUST NOT be removed or replaced. A checkpoint is judged against the key and succession entries before it
         - The owner MUST verify its log from the latest checkpoint to the tip before its first append after it starts and before each checkpoint. It MUST NOT append to or seal a log that fails, and MUST go on serving reads of it
         - A break in the chain MUST be reported where it is and MUST NOT be repaired, truncated or re-chained
-        - Every checkpoint MUST be reported unwitnessed. It is the owner's own statement, and nothing in this contract has anyone else countersign it
+        - Every checkpoint MUST be reported uncountersigned. It is the owner's own statement, and nothing in this contract has anyone else countersign it
 ```
 
 ---
@@ -477,37 +477,8 @@ without changing the store interface.
 | DeleteAgent | `(name string) → error` | Remove agent from registry |
 | ListAgents | `(filter AgentFilter) → ([]AgentEntry, error)` | List agents, optionally filtered by type/status |
 
-### AgentEntry (internal)
-
-```yaml
-types:
-  AgentEntry:
-    fields:
-      manifest:
-        name: Manifest
-        type: AgentManifest
-        description: "Full manifest from registration"
-      agent_id:
-        name: AgentID
-        type: string
-        description: "Assigned ID (32 hex chars)"
-      token:
-        name: Token
-        type: string
-        description: "Current auth token"
-      registered_at:
-        name: RegisteredAt
-        type: int64
-        description: "Unix epoch seconds"
-      last_seen:
-        name: LastSeen
-        type: int64
-        description: "Last health check or request timestamp"
-      status:
-        name: Status
-        type: string
-        description: "`online`, `offline`, `degraded`"
-```
+`AgentEntry` is [`architecture/orchestrator`](orchestrator.md#agententry)'s,
+the store's owner, and is defined there alone.
 
 ---
 
@@ -1128,14 +1099,30 @@ public key that signed it as a key entry, before the log key signs anything in
 that log. A key entry is never removed and never replaced. A new log key gets a
 new key entry.
 
-**A log key is replaced before it expires, not only at start.** The owner mints
-its first log key when its process starts. Before that key's `not_after`
-passes, it mints the next, in memory as it minted the first, and appends the
-next key entry to each log it seals. A process that outlives a log key goes on
-sealing under the next one, and a log key whose `not_after` has passed signs
-nothing more. Sealing pauses only while the long-lived key cannot sign a new
-key entry, as when the secret source that holds it is locked or out of reach,
-and resumes with the first key entry it can sign.
+**A log key is replaced before it expires, not only at start.** Once the log's
+statements have test vectors (the gap below), the owner mints its first log key
+when its process starts. Before that key's `not_after` passes, it mints the
+next, in memory as it minted the first, and appends the next key entry to each
+log it seals. A process that outlives a log key goes on sealing under the next
+one, and a log key whose `not_after` has passed signs nothing more. From then,
+sealing pauses only while the long-lived key cannot sign a new key entry, as
+when the secret source that holds it is locked or out of reach, and resumes
+with the first key entry it can sign.
+
+> **Gap — nothing is sealed before a sealed log's statements have test
+> vectors.** The key entry, the checkpoint and the succession entry are
+> fixed-form statements, and no implementation signs one before this corpus
+> publishes its test vectors
+> ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)).
+> None are published. Until `weblisk/log-key/v1`,
+> `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` all have them,
+> an owner mints no log key, appends no key, succession or checkpoint entry,
+> and seals nothing, so its log key is unavailable from the start
+> (`sealed-log`). Its logs are chained as
+> [Hash Chain Integrity](#hash-chain-integrity) requires, appends go on, and
+> every entry is counted unsealed wherever the log is reported. Such a log
+> shows that no entry was changed after a later one was written. It does not
+> show who wrote it, which is what sealing is for.
 
 A long-lived key whose `key_protection` is `development-only` is a key under
 `kdf = none`. `protocol/identity` rule 6 requires such a key to be reported as
@@ -1150,7 +1137,7 @@ there. The first authority is the key that signed the log's first key entry.
 
 When the owner replaces its long-lived key while it still holds the one it is
 replacing, as a rotation does
-([`protocol/identity`](../protocol/identity.md#key-rotation)), it appends a
+([`protocol/identity`](../protocol/identity.md#rotation-flow)), it appends a
 **succession entry** to each log that has an authority, before the incoming key
 signs anything there. A log with no key entry yet has no authority to hand
 over, and its first key entry makes the incoming key its first. The outgoing
@@ -1264,17 +1251,26 @@ What a verifier reports is computed from the log each time and never stored:
 | Sealing | sealed through `seq` N, by the latest checkpoint that passes step 3, with the number of entries after N that are unsealed; `unsealed` where no checkpoint passes step 3 |
 | Authority | `unvouched`, for each authority the verifier does not trust, with the checkpoints signed under it, none of which passes step 3 |
 | Key protection | `development-only`, for each checkpoint signed under a log key whose key entry says so |
-| Witness | `unwitnessed`, for every checkpoint that no party but the owner has signed. This contract defines no countersignature, so every checkpoint made under it is `unwitnessed` |
+| Countersignature | `uncountersigned`, for every checkpoint that no party but the owner has signed. This contract defines no countersignature, so every checkpoint made under it is `uncountersigned` |
 
 A break is reported where it is. It is never repaired, truncated or re-chained.
 A line that cannot be parsed is `unreadable`, not `broken`: a verifier that
 could not read a line has refuted nothing.
 
-**A checkpoint is the owner's own statement**, which is what `unwitnessed`
+**A checkpoint is the owner's own statement**, which is what `uncountersigned`
 says. An owner holding its keys can write a different log and seal it. What
 exposes that is an earlier checkpoint somebody else kept: the log must still
 hold, at that `seq`, a line whose SHA-256 is that `tip`. A verifier SHOULD keep
 each checkpoint it verifies, with the log id.
+
+The verdict was once called `unwitnessed`. It was renamed because
+[`architecture/content`](content.md#who-a-change-was-for) uses *witnessed* for
+a party the service took from a token it verified, which is the owner
+vouching, not a second party countersigning. Renaming a value an implementer
+reports would break that implementer, and it was taken as a minor version
+only because none reports it: the verdict was introduced and renamed before
+any sealed log was built, and a blueprint that names the verdict requires
+1.3.0 or later.
 
 ### An owner checks its own log
 
@@ -1469,7 +1465,7 @@ security:
         append after start and before each checkpoint, and refuses to append to
         or seal a broken log while still serving reads of it
     - rule: No checkpoint is reported as more than its owner's word
-      mechanism: Every checkpoint is reported unwitnessed
+      mechanism: Every checkpoint is reported uncountersigned
 ```
 
 ---
@@ -1523,12 +1519,13 @@ security:
 - [ ] DeleteUserSessions invalidates all sessions for a user (logout everywhere)
 - [ ] Audit log entries include a `previous_hash` field forming a hash chain: `SHA-256(previous_entry_bytes)` — the first entry uses a zero hash
 - [ ] A sealed log stores each entry as its RFC 8785 bytes and one line feed, and every `previous_digest` after the first is the SHA-256 of the stored line before it
-- [ ] A checkpoint verifies with nothing but the log's lines, one long-lived key's fingerprint from outside the log and an ML-DSA-65 verifier, over a `weblisk/log-checkpoint/v1` statement rebuilt from `seq`, `tip` and `issued_at`
-- [ ] A key entry signed by the log's authority precedes every checkpoint its log key signs, and the log key is found in no file
-- [ ] A process that runs past its log key's `not_after` has appended the next key entry before it, and goes on sealing
-- [ ] Rotating the owner's long-lived key appends a succession entry, signed by both keys, to each log before the new key signs anything there, and a verifier that has only the new key's fingerprint verifies checkpoints sealed before the rotation
-- [ ] A key entry signed by a key that is not the authority, with no succession entry before it, makes a verifier that lacks that key's fingerprint report `unvouched`, and no checkpoint under it passes
+- [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, a checkpoint verifies with nothing but the log's lines, one long-lived key's fingerprint from outside the log and an ML-DSA-65 verifier, over a `weblisk/log-checkpoint/v1` statement rebuilt from `seq`, `tip` and `issued_at`
+- [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, a key entry signed by the log's authority precedes every checkpoint its log key signs, and the log key is found in no file
+- [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, a process that runs past its log key's `not_after` has appended the next key entry before it, and goes on sealing
+- [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, rotating the owner's long-lived key appends a succession entry, signed by both keys, to each log that has an authority before the new key signs anything there, and a verifier that has only the new key's fingerprint verifies checkpoints sealed before the rotation
+- [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, a key entry signed by a key that is not the authority, with no succession entry before it, makes a verifier that lacks that key's fingerprint report `unvouched`, and no checkpoint under it passes
 - [ ] An owner whose log fails its check from the latest checkpoint appends nothing and seals nothing, still serves reads of the log, and reports where it fails
-- [ ] Every checkpoint is reported `unwitnessed`
+- [ ] Every checkpoint is reported `uncountersigned`
 - [ ] With the log key unavailable, appends continue, no checkpoint is written, and the reported count of unsealed entries rises
+- [ ] Before `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` all have test vectors, an owner that starts mints no log key, its logs hold no key, succession or checkpoint entry, and every entry appended is counted unsealed
 - [ ] Changing one byte of an entry a checkpoint covers fails verification — the chain is `broken` at the next entry's `seq`, or, for the entry the checkpoint names, its `tip` no longer matches — and the failure is reported rather than repaired

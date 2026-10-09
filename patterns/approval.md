@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: approval
-version: 1.1.2
+version: 1.1.4
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety]
 platform: any
 tier: free
@@ -130,6 +130,14 @@ requires:
    approve its own recommendation. A domain controller cannot approve
    cross-domain changes it initiated. Critical changes require a
    different approver than the requester. This is not configurable.
+   A change is *critical* here when anything that classifies it is
+   `critical`: its scope (the `ScopeLevel`
+   [`patterns/scope`](scope.md) declares), its target's `ResourceClass`,
+   or its severity. Inside the approval engine every self-approval is
+   rejected, critical or not, so the sense matters to the exception
+   alone. A content change is classified by its scope and nothing else,
+   so for it a critical change is one whose scope is `critical`, which is
+   the bound the exception carries.
    One exception exists, outside the approval engine, and it is named
    under [Separation of Duties](#separation-of-duties) so that the corpus
    states one rule rather than two.
@@ -1030,10 +1038,13 @@ A person may decide a content proposal they requested, and nothing
 else of their own. [`architecture/content`](../architecture/content.md#separation-of-duties)
 specifies it, and it is bounded on every side:
 
-- **Only at or below a declared scope.** A repository's declaration names
-  the highest scope at which it is allowed. Absent, it is not allowed, and
-  it is never allowed for a change that has no scope. It is declared through
-  the content service's API by a person, and never read from configuration.
+- **Only at or below a declared scope, and never at `critical`.** A
+  repository's declaration names the highest scope at which it is allowed,
+  and a declaration naming `critical` is refused, because Design Principle 2
+  makes a different approver for a critical change not configurable. Absent,
+  it is not allowed, and it is never allowed for a change that has no scope.
+  It is declared through the content service's API by a person, and never
+  read from configuration.
 - **Only a person.** The decider holds a capability no service and no
   agent may hold, so the exception never lets software approve work.
 - **Recorded as what it is.** The change records `separation: self`. A

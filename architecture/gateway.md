@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: gateway
-version: 1.0.1
+version: 1.1.0
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/admin, architecture/observability, patterns/auth-session, patterns/auth-token, patterns/user-management, patterns/rate-limiting, patterns/api-ai]
 platform: any
 tier: free
@@ -238,7 +238,7 @@ The gateway is an infrastructure agent with elevated privileges.
   "public_key": "<ML-DSA-65 public key (base64url)>",
   "capabilities": [
     {"name": "agent:message", "resources": ["*"]},
-    {"name": "http:proxy", "resources": ["*"]}
+    {"name": "http:receive", "resources": ["*"]}
   ],
   "gateway_config": {
     "external_port": 443,

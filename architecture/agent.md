@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: agent
-version: 1.0.1
+version: 1.0.2
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/observability, patterns/retry, patterns/messaging]
 platform: any
 tier: free
@@ -480,7 +480,7 @@ For authenticated direct communication:
   "url": "http://localhost:9710",
   "public_key": "<ML-DSA-65 public key (base64url)>",
   "capabilities": [
-    {"name": "capability:type", "resources": ["glob/pattern/**"]}
+    {"name": "file:read", "resources": ["glob/pattern/**"]}
   ],
   "inputs": [
     {"name": "input_name", "type": "file_list|json|text", "description": "..."}
@@ -517,8 +517,11 @@ canonical type definition.
 
 ### Standard Capabilities
 
-See [types.md — Capability](../protocol/types.md) for the canonical
-list of standard capabilities and their descriptions.
+See [types.md — Capability](../protocol/types.md#capability) for the canonical
+list of standard capabilities and their descriptions. The list is closed: a
+manifest naming a capability it does not list is refused at registration
+([`protocol/spec`](../protocol/spec.md#post-v1register)), so the template's
+`file:read` is an example, replaced by the names the agent needs from it.
 
 ## Agent Kinds
 

@@ -55,6 +55,13 @@ nobody declared — clinical governance, food safety, flight operations — is
 dropping a file in a directory. When it required a code change, an industry
 programme was impossible by definition.
 
+Seeding, and overriding in what was seeded, is how the catalogue reaches an
+installation today. It is the residency
+[`architecture/fabric`](../../architecture/fabric.md#two-ledgers-and-that-is-correct)
+rules out for published content, as
+[`schemas/policy-domain`](../../schemas/policy-domain.md#how-it-reaches-an-installation)
+notes.
+
 ## Adding a domain
 
 ```json

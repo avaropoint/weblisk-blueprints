@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: rust
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: rust
 tier: free
@@ -291,7 +291,7 @@ cargo build --release -p weblisk-agent-<component>
 ./target/release/server --port 9800
 
 # Run agent (connects to orchestrator)
-WL_AI_PROVIDER=ollama WL_AI_MODEL=llama3 \
+WL_AI_PROVIDER=ollama WL_AI_MODEL=<a model the ollama server lists> \
   ./target/release/weblisk-agent-<component> --orch http://localhost:9800
 
 # Run directly via cargo (development)
