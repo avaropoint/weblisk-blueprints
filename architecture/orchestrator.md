@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.27.4
+version: 2.27.5
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -1056,8 +1056,14 @@ that raise a ceiling, and answers what a ceiling is.
 request carries `scope`: the highest scope of what the prompt carries, as the
 tenant reported it to the caller. A caller whose prompt carries nothing the
 tenant holds says `public`. The route finds the ceiling of the backend it would
-run and the model it would ask it for, as `GET /v1/admin/model/ceiling`
-answers it, and refuses:
+run and the model the configuration gives the request's role, its `roles`
+entry or else `model`, as `GET /v1/admin/model/ceiling` answers it for that
+backend and model. Where the configuration names neither, the backend's
+choice runs, which no agreement can name, so the ceiling is the one a request
+naming no model has, `internal`
+([`patterns/scope`](../patterns/scope.md#model-providers)), even where the
+model a local model server reports loaded first is one an agreement lists.
+The route refuses:
 
 - with `SCOPE_MISSING` when `scope` is absent;
 - with `SCOPE_CEILING_EXCEEDED` when `scope` is above the ceiling, or is
@@ -2094,6 +2100,7 @@ agents hold, which is theirs.
 - [ ] An accepted `PUT /v1/admin/model` appends a `model_set` entry naming the configuration before and after before it writes anything, answers `config` and `withdrawn`, and changes nothing, answering `MODEL_UNRECORDED`, where `POST /v1/admin/model/audit` does not answer `201`
 - [ ] `GET /v1/admin/model/providers` gives each `ModelBackend` the `models` its backend's own list answered for that request, names no default model, and reports `available` false for a backend that needs a key and for a coding agent's command-line tool
 - [ ] `POST /v1/admin/complete` refuses a body naming `provider` or `model` with `INVALID_REQUEST`, runs the model `roles` gives the request's `role` and `model` otherwise, and answers a `CompletionResponse` whose `model` is the one the backend's answer names, absent where it names none
+- [ ] A completion for which the configuration names no model, neither in `roles` for its `role` nor as `model`, at a local model server whose first loaded model a current agreement lists at `confidential`, is gated at `internal`, so a `confidential` one is refused with `SCOPE_CEILING_EXCEEDED` and runs nothing
 - [ ] A completion whose backend fails, or refuses its model, is answered `MODEL_BACKEND_FAILED` and runs no other backend or model, and one with no model chosen at a local model server that reports none loaded is answered `MODEL_NONE_LOADED` and loads nothing
 - [ ] A completion appends a `model_complete` entry once its body is read and before the gate or anything else, and a second when it ends, with `status` `ok`, `denied` where the gate refused it or `failed` where it could not run, and returns no answer or refusal whose second entry was not appended
 - [ ] `POST /v1/admin/model/audit` from outside the process is answered `404` where the model gateway is installed; dispatched in process, it judges the token on the capability its `action` names, refusing with `FORBIDDEN` a `model_complete` on a token that cannot use `llm:chat` and a `model_set` on one that cannot use `admin:*`, appends an `AuditEntry` whose `actor` is the token's `identity_id`, and refuses an `action` outside its set with `INVALID_REQUEST` before it judges any capability

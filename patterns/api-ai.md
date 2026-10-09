@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: api-ai
-version: 2.4.0
+version: 2.4.1
 requires: [protocol/types, patterns/scope, architecture/agent, architecture/gateway, architecture/orchestrator]
 platform: any
 tier: free
@@ -821,9 +821,13 @@ nothing that does not declare it
 Every provider this endpoint reaches is a model provider
 ([`patterns/scope`](scope.md#model-providers)), and its ceiling is the
 one the tenant gives the provider's key under `providers:` and the model
-the request would ask it for, as
+the request would ask it for, the one it names or else `defaults.model`, as
 `GET /v1/model/ceiling?backend=<key>&model=<model>` answers it
 ([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)).
+Where neither names one, the request names no model and its ceiling is
+`internal`, whatever the provider then runs, a local model server's first
+loaded model included
+([`patterns/scope`](scope.md#model-providers), why an agreement lists models).
 That route takes this endpoint's own registration token; the administrative
 route of the same name takes only a person's. It answers every key and model with a
 `ProviderCeiling`, whether or not the tenant's model configuration names
@@ -906,6 +910,7 @@ than the one first chosen, the response's `provider` says so.
 - [ ] GET `/ai/health` reports per-provider status and latency
 - [ ] A request naming a model no provider's list holds is refused with 404 and a helpful error, and runs no other model
 - [ ] Provider failover goes only to a provider whose own list holds the same model under the same name and whose ceiling covers the request's `scope`, is refused with `MODEL_UNAVAILABLE` where no other provider lists the model and with `SCOPE_CEILING_EXCEEDED` where every one that does is below the request's `scope`, and the response's `provider` names the provider that ran it
+- [ ] A request that names no model where `defaults.model` is absent is gated at `internal`, even where the provider's first loaded model is one a current agreement lists, so a `confidential` one is refused with `SCOPE_CEILING_EXCEEDED`
 - [ ] A request that names no model runs `defaults.model`, and where nobody chose one, a local model server's first loaded model; a provider that runs nothing unless a model is named refuses it
 - [ ] Every response's `model` is the model the provider's answer names, absent where it names none, and never the name the request or the configuration gave where the provider reports another
 - [ ] A request with no `scope` is refused with `SCOPE_MISSING`, and one at `restricted` with `SCOPE_CEILING_EXCEEDED`, whatever any provider's ceiling, and neither reaches a provider

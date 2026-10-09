@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.6.2
+version: 2.6.3
 requires: [protocol/types]
 platform: any
 tier: free
@@ -489,9 +489,10 @@ goes — resolving a model by name, a failover when the first provider fails, a
 caller's override — may choose only a destination whose ceiling covers what is
 sent. With none, the request is refused. For a model, none of them changes
 which model the request runs: a failover reaches the same model elsewhere or
-nothing ([`patterns/api-ai`](api-ai.md#model-routing)). It never goes, transparently or otherwise, to a destination whose
-ceiling is below it, and the response names the destination that received
-it. A copy sent on to a second place is checked against that place.
+nothing ([`patterns/api-ai`](api-ai.md#model-routing)). It never goes,
+transparently or otherwise, to a destination whose ceiling is below it, and
+the response names the destination that received it. A copy sent on to a
+second place is checked against that place.
 
 ### Model providers
 
@@ -520,13 +521,16 @@ an **agreement attestation** for it.
   `providers:`; and by the model the request asks that backend for: the model
   `GET /v1/admin/model` reports for the role the request states, its `roles`
   entry or else `model`, or the model an api-ai request names or else that
-  endpoint's `defaults.model`. Each is compared exactly as the configuration
-  or the request spells it. A backend no current agreement lists, and a model
-  the agreement that lists it does not list, has the ceiling `internal`, so a
-  name or a model nobody listed is never given more, and the ceiling routes
-  answer every name and model that way, ones the tenant's model configuration
-  does not know included. A model at a backend is covered by at most one
-  current agreement.
+  endpoint's `defaults.model`. Where none of these names a model, the request
+  names none and runs the backend's choice, even where a local model server
+  is then asked for the first model it reports loaded, and its ceiling is
+  `internal`, as the next item says. Each is compared exactly as the
+  configuration or the request spells it. A backend no current agreement
+  lists, and a model the agreement that lists it does not list, has the
+  ceiling `internal`, so a name or a model nobody listed is never given more,
+  and the ceiling routes answer every name and model that way, ones the
+  tenant's model configuration does not know included. A model at a backend
+  is covered by at most one current agreement.
 - **Why an agreement lists models.** At a backend whose model chooses who
   runs it, such as an aggregator or a gateway that forwards each model to
   whichever organisation hosts it, the name alone names no party. An
@@ -1566,7 +1570,8 @@ a destination carries a `DestinationRefusal` as its detail.
 - [ ] A `ProviderAgreement` is recorded, or withdrawn by `DELETE /v1/admin/model/agreements/{id}`, only on a person's operator token holding `model:attest`; a token holding `admin:*` and not `model:attest` is refused at both routes; one naming a level above `confidential`, or a `not_after` more than 90 days ahead, is refused; and after `not_after` or withdrawal the provider's ceiling is `internal`
 - [ ] A `PUT /v1/admin/model` withdraws exactly what [`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination) says it withdraws, and the ceiling routes then answer each name it withdrew `internal`
 - [ ] A backend is found by the name the tenant's model configuration spells, and a name no current agreement lists has the ceiling `internal`
-- [ ] An agreement listing the backend `gateway` and the model `vendor-a/model-x` at `confidential` gives that name `confidential` for `vendor-a/model-x` alone: the ceiling routes answer `internal` for `gateway` asked for `vendor-b/model-y`, or asked for no model, and a `confidential` request for either is refused with `SCOPE_CEILING_EXCEEDED`, whether its model came from `PUT /v1/admin/model`, a route, a fallback or a caller's override
+- [ ] An agreement listing the backend `gateway` and the model `vendor-a/model-x` at `confidential` gives that name `confidential` for `vendor-a/model-x` alone: the ceiling routes answer `internal` for `gateway` asked for `vendor-b/model-y`, or asked for no model, and a `confidential` request for either is refused with `SCOPE_CEILING_EXCEEDED`, whether its model came from `PUT /v1/admin/model`, a route or a caller's override
+- [ ] A request that names no model has the ceiling `internal`, even where the backend is a local model server whose first loaded model a current agreement lists, and a `confidential` one is refused with `SCOPE_CEILING_EXCEEDED`
 - [ ] An agreement that lists no model is refused, and so is one listing a model at a backend a current agreement already covers for that model
 - [ ] Nothing `restricted` or `critical` is sent to a model provider, whatever its ceiling, a model the tenant runs itself included
 - [ ] Any part of a content entry is sent at that entry's `ContentEntry.scope`, and any part of an unclassified entry is refused with `SCOPE_MISSING`
