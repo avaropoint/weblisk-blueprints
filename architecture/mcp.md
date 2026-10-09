@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: mcp
-version: 1.4.3
+version: 1.4.4
 requires: [protocol/types, protocol/identity, protocol/spec, architecture/agent, architecture/gateway, patterns/scope, patterns/safety, patterns/auth-oauth]
 platform: any
 tier: free
@@ -99,6 +99,12 @@ requires:
       removed: halt-immediately
   - blueprint: patterns/safety
     version: ">=1.0.0 <2.0.0"
+    bindings:
+      behaviors:
+        # The safety gate a tool call passes at step 5, on every invocation
+        # and never cached across calls. The surface does not decide whether
+        # an operation may proceed: the gate does
+        - name: protection-gating
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
