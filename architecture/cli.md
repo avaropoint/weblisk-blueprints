@@ -1072,7 +1072,7 @@ except for a command that works in a directory of its own, as
 |---|---|---|
 | 0 | **A corpus** — the directory the command works in, when it holds `schemas/common.md` and at least one of `architecture/`, `protocol/`, `patterns/` or `agents/` | the working tree, in place |
 | 1 | **The project's own** `blueprints/` directory, in the directory the command works in | the working tree, in place |
-| 2 | **Custom sources** — the repositories `WL_BLUEPRINT_SOURCES` names, comma-separated, in that order | a clone in `~/.weblisk/blueprints/` |
+| 2 | **Custom sources** — the repositories `WL_BLUEPRINT_SOURCES` names, comma-separated, in that order: each entry an address or a path that `git clone` is given whole, and read at its `HEAD` | a clone in `~/.weblisk/blueprints/` |
 | 3 | **Core** — this repository, always present as the fallback | a clone in `~/.weblisk/blueprints/` |
 
 **Step 0 exists because without it the CLI checked somebody else's work.**
