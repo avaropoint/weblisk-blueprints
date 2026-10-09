@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.18.2
+version: 1.18.3
 requires: []
 platform: any
 tier: free
@@ -2397,7 +2397,11 @@ types:
 ```
 
 **Action types:** `register`, `deregister`, `channel`, `message`,
-`event`, `namespace_grant`, `namespace_release`
+`event`, `namespace_grant`, `namespace_release`, and the model routes'
+`model_set`, `model_complete`, `model_agreement_record` and
+`model_agreement_withdraw`. The orchestrator's
+[Audit Actions](../architecture/orchestrator.md#audit-actions) table says what
+each one it writes records
 
 ---
 
