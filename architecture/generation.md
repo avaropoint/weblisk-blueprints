@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.2.0
+version: 1.1.0
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -929,13 +929,22 @@ A generator MUST treat every repair round as a transaction:
    elsewhere, and whatever it did to the packages it hid would reach the best
    tree unseen.
 
-   More assertions read unmet also makes a round worse, but only when nothing
-   observed shows the round did any good, that is, when no fewer conformance
-   tests count against the tree. Such a round MUST be undone and MUST NOT be
-   retried one file at a time. The retry judges only what is observed, so it
-   would keep every repair and rebuild the tree the round was undone for. None
-   of its repairs is kept, and the next round asks again from the tree the
-   undone round started on.
+   `weblisk` does not yet meet this rule. When it judges a round, or a repair
+   tried on its own, it compares only the packages both builds show, so a
+   round that adds an import of a package that already fails, hiding the
+   importer, is not undone for it. When it ranks two trees, a package the
+   later build hides counts against the later tree only where the change
+   touched that package's directory. One the change did not touch is taken to
+   be as the earlier build showed it, so a dependency that starts failing, and
+   hides its importers, can be outweighed by what improved elsewhere.
+
+   More assertions read unmet also makes a round worse, but only where both
+   trees' assertions were read and nothing observed shows the round did any
+   good, that is, when no fewer conformance tests count against the tree. Such
+   a round MUST be undone and MUST NOT be retried one file at a time. The
+   retry judges only what is observed, so it would keep every repair and
+   rebuild the tree the round was undone for. None of its repairs is kept, and
+   the next round asks again from the tree the undone round started on.
 
 4. **A worse round is undone, then retried one file at a time.** The kept tree
    is restored, and the round's repairs are applied one at a time. These are the
@@ -978,6 +987,15 @@ A generator MUST treat every repair round as a transaction:
    cannot read MUST charge nothing across files, and an import it cannot
    place, such as a path alias or a package name, establishes nothing. What a
    charge does to the count is in *Ranking failing builds* below.
+
+   `weblisk` does not yet meet this rule either. In Go it charges an error only
+   in a file of the changed file's package, or of a package that imports it
+   where the name is exported, but on any line holding an identifier spelled
+   as the removed or re-signed name, whatever that identifier refers to. In
+   JavaScript and TypeScript it charges any line of any JavaScript or
+   TypeScript file where the name appears as a word, comments and strings
+   included, whether or not that file imports the changed one. Only a use of
+   the default export, or of a star re-export, is traced through an import.
 
    Some builds do not check where another file uses a name. Here that means
    JavaScript and TypeScript, whose build may bundle or may not exist. For those
@@ -1233,14 +1251,15 @@ imports rose to hide it (rule 3).
 **Other builds.** A build in any other language is not read for what hides
 what. No directory hides another, and nothing in a directory is hidden behind
 a syntax error, so two of its failing builds are compared directory by
-directory, each on the plain count of the diagnostics that name a planned file
-there. A fix that lets such a build reach errors in another directory has them
+directory, each on the plain count of the diagnostics that name a file there.
+A fix that lets such a build reach errors in another directory has them
 counted against that directory, and its round is undone for them.
 
-A diagnostic names a file only when its line begins with the file's path and
-line, as `path:line: message` or `path:line:col: message`, which is how Go's
-tools write it. Measured 2026-10-01 on real output, neither of the corpus's
-other compilers writes that. cargo, the build in
+A diagnostic names a file only when its line, after any leading space, begins
+with the file's path and line, as `path:line: message` or
+`path:line:col: message`, which is how Go's tools write it. Measured
+2026-10-01 on real output, neither of the corpus's other compilers writes
+that. cargo, the build in
 [`languages/rust`](../languages/rust.md), puts the position on a line of its
 own beneath the message (`--> server/src/main.rs:2:13`). `tsc`, which
 [`platforms/node`](../platforms/node.md) builds with, writes

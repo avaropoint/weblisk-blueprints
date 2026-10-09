@@ -645,7 +645,9 @@ output, or what conformance established. When the loop ends on an error, such
 as a provider failure or a failed write, the command reports that list and the
 error, and no verdict. How trees are ranked, and how a repair round is kept,
 judged and undone, is in
-[`architecture/generation`](generation.md#a-repair-round-is-a-transaction).
+[`architecture/generation`](generation.md#a-repair-round-is-a-transaction),
+which also says where `weblisk` does not yet rank or judge a tree as it
+specifies.
 
 ### `weblisk component <name> start` · `stop` · `status` · `logs`
 
