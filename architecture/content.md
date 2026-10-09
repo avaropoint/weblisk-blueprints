@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.22.2
+version: 2.22.3
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -2122,9 +2122,11 @@ build generated are the tenant's; the repository it names stays outside.
 **Each repository has exactly one home**: the tenant that declared it, or none.
 It is never kept outside a tenant while a tenant holds it, and never declared by
 two tenants. A copy is not a second home for the repository it came from; it is
-content of a repository with a home of its own. Nor is a client's installation
-state a home: what a client keeps there is a reference to where a repository
-outside a tenant lives, never the repository itself
+content of a repository with a home of its own. A replica is not a repository
+outside a tenant: it is a tenant's repository sent to a second place, counted in
+that repository's [effective custody](#effective-custody). Nor is a client's
+installation state a home: what a client keeps there is a reference to where a
+repository outside a tenant lives, never the repository itself
 ([Reserved Paths](#reserved-paths)).
 
 **The rule can be checked only where both homes are visible.** This service sees
