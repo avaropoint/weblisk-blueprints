@@ -581,8 +581,8 @@ port the result reported.
 operator's `token` there and `token_expires_at` in Unix seconds — none of those
 three while a tenant `create` makes has no address to connect to (below). That
 object is the only place a token goes: `create` writes no token file, and
-without `--json` it prints none. A person at a terminal connects afterwards with
-[`weblisk operator connect`](#weblisk-operator-connect). The stream is addressed
+without `--json` it prints none. A person at a terminal connects at that address
+with [`weblisk operator connect`](#weblisk-operator-connect). The stream is addressed
 to the program that started the command, which holds the token in memory as it
 holds the passphrase it sent; a caller that copies the stream to a file has
 written a bearer credential to disk.
