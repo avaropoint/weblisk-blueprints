@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 1.0.0
-requires: [protocol/types, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement]
+version: 1.6.2
+requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
 adoption: opt-in
@@ -48,19 +48,39 @@ and is reachable from either.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.17.2 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
           fields_used: [code, error, category, retryable]
         - name: AuditEntry
-          fields_used: [id, timestamp, actor, action, target, status]
+          fields_used: [id, timestamp, actor, via, action, target, status]
+        # pass_routes is how the admin gateway learns which of these routes a
+        # person's request may reach and what each needs. See Registration
+        # and Standalone Operation
         - name: AgentManifest
-          fields_used: [name, capabilities]
+          fields_used: [name, capabilities, pass_routes]
+        - name: PassRoute
+          fields_used: [method, path, capabilities]
         - name: Capability
           fields_used: [name, resources]
         - name: HealthStatus
           fields_used: [status, name, version, uptime]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: protocol/identity
+    version: ">=1.14.4 <2.0.0"
+    bindings:
+      types:
+        # type and aud say a person's request reached this service on a pass
+        # addressed to it, the only token fabric:attest counts on; cap is what
+        # it may use; identity_id names who acted on an entry, never sub; act
+        # names the gateway that carried it
+        - name: WLToken
+          fields_used: [type, aud, act, cap, identity_id]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -87,7 +107,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/scope
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         # An enum: it declares values, not fields, so nothing is bound FROM it.
@@ -102,13 +122,13 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/content
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.22.10 <3.0.0"
     bindings:
       types:
         - name: ContentEntry
           fields_used: [path, identity, scope, modified_at, provenance]
         - name: ContentRepository
-          fields_used: [id, scope_path, custody, attestations, ceiling]
+          fields_used: [id, scope_path, custody, effective_custody, attestations, ceiling]
         - name: CustodyAttestations
           fields_used: [enumerable_principals, attributable_writes, tamper_evident]
         - name: ContentObservation
@@ -134,11 +154,24 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/enforcement
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: ViolationRecord
           fields_used: [boundary, agent, operation, violation_type, scope_required, scope_actual, detail, severity]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/orchestrator
+    version: ">=2.15.0 <3.0.0"
+    bindings:
+      behaviors:
+        # What a pass this service accepts rests on. See This service honours
+        # fabric:attest only on a pass
+        - name: token-exchange
+          usage: Relied on, never called here. Every pass this service accepts was minted by the exchange, for an operator token the orchestrator judged live then, carrying no capability the person could not use then
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -170,7 +203,7 @@ requires:
 │  │  Ledger              (append-only, hash-chained)   │  │
 │  │  - one log per scope; never per kind or relation   │  │
 │  │  - exclusive lock, tip re-read under it, fsync     │  │
-│  │  - producer pass writes as one batch               │  │
+│  │  - producer run writes as one batch                │  │
 │  └────────────────────────────────────────────────────┘  │
 │  ┌────────────────────────────────────────────────────┐  │
 │  │  Derivation            (nothing here is stored)    │  │
@@ -463,6 +496,15 @@ second component's to publish, and the orchestrator refuses the claim.
 
 ## Error Handling
 
+**Each code's HTTP status follows its Category**, and a code is returned with
+that status wherever this service refuses: `validation` 400, `policy` 403,
+`enforcement` 403, `conflict` 409, `integrity` 409 and `io` 503. A code whose
+behaviour is not a refusal, such as `FABRIC_ENDPOINT_UNREACHABLE`, is reported
+and never returned as an error status. A code another blueprint registers,
+such as `FORBIDDEN`, `PASS_REQUIRED` or `PASS_AUDIENCE_MISMATCH`, keeps the
+status that blueprint gives it
+([`protocol/types`](../protocol/types.md#errorresponse)).
+
 | Code | Category | When | Behaviour |
 |---|---|---|---|
 | `FABRIC_REFERENCE_UNQUALIFIED` | validation | A reference names a path and no source, and more than one source in scope answers to it | Refuse. Name every candidate. Two sources answering is no answer |
@@ -497,16 +539,28 @@ second component's to publish, and the orchestrator refuses the claim.
 6. The gate records each claim as `inferred`; an edge a person decided is
    deferred to, not revised
 7. Claims in that partition which the producer no longer makes are retired
-8. The whole pass is appended as one batch — one lock, one durability barrier —
+8. The whole run is appended as one batch — one lock, one durability barrier —
    because a crash mid-batch leaves a valid prefix, and a producer's claims can
    be derived again by running it
 
 ### Person Flow
-1. A person submits an assertion or a judgement, naming the relationship
-2. The resolver lands it on the same identity a producer's claim would reach, so
+1. A person submits an assertion or a judgement, naming the relationship,
+   through the tenant's admin gateway, which carries it here on a pass
+   addressed to this service
+   ([`protocol/identity`](../protocol/identity.md#the-pass))
+2. A token that is not a pass is refused with `FORBIDDEN`, and an operator
+   token with `PASS_REQUIRED`. A pass is refused with `FORBIDDEN` unless its
+   `cap` names `fabric:attest`
+   ([This service honours `fabric:attest` only on a pass](#registration-and-standalone-operation))
+3. The resolver lands it on the same identity a producer's claim would reach, so
    the confirmation sits **on** the inference rather than beside it
-3. The entry is appended alone. A producer's work can be re-derived; a person's
+4. The entry is appended alone. A producer's work can be re-derived; a person's
    act cannot, so it is never batched behind one
+5. The entry records the person as its `actor` by the pass's `identity_id`,
+   never by its `sub`, which is a name
+   ([`protocol/identity`](../protocol/identity.md#payload-claims),
+   `identity_id`). So does every attestation, decision and relocation, and an
+   edge a person's act settles names them in `asserted_by` the same way
 
 ### Answer Flow
 1. A caller asks what touches a node, what a criterion is answered by, or what a
@@ -627,7 +681,9 @@ endpoint.
 
 **Custody flows from the endpoint to the claim, and never the other way.** The
 ledger being exclusive says nothing about what may be asserted through it. An
-edge citing content in a `shared` or `opaque` repository inherits that
+edge citing content in a repository whose `effective_custody` is `shared` or
+`opaque` — its store's custody, or any replica's
+([`architecture/content`](content.md#effective-custody)) — inherits that
 repository's limits: every answer quoting it MUST carry that access is
 incomplete, and that flag MUST survive into every export and evidence package
 downstream. A consumer that drops it has turned a qualified statement into a
@@ -687,10 +743,21 @@ it describes is not a client of it.
 ### Where the content service is
 
 Being a client of the content service means the fabric resolves that service's
-address out of the signed directory, and a tenant's components may
+address out of the service directory, and a tenant's components may
 legitimately be on different hosts. So this is the first place in the corpus
 where one component presents a credential across a host boundary, and it is
 worth working through rather than assuming.
+
+The directory is the orchestrator's only as read from the fabric's anchor by
+[`GET /v1/services`](../protocol/spec.md#get-v1services). Its signature has no
+signing input yet and nothing verifies one, so a body pushed to the fabric's
+`POST /v1/services` is whatever the party that reached that listener sent
+([`protocol/spec`](../protocol/spec.md#post-v1services), the gap there). What
+keeps the fabric's credential in bounds is therefore the table below, which
+never sends it off the anchor's host whoever wrote the address. On that host a
+pushed address can still choose the port, and a listener there is the
+same-host residual the threat model records
+([`architecture/threat-model`](threat-model.md#residual-risk-register)).
 
 The fabric's **anchor** is the orchestrator address it was configured with. It
 holds `content:read` and `content:describe`, and it calls identity lookup and
@@ -723,10 +790,12 @@ content service is the same condition arrived at by a different route — nothin
 was read, so nothing is claimed — and it lands on the one status that says so.
 
 The alternative, which must not be taken, is for the fabric to follow the
-address with its anchor credential because the directory was signed. That would
+address with its anchor credential because the directory names it. That would
 put a credential holding `content:read` over a tenant's whole governed corpus
-onto a host chosen by whatever last registered under that name. The signature
-makes the address authentic; it was never a statement that the tenant chose it.
+onto a host chosen by whatever last registered under that name, or by whatever
+last pushed the fabric a directory. Even read from the anchor, the directory
+says only that this orchestrator accepted the registration; it was never a
+statement that the tenant chose the address.
 
 ---
 
@@ -864,7 +933,7 @@ forked chain — which is indistinguishable from tampering, and is exactly what
 [`architecture/storage`](storage.md) requires a mutual exclusion primitive to
 prevent.
 
-**A producer pass is one batch; a person's act is not.** A batch takes one lock
+**A producer run is one batch; a person's act is not.** A batch takes one lock
 and pays one durability barrier, and a crash part way through truncates the
 chain rather than corrupting it, leaving a valid prefix. A producer's claims can
 be derived again by running it; a person's cannot, so each is written alone and
@@ -885,16 +954,26 @@ re-reading history.
 
 ### Two ledgers, and that is correct
 
-An installation keeps a ledger over the content it provides — packs, standards
-catalogues, templates and domain material, which are given freely and live in the
-installation rather than in any tenant — and each tenant keeps a ledger over its
-own. That is not duplication; it is the same split custody already makes, and
-this blueprint is the contract both implement.
+Packs, standards catalogues, templates and domain material are given freely, and
+live in repositories outside any tenant, never resident in an installation
+([`architecture/content`](content.md#repositories-outside-a-tenant)). Each
+tenant keeps a ledger over its own. No tenant keeps one over what lies outside
+every tenant, so a ledger over those repositories is a cache, as content defines
+one: whatever reads them may keep it, it holds only what producers derived from
+them — every claim `inferred` — and it is rebuilt by reading them again and
+never cited. No person's judgement is kept there — nothing in it is
+`confirmed`, `rejected` or `retired` — because a judgement is not derived from
+the repositories and reading them again cannot rebuild it: it is kept only in a
+tenant's ledger. That is not duplication; it is the same split custody already
+makes, and both follow this blueprint's claim model.
 
 A citation across the split is an ordinary edge whose far endpoint names another
-scope's source, which the endpoint model already carries. What it is **not** is
-federation: relationships spanning two tenants are a different question with a
-different trust model and are outside this blueprint.
+scope's source, which the endpoint model already carries. It records that the
+citation exists, and nothing more: it never makes what lies outside every tenant
+something a claim that a tenant conforms may cite, which
+[`architecture/content`](content.md#repositories-outside-a-tenant) forbids. What
+it is **not** is federation: relationships spanning two tenants are a different
+question with a different trust model and are outside this blueprint.
 
 ### Scale
 
@@ -1060,7 +1139,7 @@ types:
       asserted_by:
         type: string
         required: true
-        description: The producer, agent or person whose assertion stands
+        description: The producer, agent or person whose assertion stands, by identity id, as the entry that made it records its actor
       confidence:
         type: number
         required: true
@@ -1108,6 +1187,7 @@ types:
       actor:
         type: string
         required: true
+        description: Who acted, by identity id. A person's is the identity_id claim of the pass their request arrived on; a producer's or an agent's is the identity_id claim of the token it presented. Never the token's sub, which is a name
       note:
         type: string
         required: false
@@ -1163,8 +1243,8 @@ types:
       access_complete:
         type: boolean
         required: true
-        description: False whenever any cited repository is shared or opaque.
-          Derived, and no caller may set it
+        description: False whenever any cited repository's effective custody
+          is shared or opaque. Derived, and no caller may set it
 
   CoverageAnswer:
     description: What answers a criterion, and what the answer rests on
@@ -1228,7 +1308,7 @@ types:
         required: false
 
   SyncResult:
-    description: What one producer pass changed
+    description: What one producer run changed
     fields:
       asserted:
         type: integer
@@ -1313,7 +1393,7 @@ fabric:
   ledger:
     partition_by: scope            # never by kind and never by relation
     retention: none                # a compliance relationship is a permanent record
-    batch_producer_writes: true    # one lock and one durability barrier per pass
+    batch_producer_writes: true    # one lock and one durability barrier per producer run
   resolution:
     unqualified_reference: refuse  # two sources answering is no answer
     prefer_content_identifier: true
@@ -1345,19 +1425,63 @@ orchestrator, claims the `fabric.*` namespace exclusively, and verifies caller
 tokens against the orchestrator's public key.
 
 Its manifest declares the wire protocol version from
-[`protocol/types`](../protocol/types.md) — not this blueprint's semver — and
-these capabilities, which are the `fabric:` family that document declares:
+[`protocol/types`](../protocol/types.md) — not this blueprint's semver. Its
+routes are guarded by the `fabric:` family that document declares:
 
 | Capability | Guards |
 |---|---|
 | `fabric:read` | the six read operations, and `GET /v1/fabric/producers` |
 | `fabric:produce` | `POST /v1/fabric/sync` |
 | `fabric:observe` | `POST /v1/fabric/observations` |
-| `fabric:attest` | `POST /v1/fabric/attestations`, `/decisions` and `/relocations` |
+| `fabric:attest` | `POST /v1/fabric/attestations`, `/decisions` and `/relocations`. Person only |
+
+`fabric:attest` is *person only* ([`protocol/types`](../protocol/types.md)):
+only a person reaches `confirmed`, so the fabric's own manifest never declares
+it, and no service subject and no agent is granted it
+([`patterns/principal-identity`](../patterns/principal-identity.md)). A person
+holds it through a role, and
+[`architecture/admin`](admin.md#operator-roles)'s roles table says which roles
+carry it, and `fabric:read`.
+
+**This service honours `fabric:attest` only on a pass.** It counts only on a
+pass addressed to this service
+([`protocol/identity`](../protocol/identity.md#the-pass) rule 6), which the
+orchestrator mints for a person's operator token, a token minted through a
+credential that person's identity attested
+([`architecture/admin`](admin.md#operator-token)). On any other token, a
+registered component's or a channel's, this service treats it as absent and
+refuses the request with `FORBIDDEN`. A hub that minted it on one by mistake
+has still opened no person route.
+
+**A person's act arrives on a pass.** Before it appends an attestation, a
+decision or a relocation, this service looks at the token. One that is not a
+pass addressed to it is refused with `FORBIDDEN`, as the rule above says, and
+an operator token is refused before this, on every route, with
+`PASS_REQUIRED`. On a pass, it authorises the act against the pass's `cap`,
+which the orchestrator computed at the exchange from what the operator's role
+carried then, never beyond the token's `cap`, and only for a token it judged
+live then
+([`architecture/orchestrator`](orchestrator.md#token-exchange-post-v1tokenexchange),
+`token-exchange`). This service asks nothing again. So a removed operator, a
+revoked credential and a role lowered below `fabric:attest` reach this service
+at the person's next act, and a pass minted before lives at most 30 seconds.
+A read on a pass is bounded the same way, and its audit entry names the
+gateway that carried it as `via`, beside the person as `actor`.
 
 A capability name is `family:verb`, and an invented one is refused at
 registration — which is why these belong in
 [`protocol/types`](../protocol/types.md) before this component is built.
+
+**Its manifest declares the person's routes as pass routes**
+([`protocol/types`](../protocol/types.md#passroute), `pass_routes`): the three
+`fabric:attest` routes and the seven `fabric:read` routes of
+[Endpoints](#endpoints), each with the one capability the table above gives
+it and no body requirement. `POST /v1/fabric/sync` and
+`POST /v1/fabric/observations` are a producer's, which no person reaches, and
+are not among them. The admin gateway carries a person's request here only on
+a route this list declares, on a pass naming that capability
+([`architecture/admin`](admin.md#contracts), `admin-gateway-authorization`),
+so the list and the table MUST agree.
 
 **It also holds two capabilities as a client**, and they are the only reach it
 has outside itself: `content:read`, for the identity lookup and listing that
@@ -1412,7 +1536,10 @@ security:
         fabric never opens a repository and never transfers entry bytes
     - boundary: Fabric Service → Enforcement. Every operation passes the boundary
         proxy; the fabric supplies the resource scope and does not make the
-        access decision
+        access decision. For a content entry that is its ContentEntry.scope,
+        and for an unclassified entry the default_level architecture/content
+        gives the storage proxy (The recorded scope), never a level of the
+        fabric's own
     - boundary: Producer → Ledger. A producer's reach is bounded by its own
         declared partitions; it can retire nothing outside them
     - boundary: Machine → Person. A confirmation is reachable only through a
@@ -1445,8 +1572,8 @@ security:
     - rule: An unreadable endpoint never reports as covered
       mechanism: Health is unreachable; coverage counts it as needing review
     - rule: An answer citing shared or opaque content is marked incomplete
-      mechanism: Completeness is derived from the custody of every repository
-        cited and cannot be set by a caller
+      mechanism: Completeness is derived from the effective custody of every
+        repository cited and cannot be set by a caller
     - rule: The ledger never holds content
       mechanism: Only address, identity and size are recorded; version resolution
         uses the content service's identity lookup, which transfers no bytes
@@ -1473,8 +1600,8 @@ security:
   one quadratic; at twenty thousand edges that stops finishing.
 
 - **Measure the durability barrier before batching anything else.** In one
-  implementation it was 97% of an append's cost, and a producer pass finding a
-  thousand relationships spent seconds in it. Batching a producer pass is the
+  implementation it was 97% of an append's cost, and a producer run finding a
+  thousand relationships spent seconds in it. Batching a producer run is the
   fix; batching a person's act is not, because the two differ in whether the work
   can be re-derived.
 
@@ -1486,7 +1613,7 @@ security:
   rather than being named as the place somebody's evidence now lives.
 
 - **Never let a producer read what a sync writes.** A projection once shared a
-  path with a producer's input; the next pass parsed the projection, recognised
+  path with a producer's input; the next run parsed the projection, recognised
   no relationships, and withdrew every one in the ledger. Nothing this service
   writes may sit inside anything a producer scans.
 
@@ -1509,8 +1636,8 @@ security:
   will look correct, because it will be correct. It will simply be quadratic, and
   it reintroduces exactly the cost partitioning removes.
 
-- **Hold no personal data in an entry.** An entry names artifacts and actors by
-  durable identifier and holds no content, which is what lets an erasure
+- **Hold no personal data in an entry.** An entry names artifacts by durable
+  identifier and actors by identity id, and holds no content, which is what lets an erasure
   obligation be answered at the identity layer rather than by rewriting a chained
   leaf. Whether erasing the identity itself is compatible with an immutable chain
   is a contract question, it belongs to the privacy pattern, and it is not
@@ -1551,13 +1678,19 @@ security:
 - [ ] A second process appending concurrently cannot produce two entries with the same predecessor digest
 - [ ] An entry altered on disk makes `Verify` report `valid` false and name the first entry that does not follow
 - [ ] A ledger whose byte length decreased is re-read in full and reported, and no answer is served from the incremental parse
-- [ ] A producer pass writes one batch, and a person's act writes alone
+- [ ] A producer run writes one batch, and a person's act writes alone
 - [ ] Every answer carries an `AnswerCompleteness`, and a coverage result of zero states how many partitions have never been scanned
 - [ ] An answer whose traversal limit was reached says so on its completeness rather than returning a trimmed result as whole
-- [ ] Every answer citing a shared or opaque repository carries `access_complete` false, and no caller can set it true
+- [ ] Every answer citing a repository whose `effective_custody` is shared or opaque carries `access_complete` false, and no caller can set it true
 - [ ] No fabric code path transfers content bytes; version resolution and relocation use identity lookup and listing only
 - [ ] A content service whose `ServiceEntry` is on another host is reached only with a grant for that address; absent one the repository is `unreachable` and no credential is sent
 - [ ] The fabric's manifest declares no `agent:message`, and a remote content service does not cause it to be added
+- [ ] The fabric's manifest declares no `fabric:attest`, and its registration succeeds; a component whose manifest declares `fabric:attest` is refused at registration with `CAPABILITY_PERSON_ONLY`, and an agent's authorisation naming it is refused
+- [ ] The fabric's manifest's `pass_routes` declare the three `fabric:attest` routes with `[fabric:attest]` and the seven `fabric:read` routes with `[fabric:read]`, and neither `POST /v1/fabric/sync` nor `POST /v1/fabric/observations`
+- [ ] An attestation on a pass addressed to this service whose `cap` names `fabric:attest` is recorded; the same request on a registered component's token or a channel token is refused with `FORBIDDEN`, whatever capabilities that token names, on a person's operator token with `PASS_REQUIRED`, and on a pass addressed to another component with `PASS_AUDIENCE_MISMATCH`
+- [ ] Through the admin gateway, an attestation, a decision or a relocation on an operator token minted before its operator was removed, its credential revoked, or its role lowered to one without `fabric:attest` is refused by the exchange with `OPERATOR_REVOKED`, `CREDENTIAL_REVOKED` or `FORBIDDEN`, and this service is sent nothing and appends nothing
+- [ ] A person's attestation, decision or relocation records the pass's `identity_id` as the entry's `actor`, never its `sub`, so renaming the operator changes nothing the ledger holds, and its audit entry names the pass's `act.identity_id` as `via`; a producer's claims record the `identity_id` claim of the token it presented
+- [ ] With the orchestrator unreachable, an attestation on an unexpired pass whose `cap` names `fabric:attest` is recorded, because this service asks the orchestrator nothing about a pass, and one on a pass whose `exp` has passed is refused with `TOKEN_EXPIRED` and appends nothing
 - [ ] Recording, confirming, rejecting or retiring a relationship leaves both artifacts byte-identical
 - [ ] Projecting an unchanged ledger twice produces identical bytes, and every judgement in the projection can be recomputed from the content with a published digest tool
 - [ ] Every relationship reachable from one endpoint is reachable from the other, and a synthesised containment step is reported as synthesised

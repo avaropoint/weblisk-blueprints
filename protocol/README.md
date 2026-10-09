@@ -11,6 +11,7 @@ gateway implements these specs regardless of platform or language.
 |------|---------|
 | [spec.md](spec.md) | Full protocol specification — 6 agent + 6 orchestrator endpoints |
 | [identity.md](identity.md) | ML-DSA-65 cryptography, tokens, signing, key rotation |
+| [secret-source.md](secret-source.md) | Where secrets are held — an identity's, an installation's master key, a service's passphrase — in any vault or none, and the helper protocol that reaches them |
 | [types.md](types.md) | Canonical type definitions — all JSON shapes |
 | [federation.md](federation.md) | Multi-orchestrator federation and data boundaries |
 
@@ -29,7 +30,8 @@ gateway implements these specs regardless of platform or language.
 1. Start with [types.md](types.md) for the data shapes
 2. Read [spec.md](spec.md) for the endpoint contracts
 3. Read [identity.md](identity.md) for the auth/crypto model
-4. Read [federation.md](federation.md) for multi-hub connectivity
+4. Read [secret-source.md](secret-source.md) for where secrets are held
+5. Read [federation.md](federation.md) for multi-hub connectivity
 
 ## Schema
 

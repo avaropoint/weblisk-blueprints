@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: hub
-version: 1.0.0
+version: 1.1.0
 port: 9770
 requires: [protocol/spec, protocol/identity, protocol/types, protocol/federation, architecture/hub, architecture/agent, architecture/orchestrator]
 extends: [patterns/messaging, patterns/caching, patterns/observability, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/privacy, patterns/security, patterns/interop]
@@ -62,8 +62,7 @@ Weblisk messaging bus and federation protocol endpoints.
     {"name": "agent:message", "resources": ["*"]},
     {"name": "http:send", "resources": ["https://*"]},
     {"name": "database:read", "resources": ["listing_index", "provider_registry", "metrics_store", "verification_log", "behavioral_fingerprints", "search_analytics", "alert_rules", "alert_history"]},
-    {"name": "database:write", "resources": ["listing_index", "provider_registry", "metrics_store", "verification_log", "behavioral_fingerprints", "search_analytics", "alert_history"]},
-    {"name": "crypto:verify", "resources": ["ml-dsa-65"]}
+    {"name": "database:write", "resources": ["listing_index", "provider_registry", "metrics_store", "verification_log", "behavioral_fingerprints", "search_analytics", "alert_history"]}
   ],
   "inputs": [
     {"name": "listing_entry", "type": "json", "description": "Published listing from a provider hub"},
@@ -85,6 +84,12 @@ Weblisk messaging bus and federation protocol endpoints.
 }
 ```
 
+Each capability above is one [`protocol/types`](../protocol/types.md#capability)
+lists, as registration requires
+([`protocol/spec`](../protocol/spec.md#post-v1register)). Verifying a
+signature takes none: it is [`protocol/identity`](../protocol/identity.md)'s
+`verify`, a computation over the signer's public key that needs no authority.
+
 ---
 
 ## Dependencies
@@ -92,7 +97,7 @@ Weblisk messaging bus and federation protocol endpoints.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -239,7 +244,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -3367,11 +3372,6 @@ security:
                   verification_log, behavioral_fingerprints,
                   search_analytics, alert_history]
       description: Write to all hub data stores
-
-    - capability: crypto:verify
-      resources: [ml-dsa-65]
-      description: Verify signatures on listings, manifests, key rotations,
-                   and data contracts
 
   data_sensitivity:
     - data: Listing content

@@ -35,9 +35,9 @@ Named after the CLI verb they serve, not after a model.
 | [operators](operators/SKILL.md) | `weblisk operator` | `architecture/admin.md`, `protocol/identity.md` |
 | [changes](changes/SKILL.md) | `weblisk component`, `weblisk test` | `architecture/generation.md`, `architecture/testing.md`, `architecture/content.md` |
 | [kinds](kinds/SKILL.md) | (every tool that classifies or relates) | `schemas/kinds.md` |
-| [go](go/SKILL.md) | `--platform go` | `platforms/go.md` |
+| [go](go/SKILL.md) | `--platform go` | `languages/go.md` |
 | [node](node/SKILL.md) | `--platform node` | `platforms/node.md` |
-| [rust](rust/SKILL.md) | `--platform rust` | `platforms/rust.md` |
+| [rust](rust/SKILL.md) | `--platform rust` | `languages/rust.md` |
 | [cloudflare](cloudflare/SKILL.md) | `--platform cloudflare` | `platforms/cloudflare.md` |
 
 The CLI installs the skills for the verb it is running, plus `blueprints`, plus

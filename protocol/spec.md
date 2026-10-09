@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 1.0.0
+version: 2.3.0
 requires: [protocol/types, protocol/identity]
 platform: any
 tier: free
@@ -46,11 +46,15 @@ over standard HTTP endpoints.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.17.2 <2.0.0"
     bindings:
       types:
         - name: AgentManifest
-          fields_used: [name, type, version, description, url, public_key, capabilities, inputs, outputs, collaborators, approval, max_concurrent, publishes, subscriptions]
+          fields_used: [name, type, version, description, url, public_key, capabilities, inputs, outputs, collaborators, approval, max_concurrent, publishes, subscriptions, pass_routes]
+        - name: PassRoute
+          fields_used: [method, path, capabilities, body]
+        - name: BodyRequirement
+          fields_used: [field, equals, capabilities]
         - name: TaskRequest
           fields_used: [id, from, action, payload, context, token, signature, timestamp]
         - name: TaskResult
@@ -79,7 +83,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.8.0 <2.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -276,10 +280,32 @@ Signature covers: `canonicalize({from, to, action, payload})` per
 
 Accepts service directory and routing table updates pushed by the
 orchestrator. The agent MUST update its internal service list and
-routing table (thread-safe). Response: 200 OK (no body required).
+routing table (thread-safe), from the body, or from
+[`GET /v1/services`](#get-v1services), which it MAY read on its own token
+when a push arrives instead of reading the body. Response: 200 OK (no body
+required).
 
 **Request:** `ServiceDirectory` (now includes `routing_table` and
 `namespaces` — see [types.md](types.md))
+
+> **Gap — nothing authenticates a push.** `ServiceDirectory.signature` has no
+> signing input, and nothing verifies one, so a body arriving here is whatever
+> the party that reached this listener sent. Any registrant can reach it,
+> because a registration is not an enrolment (the gap under
+> [`POST /v1/register`](#post-v1register)), and every registrant's directory
+> names every other's `url`. An agent that takes a pushed body as its
+> directory follows the routes, addresses and `address_provenance` that party
+> chose, and checks a message's signature
+> ([`POST /v1/message`](#post-v1message), step 2) against a public key that
+> party chose, so it accepts a message that party signed in another agent's
+> name. The admin gateway, which turns the directory into where it sends a
+> person's pass, therefore reads it only by `GET /v1/services` at its anchor
+> ([`architecture/admin`](../architecture/admin.md#contracts),
+> `admin-gateway-authorization`). A task's `context.services`, from which
+> [`POST /v1/execute`](#post-v1execute) step 2 updates the same list, is no
+> better: it is whatever the task's caller sent. The admin gateway refuses
+> every task, so it takes none. Specifying the signature, and verifying it
+> here and there, is what closes the gap for every other agent.
 
 ### POST /v1/event
 
@@ -356,7 +382,22 @@ Agent registration. No auth required (this is how agents GET auth).
 **Response:** `RegisterResponse`
 
 The orchestrator MUST:
-1. Validate: `manifest.name`, `manifest.url`, `manifest.public_key` are non-empty
+1. Validate: `manifest.name`, `manifest.url`, `manifest.public_key` are non-empty.
+   Refuse with 403 `CAPABILITY_PERSON_ONLY` if `manifest.capabilities` names a
+   capability [`protocol/types`](types.md) marks *person only*. A registered
+   component is a service, and a service never holds one
+   ([`patterns/principal-identity`](../patterns/principal-identity.md),
+   `service-subject-constraints`). The token of step 7 would otherwise carry it.
+   Refuse with 400 `INVALID_REQUEST`, before anything is recorded, a manifest
+   that names a capability `protocol/types` does not list, in `capabilities`
+   or in a pass route (`pass_routes`, its `capabilities` or a body
+   requirement), and one two of whose pass routes can match one request.
+   [`architecture/orchestrator`](../architecture/orchestrator.md#registration-flow-post-v1register),
+   step 1 of its notes, says when two can. Refuse with 409 `ADDRESS_CONFLICT`,
+   before anything is recorded, a manifest whose `url` contradicts the
+   address the tenant declared for that component;
+   [`architecture/orchestrator`](../architecture/orchestrator.md#what-the-directory-attests-and-what-it-does-not)
+   says when one does, and that no tenant can declare one yet
 2. Verify `signature` against `manifest.public_key` over `canonicalize(manifest)` per RFC 8785,
    canonicalizing the manifest **as received** — see [Signing input](#signing-input) below
 3. Reject if `|server_time - timestamp|` > 300 seconds (replay protection)
@@ -373,23 +414,44 @@ The orchestrator MUST:
         the named agent must list this agent in its collaborators → 403 otherwise
    b. Add subscription entries to the routing table
 6. Generate unique `agent_id` (32 hex chars)
-7. Issue auth token (WLT format) with capabilities from manifest, 24-hour TTL
+7. Issue auth token (WLT format) with capabilities from manifest, `identity_id`
+   the fingerprint of `manifest.public_key`
+   ([`protocol/identity`](identity.md#payload-claims)), 24-hour TTL
 8. Store agent in registry
 9. Log audit entry: actor=orchestrator, action=register, target=agent_name
 10. Respond with `RegisterResponse` (includes routing table)
 11. Asynchronously broadcast updated `ServiceDirectory` (with routing table)
     to ALL OTHER agents via `POST /v1/services`
 
+> **Gap — a registration is not yet an enrolment.** A registered component is a
+> service subject ([`patterns/principal-identity`](../patterns/principal-identity.md)),
+> and `service-subject-constraints` requires a service's enrolment to record a
+> named human owner, to be vouched for by a holder of the authority to issue
+> grants (principal-identity's `grant:issue`, which a hub carries as
+> `admin:*`), and to carry an expiry. This endpoint does none of those: it admits a component on
+> its signed manifest alone. Of those constraints it applies only step 1's
+> refusal of a person-only capability. So it would admit a console that
+> registered its own key as a component, which nothing here can tell from a
+> component; `architecture/admin`'s `console-credential-use` forbids a console
+> to do so, and that rule binds the console, not this endpoint. Closing the
+> gap is also what would let a hub admit a console's own service identity
+> deliberately, as no route does today
+> ([`architecture/admin`](../architecture/admin.md#a-console-holds-a-credential-never-a-token)).
+
 **Error responses:**
-- 400: Missing required fields
+- 400: Missing required fields, a capability `protocol/types` does not list,
+  or two pass routes that can match one request (`INVALID_REQUEST`)
 - 401: Invalid signature or stale timestamp
-- 403: Reserved namespace or unauthorized scope
-- 409: Namespace already owned by another agent
+- 403: Reserved namespace, unauthorized scope, or a person-only capability
+- 409: Namespace already owned by another agent (`NAMESPACE_CONFLICT`), or a
+  `url` that contradicts the address the tenant declared for that component
+  (`ADDRESS_CONFLICT`)
 - 500: Internal error
 
 ### DELETE /v1/register
 
-Agent deregistration. Requires valid auth token.
+Agent deregistration. Requires the deregistering agent's own registration
+token ([Authentication](#authentication)).
 
 The orchestrator MUST:
 1. Authenticate the request
@@ -405,14 +467,19 @@ The orchestrator MUST:
 Service directory including routing table and namespace map.
 Requires valid auth token.
 
-**Response:** `ServiceDirectory` (signed by orchestrator)
+**Response:** `ServiceDirectory`. Its `signature` has no signing input yet
+(the gap under [`POST /v1/services`](#post-v1services)), so what makes this
+answer the orchestrator's is the connection the caller opened to the
+orchestrator address it registered at.
 
 The response includes:
 - `services` — all registered agents with URL, public key, capabilities, status
 - `routing_table` — topic pattern → subscriber list (URL, group, scope)
 - `namespaces` — namespace → owning agent name
 - `updated_at` — timestamp of last change
-- `signature` — orchestrator's ML-DSA-65 signature
+- `signature` — a field with no signing input yet, which nothing verifies
+  (the gap under [`POST /v1/services`](#post-v1services)), so no reader
+  takes it for a check
 
 ### POST /v1/channel
 
@@ -445,6 +512,8 @@ Rotates an agent's ML-DSA-65 key pair. The request must be dual-signed — once 
 
 **Response:** 200 with updated `RegisterResponse`. The orchestrator updates the agent's public key in the service directory and issues a `system.agent.key_rotated` event.
 
+**A component's identity id changes with its key.** The token in that response carries `identity_id`, the fingerprint of the new key, as a registration's does. So what a component recorded or was recorded under before the rotation names it by one identity id, and what comes after by another. [`patterns/principal-identity`](../patterns/principal-identity.md)'s `identity-rotation` keeps a subject's identifier across a rotation, and `architecture/admin` does that for an operator. A registered component is not yet under that rule. This is the gap, stated as the enrolment gap under `POST /v1/register` is.
+
 **Error cases:**
 - 401 if current_signature is invalid
 - 400 if new_signature verification fails
@@ -459,7 +528,10 @@ namespace count, and active channel count.
 
 ### GET /v1/audit
 
-Audit log. Requires valid auth token.
+Audit log. Requires a registered component's registration token
+([Authentication](#authentication)). A person reads the same log at
+`GET /v1/admin/audit`, which needs `admin:audit`
+([`architecture/orchestrator`](../architecture/orchestrator.md#administrative-endpoints)).
 
 **Response:** Array of `AuditEntry` (most recent first)
 
@@ -835,6 +907,14 @@ Flow:
 6. On failure: 401 `{"error": "valid token required — register first"}`
 7. On success: pass decoded claims to handler
 
+Every orchestrator endpoint here that takes a token takes a registered
+component's registration token and no other kind: a person's operator token,
+a channel token, a pass and an attestation token are each refused there.
+[`architecture/orchestrator`](../architecture/orchestrator.md#auth-middleware)
+states the whole sequence and the code each refusal carries, and serves
+people's administrative routes under `/v1/admin/*`, which take a person's
+operator token ([`protocol/identity`](identity.md#the-pass)).
+
 ---
 
 ## Token Renewal
@@ -945,6 +1025,12 @@ error_codes:
     raised_by: POST /v1/register, where the namespace is already owned
   - code: NAMESPACE_RESERVED
     raised_by: POST /v1/register, for a reserved namespace
+  - code: ADDRESS_CONFLICT
+    raised_by: POST /v1/register, where the url contradicts the address the
+      tenant declared for that component
+  - code: CAPABILITY_PERSON_ONLY
+    raised_by: POST /v1/register, where the manifest declares a capability
+      protocol/types marks person only
   - code: SCOPE_UNAUTHORIZED
     raised_by: subscription, where the scope exceeds the caller's capability
   - code: EVENT_REJECTED
@@ -1112,11 +1198,15 @@ security:
 - [ ] Orchestrator `POST /v1/register` validates subscription scopes (403 on unauthorized)
 - [ ] Orchestrator `POST /v1/register` enforces replay protection (300s window)
 - [ ] Orchestrator `POST /v1/register` rejects `system.*` namespace claims (403)
+- [ ] Orchestrator `POST /v1/register` refuses a manifest whose `capabilities` names any capability `protocol/types` marks person only — `content:write`, `content:decide`, `content:replicate`, `content:connect`, `content:declassify`, `model:attest` or `fabric:attest` — with 403 `CAPABILITY_PERSON_ONLY`, and issues no token
+- [ ] Orchestrator `POST /v1/register` refuses with 400 `INVALID_REQUEST`, recording nothing, a manifest naming a capability `protocol/types` does not list, in `capabilities` or in a pass route, and one two of whose pass routes can match one request
+- [ ] The token `POST /v1/register` issues carries `identity_id`, the fingerprint of `manifest.public_key`
 - [ ] Orchestrator `DELETE /v1/register` releases namespaces and routing entries
 - [ ] Orchestrator `GET /v1/services` returns service directory with routing table and namespace map
 - [ ] Orchestrator `POST /v1/channel` verifies `agent:message` capability
 - [ ] Orchestrator `GET /v1/health` returns without auth
 - [ ] Orchestrator `GET /v1/audit` returns audit entries with pagination
+- [ ] Orchestrator `GET /v1/audit` and `DELETE /v1/register` refuse a person's operator token and a channel token, so neither reads the audit log or deregisters an agent
 - [ ] Orchestrator broadcasts updated service directory on registration changes
 - [ ] Orchestrator rejects unsupported protocol_version with `UNSUPPORTED_VERSION`
 - [ ] RegisterResponse includes negotiated protocol_version and routing table

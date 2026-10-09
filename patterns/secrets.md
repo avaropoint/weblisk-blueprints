@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: secrets
-version: 1.0.0
-requires: [protocol/types, protocol/identity, architecture/agent, architecture/storage]
+version: 1.1.0
+requires: [protocol/types, protocol/identity, protocol/secret-source, architecture/agent, architecture/storage]
 platform: any
 tier: free
 -->
@@ -36,6 +36,16 @@ so that:
 requires:
   - blueprint: protocol/identity
     version: ">=1.0.0 <2.0.0"
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/secret-source
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: HolderReference
+          fields_used: [source, reference, options]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -228,6 +238,10 @@ Alternative store backends MUST:
 
 The store backend is selected via runtime configuration. Platform
 guides (`platforms/*.md`) document specific backend integrations.
+
+A store kept outside the process — a keychain, a vault, a secrets
+manager — is a secret source, and is reached as
+[`protocol/secret-source`](../protocol/secret-source.md) specifies.
 
 ---
 
@@ -534,10 +548,14 @@ types:
     fields:
       key:
         type: string
-        description: Identifier for the secret in whatever store holds it
+        description: Identifier for the secret in whatever store holds it. Where that store is a secret source, this is a holder reference in its flag form, source:reference, as protocol/secret-source defines it
+      options:
+        type: object
+        required: false
+        description: Where key names a secret source, the string options that source needs on every request, such as which account, exactly as HolderReference options. Never a secret
       env_var:
         type: string
-        description: Environment variable carrying the value, where a platform supplies secrets that way. MUST NOT be used for key material or a passphrase — protocol/identity forbids that path and states why
+        description: Environment variable carrying the value, where a platform supplies secrets that way. MUST NOT carry a private key (an identity's or a credential's), other key material or a passphrase — protocol/identity rule 9 forbids that path, says what those are, and states the one exception
 ```
 
 ---

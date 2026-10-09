@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.0.0
+version: 1.8.7
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -19,8 +19,9 @@ radius.
 
 `protocol/identity` specifies one ML-DSA-65 key pair per entity, registered by
 public key with an orchestrator. `architecture/admin` specifies operator
-registration against a single orchestrator, with the first operator
-auto-approved. Neither answers what happens when one subject works across
+registration against a single orchestrator, with the first operator admitted by
+presenting the bootstrap secret that orchestrator emitted (see *Bootstrap is
+trust-on-first-use* below). Neither answers what happens when one subject works across
 several hubs, and neither separates *being someone* from *being admitted
 somewhere*.
 
@@ -56,11 +57,13 @@ the same way.
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.8.0 <2.0.0"
     bindings:
       types:
+        # cid and record_keys are how a verifier holding a token tells a
+        # record-signing key from the key that signed its subject in
         - name: WLToken
-          fields_used: [sub, iss, iat, exp, cap]
+          fields_used: [sub, iss, iat, exp, cap, cid, record_keys]
         - name: SigningKeyPair
           fields_used: [public_key, algorithm]
     on_change:
@@ -69,7 +72,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.16.0 <2.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -80,7 +83,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/scope
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: ScopeLevel
@@ -107,12 +110,20 @@ requires:
    hub, exercised through a credential that hub attested. Identity is the
    subject of an authorization decision, never the decision.
 
+   The authority to issue a grant is written `grant:issue` in this pattern. It
+   is the pattern's name for that authority, not a capability name in
+   [`protocol/types`](../protocol/types.md)' list: no manifest declares it and
+   no token carries it under that name. A blueprint that applies this pattern
+   says which of its own capabilities carries it, and at a Weblisk hub that is
+   `admin:*`, which admits operators and sets their roles
+   ([`architecture/admin`](../architecture/admin.md#operator-roles)).
+
 3. **A subject is a person or a service, treated identically** — Service
    accounts are identities. Same algorithm, same binding, same revocation, same
-   audit. They differ only in `kdf`: a person's key is protected by an
-   interactive passphrase; a headless service key MAY use `kdf: none` with file
-   permissions as its sole protection (`protocol/identity` Key Categories).
-   Nothing else about the model changes.
+   audit. They differ only in `kdf`: a person's key is never stored
+   unencrypted, and a headless service key MAY use `kdf: none` with file
+   permissions as its sole protection, in development only (`protocol/identity`
+   Key Categories, rules 1 and 6). Nothing else about the model changes.
 
 4. **A hub is entered by a credential, never by the identity** — A hub stores a
    credential's public key, not the identity's. The identity key is presented
@@ -142,10 +153,15 @@ requires:
 
 8. **Rotation cascades, and this is deliberate** — Rotating a credential is
    local and cheap. Rotating an identity invalidates every attestation that
-   identity ever signed, so every hub relationship MUST be renegotiated: new
-   identity key, new invitations, new attestations, new credentials. There is no
-   overlap period (`protocol/identity` Rotation Rules) and no partial migration.
-   An identity-level event is expensive because it should be.
+   identity ever signed, so every hub relationship MUST be renegotiated: the
+   new identity key announced to each hub under the old one, new attestations,
+   new credentials. There is no overlap period (`protocol/identity` Rotation
+   Rules) and no partial migration. A hub that verified the announcement keeps
+   the subject's grant and the identifier it records for the subject, so what
+   it recorded before and after names one subject. A subject that cannot sign
+   an announcement, having lost the old key, is admitted afresh, by a new
+   invitation, as a new subject. An identity-level event is expensive because
+   it should be.
 
 9. **A directory locates subjects; it does not vouch for them** — A registry of
    identities, operated by a control plane, a CLI keystore or a marketplace,
@@ -165,8 +181,10 @@ requires:
     never satisfy user verification and MUST NOT be granted a scope whose policy
     requires it. It has no judgement, so it MUST NOT issue invitations, vouch for
     another subject, or provision another identity — a service that can mint
-    service accounts makes every boundary one call deep. And it has no one
-    watching it, so it MUST carry a named human owner and a mandatory expiry.
+    service accounts makes every boundary one call deep. For the same reason it
+    MUST NOT hold a capability `protocol/types` marks *person only*. And it has
+    no one watching it, so it MUST carry a named human owner and a mandatory
+    expiry.
 
 12. **Time is a security input** — Attestation validity, replay windows, token
     expiry and grant expiry are all decided by comparing clocks. A verifier MUST
@@ -192,10 +210,12 @@ requires:
 
     An agent MUST NOT widen its own authority, MUST NOT pass a capability to
     another agent that it did not itself receive, and MUST NOT act after the
-    authorisation expires. Where an agent acts for a person, the record MUST
-    name both — the subject whose authority was used, and the agent and run that
-    used it. An upstream system will show only the subject; the hub's ledger is
-    the only place the causal chain exists.
+    authorisation expires. An authorisation MUST NOT name a capability
+    `protocol/types` marks *person only*, so the intersection never holds one,
+    whatever the subject's grant holds. Where an agent acts for a person, the
+    record MUST name both — the subject whose authority was used, and the agent
+    and run that used it. An upstream system will show only the subject; the
+    hub's ledger is the only place the causal chain exists.
 
 ---
 
@@ -210,8 +230,8 @@ contracts:
       rules:
         - The key pair MUST be generated on the subject's own system
         - The private key MUST NOT be transmitted to any party, ever
-        - A human subject's key MUST use kdf argon2id with an interactive passphrase
-        - A service subject's key MAY use kdf none where no passphrase can be prompted
+        - A human subject's private key, wherever it is written or whatever secret source returns it, MUST be the weblisk-key-v1 envelope with kdf argon2id. A key that never leaves a secret source that signs has no such form (protocol/identity rule 1)
+        - A service subject's key MAY use kdf none where no passphrase can be prompted, in development only (protocol/identity rule 6)
         - Only the public key is ever published
 
     - name: principal-invitation
@@ -267,6 +287,16 @@ contracts:
         - A credential public key that has ever been revoked at this hub MUST NOT
           be re-registered, even under a valid attestation. Otherwise replaying
           the original attestation resurrects a revoked credential
+        - A credential public key a hub holds, or ever held, for one subject, or
+          that is any subject's identity key, MUST be refused for every other
+          subject with credential_key_bound, and logged as a security event.
+          A key the hub already records names that credential, so accepting
+          it for a second subject would rebind the credential, and every token
+          it mints, to the subject who attested it second
+        - A hub MAY require the identity's signature over a fresh,
+          replay-protected request before it accepts an attestation. What that
+          signature obtains MUST be limited to submitting attestations for that
+          identity. It is part of attesting, never a login
 
     - name: authentication
       description: Prove the credential at a hub
@@ -312,7 +342,11 @@ contracts:
           checked. Implementations MUST cap attestation lifetime and SHOULD keep
           it short — it is the revocation window for every verifier that is not
           the issuing hub
-        - A hub MUST refuse to revoke the last credential holding grant:issue
+        - A hub MUST refuse a request to revoke the last credential holding
+          grant:issue. Rotating that subject's identity is not such a request.
+          It voids the credential as identity-rotation requires, and the new
+          identity attests a new one, so the hub still has a subject able to
+          administer it
         - Every revocation MUST record actor, timestamp and reason
 
     - name: identity-rotation
@@ -325,6 +359,18 @@ contracts:
         - There MUST be no overlap period in which both identity keys verify
         - A hub that cannot reach the subject MUST fail closed, leaving the old
           credentials invalid rather than trusting an unverified replacement
+        - A hub that verifies the announcement MUST keep the subject's grant and
+          the identifier it records for the subject, and MUST record the old
+          key as retired and never accept it again. Every record the hub made
+          before the rotation and every record it makes after it then name the
+          same subject, so a subject cannot become someone else to its own
+          records by rotating
+        - A subject without the old key cannot announce a rotation. It is
+          admitted afresh, as a new subject with a new identifier
+        - A component registered with an orchestrator is not yet under the
+          rule that keeps its identifier. Its identity id is the fingerprint
+          of its current key, and changes when POST /v1/rotate-key replaces
+          that key. protocol/spec states that gap
 
     - name: service-subject-constraints
       description: What a non-human subject may not do, and must carry
@@ -342,15 +388,27 @@ contracts:
           start, held in memory only, and never written to disk
         - A production hub MUST refuse a grant to a subject whose key_protection
           is development-only
-        - Key material and passphrases MUST NOT be passed through environment
-          variables, which are readable via /proc, container inspection and crash
-          dumps, and are inherited by every child process
+        - No private key (an identity's or a credential's), other key material or
+          passphrase MAY be passed through an environment variable
+          (protocol/identity rule 9, which states the one exception)
         - In-memory key material MUST be zeroised after use and excluded from core
           dumps
         - Where the runtime can attest the workload, a service SHOULD hold no
           long-lived private key at all
         - Enrolment MUST be vouched by a subject holding grant:issue, and the
           voucher MUST be recorded on the grant
+        - A service subject MUST NOT be granted a capability protocol/types
+          marks person only, by any role. The hub refuses it at issue with
+          capability_person_only
+        - A token minted for a service subject MUST NOT carry a person-only
+          capability, whatever its roles have come to hold since the grant was
+          issued. The hub refuses to mint it, with capability_person_only, and
+          never strips the capability and mints the rest
+        - A component that registers with an orchestrator is a service subject.
+          A registration whose manifest declares a person-only capability is
+          refused with capability_person_only (protocol/spec, POST /v1/register).
+          The enrolment rules above are not yet applied to a registration, and
+          protocol/spec states that gap
         - Offboarding a human owner MUST surface every service identity they own
           rather than silently orphaning it
 
@@ -373,6 +431,9 @@ contracts:
           under it
         - An agent acting for a PERSON MUST NOT exceed what that person could do
           directly at the same hub, in the same scope, on the same resource
+        - An authorisation MUST NOT name a capability protocol/types marks person
+          only. The hub refuses it with capability_person_only, so a subject's
+          person-only capability never reaches an agent acting under it
 
     - name: cross-hub-isolation
       description: Confine a credential to the hub it was minted for
@@ -383,6 +444,65 @@ contracts:
         - A token issued by one hub MUST NOT be accepted by another
         - Enumerating a subject's hubs MUST be answered by a directory, never by
           asking hubs to disclose their grants
+
+    - name: record-signing
+      description: A credential that signs records meant to outlive the
+        session, and how a verifier that is not the hub checks one
+      required: false
+      rules:
+        - An attestation's purpose is authenticate, the default when the field
+          is absent, or sign-records. An authenticate credential proves a live
+          session at the hub it names. A sign-records credential signs records
+          for that hub
+        - A sign-records credential MUST be an ML-DSA-65 key file. Design
+          Principle 6 lets a classical key prove a session and nothing more. A
+          passkey or any classical key attested for sign-records is refused with
+          algorithm_not_permitted
+        - A sign-records credential MUST NOT authenticate. A hub records it, with
+          the lifetime cap every attestation it records has, so that it can be
+          revoked and counted as any credential can. It never issues a
+          challenge for one or mints a token with one, and refuses a request
+          that tries with credential_purpose_mismatch. It never counts as a
+          credential able to administer the hub (last_administrator)
+        - One key serves one purpose. A hub MUST refuse to record a key under
+          one purpose while it holds that key, or ever held it, under the
+          other, with credential_purpose_mismatch
+        - A hub MUST name, in every token it mints through one of a subject's
+          authenticate credentials (protocol/identity, record_keys - at
+          architecture/admin, every operator token), each sign-records
+          credential that subject holds there that is active and unexpired. Revoking one leaves it out
+          of every token minted afterwards
+        - An authenticate credential MUST NOT sign a record. A verifier refuses
+          a record signature made by one with credential_purpose_mismatch
+        - The key a client holds in order to sign in never signs a record, and
+          two parties enforce it. The hub records a key under one purpose only.
+          A verifier that receives a record signature with a token refuses it,
+          with credential_purpose_mismatch, unless the signing key is one of
+          the token's record_keys and is not the credential the token's cid
+          names. A verifier that holds no token, such as an auditor reading a
+          log, can check neither, and has them only as the verifier that held
+          the token recorded them
+        - A sign-records credential MUST be generated on the device where its
+          subject signs, and MUST NOT be generated or held by a party that acts
+          for people who sign in to it
+        - A verifier of a signed record is not the issuing hub, so it checks the
+          attestation itself - its signature under identity_public_key; that
+          identity_public_key is a key the issuing hub records for the identity
+          id the record names, which is the key whose fingerprint that id is or
+          one the hub accepted in its place by an identity-rotation; its
+          purpose, and its hub_id against the hub the record belongs to where
+          the verifier knows it - and treats not_after as the revocation window
+          it has, as revocation states
+        - Revocation and rotation are prospective. A signature a log recorded
+          while its attestation was live stays as it was recorded, and the
+          log's order says what came before and what came after. Nothing
+          un-signs a record. A verifier refuses a signature presented after its
+          attestation's not_after. A revoked sign-records credential, and a
+          revoked or rotated identity, reach a verifier that is not the hub only
+          through the hub's tokens. The credential is missing from the
+          record_keys of every token minted after its revocation, and the hub
+          refuses that identity's tokens. Neither reaches such a verifier sooner
+          than the tokens minted before it expire
 
   guarantees:
     - No platform ever holds a subject's identity private key
@@ -427,7 +547,8 @@ types:
         required: true
         description: How the long-lived key is protected. `development-only` is
           file permissions alone and MUST NOT be accepted by a production hub —
-          see protocol/identity Service Key Protection
+          see protocol/identity Service Key Protection. protocol/secret-source
+          says which value each way of holding the key earns
       display_name:
         type: string
         required: false
@@ -446,6 +567,9 @@ types:
       identity_id:
         type: string
         required: true
+        description: The identifier the hub records for the subject, which it
+          keeps across an identity-rotation it verified. At architecture/admin,
+          the operator's identity id
       identity_public_key:
         type: string
         required: true
@@ -456,7 +580,19 @@ types:
       hub_id:
         type: string
         required: true
-        description: The ONE hub this credential may authenticate at
+        description: The ONE hub this credential may authenticate at, or, for a
+          sign-records credential, the one hub whose records it signs. Named by
+          the fingerprint (protocol/identity) of the first key that hub signed
+          its tokens with, which the hub records and keeps when it rotates that
+          key — never by its address. A hub that moves or rotates its key is the
+          same hub, and a hub regenerated without its records is a different one
+      purpose:
+        type: enum
+        values: [authenticate, sign-records]
+        required: false
+        description: What the credential is for. Absent means authenticate. A
+          sign-records credential never authenticates, and an authenticate
+          credential never signs a record (record-signing)
       device_label:
         type: string
         required: false
@@ -467,10 +603,14 @@ types:
       signature:
         type: string
         required: true
-        description: ML-DSA-65 signature by the identity private key
+        description: ML-DSA-65 signature by the identity private key over the
+          RFC 8785 canonical form of every other field present, as
+          protocol/spec signs every JSON payload
 
   Credential:
-    description: What a hub stores and authenticates against
+    description: What a hub stores and authenticates against. A credential is
+      named by the fingerprint (protocol/identity) of its credential_public_key,
+      and a token minted with it carries that name as `cid`
     fields:
       credential_public_key:
         type: string
@@ -657,8 +797,10 @@ types:
 | `user_verification_absent` | auth | Policy requires UV; the UV flag is unset | Deny. MUST NOT infer UV from a valid signature |
 | `credential_syncable_refused` | validation | Policy requires device-bound; the passkey is syncable | Refuse at REGISTRATION, so the subject learns before relying on it |
 | `authenticator_untrusted` | validation | AAGUID outside `accepted_authenticators` | Refuse registration |
-| `algorithm_not_permitted` | validation | A classical key offered as an identity or to sign an attestation | Refuse. Log as a security event |
+| `algorithm_not_permitted` | validation | A classical key offered as an identity, to sign an attestation, or as a sign-records credential | Refuse. Log as a security event |
+| `credential_purpose_mismatch` | auth | A credential used for what its attestation's `purpose` excludes: a sign-records credential offered to authenticate; a key offered under one purpose that the hub holds, or held, under the other; an authenticate credential's signature offered on a record; or a record signature, arriving with a token, by a key that is not one of the token's `record_keys` or is the credential its `cid` names | Refuse. Log as a security event |
 | `credential_previously_revoked` | validation | Re-registering a key revoked here before | Refuse permanently. Log as a security event |
+| `credential_key_bound` | validation | A credential key the hub holds, or held, for another subject, or that is a subject's identity key, attested for a second subject | Refuse permanently. Log as a security event |
 | `identity_key_as_credential` | auth | The identity key was offered to authenticate | Deny. Log as a security event |
 | `scope_exceeds_issuer` | validation | Invitation offers more than the issuer holds | Refuse |
 | `provenance_insufficient` | validation | Key provenance below `minimum_key_provenance` for the offered scope | Refuse |
@@ -674,7 +816,15 @@ types:
 | `development_key_in_production` | validation | `development-only` protection at a production hub | Refuse outright. Log as a security event |
 | `credential_persisted` | integrity | A service credential was found written to disk | Refuse and revoke it — it must be memory-only |
 | `presence_unsatisfiable` | validation | Grant requires user verification; subject is a service | Refuse at ISSUE, not at first login |
+| `capability_person_only` | validation | A grant to a service subject, a token minted for one, a registration manifest, or an agent's authorisation carries a capability `protocol/types` marks person only | Refuse at ISSUE. Log as a security event |
 | `clock_outside_tolerance` | auth | Timestamp beyond skew tolerance, or not yet valid | Deny. MUST NOT clamp into range |
+
+These codes name conditions, and a surface that raises one gives it the wire
+form its own blueprint registers, as `architecture/admin`'s Error Handling does
+for the operator routes. `capability_person_only` is raised on several
+surfaces, so its wire form is registered once, in
+[`protocol/types`](../protocol/types.md#error-handling): `CAPABILITY_PERSON_ONLY`,
+HTTP 403, permanent.
 
 Every failure is fail-closed. An unreachable directory causes discovery to fail;
 it MUST NOT cause a hub to accept unverified key material.
@@ -703,8 +853,11 @@ binding from grants resting on a pasted string.
 first identity to create a hub is verified by nobody, because there is nobody to
 verify against — but an unauthenticated bootstrap endpoint reachable on a network
 is claimable by whoever reaches it first, which need not be the operator who
-started the process. Implementations MUST require a bootstrap secret emitted to
-the console or log at first start, and MUST NOT treat mere arrival as authority.
+started the process. Implementations MUST require a bootstrap secret emitted at
+first start where only whoever started the process can read it — a file only
+that user can read, or a terminal attached to the process — and never to a log,
+which others read and which outlives the claim. They MUST NOT treat mere arrival
+as authority.
 Implementations SHOULD additionally confine bootstrap to console or local access,
 time-box it, close the window permanently once claimed, and record the resulting
 grant with `key_provenance: unverified`.
@@ -744,18 +897,18 @@ the strongest practical argument for keeping the identity key backed up and cold
 it is the recovery path for every credential a subject holds anywhere.
 
 **A service key on disk is a permanent, silent compromise.** `protocol/identity`
-permits `kdf: none` where no passphrase can be prompted, protected only by file
-permissions. Anyone who reads that file — from a backup, a container image, a
-mounted volume, a compromised sidecar — holds that identity indefinitely, and
-nothing about the theft is observable: there is no second factor to fail and no
-presence check to miss. The fix is not stronger encryption of that file — it is
-to stop having one. A service's operating credential should be minted at process
-start, live in memory for hours, and never touch disk; the long-lived material
-that attests it belongs in hardware, a KMS, or nowhere at all where the platform
-can attest the workload directly. Mint one credential per workload, so a single
-compromised container carries its own authority and nothing else.
-`protocol/identity` Service Key Protection sets the conformance bar, and
-`development-only` protection is exactly that.
+permits `kdf: none` in development only, where no passphrase can be prompted,
+protected only by file permissions. Anyone who reads that file — from a backup,
+a container image, a mounted volume, a compromised sidecar — holds that identity
+indefinitely, and nothing about the theft is observable: there is no second
+factor to fail and no presence check to miss. The fix is not stronger encryption
+of that file — it is to stop having one. A service's operating credential should
+be minted at process start, live in memory for hours, and never touch disk; the
+long-lived material that attests it belongs in hardware, a KMS, or nowhere at
+all where the platform can attest the workload directly. Mint one credential per
+workload, so a single compromised container carries its own authority and
+nothing else. `protocol/identity` Service Key Protection sets the conformance
+bar, and `development-only` protection is exactly that.
 
 **Service accounts drift, because nobody notices them.** A person reports a lost
 laptop within the hour. A service key sits for years, outliving the project, the
@@ -850,7 +1003,9 @@ credential revocation, which costs nothing else.
     `development_key_in_production`, at any scope.
 33. A service's operating credential never appears on disk — a filesystem scan
     during and after a run finds no credential material.
-34. Key material supplied through an environment variable is refused.
+34. A private key (an identity's or a credential's), other key material or a
+    passphrase supplied through an environment variable is refused
+    (`protocol/identity` rule 9, which states the one exception).
 35. A suspended grant denies exactly as a revoked one does — it confers no
     read-only residue.
 36. Restoring or widening a grant requires the same authority as issuing it, and
@@ -865,3 +1020,48 @@ credential revocation, which costs nothing else.
 41. Revoking the subject's grant immediately stops every agent acting under it.
 42. An agent attempting to pass a capability to another agent is refused.
 43. Every agent action names both the subject and the agent run in the record.
+44. Whatever a hub issues on the strength of an identity signature submits an
+    attestation for that identity and is refused for every other request.
+45. A grant to a service subject carrying any person-only capability —
+    `content:write`, `content:decide`, `content:replicate`, `content:connect`,
+    `content:declassify`, `model:attest` or `fabric:attest` — is refused at
+    issue with `capability_person_only`.
+46. An `AgentAuthorization` naming any of those seven is refused with
+    `capability_person_only`, so an agent acting under a subject who holds
+    `content:write` cannot write an entry directly.
+47. A service subject whose role comes to carry any of those seven after its
+    grant was issued is refused a token with `capability_person_only`, and is
+    never issued one with the capability removed.
+48. A registration whose manifest declares any of those seven is refused with
+    `capability_person_only`, whose wire form is `CAPABILITY_PERSON_ONLY`, and
+    no token is issued.
+49. An attestation with `purpose` `sign-records` is recorded, can be revoked,
+    and never obtains a challenge or a token: a request for either is refused
+    with `credential_purpose_mismatch`.
+50. An attestation with `purpose` `sign-records` for a passkey or any classical
+    key is refused with `algorithm_not_permitted`.
+51. A record signature made by a credential whose attestation has no `purpose`,
+    or `purpose` `authenticate`, is refused with `credential_purpose_mismatch`.
+52. A signature a log recorded while its attestation was live still verifies
+    after the attestation's `not_after` has passed, and the same signature
+    presented after that is refused.
+53. A key the hub holds under one purpose is refused under the other with
+    `credential_purpose_mismatch`, and so is a key it held under the other
+    and revoked.
+54. A token minted through a subject's authenticate credential names in `record_keys` each of that subject's
+    active, unexpired sign-records credentials at the hub, and none revoked
+    before the token was minted.
+55. A record signature that arrives with a token is refused with
+    `credential_purpose_mismatch` where its key is not one of the token's
+    `record_keys`, or is the credential the token's `cid` names.
+56. Revoking the last active authenticate credential of the last subject able
+    to administer a hub is refused with `last_administrator`, however many
+    sign-records credentials that subject holds.
+57. A subject attesting a credential key the hub holds, or held, for another
+    subject, or another subject's identity key, is refused with
+    `credential_key_bound`; the other subject's credential keeps its subject,
+    and the next token it mints is that subject's.
+58. After a rotation the hub verified, the subject's next token carries the
+    same identifier as before it, and an attestation by the new identity key
+    names that identifier; the old key is refused as an identity key and as a
+    credential.

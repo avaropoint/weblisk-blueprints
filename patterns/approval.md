@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: approval
-version: 1.0.0
+version: 1.1.4
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety]
 platform: any
 tier: free
@@ -75,7 +75,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: ScopeLevel
@@ -130,6 +130,17 @@ requires:
    approve its own recommendation. A domain controller cannot approve
    cross-domain changes it initiated. Critical changes require a
    different approver than the requester. This is not configurable.
+   A change is *critical* here when anything that classifies it is
+   `critical`: its scope (the `ScopeLevel`
+   [`patterns/scope`](scope.md) declares), its target's `ResourceClass`,
+   or its severity. Inside the approval engine every self-approval is
+   rejected, critical or not, so the sense matters to the exception
+   alone. A content change is classified by its scope and nothing else,
+   so for it a critical change is one whose scope is `critical`, which is
+   the bound the exception carries.
+   One exception exists, outside the approval engine, and it is named
+   under [Separation of Duties](#separation-of-duties) so that the corpus
+   states one rule rather than two.
 
 3. **Escalation by default** — Unanswered approval requests escalate
    automatically. The system never blocks indefinitely waiting for
@@ -1021,6 +1032,29 @@ constraint enforced by the approval engine. No configuration can
 disable it. No authority level can override it. The system rejects
 self-approvals at the protocol level.
 
+### The one exception
+
+A person may decide a content proposal they requested, and nothing
+else of their own. [`architecture/content`](../architecture/content.md#separation-of-duties)
+specifies it, and it is bounded on every side:
+
+- **Only at or below a declared scope, and never at `critical`.** A
+  repository's declaration names the highest scope at which it is allowed,
+  and a declaration naming `critical` is refused, because Design Principle 2
+  makes a different approver for a critical change not configurable. Absent,
+  it is not allowed, and it is never allowed for a change that has no scope.
+  It is declared through the content service's API by a person, and never
+  read from configuration.
+- **Only a person.** The decider holds a capability no service and no
+  agent may hold, so the exception never lets software approve work.
+- **Recorded as what it is.** The change records `separation: self`. A
+  reader of the record sees one person asked and the same person agreed,
+  never an independent approval.
+
+It exists so that an organisation of one person can decide an agent's
+work at all. The approval engine specified here admits no exception,
+and nothing in this pattern extends this one to it.
+
 ### Rules
 
 | Rule | Who | Cannot Approve | Enforcement |
@@ -1444,6 +1478,7 @@ All errors use the standard `ErrorResponse` format from
 - [ ] Environment amplification increases authority for production system/critical resources
 - [ ] Cross-domain operations amplify authority by one level
 - [ ] Self-approval is rejected — requester cannot approve own request
+- [ ] No approval request is decided by its requester on the strength of a content repository's `self_decision_ceiling`
 - [ ] Domain controllers cannot approve cross-domain changes from their own domain
 - [ ] Auto-approval matches only explicitly configured low-risk rules
 - [ ] Auto-approvals are audited identically to human approvals

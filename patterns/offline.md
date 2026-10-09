@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: offline
-version: 1.0.0
+version: 1.0.2
 requires: [protocol/types, architecture/client, patterns/storage, patterns/state-machine, patterns/scope, patterns/privacy]
 platform: any
 tier: free
@@ -65,7 +65,7 @@ bidirectional and symmetric.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
   - blueprint: protocol/types
     version: ">=1.0.0 <2.0.0"
@@ -121,7 +121,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/scope
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: ScopeLevel

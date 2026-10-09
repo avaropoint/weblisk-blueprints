@@ -92,6 +92,24 @@ file, and a file the change does not reach is left alone. One digest over the
 whole prompt cannot make that distinction — it answers "did anything change" and
 never "did anything I depend on change".
 
+### Has upstream moved since it was built?
+
+```
+weblisk build status --upstream [--json]
+```
+
+Run it before deciding. It compares every blueprint the build recorded — path,
+sha256, declared version — with the corpus a rebuild would read now, by
+`schemas/programme.md` §Versioning's table, and compares the recorded set with
+the graph a rebuild resolves. It changes nothing.
+
+- **`unmaintained` is not `changed`.** The bytes moved and the version did not:
+  upstream made no claim about the change. Read the blueprint before rebuilding.
+- **"Inputs not recorded" is not "nothing moved".** A build from before inputs
+  were recorded cannot be compared, and its next build records them. Do not
+  stand `records[].blueprints` in for it — that is what each file was built from.
+- **`unreachable` claims nothing** — neither current nor moved.
+
 ## What must pass
 
 `architecture/generation.md`, "The verification gate",

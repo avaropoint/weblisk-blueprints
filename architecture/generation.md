@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -43,7 +43,7 @@ Checklist, and the conformance result.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       endpoints:
         - name: orchestrator-endpoints

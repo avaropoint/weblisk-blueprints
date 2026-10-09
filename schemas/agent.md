@@ -541,6 +541,15 @@ security:
 5. Resources must reference actual tables, agents, or namespaces
 6. See [compliance.md](compliance.md) SEC001–SEC012 for security validation rules
 
+> **Gap — `classification` is not a scope.** `data_sensitivity`'s
+> `low|medium|high|critical` is this schema's own scale, not
+> [`patterns/scope`](../patterns/scope.md#scope-levels)'s `ScopeLevel`, which
+> every gate, ceiling and destination check reads. Nothing maps one onto the other, so
+> no gate reads an agent's `data_sensitivity`, and a value here is never
+> evidence of what that agent may send or keep. The scale converges onto
+> `ScopeLevel` when the agent blueprints that declare it are re-classified,
+> one data type at a time.
+
 ### Test Fixtures (`## Test Fixtures`)
 
 Organized into three subsections:
@@ -683,7 +692,7 @@ philosophy. Must be self-contained.>
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/register

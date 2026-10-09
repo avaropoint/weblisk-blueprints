@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: data-security
-version: 1.1.0
+version: 1.2.3
 requires: [protocol/types, protocol/spec, protocol/identity, protocol/federation, architecture/content, architecture/gateway, architecture/observability, architecture/enforcement, patterns/scope, patterns/policy, patterns/privacy, patterns/contract]
 platform: any
 tier: free
@@ -53,7 +53,7 @@ everything and authorises nothing.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -118,7 +118,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/content
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: ContentRepository
@@ -379,15 +379,15 @@ exposed.
 | **Gateway** | Reject any request path matching `/.[a-z]*` | Step 2 of request pipeline (before auth) |
 | **Static serving** | Never serve files from dotfolders | `dotfiles: deny` in route config |
 | **Agent sandbox** | Agents cannot read `.weblisk/` | Process-level filesystem restriction |
-| **CLI only** | Only the CLI process reads `.weblisk/config.yaml` and the operator identities under `~/.weblisk/`, whose locations the CLI resolves ([`architecture/cli`](cli.md#where-an-identity-lives)) | Owner-only file permissions (0600/0700). A vault-held identity has no private key on disk at all |
+| **CLI only** | Only the CLI process reads `.weblisk/config.yaml` and the operator identities under `~/.weblisk/`, whose locations the CLI resolves ([`architecture/cli`](cli.md#where-an-identity-lives)) | Owner-only file permissions (0600/0700). An identity whose private half a secret source holds keeps no private key under `~/.weblisk/` |
 
 ### What `.weblisk/` Contains
 
 | File | Sensitivity | Protection | Who Reads It |
 |------|-------------|-----------|-------------|
 | `config.yaml` | High — may contain LLM API keys, database URLs | File permissions (0600) | CLI, orchestrator process |
-| Operator identity — in the home directory's `~/.weblisk/`, not a tenant's | Critical — ML-DSA-65 private key | A passphrase-encrypted file (Argon2id + AES-256-GCM), or held by a vault and never written to disk | CLI only |
-| `keys/<service>.key` | Critical — ML-DSA-65 private key | Encrypted (passphrase via env) or permissions-only | Orchestrator/gateway/agent process |
+| Operator identity — in the home directory's `~/.weblisk/`, not a tenant's | Critical — ML-DSA-65 private key | A passphrase-encrypted file (Argon2id + AES-256-GCM), its passphrase typed or remembered by a secret source; or a private half held by a secret source ([`protocol/secret-source`](../protocol/secret-source.md)) with no private key beside it. Never stored unencrypted ([`protocol/identity`](../protocol/identity.md) rule 1) | CLI only |
+| `keys/<service>.key` | Critical — ML-DSA-65 private key | Encrypted, with the passphrase from a secret source ([`protocol/secret-source`](../protocol/secret-source.md)) and never from the environment ([`protocol/identity`](../protocol/identity.md) rule 9). Permissions-only in development alone (rule 6) | Orchestrator/gateway/agent process |
 | `keys/*.pub` | Low — public key | None needed | CLI, orchestrator |
 | `secrets/<agent>/<KEY>` | High — API keys, passwords | File permissions (0600), per-agent isolation | Orchestrator (on behalf of agent) |
 | `token` | High — auth token for orchestrator | File permissions (0600) | CLI only |
@@ -563,6 +563,14 @@ d7a8fbb307d7809469ca9abcb0082e4f  patterns/secrets.md
 For high-security deployments, blueprint repositories SHOULD require
 signed commits (GPG or SSH signatures). The CLI can optionally verify
 commit signatures before generation:
+
+> **Blueprint repositories only, and a check, never evidence.** A GPG or SSH
+> signature is classical. [`patterns/principal-identity`](../patterns/principal-identity.md)
+> Design Principle 6 forbids a classical key to sign any record meant to
+> outlive the session, so a commit signature is at most a check made before
+> generation. Nothing cites it. A tenant's content is never evidenced by a
+> commit signature at all: its evidence is the content service's change log,
+> signed with ML-DSA-65 ([`architecture/content`](content.md#the-change-log)).
 
 ```bash
 $ weblisk server init --platform go --verify-signatures

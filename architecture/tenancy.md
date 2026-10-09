@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: tenancy
-version: 1.0.0
+version: 1.0.2
 requires: [protocol/types, protocol/identity, architecture/orchestrator, architecture/storage, patterns/principal-identity, patterns/versioning]
 platform: any
 tier: free
@@ -46,30 +46,64 @@ requires:
       removed: halt-immediately
   - blueprint: protocol/identity
     version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        # The tenant's identity: Export produces its public half, and the
+        # host holds no private half (Does NOT own)
+        - name: SigningKeyPair
+          fields_used: [algorithm, public_key]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
+    bindings:
+      types:
+        # Provisioning binds a tenant's orchestrator to that tenant's own
+        # stores, and an upgrade keeps the binding (Data Flow)
+        - name: OrchestratorConfig
+          fields_used: [storage_dsn]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/storage
     version: ">=1.0.0 <2.0.0"
+    bindings:
+      behaviors:
+        # A tenant's records outlive its components: an upgrade replaces
+        # them and a suspension stops serving, and neither loses a record
+        # (Data Flow, Verification Checklist)
+        - name: durable-records
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/principal-identity
     version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        # The identity that claims a tenant, recorded as
+        # Tenant.owner_public_key
+        - name: Identity
+          fields_used: [public_key]
+      behaviors:
+        # A host operator reaches a tenant only on an invitation its owner
+        # issues, and loses that access when the owner revokes it (Security)
+        - name: principal-invitation
+        - name: revocation
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/versioning
     version: ">=1.0.0 <2.0.0"
+    bindings:
+      behaviors:
+        # The schema migration a tenant's first request after an upgrade
+        # runs (Data Flow)
+        - name: version-migration
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -184,10 +218,12 @@ deployment until unpinned.
 ## Data Flow
 
 **Provisioning.** A request arrives at the control plane, which checks admission, records
-the tenant, generates or accepts the owner's identity public key, creates the tenant's
+the tenant and the identity public key its owner presented, creates the tenant's
 storage and components bound only to that tenant's resources, applies the schema, and
 records the routing entry. Every step is compensating: a failure at step *n* undoes
-*n-1…1*.
+*n-1…1*. The owner generates that key and keeps its private half
+([`patterns/principal-identity`](../patterns/principal-identity.md)); the control plane
+never generates one.
 
 **A request to a tenant.** The host's request path resolves the tenant from the request,
 rejects unknown, suspended and unprovisioned tenants, applies quota, and dispatches to

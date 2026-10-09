@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: workflow
-version: 1.0.0
+version: 1.1.0
 port: 9780
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/workflow, patterns/messaging, patterns/scope, patterns/policy, patterns/safety]
@@ -41,7 +41,7 @@ domain change and never a change to this agent.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -295,9 +295,10 @@ types:
 ```json
 {
   "capabilities": [
-    {"name": "task:execute", "resources": []},
     {"name": "agent:message", "resources": []},
-    {"name": "event:observe", "resources": []}
+    {"name": "event:observe", "resources": []},
+    {"name": "database:read", "resources": ["executions"]},
+    {"name": "database:write", "resources": ["executions"]}
   ]
 }
 ```
@@ -341,9 +342,10 @@ to any workflow execution (not just self-initiated ones).
   "url": "http://localhost:9780",
   "public_key": "<hex>",
   "capabilities": [
-    {"name": "task:execute", "resources": []},
     {"name": "agent:message", "resources": []},
-    {"name": "event:observe", "resources": []}
+    {"name": "event:observe", "resources": []},
+    {"name": "database:read", "resources": ["executions"]},
+    {"name": "database:write", "resources": ["executions"]}
   ],
   "publishes": ["workflow"],
   "subscriptions": [
@@ -1170,11 +1172,11 @@ security:
       resources: ["*"]
       description: Fetch workflow definitions from any domain agent
 
-    - capability: storage:read
+    - capability: database:read
       resources: [executions]
       description: Read own execution records
 
-    - capability: storage:write
+    - capability: database:write
       resources: [executions]
       description: Write own execution records
 
