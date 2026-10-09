@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.6.3
+version: 2.6.4
 requires: [protocol/types]
 platform: any
 tier: free
@@ -207,7 +207,7 @@ contracts:
           type: ScopeLevel
           required: true
           description: The highest scope the destination may receive
-      inherits: Allow, or a refusal carrying a DestinationRefusal — SCOPE_MISSING when payload_scope is absent, SCOPE_CEILING_EXCEEDED when it is above destination_ceiling — in every environment profile. architecture/content's replica declaration is the one sender with codes of its own, named under The gate
+      inherits: Allow, or a refusal carrying a DestinationRefusal — SCOPE_MISSING when payload_scope is absent, SCOPE_CEILING_EXCEEDED when it is above destination_ceiling — in every environment profile. architecture/content's remote declaration is the one sender with codes of its own, named under The gate
       overridable: false
       override_constraints: Not overridable — a gate an extender could loosen, or a profile could make audit-only, lets content leave that has not come back
 
@@ -338,7 +338,7 @@ read:
 
 | Destination | Ceiling derived by | Read by a client from |
 |---|---|---|
-| A replica of a content repository | [`architecture/content`](../architecture/content.md#derived-scope-ceiling), Derived Scope Ceiling | `GET /v1/content/repositories/{repository}/replicas` |
+| A remote of a content repository | [`architecture/content`](../architecture/content.md#derived-scope-ceiling), Derived Scope Ceiling | `GET /v1/content/repositories/{repository}/remotes` |
 | A model provider | [Model providers](#model-providers), below | `GET /v1/admin/model/ceiling` on a person's token, and `GET /v1/model/ceiling` on a registered component's ([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)) |
 | A caller of a hub's MCP surface | Always `internal`, as [`architecture/mcp`](../architecture/mcp.md#the-destination-gate) says: its caller is a model whose provider the tenant cannot see, so it is a model provider no agreement can name | Not read by a client: the MCP surface applies it to every tool result |
 
@@ -355,7 +355,7 @@ read:
 > therefore sends that host whatever the component may read, `restricted`
 > included, with nothing demonstrated about who else can read it there.
 > Closing it is a custody demonstration for a component's host, with a
-> ceiling derived from it as a replica's is, and the gate above applied to
+> ceiling derived from it as a remote's is, and the gate above applied to
 > every read served across hosts.
 
 ### The gate
@@ -378,12 +378,12 @@ external boundary of
 [`architecture/enforcement`](../architecture/enforcement.md#external-proxy)
 alike. One exception is named here, as
 [A label and its level](#a-label-and-its-level) names one for a declaration:
-[`architecture/content`](../architecture/content.md#replica-declaration-flow)
-refuses a replica declaration with its own `CONTENT_SCOPE_UNDECLARED` and
-`CONTENT_CUSTODY_CEILING_EXCEEDED`, carrying the `ReplicaCensus`, which names
+[`architecture/content`](../architecture/content.md#remote-declaration-flow)
+refuses a remote declaration with its own `CONTENT_SCOPE_UNDECLARED` and
+`CONTENT_CUSTODY_CEILING_EXCEEDED`, carrying the `RemoteCensus`, which names
 the destination, its prospective ceiling and each path above it or
 unclassified — everything a `DestinationRefusal` carries — and it holds a
-replica's later sends rather than refusing them. No other component names a
+remote's later sends rather than refusing them. No other component names a
 code of its own for this gate.
 
 **For content, the unit is the entry.** Any part of an entry in a content
@@ -480,8 +480,8 @@ has with nothing demonstrated or attested.
   its caller, as [`architecture/mcp`](../architecture/mcp.md#the-destination-gate)
   says. Its caller is a model, so nothing `restricted` or above is returned
   to one ([Model providers](#model-providers)).
-- A replica is checked by the content service, when it is declared and before
-  every send, as [`architecture/content`](../architecture/content.md#replicas)
+- A remote is checked by the content service, when it is declared and before
+  every send, as [`architecture/content`](../architecture/content.md#remotes)
   says.
 
 **Another destination is another gate.** Whatever chooses where a request
@@ -839,7 +839,7 @@ types:
       - name: destination
         type: string
         required: true
-        description: The destination refused, as the gate that refused it names it — a replica's id, a model backend's or an api-ai provider's name, `mcp` for the caller of a hub's MCP surface, or the target an external boundary refused
+        description: The destination refused, as the gate that refused it names it — a remote's id, a model backend's or an api-ai provider's name, `mcp` for the caller of a hub's MCP surface, or the target an external boundary refused
       - name: ceiling
         type: ScopeLevel
         required: true

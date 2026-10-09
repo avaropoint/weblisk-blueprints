@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 1.6.2
+version: 1.6.3
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
@@ -122,7 +122,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/content
-    version: ">=2.22.10 <3.0.0"
+    version: ">=2.22.10 <4.0.0"
     bindings:
       types:
         - name: ContentEntry
@@ -682,7 +682,7 @@ endpoint.
 **Custody flows from the endpoint to the claim, and never the other way.** The
 ledger being exclusive says nothing about what may be asserted through it. An
 edge citing content in a repository whose `effective_custody` is `shared` or
-`opaque` — its store's custody, or any replica's
+`opaque` — its store's custody, or any remote's
 ([`architecture/content`](content.md#effective-custody)) — inherits that
 repository's limits: every answer quoting it MUST carry that access is
 incomplete, and that flag MUST survive into every export and evidence package

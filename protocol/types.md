@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.18.3
+version: 1.18.4
 requires: []
 platform: any
 tier: free
@@ -405,7 +405,7 @@ request is [`architecture/content`](../architecture/content.md#proposals).
 `content:replicate` and `content:connect` are two capabilities so that sending
 a repository outside the tenant takes two grants: a replica with no credential
 reaches nothing, and a credential with no replica is sent nothing
-([`architecture/content`](../architecture/content.md#who-may-declare-a-replica),
+([`architecture/content`](../architecture/content.md#who-may-declare-a-remote),
 which also says whom the two grants separate today).
 
 **Model capabilities:**

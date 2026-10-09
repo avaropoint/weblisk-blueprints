@@ -81,7 +81,7 @@ content:
         tamper_evident: boolean
   reconcile_interval: duration     # Shared custody only. 0 disables scheduled runs
   reverify_custody_interval: duration
-  replica_retry_interval: duration # How often a replica that lacks versions is tried again
+  remote_retry_interval: duration  # How often a remote that lacks versions is tried again
   checkpoint_interval: duration    # How often a change log whose tip has moved is sealed
   max_entry_bytes: integer         # Largest entry the service will write
 
@@ -184,8 +184,8 @@ backend owes once it exists, and what is refused, all live there.
 | `backends` | list | cond | `[]` | Stores this hub can reach. Required when `repositories` is non-empty |
 | `repositories` | list | no | `[]` | Stores declared at startup |
 | `reconcile_interval` | duration | no | `15m` | Out-of-band change detection for shared-custody repositories. `0` disables |
-| `reverify_custody_interval` | duration | no | `24h` | How often attestations are re-demonstrated, the store's and each replica's |
-| `replica_retry_interval` | duration | no | `15m` | How often a replica that lacks versions is tried again, besides after each version is recorded. A try sends only what [`architecture/content`](../architecture/content.md#replica-send-flow)'s Replica Send Flow lets leave, and its step 4 holds every send until a send can leave its egress record, so until then a try sends nothing |
+| `reverify_custody_interval` | duration | no | `24h` | How often attestations are re-demonstrated, the store's and each remote's |
+| `remote_retry_interval` | duration | no | `15m` | How often a remote that lacks versions is tried again, besides after each version is recorded. A try sends only what [`architecture/content`](../architecture/content.md#remote-send-flow)'s Remote Send Flow lets leave, and its step 4 holds every send until a send can leave its egress record, so until then a try sends nothing |
 | `checkpoint_interval` | duration | no | `15m` | How often a change log whose tip has moved is sealed. `0` seals only at shutdown and on request ([`architecture/storage`](../architecture/storage.md#the-checkpoint)) |
 | `max_entry_bytes` | integer | no | `10485760` | Largest entry the service will write |
 
@@ -232,9 +232,9 @@ and a configured repository has none. **Nor is `scope_floor`**, which declares
 the level of everything in a repository, and lowering it would declassify all
 of it ([`architecture/content`](../architecture/content.md#scope_floor-covers-what-declares-nothing)).
 
-**No key declares a replica.** A person declares one through the content
+**No key declares a remote.** A person declares one through the content
 service's API after reading a census of what would leave
-([`architecture/content`](../architecture/content.md#declaring-a-replica)).
+([`architecture/content`](../architecture/content.md#declaring-a-remote)).
 
 ### federation
 
