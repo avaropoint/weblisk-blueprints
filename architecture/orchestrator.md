@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.27.7
+version: 2.27.8
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -1013,7 +1013,7 @@ a closed set, each judged as the route it records is:
 | `action` | Records | The request must be able to use |
 |---|---|---|
 | `model_set` | A change `PUT /v1/admin/model` is about to make: the configuration before and after, and each agreement it withdraws | `admin:*` |
-| `model_complete` | A completion, twice. First, once its body is read and before anything else: the `role`, the `scope`, the backend, and the model it will ask for or that the backend chooses. Then, when it ends: the model the backend reported running or that it reported none, with `status` `denied` where the gate refused it and `failed` where it could not run or the backend failed | `llm:chat` |
+| `model_complete` | A completion, twice. First, once its body is read and before anything else: the `role`, the `scope`, the backend, and the model it will ask for or that the backend chooses. Then, when it ends: the model the backend reported running or that it reported none, and how it ended, as below | `llm:chat` |
 | `model_agreement_record` | An agreement recorded | `model:attest` |
 | `model_agreement_withdraw` | An agreement withdrawn at `DELETE /v1/admin/model/agreements/{id}` | `model:attest` |
 
@@ -1024,6 +1024,17 @@ token's `identity_id`. It answers `201` with the entry. It refuses an `action`
 outside the set, and a `status` other than `ok`, `failed` or `denied`, with
 `INVALID_REQUEST`. `target` names the backend or the agreement, and `detail`
 says what changed or what ran and never carries a prompt, an answer or a key.
+
+Every entry has `status` `ok` but a completion's second: each is appended
+before its route acts, and says what the route is about to do, not how that
+ends. A completion's second entry says how it ended: `ok` where the backend
+answered; `denied` where the gate refused it, with `SCOPE_MISSING` or
+`SCOPE_CEILING_EXCEEDED`; and `failed` where anything else ended it after its
+first entry: its backend failing or refusing the model, a refusal with
+`MODEL_NOT_CONFIGURED`, `MODEL_BACKEND_UNAVAILABLE` or `MODEL_NONE_LOADED`,
+and a body that is not a `CompletionRequest`, refused with `INVALID_REQUEST`.
+Its `detail` names the code it ended with, and the first entry for such a body
+names what the body carried of `role` and `scope`.
 
 A model route acts only on a `201`. `PUT /v1/admin/model` records before it
 writes the configuration, and a completion's first entry is appended once
@@ -2102,7 +2113,7 @@ agents hold, which is theirs.
 - [ ] `POST /v1/admin/complete` refuses a body naming `provider` or `model` with `INVALID_REQUEST`, runs the model `roles` gives the request's `role` and `model` otherwise, and answers a `CompletionResponse` whose `model` is the one the backend's answer names, absent where it names none
 - [ ] A completion for which the configuration names no model, neither in `roles` for its `role` nor as `model`, at a local model server whose first loaded model a current agreement lists at `confidential`, is gated at `internal`, so a `confidential` one is refused with `SCOPE_CEILING_EXCEEDED` and runs nothing
 - [ ] A completion whose backend fails, or refuses its model, is answered `MODEL_BACKEND_FAILED` and runs no other backend or model, and one with no model chosen at a local model server that reports none loaded is answered `MODEL_NONE_LOADED` and loads nothing
-- [ ] A completion appends a `model_complete` entry once its body is read and before the gate or anything else, and a second when it ends, with `status` `ok`, `denied` where the gate refused it or `failed` where it could not run, and returns no answer or refusal whose second entry was not appended
+- [ ] A completion appends a `model_complete` entry with `status` `ok` once its body is read and before the gate or anything else, and a second when it ends, with `status` `ok` where the backend answered, `denied` where the gate refused it, and `failed` for every other refusal or failure after the first, a body refused with `INVALID_REQUEST` included, its `detail` naming the code; and returns no answer or refusal whose second entry was not appended
 - [ ] `POST /v1/admin/model/audit` from outside the process is answered `404` where the model gateway is installed; dispatched in process, it judges the token on the capability its `action` names, refusing with `FORBIDDEN` a `model_complete` on a token that cannot use `llm:chat` and a `model_set` on one that cannot use `admin:*`, appends an `AuditEntry` whose `actor` is the token's `identity_id`, and refuses an `action` outside its set with `INVALID_REQUEST` before it judges any capability
 - [ ] An admin's token whose `cap` names only `content:` capabilities is refused with `FORBIDDEN` at `OperatorApprove`, `OperatorRole`, `OperatorDelete`, `AdminAgentDeregister` and `CredentialRevoke`, its own credential included, and at `CredentialAttest` for the admin
 - [ ] The orchestrator serves only the administrative endpoints backed by state it owns — operators, agents, its audit log, its own overview, and the tenant's model surface the CLI installs
