@@ -344,9 +344,6 @@ agents:
     domain: inventory
     port: 9710
     replicas: 3
-    env:
-      ai_provider: openai
-      ai_model: gpt-4o
   - name: forecaster
     type: work
     domain: analytics
