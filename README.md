@@ -211,11 +211,10 @@ weblisk blueprint update
 
 The CLI reads blueprints from more than one source, in the order
 [`architecture/cli` → Where blueprints come from](architecture/cli.md#where-blueprints-come-from)
-gives: which sources there are, the directory each is judged from, and how a
-repository is added to them.
-
-A higher source overrides a lower one at the same path. For example,
-a customer's `domains/checkout.md` takes precedence over the core version.
+gives: which sources there are, which one is read where two hold the same file,
+the directory each is judged from, and how a repository is added to them. A
+customer's `domains/checkout.md`, for example, is read in place of the core
+version.
 
 **Source format:**
 
@@ -223,7 +222,7 @@ a customer's `domains/checkout.md` takes precedence over the core version.
 |--------|---------|-------|
 | HTTPS | `https://github.com/org/repo.git` | Uses git credential helper |
 | SSH | `git@github.com:org/repo.git` | Uses SSH key |
-| Local path | `file:///path/to/local/blueprints` | For development |
+| Local path | `/path/to/local/blueprints` | For development |
 
 **Authentication:** The CLI uses the system's existing Git credentials —
 SSH keys, credential helpers, or GitHub CLI auth. No additional configuration
