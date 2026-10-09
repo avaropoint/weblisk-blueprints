@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: api-ai
-version: 2.3.1
+version: 2.4.0
 requires: [protocol/types, patterns/scope, architecture/agent, architecture/gateway, architecture/orchestrator]
 platform: any
 tier: free
@@ -92,7 +92,8 @@ requires:
 2. **Local-first** — The default configuration uses local models (Ollama) with no external API keys, no external dependencies, and no data leaving the deployment.
 3. **Centralized gateway** — Rather than each agent implementing its own provider integration, the api-ai pattern provides a single gateway that enforces rate limits, tracks usage, applies the destination gate, and routes to the configured provider.
 4. **Structured extraction** — Beyond free-form chat, the pattern supports schema-validated data extraction, ensuring AI outputs conform to expected shapes.
-5. **A provider is a destination** — Every provider is a model provider with a ceiling ([`patterns/scope`](scope.md#model-providers)). Nothing reaches a provider above its ceiling, and no routing decision — resolution, fallback, failover, downgrade or override — moves a request to one whose ceiling is below it. See [Destination Ceilings](#destination-ceilings).
+5. **A provider is a destination** — Every provider is a model provider with a ceiling ([`patterns/scope`](scope.md#model-providers)). Nothing reaches a provider above its ceiling, and no routing decision — resolution, failover or override — moves a request to one whose ceiling is below it. See [Destination Ceilings](#destination-ceilings).
+6. **A model is never swapped** — A request runs the model it names, or the one a person chose in the configuration, or, where neither names one, whatever the provider runs when asked for none. A model that cannot run is an error, never a reason to run another: no routing decision, failure or budget moves a request to a different model. Nothing in this pattern names a default model, and the model a response reports is the one the provider's answer says ran. See [Model Routing](#model-routing).
 
 ---
 
@@ -107,7 +108,7 @@ contracts:
         - name: model
           type: string
           required: false
-          description: Model name (uses default if omitted)
+          description: The model to run. Omitted, the one a person chose in the configuration, else whatever the provider runs when asked for none. A model that cannot run is refused, never replaced
         - name: messages
           type: "[]Message"
           required: true
@@ -205,32 +206,41 @@ providers:
   ollama:
     type: local
     base_url: http://localhost:11434
-    models: [llama3, codellama]
 
   openai:
     type: remote
     auth: bearer
     key: <configured via secrets>
-    models: [gpt-4o, gpt-4o-mini]
+    models: [<a model a person chose from this provider's own list>]
 
   anthropic:
     type: remote
     auth: x-api-key
     key: <configured via secrets>
-    models: [claude-sonnet-4-20250514, claude-haiku-4-20250414]
+    models: [<a model a person chose from this provider's own list>]
 
   workers-ai:
     type: platform
     binding: AI
-    models: ["@cf/meta/llama-3-8b-instruct"]
+    models: [<a model a person chose from this platform's own catalogue>]
 
 defaults:
   provider: ollama
-  model: llama3
+  model: <a model a person chose from that provider's own list; absent, the provider decides>
   temperature: 0.7
   max_tokens: 4096
   timeout: 120
 ```
+
+A provider's models are what its own list answers, asked by the endpoint and
+never written down here: a local model server's loaded and loadable models, a
+vendor API's model list. `models:` narrows a provider to those a person chose
+from that list, and absent it offers all of them. `defaults.model` is the one
+a request that names none runs, and it too is a person's choice. Where nobody
+chose one, the provider decides: a local model server runs the first model it
+reports loaded, and a provider that runs nothing unless a model is named
+refuses the request. The values above are placeholders, and no model name is
+a default of this pattern.
 
 ### Generated Endpoints
 
@@ -249,9 +259,11 @@ Multi-turn conversational inference with optional tool use.
 
 **Request:**
 
+The request names no model, so it runs the one the configuration chose, or
+the provider's own choice.
+
 ```json
 {
-  "model": "llama3",
   "scope": "internal",
   "messages": [
     {"role": "system", "content": "You are an SEO expert."},
@@ -270,7 +282,7 @@ Multi-turn conversational inference with optional tool use.
 ```json
 {
   "id": "chat-abc123",
-  "model": "llama3",
+  "model": "<the model the provider's answer says ran>",
   "provider": "ollama",
   "message": {
     "role": "assistant",
@@ -318,7 +330,6 @@ Single-shot completion without conversation history.
 
 ```json
 {
-  "model": "codellama",
   "scope": "public",
   "prompt": "Write a Go function that validates an ML-DSA-65 signature:",
   "temperature": 0.3,
@@ -332,7 +343,7 @@ Single-shot completion without conversation history.
 ```json
 {
   "id": "cpl-def456",
-  "model": "codellama",
+  "model": "<the model the provider's answer says ran>",
   "provider": "ollama",
   "text": "func verifySignature(pubKeyHex, sigHex string, data []byte) bool {\n...",
   "usage": {
@@ -354,7 +365,7 @@ instructs the model to return valid JSON matching the schema.
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "<a model GET /ai/models lists for openai>",
   "input": "<html><head><title>Home</title></head><body><h1>Welcome</h1><img src='logo.png'></body></html>",
   "schema": {
     "type": "object",
@@ -374,7 +385,7 @@ instructs the model to return valid JSON matching the schema.
 ```json
 {
   "id": "ext-ghi789",
-  "model": "gpt-4o-mini",
+  "model": "<the model the provider's answer says ran>",
   "provider": "openai",
   "data": {
     "title": "Home",
@@ -402,7 +413,7 @@ Generate vector embeddings for text.
 
 ```json
 {
-  "model": "nomic-embed-text",
+  "model": "<an embedding model GET /ai/models lists>",
   "input": ["SEO audit report for index.html", "Accessibility findings"],
   "dimensions": 768
 }
@@ -413,7 +424,7 @@ Generate vector embeddings for text.
 ```json
 {
   "id": "emb-jkl012",
-  "model": "nomic-embed-text",
+  "model": "<the model the provider's answer says ran>",
   "provider": "ollama",
   "embeddings": [
     {"index": 0, "values": [0.023, -0.451, ...]},
@@ -427,16 +438,18 @@ Generate vector embeddings for text.
 
 ### GET /ai/models
 
-List available models across all configured providers.
+List available models across all configured providers: what each provider's
+own list answered when the endpoint last asked it, narrowed to a provider's
+`models:` where it has one. Nothing here is written down in advance.
 
 **Response:**
 
 ```json
 {
   "models": [
-    {"name": "llama3", "provider": "ollama", "type": "chat", "status": "available"},
-    {"name": "gpt-4o", "provider": "openai", "type": "chat", "status": "available"},
-    {"name": "nomic-embed-text", "provider": "ollama", "type": "embedding", "status": "available"}
+    {"name": "<a model the ollama server lists>", "provider": "ollama", "type": "chat", "status": "available"},
+    {"name": "<a model the openai list holds, chosen in models:>", "provider": "openai", "type": "chat", "status": "available"},
+    {"name": "<an embedding model the ollama server lists>", "provider": "ollama", "type": "embedding", "status": "available"}
   ]
 }
 ```
@@ -467,7 +480,7 @@ types:
       model:
         type: string
         required: false
-        description: "Model name (uses default if omitted)"
+        description: "The model to run. Absent: the one a person chose in the configuration, else whatever the provider runs when asked for none. A model that cannot run is refused, never replaced by another (Model Routing)"
       scope:
         type: ScopeLevel
         required: false
@@ -530,12 +543,12 @@ types:
         description: "Response identifier"
       model:
         type: string
-        required: true
-        description: "Model used"
+        required: false
+        description: "The model the provider's own answer says ran, spelt as it spells it, so a moving alias the request or the configuration gave is reported as the model it reached. Absent where the provider's answer names none: the endpoint never reports the name it asked for as the one that ran"
       provider:
         type: string
         required: true
-        description: "Provider used"
+        description: "The provider that ran it, which names a failover"
       message:
         type: Message
         required: true
@@ -567,7 +580,7 @@ types:
       model:
         type: string
         required: false
-        description: "Model name"
+        description: "As on ChatRequest"
       scope:
         type: ScopeLevel
         required: false
@@ -595,7 +608,7 @@ types:
       model:
         type: string
         required: false
-        description: "Embedding model name"
+        description: "The embedding model, as on ChatRequest"
       scope:
         type: ScopeLevel
         required: false
@@ -692,8 +705,8 @@ The AI provider is configured via runtime settings:
 
 ```yaml
 ai:
-  provider: ollama              # Default provider
-  model: llama3                  # Default model
+  provider: ollama              # The provider a request that names none runs on
+  model: <a model a person chose from that provider's own list; absent, the provider decides>
   keys:
     openai: <configured via secrets>
     anthropic: <configured via secrets>
@@ -706,41 +719,38 @@ ai:
 ## Model Routing
 
 When an agent requests a model by name, the api-ai endpoint resolves
-which provider to use. This decouples agents from provider knowledge —
-agents request capabilities, the router finds the best match.
+which provider runs it, so the agent needs no provider knowledge. It
+resolves a provider for a model and never a model for a request: the model
+a request runs is the one it names, or the one a person chose, or the
+provider's own choice where nobody chose one.
 
 ### Resolution Order
 
 ```
-1. Exact match — model name matches a configured provider's model list
-2. Cross-provider search — check all providers for the model name
-3. Capability fallback — if no exact match, select the best model
-   for the request type (chat, embed, extract) from the default provider
-4. 404 — no suitable model found
+1. A request that names a model runs that model: on the provider the
+   request names (Request-Level Override), else on the provider whose
+   own list holds that name exactly, routing.overrides choosing where
+   two providers list it
+2. A request that names none runs defaults.model on the default
+   provider, and where nobody chose one, whatever that provider runs
+   when asked for none. A provider that runs nothing unless a model is
+   named refuses the request
+3. A model no provider's list holds is refused with 404. No other model
+   runs in its place
 ```
 
 ### Routing Table
 
 The routing table maps model names to providers. It is built at
-startup from provider configuration and updated when GET `/ai/health`
-detects provider changes.
+startup from what each provider's own list answers, and rebuilt when GET
+`/ai/health` detects provider changes. It maps a name to a provider and
+never to another name.
 
 ```yaml
 routing:
-  # Explicit model → provider mapping (overrides auto-discovery)
+  # Which provider runs a model name that two providers both list
   overrides:
-    "gpt-4o": openai
-    "claude-sonnet-4-20250514": anthropic
-    "llama3": ollama
-
-  # Capability-based fallback chains (used when model is omitted)
-  fallback:
-    chat: [ollama/llama3, openai/gpt-4o-mini, anthropic/claude-haiku-4-20250414]
-    embed: [ollama/nomic-embed-text, openai/text-embedding-3-small]
-    extract: [openai/gpt-4o-mini, ollama/llama3]
-
-  # Cost-aware routing — prefer cheaper models when quality is sufficient
-  cost_preference: lowest  # lowest | balanced | highest_quality
+    "<a model name two providers both list>": openai
 ```
 
 ### Request-Level Override
@@ -749,7 +759,7 @@ Callers MAY specify both `model` and `provider` to bypass routing:
 
 ```json
 {
-  "model": "gpt-4o",
+  "model": "<a model GET /ai/models lists for openai>",
   "provider": "openai",
   "messages": [...]
 }
@@ -769,9 +779,14 @@ The router tracks provider health from GET `/ai/health` responses.
 When a provider is unhealthy:
 
 1. Remove its models from the active routing table.
-2. Route requests for those models to the next provider in the
-   fallback chain whose ceiling covers the request's `scope`, and
-   refuse the request when none does.
+2. Route a request for one of those models to another provider whose
+   own list holds the same model under the same name and whose ceiling
+   covers the request's `scope`. Where no other provider lists it,
+   refuse it with 503 `MODEL_UNAVAILABLE`, naming the model and its
+   provider; where every one that lists it is below the request's
+   `scope`, refuse it with `SCOPE_CEILING_EXCEEDED`
+   ([Destination Ceilings](#destination-ceilings)). Never run a
+   different model instead.
 3. Re-check the provider on the next health poll interval (default:
    60s).
 4. Restore routing when the provider returns to healthy.
@@ -785,16 +800,15 @@ token budgets:
 # Monthly token budget per agent (0 = unlimited)
 ai_token_budget: 1000000
 
-# Action when budget exceeded: block | downgrade | alert
-ai_budget_action: downgrade
+# Action when budget exceeded: block | alert
+ai_budget_action: block
 ```
 
-When `downgrade` is configured and an agent exceeds its budget, the
-router automatically selects a cheaper model from the fallback chain
-(e.g., gpt-4o → gpt-4o-mini → llama3), on a provider whose ceiling
-covers the request's `scope`. Where none does, the request is refused
-as `block` refuses it. When `block` is configured, return 429 with
-`TOKEN_BUDGET_EXCEEDED`.
+When `block` is configured and an agent exceeds its budget, return 429
+with `TOKEN_BUDGET_EXCEEDED`. When `alert` is configured, the request runs
+as asked and the endpoint raises an alert. Neither moves a request to
+another model: a budget limits use, and is never a reason to run a model
+other than the one asked for.
 
 ### Destination Ceilings
 
@@ -830,9 +844,9 @@ the chosen provider's ceiling:
 - **`restricted` or above** — refused with `SCOPE_CEILING_EXCEEDED`,
   whatever any provider's ceiling.
 - **Above the chosen provider's ceiling** — the router may choose only
-  among providers whose ceiling covers `scope`: in resolution, the
-  fallback chain, a failover, a downgrade and an override alike. When
-  none does, the request is refused with `SCOPE_CEILING_EXCEEDED`.
+  among providers whose ceiling covers `scope`, and only among those that
+  list the same model: in resolution, a failover and an override alike.
+  When none does, the request is refused with `SCOPE_CEILING_EXCEEDED`.
 
 Each refusal carries one `DestinationRefusal`, naming the provider the
 router chose first, by resolution or the caller's override, and that
@@ -846,11 +860,13 @@ than the one first chosen, the response's `provider` says so.
 ## Implementation Notes
 
 - **Provider failover**: If the primary provider returns a 5xx or
-  times out, the endpoint SHOULD fall back to a secondary provider
-  if one is configured and its ceiling covers the request's `scope`
-  (see [Destination Ceilings](#destination-ceilings)). Otherwise it
-  refuses. The response's `provider` names the provider that ran the
-  request.
+  times out, the endpoint MAY send the request to another provider whose
+  own list holds the same model under the same name and whose ceiling
+  covers the request's `scope` (see
+  [Destination Ceilings](#destination-ceilings)). Otherwise it refuses,
+  as [Provider Health-Aware Routing](#provider-health-aware-routing)
+  says. It never sends the request for a different model. The response's `provider` names the provider that ran
+  the request, and its `model` the model that provider reported.
 - **Streaming**: When `stream: true`, the response MUST use
   Server-Sent Events (SSE). Each event contains a partial
   `ChatResponse` with incremental `message.content`.
@@ -866,8 +882,13 @@ than the one first chosen, the response's `provider` says so.
   extracted JSON against the provided schema before returning. Invalid
   extractions trigger one retry with an error-correction prompt.
 - **Model routing**: If the requested model is not available on the
-  configured provider, the endpoint SHOULD check other providers
-  whose ceiling covers the request's `scope` before returning 404.
+  configured provider, the endpoint SHOULD look for the same name in
+  the lists of the other providers whose ceiling covers the request's
+  `scope` before returning 404, and never runs another model instead.
+- **The model that ran**: Every response's `model` is the one the
+  provider's own answer names, never the name the request or the
+  configuration gave where the provider reports another, and absent
+  where the provider's answer names none.
 - **Input limits**: Request body MUST be capped at 1 MB. Prompts
   exceeding the model's context window SHOULD return 400 with
   `INVALID_REQUEST` and the model's token limit in `detail`.
@@ -877,19 +898,21 @@ than the one first chosen, the response's `provider` says so.
 ## Verification Checklist
 
 - [ ] POST `/ai/chat` returns valid `ChatResponse` with usage data
-- [ ] POST `/ai/complete` returns completion text with finish_reason
+- [ ] POST `/ai/complete` returns completion text with `finish_reason`
 - [ ] POST `/ai/extract` returns JSON matching the provided schema
 - [ ] POST `/ai/extract` retries once on schema validation failure
 - [ ] POST `/ai/embed` returns embeddings with correct dimensions
 - [ ] GET `/ai/models` lists all configured providers and models
 - [ ] GET `/ai/health` reports per-provider status and latency
-- [ ] Unknown model returns 404 with helpful error
-- [ ] Provider failover goes only to a provider whose ceiling covers the request's `scope`, is refused with `SCOPE_CEILING_EXCEEDED` when none does, and the response's `provider` names the provider that ran it
+- [ ] A request naming a model no provider's list holds is refused with 404 and a helpful error, and runs no other model
+- [ ] Provider failover goes only to a provider whose own list holds the same model under the same name and whose ceiling covers the request's `scope`, is refused with `MODEL_UNAVAILABLE` where no other provider lists the model and with `SCOPE_CEILING_EXCEEDED` where every one that does is below the request's `scope`, and the response's `provider` names the provider that ran it
+- [ ] A request that names no model runs `defaults.model`, and where nobody chose one, a local model server's first loaded model; a provider that runs nothing unless a model is named refuses it
+- [ ] Every response's `model` is the model the provider's answer names, absent where it names none, and never the name the request or the configuration gave where the provider reports another
 - [ ] A request with no `scope` is refused with `SCOPE_MISSING`, and one at `restricted` with `SCOPE_CEILING_EXCEEDED`, whatever any provider's ceiling, and neither reaches a provider
 - [ ] A provider key that no current agreement lists, whether or not the tenant's model configuration names it, gets the ceiling `internal` from `GET /v1/model/ceiling?backend=<key>`, and a `confidential` request to it is refused with `SCOPE_CEILING_EXCEEDED`
-- [ ] A request whose `scope` is `confidential` goes only to a provider and a model a current agreement lists both of at `confidential`, through resolution, the fallback chain, a `downgrade` and a request-level `provider` and `model` override alike
+- [ ] A request whose `scope` is `confidential` goes only to a provider and a model a current agreement lists both of at `confidential`, through resolution, a failover and a request-level `provider` and `model` override alike
 - [ ] A request-level override naming a provider a current agreement lists at `confidential` and a model that agreement does not list is gated at `internal`, the ceiling `GET /v1/model/ceiling?backend=<key>&model=<model>` answers, so a `confidential` request is refused with `SCOPE_CEILING_EXCEEDED` and sent nowhere else
-- [ ] Token usage is tracked per request with trace_id attribution
+- [ ] Token usage is tracked per request with `trace_id` attribution
 - [ ] Streaming responses use SSE format
 - [ ] Streaming request to a non-streaming model returns 406 Not Acceptable
 - [ ] Request body is capped at 1 MB
@@ -897,7 +920,7 @@ than the one first chosen, the response's `provider` says so.
 - [ ] All responses include `latency_ms` for observability
 - [ ] Tool calling works across providers that support it
 - [ ] Provider-specific formats are fully normalised
-- [ ] Model routing resolves across providers when model not on default
-- [ ] Fallback chain activates when provider is unhealthy
+- [ ] A model the default provider does not list runs on another provider whose list holds the same name, and never as another model
+- [ ] A request for a model whose provider is unhealthy runs on another provider that lists the same model, or is refused with 503 `MODEL_UNAVAILABLE`, and never runs another model
 - [ ] Request-level provider override bypasses routing
-- [ ] Token budget enforcement works in block and downgrade modes
+- [ ] Token budget enforcement works in `block` and `alert` modes, and neither runs a model other than the one asked for
