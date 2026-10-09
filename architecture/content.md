@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.22.14
+version: 2.22.15
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -2081,9 +2081,9 @@ here — custody, scope, proposals, the change log — covers them, and this ser
 holds none of them.
 
 **What one may be.** It may be authored, versioned, validated and offered: edited
-where it lives, kept under version control, checked against the schemas for what
-it holds ([`architecture/cli`](cli.md#weblisk-validate)), and listed to somebody
-deciding whether to take it.
+where it lives, kept under version control, checked against the schema for each
+family it holds ([`schemas/README`](../schemas/README.md#schema-files) names
+which schema governs which), and listed to somebody deciding whether to take it.
 
 **What it never is.** A claim that a tenant conforms — that it meets a standard,
 a control or an obligation — the evidence chain under such a claim, and an
