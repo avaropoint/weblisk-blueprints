@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.22.3
+version: 2.22.4
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -2125,9 +2125,13 @@ two tenants. A copy is not a second home for the repository it came from; it is
 content of a repository with a home of its own. A replica is not a repository
 outside a tenant: it is a tenant's repository sent to a second place, counted in
 that repository's [effective custody](#effective-custody). Nor is a client's
-installation state a home: what a client keeps there is a reference to where a
-repository outside a tenant lives, never the repository itself
-([Reserved Paths](#reserved-paths)).
+installation state a home ([Reserved Paths](#reserved-paths)). What a client
+keeps there for a repository outside a tenant is a reference to where it lives,
+or a cache of it, never the repository itself. A cache is a copy taken from
+where the repository lives and refreshed only from there. The client never
+edits the repository's files in it, so losing it costs a fetch and nothing
+else: the repository is still where it lives. The CLI's blueprint cache is one
+([`weblisk blueprint update`](cli.md#weblisk-blueprint-update)).
 
 **The rule can be checked only where both homes are visible.** This service sees
 its own placements alone — among which
