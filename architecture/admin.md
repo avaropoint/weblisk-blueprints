@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.35.2
-requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
+version: 2.35.3
+requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
 -->
@@ -191,12 +191,6 @@ requires:
       types:
         - name: DomainManifest
           fields_used: [name, type, workflows, required_agents]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/lifecycle
-    version: ">=1.0.0 <2.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
