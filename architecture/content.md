@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.22.7
+version: 2.22.8
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -2129,16 +2129,17 @@ repository it names stays outside either way.
 
 **Each repository has exactly one home**: the tenant that declared it, or none.
 It is never kept outside a tenant while a tenant holds it, and never declared by
-two tenants. A copy is not a second home for the repository it came from; it is
-content of a repository with a home of its own. A replica is not a repository
-outside a tenant: it is a tenant's repository sent to a second place, counted in
-that repository's [effective custody](#effective-custody). Nor is a client's
-installation state a home ([Reserved Paths](#reserved-paths)). What a client
-keeps there for a repository outside a tenant is a reference to where it lives,
-or a cache of it, never the repository itself. A cache is a copy taken from
-where the repository lives and refreshed only from there. The client never
-edits the repository's files in it, so losing it costs a fetch and nothing
-else: the repository is still where it lives. The CLI's blueprint cache is one
+two tenants. A copy a tenant installs is not a second home for the repository it
+came from; it is content of a repository with a home of its own. A replica is
+not a repository outside a tenant: it is a tenant's repository sent to a second
+place, counted in that repository's [effective custody](#effective-custody).
+Nor is a client's installation state a home ([Reserved Paths](#reserved-paths)).
+What a client keeps there for a repository outside a tenant is a reference to
+where it lives, or a cache of it, never the repository itself. A cache is a
+copy taken from where the repository lives and refreshed only from there. The
+client never edits the repository's files in it, so losing it costs a fetch and
+nothing else: the repository is still where it lives. The CLI's blueprint cache
+is one, for each source no tenant has declared
 ([`weblisk blueprint update`](cli.md#weblisk-blueprint-update)).
 
 **The rule can be checked only where both homes are visible.** This service sees
