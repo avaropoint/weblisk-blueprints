@@ -260,6 +260,11 @@ This supports multiple distribution models:
 Access control is handled entirely by Git — private repos require the
 user's existing credentials (SSH key or GitHub CLI auth).
 
+A source that no tenant has declared — this repository, a partner's, a
+customer's own before their tenant takes it — is a repository outside a
+tenant. What one may be used for, and how what it holds reaches a tenant, is
+[`architecture/content` → Repositories Outside a Tenant](architecture/content.md#repositories-outside-a-tenant).
+
 ### Building Your Own
 
 1. Read the [Quickstart Guide](QUICKSTART.md) to get a hub running

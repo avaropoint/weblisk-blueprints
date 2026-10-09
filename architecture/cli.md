@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.19.9
+version: 2.19.10
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -304,6 +304,11 @@ Studio's and the orchestrator's own surfaces.
 - Template contents (owned by `weblisk-templates`)
 - Client framework (owned by `weblisk`)
 - Blueprint specifications (owned by this repository — `weblisk-blueprints`)
+- What a repository outside any tenant may be used for, and how what it holds
+  reaches a tenant (owned by `architecture/content` —
+  [Repositories Outside a Tenant](content.md#repositories-outside-a-tenant)).
+  Every blueprint source no tenant has declared is one, the core corpus among
+  them
 
 ---
 
