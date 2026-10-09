@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.22.12
+version: 2.22.13
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -2158,10 +2158,13 @@ its own placements alone — among which
 overlap — and neither another tenant's nor what a client keeps outside every
 tenant. A client that keeps repositories outside a tenant can check the rule only
 against local paths. It refuses to keep, as outside a tenant, a path that equals,
-contains or sits inside a tenant directory it recorded: an overlap in either
-direction, as One placement, one repository refuses one, because a path that
-encloses a tenant directory holds what the tenant's builds generated, which is
-the tenant's. It refuses too a path that is, or sits inside, its own
+contains or sits inside a tenant directory it recorded — the directory a tenant
+was built into, which
+[`weblisk tenant create`](cli.md#weblisk-tenant-create-name) produces and which
+holds the tenant's keys: an overlap in either direction, as One placement, one
+repository refuses one, because a path that encloses a tenant directory holds
+what the tenant's builds generated, which is the tenant's. It refuses too a path
+that is, or sits inside, its own
 installation state, where it keeps no repository. It cannot see where a tenant
 keeps its repositories — a placement names a backend, never a location
 ([A placement names a backend, never a location](#a-placement-names-a-backend-never-a-location))
@@ -3078,7 +3081,7 @@ entry (Design Principle 7), and no agent holds a person's token
 where the token that carried it names them, or asserted.
 
 The service's registered key is the long-lived key `architecture/storage`
-names, and the tenant's directory lists it (`ServiceEntry.public_key`,
+names, and the tenant's service directory lists it (`ServiceEntry.public_key`,
 [`protocol/types`](../protocol/types.md)). Its fingerprint is the one a
 verifier brings ([`architecture/storage`](storage.md#verifying-a-sealed-log)),
 and it takes it from the tenant, never from the log. When the service rotates
@@ -4892,7 +4895,7 @@ security:
     - rule: A change log verifies without this service
       mechanism: Sealed per architecture/storage, which lists what a verifier
         needs. The one fingerprint it brings is the service's registered key,
-        from the tenant's directory, and a rotation of that key is recorded by
+        from the tenant's service directory, and a rotation of that key is recorded by
         a succession entry both keys sign in every log that has an authority,
         which no log has before the sealed log's statements have test vectors.
         Checking a person's statement needs what Verifying a log without this
@@ -5424,4 +5427,4 @@ security:
 - [ ] Before the sealed log's statements have test vectors, the service starts without minting a log key, appends no `key` or `checkpoint` entry, answers every `LogHead` with `sealing` `paused`, and refuses a checkpoint request with `CONTENT_SEALING_PAUSED`
 - [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, `POST /v1/content/repositories/{repository}/log/checkpoint` on a log whose tip has moved appends a `checkpoint` entry covering the tip, and on one whose tip has not moved appends nothing
 - [ ] A service started over a change log whose lines after its latest checkpoint were altered settles no reservation in it, refuses writes, removals, decisions to apply, reconciles and checkpoints on that repository with `CONTENT_LOG_BROKEN` naming the `seq`, still serves its entries and its log, reports health `degraded` naming it, and reports `chain` `broken` with that `broken_at` in its `LogHead`
-- [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, rotating the service's registered key appends a succession entry to every change log that has an authority, and a verifier that brings only the key the tenant's directory now lists verifies checkpoints sealed before the rotation
+- [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, rotating the service's registered key appends a succession entry to every change log that has an authority, and a verifier that brings only the key the tenant's service directory now lists verifies checkpoints sealed before the rotation
