@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.22.4
+version: 2.22.5
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -2138,12 +2138,15 @@ its own placements alone — among which
 [One placement, one repository](#one-placement-one-repository) already refuses an
 overlap — and neither another tenant's nor what a client keeps outside every
 tenant. A client that keeps repositories outside a tenant can check the rule only
-against local paths. It refuses to keep, as outside a tenant, a path that is, or
-sits inside, a tenant directory it recorded or its own installation state. It
-cannot see where a tenant keeps its repositories — a placement names a backend,
-never a location
+against local paths. It refuses to keep, as outside a tenant, a path that equals,
+contains or sits inside a tenant directory it recorded: an overlap in either
+direction, as One placement, one repository refuses one, because a path that
+encloses a tenant directory holds what the tenant's builds generated, which is
+the tenant's. It refuses too a path that is, or sits inside, its own
+installation state, where it keeps no repository. It cannot see where a tenant
+keeps its repositories — a placement names a backend, never a location
 ([A placement names a backend, never a location](#a-placement-names-a-backend-never-a-location))
-— so a path that passes has been shown only to lie outside the tenant directories
+— so a path that passes has been shown only not to overlap a tenant directory
 that client recorded, never to belong to no tenant (Design Principle 5).
 
 ---
