@@ -1101,12 +1101,12 @@ refresh that fails keeps the cached copy and says so, is tried again a day after
 the attempt rather than on every command, and does not make the copy any
 younger: a clone is as old as the last refresh that worked, and that is the age
 every report gives. `WL_BLUEPRINT_OFFLINE` switches refreshes off, and this
-refresh is held while the directory the command works in has generated work
-banked against the current revision (in `.weblisk/generation/`), because moving
-the corpus under a resume invalidates every banked file.
+refresh is held while the directory the command works in has any generated work
+banked in `.weblisk/generation/`, because moving the corpus under a resume
+invalidates every banked file.
 [`weblisk blueprint update`](#weblisk-blueprint-update) does not wait for a
 clone to be a day old. A clone that has never been made is made when it is
-first needed, held or not.
+first needed, even while refreshes are off or held.
 
 A build names every source it read before it generates, and records each with
 its revision — see [`weblisk server init`](#weblisk-server-init).
