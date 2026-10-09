@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.22.5
+version: 2.22.6
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -2116,8 +2116,9 @@ tenant and recorded there:
 
 A build that reads such a repository as a blueprint source records it, with its
 revision, in the provenance it writes into what it generates
-([`architecture/cli`](cli.md#weblisk-server-init)). That record and what the
-build generated are the tenant's; the repository it names stays outside.
+([`architecture/cli`](cli.md#weblisk-server-init)). Where the build is a
+tenant's, that record and what the build generated are the tenant's. The
+repository it names stays outside either way.
 
 **Each repository has exactly one home**: the tenant that declared it, or none.
 It is never kept outside a tenant while a tenant holds it, and never declared by
