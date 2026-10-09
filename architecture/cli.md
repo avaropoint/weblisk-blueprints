@@ -1091,12 +1091,11 @@ new tenant is built from the custom sources and core. To build one from a
 corpus checkout, name the checkout's path in `WL_BLUEPRINT_SOURCES`: it is then
 a custom source, read from a clone of the commit the checkout was at when the
 clone was made or last refreshed. A commit made in the checkout after that is
-read once the clone is next refreshed, by the rule below for every clone, and
-[`weblisk blueprint update`](#weblisk-blueprint-update) refreshes it at once
-while refreshes are on. Uncommitted changes are never read, since a clone
-carries commits only, and a build says so when the checkout has any — where the
-entry is a plain path: one with `://` or `@` in it is taken for an address,
-which has no working tree to look at.
+read only once the clone is next refreshed, under the rules below for every
+clone. Uncommitted changes are never read, since a clone carries commits only,
+and a build says so when the checkout has any — where the entry is a plain
+path: one with `://` or `@` in it is taken for an address, which has no working
+tree to look at.
 
 **A source read in place is never refreshed.** It is a working tree, not a copy,
 and fetching over it would be a cache eating somebody's edits.
