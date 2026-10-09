@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.22.8
+version: 2.22.9
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -2085,13 +2085,15 @@ where it lives, kept under version control, checked against the schemas for what
 it holds ([`architecture/cli`](cli.md#weblisk-validate)), and listed to somebody
 deciding whether to take it.
 
-**What it never is.** A conformance claim, an evidence chain and an export MUST
-NOT cite it, or anything it holds. What they cite comes from a tenant — for
-content, an entry of a repository the tenant declared, at a version its change
-log records ([The Change Log](#the-change-log)). A repository outside a tenant
-has no declared custody, no recorded scope and no log, and anybody who reaches
-it can change it with no record any tenant can see. Its own history is a copy
-and a convenience, as a backend's is (Design Principle 9), never evidence.
+**What it never is.** A claim that a tenant conforms — that it meets a standard,
+a control or an obligation — the evidence chain under such a claim, and an
+export of either MUST NOT cite it, or anything it holds. What they cite comes
+from a tenant — for content, an entry of a repository the tenant declared, at a
+version its change log records ([The Change Log](#the-change-log)). A
+repository outside a tenant has no declared custody, no recorded scope and no
+log, and anybody who reaches it can change it with no record any tenant can
+see. Its own history is a copy and a convenience, as a backend's is (Design
+Principle 9), never evidence.
 
 **What it holds reaches a tenant only by the tenant's own act**, made in the
 tenant and recorded there:
@@ -2125,7 +2127,11 @@ A build that reads such a repository as a blueprint source records it, with its
 revision, in the provenance it writes into what it generates
 ([`architecture/cli`](cli.md#weblisk-server-init)). Where the build is a
 tenant's, that record and what the build generated are the tenant's. The
-repository it names stays outside either way.
+repository it names stays outside either way. Verifying what the build generated
+against its blueprints is a different claim, about an implementation rather than
+a tenant's conformance ([`architecture/testing`](testing.md#architecture)): the
+checks its result names come from those blueprints, and it cites them at the
+revision that record holds.
 
 **Each repository has exactly one home**: the tenant that declared it, or none.
 It is never kept outside a tenant while a tenant holds it, and never declared by

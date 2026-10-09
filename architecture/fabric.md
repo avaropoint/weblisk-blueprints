@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 1.6.0
+version: 1.6.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
@@ -122,7 +122,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/content
-    version: ">=2.22.0 <3.0.0"
+    version: ">=2.22.9 <3.0.0"
     bindings:
       types:
         - name: ContentEntry
@@ -963,10 +963,10 @@ custody already makes, and this blueprint is the contract both implement.
 
 A citation across the split is an ordinary edge whose far endpoint names another
 scope's source, which the endpoint model already carries. It records that the
-citation exists, and nothing more: what lies outside every tenant is never what a
-conformance claim, an evidence chain or an export cites
-([`architecture/content`](content.md#repositories-outside-a-tenant)). What it is
-**not** is federation: relationships spanning two tenants are a different
+citation exists, and nothing more: it never makes what lies outside every tenant
+something a claim that a tenant conforms may cite, which
+[`architecture/content`](content.md#repositories-outside-a-tenant) forbids. What
+it is **not** is federation: relationships spanning two tenants are a different
 question with a different trust model and are outside this blueprint.
 
 ### Scale
