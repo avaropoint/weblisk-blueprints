@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.22.11
+version: 2.22.12
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -2139,6 +2139,9 @@ two tenants. A copy a tenant installs is not a second home for the repository it
 came from; it is content of a repository with a home of its own. A replica is
 not a repository outside a tenant: it is a tenant's repository sent to a second
 place, counted in that repository's [effective custody](#effective-custody).
+Nor is a copy of a tenant's repository that a backend reports and no replica
+declares, such as a remote its history was pushed to: it counts in the same
+effective custody, where the repository records it in `reported_copies`.
 Nor is a client's installation state a home ([Reserved Paths](#reserved-paths)).
 What a client keeps there for a repository outside a tenant is a reference to
 where it lives, or a cache of it, never the repository itself. A cache is taken
