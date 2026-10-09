@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.22.10
+version: 2.22.11
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -2112,9 +2112,9 @@ tenant and recorded there:
   file written. The copy is the tenant's, and the repository it came from stays
   outside. Where the copy came from belongs in the tenant: the commit the
   repository was read at, where it has commits, and the digest of every file
-  taken. Its name or address may say where to look, and nothing joins on
-  either: a repository outside a tenant has no identity a tenant could cite,
-  and both move.
+  taken. That record may give the repository's name or address, to say where
+  to look, and nothing in the record joins on either: a repository outside a
+  tenant has no durable identifier, and both move.
 
 > **Gap.** No field of this contract records where a copy came from. Neither
 > `EntryWrite` nor `ContentChange` carries an origin, so the log of the
