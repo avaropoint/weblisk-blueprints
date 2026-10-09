@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.27.5
+version: 2.27.6
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -895,8 +895,8 @@ in. A backend is available only where all three of these hold:
   server answers at its address.
 - **It needs no key.** The model gateway reads no key from its environment,
   because a key there reaches everything that process runs, and no blueprint
-  yet says where else a tenant holds a model key or what makes a call with
-  one. A backend that needs a key is listed, and is not available.
+  yet gives the model gateway another place to take one from. A backend that
+  needs a key is listed, and is not available.
 - **It only answers.** A coding agent's command-line tool reads files and runs
   commands as well as answering. Run by the gateway, it would act beside the
   hub's keys with nothing to confine it, so it is listed, and is not
