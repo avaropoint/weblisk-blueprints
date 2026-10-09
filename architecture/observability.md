@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: observability
-version: 1.0.0
+version: 1.0.2
 requires: [protocol/types, architecture/orchestrator, architecture/agent]
 platform: any
 tier: free
@@ -57,13 +57,26 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=1.0.0 <2.0.0"
+    # 2.10.0 is the first version whose AgentEntry.status is online, offline
+    # or degraded, the values wl_agents_status is labelled by
+    version: ">=2.10.0 <3.0.0"
+    bindings:
+      types:
+        # wl_agents_registered counts the registry's entries, and
+        # wl_agents_status counts them by status (Orchestrator Metrics)
+        - name: AgentEntry
+          fields_used: [status]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
     version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        # Where an agent serves the response Health Endpoint specifies
+        - name: AgentEndpoints
+          fields_used: [health]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

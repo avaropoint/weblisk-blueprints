@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: task
-version: 1.0.0
+version: 1.1.0
 port: 9781
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/task-dispatch, patterns/messaging, patterns/retry, patterns/scope, patterns/policy]
@@ -41,7 +41,7 @@ countable, retryable and auditable in one place instead of in every caller.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -244,8 +244,9 @@ types:
 ```json
 {
   "capabilities": [
-    {"name": "task:execute", "resources": []},
-    {"name": "agent:message", "resources": []}
+    {"name": "agent:message", "resources": []},
+    {"name": "database:read", "resources": ["tasks"]},
+    {"name": "database:write", "resources": ["tasks"]}
   ]
 }
 ```
@@ -283,8 +284,9 @@ types:
   "url": "http://localhost:9781",
   "public_key": "<hex>",
   "capabilities": [
-    {"name": "task:execute", "resources": []},
-    {"name": "agent:message", "resources": []}
+    {"name": "agent:message", "resources": []},
+    {"name": "database:read", "resources": ["tasks"]},
+    {"name": "database:write", "resources": ["tasks"]}
   ],
   "publishes": ["task"],
   "subscriptions": [
@@ -1033,11 +1035,11 @@ security:
       resources: ["*"]
       description: Dispatch tasks to any registered agent via POST /v1/execute
 
-    - capability: storage:read
+    - capability: database:read
       resources: [tasks]
       description: Read own task records
 
-    - capability: storage:write
+    - capability: database:write
       resources: [tasks]
       description: Write own task records
 

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: platform
 name: cloudflare
-version: 1.0.0
+version: 1.1.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: cloudflare
 tier: free
@@ -129,9 +129,10 @@ It is not one, because **the requirement does not reach this platform.**
 
 The KDF exists to encrypt an *operator's* private key with a passphrase, for a human
 holding a key file. A component generated for this platform holds *service* keys,
-which `protocol/identity` covers through secure configuration instead — here, Workers
-Secrets. There is no passphrase to stretch, because there is no human at a component's
-start-up.
+which `protocol/identity` covers through a secret source instead. Here that source is
+Workers Secrets, carried by the platform itself, since a Worker cannot start a helper
+process ([`protocol/secret-source`](../protocol/secret-source.md)). There is no
+passphrase to stretch, because there is no human at a component's start-up.
 
 Operator keys remain the CLI's and Studio's concern, on platforms that have a person
 and a filesystem. Recording this as UNFILLED implied a Worker should be doing
@@ -139,9 +140,10 @@ something it never does.
 
 ### Workers Secrets are a managed secret, not an environment variable
 
-`protocol/identity` forbids supplying a key or passphrase through an environment
-variable, and states why: environment is readable via `/proc`, container inspection,
-crash dumps and diagnostic output, and is inherited by every child process.
+`protocol/identity` rule 9 forbids supplying a private key, other key material or a
+passphrase through an environment variable, and states why: environment is readable
+via `/proc`, container inspection, crash dumps and diagnostic output, and is
+inherited by every child process.
 
 **A V8 isolate has none of those.** There is no `/proc`, no container to inspect, no
 core dump, and no child process to inherit anything. A Workers Secret is delivered
@@ -152,6 +154,13 @@ preference table, not the environment-variable prohibition.
 This ruling is stated here because a conformance check cannot infer it. Without it,
 the guidance to use `wrangler secret put` reads as a violation of the very
 specification it satisfies.
+
+For the same reason this blueprint declares Workers Secrets to be a source the
+platform carries, releasing a key only to the running workload and never writing
+it to a filesystem. A service key held there earns `key_protection:
+secrets-manager`, by that row of
+[`protocol/secret-source`](../protocol/secret-source.md#protection)'s Protection
+table.
 
 ---
 

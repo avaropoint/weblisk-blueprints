@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: lifecycle
-version: 1.0.0
+version: 1.0.3
 requires: [protocol/types, architecture/domain, architecture/agent, patterns/messaging]
 platform: any
 tier: free
@@ -678,6 +678,35 @@ security:
     - rule: Strategy changes only on measured feedback
       mechanism: Feedback records before and after values for a named metric
 ```
+
+> **Gap — nothing here yet tells a person's approval from a component's, and
+> nothing gives approved work an authority.**
+> `approve_recommendation` and `reject_recommendation` arrive as
+> `POST /v1/message` actions, which check a sender's signature where one is
+> present and no operator token
+> ([`protocol/spec`](../protocol/spec.md#post-v1message)), so any registered
+> component can send one, and nothing records which person decided. The
+> boundary *Recommendation → Approval* holds only once the Lifecycle Agent
+> serves the approval queue's administrative routes, taking a person's
+> approval on a pass addressed to it as
+> [`architecture/admin`](admin.md#contracts)'s
+> `admin-gateway-authorization` requires, and recording the approval under
+> the pass's `identity_id`, which names the approver. The rule that execution
+> runs under the approver's scope needs more: the pass carries `admin:approve`
+> for the one request that approves, for at most 30 seconds
+> ([`protocol/identity`](../protocol/identity.md#the-pass)), so it cannot
+> carry the work that approval starts after it is answered. That work needs an
+> authority on the approver's behalf, which is
+> [`patterns/principal-identity`](../patterns/principal-identity.md)'s
+> `agent-delegation`, and no route for it is specified. Until both are
+> specified, `architecture/admin` reports the approval queue unavailable. Phase
+> 4 still executes every accepted recommendation, those the approval workflow
+> accepts by itself in an `auto` domain and those a `POST /v1/message` action
+> approves, as the domain controller's own work: under no approver's authority,
+> with no person recorded as having decided, so neither the boundary
+> *Recommendation → Approval* nor the rule that execution runs under the
+> approver's scope holds for any of them yet. `agent-delegation` is what would
+> put an approver's authority behind that work.
 
 ---
 

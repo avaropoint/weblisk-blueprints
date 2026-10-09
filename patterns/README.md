@@ -37,7 +37,7 @@ frontmatter. A pattern is a dependency that provides a known contract.
 | Pattern | Purpose |
 |---------|---------|
 | [contract.md](contract.md) | Collaboration agreements — schemas, scope, permissions, versioning |
-| [scope.md](scope.md) | Universal classification — 5-level scope, propagation, environment profiles |
+| [scope.md](scope.md) | Universal classification — 5-level scope, propagation, environment profiles, destination ceilings |
 | [policy.md](policy.md) | Declarative rules engine — evaluation, composition, precedence |
 | [safety.md](safety.md) | Operation classification — protection gates, kill-switch, quarantine |
 | [approval.md](approval.md) | Intent-based approval — authority routing, multi-party, emergency override |
@@ -56,6 +56,7 @@ frontmatter. A pattern is a dependency that provides a known contract.
 | [observability.md](observability.md) | Health endpoints, metrics envelope, component state tracking |
 | [rate-limiting.md](rate-limiting.md) | Token bucket, sliding window — gateway and agent rate limits |
 | [retry.md](retry.md) | Retry strategies, circuit breaker, timeout management |
+| [content-git.md](content-git.md) | Content backend in git — one commit per change, pseudonymous authors, sha256 joins, nothing git-signed |
 
 ## Workflows & Orchestration
 

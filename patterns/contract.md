@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: contract
-version: 1.0.0
+version: 1.0.2
 requires: [protocol/types, patterns/scope, patterns/policy]
 platform: any
 tier: free
@@ -57,7 +57,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: ScopeLevel
@@ -887,9 +887,9 @@ own storage — declaring what resources the agent accesses during
 normal operation and enabling the enforcement layer to verify access
 at runtime.
 
-An agent's manifest declares its capabilities (`storage:read`,
-`storage:write`, etc.), but capabilities alone are too broad — an
-agent with `storage:read` can read ANY resource within its scope.
+An agent's manifest declares its capabilities (`database:read`,
+`database:write`, etc.), but capabilities alone are too broad — an
+agent with `database:read` can read ANY resource within its scope.
 Operational data contracts narrow this: an agent declares which
 specific resources it accesses and what operations it performs on
 each. The enforcement storage proxy verifies every operation against

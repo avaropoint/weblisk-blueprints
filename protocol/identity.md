@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.0.0
+version: 1.14.4
 requires: [protocol/types]
 platform: any
 tier: free
@@ -70,9 +70,23 @@ August 2024) to protect against future quantum computing threats.
 | Symmetric encryption | **AES-256-GCM** | FIPS 197 |
 | Key derivation | **Argon2id** | RFC 9106 |
 
-All algorithms are quantum-resistant. Weblisk does not use any
-quantum-vulnerable algorithms (no RSA, no ECDSA, no Ed25519, no
-classical Diffie-Hellman).
+All algorithms are quantum-resistant. Weblisk does not use a
+quantum-vulnerable algorithm (no RSA, no ECDSA, no Ed25519, no
+classical Diffie-Hellman) for an identity, a token, an attestation or a
+signed record. Whoever breaks the algorithm of one of those can forge it,
+at any time afterwards.
+
+A credential that **proves a live session** is different, and
+[`patterns/principal-identity`](../patterns/principal-identity.md) Design
+Principle 6 says why: it signs nothing that outlives the session, so it may be
+classical. That includes a transport credential a hub presents to a third
+party's service in that service's own protocol, such as the SSH key a content
+replica is pushed with ([`patterns/content-git`](../patterns/content-git.md)).
+The blueprint that specifies such a transport states what its key exchange
+must be. A credential that **signs records**, attested with the purpose
+`sign-records`, is not such a credential: what it signs outlives every session,
+so it is ML-DSA-65 like everything else that signs (principal-identity,
+`record-signing`).
 
 **Why ML-DSA-65?** ML-DSA is a lattice-based digital signature scheme
 selected by NIST after an 8-year international evaluation process
@@ -83,8 +97,8 @@ and quantum attacks. ML-DSA-65 provides NIST Security Level 3
 **Why not Ed25519?** Ed25519 (elliptic curve) is vulnerable to Shor's
 algorithm on quantum computers. Per NIST IR 8547, all elliptic curve
 and RSA algorithms will be deprecated by 2030 and removed from NIST
-standards by 2035. Weblisk eliminates this class of vulnerability
-entirely by using only post-quantum algorithms.
+standards by 2035. Weblisk removes this class of vulnerability from
+everything it signs by using only post-quantum algorithms there.
 
 **Why AES-256-GCM?** Grover's algorithm reduces AES-256 to ~128-bit
 equivalent security against quantum attacks. 128-bit security remains
@@ -104,7 +118,7 @@ of hash functions.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.15.0 <2.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -113,6 +127,10 @@ requires:
           fields_used: [manifest, signature, timestamp]
         - name: AgentMessage
           fields_used: [from, to, action, payload, signature]
+        # Where a component records a person's request a pass carried, and
+        # the gateway that carried it (The pass, rule 5)
+        - name: AuditEntry
+          fields_used: [actor, via]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -147,6 +165,16 @@ requires:
 - Private key files MUST have restrictive permissions (readable only by the owning process)
 - Public key files contain the base64url-encoded public key
 - On startup: load existing keys if present, generate new ones if absent
+
+### Key Fingerprint
+
+A public key's **fingerprint** is the lowercase hexadecimal SHA-256 digest of
+the decoded public key bytes: 64 characters. It names a key without carrying it.
+A fingerprint changes only when the key does, and it is never derived from a
+name or an address.
+
+[`patterns/principal-identity`](../patterns/principal-identity.md) names a hub
+and a credential by fingerprint.
 
 ### Private Key Format
 
@@ -190,34 +218,50 @@ task — cannot, and a specification that says "prompt" has excluded it.
 When `kdf = none`:
 - The private key is stored as hex (no encryption)
 - Used ONLY for automated service keys in environments where passphrase
-  input is impossible (containers, CI, headless servers)
+  input is impossible (containers, CI, headless servers), and ONLY in
+  development (rule 6). Never for an operator key (rule 1)
 - Restrictive file permissions are the sole protection layer
 
 ### Key Categories
 
 | Category | KDF | Passphrase Source | Use Case |
 |----------|-----|------------------|----------|
-| **Operator keys** | `argon2id` | A non-echoing channel operated by a human | Human-operated tooling |
-| **Service keys** (orchestrator, gateway, agent) | `argon2id` or `none` | An injected credential channel, or none | Automated processes |
+| **Operator keys** | `argon2id` wherever the key is written, never `none` (rule 1) | A non-echoing channel operated by a human, or a secret source (rule 1) | Human-operated tooling |
+| **Service keys** (orchestrator, gateway, agent) | `argon2id`, or `none` in development only (rule 6) | A secret source, or none | Automated processes |
 
 **Rules:**
-1. Operator key generation MUST require a passphrase. It cannot be skipped, and
-   the minimum is 12 characters. The channel it arrives over is the platform
-   blueprint's to name; a headless implementation uses rules 7 and 8 rather than
-   asking a human who is not there.
-2. Service key generation defaults to `kdf = none` but SHOULD support
-   encrypted keys with passphrase supplied via secure configuration.
-3. Production deployments SHOULD encrypt service keys with passphrase
-   supplied via secure configuration or secrets manager at startup.
+1. Every operator private key an implementation writes, hands to a secret
+   source, or receives from one MUST be the `weblisk-key-v1` envelope with
+   `kdf = argon2id`, opened by a passphrase of at least 12 characters that
+   cannot be skipped. It is never stored unencrypted, whoever holds it — a key
+   file, a keychain or a vault. A passphrase a person chooses arrives over a
+   channel the platform blueprint names; a headless implementation uses rules 7
+   and 8 rather than asking a human who is not there. Where a secret source
+   holds the key, [`protocol/secret-source`](secret-source.md#an-identity-held-by-a-source)
+   says where the passphrase comes from. A key that never leaves a secret source
+   that signs is never written, handed over or received, so this rule does not
+   reach it. `kdf = none` is for service keys alone, and for those only in
+   development (rule 6).
+2. Service key generation defaults to `kdf = none`, which rule 6 confines to
+   development, and MUST support encrypted keys whose passphrase comes from a
+   secret source ([`protocol/secret-source`](secret-source.md)): rule 3 keeps
+   a key with `kdf = none` out of production, so a generator that could not
+   encrypt one could make no key production may run.
+3. In production a service key MUST NOT be kept with `kdf = none` (rule 6).
+   One kept encrypted takes its passphrase at startup from a secret source,
+   such as a secrets manager or a secret the platform mounts, which is
+   rule 8's injected passphrase.
 4. The passphrase is NEVER stored on disk. It exists only in memory
-   during the decrypt operation.
+   during the decrypt operation. This binds the implementation, which never
+   writes a passphrase anywhere; a secret source MAY keep one under its own
+   protection, as [`protocol/secret-source`](secret-source.md) describes.
 5. Failed passphrase attempts log `security.key_decrypt_failed` and
    exit with code 2 (auth error). No retry loop — the operator
    re-runs the command.
 
 ### Service Key Protection
 
-Rules 2 and 3 above date from a model in which a service held one
+Rule 2's default dates from a model in which a service held one
 long-lived key on disk, and `kdf = none` was the only way a headless
 process could start unattended. That trade is no longer necessary, and
 it is no longer permitted in production.
@@ -255,10 +299,24 @@ to stop persisting one.
    | Managed secret | KMS or secrets manager, authenticated by platform identity, never materialised on disk |
    | Injected passphrase | Supplied at start via a credential channel, held in memory only |
 
-9. A key or passphrase MUST NOT be supplied through an environment
-   variable. Environment is readable via `/proc`, container
-   inspection, crash dumps and diagnostic output, and it is inherited
-   by every child process.
+   Where something other than the implementation holds the material — a
+   keychain, a vault, a hardware token — the implementation reaches it through
+   [`protocol/secret-source`](secret-source.md), which also says which of these
+   rows each way of holding it earns.
+
+9. No private key (an identity's, a credential's or any other), no other key
+   material, and no passphrase MAY be supplied through an environment variable.
+   Environment is readable via `/proc`, container inspection, crash dumps and
+   diagnostic output, and it is inherited by every child process. **Key
+   material** here is a private key or the seed it is derived from, and any
+   symmetric key that encrypts data at rest or protects another key. A
+   **passphrase** is a secret that opens key material. The one exception is an
+   installation's master key on a hosted deployment, and only a master key that
+   protects no private key, as
+   [`protocol/secret-source`](secret-source.md#an-installations-master-key)
+   states. A secret shared with another system — an API key, a password, a
+   webhook's shared secret — is neither key material nor a passphrase in this
+   rule; [`patterns/secrets`](../patterns/secrets.md) says how it is delivered.
 
 10. In-memory key material MUST be zeroised after use, SHOULD be
     excluded from swap where the platform allows it, and MUST be
@@ -295,17 +353,40 @@ Operator keys can be rotated without losing hub access:
 
 ```
 1. Operator initiates key rotation
-2. Current passphrase is required (decrypts existing key)
-3. New ML-DSA-65 key pair is generated
-4. New passphrase is set (encrypts new key)
-5. New public key is registered with orchestrator (signed by old key)
-6. Orchestrator validates old-key signature → stores new public key
-7. Old key is marked as revoked (preserved for audit)
+2. The current key is unlocked as its holder unlocks it: by its passphrase,
+   or by the secret source that holds it
+3. A new ML-DSA-65 key pair is made: generated and protected as the identity's
+   holder protects one, or, for a source that signs and never releases a key,
+   created with that source's own tools (protocol/secret-source)
+4. The new key is kept beside the old one until every hub has it
+5. The new public key is sent to each hub, signed by the old key and by the
+   new one (POST /v1/admin/operators/{name}/key, architecture/admin)
+6. Each hub validates both signatures → stores the new public key, keeps the
+   operator's name, role and identity id, records the old key as retired with
+   the time of the change, and revokes every credential the old key attested
+7. When every hub that recorded the old key has either taken the new one or
+   been abandoned by the person (architecture/cli, rotate --abandon), the old
+   key's private half is destroyed and its public half kept for audit. While
+   any hub is still pending, the old private key is kept
+8. The operator attests a new credential at each hub with the new key
 ```
 
-Service keys follow the same rotation protocol but use
-secure configuration (secrets manager, environment) instead of
-interactive prompts.
+Because the hub keeps the operator's identity id, what was recorded under the
+old key and what is recorded under the new one name the same operator. The
+old key signs nothing more at that hub, and is never accepted there again. It
+is **retired**, not revoked: a signature it made before its `retired_at` still
+verifies, and one dated at or after it does not. How the CLI carries the steps
+out, a rotation some hubs have not yet received included, is
+[`architecture/cli`](../architecture/cli.md#weblisk-operator-rotate)'s.
+
+A registered component's key does not rotate through these steps, which are
+an operator's. It rotates through `POST /v1/rotate-key`
+([`protocol/spec`](spec.md#post-v1rotate-key)), signed by its current key and
+its new one, with any passphrase from a secret source
+([`protocol/secret-source`](secret-source.md)) instead of an interactive
+prompt — never from the environment (rule 9). Its identity id is the
+fingerprint of the key it registered with (`protocol/spec`), so unlike an
+operator's it changes with its key, and `protocol/spec` states that gap.
 
 ### Key Recovery
 
@@ -319,14 +400,22 @@ The primary recovery path is another registered operator:
 
 ```
 1. Second operator (already registered, admin role) authenticates
-2. Revokes the compromised operator's identity
-3. Orchestrator invalidates old operator's public key and token
+2. Removes the compromised operator (DELETE /v1/admin/operators/{name})
+3. Orchestrator keeps the record as revoked, and revokes its credentials, so
+   every token resting on them ends at its next request
 4. Compromised operator generates a new key pair
-5. Compromised operator submits a new registration request
+5. Compromised operator submits a new registration request under a NEW name.
+   A removed operator's name stays with its revoked record and is never
+   reused (protocol/types OperatorStatus)
 6. Registration appears in approvals queue (not auto-approved)
 7. Second operator approves the registration
-8. Access restored with new identity
+8. Access restored with new identity, and a new identity id
 ```
+
+A key that is lost cannot be rotated: only the key the hub recorded can sign
+the continuity [Key Rotation](#key-rotation) needs. So a recovered operator is
+a new operator, with a new identity id, and records made under the old one
+still name the old one.
 
 **Requirement:** Every production deployment MUST have at least two
 registered operators. A single-operator deployment has no recovery
@@ -339,9 +428,10 @@ If ALL operator keys are lost (catastrophic scenario):
 ```
 1. Stop the orchestrator
 2. Delete the operator registry from orchestrator storage
-3. Restart the orchestrator (enters bootstrap mode)
-4. First operator to register becomes admin (same as initial setup)
-5. All existing operator tokens are invalidated
+3. Restart the orchestrator (enters bootstrap mode, and emits a new bootstrap secret)
+4. The operator who registers presenting that secret becomes admin, as at
+   first start ([`architecture/admin`](../architecture/admin.md#bootstrap-flow))
+5. All existing operator tokens and credentials are invalidated
 ```
 
 This is destructive — it resets the entire operator trust chain.
@@ -370,6 +460,13 @@ input: data (bytes)
 output: base64url-encoded ML-DSA-65 signature (3309 bytes)
 process: sig = sign(privateKey, data)
 ```
+
+`sign` is pure ML-DSA-65, the `ML-DSA.Sign` of FIPS 204, with an empty context
+string. It is never the pre-hash variant, HashML-DSA, and never carries a
+context. [Verify Signature](#verify-signature) uses the same empty context, so a
+signature made any other way does not verify. Whatever holds the key signs this
+way, including a secret source that signs
+([`protocol/secret-source`](secret-source.md)).
 
 ### Sign JSON
 ```
@@ -400,9 +497,107 @@ output: boolean
 process:
   1. Validate public key is 1952 bytes
   2. Validate signature is 3309 bytes
-  3. Return verify(publicKey, data, signature)
+  3. Return verify(publicKey, data, signature), with an empty context string
   4. Return false on any decode error
 ```
+
+### Fixed-Form Statements
+
+A signer that signs a JSON value uses [Sign JSON](#sign-json). A signer that
+signs a statement it builds from a few named fields, so that a verifier can
+rebuild the bytes without a canonicaliser, uses a **fixed-form statement**:
+
+```
+<prefix> 0x00 <field> 0x00 <field> ... 0x00 <field>
+```
+
+- `<prefix>` is ASCII text from the registry below. One 0x00 byte follows it,
+  and one separates each field from the next. Nothing follows the last field.
+- A field is UTF-8 text in the form the defining document gives it. An empty
+  field is zero bytes. No field may contain a 0x00 byte, so the bytes split
+  back into their fields in exactly one way.
+- The signature is [Sign](#sign) over those bytes.
+
+**The prefix is the domain separation.** Every registered prefix begins with
+`weblisk/`. A canonical JSON value begins with `{`, `[`, `"`, a digit, `-`,
+`t`, `f` or `n`. So no fixed-form statement is a JSON value, and no two kinds of
+statement share bytes. One key can sign more than one kind of statement, and a
+signature made for one kind is never valid as another.
+
+**Nothing offers to sign a caller's bytes.** A party that offers signing to
+another program — a command-line verb, a route, or a function another component
+calls — MUST build the bytes itself, as a fixed-form statement or under
+[Sign JSON](#sign-json), from fields it has checked. It MUST NOT sign bytes the
+caller hands it. A key that signs whatever it is given is an oracle for every
+statement that key can make.
+
+A key holder reached through [`protocol/secret-source`](secret-source.md) is
+the one signer that signs a message as it is given, because it does not read
+the message. The rule then binds whoever asks it. Only a signer that built the
+bytes itself, in one of those two forms, may ask a secret source to sign them
+([`protocol/secret-source`](secret-source.md#actions), `sign`).
+
+| Prefix | Signed by | Defined in |
+|---|---|---|
+| `weblisk/auth/v1` | An identity, proving that it holds its key to a service that is not a hub | [Proving an identity to a service that is not a hub](#proving-an-identity-to-a-service-that-is-not-a-hub) |
+| `weblisk/credential-auth/v1` | A credential, to obtain an operator token | [`architecture/admin`](../architecture/admin.md#minting-a-token-with-the-credential) |
+| `weblisk/log-key/v1` | A log owner's long-lived key, introducing the key that signs the log's checkpoints | [`architecture/storage`](../architecture/storage.md#sealing-a-chained-log) |
+| `weblisk/log-checkpoint/v1` | A log key, over the log's tip | [`architecture/storage`](../architecture/storage.md#sealing-a-chained-log) |
+| `weblisk/log-succession/v1` | A log owner's outgoing and incoming long-lived keys, each over the change from one to the other | [`architecture/storage`](../architecture/storage.md#a-change-of-long-lived-key) |
+| `weblisk/content-change/v1` | A person's sign-records credential, over a change to a content entry | [`architecture/content`](../architecture/content.md#the-change-statement) |
+| `weblisk/holder-probe/v1` | An identity held by a secret source, proving that the reference reaches it. Nothing accepts it as anything else | [`protocol/secret-source`](secret-source.md#an-identity-held-by-a-source) |
+| `weblisk/hub-proof/v1` | A hub, by the key its `hub_id` is the fingerprint of, over an address it is reached at and a client's challenge, proving that the hub at that address holds that key | [`architecture/admin`](../architecture/admin.md#proving-the-hub-at-an-address) |
+
+A kind of statement is registered here before any implementation signs it. A
+prefix names one layout for good. A changed layout gets a new prefix and a new
+row, and a verifier refuses a prefix it does not know.
+
+**Test vectors come before a signer.** An implementation signs under a prefix
+only once this corpus publishes test vectors for it — the exact bytes signed,
+a public key, and a signature over them — made with Cloudflare's circl and
+verified with OpenSSL 3.5 or later and with @noble/post-quantum. Every
+implementation, a hub's, a client's or a verifier's, tests against those same
+vectors. None is published yet. So no implementation may yet sign under
+`weblisk/credential-auth/v1`, `weblisk/log-key/v1`,
+`weblisk/log-checkpoint/v1`, `weblisk/log-succession/v1`,
+`weblisk/content-change/v1`, `weblisk/holder-probe/v1` or
+`weblisk/hub-proof/v1`, and
+`weblisk/auth/v1`, which the CLI already signs and a console already
+verifies, is the one exception, until its vectors are published.
+
+The document that defines a prefix, the last column above, states what a
+conforming implementation does until that prefix has vectors, and never
+requires the signature before then. A rule there that needs one holds from
+the day they are published.
+
+### Proving an identity to a service that is not a hub
+
+A service that is not a hub sometimes needs to know that a person holds an
+identity. A console does, before it links an identity to one of its accounts.
+It asks for a signature by the identity key over a fixed-form statement:
+
+```
+"weblisk/auth/v1" 0x00 <audience> 0x00 <nonce>
+
+<audience>  the name the verifying service gives this purpose. A signature made
+            for one audience is never valid at another
+<nonce>     the challenge the service issued, as the text it issued
+```
+
+- The service issues the nonce: at least 128 bits from a cryptographically
+  secure random source, bound to what the proof is for, spent by its first
+  use whether or not the signature verifies, and expiring within 300 seconds.
+- The signer refuses an empty audience or nonce, and one that contains a 0x00
+  byte. It builds the bytes itself from the two it is given.
+- The service rebuilds the bytes from its own audience and the nonce it issued,
+  and verifies the signature under the identity public key the proof is about.
+  It never verifies the nonce alone.
+
+The proof shows that whoever answered held the key at that moment, and nothing
+more. It is not a session, and no hub accepts it: a hub is entered by a
+credential, never by the identity
+([`patterns/principal-identity`](../patterns/principal-identity.md) Design
+Principle 4).
 
 ## Token System
 
@@ -428,6 +623,11 @@ Verifiers MUST check the `alg` field is exactly `ML-DSA-65`. Tokens
 with any other `alg` value MUST be rejected.
 
 ### Payload (Claims)
+
+The example is a **registration token**: the one `POST /v1/register` issues
+a component ([`protocol/spec`](spec.md)). Some blueprints call it an *agent
+token*. It is the same token, under two names.
+
 ```json
 {
   "sub": "seo",
@@ -435,7 +635,7 @@ with any other `alg` value MUST be rejected.
   "iat": 1712160000,
   "exp": 1712246400,
   "cap": ["file:read", "llm:chat", "agent:message"],
-  "cid": ""
+  "identity_id": "<fingerprint of the public key seo registered>"
 }
 ```
 
@@ -444,8 +644,65 @@ Fields:
 - `iss` (issuer): who created the token ("orchestrator" or agent name)
 - `iat` (issued at): Unix timestamp
 - `exp` (expires at): Unix timestamp (0 = no expiry)
-- `cap` (capabilities): granted capability names (optional)
-- `cid` (channel ID): for channel-scoped tokens (optional)
+- `cap` (capabilities): granted capability names (optional). An operator
+  token always carries `cap`, an empty list included, and names no capability
+  its `cap` does not name: an operator token whose `cap` is absent or empty
+  may use none, and is never read as carrying its role's full set
+  ([`architecture/admin`](../architecture/admin.md#contracts),
+  operator-token-issuance)
+- `cid`: the id of the record the issuer minted this token under, and can
+  withdraw before `exp` (optional). An empty `cid` is no `cid`, and a verifier
+  that asks whether a token carries one treats it so. A registration token
+  carries none. A channel token carries its channel's id. An operator token
+  carries the id of the credential that obtained it
+  ([`architecture/admin`](../architecture/admin.md#obtaining-a-token)), and says
+  it is one in its `type` claim, so a verifier never takes a channel's id for a
+  credential's. A pass carries the `cid` of the operator token it was
+  exchanged for
+- `type`: what the token is for, where one issuer mints more than one kind
+  (optional). `operator` administers a hub. `attestation` does one thing: it
+  submits an attestation for its subject
+  ([`architecture/admin`](../architecture/admin.md#operator-token)). `pass`
+  carries one person's request from the admin gateway to one component
+  ([The pass](#the-pass)). An agent token and a channel token carry none, so a
+  verifier that requires a `type` refuses them. An empty `type` is no `type`
+- `aud` (audience): on a pass alone, the identity id of the one component it
+  is addressed to ([The pass](#the-pass)). No other token carries one
+- `act` (actor): on a pass alone, the gateway that obtained it, as an object
+  carrying that gateway's `sub` and `identity_id`, as RFC 8693 §4.1 shapes
+  `act`
+- `identity_key`: on a pass alone, the fingerprint of its person's identity
+  public key when the pass was minted
+- `step_up_at`: when the subject last completed a step-up, in Unix seconds
+  (optional). An operator token carries it only where a blueprint specifies
+  how its issuer learns of a step-up, and none does yet. A pass carries its
+  person's token's, unchanged
+- `role`: the operator's role when an operator token was issued (optional). A
+  verifier that holds the operator's record authorises against the role that
+  record holds now, never against this claim alone
+- `identity_id`: the identity id of the subject the token was minted for
+  (optional). An operator token carries the `identity_id` of the credential
+  named by `cid`: the operator's identity id at the issuer, which is the
+  fingerprint of the identity key it registered with and is kept across every
+  change of identity key the issuer accepts
+  ([`architecture/admin`](../architecture/admin.md#changing-an-identity-key)).
+  A registration token carries the fingerprint of the public key its manifest
+  registered, and a pass the `identity_id` of the operator token it was
+  exchanged for. It is the issuer's statement, under its
+  signature, of who the subject is. A verifier that records who acted records
+  this claim and never `sub`, which is a name
+  ([`patterns/principal-identity`](../patterns/principal-identity.md) Design
+  Principle 10). A token that carries none names nobody a record can join on
+- `record_keys`: on an operator token or a pass, the id of each sign-records
+  credential the subject held at the issuer, active and unexpired, when the
+  token was minted (optional). Each is the fingerprint of that credential's public key.
+  It is the issuer's statement, under its signature, of which keys may sign
+  records for that subject
+  ([`patterns/principal-identity`](../patterns/principal-identity.md),
+  `record-signing`). A verifier that receives a signed record with the token
+  accepts a signature only by a key named here, and never by the credential
+  `cid` names. A revoked credential is missing from every token minted after
+  its revocation
 
 ### Token Creation
 ```
@@ -471,6 +728,87 @@ Fields:
 ### Token Lifetimes
 - Agent auth tokens: 24 hours (TokenTTL)
 - Channel tokens: 1 hour
+- Operator tokens: [`architecture/admin`](../architecture/admin.md#operator-token) states theirs
+- Passes: 30 seconds at most ([The pass](#the-pass))
+
+### The pass
+
+Of the WLTs, only a pass names an audience. A component that is presented
+an operator token, a registration token or a channel token can present it
+again, at any route of any component that accepts its issuer's tokens, as far
+as its capabilities reach, until it expires. A person's operator token reaches the
+furthest, so no component is ever given one:
+
+- **A person's operator token is presented at the tenant's admin gateway and
+  nowhere else.** Every holder of one, a console, the CLI or a script that
+  took one from either, sends every request it makes at the tenant to the
+  admin gateway, the tenant's one door for people
+  ([`architecture/admin`](../architecture/admin.md#contracts),
+  `admin-gateway-authorization`). The gateway presents it to one party: the
+  orchestrator that issued it, to have it exchanged, and with a request for a
+  group the orchestrator itself provides, which the orchestrator judges
+  itself. The issuer holds the records the token rests on, so presenting it
+  there tells no new party anything.
+- **Every other component is reached on a pass.** For each request it
+  carries to a component other than the orchestrator, the gateway has the
+  orchestrator exchange the person's token for a pass addressed to that one
+  component
+  ([`architecture/orchestrator`](../architecture/orchestrator.md#token-exchange-post-v1tokenexchange),
+  `token-exchange`), and sends the request on the pass. The component never
+  holds the person's token, so it holds nothing it could replay elsewhere.
+- **The orchestrator never presents a token it received to anyone.** What it
+  reports, it reports from the state it holds.
+
+A pass is a WLT the orchestrator signs, shaped as OAuth 2.0 Token Exchange
+([RFC 8693](https://www.rfc-editor.org/rfc/rfc8693)) shapes an issued token:
+the person's token is the subject token, and the gateway is the actor. It is
+signed as every WLT is, under ML-DSA-65, and carries:
+
+| Claim | On a pass |
+|---|---|
+| `type` | `pass` |
+| `aud` | The identity id of the one component it is addressed to: the fingerprint of the public key that component registered, which its own registration token carries as `identity_id` |
+| `sub`, `identity_id`, `cid` | The person's token's: its operator, that operator's identity id at the issuer, and the credential the token rests on |
+| `act` | The gateway that obtained it, as `{ "sub": <its registered name>, "identity_id": <its registration's identity id> }` |
+| `cap` | The intersection of what the exchange was asked for and what the person may use at the exchange, which is what their role carries then and never beyond their token's `cap`. A pass that would carry nothing is not minted |
+| `identity_key` | The fingerprint of the person's identity public key at the exchange, which differs from `identity_id` once that person has changed their identity key |
+| `record_keys` | The person's sign-records credentials at the issuer that are active and unexpired at the exchange |
+| `step_up_at` | The person's token's, unchanged, where that token carries one; absent otherwise |
+| `iat`, `exp` | `exp` no more than 30 seconds after `iat` |
+
+1. The orchestrator mints a pass at the exchange alone, and only for an
+   operator token it judges live at that moment. A component holding a pass
+   therefore holds the orchestrator's judgement of the person's token from
+   within the last 30 seconds, and asks nothing again: a removed operator, a
+   revoked credential or a lowered role reaches every component at the
+   person's next request.
+2. A pass is never exchanged again. The exchange takes an operator token as
+   its subject, and nothing else.
+3. A component accepts a pass only when it verifies under its own
+   orchestrator's key, its `type` is `pass`, its `aud` is that component's own
+   identity id, and it has not expired. A pass addressed to another component
+   is refused with `PASS_AUDIENCE_MISMATCH` and logged as a security event,
+   and so is a pass presented to the orchestrator, which is the audience of
+   none.
+4. Every component but the orchestrator and the admin gateway refuses an
+   operator token on every route with `PASS_REQUIRED`, whatever its `cap`, and
+   logs a security event: no holder may present one there.
+5. A component authorises a person's request against the pass's `cap` alone.
+   It records who acted by the pass's `identity_id`, and the gateway that
+   carried the request by `act.identity_id`, never by either `sub`: an audit
+   entry's `actor` and `via` ([`protocol/types`](types.md#auditentry)).
+6. A person-only capability ([`protocol/types`](types.md#capability)) counts
+   on an operator token at the orchestrator and on a pass at a component,
+   which are a person's, and on no other token.
+7. A security event logged under rule 3 or 4 names the refused token by its
+   claims, never by the token: its `type`, `sub`, `identity_id` and `cid`, and
+   for a pass its `aud` and `act.identity_id`. It never records the
+   `Authorization` header or any part of the token's bytes. A refused
+   operator token is a live, full-role person's token until it expires, and
+   the component's log is the place the pass exists to keep it out of.
+
+This is the one statement of the rule. A blueprint whose client holds operator
+tokens, or whose component serves people, points here.
 
 ### ID Generation
 ```
@@ -536,11 +874,67 @@ types:
             description: Expires at (Unix epoch seconds, 0 = no expiry)
           cap:
             type: "list<string>"
-            description: Granted capability names
+            description: Granted capability names. Always present on an operator token, an empty list included; an operator token whose cap is absent or empty may use no capability
             required: false
           cid:
             type: string
-            description: Channel ID for channel-scoped tokens
+            description: The record the issuer minted this token under and can
+              withdraw — a channel for a channel token, a credential for an
+              operator token, and for a pass the credential of the operator
+              token it was exchanged for
+            required: false
+          type:
+            type: string
+            description: What the token is for. Absent on agent and channel
+              tokens
+            required: false
+            constraints:
+              enum: [operator, attestation, pass]
+          aud:
+            type: string
+            description: On a pass alone, the identity id of the one component
+              it is addressed to
+            required: false
+          act:
+            type: object
+            description: On a pass alone, the gateway that obtained it
+            required: false
+            fields:
+              sub:
+                type: string
+                description: The gateway's registered name
+              identity_id:
+                type: string
+                description: The identity id of the gateway's registration
+          identity_key:
+            type: string
+            description: On a pass alone, the fingerprint of its person's
+              identity public key when the pass was minted
+            required: false
+          step_up_at:
+            type: int64
+            description: When the subject last completed a step-up (Unix epoch
+              seconds). A pass carries its person's token's, unchanged
+            required: false
+          role:
+            type: string
+            description: The operator's role when an operator token was issued.
+              Authorisation reads the role the issuer's records hold now
+            required: false
+          identity_id:
+            type: string
+            description: The identity id of the subject. On an operator token,
+              the identity_id of the credential cid names, which the issuer
+              keeps across a change of the operator's identity key. On a
+              registration token, the fingerprint of the key the manifest
+              registered. What a verifier records as who acted, never sub
+            required: false
+          record_keys:
+            type: "list<string>"
+            description: On an operator token or a pass, the ids of the subject's
+              sign-records credentials at the issuer that were active and
+              unexpired when it was minted. The only keys a verifier holding
+              the token accepts a record signature from
             required: false
       signature:
         type: string
@@ -637,7 +1031,7 @@ authentication:
     structure: base64url(header).base64url(payload).base64url(signature)
     fields: [sub, iss, iat, exp, cap, cid]
     signing: ML-DSA-65
-    expiry: 24 hours (agent auth), 1 hour (channel)
+    expiry: 24 hours (agent auth), 1 hour (channel), 30 seconds at most (pass)
     verification: >
       Split on ".", decode header, verify alg == "ML-DSA-65",
       verify signature against issuer public key, check expiry
@@ -760,6 +1154,14 @@ handshake and trust store update procedure.
 | Channel tokens | 1 hour (automatic) | Built-in expiry |
 | Auth tokens | 24 hours (automatic) | Built-in expiry |
 
+**An orchestrator's first key leaves token signing and is kept.** The key
+whose fingerprint is its `hub_id` stops signing tokens when the orchestrator
+rotates its key, and is kept as a service key to sign `weblisk/hub-proof/v1`
+and nothing else, for as long as the hub keeps that `hub_id`
+([`architecture/admin`](../architecture/admin.md#proving-the-hub-at-an-address)).
+So rotating the orchestrator key does not end a compromise of that first key:
+only a new `hub_id`, which a hub regenerated without its state has, does.
+
 ---
 
 ## Multi-Key Scenarios
@@ -803,6 +1205,8 @@ with deliberate deviations:
 | Three-part structure | RFC 7515 §3 | `header.payload.signature` |
 | Base64url encoding | RFC 4648 §5 | Same, no padding |
 | Standard claims | RFC 7519 §4.1 | `sub`, `iss`, `iat`, `exp` — same semantics |
+| Audience | RFC 7519 §4.1.3 | `aud`, on a pass alone, naming exactly one component by its identity id |
+| Actor | RFC 8693 §4.1 | `act`, on a pass alone, naming the gateway that obtained it |
 | Signature input | RFC 7515 §5.1 | `base64url(header) + "." + base64url(payload)` |
 
 ### What We Customized (and Why)
@@ -814,7 +1218,8 @@ with deliberate deviations:
 |---------|-------------|------------|----------|
 | Algorithm | RS256, ES256, etc. | `"alg": "ML-DSA-65"` | ML-DSA-65 provides NIST Level 3 post-quantum security; single algorithm eliminates `alg` header confusion attacks |
 | Capabilities | Not in JWT | `"cap": [...]` claim | Core to Weblisk's capability-based auth model |
-| Channel scoping | Not in JWT | `"cid": "..."` claim | Agent-to-agent channel tokens |
+| Issuing record | Not in JWT | `"cid": "..."` claim | Names the channel or credential a token was minted under, so the issuer can end it before `exp` |
+| Record-signing keys | Not in JWT | `"record_keys": [...]` claim | Names the subject's live sign-records credentials, so a service that is not the issuer can tell a key that may sign a record, and a revoked one drops out within a token's lifetime |
 | Algorithm agility | Multiple algorithms | Single algorithm (ML-DSA-65 only) | Eliminates downgrade attacks entirely; post-quantum from day one |
 
 ### Interoperability
@@ -847,7 +1252,23 @@ error_codes:
     status: 400
     description: Public key or signature could not be decoded
     retryable: false
+  - code: PASS_AUDIENCE_MISMATCH
+    status: 401
+    description: A pass presented to a component its aud does not name,
+      the orchestrator included (The pass, rule 3). Logged as a security
+      event
+    retryable: false
+  - code: PASS_REQUIRED
+    status: 401
+    description: An operator token presented to a component other than the
+      orchestrator and the admin gateway (The pass, rule 4). Logged as a
+      security event
+    retryable: false
 ```
+
+Each is registered with its HTTP status in [`protocol/types`](types.md),
+which is the registry; this list names the codes this document's rules answer
+with.
 
 ---
 
@@ -893,40 +1314,55 @@ security:
 - All keys use base64url encoding for portable, size-efficient storage
 - Token lifetimes are deliberately short (24h auth, 1h channel) to limit blast radius
 - WLT is structurally similar to JWT but uses `typ: WLT` to prevent cross-system confusion
-- Single-algorithm design (ML-DSA-65 only) eliminates algorithm confusion and downgrade attacks
+- Single-algorithm design (ML-DSA-65 for everything this protocol signs) eliminates algorithm confusion and downgrade attacks
 - The `alg` header field MUST be `ML-DSA-65` — any other value is rejected
-- Key rotation is atomic — old key is invalid immediately after rotation
+- Key rotation is atomic — old key is invalid immediately after rotation, save an orchestrator's first key, which is kept to sign its hub proof and nothing else (Recommended Rotation Schedule)
 - Federation key rotation uses dual-signature (old + new) for zero-downtime transitions
 - ML-DSA-65 signatures are ~3.3 KB — larger than classical algorithms but necessary for
   quantum resistance. This is an acceptable tradeoff for security
 - AES-256-GCM remains quantum-resistant (128-bit equivalent under Grover’s algorithm)
 - Argon2id key derivation is unaffected by quantum computing (symmetric primitive)
-- No quantum-vulnerable algorithms are used anywhere in the framework
+- No quantum-vulnerable algorithm signs an identity, a token, an attestation or a record anywhere in the framework. The one classical key it admits is a credential that proves a live session, such as a transport credential in a third party's protocol, and no such key signs anything the framework keeps
 
 ---
 
 ## Verification Checklist
 
 Implementation MUST:
-- [ ] Generate ML-DSA-65 key pairs (FIPS 204) — no other signing algorithm is permitted
-- [ ] Reject any key, signature, or token using a non-ML-DSA-65 algorithm
+- [ ] Generate ML-DSA-65 key pairs (FIPS 204) for every identity, operating credential, sign-records credential, log key and token this protocol specifies — no other signing algorithm is permitted there
+- [ ] Reject any identity key, attestation, record signature or token using a non-ML-DSA-65 algorithm. A transport credential a blueprint specifies for a third party's protocol is that blueprint's, and signs nothing this protocol verifies
 - [ ] Generate keys with cryptographically secure random source
 - [ ] Store private keys with restricted permissions (readable only by owning process)
 - [ ] Encrypt operator private keys with Argon2id + AES-256-GCM (passphrase required, min 12 chars)
-- [ ] Support encrypted service keys via secure configuration
+- [ ] Every operator private key written, handed to a secret source or received from one is the `weblisk-key-v1` envelope with `kdf = argon2id` — never unencrypted, whoever holds it (rule 1)
+- [ ] Support encrypted service keys whose passphrase comes from a secret source
+- [ ] Never accept a private key, other key material or a passphrase from an environment variable, except an installation's master key on a hosted deployment that protects no private key (rule 9)
+- [ ] Sign and verify with pure ML-DSA-65 and an empty context string, never HashML-DSA
+- [ ] Every fixed-form statement an implementation signs begins with a prefix the Fixed-Form Statements registry lists, followed by one `0x00` byte, and a verifier refuses a prefix the registry does not list
+- [ ] A verb, route or function that signs for another program builds the bytes itself and never signs the caller's, and a secret source is asked to sign only bytes its caller built itself
+- [ ] A proof of an identity to a service that is not a hub is a signature over `weblisk/auth/v1`, the service's audience and a nonce it issued, spent by its first use and expiring within 300 seconds; the service rebuilds those bytes and never verifies the nonce alone, and no hub accepts one
 - [ ] Parse weblisk-key-v1 format correctly (magic, algorithm=ml-dsa-65, kdf, params, ciphertext)
 - [ ] Never store passphrase on disk — only hold in memory during decrypt
 - [ ] A failed passphrase terminates the operation immediately — no retry loop, no passphrase enumeration. The platform blueprint states how termination is signalled
 - [ ] Verify all signatures before trusting data, using the signature algorithm's verification primitive
 - [ ] Verify token `alg` header is exactly `ML-DSA-65` — reject all other values
 - [ ] Check token expiry on every verification
+- [ ] A record of who acted names the token's `identity_id`, never its `sub`
+- [ ] An operator token always carries `cap`, and one whose `cap` is absent or empty is read as naming no capability, never as carrying its role's full set
+- [ ] A person's operator token is presented by its holder at the tenant's admin gateway alone, and by the gateway to the orchestrator that issued it alone; every other component is sent a person's request on a pass
+- [ ] A pass is minted only by the token exchange, for an operator token judged live at that moment, carries the claims [The pass](#the-pass) gives it, expires no more than 30 seconds after it was issued, and is refused as the subject of another exchange
+- [ ] A component accepts a pass only when it verifies under its own orchestrator's key and its `aud` is that component's identity id; a pass addressed to another component, or presented to the orchestrator, is refused with `PASS_AUDIENCE_MISMATCH` and logged as a security event
+- [ ] Every component but the orchestrator and the admin gateway refuses an operator token on every route with `PASS_REQUIRED`, whatever its `cap`, and logs a security event
+- [ ] The security event for a refused operator token or a foreign pass names its `type`, `sub`, `identity_id` and `cid`, and a pass's `aud` and `act.identity_id`, and holds no part of the token or the `Authorization` header
+- [ ] A component records a person's act by the pass's `identity_id` and the gateway that carried it by `act.identity_id`, as its audit entry's `actor` and `via`
+- [ ] The orchestrator never presents a token it received to any party
 - [ ] Enforce replay protection window (300 seconds) on registration
 - [ ] Validate public key size (1952 bytes) and signature size (3309 bytes)
 - [ ] Use constant-time comparison for signature verification
 - [ ] Never log or expose private keys
-- [ ] Key rotation registers new public key signed by old key before revoking old key
-- [ ] Revoked keys stored as .key.revoked for audit trail
+- [ ] Key rotation registers new public key signed by old key and by the new key, and the hub keeps the operator's identity id across it
+- [ ] A rotated operator key is retired, not revoked: once no hub records it, or each hub that still does was abandoned by the person, its private half is destroyed and only its public half is kept for audit
 - [ ] Production deployments have minimum 2 registered operators for recovery
-- [ ] Backup operator can revoke and re-register a compromised operator
+- [ ] Backup operator can remove a compromised operator, whose person then registers again under a new name and a new identity id
 - [ ] Bootstrap reset (all keys lost) requires orchestrator restart and re-registration
-- [ ] No quantum-vulnerable algorithms (Ed25519, ECDSA, RSA) are used anywhere
+- [ ] No identity, token, attestation or signed record uses a quantum-vulnerable algorithm (Ed25519, ECDSA, RSA)

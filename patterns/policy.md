@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: policy
-version: 1.0.0
+version: 1.0.2
 requires: [protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -55,7 +55,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: ScopeLevel
@@ -784,8 +784,14 @@ policy:
 
 ### Restricting Scope Access by Agent Type
 
-Work agents cannot access critical-scope data. Only meta agents
-with explicit `critical_access` capability are permitted.
+Work agents cannot access critical-scope data. The policy admits only an
+agent that declares a named capability, and `critical_access` stands for one.
+It is not a capability [`protocol/types`](../protocol/types.md#capability)
+lists, so registration refuses a manifest naming it
+([`protocol/spec`](../protocol/spec.md#post-v1register)) and no agent holds it:
+as written, this policy denies every agent. A tenant that wants an exception
+names a capability `protocol/types` lists, and `capability_required` never
+passes on any other name.
 
 ```yaml
 policy:

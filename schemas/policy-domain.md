@@ -159,6 +159,11 @@ a confident zero across every governance surface at once. The floor is also
 what "override" is defined against: a pack **adds** to the built-ins and keeps
 their positions, which needs built-ins to exist.
 
+**Seeding is how the catalogue reaches an installation today, and it is the
+residency [`architecture/fabric`](../architecture/fabric.md#two-ledgers-and-that-is-correct)
+rules out for published content.** A seeded copy is edited where no tenant's
+history, custody or evidence chain can see the edit.
+
 ---
 
 ## The commentary half — format

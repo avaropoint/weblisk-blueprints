@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: cron
-version: 1.0.0
+version: 1.0.2
 port: 9750
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/orchestrator, architecture/change-management]
 extends: [patterns/scheduling, patterns/messaging, patterns/logging, patterns/retry, patterns/versioning, patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -52,7 +52,7 @@ protocol endpoints.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -103,7 +103,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/register

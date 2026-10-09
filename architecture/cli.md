@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 1.1.0
-requires: [protocol/spec, protocol/identity, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
+version: 2.20.0
+requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
 -->
@@ -30,14 +30,15 @@ The CLI has two command surfaces:
 1. **Development commands** — project scaffolding, code generation, dev
    server, production builds (`weblisk new`, `weblisk dev`, `weblisk build`,
    `weblisk server init`, `weblisk agent create`)
-2. **Operations commands** — interrogate and manage a running hub via the
-   orchestrator's admin API (`weblisk status`, `weblisk agents`,
+2. **Operations commands** — interrogate and manage a running hub through
+   its admin gateway, which carries each request to the provider of the
+   admin API group it addresses (`weblisk status`, `weblisk agents`,
    `weblisk domains`, `weblisk audit`, `weblisk federations`)
 
 Operations commands authenticate with an operator's ML-DSA-65 identity — the
 one `--identity <label>` names, or the unnamed default.
 [Where an identity lives](#where-an-identity-lives) says where that is, and
-whether its private half is an encrypted file or held in a vault.
+whether its private half is an encrypted file or held by a secret source.
 
 ### The binary is named `weblisk`
 
@@ -122,7 +123,7 @@ machine-readable output.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -134,7 +135,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.14.0 <2.0.0"
     bindings:
       types:
         - name: WLToken
@@ -145,8 +146,26 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
+  - blueprint: protocol/secret-source
+    version: ">=1.6.0 <2.0.0"
+    bindings:
+      types:
+        - name: HolderReference
+          fields_used: [version, source, reference, options, holds]
+        - name: SecretSourceRequest
+          fields_used: [version, action, reference, field, fields, label, alg, message, messages, options]
+        - name: SecretSourceResponse
+          fields_used: [value, reference, actions, sign_algs, sign_batch, named_fields, withheld_fields, signature, signatures, error]
+        - name: SecretSourceError
+          fields_used: [code, message]
+        - name: SecretSourceRegistryEntry
+          fields_used: [command, timeout_s, interactive_timeout_s]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.6.0 <2.0.0"
     bindings:
       types:
         - name: Operator
@@ -158,30 +177,56 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/admin/*
           methods: [GET, POST, PUT, DELETE]
+        # weblisk test conformance reads the directory on its test agent's
+        # registration token; POST /v1/services is each agent's endpoint
         - path: /v1/services
-          methods: [POST]
+          methods: [GET]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/admin
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.34.0 <3.0.0"
     bindings:
       endpoints:
         - path: /v1/admin/operators/register
+          methods: [POST]
+        - path: /v1/admin/operators/token
+          methods: [POST]
+        - path: /v1/admin/credentials/challenge
+          methods: [POST]
+        - path: /v1/admin/credentials/token
+          methods: [POST]
+        - path: /v1/admin/hub/proof
+          methods: [POST]
+        - path: /v1/admin/operators/{name}/credentials
+          methods: [POST]
+        - path: /v1/admin/operators/{name}/key
           methods: [POST]
         - path: /v1/admin/overview
           methods: [GET]
         - path: /v1/admin/agents
           methods: [GET]
+        - path: /v1/admin/agents/{name}
+          methods: [GET]
+        - path: /v1/admin/agents/{name}/metrics
+          methods: [GET]
         - path: /v1/admin/approvals
           methods: [GET, POST]
-      types:
+      behaviors:
+        - name: operator-registration
+        - name: registration-signing-input
+        - name: attestation-token-issuance
+        - name: hub-proof
+        - name: operator-credential-attestation
+        - name: operator-token-issuance
+        - name: operator-key-change
+        - name: admin-gateway-authorization
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -205,17 +250,18 @@ act on local files, and **operator** commands that act on a running hub.
    │  operator: init · connect · token  │
    │  generation: dispatch · verify     │
    └────┬──────────────────────┬────────┘
-        │ signature requested  │ authenticated per request
+        │ signs through it     │ authenticated per request
         ▼                      ▼
-   Identity holder        Orchestrator
-   (hardware, vault,      (over a transport
-    or key file)           the operator named)
+   Identity holder        Admin gateway
+   (a secret source,      (the hub's one door, over
+    or a key file)         a transport the operator named)
 ```
 
 **Responsibilities.** Scaffolding and building projects, generating components from
 blueprints and gating them on conformance, resolving where an identity lives,
-requesting signatures without handling private keys, and minting short-lived
-credentials per invocation.
+getting signatures from wherever the identity is held — a private key is in its
+memory only when that holder cannot sign — and minting short-lived tokens with
+a credential the identity attested once for each hub.
 
 **Not responsibilities.** Holding a long-lived secret of its own. Deciding what a
 blueprint requires — it reads the corpus. Administering a hub's data, which is
@@ -236,13 +282,18 @@ Studio's and the orchestrator's own surfaces.
 - Production builds (`weblisk build`)
 - Static framework vendoring (`weblisk vendor`)
 - Operator ML-DSA-65 identity creation, and resolving where a named identity
-  lives — an encrypted key file, or a reference to a vault that holds the
-  private half ([Where an identity lives](#where-an-identity-lives))
+  lives — an encrypted key file, or a holder reference naming the secret source
+  that holds the private half ([Where an identity lives](#where-an-identity-lives))
 - Operator registration and token management (the token is stored beside the
-  identity that obtained it)
+  identity that obtained it, unless the caller asks for it not to be —
+  `--no-store`)
+- One credential per identity per hub, attested once by that identity and kept
+  beside it ([A credential for each hub](#a-credential-for-each-hub))
+- Attesting a credential another program holds, so a console never holds the
+  identity that attests it (`weblisk operator attest`)
 - Human-readable table output and `--json` machine-readable output formatting
 - Interactive confirmation for destructive actions
-- Connection management to orchestrator's admin API
+- Connection management to a hub's admin gateway
 
 ### Does NOT Own
 
@@ -254,6 +305,11 @@ Studio's and the orchestrator's own surfaces.
 - Template contents (owned by `weblisk-templates`)
 - Client framework (owned by `weblisk`)
 - Blueprint specifications (owned by this repository — `weblisk-blueprints`)
+- What a repository outside any tenant may be used for, and how what it holds
+  reaches a tenant (owned by `architecture/content` —
+  [Repositories Outside a Tenant](content.md#repositories-outside-a-tenant)).
+  Every blueprint source no tenant has declared is one, the core corpus among
+  them
 
 ---
 
@@ -277,13 +333,34 @@ the sections below: [Project Commands](#project-commands),
 1. Operator runs a CLI command (e.g., `weblisk agents list`)
 2. CLI resolves which identity acts — `--keys-dir`, else `--identity <label>`, else the unnamed default
 3. CLI loads the auth token stored beside that identity (refreshes if near expiry)
-4. CLI constructs HTTP request to orchestrator admin API endpoint
-5. Request signed with operator's ML-DSA-65 key, token included in `Authorization: Bearer` header
-6. Orchestrator validates token, checks operator role against endpoint minimum
-7. Orchestrator returns JSON response
+4. CLI constructs an HTTP request to the hub's admin gateway, the tenant's one
+   door for people, whatever group the command addresses
+   ([`protocol/identity`](../protocol/identity.md#the-pass))
+5. Token included in the `Authorization: Bearer` header
+6. The gateway carries the request to the provider of its group: to the
+   orchestrator on the token as it arrived, where the orchestrator validates
+   it and checks the request can use the capability the endpoint's minimum
+   stands for, what the operator's role carries now, never beyond the token's
+   `cap` ([`architecture/admin`](admin.md#auth-middleware), Auth Middleware);
+   to any other provider on a pass the orchestrator exchanged the token for
+   ([`architecture/admin`](admin.md#contracts), `admin-gateway-authorization`)
+7. The provider returns a JSON response, through the gateway
 8. CLI formats response as human-readable table (or raw JSON with `--json`)
 9. For write operations: CLI prompts for interactive confirmation before sending
 10. Exit code set based on success/failure (0 = success, 1 = error, 2 = auth failure)
+
+**A group another component provides is reached on a pass, never on the
+stored token.** The domain, workflow, approval, strategy, observation and
+federation commands address groups
+[`architecture/admin`](admin.md#the-admin-api-is-an-aggregate) gives to a
+component other than the orchestrator. The CLI sends them to the admin
+gateway as it sends every command, and the gateway, not the CLI, has the
+token exchanged for a pass addressed to that component alone. No such
+component's blueprint specifies an administrative route yet
+([`architecture/admin`](admin.md#the-admin-api-is-an-aggregate), the gap
+there), so the gateway answers each of these commands
+`ADMIN_GROUP_UNAVAILABLE`, and the command reports its group unavailable and
+exits 1.
 
 ---
 
@@ -447,7 +524,7 @@ $ weblisk secret rotate email-send SMTP_PASSWORD
 
 ### `weblisk tenant create <name>`
 
-Turn a name into a running tenant with a first operator credential, in one
+Turn a name into a running tenant with its first operator admitted, in one
 command.
 
 ```bash
@@ -509,19 +586,22 @@ written a bearer credential to disk.
 
 **`create` produces the orchestrator and nothing else.** A tenant is a set of
 components in one module; every other one is added afterwards with `weblisk
-component <name> init` or the matching `create` verb. See
+component <name> init` or the matching `create` verb, except the admin
+gateway, which no command builds yet, so a tenant `create` makes has no
+address to connect to (the gap under [`weblisk server start`](#weblisk-server-start)). See
 [`architecture/orchestrator`](orchestrator.md), "What a tenant consists of",
-for the two homes a tenant's components have: what it is running, which
-`GET /v1/services` answers and no file can, and what it declares it should run,
+for the two homes a tenant's components have: what it is running, which the
+orchestrator's registry answers and no file can, and which the CLI reads at
+`GET /v1/admin/agents` through the admin gateway, and what it declares it should run,
 which `.weblisk/config.yaml` states and [`weblisk server start`](#weblisk-server-start)
 reads.
 
-**The first operator is auto-approved and every later one needs that first
-one's approval**, per [`architecture/admin`](admin.md). The bootstrap secret
-rule — a first grant is claimed by presenting a secret emitted to the process
-that started the tenant, never by reaching an unauthenticated endpoint first —
-is [`patterns/principal-identity`](../patterns/principal-identity.md)'s and is
-not restated here.
+**The first operator is admitted by presenting the bootstrap secret the new
+orchestrator emitted, and every later one needs that first one's approval**, per
+[`architecture/admin`](admin.md#bootstrap-flow). `create` started the
+orchestrator, so it reads the secret from where it was emitted and claims it in
+the same action; nobody else can, because reaching the endpoint first confers
+nothing.
 
 **Security:** a tenant directory holds `.weblisk/keys/`, and creating one MUST
 write the same `.gitignore` `weblisk new` writes — `.weblisk/secrets/`,
@@ -639,7 +719,7 @@ $ weblisk component content stop
 |------|-------------|
 | `--detach` | Run in the background and record it, as `server start --detach` does, so `status`, `logs` and `stop` find it |
 | `--port <n>` | Listen port. Omitted: what `.weblisk/config.yaml` declares for this component, else the convention [`schemas/config`](../schemas/config.md) gives it. A kind with a range rather than a port — an agent, a domain — must be given one |
-| `--orch <url>` | Orchestrator to register with. Omitted: the one this CLI has running for the tenant |
+| `--orch <url>` | The orchestrator's own address, to register with, never the admin gateway ([Configuration](#configuration)). Omitted: the one this CLI has running for the tenant |
 
 A kind a tenant may hold several of takes the instance's name after the verb.
 With no orchestrator named and none running, the component is started without
@@ -809,6 +889,28 @@ alone: the file is an operator's declaration, never a precondition.
 a record of, siblings before the orchestrator, so nothing is left registered
 with a registry that has gone.
 
+> **Gap — no hub this CLI stands up has an admin gateway.** A person's
+> operator token goes to the tenant's admin gateway and nowhere else
+> ([`protocol/identity`](../protocol/identity.md#the-pass)), and every
+> operator command sends its requests there. But no command declares, builds
+> or starts one. [`schemas/config`](../schemas/config.md) has no section that
+> declares it, so this command starts none; [`weblisk tenant create`](#weblisk-tenant-create-name)
+> produces the orchestrator alone; and [`weblisk component <name> init`](#weblisk-component-name-init)
+> builds an architecture blueprint only where it states an `## Endpoints`
+> table, which [`architecture/admin`](admin.md#admin-endpoints) does not. So
+> at a hub this CLI stands up a person can establish the first operator
+> ([`weblisk server provision`](#weblisk-server-provision)) and nothing more:
+> no operator command reaches it, because the one door those commands use is
+> not there, and the CLI never sends the token to the orchestrator in its
+> place. Once `weblisk/hub-proof/v1` has test vectors the first operator
+> waits on it too, since provision then needs a hub proof at the address it
+> registers at, and the orchestrator signs one only for an admin address
+> (`orchestrator.admin_addresses`), the origins of an admin gateway.
+> Closing the gap is declaring the admin gateway as a component — its
+> listeners, its operator allowlist and its addresses — and having `tenant
+> create`, `server start` and `server provision` stand it up, write its
+> origins into `orchestrator.admin_addresses`, and connect through it.
+
 ### `weblisk server verify`
 
 Verify the server is running and healthy.
@@ -846,7 +948,7 @@ $ weblisk agent start seo --orch http://localhost:9800 --port 9710
 
 | Flag | Description |
 |------|-------------|
-| `--orch <url>` | Orchestrator URL |
+| `--orch <url>` | The orchestrator's own address, which the agent registers with — never the admin gateway an operator command's `--orch` names ([Configuration](#configuration)) |
 | `--port <n>` | Listen port (default: auto-assigned) |
 
 ### `weblisk agent verify`
@@ -919,17 +1021,26 @@ $ weblisk server provision --operator alice
 
   orchestrator running at http://127.0.0.1:9800
   operator identity created for alice
-  operator registered — first operator is auto-approved
-  token issued, expires 2026-09-03T18:00:00Z
+  operator registered — bootstrap secret claimed, first operator is admin
 
-  Connected to http://127.0.0.1:9800 as alice
+  This hub runs no admin gateway: nothing is recorded to connect to
 ```
 
 This is BOOTSTRAP, not connect. It is local by necessity — it reads the run
-state of a hub this CLI started — and it is the one path that establishes a
-hub's first operator. To reach a hub that already runs, use
-[`weblisk operator connect`](#weblisk-operator-connect), which needs only an
-address.
+state of a hub this CLI started, and the bootstrap secret that hub emitted — and
+it is the one path that establishes a hub's first operator. It registers that
+operator at the orchestrator's own address, the one the run state names,
+presenting the bootstrap secret, which is no token. It keeps no token and
+records no registration and no address: it discards the attestation token the
+first registration answers with, because every request that would use one
+goes to the hub's admin gateway, and the address the CLI records for a hub is
+that gateway's, never the orchestrator's (`orchestrator_url`). No hub this CLI
+stands up runs an admin gateway yet (the gap under
+[`weblisk server start`](#weblisk-server-start)), so provision ends there.
+To reach a hub through its admin gateway, use
+[`weblisk operator connect`](#weblisk-operator-connect), which needs only that
+address: it registers again there, is answered as a repeat, and records the
+registration at the gateway's address.
 
 Generation is deliberately not folded in. It takes tens of minutes, streams
 progress and is resumable; wrapping it in a call that also handles a credential
@@ -1028,8 +1139,12 @@ Force re-fetch all blueprint sources.
 $ weblisk blueprint update
 ```
 
-Performs `git pull` on each cached source in `~/.weblisk/blueprints/`.
-If a source is unreachable, uses the last cached version.
+Fetches each source the CLI keeps a clone of in `~/.weblisk/blueprints/` from
+the repository it is a clone of, and resets the clone to the commit fetched. A
+reset, not a merge: the clone then holds the source's files as they are at that
+commit, and an edit made to one of them in the clone does not survive. If a
+source is unreachable, its clone keeps the last version fetched, and the command
+says so.
 
 ### `weblisk validate`
 
@@ -1146,22 +1261,240 @@ means the same by them:
 `--name`, the operator as a hub records them, and admin rule 2 forbids merging
 the two into one argument.
 
-The private half is held in one of two ways:
+The private half is held in one of three ways:
 
 | Holder | On disk beside the identity | Passphrase |
 |---|---|---|
-| Encrypted file | `operator.key` in `weblisk-key-v1` format (Argon2id KDF + AES-256-GCM), and `operator.pub` | Required, and never stored. It is the only thing protecting the key |
-| Vault — 1Password is the one supported | `operator.pub` and a reference to where the private half is. No private key | None to type. The vault holds everything that unlocks the private half |
+| Encrypted file | `operator.key` in `weblisk-key-v1` format (Argon2id KDF + AES-256-GCM), and `operator.pub` | Required. The CLI never writes it down; it is the only thing protecting the key |
+| Encrypted file, its passphrase remembered by a secret source | `operator.key`, `operator.pub`, and `holder.json` recording `holds: ["passphrase"]` | None to type. The source remembers the passphrase the person chose, and the key file still opens without the source. Only on request: `--remember-passphrase` |
+| A secret source — a keychain, a vault, a hardware token, or any store a helper speaks for | `operator.pub` and `holder.json`, the holder reference. No private key | None to type. The source holds what unlocks the private half, or signs with it and never releases it |
 
-A vault is optional and always will be. `protocol/identity` rule 8 ranks a
-managed secret above an encrypted file, and that is a preference, not a
-requirement: a machine with no vault account must still be able to hold an
+[`protocol/secret-source`](../protocol/secret-source.md) is how the CLI finds a
+source and speaks to it, which sources it carries built in, what a holder
+reference records, and what a source holds for an identity.
+
+A secret source is optional and always will be. `protocol/identity` rule 8 ranks
+a managed secret above an encrypted file, and that is a preference, not a
+requirement: a machine with no vault or keychain must still be able to hold an
 identity.
+
+### A credential for each hub
+
+The identity signs to register, to attest and to change its own key
+([`weblisk operator rotate`](#weblisk-operator-rotate)), and nothing else at a
+hub. Tokens come
+from a credential ([`architecture/admin`](admin.md#obtaining-a-token)), and the
+CLI holds one for each identity at each hub:
+
+- **Made once.** The first time `connect` or `register` obtains a token for an
+  identity at a hub, the CLI generates an ML-DSA-65 key pair for that hub, has
+  the identity attest it through an attestation token, and keeps it. Every
+  later token for that identity at that hub is minted with it, and the
+  identity is not asked. The attestation is built as
+  [`weblisk operator attest`](#weblisk-operator-attest) builds it, naming the
+  `hub_id` recorded for that hub and the `identity_id` the hub answered with.
+- **Not before the credential's answer has test vectors.** A credential's
+  answer to a challenge is signed under `weblisk/credential-auth/v1`, which
+  the CLI signs only once that prefix has test vectors
+  ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)).
+  Until then it makes no credential and asks for no attestation token at a
+  hub that serves the credential routes, and reports that the hub issues
+  operator tokens only to a credential, which no conforming client signs with
+  before those vectors. The command then exits 2, `register` once it has recorded
+  the registration the answer names. It obtains an operator token only from a hub
+  that answers `POST /v1/admin/credentials/challenge` with `404` or `405`, by
+  the deprecated path, and so from no hub built from this corpus
+  ([`architecture/admin`](admin.md#minting-a-token-with-the-credential), the
+  gap there). [`weblisk operator attest`](#weblisk-operator-attest) attests
+  nothing until then either.
+- **Named by the hub, never by its address.** Each credential is kept under the
+  `hub_id` it was attested for. A hub at a recorded address whose challenge
+  names another `hub_id`, or that refuses the recorded one with
+  `CREDENTIAL_FOREIGN_HUB`, is refused: the CLI reports both, and signs
+  nothing more for it. Where it really is another hub, the
+  person registers there with `weblisk operator register`, which records that
+  hub's own registration.
+- **Each hub it is registered at is remembered.** Beside the identity, the
+  CLI keeps one **registration** for each hub the identity registered or
+  connected at: that hub's `hub_id`, the operator name the hub recorded, the
+  `identity_id` it answered with, the address it was last reached at, and
+  whether that address has proven the `hub_id` (the hub proof below).
+  Only a registration answer writes one, approved, pending or a repeat
+  ([`architecture/admin`](admin.md#the-registration-response)): `register`
+  sends one, and `connect` sends one first at an address no registration
+  names, which a hub that already knows the operator answers as a repeat.
+  `attest` does the same once `weblisk/credential-auth/v1` has test vectors,
+  and until then sends nothing to any hub
+  ([`weblisk operator attest`](#weblisk-operator-attest)). An address is held by one registration at a time, and no answer
+  moves one. An address no registration names that answers with a `hub_id`
+  recorded at another address is refused: the CLI reports both addresses and
+  signs nothing more there, because a hub can relay a registration to another
+  hub and pass back its answer. The registration moves to that address only
+  when the person confirms at a terminal that the hub has moved there, and,
+  once the hub proof below has test vectors, only where that address proves
+  the recorded `hub_id`, never with `--json` or `--batch` or with no
+  terminal. It is the only
+  `hub_id` the identity ever signs to ask for an attestation token, so a
+  signature it makes is refused at every hub but the one whose answer
+  recorded it. Which hub gave that answer is proven by the hub proof below
+  alone, and until it has test vectors it is not proven where the CLI
+  recorded it first, as on a new device
+  ([`architecture/admin`](admin.md#the-identity-signs-only-to-attest), the gap
+  there).
+  The `hub_id` names the hub; the address is only
+  where to find it, so a hub reached there that answers another `hub_id` is
+  not that hub. A registration outlives its credential: it is kept when the
+  credential is discarded, and removed only when the person confirms it. A
+  hub that answers `OPERATOR_REVOKED` or `OPERATOR_UNKNOWN` for the operator
+  is reported with the address that answered, and the CLI asks; under
+  `--json` or with no terminal it keeps the registration. Neither answer
+  shows that it came from the hub the registration names: no refusal carries
+  a `hub_id`, and a key change is answered `OPERATOR_UNKNOWN` before any
+  signature is checked ([`architecture/admin`](admin.md#changing-an-identity-key)),
+  so whatever answers at the hub's last address could produce it. A
+  registration dropped on such an answer would let a rotation finish and
+  destroy the one key the real hub still accepts. It holds nothing secret. It is what
+  [`weblisk operator rotate`](#weblisk-operator-rotate) sends a key change to.
+- **A hub proves its `hub_id` where it is reached.** Once
+  `weblisk/hub-proof/v1` has test vectors
+  ([`architecture/admin`](admin.md#proving-the-hub-at-an-address)), the CLI
+  sends nothing that needs the identity to an address no registration names
+  until the hub there proves its `hub_id`. Before the registration, it asks
+  `POST /v1/admin/hub/proof` with the origin of the address it dialled and a
+  challenge of 32 bytes from a cryptographically secure random source, made
+  for that request alone, and accepts the answer only where the fingerprint
+  of its `public_key` is its `hub_id` and its signature verifies over the
+  statement the CLI builds itself from that `hub_id`, that origin and its own
+  challenge. The registration answer must then name the same `hub_id`. A hub
+  that does not answer the proof, one built before the vectors that answers
+  `HUB_PROOF_UNAVAILABLE` included, or whose proof or answer fails any of
+  these, is reported with the address, and nothing is recorded or signed
+  there. A `hub_id` the CLI holds at an address is then one the hub there
+  holds the key for. Until those vectors are published no hub may sign the
+  proof, and the CLI records the answer's `hub_id` as it is given.
+- **A registration recorded before the vectors is proven at its next
+  contact.** Once they are published, the first time the CLI contacts the
+  address of a registration that address has not proven, it asks the hub
+  proof there as above, before it signs anything there with the identity or
+  with a credential, and records that the address proved the `hub_id`. Where
+  the proof fails in any of the ways above, the address is reported and
+  nothing more is signed there. The registration is kept, and moves only as
+  any registration moves: on the person's confirmation, to an address that
+  proves its `hub_id`. So a registration recorded through a relay before the
+  vectors is held from then, never used. A hub built before the vectors
+  answers `HUB_PROOF_UNAVAILABLE`, which fails the proof, so once the CLI has
+  the vectors it signs nothing more at such a hub until that hub is built
+  again from a corpus that has them.
+- **Kept as the identity is.** The private key sits beside the identity it
+  belongs to, encrypted in the `weblisk-key-v1` envelope with `kdf` `argon2id`
+  under the identity's own passphrase, or held by the secret source that
+  holds the identity, and it is opened the way the identity's own key is: by
+  that passphrase, typed by the person or remembered by a source they unlock,
+  or by that source ([Where an identity lives](#where-an-identity-lives)).
+  One passphrase, because the two keys sit together and a second one would
+  guard nothing the first does not. It is never in the
+  clear and never under `kdf` `none`
+  ([`architecture/admin`](admin.md#where-the-second-factor-is)). Its public half
+  and its `cid` sit beside it.
+- **Kept apart where the source cannot keep it.** `store` is optional
+  ([`protocol/secret-source`](../protocol/secret-source.md#the-source-contract)),
+  and a source that signs with an identity's key and never releases it holds
+  no passphrase for it either. So the CLI asks the source that holds the
+  identity for its `capabilities`. Only a source that could hold an identity
+  **whole** can hold the credential that way
+  ([`protocol/secret-source`](../protocol/secret-source.md#an-identity-held-by-a-source)):
+  one whose `capabilities` list `store`, answer `named_fields` true, and do
+  not name `private_key` in `withheld_fields`, because the CLI must read the
+  key back with `get` to sign a challenge. There the credential is stored as
+  an identity created in a source is. Anywhere else, the credential key is
+  written beside the identity in its own `weblisk-key-v1` envelope with `kdf`
+  `argon2id`, under a passphrase the person chooses for it when it is made.
+  That is then the one passphrase, because the identity has none to type. It
+  is typed by the person, or, only on request (`--remember-passphrase`),
+  remembered by a source as an identity's passphrase is: one that lists
+  `store`, which may be the identity's own source where it lists `store`
+  without holding keys whole, or another the person names with
+  `--passphrase-holder <source>`. The envelope's `holder.json` records
+  `holds: ["passphrase"]` and that source. With neither, it is typed.
+- **Re-attested when it expires, replaced when the hub refuses it.** When the
+  hub answers `CREDENTIAL_EXPIRED`, the key is sound and only its attestation
+  lapsed, so the next `connect` re-attests the same key, which keeps its `cid`
+  ([`architecture/admin`](admin.md#attesting-a-credential)). When it answers
+  `CREDENTIAL_UNKNOWN` or `CREDENTIAL_REVOKED`, the CLI discards that
+  credential, and the next `connect` attests a new one. Either way it attests
+  as [One approval vouches for every hub](#one-approval-vouches-for-every-hub)
+  says, with every other attestation on this device that is due.
+
+`--no-store` is about the token. The credential is kept either way, because
+keeping it is what spares the identity.
+
+### One approval vouches for every hub
+
+The identity signs only to attest, and the CLI asks it to as seldom as that
+allows: **once on this device for every hub the identity is registered at**,
+never once for each hub.
+
+- **A separate attestation for each hub.** Each hub is sent an
+  [`Attestation`](../patterns/principal-identity.md#types) naming its own
+  `hub_id`, the `identity_id` that hub recorded, and the credential key made
+  for it, and nothing about any other hub. The CLI never signs one attestation
+  naming several hubs: every hub it was presented to would learn the person's
+  other tenants.
+- **Signed in one approval.** Whenever it attests, at a first `connect` or
+  `register`, at a renewal, or for `weblisk operator attest`, the CLI attests
+  together every credential on this device that is due: a new one, and every
+  one whose attestation has lapsed or has fewer than 7 days left, at every hub
+  it has a registration for. It opens the identity once, by one passphrase
+  or one unlock of the source that remembers it or holds the key, and signs
+  everything the batch needs while it is open: each hub's attestation-token
+  request, `{hub_id, name, timestamp}`, and each hub's `Attestation`, built
+  with the `identity_id` that hub's registration recorded. A source that signs
+  and never releases the key is sent all of them in one `sign` request, where
+  it lists `sign_batch`, so it asks its person once
+  ([`protocol/secret-source`](../protocol/secret-source.md#actions)). One that
+  does not is asked once for each, and the CLI says how many approvals that
+  will take before it asks for the first.
+- **A hub not yet registered on this device asks once more.** An
+  attestation-token request names the `hub_id` a registration answer
+  recorded, so where the batch includes a hub this device has no
+  registration for, the CLI first signs a registration for each such hub,
+  sends them and records their answers, and only then signs the requests and
+  attestations above. An identity it opens is opened once for both. A source
+  that signs and never releases the key is asked twice, once for all the
+  registrations and once for the rest, so there a device's first setup takes
+  two approvals and every later batch one. Before it asks, the CLI names on
+  standard error each address it will register at, and a console passes only
+  addresses its person entered or confirmed with it, so no list registers the
+  identity at a hub its person did not choose.
+- **Each hub is told only its own.** The attestation-token requests are sent
+  first, each to its own hub, inside the replay window. A hub's `Attestation`
+  is submitted only where its attestation-token answer names the
+  `identity_id` the CLI built it with. A hub that answers another is reported
+  and sent nothing more, and a hub that does not answer keeps the attestation
+  it had until the next batch.
+- **Renewed together.** A renewal asks for `not_after` 30 days ahead for
+  every attestation in it, within the 90-day cap
+  ([`architecture/admin`](admin.md#attesting-a-credential)), re-attesting
+  each key, which keeps its `cid`. A credential attested between renewals
+  takes the `not_after` the device's other attestations share, so all of them
+  fall due together; where fewer than 7 days of it remain, the batch renews
+  every attestation on the device instead. Once fewer than 7 days remain,
+  every command that mints a token warns the person, and the next `connect`
+  renews them all. So the person approves once in each 30 days, whatever the
+  number of hubs.
+- **Daily use asks the identity nothing.** Connecting, switching from one hub
+  to another and refreshing a token use the credential the CLI holds for that
+  hub ([Authentication Flow](#authentication-flow)). A console that drives the
+  CLI holds its own credential for each account at each hub, and mints with
+  it, asking nothing, while that account's person holds a live AAL2 session
+  with it ([`architecture/admin`](admin.md#a-console-holds-a-credential-never-a-token),
+  `console-credential-use`). It asks the CLI only to attest, for every hub at
+  once, with `weblisk operator attest --batch`.
 
 ### `weblisk operator init`
 
 Create an operator ML-DSA-65 identity — in an encrypted file protected by a
-passphrase, or with `--vault`, in a vault.
+passphrase, or with `--holder`, in a secret source.
 
 ```bash
 $ weblisk operator init
@@ -1178,13 +1511,25 @@ The passphrase is NOT stored — you must remember it.
 
 - Creates the identity where `--keys-dir`, `--identity` or the default selects
   (mode 0700 directory, 0600 key) — see [Where an identity lives](#where-an-identity-lives)
-- Without `--vault`, prompts for a passphrase, which cannot be skipped or
-  supplied via flag. Minimum length 12 characters (enforced). The private key is
-  stored in `weblisk-key-v1` format, and the passphrase is never written to
-  disk and never in shell history
-- `--vault <vault>` keeps the private half in that vault instead: no private
-  key is written to disk and no passphrase is asked for. `--account <account>`
-  names the vault account where more than one is configured
+- Without `--holder`, or with `--remember-passphrase`, prompts for a
+  passphrase, which cannot be skipped or supplied via flag. Minimum length 12
+  characters (enforced). The private key is stored in `weblisk-key-v1` format,
+  and the passphrase is never written to disk and never in shell history
+- `--holder <source>`, without `--remember-passphrase`, keeps the private half
+  in that secret source instead: no private key is written beside the identity
+  and no passphrase is asked for.
+  What the source then holds is
+  [`protocol/secret-source`](../protocol/secret-source.md#an-identity-held-by-a-source)'s
+  to say
+- `--remember-passphrase`, with `--holder <source>`, writes the encrypted key
+  file as without `--holder`, and has the source keep only the passphrase the
+  person typed. `holder.json` then records `holds: ["passphrase"]`
+- `--holder-opt <key>=<value>` passes an option to the source and records it in
+  the holder reference — which vault, which account. Repeatable. An option is
+  never a secret
+- `--vault <vault>` means `--holder 1password --holder-opt vault=<vault>`, and
+  `--account <account>` with it means `--holder-opt account=<account>`. Both are
+  deprecated aliases
 - Never overwrites an identity that already exists there without `--force`
 - `--force` to regenerate (prints identity change warning; the new identity must be re-registered)
 - `--name <name>` sets the operator name a hub will record (default: system
@@ -1205,18 +1550,36 @@ The passphrase is NOT stored — you must remember it.
 
 ### `weblisk operator store`
 
-Map an identity whose private half is already in a vault, rather than creating
-one.
+Map an identity to a secret source, rather than creating one: an identity whose
+private half is already in the source, or, with `--remember-passphrase`, one
+whose encrypted key file is here and whose passphrase the source is to remember.
 
 ```bash
-$ weblisk operator store --identity alice --reference op://Vault/item/private_key
+$ weblisk operator store --identity alice --holder <source>:<reference>
+$ weblisk operator store --identity alice --holder <source> --remember-passphrase
 ```
 
-- Writes the public key and the reference beside the selected identity. The
-  private half stays in the vault
+- `--holder <source>:<reference>` is the holder reference in its flag form
+  ([`protocol/secret-source`](../protocol/secret-source.md#the-holder-reference))
+- Writes the public key, read from the source, and the holder reference beside
+  the selected identity, once a probe signed through the reference verifies
+  against that key. Before the probe has test vectors it writes them unproven
+  and says so. Every signature it later gets through the reference, the first
+  included, is verified against that key before it is used, as every
+  signature through a holder reference is
+  ([`protocol/secret-source`](../protocol/secret-source.md#an-identity-held-by-a-source),
+  the gap there). The private half stays in the source
 - Refuses where the selected location already holds a private key on disk: a
-  subject holds one identity, and mapping over it would strand that one
-- `--account <account>` as for `operator init --vault`
+  subject holds one identity, and mapping over it would strand that one.
+  `--remember-passphrase` is the exception, because the key file is what it
+  keeps
+- `--remember-passphrase`, with `--holder <source>`, is for an identity already
+  in an encrypted key file at the selected location. Asks for its passphrase on
+  stdin, checks that it opens the key, has the source keep it, and writes
+  `holder.json` recording `holds: ["passphrase"]`
+- `--holder-opt <key>=<value>` as for `operator init`
+- `--reference <reference>` means `--holder 1password:<reference>`, and
+  `--account` is as for `operator init`. Both are deprecated aliases
 
 `init` creates, `store` maps and `path` reports; no verb does two of those.
 
@@ -1230,28 +1593,46 @@ $ weblisk operator path --identity alice
 
 So a caller can ask where an identity lives instead of deriving the path. A
 console or script that derives it is a second implementation of admin rule 2,
-kept in step by luck. `--json` for machine-readable output.
+kept in step by luck. `--json` for machine-readable output. While a rotation
+is pending it also names the rotation record and the file holding the key
+that signs, `operator.key.next` for an encrypted file
+([`weblisk operator rotate`](#weblisk-operator-rotate)).
 
 ### `weblisk operator register`
 
-Register with a running orchestrator.
+Register at a hub, through its admin gateway, which carries the registration
+to the orchestrator that keeps operator records
+([`architecture/admin`](admin.md#contracts), `admin-gateway-authorization`).
+`--orch` names the gateway, as it does for every operator command.
 
 ```bash
-$ weblisk operator register --orch http://localhost:9800
-Registering operator 'alice' with http://localhost:9800...
-✓ Registered as admin (first operator — auto-approved)
+$ weblisk operator register --orch https://hub.example.com --bootstrap ./acme/.weblisk/bootstrap
+Registering operator 'alice' with https://hub.example.com...
+✓ Registered as admin (first operator — bootstrap secret accepted)
   Token stored: ~/.weblisk/keys/token
   Expires: 2026-04-26T10:00:00Z
 ```
 
 - Signs the registration payload with the operator's private key
-- Stores the returned token beside the identity that signed
-- If not the first operator, prints "Registration pending admin approval"
+- At a hub with no operator, sends the bootstrap secret read from the file
+  `--bootstrap <path>` names. The secret is never an argument, which every
+  process on the machine can read. Without it, such a hub refuses the
+  registration ([`architecture/admin`](admin.md#bootstrap-flow))
+- Once approved, attests a credential for this hub
+  ([A credential for each hub](#a-credential-for-each-hub)) and obtains a token
+  with it, as the [Authentication Flow](#authentication-flow) says. The token is
+  stored beside the identity that signed. `--no-store` returns it instead
+  (stdout, or the `--json` result) and writes no token
+- If not the first operator, prints "Registration pending admin approval".
+  Either way it records the registration the answer names: the hub's
+  `hub_id`, the operator's `identity_id` and the address. A repeat's answer
+  names no status, so `register` then asks for an attestation token, as
+  `connect` does, and reports what that answer says
 - `--role <role>` to request a specific role (admin may override)
 
 ### `weblisk operator connect`
 
-Obtain an operator credential from a hub that is already running.
+Obtain an operator token from a hub that is already running.
 
 ```bash
 $ weblisk operator connect --orch https://hub.example.com
@@ -1271,33 +1652,46 @@ exactly the same terms as one in the next directory — see
 for why that separation matters.
 
 Idempotent, because it is the ordinary way to connect and will be run
-repeatedly. It asks for a token FIRST: a hub that already knows the operator
-needs no registration, and registering first against a hub with no operators
-would silently make this identity the bootstrap admin of somebody else's
-tenant.
+repeatedly. Where a registration names the address, it asks for a token
+FIRST: a hub that already knows the operator needs no registration. Where
+none does, it sends a registration first, which a hub that already knows the
+operator answers as a repeat, naming its `hub_id`
+([A credential for each hub](#a-credential-for-each-hub)), and it never asks
+for an attestation token without one. A hub with no operators refuses a
+registration that does not present its bootstrap secret, so connecting never
+claims a hub.
+`connect` obtains its token as the [Authentication Flow](#authentication-flow)
+says, and attests a credential first where this identity holds none the hub
+accepts ([A credential for each hub](#a-credential-for-each-hub)).
 
-Three outcomes, and they are told apart:
+Five outcomes, and they are told apart:
 
 | State | Meaning |
 |---|---|
-| `connected` | a token was issued and stored beside the identity |
-| `pending_approval` | the hub will not issue one yet. **Not a failure** — the first operator of a hub is auto-approved and every later one needs an existing admin. The message names who can act |
+| `connected` | a token was issued, and stored beside the identity unless `--no-store` was given |
+| `pending_approval` | the hub will not issue one yet. **Not a failure** — the first operator of a hub is admitted by its bootstrap secret and every later one needs an existing admin. The message names who can act |
+| `refused` | the hub answered and said no in a way no approval changes, such as the operator name being registered to a different key |
+| `identity_unavailable` | this machine could not sign: the key file did not open, or the secret source holding the identity did not answer. Nothing is wrong with the hub. Where a source did not answer, `--json` output carries its name as `source` and its code as `code` ([`protocol/secret-source`](../protocol/secret-source.md#reporting-a-source-that-did-not-answer)) |
 | `unreachable` | nothing answered, or the hub does not serve `POST /v1/admin/operators/token` — reported distinctly, because telling somebody to await an approval that is never coming is worse than saying the hub is too old |
 
 Flags:
 
 | Flag | Purpose |
 |---|---|
-| `--orch <url>` | the hub's address. Required |
+| `--orch <url>` | the hub's address: its admin gateway, where the CLI sends every request it makes at the hub. Required |
 | `--name <name>` | the operator, as the hub will record them. Defaults to the stored identity's name |
 | `--identity <label>` | which identity signs, by label. The CLI resolves where it lives — see `architecture/admin` rule 2 |
 | `--keys-dir <path>` | which identity signs, by location. Outranks `--identity` |
 | `--json` | machine-readable result, for a console driving this |
+| `--no-store` | return the token — on stdout, or in the `--json` result — and write no token file |
+| `--cap <name,...>` | mint the token with `cap` naming only these capabilities, those the operator's role carries (`architecture/admin`, operator-token-issuance). For a caller that needs less than the role carries, such as a script |
+| `--remember-passphrase` | where the credential key is kept in its own envelope ([A credential for each hub](#a-credential-for-each-hub)), have a source remember the passphrase chosen for it. Refused, keeping nothing, where no source that lists `store` is available |
+| `--passphrase-holder <source>` | with `--remember-passphrase`, the source that remembers it, where it is not the identity's own |
 
 **The passphrase arrives on stdin and never in argv.** A passphrase in a
 command-line argument is readable by every process on the machine, so one is
-refused rather than accepted with a warning. A vault-held identity is not asked
-for one.
+refused rather than accepted with a warning. An identity whose passphrase a
+secret source holds is not asked for one.
 
 ### `weblisk operator token`
 
@@ -1307,16 +1701,105 @@ Refresh or inspect the current operator token.
 $ weblisk operator token
 Operator: alice
 Role:     admin
-Expires:  2026-04-26T10:00:00Z (23h remaining)
-Orch:     http://localhost:9800
+Expires:  2026-04-26T10:00:00Z (52m remaining)
+Hub:      https://hub.example.com
 
 $ weblisk operator token --refresh
-✓ Token refreshed. Expires: 2026-04-27T10:00:00Z
+✓ Token refreshed. Expires: 2026-04-26T11:00:00Z
 ```
+
+**Where a token is kept.** `connect`, `register` and `token --refresh` store
+the token they obtain beside the identity that obtained it, mode 0600, so the
+next command can use it. The token is a bearer credential: whoever holds the
+file may use it until it expires. It carries every capability the operator's
+role carries, `admin:*` and every person-only capability for an admin, and
+mode 0600 keeps it from other users, never from another program the same
+user runs, an agent included. `architecture/admin`'s rule that no agent holds
+a person's token binds a console
+([`console-credential-use`](admin.md#a-console-holds-a-credential-never-a-token)),
+and a stored file is outside it: a person who runs agents under their own
+account passes `--no-store`. **`--no-store` writes no token file.** The
+token goes to stdout, or into the `--json` result, and nowhere else. A caller
+that holds the token itself passes it — a console does, because a console
+never writes an operator token anywhere
+([`architecture/admin`](admin.md#a-console-holds-a-credential-never-a-token)).
+
+**A token goes to the hub's admin gateway and nowhere else.** The CLI, and a
+caller it hands a token to, presents it at the hub's admin gateway alone, as
+every holder of an operator token must
+([`protocol/identity`](../protocol/identity.md#the-pass)). The content
+service, the fabric and every other component are reached through the
+gateway, on a pass addressed to them alone, so a token minted with no `--cap`,
+which carries the role's full set, reaches no component but the orchestrator
+that issued it. `--cap` narrows a token for a caller that needs less than the
+role carries. A narrowed token is never stored, so `--cap` requires
+`--no-store`, and the token the next command uses keeps the role's full set.
+
+### `weblisk operator attest`
+
+Have an identity attest credentials that another program holds, at one hub,
+or at several in one approval.
+
+```bash
+$ weblisk operator attest --orch https://hub.example.com --identity alice \
+    --credential-key ./credential.pub --device-label "console on build-01" --json
+$ weblisk operator attest --identity alice --batch ./attest.json --json
+```
+
+For a console. The console generates the credential's key pair and keeps it;
+this verb is how the account's operator identity attests the public half
+without the console ever holding the identity
+([`protocol/secret-source`](../protocol/secret-source.md#a-console-never-holds-the-secrets-of-an-identity-it-acts-for)).
+Once `weblisk/credential-auth/v1` has test vectors, and not before (below),
+the steps are [`architecture/admin`](admin.md#obtaining-a-token)'s:
+
+- Reads the credential's public key from the file `--credential-key` names
+- Asks the hub for an attestation token, signing `{hub_id, name, timestamp}`
+  with the identity, with the `hub_id` of the registration recorded for that
+  hub, and takes `identity_id` from the answer. Where none is recorded, it
+  sends a registration first, as `connect` does
+- Builds the `Attestation` itself — the `identity_id` the registration
+  recorded for that hub, the identity's public key, the credential public
+  key, `hub_id`, `--device-label` and `not_after` — signs its canonical form,
+  and submits it only where the attestation-token answer names that same
+  `identity_id`. It never
+  computes the identity id from the key: a hub keeps an operator's identity id
+  across a change of identity key
+  ([`architecture/admin`](admin.md#changing-an-identity-key)), so after one it
+  is not the key's fingerprint. It never signs bytes a caller supplies, so it
+  is not a way to get the identity's signature over anything else
+- `--days <n>` sets `not_after` that many days ahead, within the default and the
+  cap [`architecture/admin`](admin.md#attesting-a-credential) states, and is
+  refused beyond the cap
+- Submits the attestation and prints the credential's id and its `not_after`.
+  `--json` gives them as `cid` and `not_after`
+- Writes nothing to disk, and unlocks the identity once for both signatures
+- `--batch <path>` names a JSON file listing several credentials, each entry
+  an object with `orch`, `credential_key` and `device_label`, in place of
+  `--orch`, `--credential-key` and `--device-label`. It attests them all as
+  [One approval vouches for every hub](#one-approval-vouches-for-every-hub)
+  says, a separate attestation for each hub in one approval of the identity,
+  registering first at each entry's `orch` that no registration names, and
+  with `--json` answers an array in the order of the entries, each with
+  `orch` and either `cid` and `not_after` or `code`
+
+Its outcomes are `attested`, and `pending_approval`, `refused`,
+`identity_unavailable` and `unreachable` as `connect` reports them. With
+`--json`, a refusal carries the hub's error code as `code`. `--orch`, `--name`,
+`--identity` and `--keys-dir` mean what they mean for `connect`.
+
+**Not before the credential's answer has test vectors.** A credential is used
+only to answer a hub's challenge, under `weblisk/credential-auth/v1`, which no
+client signs with before this corpus publishes its test vectors
+([A credential for each hub](#a-credential-for-each-hub)). Until then a
+credential this verb vouched for could be used at no hub, so `attest`, with or
+without `--batch`, attests nothing: it sends nothing to any hub, asks the
+identity to sign nothing, and exits 2 saying why.
 
 ### `weblisk operator rotate`
 
-Rotate the operator's ML-DSA-65 key pair.
+Change the identity's ML-DSA-65 key at every hub it is registered at, keeping
+its name, role and identity id at each.
 
 ```bash
 $ weblisk operator rotate
@@ -1324,17 +1807,111 @@ Enter current passphrase: ********
 Generating new key pair...
 Enter new passphrase (min 12 characters): ********
 Confirm new passphrase: ********
-Registering new public key with orchestrator (signed by old key)...
-✓ Key rotated successfully.
-  New Key ID: f7e8d9c0...
-  Old key archived: ~/.weblisk/keys/operator.key.revoked
+Sending the new public key to 3 hubs (signed by the old key and the new)...
+  ✓ 7c1e…  changed
+  ✓ 0b9d…  changed
+  ✗ 4f2a…  unreachable — still pending
+Rotation pending at 1 hub. The old key is kept until it finishes:
+  weblisk operator rotate --resume
 ```
 
-- Decrypts existing key with current passphrase
-- Generates new ML-DSA-65 key pair
-- Encrypts new key with new passphrase
-- Registers new public key with orchestrator (signed by old key for proof of continuity)
-- Old key moved to `operator.key.revoked` beside the identity, for audit
+- **Where it sends.** To every hub in the identity's registrations
+  ([A credential for each hub](#a-credential-for-each-hub)), at the address
+  each was last reached at, through `POST /v1/admin/operators/{name}/key` with
+  the name and `hub_id` the registration records, signed by the old key for
+  continuity and by the new key for possession
+  ([`architecture/admin`](admin.md#changing-an-identity-key)). A hub whose
+  credential lapsed and was discarded is still registered, so it is sent the
+  change too. Rotate takes no `--orch` or `--name`: a key belongs to the
+  identity, and a change made at some of its hubs and not others is exactly
+  the state below.
+- **Recorded before anything is sent.** The CLI generates the new key, keeps
+  it beside the identity as the **next** key, in the holder's form below, and
+  writes a rotation record listing every registration as `pending`. Each hub
+  that answers `200` with the registration's `identity_id` is marked
+  `changed`, whether it applied the change then or answers a repeat of a
+  change it applied before, whose answer was lost
+  ([`architecture/admin`](admin.md#changing-an-identity-key)). One that
+  answers `200` with another `identity_id` is marked `refused` and reported:
+  it took the new key, for an operator this registration does not name.
+  `OPERATOR_REVOKED` and `OPERATOR_UNKNOWN` are reported, and the hub stays
+  `pending`, with its registration kept until the person confirms its
+  removal ([A credential for each hub](#a-credential-for-each-hub)). Any
+  other refusal, and a hub that cannot be reached or answers another
+  `hub_id`, leaves it `pending`, reported with its code or as
+  `unreachable`.
+- **Never with nowhere to send.** With no registrations, or while the
+  identity holds a credential kept under a `hub_id` it has no registration
+  for, `rotate` is refused and names each such `hub_id`. An identity that
+  registered before the CLI kept registrations is still recorded by those
+  hubs under the old key, and a rotation that finished would destroy the
+  only key they accept. `connect` to each hub writes its registration. A
+  person sure the identity is registered at no hub confirms it when asked;
+  under `--json` or with no terminal the refusal stands.
+- **While a rotation is pending, the identity's key is the new one.**
+  `operator.pub` holds the new public key from the moment the record is
+  written, and every signature the identity makes is made with the new key,
+  a registration at a new hub included. The old key signs one thing only: the
+  continuity of a key change at a hub still `pending`, which records the old
+  key and nothing else. So `connect` to a `pending` hub, and `attest` once it
+  sends anything ([`weblisk operator attest`](#weblisk-operator-attest)),
+  first send it the key change, whether or not a credential there is still live,
+  and the identity signs there with the new key once the change is accepted.
+  A refusal leaves the hub `pending`, and the command has the identity sign
+  nothing there and reports the code. For an encrypted file the key that
+  signs is `operator.key.next`: `operator.key` still holds the old key, and
+  signs only that continuity, so nothing pairs `operator.key` with
+  `operator.pub` while a rotation record exists.
+  [`weblisk operator path`](#weblisk-operator-path) names the file that
+  signs, so a caller that reads the files never has to know this.
+- **Resumed, never started again.** `weblisk operator rotate --resume` sends
+  the change to every hub still `pending`, signed by the old key and the new
+  over a fresh timestamp: a hub refuses a request it has seen and one outside
+  its 300-second window, so no attempt reuses another's bytes. The old key is
+  the one a hub that never applied the change still records, so it is the one
+  that can hand the operator on. A hub that applied the change and whose
+  answer was lost answers the same request as a repeat, `200`, and is marked
+  `changed`. With `connect`, and `attest` once it sends anything, doing the
+  same, a hub that was unreachable during the rotation
+  finishes it the next time it is reached. `rotate` without `--resume` while a
+  rotation is pending is refused, so a second new key never strands the
+  first.
+- **Finished when nothing is pending.** When every registration is `changed`,
+  or has been removed by the person, the old private key is destroyed in the holder's form
+  below, its public half is kept beside the identity as
+  `operator.pub.retired` with the time the rotation finished, for audit, and
+  the rotation record is deleted. Once no hub records the old key, nothing
+  may be signed with it, and a private key that is kept is one more copy of a
+  key to protect, kept for no use. Its public half is all an auditor needs.
+- **Abandoning a hub.** `weblisk operator rotate --abandon <hub_id>` removes
+  one `pending` or `refused` hub from the rotation, and its registration with
+  it, and asks for confirmation first. It is the only way out for a hub that
+  answered `OPERATOR_REVOKED` or `OPERATOR_UNKNOWN`, or `refused`, and the
+  person's confirmation is what removes the registration. A `refused` hub
+  already holds the new key, so abandoning it loses only the registration. A
+  `pending` hub that never applied the change keeps the old key as the
+  operator's identity key, and once the rotation finishes nothing on this
+  machine can sign for it there: that is the lost-key case, and the operator
+  is removed by an admin there and registers again as a new identity id
+  ([`architecture/admin`](admin.md#changing-an-identity-key)). Before it asks,
+  the CLI sends the change to that hub once more, so a hub that did apply it
+  and is reachable is marked `changed` instead.
+- **Credentials.** Each hub that accepts revokes every credential the old key
+  attested, so the CLI discards its credential for that hub, and the next
+  `connect` attests a new one with the new key. The hub answers the same
+  `identity_id` as before, and the attestation names it.
+
+**For each holder** ([Where an identity lives](#where-an-identity-lives)):
+
+| Holder | The next key | When the rotation finishes |
+|---|---|---|
+| Encrypted file | Generated by the CLI and written beside the identity as `operator.key.next`, in `weblisk-key-v1` with `kdf` `argon2id`, under a new passphrase the person types twice. The current passphrase opens the old key | `operator.key.next` replaces `operator.key`, and the old envelope is overwritten and removed |
+| Encrypted file, passphrase remembered by a source | As the encrypted file, and the source is asked to `store` the new passphrase, under a reference the rotation record keeps | `holder.json` names the new reference, and the old passphrase is `erase`d from the source |
+| A source holding it whole | Generated by the CLI and stored in the same source with `store`, as an identity created there is ([`protocol/secret-source`](../protocol/secret-source.md#an-identity-held-by-a-source)), under a reference the rotation record keeps | `holder.json` names the new reference, and the old one is `erase`d. A source that does not list `erase` is reported, and the person erases it with the source's own tool |
+| A source that signs and never releases the key | Not generated by the CLI: no action of `protocol/secret-source` creates a key in such a source. The person creates it with the source's own tool and names it with `--new-holder <source>:<reference>`, which the CLI maps as `weblisk operator store` maps one, once a signature through it verifies against the public key it reads. Without `--new-holder`, rotate is refused for this holder and says why | `holder.json` names the new reference. The CLI cannot destroy the old key, and tells the person to with the source's own tool |
+
+The passphrase of an encrypted file is never a flag and never in shell history,
+as for `operator init`.
 
 ---
 
@@ -1346,22 +1923,25 @@ System overview — the CLI equivalent of the admin dashboard landing page.
 
 ```bash
 $ weblisk status
-Weblisk — acme-corp (http://localhost:9800)
+Weblisk — acme-corp (https://hub.example.com)
 Protocol: v1    Uptime: 2d 14h 32m
 
 Agents:     8 online, 1 degraded, 0 offline
-Domains:    3 online (seo, content, health)
-Workflows:  12 today (10 ✓, 2 ✗)
-Approvals:  5 pending
-Federation: 2 peers, 1 pending request
-Health:     94/100 ▲
-
-Strategies:
-  Improve organic traffic    ██████████░░  67%  active
-  Reduce page load time      ████████████░  82%  active
+Domains:    unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
+Workflows:  unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
+Approvals:  unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
+Federation: unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
+Strategies: unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
 ```
 
-- Calls `GET /v1/admin/overview`
+- Calls `GET /v1/admin/overview` at the hub's admin gateway, which composes
+  the overview: the orchestrator's figures, and each other group asked of
+  the component that holds it on a pass, or carried as an object whose one
+  member, `unavailable`, holds a code, as `{"unavailable": "ADMIN_GROUP_UNAVAILABLE"}`
+  ([`architecture/admin`](admin.md#get-v1adminoverview)). A group carried
+  that way is shown as unavailable with its code, never as zero, and until
+  a provider's blueprint specifies its group on a pass every group but the
+  orchestrator's is shown that way
 - `--json` for machine-readable output
 - `--watch` to refresh every 5 seconds (like `watch`)
 
@@ -1375,20 +1955,23 @@ List all registered agents.
 
 ```bash
 $ weblisk agents list
-NAME              TYPE            STATUS    VERSION   TASKS(24h)  AVG LATENCY
-seo-analyzer      work            online    1.0.0     45          2.3s
-a11y-checker      work            online    1.0.0     23          1.1s
-content-analyzer  work            online    1.0.0     18          3.4s
-meta-checker      work            online    1.0.0     18          1.8s
-uptime-checker    work            online    1.0.0     288         0.4s
-perf-auditor      work            online    1.0.0     12          8.2s
-cron              infrastructure  online    1.0.0     —           —
-email-send        infrastructure  degraded  1.0.0     5           1.2s
+NAME              TYPE            STATUS    VERSION   LAST SEEN
+seo-analyzer      agent           online    1.0.0     10s ago
+a11y-checker      agent           online    1.0.0     12s ago
+content-analyzer  agent           online    1.0.0     8s ago
+meta-checker      agent           online    1.0.0     15s ago
+uptime-checker    agent           online    1.0.0     3s ago
+perf-auditor      agent           online    1.0.0     21s ago
+cron              infrastructure  online    1.0.0     5s ago
+email-send        infrastructure  degraded  1.0.0     2m ago
 
 8 agents (7 online, 1 degraded)
 ```
 
-- `--type <domain|work|infrastructure>` to filter
+- Shows what the orchestrator's registry holds of each agent, from
+  `GET /v1/admin/agents`, and no metrics, which no component serves to a
+  person yet ([`architecture/admin`](admin.md#agent-management))
+- `--type <domain|agent|infrastructure>` to filter, by the manifest's `type`, an absent one read as `agent`
 - `--status <online|degraded|offline>` to filter
 - `--json` for machine-readable output
 
@@ -1399,36 +1982,32 @@ Full detail for a single agent.
 ```bash
 $ weblisk agents describe seo-analyzer
 Agent: seo-analyzer
-Type:  work    Domain: seo    Version: 1.0.0
+Type:  agent    Version: 1.0.0
 URL:   http://localhost:9710
-Status: online    Uptime: 2d 14h
+Status: online    Registered: 2d 14h ago
 
 Capabilities:
   file:read     **/*.html
   llm:chat      *
   agent:message *
 
-Metrics (24h):
-  Tasks:          45
-  Success rate:   97.8%
-  Avg latency:    2.3s
-  P95 latency:    5.1s
-  Observations:   120
-  Recommendations: 38
+Metrics:    unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
 
-Recent Tasks:
-  TIME        STATUS     DURATION  SUMMARY
-  10:30:01    success    2.1s      Scanned 3 files
-  10:25:12    success    3.4s      Analyzed metadata for 5 files
-  09:15:00    failed     0.8s      File not found: missing.html
-
-Behavioral Fingerprint:
-  Manifest hash: a1b2c3...  (unchanged since registration)
-  Last change: none
+Behavioral Fingerprint: unavailable — no component serves it or its change history
 ```
 
+- Reads the agent from `GET /v1/admin/agents/{name}`, and its metrics from
+  `GET /v1/admin/agents/{name}/metrics`, which the admin gateway answers
+  `ADMIN_GROUP_UNAVAILABLE` while no blueprint specifies that route
+  ([`architecture/admin`](admin.md#agent-management)). Metrics are then shown
+  as unavailable with that code, never as zero. No recent tasks are shown:
+  the orchestrator handles none, and no component serves them to a person.
+  The behavioural fingerprint and its change history are shown unavailable,
+  as admin's Agent Detail shows them, while no component serves them to a
+  person: no figure stands in for one, and no change history reads as none
 - `--json` for machine-readable output
-- `--metrics-range <1h|24h|7d|30d>` to change metrics window
+- `--metrics-range <1h|24h|7d|30d>` to change the metrics window, once a
+  provider serves them
 
 ### `weblisk agents deregister <name>`
 
@@ -1909,7 +2488,7 @@ Results: 38/38 passed (0 failed, 0 skipped)
 
 | Flag | Description |
 |------|-------------|
-| `--orch <url>` | Orchestrator URL to test against |
+| `--orch <url>` | The orchestrator's own address to test against, which is sent no person's token ([Configuration](#configuration)) |
 | `--level <n>` | Run specific level only (1, 2, or 3) |
 | `--test <id>` | Run a single test by ID (e.g., `L1-03`) |
 | `--verbose` | Show request/response details for each test |
@@ -2262,28 +2841,41 @@ $ weblisk marketplace terminate mkt-001
 
 | Source | Precedence | Location |
 |---|---|---|
-| Command-line flag | 1 — highest | `--orch http://localhost:9800` |
+| Command-line flag | 1 — highest | `--orch https://hub.example.com` |
 | Environment variable | 2 | Implementation-defined |
 | Project config | 3 | `.weblisk/config.json` in the working directory |
 | User config | 4 — lowest | `~/.weblisk/config.json` |
 
 | Key | Type | Description |
 |---|---|---|
-| `orchestrator_url` | string | Which orchestrator commands act against |
+| `orchestrator_url` | string | The hub's address an operator command uses when `--orch` is omitted: its admin gateway, where every request carrying the person's token goes, and never the orchestrator's own address. The key keeps the name it had before the admin gateway was the hub's one door |
 | `operator_name` | string | Which identity to resolve; never a key or a passphrase |
 | `default_format` | string | Output shape — `table` or `json` |
-The CLI reads orchestrator connection details from (in priority order):
+The CLI reads the hub's address, its admin gateway, from (in priority order):
 
-1. Command-line flags: `--orch http://localhost:9800`
+1. Command-line flags: `--orch https://hub.example.com`
 2. Environment variable (implementation-defined)
 3. Project config: `.weblisk/config.json` in the working directory
 4. User config: `~/.weblisk/config.json`
+
+**`--orch` names one of two addresses, by command.** On an operator command,
+one a person runs against a hub — every `weblisk operator` command and every
+command that calls the hub's administrative routes — it is the hub's admin
+gateway, and the sources above supply it when the flag is omitted. On a
+command that runs, registers or tests a component —
+[`weblisk component <name> init`](#weblisk-component-name-init),
+[`weblisk agent start`](#weblisk-agent-start),
+[`weblisk test conformance`](#weblisk-test-conformance), and the address
+[`weblisk server start`](#weblisk-server-start) passes each sibling — it is
+the orchestrator's own address, which a component registers with, and the
+sources above are never read for it. Only the first is ever sent a person's
+token.
 
 ### Config File
 
 ```json
 {
-  "orchestrator_url": "http://localhost:9800",
+  "orchestrator_url": "https://hub.example.com",
   "operator_name": "alice",
   "default_format": "table"
 }
@@ -2291,16 +2883,28 @@ The CLI reads orchestrator connection details from (in priority order):
 
 ### Authentication Flow
 
-Every command that calls the orchestrator:
+Every command that calls the hub's admin gateway:
 
 ```
 1. Resolve which identity acts: --keys-dir, else --identity <label>, else the unnamed default
 2. Load the token stored beside that identity
-3. Check token expiry — if < 1 hour remaining, auto-refresh, signing with the
-   identity's holder (the encrypted key file, or the vault)
+3. If it has expired, or less than a fifth of its lifetime remains, obtain a
+   new one as architecture/admin's "Obtaining a token" says: the credential
+   this identity holds for that hub (A credential for each hub) answers a
+   challenge. The identity's holder (the encrypted key file, or a secret
+   source) signs only to attest a credential where there is none the hub
+   accepts. A hub that does not serve the credential routes still answers the
+   identity-signed request with an operator token, and that path is deprecated.
+   The identity-signed request names the recorded hub_id whichever path
+   answers it, and is never sent to a hub with no registration recorded.
+   Until weblisk/credential-auth/v1 has test vectors no credential answers a
+   challenge, so only that deprecated path yields a token, and a hub that
+   serves the credential routes is reported and the command exits 2
+   (A credential for each hub)
 4. Set Authorization: Bearer <token> on request
 5. If 401 response → attempt token refresh → retry once
-6. If refresh fails → print "Session expired. Run: weblisk operator register"
+6. If the hub refused the credential → print that the identity must attest a
+   new one: "Run: weblisk operator connect". Otherwise print the hub's code
 ```
 
 ---
@@ -2312,7 +2916,7 @@ Every command that calls the orchestrator:
 | 0 | Success |
 | 1 | General error (invalid arguments, missing config) |
 | 2 | Authentication error (no keys, expired token, rejected) |
-| 3 | Connection error (orchestrator unreachable) |
+| 3 | Connection error (the hub unreachable at the address the command uses) |
 | 4 | Not found (agent, workflow, strategy not found) |
 | 5 | Permission denied (role insufficient) |
 
@@ -2326,16 +2930,27 @@ security:
     description: |
       The CLI runs with the full authority of the person invoking it, on their
       machine, and is therefore the most dangerous component in the framework to
-      get wrong. It holds no long-lived secret of its own: it signs with an
-      identity whose private half may never be extractable, and it mints
-      short-lived credentials rather than storing them.
+      get wrong. It holds no secret of its own. Beside each identity it keeps
+      one credential for each hub that identity attested, never in the clear,
+      and mints short-lived tokens with it. The identity, whose private half
+      may never be extractable, signs only to register and to attest.
   boundaries:
     - boundary: Operator → CLI. The operator's identity authorises every
         privileged operation; the CLI holds no standing authority
-    - boundary: CLI → Identity holder. The private half may live in hardware or a
-        vault; the CLI asks for a signature and never for the key
-    - boundary: CLI → Orchestrator. Authenticated per request with a short-lived
-        credential, over a transport the operator named
+    - boundary: CLI → Identity holder. A secret source that can sign keeps the
+        private half and returns a signature. From one that cannot, the CLI gets
+        the encrypted private half and its passphrase, decrypts it in memory,
+        signs, and zeroises both (protocol/secret-source). An encrypted key file
+        is decrypted in memory for one invocation, with the passphrase a person
+        typed or a secret source remembers, and never written back in the clear
+    - boundary: CLI → Admin gateway. Every operator command, authenticated per
+        request with a short-lived token minted with the credential for that
+        hub, over a transport the operator named. The person's token is
+        presented there and nowhere else (protocol/identity, The pass)
+    - boundary: CLI → Orchestrator. Only a command that runs, registers or
+        tests a component, which acts as that component, and the first
+        operator's registration at provision, which presents the bootstrap
+        secret. Neither sends a person's token
     - boundary: CLI → Local filesystem. Confined to the project and the
         operator's own configuration directory
   enforcement:
@@ -2345,8 +2960,13 @@ security:
     - rule: A key or passphrase is never written to a log, a crash report or a
         cache
       mechanism: Redaction at the boundary of every diagnostic path
-    - rule: An operating credential is short-lived and held in memory
-      mechanism: Minted per invocation from the identity, never persisted
+    - rule: A token is short-lived, and never minted with the identity
+      mechanism: Minted with the credential for that hub and lasting an hour.
+        Kept beside the identity, mode 0600, or with --no-store not written at
+        all
+    - rule: A credential key is never in the clear
+      mechanism: Kept in the weblisk-key-v1 envelope or by a secret source, and
+        opened as the identity's own key is
     - rule: A destructive operation requires explicit confirmation
       mechanism: Confirmation is a distinct argument, never a default, and never
         satisfied by a non-interactive invocation unless declared
@@ -2391,10 +3011,11 @@ security:
 - [ ] `weblisk secret rotate` triggers the rotation handler or prompts for new value
 
 ### Server & Code Generation
-- [ ] `weblisk tenant create` ends with a hub running, a first grant issued, and an address to connect to
+- [ ] `weblisk tenant create` ends with a hub running and its first operator registered, and, while no hub this CLI stands up has an admin gateway, says it has no address to connect to and records none, never the orchestrator's own address
+- [ ] `weblisk server provision` registers the first operator with the bootstrap secret and keeps no token, records no registration, and writes no `orchestrator_url`; no operator command afterwards sends a request, a token among it, to the orchestrator's own address
 - [ ] `weblisk tenant create` writes a `.gitignore` excluding `.weblisk/keys/`, `.weblisk/secrets/`, `.weblisk/token`, `.env` and `.env.*`, so the directory it just put a private key in is not one `git init` from committing it
 - [ ] `weblisk tenant create` emits the steps `provider · directory · generate · skills · provision · accept · done`, and renaming one breaks both front ends at once
-- [ ] `weblisk tenant create` generates the orchestrator only; every other component is added afterwards and the command does not claim otherwise
+- [ ] `weblisk tenant create` generates the orchestrator only; every other component is added afterwards, the admin gateway excepted while no command builds it, and the command does not claim otherwise
 - [ ] `weblisk tenant accept` reports a `404` as an absent route and a `401` as a pass, and a failed non-essential check does not fail the tenant
 - [ ] `weblisk tenant create` asks no model provider anything until the orchestrator's blueprint resolves, the resolved corpus parses and the platform's toolchain is present
 - [ ] `weblisk tenant create --port 0` starts the orchestrator on a free port chosen when it is started, and the result reports that port
@@ -2418,7 +3039,7 @@ security:
 - [ ] `weblisk gateway start` builds and runs the application gateway
 
 ### Blueprint Management
-- [ ] `weblisk blueprint update` re-fetches all cached blueprint sources
+- [ ] `weblisk blueprint update` re-fetches all cached blueprint sources and resets each clone to the commit fetched, so an edit made in a clone to a file its source holds does not survive; a source it cannot reach keeps the last version fetched, and the command says so
 - [ ] `weblisk validate` checks blueprint compliance (frontmatter, sections, types, deps)
 - [ ] `weblisk pattern apply` reads pattern blueprint, dispatches to LLM with target context
 - [ ] Blueprint resolution follows priority: the corpus you are standing in → the project's `blueprints/` → configured blueprint sources → core
@@ -2434,16 +3055,57 @@ security:
 
 ### Identity & Operations
 - [ ] `weblisk operator init` creates the identity that `--keys-dir`, `--identity` or the unnamed default `~/.weblisk/keys/` selects, with 0700 directory and 0600 file permissions
-- [ ] `weblisk operator init` without `--vault` prompts for passphrase (min 12 chars), encrypts private key with Argon2id + AES-256-GCM
+- [ ] `weblisk operator init` without `--holder` prompts for passphrase (min 12 chars), encrypts private key with Argon2id + AES-256-GCM
 - [ ] `weblisk operator init` passphrase cannot be skipped or supplied as CLI argument
-- [ ] `weblisk operator init --vault` writes no private key to disk and asks for no passphrase
+- [ ] `weblisk operator init --holder <source>` writes no private key beside the identity and asks for no passphrase
+- [ ] `weblisk operator init --vault <vault>` behaves exactly as `--holder 1password --holder-opt vault=<vault>`
+- [ ] `weblisk operator store --holder <source>:<reference>` writes `operator.pub` and `holder.json` and no private key, and only once a probe signed through the reference verifies against the public key; before `weblisk/holder-probe/v1` has test vectors it writes them unproven, says so, and refuses any signature through the reference that does not verify against that key, in this command or a later one, never sending it
+- [ ] `weblisk operator init --holder <source> --remember-passphrase` writes an encrypted `operator.key`, asks for the passphrase, and has the source keep only that passphrase; `holder.json` records `holds: ["passphrase"]`
+- [ ] `weblisk operator store --holder <source> --remember-passphrase` keeps the existing key file, and has the source keep its passphrase only after checking that it opens the key
 - [ ] `--identity <label>` resolves to the same location on every run, and `weblisk operator path --identity <label>` reports it
 - [ ] `weblisk operator init --json` prints `name`, `keys_dir`, `public_key`, `holder` and `created`, carries no private key and no passphrase, and writes nothing else to stdout
 - [ ] `--keys-dir` outranks `--identity` when both are given
-- [ ] `weblisk operator connect` asks for no passphrase when the identity is vault-held
+- [ ] `weblisk operator connect` asks for no passphrase when a secret source holds the identity's passphrase
+- [ ] `weblisk operator connect` reports `connected`, `pending_approval`, `refused`, `identity_unavailable` or `unreachable`, and with `--json` an `identity_unavailable` result carries `source` and `code`
 - [ ] `weblisk operator init` does not overwrite existing keys without --force flag
-- [ ] `weblisk operator register` signs the registration payload with the operator's private key and stores the returned token
-- [ ] `weblisk operator token` auto-refreshes the token when less than 1 hour remaining before expiry
+- [ ] `weblisk operator register` signs the registration payload with the operator's private key and stores the token it obtains
+- [ ] `weblisk operator register --bootstrap <path>` sends the bootstrap secret read from that file, and the secret is never accepted as an argument
+- [ ] `weblisk operator token` refreshes the token when it has expired or less than a fifth of its lifetime remains, without asking the identity to sign anything but an attestation
+- [ ] `--no-store` on `weblisk operator connect`, `weblisk operator register` and `weblisk operator token --refresh` returns the token on stdout or in the `--json` result, and writes no token file
+- [ ] `--cap content:read,content:describe` on `weblisk operator connect` or `weblisk operator token --refresh` returns a token whose `cap` names those two alone, and is refused without `--no-store`
+- [ ] Once `weblisk/credential-auth/v1` has test vectors, `weblisk operator attest` signs only an `Attestation` it builds itself, refuses a `--days` beyond admin's cap, submits it, reports the credential's `cid` and `not_after`, and writes nothing to disk
+- [ ] Once `weblisk/credential-auth/v1` has test vectors, attesting at several hubs asks the identity once: one passphrase for an encrypted key file, or, for a source that lists `sign_batch`, one `sign` request carrying every hub's attestation-token request and `Attestation`; a source that does not list it is asked once for each, after the CLI has said how many approvals that takes
+- [ ] Once `weblisk/credential-auth/v1` has test vectors, each hub is sent an `Attestation` naming only its own `hub_id`, its recorded `identity_id` and the credential key made for it, no `Attestation` names more than one hub, and one is submitted only where that hub's attestation-token answer names the same `identity_id`
+- [ ] Once `weblisk/credential-auth/v1` has test vectors, a credential attested between renewals takes the `not_after` the device's other attestations share; once one has fewer than 7 days left every command that mints a token warns, and the next `connect` renews every attestation on the device in one approval, each with `not_after` 30 days ahead and its `cid` unchanged
+- [ ] Once `weblisk/credential-auth/v1` has test vectors, `weblisk operator attest --batch <path>` attests every entry in one approval of the identity and, with `--json`, answers an array in the order of the entries, each with `orch` and either `cid` and `not_after` or `code`
+- [ ] Once `weblisk/credential-auth/v1` has test vectors, connecting, switching from one hub to another and refreshing a token ask the identity to sign nothing while this device holds an attested credential at that hub that is not due
+- [ ] Every `Attestation` the CLI builds names the `identity_id` the hub's attestation-token answer carries, never one computed from the identity key, so an identity that changed its key still attests at every hub that accepted the change
+- [ ] Once `weblisk/credential-auth/v1` has test vectors, `connect` and `register` generate one ML-DSA-65 credential per identity per hub the first time they reach it, have the identity attest it once, keep its private key only in the `weblisk-key-v1` envelope or a secret source, and mint every later token with it without asking the identity
+- [ ] Before `weblisk/credential-auth/v1` has test vectors, `connect`, `register` and `operator token` at a hub that serves `POST /v1/admin/credentials/challenge` sign nothing under that prefix, make no credential, ask for no attestation token and exit 2 saying why, `register` after recording the registration the answer names; at a hub that answers it `404` or `405` they take the deprecated identity-signed path
+- [ ] Before `weblisk/credential-auth/v1` has test vectors, `weblisk operator attest`, with or without `--batch`, sends nothing to any hub, asks the identity to sign nothing, and exits 2 saying why
+- [ ] Once `weblisk/credential-auth/v1` has test vectors, for an identity held by a secret source whose `capabilities` do not list `store`, `connect` keeps the new credential key beside the identity in its own `weblisk-key-v1` envelope with `kdf` `argon2id`, under a passphrase the person chose for it, and never in the clear or under `kdf` `none`
+- [ ] Once `weblisk/credential-auth/v1` has test vectors, for an identity held by a source that lists `store` but answers `named_fields` false, or names `private_key` in `withheld_fields`, `connect` keeps the credential key in its own envelope beside the identity, never in that source, and signs every later challenge with it
+- [ ] Once `weblisk/credential-auth/v1` has test vectors, `connect --remember-passphrase` for such an identity has a source that lists `store` keep the envelope's passphrase, and is refused, keeping nothing, when neither the identity's source nor one named with `--passphrase-holder` lists `store`
+- [ ] `register`, `connect` at an address no registration names, and, once `weblisk/credential-auth/v1` has test vectors, `attest` at one, record a registration from the registration answer, approved, pending or a repeat, naming its `hub_id`, the operator name it recorded, the `identity_id` it answered and the address it was reached at; discarding a credential after `CREDENTIAL_UNKNOWN` keeps the registration, and `OPERATOR_REVOKED` or `OPERATOR_UNKNOWN` is reported and removes it only when the person confirms; under `--json` it is kept
+- [ ] The CLI asks for an attestation token only by signing `{hub_id, name, timestamp}` with the `hub_id` of a recorded registration, never `{name, timestamp}`, and at an address no registration names sends a registration first, so an operator registered from another device records the hub's `hub_id` from the repeat's answer
+- [ ] A registration answer from an address no registration names, naming a `hub_id` recorded at another address, moves nothing: the CLI reports both addresses and signs nothing more there, and moves the registration only when the person confirms at a terminal, never with `--json`, `--batch` or no terminal
+- [ ] Once `weblisk/hub-proof/v1` has test vectors, `register`, `connect` and `attest` at an address no registration names ask `POST /v1/admin/hub/proof` there with the origin dialled and a fresh challenge before they send a registration, and record nothing and sign nothing more there where the proof is refused or absent, names another origin, carries a `public_key` whose fingerprint is not its `hub_id`, does not verify, or names a `hub_id` the registration answer does not; a test hub that relays both requests to a second hub, which lists only its own address, leaves no registration recorded
+- [ ] Once `weblisk/hub-proof/v1` has test vectors, a registration recorded before them through a test hub that relays to a second hub is proven at its next contact, before any identity or credential signature is sent there, and the CLI then signs nothing more at that address and reports it; a registration whose address proves its `hub_id` is recorded as proven and not asked again
+- [ ] Once `weblisk/credential-auth/v1` has test vectors, `weblisk operator attest --batch` whose entries include hubs this device has no registration for signs their registrations before the attestation-token requests and attestations, names each address it registers at on standard error before it asks, and asks a source that lists `sign_batch` and never releases the key twice, whatever the number of hubs
+- [ ] A hub at a recorded address whose challenge names a `hub_id` other than the recorded one, or that refuses the recorded one with `CREDENTIAL_FOREIGN_HUB`, is reported naming both, and the CLI signs nothing more for it until `weblisk operator register` there records that hub's own registration
+- [ ] `weblisk operator rotate` writes the next key and a rotation record listing every registration `pending` before it sends anything, then sends `POST /v1/admin/operators/{name}/key` to each registration with its own name and `hub_id`, signed by the old key and the new, a hub whose credential was discarded included
+- [ ] With one of three hubs unreachable, `rotate` marks two `changed` and one `pending`, keeps the old key, and exits non-zero naming the pending hub; `operator.pub` holds the new key, and a `register` at a fourth hub signs with the new key
+- [ ] `weblisk operator rotate --resume` against the hub left `pending` signs the change with the old key it still records and the new key, the hub answers `200` with the same `identity_id`, and only then is the old private key destroyed and its public half kept as `operator.pub.retired`
+- [ ] `weblisk operator connect` to a hub left `pending` by a rotation sends that hub the key change before it attests, and attests with the new key; when the change is refused it signs nothing there
+- [ ] `weblisk operator rotate` while a rotation is pending is refused without `--resume`, and generates no second key
+- [ ] `weblisk operator rotate --abandon <hub_id>` asks for confirmation, removes that hub and its registration from the rotation, and the rotation then finishes with the old private key destroyed when no other hub is still pending; with one still pending, the old private key is kept
+- [ ] A hub that applied a key change and whose `200` was lost is left `pending`; `rotate --resume`, or `connect` to it, sends the change again over a fresh timestamp, the hub answers `200` as a repeat, the hub is marked `changed`, and the rotation finishes
+- [ ] During a rotation, a hub that answers `OPERATOR_UNKNOWN` stays `pending` with its registration kept, and the rotation does not finish until the person abandons it with confirmation
+- [ ] `--abandon` accepts a `refused` hub, and the rotation then finishes
+- [ ] `weblisk operator rotate` with no registrations, or with a credential kept under a `hub_id` that has no registration, is refused naming each such `hub_id`, generates no key, and with `--json` stays refused
+- [ ] While an encrypted-file rotation is pending, a signature the identity makes verifies under `operator.pub` and was made with `operator.key.next`, and `weblisk operator path` names `operator.key.next` as the key that signs
+- [ ] For an identity held by a source that signs and withholds `private_key`, `weblisk operator rotate` without `--new-holder` is refused and says why; with `--new-holder <source>:<reference>` it maps that key only once a signature through it verifies, and never asks the source to create one
+- [ ] For an identity held whole by a source, `rotate` stores the new key in that source with `store`, and on finishing points `holder.json` at it and `erase`s the old reference, reporting a source that does not list `erase`
 - [ ] `weblisk operators revoke` invalidates target operator's public key and tokens (admin only)
 - [ ] `weblisk operators revoke` prevents self-revocation and revoking the last admin
 - [ ] `weblisk operators list` shows all registered operators with name, role, status, and registration date
@@ -2452,7 +3114,8 @@ security:
 - [ ] All commands output human-readable tables by default and structured JSON with --json flag
 - [ ] Destructive commands (agents deregister, federations revoke) require --confirm or interactive name-confirmation
 - [ ] `weblisk approvals reject` requires a --reason argument for every rejection
-- [ ] `weblisk status` calls GET /v1/admin/overview and displays agents, domains, workflows, approvals, federation, and health score
+- [ ] `weblisk approvals list`, `weblisk strategies list`, `weblisk strategies update`, `weblisk strategies delete`, `weblisk observations list`, `weblisk observations trends`, `weblisk federations peers`, `weblisk federations describe`, `weblisk federations contracts`, `weblisk domains list` and `weblisk workflows list` are sent to the hub's admin gateway, and report their group unavailable and exit 1 when it answers `ADMIN_GROUP_UNAVAILABLE`, as it does while no provider's blueprint specifies the route; the stored token is sent nowhere but the admin gateway
+- [ ] `weblisk status` calls `GET /v1/admin/overview` at the hub's admin gateway and displays agents, domains, workflows, approvals, federation and strategies, showing as unavailable, never as zero, each figure the gateway reports unavailable, and shows no health score
 - [ ] Exit codes are 0=success, 1=general error, 2=auth error, 3=connection error, 4=not found, 5=permission denied
 - [ ] Config resolution order: command-line flags > environment variable > .weblisk/config.json (project) > ~/.weblisk/config.json (user)
 - [ ] Commands fail fast with a clear message and non-zero exit code when the orchestrator is unreachable
@@ -2481,16 +3144,16 @@ security:
 - [ ] `weblisk policy test` runs policy assertions from policies_test.yaml
 
 ### Strategies
-- [ ] `weblisk strategies update` modifies priority, deadline, or targets of an existing strategy
-- [ ] `weblisk strategies delete` archives a strategy (admin only, requires confirmation)
+- [ ] Once the Lifecycle Agent's blueprint specifies the route, `weblisk strategies update` modifies priority, deadline, or targets of an existing strategy
+- [ ] Once the Lifecycle Agent's blueprint specifies the route, `weblisk strategies delete` archives a strategy (admin only, requires confirmation)
 
 ### Observations
-- [ ] `weblisk observations list` shows observation history with strategy/agent filters
-- [ ] `weblisk observations trends` displays metric trend data for a strategy
+- [ ] Once the Lifecycle Agent's blueprint specifies the route, `weblisk observations list` shows observation history with strategy/agent filters
+- [ ] Once the Lifecycle Agent's blueprint specifies the route, `weblisk observations trends` displays metric trend data for a strategy
 
 ### Federation
-- [ ] `weblisk federations describe` shows full peer detail including data contract and metrics
-- [ ] `weblisk federations contracts` lists all active data contracts across peers
+- [ ] Once the federation layer's blueprint specifies the route, `weblisk federations describe` shows full peer detail including data contract and metrics
+- [ ] Once the federation layer's blueprint specifies the route, `weblisk federations contracts` lists all active data contracts across peers
 
 ### Marketplace
 - [ ] `weblisk marketplace search` queries the marketplace with text search

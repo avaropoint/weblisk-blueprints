@@ -211,11 +211,13 @@ weblisk blueprint update
 
 The CLI resolves blueprints in priority order:
 
-1. **Local project** — `./patterns/` in the user's project
+0. **The corpus you are standing in** — the working directory itself, when it
+   is a blueprint corpus such as this one, read in place
+1. **Local project** — `blueprints/` in the user's project
 2. **Custom sources** — additional repos via configured blueprint sources
 3. **Core** — this repository (always present)
 
-Custom sources override core blueprints with the same path. For example,
+A higher source overrides a lower one at the same path. For example,
 a customer's `domains/checkout.md` takes precedence over the core version.
 
 Blueprint sources are configured via runtime configuration (e.g.,
@@ -242,9 +244,11 @@ blueprint_sources:
 SSH keys, credential helpers, or GitHub CLI auth. No additional configuration
 is needed beyond what `git clone` already uses.
 
-**Update behavior:** `weblisk blueprint update` performs a `git pull` on each
-cached source. Sources are cached in `~/.weblisk/blueprints/`. If a source is
-unreachable, the CLI uses the last cached version and logs a warning.
+**Update behavior:** sources are cached in `~/.weblisk/blueprints/`, and
+`weblisk blueprint update` refreshes each cached copy from its source, keeping
+the last version when a source is unreachable —
+[`architecture/cli` → `weblisk blueprint update`](architecture/cli.md#weblisk-blueprint-update)
+says how.
 
 This supports multiple distribution models:
 
@@ -253,10 +257,15 @@ This supports multiple distribution models:
 | Core (open source) | `avaropoint/weblisk-blueprints` | Public, always available |
 | Vertical/partner | `avaropoint/weblisk-blueprints-ecommerce` | Granted per-customer |
 | Customer-owned | `acme-corp/acme-blueprints` | Customer's own repo |
-| Local project | `./patterns/` | Project-scoped, checked in |
+| Local project | `blueprints/` | Project-scoped, checked in |
 
 Access control is handled entirely by Git — private repos require the
 user's existing credentials (SSH key or GitHub CLI auth).
+
+A source that no tenant has declared — this repository, a partner's, a
+customer's own before their tenant takes it — is a repository outside a
+tenant. What one may be used for, and how what it holds reaches a tenant, is
+[`architecture/content` → Repositories Outside a Tenant](architecture/content.md#repositories-outside-a-tenant).
 
 ### Building Your Own
 
