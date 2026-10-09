@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.22.13
+version: 2.22.14
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -2158,18 +2158,31 @@ its own placements alone — among which
 overlap — and neither another tenant's nor what a client keeps outside every
 tenant. A client that keeps repositories outside a tenant can check the rule only
 against local paths. It refuses to keep, as outside a tenant, a path that equals,
-contains or sits inside a tenant directory it recorded — the directory a tenant
-was built into, which
-[`weblisk tenant create`](cli.md#weblisk-tenant-create-name) produces and which
-holds the tenant's keys: an overlap in either direction, as One placement, one
-repository refuses one, because a path that encloses a tenant directory holds
-what the tenant's builds generated, which is the tenant's. It refuses too a path
-that is, or sits inside, its own
-installation state, where it keeps no repository. It cannot see where a tenant
-keeps its repositories — a placement names a backend, never a location
+contains or sits inside a path it knows is a tenant's — an overlap in either
+direction, as One placement, one repository refuses one:
+
+- a **tenant directory** it recorded: the directory a tenant was built into,
+  which [`weblisk tenant create`](cli.md#weblisk-tenant-create-name) produces
+  and which holds the tenant's keys. A path that encloses one holds what the
+  tenant's builds generated, which is the tenant's;
+- a path at which it reads a tenant's repository itself, where it reads one at
+  a local path.
+
+It refuses too a path that is, or sits inside, its own installation state,
+where it keeps no repository. Two paths are compared as the filesystem holding
+them resolves them, never as strings: a string comparison puts `/x/tenant-2`
+inside `/x/tenant`, and lets a link, or a letter in another case, take a
+tenant's path outside the tenant. Every link in either path is resolved first,
+and the two are then compared segment by segment, two segments matching
+wherever that filesystem opens one entry for both — without regard to case
+where it folds case — as [Reserved Paths](#reserved-paths) compares a name by
+what is opened rather than by its bytes.
+
+It cannot see where a tenant keeps any other repository — a placement names a
+backend, never a location
 ([A placement names a backend, never a location](#a-placement-names-a-backend-never-a-location))
-— so a path that passes has been shown only not to overlap a tenant directory
-that client recorded, never to belong to no tenant (Design Principle 5).
+— so a path that passes has been shown only not to overlap a path that client
+knows is a tenant's, never to belong to no tenant (Design Principle 5).
 
 ---
 
