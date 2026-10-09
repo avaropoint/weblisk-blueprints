@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.22.1
+version: 2.22.2
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -2102,8 +2102,8 @@ tenant and recorded there:
   outside a tenant. Every entry it holds is recorded with provenance `unknown`,
   and the census records the digest of each one it could read
   ([What an adopted entry is, and is not](#what-an-adopted-entry-is-and-is-not)).
-- **The tenant takes a copy** into a repository it has declared — a standard it
-  will be measured against, a programme it adopts
+- **The tenant installs a copy** into a repository it has declared — a standard
+  it will be measured against, a programme it takes on
   ([`schemas/programme`](../schemas/programme.md#version-and-version_hash-are-not-alternatives))
   — written as any change is ([Who may move an entry](#who-may-move-an-entry)),
   so the change log of the repository written to holds the digest of every
@@ -2133,12 +2133,12 @@ its own placements alone — among which
 overlap — and neither another tenant's nor what a client keeps outside every
 tenant. A client that keeps repositories outside a tenant can check the rule only
 against local paths. It refuses to keep, as outside a tenant, a path that is, or
-sits inside, a tenant directory it recorded, a tenant's repository it reaches on
-its own machine, or its own installation state. It cannot see where a remote
-tenant keeps its files — a placement names a backend, never a location
+sits inside, a tenant directory it recorded or its own installation state. It
+cannot see where a tenant keeps its repositories — a placement names a backend,
+never a location
 ([A placement names a backend, never a location](#a-placement-names-a-backend-never-a-location))
-— so a path that passes is one no tenant the client can see holds, never one
-shown to belong to no tenant (Design Principle 5).
+— so a path that passes has been shown only to lie outside the tenant directories
+that client recorded, never to belong to no tenant (Design Principle 5).
 
 ---
 
