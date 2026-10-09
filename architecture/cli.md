@@ -550,14 +550,15 @@ implementation to get it:
 
     provider · directory · generate · skills · provision · accept · done
 
-**Nothing the corpus can refuse waits for a model.** Settling a provider asks the
-chosen backend to answer once — a real model call when nobody pinned one — so
-everything knowable from the blueprints is asked first: that the orchestrator's
-own blueprint resolves, that every blueprint in the resolved corpus parses, and
-that this machine has the toolchain the platform blueprint asks for. A run with
-no corpus to build from used to pay for a provider and then be refused. A
-refusal there is reported under `provider`, the step that would otherwise have
-spent the call, and says that no provider was asked.
+**Nothing the corpus can refuse waits for a model.** Settling a provider when
+nobody named one asks the backend it would start with to answer once, a real
+model call ([`weblisk providers`](#weblisk-providers)), so everything knowable
+from the blueprints is asked before any provider is settled: that the
+orchestrator's own blueprint resolves, that every blueprint in the resolved
+corpus parses, and that this machine has the toolchain the platform blueprint
+asks for. A run with no corpus to build from used to pay for a provider and
+then be refused. A refusal there is reported under `provider`, the step that
+would otherwise have spent the call, and says that no provider was asked.
 
 **`--port 0` picks a free port**, chosen when the orchestrator is started rather
 than at second zero: a port that was free before an hour of generation is not a
