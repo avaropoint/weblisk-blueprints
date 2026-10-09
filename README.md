@@ -244,9 +244,11 @@ blueprint_sources:
 SSH keys, credential helpers, or GitHub CLI auth. No additional configuration
 is needed beyond what `git clone` already uses.
 
-**Update behavior:** `weblisk blueprint update` performs a `git pull` on each
-cached source. Sources are cached in `~/.weblisk/blueprints/`. If a source is
-unreachable, the CLI uses the last cached version and logs a warning.
+**Update behavior:** sources are cached in `~/.weblisk/blueprints/`, and
+`weblisk blueprint update` refreshes each cached copy from its source, keeping
+the last version when a source is unreachable —
+[`architecture/cli` → `weblisk blueprint update`](architecture/cli.md#weblisk-blueprint-update)
+says how.
 
 This supports multiple distribution models:
 

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.19.10
+version: 2.19.11
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -990,8 +990,12 @@ Force re-fetch all blueprint sources.
 $ weblisk blueprint update
 ```
 
-Performs `git pull` on each cached source in `~/.weblisk/blueprints/`.
-If a source is unreachable, uses the last cached version.
+Fetches each source the CLI keeps a clone of in `~/.weblisk/blueprints/` from
+the repository it is a clone of, and resets the clone to the commit fetched. A
+reset, not a merge: the clone then holds the source's files as they are at that
+commit, and an edit made to one of them in the clone does not survive. If a
+source is unreachable, its clone keeps the last version fetched, and the command
+says so.
 
 ### `weblisk validate`
 
@@ -2805,7 +2809,7 @@ security:
 - [ ] `weblisk gateway start` builds and runs the application gateway
 
 ### Blueprint Management
-- [ ] `weblisk blueprint update` re-fetches all cached blueprint sources
+- [ ] `weblisk blueprint update` re-fetches all cached blueprint sources and resets each clone to the commit fetched, so an edit made in a clone to a file its source holds does not survive; a source it cannot reach keeps the last version fetched, and the command says so
 - [ ] `weblisk validate` checks blueprint compliance (frontmatter, sections, types, deps)
 - [ ] `weblisk pattern apply` reads pattern blueprint, dispatches to LLM with target context
 - [ ] Blueprint resolution follows priority: local → configured blueprint sources → core
