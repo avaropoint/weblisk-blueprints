@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.27.3
+version: 2.27.4
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -1098,17 +1098,18 @@ and it records `withdrawn_by` from that request's token.
   reaches ([`patterns/scope`](../patterns/scope.md#model-providers)). So a
   request that sets a name a current agreement lists withdraws that
   agreement in the same write, unless the configuration held that same name
-  before the write and the request changes nothing of it but the model. It
-  sets `withdrawn_by` from the request's token and `withdrawn_at`, and its
-  answer names each one withdrawn. A request that changes only the model
-  withdraws nothing, because a ceiling is a model's as well as a name's: the
-  model it sets has the agreement's level only where the agreement lists it,
-  and `internal` otherwise. This is the one rule for what the request
-  withdraws. Without it, a token narrowed for administration, carrying
-  `admin:*` and not `model:attest`, could point a listed name at a party
-  nobody attested and raise that party to the agreement's level; and without
-  the ceiling being the model's, it could do the same by changing only the
-  model, at a backend whose model chooses who runs it.
+  before the write and the request changes nothing of it but its models:
+  `model`, and the model `roles` gives each role. It sets `withdrawn_by` from
+  the request's token and `withdrawn_at`, and its answer names each one
+  withdrawn. A request that changes only models, a role's included,
+  withdraws nothing, because a ceiling is a model's as well as a name's:
+  each model it sets has the agreement's level only where the agreement
+  lists it, and `internal` otherwise. This is the one rule for what the
+  request withdraws. Without it, a token narrowed for administration,
+  carrying `admin:*` and not `model:attest`, could point a listed name at a
+  party nobody attested and raise that party to the agreement's level; and
+  without the ceiling being the model's, it could do the same by changing
+  only a model, at a backend whose model chooses who runs it.
 - `GET /v1/admin/model/ceiling` returns a `ProviderCeiling` for the backend
   and the model `GET /v1/admin/model` reports, or for the name `?backend=`
   gives and the model `?model=` gives. It is what a client reads before it
@@ -2103,8 +2104,9 @@ agents hold, which is theirs.
 - [ ] `GET /v1/admin/agents/{name}` answers the agent's `manifest`, `agent_id`, `status`, `registered_at` and `last_seen`, and no `token` member, so the registration token its `AgentEntry` holds, live for up to 24 hours and carrying the agent's capabilities, reaches no operator
 - [ ] `POST /v1/admin/complete` with no `scope` is refused with `SCOPE_MISSING`, one above the ceiling `GET /v1/admin/model/ceiling` reports for the backend and model it would run is refused with `SCOPE_CEILING_EXCEEDED`, and one at `restricted` is refused whatever the ceiling; none of them runs a backend
 - [ ] `POST /v1/admin/model/agreements` and `DELETE /v1/admin/model/agreements/{id}` refuse a token without `model:attest` with `FORBIDDEN`, including one holding `admin:*`, and a service's or an agent's token with `CREDENTIAL_REQUIRED`
-- [ ] A `PUT /v1/admin/model` on a token carrying `admin:*` and not `model:attest` that sets a name a current agreement lists, and changes anything of it but the model or held another name before, withdraws that agreement, names it in its answer, and `GET /v1/admin/model/ceiling` then answers that name `internal`
+- [ ] A `PUT /v1/admin/model` on a token carrying `admin:*` and not `model:attest` that sets a name a current agreement lists, and changes anything of it but its models, `model` and the models `roles` gives, or held another name before, withdraws that agreement, names it in its answer, and `GET /v1/admin/model/ceiling` then answers that name `internal`
 - [ ] A `PUT /v1/admin/model` that keeps a listed name and changes only its model to one the agreement does not list withdraws nothing, and `GET /v1/admin/model/ceiling` then answers `internal` for that name and model, so a `confidential` `POST /v1/admin/complete` is refused with `SCOPE_CEILING_EXCEEDED`; changing it back to a listed model answers the agreement's level again
+- [ ] A `PUT /v1/admin/model` that keeps a listed name and changes only a `roles` entry withdraws nothing, and a completion stating that role is gated at the ceiling of the role's model: `internal` where the agreement does not list it, so a `confidential` one is refused with `SCOPE_CEILING_EXCEEDED`, and the agreement's level where it does
 - [ ] A recorded agreement's `recorded_by` is the token's `identity_id`, whatever the body says
 - [ ] An agreement whose `level` is `restricted` is refused with `MODEL_AGREEMENT_LEVEL_REFUSED`, one whose `not_after` is 91 days ahead with `MODEL_AGREEMENT_LAPSE_INVALID`, one with no `models` with `INVALID_REQUEST`, and one listing a model at a backend a current agreement covers for that model with `MODEL_AGREEMENT_EXISTS`
 - [ ] `GET /v1/admin/model/ceiling` answers `internal` for a backend no current agreement lists, for a model the agreement listing the backend does not list, and for a backend asked for no model, and `internal` again once the agreement that listed it lapses or is withdrawn
