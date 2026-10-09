@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: threat-model
-version: 1.3.10
+version: 1.3.11
 requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/content, architecture/data-security, architecture/admin, architecture/observability, architecture/enforcement, patterns/contract]
 platform: any
 tier: free
@@ -167,6 +167,12 @@ requires:
       removed: halt-immediately
   - blueprint: patterns/contract
     version: ">=1.0.0 <2.0.0"
+    bindings:
+      behaviors:
+        # The input contract validation Chain 7 counts as one of its three
+        # independent controls: a downstream agent validates what it reads
+        # against the contract's schema
+        - name: contract-validation
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
