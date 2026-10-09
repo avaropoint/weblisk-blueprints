@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.6.1
+version: 2.6.2
 requires: [protocol/types]
 platform: any
 tier: free
@@ -485,10 +485,11 @@ has with nothing demonstrated or attested.
   says.
 
 **Another destination is another gate.** Whatever chooses where a request
-goes — resolving a model by name, a fallback chain, a failover when the first
-provider fails, a budget downgrade, a caller's override — may choose only a
-destination whose ceiling covers what is sent. With none, the request is
-refused. It never goes, transparently or otherwise, to a destination whose
+goes — resolving a model by name, a failover when the first provider fails, a
+caller's override — may choose only a destination whose ceiling covers what is
+sent. With none, the request is refused. For a model, none of them changes
+which model the request runs: a failover reaches the same model elsewhere or
+nothing ([`patterns/api-ai`](api-ai.md#model-routing)). It never goes, transparently or otherwise, to a destination whose
 ceiling is below it, and the response names the destination that received
 it. A copy sent on to a second place is checked against that place.
 
@@ -516,9 +517,10 @@ an **agreement attestation** for it.
 - **How a request finds its provider.** By the name the tenant's model
   configuration gives the backend the request reaches: the `provider` value
   `GET /v1/admin/model` reports, or the provider's key under `patterns/api-ai`'s
-  `providers:`; and by the model the request asks that backend for: the
-  `model` value `GET /v1/admin/model` reports, or the model the request, its
-  route or its fallback names. Each is compared exactly as the configuration
+  `providers:`; and by the model the request asks that backend for: the model
+  `GET /v1/admin/model` reports for the role the request states, its `roles`
+  entry or else `model`, or the model an api-ai request names or else that
+  endpoint's `defaults.model`. Each is compared exactly as the configuration
   or the request spells it. A backend no current agreement lists, and a model
   the agreement that lists it does not list, has the ceiling `internal`, so a
   name or a model nobody listed is never given more, and the ceiling routes
@@ -1568,4 +1570,4 @@ a destination carries a `DestinationRefusal` as its detail.
 - [ ] An agreement that lists no model is refused, and so is one listing a model at a backend a current agreement already covers for that model
 - [ ] Nothing `restricted` or `critical` is sent to a model provider, whatever its ceiling, a model the tenant runs itself included
 - [ ] Any part of a content entry is sent at that entry's `ContentEntry.scope`, and any part of an unclassified entry is refused with `SCOPE_MISSING`
-- [ ] Resolution, fallback, failover, budget downgrade and a caller's override each choose only a destination whose ceiling covers what is sent, refuse when none does, and never send to a lower-ceiling destination transparently
+- [ ] Resolution, failover and a caller's override each choose only a destination whose ceiling covers what is sent, refuse when none does, never send to a lower-ceiling destination transparently, and never change which model a request runs
