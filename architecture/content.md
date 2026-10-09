@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.21.7
+version: 2.22.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -345,6 +345,10 @@ signed egress record it owes, and holds every replica until then. See
   supplies the resource scope and custody facts the decision is made from)
 - The backend's own permission system — this service reads it where it can and
   declares it unknown where it cannot; it never administers it
+- Repositories outside any tenant — authored, versioned, validated and offered
+  where no tenant has declared them. This service holds none of them, and what
+  one holds reaches a tenant only as
+  [Repositories Outside a Tenant](#repositories-outside-a-tenant) says
 
 ---
 
@@ -2064,6 +2068,76 @@ control", and naming the system would be naming a product.
 > and every configured repository, cannot be given one. Naming an amending verb needs the
 > same care as retiring, because an amendment that lowered separation would
 > weaken a control over bytes already written under the stronger one.
+
+---
+
+## Repositories Outside a Tenant
+
+Everything else in this document describes a repository a tenant has declared.
+Some repositories belong to no tenant: the published corpus, a repository of
+standards somebody is writing, a programme authored to be offered to
+organisations that have not taken it. No tenant has declared them, so nothing
+here — custody, scope, proposals, the change log — covers them, and this service
+holds none of them.
+
+**What one may be.** It may be authored, versioned, validated and offered: edited
+where it lives, kept under version control, checked against the schemas for what
+it holds ([`architecture/cli`](cli.md#weblisk-validate)), and listed to somebody
+deciding whether to take it.
+
+**What it never is.** A conformance claim, an evidence chain and an export MUST
+NOT cite it, or anything it holds. What they cite is content a tenant holds: an
+entry of a repository the tenant declared, at a version its change log records
+([The Change Log](#the-change-log)). A repository outside a tenant has no
+declared custody, no recorded scope and no log, and anybody who reaches it can
+change it with no record any tenant can see. Its own history is a copy and a
+convenience, as a backend's is (Design Principle 9), never evidence.
+
+**What it holds reaches a tenant only by the tenant's own act**, made in the
+tenant and recorded there:
+
+- **The tenant declares it**, as a store that already holds bytes —
+  `disposition: adopt` ([Declaring a Repository](#declaring-a-repository)). From
+  then on it is that tenant's repository, governed as any other, and no longer
+  outside a tenant. Every entry it holds is recorded with provenance `unknown`,
+  and the census records the digest of each one it could read
+  ([What an adopted entry is, and is not](#what-an-adopted-entry-is-and-is-not)).
+- **The tenant takes a copy** into a repository it has declared — a standard it
+  will be measured against, a programme it adopts
+  ([`schemas/programme`](../schemas/programme.md#version-and-version_hash-are-not-alternatives))
+  — written as any change is ([Who may move an entry](#who-may-move-an-entry)),
+  so its change log holds the digest of every file written. The copy is the
+  tenant's, and the repository it came from stays outside. Where the copy came
+  from MUST be recorded in the tenant as the commit the repository was read at,
+  where it has commits, and the digest of every file taken. Its name or address
+  may say where to look, and nothing joins on either: a repository outside a
+  tenant has no identity a tenant could cite, and both move.
+
+A build that reads such a repository as a blueprint source records it, with its
+revision, in the provenance of what it generates
+([`architecture/cli`](cli.md#weblisk-server-init)). What the build generated is
+the tenant's, and the repository stays outside.
+
+**Each repository has exactly one home**: the tenant that declared it, or none.
+It is never kept outside a tenant while a tenant holds it, and never declared by
+two tenants. A copy is not a second home for the repository it came from; it is
+content of a repository with a home of its own. Nor is a client's installation
+state a home: what a client keeps there is a reference to where a repository
+outside a tenant lives, never the repository itself
+([Reserved Paths](#reserved-paths)).
+
+**The rule can be checked only where both homes are visible.** This service sees
+its own placements alone — among which
+[One placement, one repository](#one-placement-one-repository) already refuses an
+overlap — and neither another tenant's nor what a client keeps outside every
+tenant. A client that keeps repositories outside a tenant can check the rule only
+against local paths. It refuses to keep, as outside a tenant, a path that is, or
+sits inside, a tenant directory it recorded, a tenant's repository it reaches on
+its own machine, or its own installation state. It cannot see where a remote
+tenant keeps its files — a placement names a backend, never a location
+([A placement names a backend, never a location](#a-placement-names-a-backend-never-a-location))
+— so a path that passes is one no tenant the client can see holds, never one
+shown to belong to no tenant (Design Principle 5).
 
 ---
 
