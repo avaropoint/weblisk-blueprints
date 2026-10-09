@@ -276,19 +276,19 @@ Studio's and the orchestrator's own surfaces.
 - CLI command structure (`weblisk <noun> <verb>` pattern)
 - Project scaffolding from templates (`weblisk new`)
 - Code generation via LLM dispatch (`weblisk server init`, `weblisk agent create`)
-- Blueprint resolution, judged from the directory a command works in (a corpus
-  there → its `blueprints/` → custom sources → core —
-  [Where blueprints come from](#where-blueprints-come-from)), and template
-  resolution (local → custom sources → core)
+- Blueprint resolution ([Where blueprints come from](#where-blueprints-come-from)),
+  and template resolution (local → custom sources → core)
 - Dev server with file watching (`weblisk dev`)
 - Production builds (`weblisk build`)
 - Static framework vendoring (`weblisk vendor`)
 - Operator ML-DSA-65 identity creation, and resolving where a named identity
   lives — an encrypted key file, or a holder reference naming the secret source
   that holds the private half ([Where an identity lives](#where-an-identity-lives))
-- Operator registration and token management (the token is stored beside the
-  identity that obtained it, unless the caller asks for it not to be —
-  `--no-store`)
+- Operator registration and token management (the token
+  `weblisk operator connect`, `register` or `token --refresh` obtains is stored
+  beside the identity that obtained it, unless the caller asks for it not to
+  be — `--no-store`; [`weblisk tenant create`](#weblisk-tenant-create-name) and
+  [`weblisk server provision`](#weblisk-server-provision) keep none)
 - One credential per identity per hub, attested once by that identity and kept
   beside it ([A credential for each hub](#a-credential-for-each-hub))
 - Attesting a credential another program holds, so a console never holds the
@@ -536,7 +536,7 @@ $ weblisk tenant create "Acme Corp" --platform go --dir ./acme --port 9860
 
 | Flag | Description |
 |------|-------------|
-| `--dir <path>` | Where to create it (default: `./<name>`). Its blueprints are resolved from there, not from the working directory ([Where blueprints come from](#where-blueprints-come-from)) |
+| `--dir <path>` | Where to create it. Default: `./<slug>`, the name lowercased with each run of characters other than `a`–`z` and `0`–`9` made one `-`, none at either end (`Acme Corp` → `./acme-corp`). Its blueprints are resolved from there, not from the working directory ([Where blueprints come from](#where-blueprints-come-from)) |
 | `--platform <p>` | Which platform blueprint, skills and layout the tenant is built from. Default `go` |
 | `--provider <p>` | Model backend. Omitted means the one [`weblisk providers`](#weblisk-providers) marks as its default and, where nothing named that one, the next in its ranking when it cannot answer |
 | `--model <m>` | Model name, where the provider takes one |
@@ -568,14 +568,11 @@ port anybody reserved. The result reports the port it took. A console building a
 tenant beside one that is already running passes `0`, because a fixed default is
 a collision the moment one tenant is up. The port is this run's: as for any
 `--port`, `create` declares it nowhere in the tenant's configuration, so a later
-[`weblisk server start`](#weblisk-server-start) binds what `.weblisk/config.yaml`
-declares, else the convention. While the hub runs,
-[`weblisk component orchestrator status --json`](#weblisk-component-name-start--stop--status--logs)
-reports the address it bound. A console that starts the orchestrator again on
+start does not find it there. A console that starts the orchestrator again on
 the port the result reported passes it to
 [`weblisk component orchestrator start --port`](#weblisk-component-name-start--stop--status--logs).
 
-**Nothing writes a token down, and nothing prints one for a person.** With
+**`create` writes no token down, and prints none for a person.** With
 `--json`, the last object carries `result`: `root`, `name`, `port`, `operator`,
 `provider`; `model`, only where `--model` named one, because a model name the
 CLI filled in would read as a choice nobody made; the `skills` the tenant
@@ -655,12 +652,10 @@ only that the generator returned without an error.
 
 ### `weblisk providers`
 
-List the model backends this machine offers for the CLI's own model, and say
-which one it would start with. The CLI's own model is the one it chooses where no
-tenant's model applies: creating a tenant, and work a person starts outside any
-tenant ([The tenant's model](orchestrator.md#the-tenants-model)). Work for a
-tenant that exists runs on that tenant's model, which this listing neither
-reports nor changes.
+List the model backends this machine offers for the CLI's own model, which
+[`architecture/orchestrator`](orchestrator.md#administrative-endpoints) bounds,
+and say which one it would start with. It neither reports nor changes a
+tenant's model.
 
 ```bash
 $ weblisk providers
@@ -1070,8 +1065,9 @@ passphrase in memory for the length of a build.
 Every command that reads blueprints resolves them from one ordered list of
 sources, judged from the directory the command works in, and the first source
 that holds a file is the one read. That directory is the working directory,
-except for [`weblisk tenant create`](#weblisk-tenant-create-name), which works in
-the tenant's own directory (`--dir`, else `./<name>`):
+except for a command that works in a directory of its own, as
+[`weblisk tenant create`](#weblisk-tenant-create-name) works in the tenant's
+(`--dir`):
 
 | Order | Source | Read from |
 |---|---|---|
@@ -1108,15 +1104,14 @@ every report gives. `WL_BLUEPRINT_OFFLINE` switches refreshes off, and this
 refresh is held while the directory the command works in has generated work
 banked against the current revision (in `.weblisk/generation/`), because moving
 the corpus under a resume invalidates every banked file.
-[`weblisk blueprint update`](#weblisk-blueprint-update) is not held and does not
-wait for a clone to be a day old: it is how a person moves a clone now. A clone
-that has never been made is made when it is first needed, either way.
+[`weblisk blueprint update`](#weblisk-blueprint-update) does not wait for a
+clone to be a day old. A clone that has never been made is made when it is
+first needed, held or not.
 
 A build names every source it read before it generates, and records each with
 its revision — see [`weblisk server init`](#weblisk-server-init).
 [`weblisk blueprint sources`](#weblisk-blueprint-sources) answers the same
-question for the working directory, without building anything. Asked where
-steps 0 and 1 do not apply, its answer is what a new tenant is built from.
+question for the working directory, without building anything.
 
 ### `weblisk blueprint sources`
 
@@ -1252,12 +1247,11 @@ This is how a console reads what a
   because another repository may supply it. A blank form under `templates/` is
   counted and not checked, and a map or spec with no `version` is counted as
   unversioned and never read as `1.0.0`.
-  A map's `extends`, which [the map's table](../schemas/programme.md#the-programme-map)
-  does not declare, is read as well, and the two exceptions it makes are this
-  command's, not the schema's: a map that `extends` its own `id` is not counted
-  as a second map of that id, and a map that `extends` another has its tiers and
-  placements left unjudged, because its base may be in another repository and
-  half a chain shows faults the whole chain does not have.
+  Two of those checks step aside for a map with an `extends`, a field this
+  command reads and does not check: a map whose `extends` names its own `id` is
+  not counted as a second map of that id, and a map with any `extends` has its
+  tiers and placements left unjudged, because its base may be in another
+  repository and half a chain shows faults the whole chain does not have.
 
 `--json` prints one object:
 
@@ -3068,10 +3062,10 @@ security:
 - [ ] `weblisk tenant accept` reports a `404` as an absent route and a `401` as a pass, and a failed non-essential check does not fail the tenant
 - [ ] `weblisk tenant create` asks no model provider anything until the orchestrator's blueprint resolves, the resolved corpus parses and the platform's toolchain is present
 - [ ] `weblisk tenant create --port 0` starts the orchestrator on a free port chosen when it is started, and the result reports that port
-- [ ] `weblisk tenant create` declares the port it started the orchestrator on nowhere in the tenant's configuration, so a later `weblisk server start` binds what `.weblisk/config.yaml` declares, else the convention
+- [ ] `weblisk tenant create` declares the port it started the orchestrator on nowhere in the tenant's configuration
 - [ ] `weblisk tenant create` writes no token to a file and prints none without `--json`; the `--json` result is the only place a token may go, and while `create` makes no address to connect to, it carries none
 - [ ] `weblisk tenant create --json`'s result carries `model` only where `--model` named one
-- [ ] `weblisk providers --json` marks at most one backend `default`, the one the CLI's own model would start with — creating a tenant, or work outside any tenant — and marks none when there would be nothing to start with
+- [ ] `weblisk providers --json` marks at most one backend `default`, the one the CLI's own model would start with, and marks none when there would be nothing to start with
 - [ ] `weblisk providers --json` says `local` only for a model server on this machine's loopback address, judged from the address's host — never for a coding-agent CLI, a `WL_AI_COMMAND` tool, or a server at another host
 - [ ] `weblisk component help` lists a component only when the pipeline will read that component's own blueprint, so a listed kind is never generated from the protocol alone
 - [ ] `weblisk server init` reads YAML specs and dispatches to the configured LLM for code generation
@@ -3096,7 +3090,7 @@ security:
 - [ ] Blueprint resolution follows priority, judged in the directory a command works in: a corpus there → its `blueprints/` → configured blueprint sources → core
 - [ ] `weblisk tenant create` judges steps 0 and 1 in the tenant's directory, so standing in a corpus checkout does not make it read that checkout
 - [ ] A source read in place — step 0 or the project's `blueprints/` — is never refreshed, and a command refreshes a clone before reading it only once the clone is a day old
-- [ ] A command's refresh is held while the directory it works in has generated work banked, and `weblisk blueprint update` is never held
+- [ ] A command's refresh is held while the directory it works in has generated work banked
 - [ ] `weblisk blueprint sources --json` lists every source in precedence order with `kind`, `from`, `dir`, `revision`, and for a clone `origin`, `present`, `fetched_at` and `stale` — and clones and fetches nothing
 - [ ] A command whose refresh of a clone fails does not try it again for a day, and a refresh that fails, `weblisk blueprint update`'s included, leaves the clone's `fetched_at`, and the age a build prints for it, at the last refresh that worked
 - [ ] `weblisk validate <dir>` reports only that directory's files as findings, and a corpus directory is checked against nothing but itself
