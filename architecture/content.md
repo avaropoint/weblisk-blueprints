@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.22.0
+version: 2.22.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -2086,12 +2086,12 @@ it holds ([`architecture/cli`](cli.md#weblisk-validate)), and listed to somebody
 deciding whether to take it.
 
 **What it never is.** A conformance claim, an evidence chain and an export MUST
-NOT cite it, or anything it holds. What they cite is content a tenant holds: an
-entry of a repository the tenant declared, at a version its change log records
-([The Change Log](#the-change-log)). A repository outside a tenant has no
-declared custody, no recorded scope and no log, and anybody who reaches it can
-change it with no record any tenant can see. Its own history is a copy and a
-convenience, as a backend's is (Design Principle 9), never evidence.
+NOT cite it, or anything it holds. What they cite comes from a tenant — for
+content, an entry of a repository the tenant declared, at a version its change
+log records ([The Change Log](#the-change-log)). A repository outside a tenant
+has no declared custody, no recorded scope and no log, and anybody who reaches
+it can change it with no record any tenant can see. Its own history is a copy
+and a convenience, as a backend's is (Design Principle 9), never evidence.
 
 **What it holds reaches a tenant only by the tenant's own act**, made in the
 tenant and recorded there:
@@ -2106,17 +2106,18 @@ tenant and recorded there:
   will be measured against, a programme it adopts
   ([`schemas/programme`](../schemas/programme.md#version-and-version_hash-are-not-alternatives))
   — written as any change is ([Who may move an entry](#who-may-move-an-entry)),
-  so its change log holds the digest of every file written. The copy is the
-  tenant's, and the repository it came from stays outside. Where the copy came
-  from MUST be recorded in the tenant as the commit the repository was read at,
-  where it has commits, and the digest of every file taken. Its name or address
-  may say where to look, and nothing joins on either: a repository outside a
-  tenant has no identity a tenant could cite, and both move.
+  so the change log of the repository written to holds the digest of every
+  file written. The copy is the tenant's, and the repository it came from stays
+  outside. Where the copy came from MUST be recorded in the tenant as the commit
+  the repository was read at, where it has commits, and the digest of every
+  file taken. Its name or address may say where to look, and nothing joins on
+  either: a repository outside a tenant has no identity a tenant could cite,
+  and both move.
 
 A build that reads such a repository as a blueprint source records it, with its
-revision, in the provenance of what it generates
-([`architecture/cli`](cli.md#weblisk-server-init)). What the build generated is
-the tenant's, and the repository stays outside.
+revision, in the provenance it writes into what it generates
+([`architecture/cli`](cli.md#weblisk-server-init)). That record and what the
+build generated are the tenant's; the repository it names stays outside.
 
 **Each repository has exactly one home**: the tenant that declared it, or none.
 It is never kept outside a tenant while a tenant holds it, and never declared by
