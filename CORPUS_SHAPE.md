@@ -216,14 +216,14 @@ compliance programme requires, which is the same shape as a blueprint specifying
 what a component must serve. It belongs here.
 
 **Do not confuse authoring with delivery.** Studio does not resolve
-complimentary content through the blueprint order (`blueprints/` →
-`WL_BLUEPRINT_SOURCES` → `~/.weblisk/blueprints`); that is the CLI's, for
-blueprints. Content authored here is embedded in the Studio release as a floor,
-materialised into `<instance>/.weblisk/content/` on first start, and read back
-from there as an override. Same three-tier shape, different mechanism. The one
-home for that fact is Studio's MISSION.md — this file does not restate it. That
-is the mechanism as built: its second tier, and the override read back from it,
-are the residency
+complimentary content through the blueprint order
+([Multiple Blueprint Sources](README.md#multiple-blueprint-sources)); that is
+the CLI's, for blueprints. How content authored here reaches an installation has
+one home, Studio's MISSION.md, "How it reaches an installation", and this file
+does not restate it: it gives two routes, and says which families take each.
+Where the route is a floor embedded in the release, written into the
+installation's own state and read back from there as an override, that copy and
+that override are the residency
 [`architecture/fabric`](architecture/fabric.md#two-ledgers-and-that-is-correct)
 rules out for published content.
 
