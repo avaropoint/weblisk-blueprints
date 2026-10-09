@@ -95,6 +95,8 @@ and six folders were absent altogether.
 | [`skills/`](skills/README.md) | Guides for a coding agent — not specifications |
 
 Why the corpus is divided this way is [`CORPUS_SHAPE.md`](CORPUS_SHAPE.md).
+The names it has stopped using, and what replaced each, are listed once, in
+[`RETIRED.md`](RETIRED.md).
 
 ### Architecture Hierarchy
 

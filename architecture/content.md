@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.22.15
+version: 3.0.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -158,7 +158,7 @@ requires:
     version: ">=1.1.0 <2.0.0"
     bindings:
       behaviors:
-        # How a replica's credential is held (see Declaring a replica)
+        # How a remote's credential is held (see Declaring a remote)
         - name: secret-access
     on_change:
       compatible: validate-and-adopt
@@ -250,12 +250,12 @@ requires:
 │  │  - never classifies external change as tampering   │  │
 │  └────────────────────────────────────────────────────┘  │
 │  ┌────────────────────────────────────────────────────┐  │
-│  │  Replica Sender            (push-only)             │  │
-│  │  - sends each replica what it lacks, in order      │  │
+│  │  Remote Sender             (push-only)             │  │
+│  │  - sends each remote what it lacks, in order       │  │
 │  │  - holds every send until it can leave a           │  │
 │  │    signed egress record of what left               │  │
 │  │  - from the service's own record, never the store  │  │
-│  │  - never reads from a replica                      │  │
+│  │  - never reads from a remote                       │  │
 │  └────────────────────────────────────────────────────┘  │
 │                          │                               │
 │                          ▼                               │
@@ -300,10 +300,10 @@ evidence of record, and it is signed. See [The Change Log](#the-change-log).
 **Custody Reconciler** exists only where a second authority can write. It
 converts an unexplained change from an alarm into a recorded fact.
 
-**Replica Sender** sends each of a repository's replicas what it has not yet
+**Remote Sender** sends each of a repository's remotes what it has not yet
 received, and takes nothing back. It sends nothing until a send can leave the
-signed egress record it owes, and holds every replica until then. See
-[Replicas](#replicas) and the [Replica Send Flow](#replica-send-flow).
+signed egress record it owes, and holds every remote until then. See
+[Remotes](#remotes) and the [Remote Send Flow](#remote-send-flow).
 
 ---
 
@@ -321,7 +321,7 @@ signed egress record it owes, and holds every replica until then. See
   ceiling derived from them
 - An entry's scope: where it is declared, on the change and in the bytes,
   what the log records of it, and the rule that it only rises
-- Replicas: copies of a repository sent to a second place, the census that
+- Remotes: copies of a repository sent to a second place, the census that
   precedes one, and the effective custody every copy adds to
 - Precondition semantics for writes (digest match, refusal on mismatch)
 - Proposals: staging a change for a person to decide, the decision, and the
@@ -363,9 +363,9 @@ signed egress record it owes, and holds every replica until then. See
 | GET | /v1/content/stat | Stat | yes | Identity and metadata without transferring bytes |
 | GET | /v1/content/repositories | Repositories | yes | Repositories in scope, with custody and ceiling |
 | POST | /v1/content/repositories | DeclareRepository | yes | Bring a store under governance — establish, which creates an empty one, or adopt one that already holds bytes |
-| POST | /v1/content/repositories/{repository}/replicas | DeclareReplica | yes | Declare a replica of a repository. Without `if_match`, returns the census of what would leave and declares nothing |
-| GET | /v1/content/repositories/{repository}/replicas | Replicas | yes | A repository's replicas, retired ones included, with state and ceiling |
-| DELETE | /v1/content/repositories/{repository}/replicas/{replica} | RetireReplica | yes | Stop sending to a replica. Deletes nothing at its destination |
+| POST | /v1/content/repositories/{repository}/remotes | DeclareRemote | yes | Declare a remote of a repository. Without `if_match`, returns the census of what would leave and declares nothing |
+| GET | /v1/content/repositories/{repository}/remotes | Remotes | yes | A repository's remotes, retired ones included, with state and ceiling |
+| DELETE | /v1/content/repositories/{repository}/remotes/{remote} | RetireRemote | yes | Stop sending to a remote. Deletes nothing at its destination |
 | POST | /v1/content/reconcile | Reconcile | yes | Detect out-of-band change (shared custody only) |
 | POST | /v1/content/proposals | Propose | yes | Stage a change to one entry for a person to decide. Writes no entry |
 | GET | /v1/content/proposals | Proposals | yes | List proposals in scope, cursor-paginated |
@@ -424,17 +424,17 @@ interfaces:
         requires if_match over a census the service issued
       served_by: content-service
 
-    - path: /v1/content/repositories/{repository}/replicas
+    - path: /v1/content/repositories/{repository}/remotes
       methods: [GET, POST]
-      description: GET lists a repository's replicas, retired ones included.
+      description: GET lists a repository's remotes, retired ones included.
         POST declares one. Without if_match it returns the census of what
-        would leave and declares nothing; with it, it reserves the replica,
+        would leave and declares nothing; with it, it reserves the remote,
         creates its credential, demonstrates the destination and confirms
       served_by: content-service
 
-    - path: /v1/content/repositories/{repository}/replicas/{replica}
+    - path: /v1/content/repositories/{repository}/remotes/{remote}
       methods: [DELETE]
-      description: Retire a replica. Nothing more is sent to it, its
+      description: Retire a remote. Nothing more is sent to it, its
         credential is destroyed, its record stays, and nothing at its
         destination is deleted
       served_by: content-service
@@ -523,22 +523,22 @@ interfaces:
         rolling it back
       called_by: [admin, agents]
 
-    - name: DeclareReplica
-      signature: (repository, ReplicaDeclaration) → (ContentReplica, ReplicaCensus)
-      description: Declare a replica. Returns the census and declares nothing
+    - name: DeclareRemote
+      signature: (repository, RemoteDeclaration) → (ContentRemote, RemoteCensus)
+      description: Declare a remote. Returns the census and declares nothing
         when attempted unseen, and reports a declaration that did not finish
         rather than rolling it back. Called for a person, never for an agent —
         content:replicate and content:connect are person only
       called_by: [gateway]
 
-    - name: ListReplicas
-      signature: repository → [ContentReplica]
-      description: A repository's replicas, retired ones included
+    - name: ListRemotes
+      signature: repository → [ContentRemote]
+      description: A repository's remotes, retired ones included
       called_by: [gateway, agents, admin]
 
-    - name: RetireReplica
-      signature: (repository, replica) → ContentReplica
-      description: Stop sending to a replica and destroy its credential.
+    - name: RetireRemote
+      signature: (repository, remote) → ContentRemote
+      description: Stop sending to a remote and destroy its credential.
         Called for a person — content:replicate is person only
       called_by: [gateway]
 
@@ -600,24 +600,24 @@ interfaces:
     - topic: content.custody_degraded
       direction: publish
       description: A repository's ceiling has dropped — its store's
-        attestations or a replica's were re-verified weaker than before, a
-        replica was confirmed with a lower ceiling, or its backend found a
+        attestations or a remote's were re-verified weaker than before, a
+        remote was confirmed with a lower ceiling, or its backend found a
         copy nobody declared — naming the content now above the ceiling
 
-    - topic: content.replica_declared
+    - topic: content.remote_declared
       direction: publish
-      description: A replica was confirmed, with who holds its destination,
+      description: A remote was confirmed, with who holds its destination,
         its ceiling and the repository's ceiling as it now stands
 
-    - topic: content.replica_state
+    - topic: content.remote_state
       direction: publish
-      description: A replica's state changed — behind, diverged, unreachable,
+      description: A remote's state changed — behind, diverged, unreachable,
         current — naming a held version's path and why it is held. Never
         carries bytes
 
-    - topic: content.replica_retired
+    - topic: content.remote_retired
       direction: publish
-      description: A replica was retired, naming who retired it. Its
+      description: A remote was retired, naming who retired it. Its
         destination still holds what was sent
 
     - topic: content.ceiling_exceeded
@@ -664,7 +664,7 @@ Four codes take another status than their Category's. `CONTENT_STATEMENT_INVALID
 is 400: the token was accepted and the statement it carried was not, so a
 client told to authenticate again would send the same statement.
 `CONTENT_REPOSITORY_UNKNOWN`, `CONTENT_PROPOSAL_UNKNOWN` and
-`CONTENT_REPLICA_UNKNOWN` are 404, because the request was well formed and
+`CONTENT_REMOTE_UNKNOWN` are 404, because the request was well formed and
 names nothing the caller may see.
 
 `CONTENT_STATEMENT_INVALID` is this surface's wire form of
@@ -676,40 +676,40 @@ code here is enough, because a client does the same thing for both.
 
 | Code | Category | When | Behaviour |
 |---|---|---|---|
-| `CONTENT_PRECONDITION_FAILED` | conflict | `if_match` does not equal the identity of what it names — an entry's stored digest on a write or a proposal, a placement's census digest on an adoption, a replica census's digest, over what would leave and where it would go, on a replica declaration, a proposal's `before` on a decision to apply it. The empty string where an entry exists, on a write, a proposal to create, or a decision to apply one | Refuse. Return both digests. Never merge, never overwrite, never adopt. On a decision to apply, record the proposal `stale` and write nothing |
+| `CONTENT_PRECONDITION_FAILED` | conflict | `if_match` does not equal the identity of what it names — an entry's stored digest on a write or a proposal, a placement's census digest on an adoption, a remote census's digest, over what would leave and where it would go, on a remote declaration, a proposal's `before` on a decision to apply it. The empty string where an entry exists, on a write, a proposal to create, or a decision to apply one | Refuse. Return both digests. Never merge, never overwrite, never adopt. On a decision to apply, record the proposal `stale` and write nothing |
 | `CONTENT_IF_MATCH_REQUIRED` | validation | A write, a removal or a proposal arrived with no `if_match`. The empty string is a precondition, not its absence | Refuse. A write with no precondition is a blind overwrite, and a proposal with none cannot be told stale |
-| `CONTENT_CUSTODY_CEILING_EXCEEDED` | policy | Declared scope exceeds the repository ceiling, or something a replica would receive exceeds that replica's ceiling, or a records repository's derived ceiling is below `restricted`, or a declaration's `scope_floor` is above the ceiling derived at declaration. See [`scope_floor`](#scope_floor-covers-what-declares-nothing) | Refuse, naming required and actual, and on a replica each path above it. Never downgrade the scope |
+| `CONTENT_CUSTODY_CEILING_EXCEEDED` | policy | Declared scope exceeds the repository ceiling, or something a remote would receive exceeds that remote's ceiling, or a records repository's derived ceiling is below `restricted`, or a declaration's `scope_floor` is above the ceiling derived at declaration. See [`scope_floor`](#scope_floor-covers-what-declares-nothing) | Refuse, naming required and actual, and on a remote each path above it. Never downgrade the scope |
 | `CONTENT_RECORDS_REPOSITORY_REQUIRED` | policy | A write or a proposal whose bytes carry the label `pii`, into a repository that is not a records repository. See [Where an entry labelled `pii` is kept](#where-an-entry-labelled-pii-is-kept) | Refuse, naming the path and the `scope_path`'s records repository where there is one. Nothing is written, and the label is never dropped to fit |
 | `CONTENT_SCOPE_LOWERED` | policy | A write or a proposal declares a scope below its path's recorded scope, below the scope its own bytes declare, or below the `maps_to` of a label its bytes carry that the tenant registers, or declares none where a recorded scope, the bytes or such a label give one; or its bytes declare a scope below the path's recorded scope. A removal never ends a recorded scope, so this also refuses a path created again below the scope last recorded for it. An adoption whose `scope_floor` is below the census's `highest_scope` is refused with it too. See [An Entry's Scope](#an-entrys-scope) and [`scope_floor`](#scope_floor-covers-what-declares-nothing) | Refuse, naming both levels and where each was declared. Never record the lower scope, and never raise the declared one to fit |
 | `SCOPE_INVALID_LEVEL` | validation | A write or a proposal declares a scope, on the change or under `scope:` or `classification:` in its bytes, that is not a `ScopeLevel`. The code is [`patterns/scope`](../patterns/scope.md#scope-related-errors)'s | Refuse, naming where the value was found and the value |
 | `CONTENT_CUSTODY_UNDECLARED` | policy | Repository has no declared custody | Treat as `opaque`, apply the `internal` ceiling, and record the degradation |
 | `CONTENT_PATH_REFUSED` | validation | Traversal segment or escaping symlink — including a placement locator that is absolute, carries a scheme or an authority, or climbs out of its backend's root | Refuse the request as written. Do not normalise and proceed |
-| `CONTENT_RESERVED_PATH` | policy | A segment of the path, or of a placement's locator, is a reserved name — `.weblisk` or `.git` — as any filesystem could resolve it, or the backend's blueprint reserves the path — including a path in anything a replica would receive. See [Reserved Paths](#reserved-paths) | Refuse, for every operation including list, stat, propose, declare and declaring a replica. Installation state and control state are never content, and never leave: a version holding one is never sent to a replica already declared, and holds it ([Replica Send Flow](#replica-send-flow)) |
+| `CONTENT_RESERVED_PATH` | policy | A segment of the path, or of a placement's locator, is a reserved name — `.weblisk` or `.git` — as any filesystem could resolve it, or the backend's blueprint reserves the path — including a path in anything a remote would receive. See [Reserved Paths](#reserved-paths) | Refuse, for every operation including list, stat, propose, declare and declaring a remote. Installation state and control state are never content, and never leave: a version holding one is never sent to a remote already declared, and holds it ([Remote Send Flow](#remote-send-flow)) |
 | `CONTENT_UNREADABLE` | io | Bytes cannot be read | Identity is `unknown`, never `current` and never `stale` |
 | `CONTENT_REPOSITORY_UNKNOWN` | validation | No repository of that id in the caller's scope | Refuse without disclosing whether it exists elsewhere |
 | `CONTENT_DISPOSITION_REQUIRED` | validation | A declaration arrived without a disposition | Refuse. A declaration that does not say whether it expects bytes is a blind adoption |
 | `CONTENT_REPOSITORY_EXISTS` | conflict | The id is already declared at that `scope_path`, or is reserved there by an unfinished establish whose arguments differ from this request's; or the declaration names itself a records repository and the `scope_path` has one | Refuse, naming the declared repository's placement. Never re-declare in place. An identical retry against an unfinished establish is a resumption, not this |
 | `CONTENT_ADOPTION_UNSEEN` | conflict | `disposition: adopt` with no `if_match` | Refuse and return the `ContentAdoption` census. Nothing is declared. The caller re-submits with the census digest |
-| `CONTENT_NOT_EMPTY` | conflict | `disposition: establish` and the placement already holds entries, including on a resumed establish whose store has since been written to; or a replica's destination holds something this service would not send | Refuse. Establishing over bytes somebody else wrote is adoption under the wrong word, and sending over them would overwrite them |
+| `CONTENT_NOT_EMPTY` | conflict | `disposition: establish` and the placement already holds entries, including on a resumed establish whose store has since been written to; or a remote's destination holds something this service would not send | Refuse. Establishing over bytes somebody else wrote is adoption under the wrong word, and sending over them would overwrite them |
 | `CONTENT_BACKEND_UNKNOWN` | validation | The placement names a backend this service does not hold for that `scope_path` | Refuse without disclosing whether the name exists under another scope |
 | `CONTENT_ESTABLISH_UNSUPPORTED` | policy | `disposition: establish` against a backend that cannot bring a store into existence, or cannot represent an empty one without an entry in it | Refuse. Never write a placeholder to make the store representable. `adopt` against the same backend is unaffected |
-| `CONTENT_ESTABLISH_INCOMPLETE` | partial | The declaration was reserved and the create or the custody demonstration did not finish; or a replica was reserved and its credential, or the demonstration of its destination, did not finish | Report what completed, carrying the `ContentRepository` and its `RepositoryEstablishment`, or the `ContentReplica` with its `ReplicaEstablishment` and credential. Roll nothing back, claim no success, and do not report that nothing happened |
+| `CONTENT_ESTABLISH_INCOMPLETE` | partial | The declaration was reserved and the create or the custody demonstration did not finish; or a remote was reserved and its credential, or the demonstration of its destination, did not finish | Report what completed, carrying the `ContentRepository` and its `RepositoryEstablishment`, or the `ContentRemote` with its `RemoteEstablishment` and credential. Roll nothing back, claim no success, and do not report that nothing happened |
 | `CONTENT_PRECONDITION_NOT_APPLICABLE` | validation | `if_match` does not fit the act: any `if_match` with `disposition: establish`; the empty string on a removal, or on a proposal to modify or remove; a digest on a proposal to create | Refuse. A precondition that contradicts the act, or that nothing can evaluate, must not be accepted as though it held |
-| `CONTENT_PLACEMENT_DECLARED` | conflict | The placement is equal to, inside, or contains an already-declared repository; or a replica's destination is equal to, inside or contains a declared repository's placement or another replica's destination | Refuse. Two ceilings over one set of bytes means the lower one is unenforceable, and a replica sent into a store would make a copy a source |
+| `CONTENT_PLACEMENT_DECLARED` | conflict | The placement is equal to, inside, or contains an already-declared repository; or a remote's destination is equal to, inside or contains a declared repository's placement or another remote's destination | Refuse. Two ceilings over one set of bytes means the lower one is unenforceable, and a remote sent into a store would make a copy a source |
 | `CONTENT_PROPOSAL_UNKNOWN` | validation | No proposal of that id in the caller's scope | Refuse without disclosing whether it exists elsewhere |
 | `CONTENT_PROPOSAL_DECIDED` | conflict | A decision arrived for a proposal that is no longer `open`, including the second of two decisions that raced | Refuse, returning the proposal as recorded. A proposal leaves `open` once |
 | `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the identity the proposal names as its `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, the change has no scope, or the repository declares no ceiling. Or a repository declaration whose `self_decision_ceiling` is `critical`. See [Separation of duties](#separation-of-duties) | Refuse, naming the scope, or that there is none, and the ceiling. Nothing is recorded and the proposal stays `open` |
-| `CONTENT_IDENTITY_REQUIRED` | auth | A write, removal, proposal, decision, replica declaration or retirement arrived on a token that carries no `identity_id` | Refuse. Never record a name, an address or a token's `sub` in its place |
+| `CONTENT_IDENTITY_REQUIRED` | auth | A write, removal, proposal, decision, remote declaration or retirement arrived on a token that carries no `identity_id` | Refuse. Never record a name, an address or a token's `sub` in its place |
 | `CONTENT_STATEMENT_INVALID` | auth | A write, removal or decision carried a `ChangeStatement` that does not verify: the attestation's `purpose` is not `sign-records`, its `identity_id` is not the token's, its identity key is not the operator's current one, its signature fails, its credential key is not ML-DSA-65, or its `not_after` has passed or is more than 90 days ahead; its credential key is not one of the token's `record_keys`, or is the credential the token's `cid` names; `signed_at` is more than 300 seconds from the service's clock; or the signature does not verify over the statement rebuilt from the change. See [The change statement](#the-change-statement) | Refuse, naming the check that failed. Nothing is written and a proposal stays `open`. The change is never recorded unsigned instead. Log as a security event |
 | `CONTENT_WRITE_UNCONFIRMED` | io | The digest of the bytes read back after a write is not the digest of the decoded bytes submitted | Refuse. The reservation is settled as one whose path holds neither `before` nor the reserved `after`: an `observe` entry under shared custody, an integrity anomaly under exclusive custody. No `change` entry records the write, because a statement over the submitted bytes could not be checked against other ones. See [Write Flow](#write-flow) |
 | `CONTENT_LOG_NOT_BEGUN` | conflict | A log route named a repository that is `establishing`. Its log begins with the `declare` entry when it is recorded `declared` | Refuse. The caller learns the repository's state from `GET /v1/content/repositories` |
 | `CONTENT_SEALING_PAUSED` | io | A checkpoint was asked for and no log key can sign one: none is live and the long-lived key cannot introduce another | Refuse, carrying the `LogHead`, whose `unsealed` counts what waits. Nothing is appended. The request may be repeated once sealing resumes |
 | `CONTENT_LOG_BROKEN` | integrity | The repository's change log failed this service's check from its latest checkpoint, because a line breaks the chain or cannot be read, and the request would append to it: a write, a removal, a decision to apply, a reconcile or a checkpoint. See [A log that does not verify](#a-log-that-does-not-verify) | Refuse, naming the `seq` where the check failed. Nothing is written to the store and nothing is appended. Reads, the log's included, are still served |
-| `CONTENT_REPLICA_UNSEEN` | conflict | A replica declaration with no `if_match` | Refuse and return the `ReplicaCensus`. Nothing is recorded and nothing is sent. The caller re-submits with the census digest |
-| `CONTENT_SCOPE_UNDECLARED` | policy | A replica declaration where a version that would leave is unclassified, and the declaration carries no `history_scope`. See [What would leave](#what-would-leave). Or an adoption whose census reports `keeps_history`, and the declaration carries no `scope_floor`. See [`scope_floor` covers what declares nothing](#scope_floor-covers-what-declares-nothing) | Refuse, naming how many versions are unclassified, or, on an adoption, returning the census, whose `highest_scope` is the least floor it may carry. Nothing is recorded and nothing is sent. No version is assumed to be at any level |
-| `CONTENT_REPLICA_EXISTS` | conflict | The replica id is taken in that repository, by a replica that is not `establishing` or whose recorded arguments differ from this request's | Refuse, naming the recorded destination. An identical retry against an `establishing` replica is a resumption, not this |
-| `CONTENT_REPLICA_UNKNOWN` | validation | No replica of that id in that repository | Refuse |
-| `CONTENT_REPLICA_UNSUPPORTED` | policy | The destination's backend cannot receive a replica, or cannot receive one of the repository's backend | Refuse. Nothing is recorded |
+| `CONTENT_REMOTE_UNSEEN` | conflict | A remote declaration with no `if_match` | Refuse and return the `RemoteCensus`. Nothing is recorded and nothing is sent. The caller re-submits with the census digest |
+| `CONTENT_SCOPE_UNDECLARED` | policy | A remote declaration where a version that would leave is unclassified, and the declaration carries no `history_scope`. See [What would leave](#what-would-leave). Or an adoption whose census reports `keeps_history`, and the declaration carries no `scope_floor`. See [`scope_floor` covers what declares nothing](#scope_floor-covers-what-declares-nothing) | Refuse, naming how many versions are unclassified, or, on an adoption, returning the census, whose `highest_scope` is the least floor it may carry. Nothing is recorded and nothing is sent. No version is assumed to be at any level |
+| `CONTENT_REMOTE_EXISTS` | conflict | The remote id is taken in that repository, by a remote that is not `establishing` or whose recorded arguments differ from this request's | Refuse, naming the recorded destination. An identical retry against an `establishing` remote is a resumption, not this |
+| `CONTENT_REMOTE_UNKNOWN` | validation | No remote of that id in that repository | Refuse |
+| `CONTENT_REMOTE_UNSUPPORTED` | policy | The destination's backend cannot receive a remote, or cannot receive one of the repository's backend | Refuse. Nothing is recorded |
 | `ENFORCEMENT_DATA_CONTRACT_VIOLATION` | enforcement | Path is outside the agent's declared operational data contract | Refuse via the storage proxy |
 
 ---
@@ -955,9 +955,9 @@ code here is enough, because a client does the same thing for both.
 
 ### Custody Re-verification Flow
 1. On declaration and on a schedule, each attestation property is tested — the
-   store's, and each replica's that is not retired, with its `anonymous_read`
+   store's, and each remote's that is not retired, with its `anonymous_read`
 2. A property that cannot be demonstrated becomes `false`
-3. The backend reports any copy of the store it can see that no replica
+3. The backend reports any copy of the store it can see that no remote
    declares, and each one not yet in `reported_copies` is added to it
 4. The ceiling is recomputed from every place the bytes live (see
    [Effective custody](#effective-custody))
@@ -965,8 +965,8 @@ code here is enough, because a client does the same thing for both.
    content now sitting above it. Existing content is not moved and not
    reclassified — it is reported
 
-### Replica Declaration Flow
-1. Caller submits a `ReplicaDeclaration` for a repository: an id, a
+### Remote Declaration Flow
+1. Caller submits a `RemoteDeclaration` for a repository: an id, a
    `destination`, a claimed custody, claimed attestations, a `history_scope`
    where versions that would leave are unclassified, and `if_match`
 2. Enforcement storage proxy intercepts with operation `create` and the
@@ -974,21 +974,21 @@ code here is enough, because a client does the same thing for both.
 3. The token is checked as Write Flow step 4 says. The caller must hold
    `content:replicate` and `content:connect`, both named by the `cap` of a
    pass, which carries only what the person's role carried at the exchange
-   (see [Who may declare a replica](#who-may-declare-a-replica) and
+   (see [Who may declare a remote](#who-may-declare-a-remote) and
    [Who may move an entry](#who-may-move-an-entry))
 4. The destination is resolved as a placement is: its backend must be one this
    service holds for that `scope_path` (`CONTENT_BACKEND_UNKNOWN`) and able to
-   receive a replica of the repository's backend
-   (`CONTENT_REPLICA_UNSUPPORTED`), and its locator is confined to that
+   receive a remote of the repository's backend
+   (`CONTENT_REMOTE_UNSUPPORTED`), and its locator is confined to that
    backend's root (`CONTENT_PATH_REFUSED`, `CONTENT_RESERVED_PATH`). It must not
    be equal to, inside or containing a declared repository's placement or
-   another replica's destination (`CONTENT_PLACEMENT_DECLARED`)
-5. The id must be free in that repository (`CONTENT_REPLICA_EXISTS`). A replica
+   another remote's destination (`CONTENT_PLACEMENT_DECLARED`)
+5. The id must be free in that repository (`CONTENT_REMOTE_EXISTS`). A remote
    in `establishing` whose recorded id, destination, custody, attestations and
    `history_scope` equal this request's is resumed at step 9
-6. The service computes a `ReplicaCensus` of what would leave and where it
+6. The service computes a `RemoteCensus` of what would leave and where it
    would go, for this request's destination and claims. With no `if_match`, it
-   returns the census, refuses with `CONTENT_REPLICA_UNSEEN`, and records
+   returns the census, refuses with `CONTENT_REMOTE_UNSEEN`, and records
    nothing
 7. Checked in order: an `if_match` that does not equal the census digest just
    computed → `CONTENT_PRECONDITION_FAILED`, which is also the answer when the
@@ -996,56 +996,56 @@ code here is enough, because a client does the same thing for both.
    the caller saw; a reserved path in anything that would leave →
    `CONTENT_RESERVED_PATH`; an unclassified version that would leave, with no
    `history_scope` → `CONTENT_SCOPE_UNDECLARED`; anything that would leave
-   above the census's prospective replica ceiling →
+   above the census's prospective remote ceiling →
    `CONTENT_CUSTODY_CEILING_EXCEEDED`
-8. The replica is **reserved** — recorded durably with `state: establishing`,
+8. The remote is **reserved** — recorded durably with `state: establishing`,
    sending nothing and counting toward nothing
 9. The credential is created and held, unless the reservation already has one
 10. The destination is demonstrated with that credential: it holds nothing
     this service would not send (`CONTENT_NOT_EMPTY`); each claimed custody
-    property and attestation; and `anonymous_read`. The replica's ceiling is
+    property and attestation; and `anonymous_read`. The remote's ceiling is
     derived from what was demonstrated. Anything that would leave above it →
-    `CONTENT_CUSTODY_CEILING_EXCEEDED`, and the replica stays `establishing`
-11. The replica is **confirmed**. From here on it counts toward the
+    `CONTENT_CUSTODY_CEILING_EXCEEDED`, and the remote stays `establishing`
+11. The remote is **confirmed**. From here on it counts toward the
     repository's effective custody and ceiling, whether or not anything ever
     reaches its destination (see [Effective custody](#effective-custody)).
-    Both are recomputed, the replica becomes `behind`, or `current` when there
-    is nothing to send, and `content.replica_declared` is published. Sending
+    Both are recomputed, the remote becomes `behind`, or `current` when there
+    is nothing to send, and `content.remote_declared` is published. Sending
     begins once a send can leave its egress record
-    ([Replica Send Flow](#replica-send-flow), step 4)
+    ([Remote Send Flow](#remote-send-flow), step 4)
 12. Should step 9 or 10 not finish, nothing is sent and nothing is rolled back:
     the caller is answered with `CONTENT_ESTABLISH_INCOMPLETE` carrying the
-    replica, its `ReplicaEstablishment` and its credential
+    remote, its `RemoteEstablishment` and its credential
 
-### Replica Send Flow
-1. After each version is recorded, and every `replica_retry_interval`, each
-   replica that is neither `establishing` nor `retired` is sent what it lacks,
+### Remote Send Flow
+1. After each version is recorded, and every `remote_retry_interval`, each
+   remote that is neither `establishing` nor `retired` is sent what it lacks,
    oldest first
 2. Before sending, the service checks that the destination holds only what the
-   service sent it. If it holds anything else, the replica becomes
+   service sent it. If it holds anything else, the remote becomes
    `diverged`, what was found is recorded, and nothing is sent
 3. Every version that would be sent is checked, oldest first, before any of
    it is sent. A version may not be sent when it holds a reserved path
    anywhere, not only among the paths it changed (`reserved-path`); when it is
-   unclassified and the replica's census did not count it (`unclassified`); or
-   when its scope is above the replica's ceiling (`above-ceiling`). The first
-   such version is **held**: the replica is `behind`, `held_path` names the
+   unclassified and the remote's census did not count it (`unclassified`); or
+   when its scope is above the remote's ceiling (`above-ceiling`). The first
+   such version is **held**: the remote is `behind`, `held_path` names the
    path and `held_reason` says which of the three it is, and neither that
    version nor anything recorded after it is sent. What was recorded before it
    is sent, as step 4 allows
 4. **Nothing is sent before its egress record can be.** A send owes a signed
    record of what left, which this service cannot yet make
    ([The Change Log](#the-change-log), the gap on what a send leaves). Until it can,
-   what step 3 would let leave is not sent: the replica is `behind` with
+   what step 3 would let leave is not sent: the remote is `behind` with
    `held_reason` `egress-unrecorded` and no `held_path`, unless step 3 held a
    version first, and steps 5 and 6 send nothing. Steps 2 and 3 still run,
    because they read and send nothing, so a held version and a changed
    destination are reported as before
 5. A destination that cannot be reached, or that refuses the credential, makes
-   the replica `unreachable` until the next attempt succeeds
+   the remote `unreachable` until the next attempt succeeds
 6. What was sent is recorded with `checked_at`. With nothing left to send, the
-   replica is `current`
-7. Each change of state publishes `content.replica_state`
+   remote is `current`
+7. Each change of state publishes `content.remote_state`
 
 ---
 
@@ -1067,12 +1067,12 @@ Its routes are guarded by the `content:` family that document declares:
 | `content:write` | `PUT /v1/content/entry`, `DELETE /v1/content/entry`. Person only |
 | `content:propose` | `POST /v1/content/proposals` |
 | `content:decide` | `POST /v1/content/proposals/{id}/decision`; `POST /v1/content/repositories` carrying `scope_floor` or `self_decision_ceiling` — required **in addition to** `content:declare` ([Declaration Flow](#declaration-flow) step 4). Person only |
-| `content:describe` | `GET /v1/content/repositories`, `GET /v1/content/repositories/{repository}/replicas`, `GET /v1/content/repositories/{repository}/log/head`, `POST /v1/content/repositories/{repository}/log/checkpoint` |
+| `content:describe` | `GET /v1/content/repositories`, `GET /v1/content/repositories/{repository}/remotes`, `GET /v1/content/repositories/{repository}/log/head`, `POST /v1/content/repositories/{repository}/log/checkpoint` |
 | `content:declare` | `POST /v1/content/repositories` |
 | `content:establish` | `POST /v1/content/repositories` with `disposition: establish` — required **in addition to** `content:declare`, because creating a store is more than declaring one |
 | `content:reconcile` | `POST /v1/content/reconcile` |
-| `content:replicate` | `POST /v1/content/repositories/{repository}/replicas`, with `content:connect`; `DELETE /v1/content/repositories/{repository}/replicas/{replica}`. Person only |
-| `content:connect` | `POST /v1/content/repositories/{repository}/replicas` — required **in addition to** `content:replicate`, because it gives the tenant a credential that reaches outside its store. Person only |
+| `content:replicate` | `POST /v1/content/repositories/{repository}/remotes`, with `content:connect`; `DELETE /v1/content/repositories/{repository}/remotes/{remote}`. Person only |
+| `content:connect` | `POST /v1/content/repositories/{repository}/remotes` — required **in addition to** `content:replicate`, because it gives the tenant a credential that reaches outside its store. Person only |
 | `content:declassify` | No route yet: every lowering of a recorded scope is refused until the tenant's approval queue exists ([A scope only rises](#a-scope-only-rises)). Person only |
 
 A capability name is `family:verb`. An invented name is refused at registration,
@@ -1085,7 +1085,7 @@ only* is `protocol/types`' marking too, and what it does to a grant is
 person may reach each on a pass, and this table is the one statement of what
 each requires. Each route's entry names in `capabilities` every capability its
 rows give it on every request — both `content:replicate` and `content:connect`
-for declaring a replica — and in `body` each one its rows tie to the body.
+for declaring a remote — and in `body` each one its rows tie to the body.
 For `POST /v1/content/repositories` that is:
 
 ```yaml
@@ -1235,9 +1235,9 @@ does not work rather than a component that was not given a mesh.
    nobody proposed and nobody decided.
 
 8. **A copy is a place** — a repository is only as protected as the most
-   exposed place a copy of it lives. A replica therefore lowers what the
+   exposed place a copy of it lives. A remote therefore lowers what the
    repository may hold and never raises it, and bytes that have left are never
-   counted as returned. A replica is only ever sent to. What comes back from a
+   counted as returned. A remote is only ever sent to. What comes back from a
    place this service does not control is somebody's write, never the truth.
 
 9. **The log is the evidence, and the log is what is signed** — What a claim
@@ -1314,21 +1314,21 @@ from an exclusive repository to a shared one is a scope event, and the service
 MUST refuse the move rather than silently reclassify the document.
 
 **Every place a copy lives counts.** The table derives the ceiling of one
-place. A repository with replicas lives in more than one, and its ceiling is
+place. A repository with remotes lives in more than one, and its ceiling is
 the lowest of them (see [Effective custody](#effective-custody)).
 
-**A replica's ceiling** starts from the same table, applied to what was
+**A remote's ceiling** starts from the same table, applied to what was
 demonstrated about its destination. The first of these rows that applies then
 gives it:
 
-| The replica's destination | Ceiling |
+| The remote's destination | Ceiling |
 |---|---|
 | It holds nothing but ciphertext under a key the tenant alone holds, as the blueprint that specifies its backend demonstrates | the ceiling of the repository's own store |
 | Anyone can read it, or its refusal of a read with no credential (`anonymous_read`) was not demonstrated | `public` |
 | Its custody is not `exclusive`, and it has not demonstrated `enumerable_principals` | `public` |
 | It is **plain**: it holds the bytes as they are, so whoever can read it reads them | the lower of the table's and `confidential` |
 
-A **sealed** replica, the first row, takes the ceiling of whoever holds its
+A **sealed** remote, the first row, takes the ceiling of whoever holds its
 key, and only the tenant does: whoever reads the destination reads
 ciphertext, wherever it is and whoever else holds it. The second and third
 rows give `public` because, away from the store, a place nobody can say who
@@ -1374,8 +1374,8 @@ text appears to say.
 
 An entry's scope is declared in three places, and nowhere else: on the
 change, in the bytes, and, for every entry of a repository, by the
-repository's `scope_floor`. A replica's `history_scope` classifies versions
-for that replica alone ([What would leave](#what-would-leave)).
+repository's `scope_floor`. A remote's `history_scope` classifies versions
+for that remote alone ([What would leave](#what-would-leave)).
 
 - **On the change.** A write, and a proposal to create or modify an entry,
   may carry `scope` (`EntryWrite`, `ProposalRequest`). It is a level a person
@@ -1467,9 +1467,9 @@ entry stays unclassified for everything that would leave
 > scope recorded for any of a repository's paths (`scope_held`), and how many
 > of its entries are unclassified, are not yet fields of `ContentRepository`.
 > Nor are an adoption's count of entries at each scope, and of those above the
-> ceiling derived for it, fields of `ContentAdoption`. A replica's census
-> counts what would leave unclassified or above that replica's ceiling
-> (`ReplicaCensus`), and nothing counts the rest. Until they are specified,
+> ceiling derived for it, fields of `ContentAdoption`. A remote's census
+> counts what would leave unclassified or above that remote's ceiling
+> (`RemoteCensus`), and nothing counts the rest. Until they are specified,
 > what a repository holds is read entry by entry, from each entry's scope.
 
 ### A scope only rises
@@ -1580,7 +1580,7 @@ repository**: a repository whose declaration names it one (`records: true`).
 - **Removing it is not erasing it.** A removal of a path whose last recorded
   labels include `pii` records `erasure_complete` on its `ContentChange`.
   It is `false` where the placement's backend keeps earlier versions of its
-  entries, as the blueprint that specifies it says, or where any replica was
+  entries, as the blueprint that specifies it says, or where any remote was
   sent a version holding the entry, because those bytes remain there; and
   `true` only where neither holds. The change log keeps the path and digests
   it recorded either way. A statement that a person's data was erased MUST
@@ -1954,12 +1954,12 @@ every entry the repository holds, has held or will hold, recorded as every
 path's least recorded scope ([The recorded scope](#the-recorded-scope)). It is
 the repository's own statement of its level, made once by the person who
 declares it, and it is what lets a repository whose entries cannot declare a
-level in their bytes reach a replica at all. A programme's spec files are the
+level in their bytes reach a remote at all. A programme's spec files are the
 case that needs it: they are published with no `scope:` of their own, because
 [`schemas/programme`](../schemas/programme.md#artifact_scope-is-never-spelled-scope)
 gives the level of what a spec creates as `artifact_scope` and a `scope:` would
 classify the spec file itself. Without a floor, every new spec version is
-unclassified and holds every replica.
+unclassified and holds every remote.
 
 - **It only raises.** An entry's scope is the higher of what its path records,
   what its bytes declare and the floor. A write or a proposal declaring a
@@ -1977,7 +1977,7 @@ unclassified and holds every replica.
   keeps earlier versions of its entries that this service can read, such as
   one under version control, says so in the blueprint that specifies it, and
   the census over such a store reports `keeps_history`. Nobody classified
-  that history, and a replica would send it. So an adoption whose census
+  that history, and a remote would send it. So an adoption whose census
   reports `keeps_history` and whose declaration carries no `scope_floor` is
   refused with `CONTENT_SCOPE_UNDECLARED`, returning the census. `establish`
   takes in nothing, and needs none.
@@ -1998,9 +1998,9 @@ unclassified and holds every replica.
   configured repository, stays without one (see the gap under
   [A store that already exists is the normal case](#a-store-that-already-exists-is-the-normal-case)).
 
-A replica's `history_scope` ([What would leave](#what-would-leave)) is a
+A remote's `history_scope` ([What would leave](#what-would-leave)) is a
 narrower act for a repository without a floor: one person classifies, for one
-replica, the versions its census counted unclassified.
+remote, the versions its census counted unclassified.
 
 ### One placement, one repository
 
@@ -2136,11 +2136,11 @@ revision that record holds.
 **Each repository has exactly one home**: the tenant that declared it, or none.
 It is never kept outside a tenant while a tenant holds it, and never declared by
 two tenants. A copy a tenant installs is not a second home for the repository it
-came from; it is content of a repository with a home of its own. A replica is
+came from; it is content of a repository with a home of its own. A remote is
 not a repository outside a tenant: it is a tenant's repository sent to a second
 place, counted in that repository's [effective custody](#effective-custody).
-Nor is a copy of a tenant's repository that a backend reports and no replica
-declares, such as a remote its history was pushed to: it counts in the same
+Nor is a copy of a tenant's repository that a backend reports and no remote
+declares, such as a git remote its history was pushed to: it counts in the same
 effective custody, where the repository records it in `reported_copies`.
 Nor is a client's installation state a home ([Reserved Paths](#reserved-paths)).
 What a client keeps there for a repository outside a tenant is a reference to
@@ -2186,60 +2186,60 @@ knows is a tenant's, never to belong to no tenant (Design Principle 5).
 
 ---
 
-## Replicas
+## Remotes
 
-A **replica** is a copy of a repository that this service keeps at a second
+A **remote** is a copy of a repository that this service keeps at a second
 place, its **destination**. The service sends the repository's entries there
 and, where the backend keeps versions, every version it has recorded. It takes
 nothing back.
 
-A replica is how a tenant keeps a copy of its content off the machine that holds
+A remote is how a tenant keeps a copy of its content off the machine that holds
 the store, and how it publishes one. Both put the tenant's bytes somewhere its
-own service does not control. So a replica is declared the way a repository is
+own service does not control. So a remote is declared the way a repository is
 adopted, by a person who has seen what would leave, and the place it names
 lowers what the repository may hold. It is a destination as
 [`patterns/scope`](../patterns/scope.md#destination-ceilings) defines one, and
 this section is where its ceiling and its gate are specified.
 
-### A replica is sent to, and never read from
+### A remote is sent to, and never read from
 
-- **Push-only.** The service sends to a replica. It never reads an entry, a
+- **Push-only.** The service sends to a remote. It never reads an entry, a
   digest, a version or a history from one, and never takes a change made there
   into the repository. The one thing it asks a destination is whether it still
   holds only what the service sent. What counts as held at a destination is
   what the blueprint that specifies its backend says.
 - **Never a source of truth.** Nothing this service answers comes from a
-  replica: not a read, a census or a recovery. A store rebuilt from a replica's
+  remote: not a read, a census or a recovery. A store rebuilt from a remote's
   copy is a new store. It comes under governance by adoption, with a census, and
   every entry in it is recorded with provenance `unknown`.
-- **A replica that diverged is reported, never pulled.** A destination that
-  holds something this service did not send makes the replica `diverged`. The
+- **A remote that diverged is reported, never pulled.** A destination that
+  holds something this service did not send makes the remote `diverged`. The
   service records what it found, sends nothing more, and never overwrites the
-  destination to make it match. The replica leaves `diverged` by itself once
+  destination to make it match. The remote leaves `diverged` by itself once
   the destination again holds only what the service sent, and sending
-  resumes then only where [Replica Send Flow](#replica-send-flow) step 4
+  resumes then only where [Remote Send Flow](#remote-send-flow) step 4
   lets anything leave. A change somebody made at the
   destination reaches the repository only as that person's own write or
   proposal.
 - **Sending never holds up a write.** A write is complete when the repository
   holds it. Sending follows, in the order the versions were recorded, once
-  [Replica Send Flow](#replica-send-flow) step 4 lets anything leave, and
-  until then the replica is `behind`.
+  [Remote Send Flow](#remote-send-flow) step 4 lets anything leave, and
+  until then the remote is `behind`.
 - **What is sent comes from the service's own record.** It is never read from
   the store at the moment of sending, because another authority can change the
   store. The blueprint that specifies the backend says where that record is
   kept.
 
-### Declaring a replica
+### Declaring a remote
 
-`POST /v1/content/repositories/{repository}/replicas`, operation
-`DeclareReplica`. The steps and their order are the
-[Replica Declaration Flow](#replica-declaration-flow).
+`POST /v1/content/repositories/{repository}/remotes`, operation
+`DeclareRemote`. The steps and their order are the
+[Remote Declaration Flow](#remote-declaration-flow).
 
-**Nothing leaves unseen, and nowhere unseen.** Declaring a replica is
+**Nothing leaves unseen, and nowhere unseen.** Declaring a remote is
 adoption's two-step, over what would leave and where it would go rather than
 over what a placement holds. A first call carries no `if_match`: the service
-returns a `ReplicaCensus`, refuses with `CONTENT_REPLICA_UNSEEN`, and records
+returns a `RemoteCensus`, refuses with `CONTENT_REMOTE_UNSEEN`, and records
 nothing. The caller re-submits with the census `digest`.
 
 The digest is computed as an adoption census's is (see
@@ -2260,26 +2260,26 @@ also changes when the confirming declaration names another destination, or
 claims other custody, attestations or `history_scope`, and when the
 destination's backend has since been declared held by somebody else. Each is
 refused with `CONTENT_PRECONDITION_FAILED`. There is no other way to obtain
-the precondition, so a replica cannot be declared by somebody who has not been
+the precondition, so a remote cannot be declared by somebody who has not been
 told what it would receive, where it would go, and who holds that place.
 
 **It is reserved before anything is made, as a store is.** A confirmed
 declaration follows establish's order, for the reason given under
 [A create that does not finish](#a-create-that-does-not-finish): the durable
-record comes before the act that cannot be undone. The replica is reserved
+record comes before the act that cannot be undone. The remote is reserved
 first, in `establishing`, sending nothing. Only then is its credential created,
 and only then is the destination demonstrated. A repeated declaration with
-identical arguments against a replica in `establishing` resumes where it
+identical arguments against a remote in `establishing` resumes where it
 stopped and creates no second credential. A completed declaration is not
-idempotent: repeating it is `CONTENT_REPLICA_EXISTS`.
+idempotent: repeating it is `CONTENT_REMOTE_EXISTS`.
 
-**The credential is the tenant's, for one destination.** A replica is reached
-with a credential the service creates for that replica alone and holds through
+**The credential is the tenant's, for one destination.** A remote is reached
+with a credential the service creates for that remote alone and holds through
 [`patterns/secrets`](../patterns/secrets.md). Its secret part never leaves the
-service. `ContentReplica.credential` carries the part a person registers at
+service. `ContentRemote.credential` carries the part a person registers at
 the destination. The service presents it only there
 ([`architecture/orchestrator`](orchestrator.md), *Presenting a credential to a
-component*). Retiring the replica destroys it. A credential that a person or a
+component*). Retiring the remote destroys it. A credential that a person or a
 client brought would be one the tenant does not control, and could be presented
 anywhere it was valid.
 
@@ -2288,39 +2288,39 @@ attestations are claims, demonstrated against the destination before they take
 effect. The blueprint that specifies the destination's backend says how its
 custody is demonstrated. A destination whose custody that blueprint does not
 demonstrate is recorded `opaque`, whatever was claimed, and its ceiling is
-derived from that as every replica's is
+derived from that as every remote's is
 ([Derived Scope Ceiling](#derived-scope-ceiling)). The service also
 demonstrates that the
 destination holds nothing it would not send, which is otherwise refused with
 `CONTENT_NOT_EMPTY`, and it tests `anonymous_read` by trying to read the
 destination with no credential. A destination that cannot be reached yet —
 the ordinary case, before a person has registered the credential there —
-answers `CONTENT_ESTABLISH_INCOMPLETE`, carrying the replica and its credential.
+answers `CONTENT_ESTABLISH_INCOMPLETE`, carrying the remote and its credential.
 Nothing has been sent.
 
-**Not in configuration.** A replica is never declared in a configuration file,
+**Not in configuration.** A remote is never declared in a configuration file,
 for the reason adoption is not: a file cannot hold a census digest that did not
 exist when it was written, and a file that could send a repository's history
 would send it on every fresh start, unread.
 
-### Who may declare a replica
+### Who may declare a remote
 
 | Capability | Lets the holder | Worst case in the wrong hands |
 |---|---|---|
-| `content:replicate` | Declare a replica, with `content:connect`. Retire one | every version of a repository sent to a destination of their choosing |
+| `content:replicate` | Declare a remote, with `content:connect`. Retire one | every version of a repository sent to a destination of their choosing |
 | `content:connect` | Have the service create and hold a credential that reaches outside the tenant's store | the tenant holding a key to a place outside itself |
 
-Declaring a replica requires both. Neither alone sends a byte anywhere: a
-replica with no credential reaches nothing, and a credential with no replica is
+Declaring a remote requires both. Neither alone sends a byte anywhere: a
+remote with no credential reaches nothing, and a credential with no remote is
 sent nothing. Sending a repository outside the tenant therefore takes two
 grants, the rule `content:establish` already follows beside `content:declare`
-(see [Creating is not declaring](#creating-is-not-declaring)). Retiring a replica
+(see [Creating is not declaring](#creating-is-not-declaring)). Retiring a remote
 needs `content:replicate` alone, because it only ever reduces where bytes go.
 
 Two grants separate two people only where two people hold them, and today
 nothing makes them: only the `admin` role carries either
 ([`architecture/admin`](admin.md#operator-roles)), and a role is a fixed
-bundle, so every admin holds both and one admin can declare a replica alone.
+bundle, so every admin holds both and one admin can declare a remote alone.
 What the two grants guarantee is that no other role, and nothing that is not
 a person, can.
 
@@ -2332,7 +2332,7 @@ person-only capability with people are stated once, under
 
 ### What would leave
 
-Wherever a replica is concerned, a version's **scope** is what was declared
+Wherever a remote is concerned, a version's **scope** is what was declared
 for it ([An Entry's Scope](#an-entrys-scope)):
 
 - A version a `ContentChange` recorded is at that change's `scope`, which the
@@ -2363,10 +2363,10 @@ The census reports, for the repository and the destination:
   looking at today's entries cannot see them;
 - the highest scope recorded for anything that would leave;
 - how many versions that would leave are unclassified, as `unclassified`;
-- each path that would leave above the replica's prospective ceiling, and each
+- each path that would leave above the remote's prospective ceiling, and each
   reserved path that would leave. Either refuses the declaration, and the census
   names them so the person can see why before confirming;
-- the ceilings the replica and the repository would have, computed from the
+- the ceilings the remote and the repository would have, computed from the
   claims. The demonstration can only lower them;
 - what the backend's blueprint binds in `backend_report` — for a store under
   version control, the names every earlier version was recorded under.
@@ -2376,13 +2376,13 @@ leave.** A declaration whose census counts unclassified versions is refused
 with `CONTENT_SCOPE_UNDECLARED` unless it carries `history_scope`. That is one
 scope, which the declaring person gives every version the census counted
 unclassified, in one recorded act. It covers exactly those versions and no
-version recorded after the census. For every check made for that replica, each
-of them is then at `history_scope`, so one above the replica's ceiling refuses
-the declaration and, should that ceiling later drop, holds the replica. The census
+version recorded after the census. For every check made for that remote, each
+of them is then at `history_scope`, so one above the remote's ceiling refuses
+the declaration and, should that ceiling later drop, holds the remote. The census
 reports the `history_scope` it was computed under, and its digest binds it.
 
 An unclassified version recorded after the census is not covered. It is held,
-never sent (Replica Send Flow, step 3).
+never sent (Remote Send Flow, step 3).
 
 **A repository with a floor makes no unclassified version.** Its floor is
 every path's least recorded scope
@@ -2390,7 +2390,7 @@ every path's least recorded scope
 at a declared scope. In a repository declared without one, a write that
 declares no scope for a path that has none, and, under shared custody, an
 entry a person creates in the store directly with no scope in its bytes, each
-make an unclassified version, and a replica held on it stays `behind`, and
+make an unclassified version, and a remote held on it stays `behind`, and
 says so. An edit to an entry that already has a recorded scope does not,
 because the recorded scope carries to it. Nothing in this contract classifies
 a version after it is recorded, and no verb adds a floor to a repository
@@ -2399,7 +2399,7 @@ already declared (see the gap under
 
 A reserved path refuses the declaration even where it appears only in an
 earlier version, put there by somebody out of band. One that appears after the
-census holds the replica (Replica Send Flow, step 3). Installation state and
+census holds the remote (Remote Send Flow, step 3). Installation state and
 control state never leave.
 
 ### Who holds a destination
@@ -2412,16 +2412,16 @@ as custody is not.
 `held_by` is an operator's statement, and nothing this service does
 demonstrates it. That limit is stated here, as Design Principle 5 requires. The
 census reports `held_by` and its digest binds it, so the person confirming has
-seen what the operator said, and `content.replica_declared` carries it.
+seen what the operator said, and `content.remote_declared` carries it.
 
-A replica whose destination a third party holds is declared, checked and sent
+A remote whose destination a third party holds is declared, checked and sent
 to by every rule in this section, and by no rule of its own. Two of those rules
 are what make it safe to declare:
 
-- **Nothing leaves unclassified.** Every version a replica receives is at a
+- **Nothing leaves unclassified.** Every version a remote receives is at a
   scope declared for it ([What would leave](#what-would-leave)). A version that
   is not is held, never sent.
-- **A replica's ceiling does not depend on who holds it.** Its destination's
+- **A remote's ceiling does not depend on who holds it.** Its destination's
   ceiling is derived from what was demonstrated about it, and a plain one is
   capped, wherever it is and whoever holds it
   ([Derived Scope Ceiling](#derived-scope-ceiling)).
@@ -2431,7 +2431,7 @@ store, is capped the same way, because whoever can read that machine reads the
 copy without passing through this service. Where nothing demonstrates who else
 can read it, as nothing does for a destination reached by a key registered
 there ([`patterns/content-git`](../patterns/content-git.md)), its ceiling is
-`public` by the third row of the replica table under
+`public` by the third row of the remote table under
 [Derived Scope Ceiling](#derived-scope-ceiling), and confirming it makes the repository's
 ceiling `public` for good ([Effective custody](#effective-custody)). Such a
 copy gives durability only to a repository that holds nothing above
@@ -2442,13 +2442,13 @@ than read into the words "the tenant's own machine".
 
 A repository's bytes live wherever a copy of them lives. Its **effective
 custody** is the most permissive custody of any place they live, in the order
-`exclusive`, `shared`, `opaque`: its store, and every replica that has been
+`exclusive`, `shared`, `opaque`: its store, and every remote that has been
 confirmed, retired or not. Its **ceiling** is the lowest ceiling of those
 places.
 
 - `custody` stays the store's. It says who else can write the bytes this
   service reads, and reconciliation and the anomaly rules of
-  `architecture/data-security` depend on exactly that. A replica writes
+  `architecture/data-security` depend on exactly that. A remote writes
   nothing here, so it does not change it.
 - `effective_custody` says who else can read a copy. Every statement about
   access is made from it: an `AccessStatement` carries `access_complete: false`
@@ -2456,36 +2456,36 @@ places.
 - `ceiling` is the effective ceiling, and the ceiling check of every write and
   every proposal uses it. `store_ceiling` is what the store alone allows. A
   consumer that reads only `ceiling` gets the safer answer.
-- A replica's own ceiling is derived from what was demonstrated about its
+- A remote's own ceiling is derived from what was demonstrated about its
   destination, as [Derived Scope Ceiling](#derived-scope-ceiling) derives a
-  replica's.
-- **Bytes that have left have left.** Retiring a replica never raises the
+  remote's.
+- **Bytes that have left have left.** Retiring a remote never raises the
   ceiling and never narrows effective custody.
 - **An undeclared copy counts.** A backend that can see a copy of the store
-  that no replica declares MUST report it. It counts as a place whose custody
-  is `opaque` and whose ceiling is `public`, by the second row of the replica
+  that no remote declares MUST report it. It counts as a place whose custody
+  is `opaque` and whose ceiling is `public`, by the second row of the remote
   table under [Derived Scope Ceiling](#derived-scope-ceiling): it is a copy
   away from the store, nothing demonstrates who reads it, and its anonymous
   read is never tested, because the service does not reach it. A copy nobody
-  declared is trusted no more than a replica declared at the same place
+  declared is trusted no more than a remote declared at the same place
   would be. Effective custody becomes `opaque`, the ceiling becomes
   `public`, and `content.custody_degraded` is published naming the content
-  now above it. A copy once reported counts for good, as a retired replica
+  now above it. A copy once reported counts for good, as a retired remote
   does: the repository records where it was seen, in `reported_copies`, and a
   later report that no longer names it removes nothing, because what was
   copied there may still be read. So a store whose history may have been
   sent to a place such as a public forge accepts nothing above `public` from
-  the first report of that copy, and removing the remote that pointed there
+  the first report of that copy, and removing the git remote that pointed there
   does not raise the ceiling again.
 
-**A replica counts from the moment it is confirmed** (Replica Declaration
+**A remote counts from the moment it is confirmed** (Remote Declaration
 Flow, step 11), whether or not anything has reached its destination, and it
 never stops counting. Whether bytes have arrived is something the service
 learns late and can be wrong about: a send whose answer was lost may have
 landed. Counting from confirmation also means nothing is written through this
-service that the replica could not then receive. A replica in `establishing`
+service that the remote could not then receive. A remote in `establishing`
 counts toward nothing, so what is written while a person registers its
-credential is checked against it when it is confirmed (Replica Declaration
+credential is checked against it when it is confirmed (Remote Declaration
 Flow, step 10).
 
 ### States
@@ -2494,35 +2494,35 @@ Flow, step 10).
 |---|---|
 | `establishing` | Reserved and not yet confirmed. Nothing has been sent |
 | `current` | The destination held every recorded version when last checked |
-| `behind` | Versions are recorded and not yet sent. `held_reason` says why, where something holds them back: a version the service will not send, which `held_path` names, or `egress-unrecorded`, which holds every send ([Replica Send Flow](#replica-send-flow), step 4) |
+| `behind` | Versions are recorded and not yet sent. `held_reason` says why, where something holds them back: a version the service will not send, which `held_path` names, or `egress-unrecorded`, which holds every send ([Remote Send Flow](#remote-send-flow), step 4) |
 | `diverged` | The destination holds something this service did not send. Nothing is sent |
 | `unreachable` | The last attempt could not reach the destination, or its credential was refused |
 | `retired` | A person retired it. Nothing is sent, its credential is destroyed, and its record stays |
 
 A version that may not be sent — one that holds a reserved path, one that is
-unclassified and was not counted by the census, one above the replica's
+unclassified and was not counted by the census, one above the remote's
 ceiling — is held, never skipped. Nothing recorded after it is sent either,
 because a destination that received later versions without it would hold a
 history with a hole in it.
 
-Every count a replica reports is as of its `checked_at`, and is absent when it
-cannot be established. `behind_by` is never 0 for a replica the service could
+Every count a remote reports is as of its `checked_at`, and is absent when it
+cannot be established. `behind_by` is never 0 for a remote the service could
 not check.
 
-### Retiring a replica
+### Retiring a remote
 
-`DELETE /v1/content/repositories/{repository}/replicas/{replica}`, operation
-`RetireReplica`. The replica becomes `retired`: nothing more is sent, its
+`DELETE /v1/content/repositories/{repository}/remotes/{remote}`, operation
+`RetireRemote`. The remote becomes `retired`: nothing more is sent, its
 credential is destroyed, and its record stays, naming who retired it. Nothing
 at the destination is deleted, because the service never writes there except to
 send. The response says that the destination still holds what was sent and
 that the credential registered there is for a person to remove.
 
-A replica in `establishing` may be retired too. It was never confirmed, so it
+A remote in `establishing` may be retired too. It was never confirmed, so it
 never counted toward effective custody.
 
-Retiring a replica that is already `retired` changes nothing. It returns the
-replica as recorded, naming the person who retired it first.
+Retiring a remote that is already `retired` changes nothing. It returns the
+remote as recorded, naming the person who retired it first.
 
 ---
 
@@ -2572,9 +2572,9 @@ not rewritten to a nearby name that is allowed.
 **A reserved path is not an entry.** A listing does not return one, a census
 neither counts nor digests one, and the reconciler never observes one. This
 hides no content, because none of it was ever content. Because nothing
-observes one arrive, a replica census names each that would leave, and every
-version is checked for one before it is sent to a replica
-([Replica Send Flow](#replica-send-flow)). A backend's control
+observes one arrive, a remote census names each that would leave, and every
+version is checked for one before it is sent to a remote
+([Remote Send Flow](#remote-send-flow)). A backend's control
 state is still a fact about custody. The blueprint that specifies the backend
 says how it is reported, in `ContentRepository.backend_report`, and it is never
 reported as entries.
@@ -2613,7 +2613,7 @@ person applies.
 
 [`protocol/types`](../protocol/types.md) marks `content:write` and
 `content:decide` **person only**, and `content:replicate` and
-`content:connect` with them (see [Who may declare a replica](#who-may-declare-a-replica)).
+`content:connect` with them (see [Who may declare a remote](#who-may-declare-a-remote)).
 Three rules keep every person-only capability with people:
 
 - **No service holds one.** A hub refuses a person-only capability in a
@@ -2648,7 +2648,7 @@ A decision is judgement, and a service has none to exercise
 (principal-identity Design Principle 11).
 
 **A person's request arrives on a pass.** Before it performs a write, a
-removal, a decision, a replica declaration or retirement, or a repository
+removal, a decision, a remote declaration or retirement, or a repository
 declaration that carries `self_decision_ceiling` or `scope_floor`, this
 service looks at the token. One that is not a pass addressed to it does not
 hold the capability the act needs, as the rule above says, so the act is
@@ -2943,7 +2943,7 @@ is its log.
 
 The log is an owned record under exclusive custody. It is held in the service's
 own record store and never in a store a placement names, so it is never
-content, never an entry and never sent to a replica. It shares its chain with no
+content, never an entry and never sent to a remote. It shares its chain with no
 other log, for the reason [`architecture/fabric`](fabric.md) Design Principle 6
 gives: two writers on one chain fork it, and a fork cannot be told from
 tampering.
@@ -2973,9 +2973,9 @@ Each entry records one act, once:
 is recorded as one. An observation of state `unknown` changes nothing and is not
 appended. A proposal that is `open`, `rejected` or `stale` changed no entry and
 is not in the log; the proposal is its record ([Proposals](#proposals)). Reads,
-replica sends and custody re-verification change no entry either.
+remote sends and custody re-verification change no entry either.
 
-> **Gap — a replica send would leave no signed record of what left, so
+> **Gap — a remote send would leave no signed record of what left, so
 > nothing is sent.** A send owes a signed egress record of what left, for
 > which destination, and under what demonstrated ceiling, and this service
 > cannot yet make one. That record is the next gap after this contract, and it
@@ -2984,9 +2984,9 @@ replica sends and custody re-verification change no entry either.
 > vectors [`protocol/identity`](../protocol/identity.md#fixed-form-statements)
 > requires before any implementation signs under the prefixes that signing
 > uses. It is not specified here. Until it is, the
-> [Replica Send Flow](#replica-send-flow) sends nothing to any replica
-> (step 4), and a consumer MUST NOT report what a replica holds, or that it
-> holds nothing above a level, from `checked_at` or from the replica's
+> [Remote Send Flow](#remote-send-flow) sends nothing to any remote
+> (step 4), and a consumer MUST NOT report what a remote holds, or that it
+> holds nothing above a level, from `checked_at` or from the remote's
 > state.
 
 **A path's recorded digest is its last entry.** The last `change` or `observe`
@@ -3411,15 +3411,15 @@ types:
         values: [exclusive, shared, opaque]
         required: true
         description: Who else can reach the bytes in the store. Undeclared is
-          opaque. A replica does not change it — see effective_custody
+          opaque. A remote does not change it — see effective_custody
       effective_custody:
         type: enum
         values: [exclusive, shared, opaque]
         required: true
         description: The most permissive custody of any place the bytes live
-          — the store, every replica that has been confirmed, retired or not,
+          — the store, every remote that has been confirmed, retired or not,
           and every copy in reported_copies. Equal to custody for a repository
-          with no replica and no reported copy
+          with no remote and no reported copy
       attestations:
         type: CustodyAttestations
         required: true
@@ -3466,10 +3466,10 @@ types:
       reported_copies:
         type: "[]string"
         required: false
-        description: Where each copy of the store that no replica declares was
+        description: Where each copy of the store that no remote declares was
           seen, as the backend's report named it, in the order first reported.
           Only ever added to. A copy the backend stops reporting stays, as a
-          retired replica does, because bytes that have left have left. See
+          retired remote does, because bytes that have left have left. See
           Effective custody
 
   CustodyAttestations:
@@ -3662,8 +3662,8 @@ types:
         type: timestamp
         required: true
 
-  ReplicaDeclaration:
-    description: The body of POST /v1/content/repositories/{repository}/replicas.
+  RemoteDeclaration:
+    description: The body of POST /v1/content/repositories/{repository}/remotes.
       Claims only — custody, attestations and anonymous read are demonstrated
       against the destination before they take effect
     fields:
@@ -3675,7 +3675,7 @@ types:
       destination:
         type: Placement
         required: true
-        description: Which backend, and where within it, the replica is sent
+        description: Which backend, and where within it, the remote is sent
           to. Resolved and confined as a repository's placement is
       custody:
         type: enum
@@ -3701,13 +3701,13 @@ types:
       if_match:
         type: string
         required: false
-        description: The digest of the ReplicaCensus this declaration confirms.
+        description: The digest of the RemoteCensus this declaration confirms.
           Absent returns the census and declares nothing. It matches only a
           census taken for this destination, who holds it and these claims
 
-  ReplicaCensus:
-    description: What a replica would receive, issued by the service so a
-      person can declare it knowingly. Returned with CONTENT_REPLICA_UNSEEN
+  RemoteCensus:
+    description: What a remote would receive, issued by the service so a
+      person can declare it knowingly. Returned with CONTENT_REMOTE_UNSEEN
     fields:
       repository:
         type: string
@@ -3719,7 +3719,7 @@ types:
           (path, entry digest) pairs of every version that would leave,
           followed by the pair that binds the terms — destination, held_by,
           custody, attestations and history_scope — and then the pair that
-          binds backend_report where there is one. See Declaring a replica.
+          binds backend_report where there is one. See Declaring a remote.
           The value a confirming declaration passes as if_match
       destination:
         type: Placement
@@ -3780,7 +3780,7 @@ types:
         items: CensusPath
         required: true
         description: Each path, with its scope, that would leave above the
-          prospective replica ceiling — an unclassified version's at
+          prospective remote ceiling — an unclassified version's at
           history_scope. Non-empty refuses the declaration
       reserved:
         type: list
@@ -3796,12 +3796,12 @@ types:
       prospective_ceiling:
         type: ScopeLevel
         required: true
-        description: The replica's ceiling as its claims would derive it (see
+        description: The remote's ceiling as its claims would derive it (see
           Derived Scope Ceiling). The demonstration can only lower it
       prospective_repository_ceiling:
         type: ScopeLevel
         required: true
-        description: The repository's ceiling once the replica counts, as its
+        description: The repository's ceiling once the remote counts, as its
           claims would derive it
       backend_report:
         type: object
@@ -3814,7 +3814,7 @@ types:
         required: true
 
   CensusPath:
-    description: One path a ReplicaCensus names, in the version that holds it
+    description: One path a RemoteCensus names, in the version that holds it
     fields:
       path:
         type: string
@@ -3830,7 +3830,7 @@ types:
         description: The scope it would leave at. Present in above_ceiling,
           absent in reserved
 
-  ContentReplica:
+  ContentRemote:
     description: A copy of a repository kept at a destination, sent to and
       never read from
     fields:
@@ -3850,16 +3850,16 @@ types:
         values: [establishing, current, behind, diverged, unreachable, retired]
         required: true
       establishment:
-        type: ReplicaEstablishment
+        type: RemoteEstablishment
         required: false
-        description: Present while state is establishing, and on a replica
+        description: Present while state is establishing, and on a remote
           whose declaration did not finish
       held_by:
         type: enum
         values: [tenant, third-party]
         required: true
         description: Who holds the destination, as its backend declared it when
-          the replica was declared
+          the remote was declared
       custody:
         type: enum
         values: [exclusive, shared, opaque]
@@ -3875,16 +3875,16 @@ types:
         values: [refused, readable, unknown]
         required: true
         description: Whether the destination can be read with no credential.
-          readable and unknown both give the replica the ceiling public
+          readable and unknown both give the remote the ceiling public
       ceiling:
         type: ScopeLevel
         required: true
         description: Derived from what the destination demonstrated, as
-          Derived Scope Ceiling derives a replica's. Never configured
+          Derived Scope Ceiling derives a remote's. Never configured
       credential:
         type: string
         required: false
-        description: The part of the replica's credential a person registers at
+        description: The part of the remote's credential a person registers at
           the destination, in the form the backend's blueprint declares. The
           secret part is never returned. Absent once retired
       credential_fingerprint:
@@ -3901,15 +3901,15 @@ types:
       confirmed_at:
         type: timestamp
         required: false
-        description: When the replica left establishing. From then on it counts
+        description: When the remote left establishing. From then on it counts
           toward effective custody and the repository's ceiling, retired or
           not, whether or not anything was sent. Absent while establishing and
-          on a replica retired before it was confirmed
+          on a remote retired before it was confirmed
       first_sent_at:
         type: timestamp
         required: false
         description: When the destination was first sent anything. A record
-          only; whether the replica counts is decided by confirmed_at
+          only; whether the remote counts is decided by confirmed_at
       behind_by:
         type: integer
         required: false
@@ -3926,9 +3926,9 @@ types:
         required: false
         description: Why versions are held — a version holds a reserved path;
           it is unclassified and the census did not count it; or its scope is
-          above the replica's ceiling; or, with no held_path, no send can yet
-          leave the signed egress record it owes, which holds every replica.
-          See Replica Send Flow
+          above the remote's ceiling; or, with no held_path, no send can yet
+          leave the signed egress record it owes, which holds every remote.
+          See Remote Send Flow
       checked_at:
         type: timestamp
         required: false
@@ -3960,11 +3960,11 @@ types:
         type: object
         required: false
         description: What the blueprint specifying the destination's backend
-          says it reports about the destination — for a diverged replica, what
+          says it reports about the destination — for a diverged remote, what
           was found there — in the form that blueprint declares
 
-  ReplicaEstablishment:
-    description: What a replica declaration did and did not complete. Written
+  RemoteEstablishment:
+    description: What a remote declaration did and did not complete. Written
       durably before the credential is created, and updated as each step
       succeeds, in the manner of RepositoryEstablishment
     fields:
@@ -3974,7 +3974,7 @@ types:
       credential_created:
         type: boolean
         required: true
-        description: Whether the replica's credential exists
+        description: Whether the remote's credential exists
       destination_verified:
         type: boolean
         required: true
@@ -4094,7 +4094,7 @@ types:
         required: false
         description: Recorded. Present on a delete of a path whose last
           recorded labels include pii. False where the placement's backend
-          keeps earlier versions of its entries or a replica was sent a
+          keeps earlier versions of its entries or a remote was sent a
           version holding the entry, true only where neither holds. See
           Where an entry labelled pii is kept
       actor:
@@ -4766,8 +4766,8 @@ content:
         attributable_writes: <bool>
         tamper_evident: <bool>
   reconcile_interval: 15m        # shared custody only; 0 disables scheduled runs
-  reverify_custody_interval: 24h # the store's, and each replica's
-  replica_retry_interval: 15m    # how often a replica that lacks versions is
+  reverify_custody_interval: 24h # the store's, and each remote's
+  remote_retry_interval: 15m     # how often a remote that lacks versions is
                                  # sent them, besides after each version
   checkpoint_interval: 15m       # how often a change log whose tip has moved
                                  # is sealed; 0 seals only at shutdown and on
@@ -4781,7 +4781,7 @@ content:
 
 `held_by` is stated where the host is named, and what it means is under
 [Who holds a destination](#who-holds-a-destination).
-No key declares a replica: see [Declaring a replica](#declaring-a-replica).
+No key declares a remote: see [Declaring a remote](#declaring-a-remote).
 
 The placement rule is the same in configuration as it is in a request, and it
 is not a formality here either: `backends` is where a root is named, and a
@@ -4873,11 +4873,11 @@ security:
         reachable through this service
     - boundary: Proposal → Entry. Crossed only by a person's decision, and only
         against the bytes the proposal was made on
-    - boundary: Content Service → Replica. Crossed outward only. Nothing a
+    - boundary: Content Service → Remote. Crossed outward only. Nothing a
         destination holds is read back as content, history or truth
     - boundary: Content Service → Change Log. Only the service appends. The
         log is in its own state, reached through no content route and sent to
-        no replica, and read only whole
+        no remote, and read only whole
 
   enforcement:
     - rule: Every change this service makes is one entry in its repository's
@@ -4918,46 +4918,46 @@ security:
         start, before settling reservations, and before each checkpoint. A
         broken log refuses every act that would append, with
         CONTENT_LOG_BROKEN, and still serves reads; health is degraded
-    - rule: A replica is declared only by a person who has seen what would
+    - rule: A remote is declared only by a person who has seen what would
         leave, where it would go, and who holds that place
       mechanism: Two-step declaration; the first call returns the census and
         records nothing. The census digest binds every version that would
         leave, the destination, held_by and the claims made for it, so a
         census taken for one destination confirms no other. content:replicate
         and content:connect are both required and both person only
-    - rule: Nothing is sent to a replica before the send can leave a signed
+    - rule: Nothing is sent to a remote before the send can leave a signed
         egress record of what left
-      mechanism: The Replica Send Flow holds every replica with held_reason
+      mechanism: The Remote Send Flow holds every remote with held_reason
         egress-unrecorded, and sends nothing, until that record is specified
         (the gap under The Change Log)
-    - rule: Nothing is sent to a replica that holds a reserved path, that
-        nothing classified, or that is above the replica's ceiling
+    - rule: Nothing is sent to a remote that holds a reserved path, that
+        nothing classified, or that is above the remote's ceiling
       mechanism: The census refuses each at declaration, an unclassified
-        version unless a person records history_scope; the Replica Sender
+        version unless a person records history_scope; the Remote Sender
         checks every version before it is sent and holds the first that fails,
         sending nothing after it
-    - rule: A replica is never read from, and a diverged one is never
+    - rule: A remote is never read from, and a diverged one is never
         overwritten
-      mechanism: Replica Sender sends from the service's own record and asks a
+      mechanism: Remote Sender sends from the service's own record and asks a
         destination only whether it holds just what was sent; a destination
         holding anything else stops sending
-    - rule: A replica holds nothing above the ceiling its destination
+    - rule: A remote holds nothing above the ceiling its destination
         demonstrated, and a plain one is capped, whoever holds its destination
-      mechanism: The Derived Scope Ceiling derives every replica's ceiling from
-        what was demonstrated, lowers it for a plain replica and for one that
+      mechanism: The Derived Scope Ceiling derives every remote's ceiling from
+        what was demonstrated, lowers it for a plain remote and for one that
         demonstrated no enumerable_principals; the census refuses what would
-        leave above it, and the Replica Sender holds any later version above
+        leave above it, and the Remote Sender holds any later version above
         it. held_by is reported and bound by the census, and decides nothing
     - rule: A repository's ceiling is the lowest of every place its bytes live,
-        and retiring a replica never raises it
-      mechanism: ceiling is derived from the store and every replica confirmed,
+        and retiring a remote never raises it
+      mechanism: ceiling is derived from the store and every remote confirmed,
         retired or not and whether or not it was sent anything, and from any
-        copy the backend reports that no replica declares
-    - rule: A replica's credential is the tenant's, for one destination
+        copy the backend reports that no remote declares
+    - rule: A remote's credential is the tenant's, for one destination
       mechanism: Created by the service at declaration, held through
         patterns/secrets, presented only at that destination, destroyed at
         retirement. Its secret part is never returned
-    - rule: A replica is never configured
+    - rule: A remote is never configured
       mechanism: No configuration key declares one; the census digest a
         declaration needs cannot exist in a file
     - rule: A write, a removal or a proposal without a precondition is refused
@@ -5212,10 +5212,10 @@ security:
   one listing and the next, and a stored `current` is a claim about a moment
   that has passed.
 
-- **Send a replica from the service's own record, never from the store.** A
+- **Send a remote from the service's own record, never from the store.** A
   store under shared custody can be changed between the moment a version was
   recorded and the moment it is sent, and so can the store's own idea of where
-  its copies go. What a replica receives is what the service recorded.
+  its copies go. What a remote receives is what the service recorded.
 
 - **Ask a destination one question.** Before sending, the service checks that
   the destination holds only what it sent. That is the only thing it ever
@@ -5276,13 +5276,13 @@ security:
 - [ ] An entry with no recorded scope and no scope in its bytes reports no `scope`, never `internal`
 - [ ] A write whose bytes carry `scope_metadata: {custom_labels: [pii]}` into a repository whose `records` is false is refused with `CONTENT_RECORDS_REPOSITORY_REQUIRED` and nothing is written; the same write into the `scope_path`'s records repository is recorded with `labels` `[pii]`
 - [ ] A second declaration with `records: true` at a `scope_path` that has a records repository is refused with `CONTENT_REPOSITORY_EXISTS`, and one whose derived ceiling is below `restricted` with `CONTENT_CUSTODY_CEILING_EXCEEDED`
-- [ ] Removing an entry labelled `pii` from a records repository whose backend keeps earlier versions, the git backend among them, records `erasure_complete: false` on its `ContentChange`, as does removing one that any replica was sent; only where the backend keeps none and no replica was sent it is `erasure_complete` true, and a removal of an entry not labelled `pii` carries no `erasure_complete`
+- [ ] Removing an entry labelled `pii` from a records repository whose backend keeps earlier versions, the git backend among them, records `erasure_complete: false` on its `ContentChange`, as does removing one that any remote was sent; only where the backend keeps none and no remote was sent it is `erasure_complete` true, and a removal of an entry not labelled `pii` carries no `erasure_complete`
 - [ ] No configuration key declares a records repository
 - [ ] After a removal of an entry recorded at `restricted`, a write creating the same path that declares `internal`, or declares no scope, is refused with `CONTENT_SCOPE_LOWERED`, and one declaring `restricted` is recorded at `restricted`
-- [ ] In a repository with no `scope_floor`, a write that declares no scope, to a path with no recorded scope whose bytes declare none, records a `ContentChange` with no `scope` and no `scope_basis`, and the version it produces is counted `unclassified` by a replica census
+- [ ] In a repository with no `scope_floor`, a write that declares no scope, to a path with no recorded scope whose bytes declare none, records a `ContentChange` with no `scope` and no `scope_basis`, and the version it produces is counted `unclassified` by a remote census
 - [ ] A write declaring `confidential` to a path with no recorded scope, whose bytes declare none, records `scope_basis` `chosen`; one whose bytes declare `scope: confidential` records `bytes`; one declaring the path's recorded scope, with bytes that declare less, records `recorded`
 - [ ] No request lowers a path's recorded scope: every write, proposal and decision that would is refused with `CONTENT_SCOPE_LOWERED`, on an admin's pass naming `content:declassify` as on any other
-- [ ] A replica census counts an earlier version of a path that no entry holds now at the scope the log recorded for it
+- [ ] A remote census counts an earlier version of a path that no entry holds now at the scope the log recorded for it
 - [ ] A proposal whose path's recorded scope rose above the proposal's scope after it was made is refused with `CONTENT_SCOPE_LOWERED` when applied, and stays `open`
 - [ ] An out-of-band change under shared custody produces a `ContentObservation` with provenance `external` and raises no tampering alert
 - [ ] An out-of-band change under exclusive custody is not produced by the reconciler, which is absent for exclusive repositories
@@ -5368,7 +5368,7 @@ security:
 - [ ] A write, removal, proposal or decision on a token that carries no `identity_id` is refused with `CONTENT_IDENTITY_REQUIRED`, and nothing is recorded
 - [ ] A token that is not a pass and whose `cap` holds `content:write`, a registered component's or a channel's, is refused `PUT /v1/content/entry` with `FORBIDDEN`, as though it did not hold it, whether or not the request carries a `statement`; a person's operator token is refused there with `PASS_REQUIRED` whatever its `cap`, and a pass addressed to another component with `PASS_AUDIENCE_MISMATCH`
 - [ ] The service's own manifest declares none of `content:write`, `content:decide`, `content:replicate`, `content:connect` and `content:declassify`, and its registration succeeds
-- [ ] The manifest's `pass_routes` declare every route the guard table guards and no other, each with the capabilities its rows give it, `POST /v1/content/repositories/{repository}/replicas` with both `content:replicate` and `content:connect`, and `POST /v1/content/repositories` with `content:declare` and the three body requirements for `disposition: establish`, `scope_floor` and `self_decision_ceiling`; the directory entry the orchestrator publishes carries them unchanged
+- [ ] The manifest's `pass_routes` declare every route the guard table guards and no other, each with the capabilities its rows give it, `POST /v1/content/repositories/{repository}/remotes` with both `content:replicate` and `content:connect`, and `POST /v1/content/repositories` with `content:declare` and the three body requirements for `disposition: establish`, `scope_floor` and `self_decision_ceiling`; the directory entry the orchestrator publishes carries them unchanged
 - [ ] A declaration carrying `self_decision_ceiling` from a caller holding `content:declare` and not `content:decide` is refused, and no repository is recorded
 - [ ] A decider whose token's `cap` names `content:decide` and not `content:write` applies a proposal, and the write is recorded; the same token is refused with `FORBIDDEN` at `PUT /v1/content/entry`
 - [ ] A declaration whose `self_decision_ceiling` is `critical` is refused with `CONTENT_SEPARATION_REQUIRED` and no repository is recorded; one at `restricted` is declared, and a requester's decision to apply a `critical` change in it is refused with `CONTENT_SEPARATION_REQUIRED`
@@ -5376,37 +5376,37 @@ security:
 - [ ] A declaration carrying `self_decision_ceiling` or `scope_floor` is recorded only on a pass whose `cap` names both `content:declare` and `content:decide`; on a pass naming `content:declare` alone it is refused with `FORBIDDEN` and records no repository
 - [ ] An adoption of a store whose census reports `keeps_history`, confirmed with the census digest and carrying no `scope_floor`, is refused with `CONTENT_SCOPE_UNDECLARED`, returns the census, and declares nothing; the same adoption carrying a `scope_floor` at or above the census's `highest_scope` is declared
 - [ ] A census over a store holding an entry that declares no level and carries a label the tenant registers reports a `highest_scope` at least that label's `maps_to`, and an adoption carrying a `scope_floor` below it is refused with `CONTENT_SCOPE_LOWERED`
-- [ ] Where the tenant registers `pii` with `maps_to: restricted`, an adopted entry whose bytes carry `custom_labels: [pii]` beside `scope: internal`, or beside no level, is recorded at `restricted` on the `declare` entry and reported with `ContentEntry.scope` `restricted`; an out-of-band edit that adds the label to an `internal` entry is observed at `restricted`; and a version from before adoption that carries the label, in a repository floored at `internal`, is classified `restricted` for a replica and held from a plain one with `held_reason` `above-ceiling`
+- [ ] Where the tenant registers `pii` with `maps_to: restricted`, an adopted entry whose bytes carry `custom_labels: [pii]` beside `scope: internal`, or beside no level, is recorded at `restricted` on the `declare` entry and reported with `ContentEntry.scope` `restricted`; an out-of-band edit that adds the label to an `internal` entry is observed at `restricted`; and a version from before adoption that carries the label, in a repository floored at `internal`, is classified `restricted` for a remote and held from a plain one with `held_reason` `above-ceiling`
 - [ ] Where `pii` is registered with `maps_to: restricted`, a write whose bytes carry `custom_labels: [pii]` beside `scope: internal` is refused with `CONTENT_SCOPE_LOWERED` even when the change declares `restricted`, and one whose bytes carry the label and no level, declaring `restricted` on the change, is recorded at `restricted`
-- [ ] A repository declared with `scope_floor` `internal` reports an entry whose bytes and path declare nothing at `internal`, records its floor on the `declare` entry, refuses a write declaring `public` or declaring none with `CONTENT_SCOPE_LOWERED`, and has no version a replica census counts `unclassified`
+- [ ] A repository declared with `scope_floor` `internal` reports an entry whose bytes and path declare nothing at `internal`, records its floor on the `declare` entry, refuses a write declaring `public` or declaring none with `CONTENT_SCOPE_LOWERED`, and has no version a remote census counts `unclassified`
 - [ ] An adoption whose census reports `highest_scope` `confidential` is refused with `CONTENT_SCOPE_LOWERED` when it carries `scope_floor` `internal`, and a declaration whose `scope_floor` is above its derived ceiling is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
 - [ ] `ContentChange.version` is absent when the backend keeps no version marker
 - [ ] A census over a placement whose backend's blueprint binds a `backend_report` covers that report in its `digest`, and an adoption whose store's report changed since the census is refused with `CONTENT_PRECONDITION_FAILED`
-- [ ] A first `POST /v1/content/repositories/{repository}/replicas` with no `if_match` is refused with `CONTENT_REPLICA_UNSEEN`, returns a `ReplicaCensus`, records no replica, creates no credential and sends nothing
-- [ ] A replica declaration whose `if_match` differs from a freshly computed census `digest`, because a version was recorded between the two calls, is refused with `CONTENT_PRECONDITION_FAILED`
-- [ ] A caller holding `content:replicate` and not `content:connect`, or `content:connect` and not `content:replicate`, is refused a replica declaration; a token that is not a pass is refused it whatever its `cap` holds
-- [ ] A replica declaration whose destination backend has no `held_by`, or `held_by: third-party`, is confirmed like any other replica when everything that would leave is classified and at or below its ceiling, and its census reports `held_by: third-party`
-- [ ] A plain replica whose destination demonstrates `shared` custody with all three attestations, and refuses anonymous read, has the ceiling `confidential`, whoever holds it; declaring it for a repository holding a `restricted` version is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED` naming that version's path
-- [ ] A replica declaration where an earlier version holds a path under `.weblisk` is refused with `CONTENT_RESERVED_PATH`, though no entry holds that path now
-- [ ] A replica declaration against a destination that holds something this service did not send is refused with `CONTENT_NOT_EMPTY`, and nothing at the destination is changed
-- [ ] A confirmed declaration against a destination that has not yet registered the credential answers `CONTENT_ESTABLISH_INCOMPLETE` carrying `credential`, the replica is `establishing`, and nothing has been sent; the same declaration repeated after registration completes it with no second credential
-- [ ] Confirming, on an `exclusive` repository, a replica whose destination demonstrates neither its custody nor any attestation, and refuses anonymous read, records the replica `opaque` whatever its declaration claimed, and makes the repository's `ceiling` `public` and its `effective_custody` `opaque`, leaves `store_ceiling` `critical` and `custody` `exclusive`, and a write declaring `internal` is then refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
-- [ ] A replica whose destination can be read with no credential, or whose anonymous read could not be tested, has `ceiling` `public`
-- [ ] A replica whose destination demonstrates `shared` custody with `attributable_writes` and `tamper_evident` but not `enumerable_principals`, and refuses anonymous read, has `ceiling` `public`
-- [ ] Retiring a confirmed replica, whether or not it was sent anything, leaves the repository's `ceiling` and `effective_custody` unchanged, destroys its credential, and deletes nothing at the destination
-- [ ] A replica confirmed while its destination is unreachable, and sent nothing, lowers the repository's `ceiling` at confirmation, and a write declaring a scope above the replica's ceiling is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
-- [ ] Retiring a replica that is already `retired` changes nothing and returns it with the first `retired_by`
-- [ ] A destination changed by somebody else makes its replica `diverged`; nothing is sent to it, nothing from it enters the repository, and once the destination again holds only what was sent the replica leaves `diverged` by itself
-- [ ] No version is sent to any replica: a confirmed replica of a repository that holds a version is `behind` with `held_reason` `egress-unrecorded` and no `held_path`, unless step 3 of the Replica Send Flow held a version first, and its destination receives nothing
-- [ ] A version above a replica's ceiling holds the replica `behind` with `held_path` naming it and `held_reason` `above-ceiling`, and no version recorded after it is sent
-- [ ] A replica declaration confirming a census taken for another destination, or with other claimed custody, attestations or `history_scope`, is refused with `CONTENT_PRECONDITION_FAILED`, and so is one whose destination's backend changed `held_by` since the census
-- [ ] A replica declaration whose census counts unclassified versions and that carries no `history_scope` is refused with `CONTENT_SCOPE_UNDECLARED`; the same declaration with a `history_scope` at or below the prospective replica ceiling, and the digest of a census taken with it, is confirmed and records `history_scope`
-- [ ] An unclassified version recorded after a replica's census — an entry a person created in the store with no scope in its bytes, whether observed or not — holds the replica `behind` with `held_reason` `unclassified`, and nothing recorded after it is sent
-- [ ] An out-of-band edit, after a replica's census, to an entry whose path has a recorded scope is classified at that scope, or at the higher scope its bytes declare, and holds no replica back when that is at or below the replica's ceiling, which is then `behind` with `held_reason` `egress-unrecorded`, never `above-ceiling`
-- [ ] A version recorded after a replica was confirmed that holds a path under `.weblisk`, anywhere in what it holds, holds the replica `behind` with `held_reason` `reserved-path` naming that path; it is never sent, and nothing recorded after it is sent
-- [ ] A backend's report of a copy of the store that no replica declares makes `effective_custody` `opaque`, lowers `ceiling` to `public`, as a replica declared at a place that demonstrated nothing would, and publishes `content.custody_degraded`; a write at `internal` is then refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
+- [ ] A first `POST /v1/content/repositories/{repository}/remotes` with no `if_match` is refused with `CONTENT_REMOTE_UNSEEN`, returns a `RemoteCensus`, records no remote, creates no credential and sends nothing
+- [ ] A remote declaration whose `if_match` differs from a freshly computed census `digest`, because a version was recorded between the two calls, is refused with `CONTENT_PRECONDITION_FAILED`
+- [ ] A caller holding `content:replicate` and not `content:connect`, or `content:connect` and not `content:replicate`, is refused a remote declaration; a token that is not a pass is refused it whatever its `cap` holds
+- [ ] A remote declaration whose destination backend has no `held_by`, or `held_by: third-party`, is confirmed like any other remote when everything that would leave is classified and at or below its ceiling, and its census reports `held_by: third-party`
+- [ ] A plain remote whose destination demonstrates `shared` custody with all three attestations, and refuses anonymous read, has the ceiling `confidential`, whoever holds it; declaring it for a repository holding a `restricted` version is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED` naming that version's path
+- [ ] A remote declaration where an earlier version holds a path under `.weblisk` is refused with `CONTENT_RESERVED_PATH`, though no entry holds that path now
+- [ ] A remote declaration against a destination that holds something this service did not send is refused with `CONTENT_NOT_EMPTY`, and nothing at the destination is changed
+- [ ] A confirmed declaration against a destination that has not yet registered the credential answers `CONTENT_ESTABLISH_INCOMPLETE` carrying `credential`, the remote is `establishing`, and nothing has been sent; the same declaration repeated after registration completes it with no second credential
+- [ ] Confirming, on an `exclusive` repository, a remote whose destination demonstrates neither its custody nor any attestation, and refuses anonymous read, records the remote `opaque` whatever its declaration claimed, and makes the repository's `ceiling` `public` and its `effective_custody` `opaque`, leaves `store_ceiling` `critical` and `custody` `exclusive`, and a write declaring `internal` is then refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
+- [ ] A remote whose destination can be read with no credential, or whose anonymous read could not be tested, has `ceiling` `public`
+- [ ] A remote whose destination demonstrates `shared` custody with `attributable_writes` and `tamper_evident` but not `enumerable_principals`, and refuses anonymous read, has `ceiling` `public`
+- [ ] Retiring a confirmed remote, whether or not it was sent anything, leaves the repository's `ceiling` and `effective_custody` unchanged, destroys its credential, and deletes nothing at the destination
+- [ ] A remote confirmed while its destination is unreachable, and sent nothing, lowers the repository's `ceiling` at confirmation, and a write declaring a scope above the remote's ceiling is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
+- [ ] Retiring a remote that is already `retired` changes nothing and returns it with the first `retired_by`
+- [ ] A destination changed by somebody else makes its remote `diverged`; nothing is sent to it, nothing from it enters the repository, and once the destination again holds only what was sent the remote leaves `diverged` by itself
+- [ ] No version is sent to any remote: a confirmed remote of a repository that holds a version is `behind` with `held_reason` `egress-unrecorded` and no `held_path`, unless step 3 of the Remote Send Flow held a version first, and its destination receives nothing
+- [ ] A version above a remote's ceiling holds the remote `behind` with `held_path` naming it and `held_reason` `above-ceiling`, and no version recorded after it is sent
+- [ ] A remote declaration confirming a census taken for another destination, or with other claimed custody, attestations or `history_scope`, is refused with `CONTENT_PRECONDITION_FAILED`, and so is one whose destination's backend changed `held_by` since the census
+- [ ] A remote declaration whose census counts unclassified versions and that carries no `history_scope` is refused with `CONTENT_SCOPE_UNDECLARED`; the same declaration with a `history_scope` at or below the prospective remote ceiling, and the digest of a census taken with it, is confirmed and records `history_scope`
+- [ ] An unclassified version recorded after a remote's census — an entry a person created in the store with no scope in its bytes, whether observed or not — holds the remote `behind` with `held_reason` `unclassified`, and nothing recorded after it is sent
+- [ ] An out-of-band edit, after a remote's census, to an entry whose path has a recorded scope is classified at that scope, or at the higher scope its bytes declare, and holds no remote back when that is at or below the remote's ceiling, which is then `behind` with `held_reason` `egress-unrecorded`, never `above-ceiling`
+- [ ] A version recorded after a remote was confirmed that holds a path under `.weblisk`, anywhere in what it holds, holds the remote `behind` with `held_reason` `reserved-path` naming that path; it is never sent, and nothing recorded after it is sent
+- [ ] A backend's report of a copy of the store that no remote declares makes `effective_custody` `opaque`, lowers `ceiling` to `public`, as a remote declared at a place that demonstrated nothing would, and publishes `content.custody_degraded`; a write at `internal` is then refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
 - [ ] A copy the backend reported once and no longer reports stays in `reported_copies`; `effective_custody` stays `opaque` and `ceiling` stays `public`, and a write at `internal` is still refused with `CONTENT_CUSTODY_CEILING_EXCEEDED`
-- [ ] No configuration key declares a replica, and a configuration file naming one declares nothing
+- [ ] No configuration key declares a remote, and a configuration file naming one declares nothing
 - [ ] Every write, removal and applied proposal appends exactly one `change` entry to its repository's change log, and every observation of state `changed` or `removed` one `observe` entry; an observation of state `unknown` appends nothing
 - [ ] A repository's first log entry has `act` `declare` and `seq` 1, records its `self_decision_ceiling`, its `scope_floor` and, on adoption, every entry the census found; the SHA-256 of its stored line is the `log` its `LogHead` reports
 - [ ] Killing the service after an entry's bytes are written and before its `change` entry is appended, then restarting it, appends that `change` entry with provenance `authored` before anything is served, and records no `observe` entry for those bytes
@@ -5426,7 +5426,7 @@ security:
 - [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` whose `signed_at` is more than 300 seconds from the service's clock is refused with `CONTENT_STATEMENT_INVALID`
 - [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` whose attestation names an `identity_id` other than the pass's, or whose attestation's identity key is not the one whose fingerprint the pass's `identity_key` carries, is refused with `CONTENT_STATEMENT_INVALID`
 - [ ] Through the admin gateway, a write, removal or decision on an unexpired operator token whose operator was removed, or whose credential was revoked, after it was minted is refused by the exchange with `OPERATOR_REVOKED` or `CREDENTIAL_REVOKED`, and one whose operator's role no longer carries the capability with `FORBIDDEN`; in each, this service is sent nothing and nothing is written
-- [ ] A write, removal, decision or replica declaration on a pass whose `exp` has passed is refused with `TOKEN_EXPIRED`, and nothing is written, decided or recorded; one on an unexpired pass naming the capability is performed with the orchestrator unreachable, because this service asks the orchestrator nothing about a pass
+- [ ] A write, removal, decision or remote declaration on a pass whose `exp` has passed is refused with `TOKEN_EXPIRED`, and nothing is written, decided or recorded; one on an unexpired pass naming the capability is performed with the orchestrator unreachable, because this service asks the orchestrator nothing about a pass
 - [ ] The audit entry for a request a pass carried names the pass's `identity_id` as `actor` and its `act.identity_id` as `via`
 - [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` signed by the credential key the token's `cid` names is refused with `CONTENT_STATEMENT_INVALID`, even where that key was also attested with `purpose` `sign-records`
 - [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` whose credential key is not one of the token's `record_keys` — never recorded at the hub, or revoked before the token was minted — is refused with `CONTENT_STATEMENT_INVALID`

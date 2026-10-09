@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.14.4
+version: 1.14.5
 requires: [protocol/types]
 platform: any
 tier: free
@@ -80,8 +80,8 @@ A credential that **proves a live session** is different, and
 [`patterns/principal-identity`](../patterns/principal-identity.md) Design
 Principle 6 says why: it signs nothing that outlives the session, so it may be
 classical. That includes a transport credential a hub presents to a third
-party's service in that service's own protocol, such as the SSH key a content
-replica is pushed with ([`patterns/content-git`](../patterns/content-git.md)).
+party's service in that service's own protocol, such as the SSH key for pushing
+to a content remote ([`patterns/content-git`](../patterns/content-git.md)).
 The blueprint that specifies such a transport states what its key exchange
 must be. A credential that **signs records**, attested with the purpose
 `sign-records`, is not such a credential: what it signs outlives every session,
