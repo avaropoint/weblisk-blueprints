@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.26.1
+version: 2.27.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -298,7 +298,7 @@ declaration:
     - method: POST
       path: "/v1/admin/complete"
       operation: AdminComplete
-      auth: "admin:read"
+      auth: "llm:chat"
       provided: platform
     - method: POST
       path: "/v1/admin/model/agreements"
@@ -743,8 +743,11 @@ layer; each provider specifies and serves its own, and
 
 Every endpoint here requires the stated capability from
 [`protocol/types`](../protocol/types.md), carried in the caller's token: an
-`admin:` capability, or, for recording and withdrawing a model provider
-agreement, `model:attest`. A request can use a capability only when the
+`admin:` capability; `llm:chat`, for asking the tenant's model for a
+completion; or, for recording and withdrawing a model provider agreement,
+`model:attest`. A completion spends what the tenant pays for its model and
+sends what it carries to a model provider, so it is not a read, and no
+`admin:` capability reaches it. A request can use a capability only when the
 operator's role carries it now and the token's `cap` names it
 ([`architecture/admin`](admin.md), `token-status-on-use`), so a token whose
 `cap` leaves out the capability a route requires does not reach that route,
@@ -784,7 +787,7 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 | GET | /v1/admin/model | AdminModelGet | `admin:read` | This tenant's model backend — Studio is a client of it (platform-provided) |
 | PUT | /v1/admin/model | AdminModelPut | `admin:*` | Set this tenant's model backend (platform-provided) |
 | GET | /v1/admin/model/providers | AdminModelProviders | `admin:read` | Discovery on **this hub's host** (platform-provided) |
-| POST | /v1/admin/complete | AdminComplete | `admin:read` | Run a completion under this tenant's model policy, behind the destination gate (platform-provided) |
+| POST | /v1/admin/complete | AdminComplete | `llm:chat` | Run a completion under this tenant's model policy, behind the destination gate (platform-provided) |
 | POST | /v1/admin/model/agreements | AdminModelAgreementRecord | `model:attest` | Record a model provider agreement (platform-provided) |
 | GET | /v1/admin/model/agreements | AdminModelAgreementList | `admin:read` | Every agreement, withdrawn and lapsed ones included (platform-provided) |
 | DELETE | /v1/admin/model/agreements/{id} | AdminModelAgreementWithdraw | `model:attest` | Withdraw an agreement (platform-provided) |
@@ -1727,7 +1730,8 @@ agents hold, which is theirs.
 - [ ] Every operation creates an `AuditEntry` logged to stderr and persisted to JSONL
 - [ ] Domain dependency status recalculated on registration/deregistration
 - [ ] Orchestrator does NOT handle tasks, strategies, context, observations, or approvals
-- [ ] Administrative endpoints are gated on the capability each declares — an `admin:` capability, or `model:attest` — carried in the caller's token, not on a separate role model
+- [ ] Administrative endpoints are gated on the capability each declares — an `admin:` capability, `llm:chat` or `model:attest` — carried in the caller's token, not on a separate role model
+- [ ] `POST /v1/admin/complete` refuses with `FORBIDDEN` a token that cannot use `llm:chat`, one carrying `admin:read` or `admin:*` without it included, and sends nothing to a backend
 - [ ] An admin's token whose `cap` names only `content:` capabilities is refused with `FORBIDDEN` at `OperatorApprove`, `OperatorRole`, `OperatorDelete`, `AdminAgentDeregister` and `CredentialRevoke`, its own credential included, and at `CredentialAttest` for the admin
 - [ ] The orchestrator serves only the administrative endpoints backed by state it owns — operators, agents, its audit log, its own overview, and the tenant's model surface the CLI installs
 - [ ] `GET /v1/admin/audit` and `GET /v1/admin/audit/export` answer a request that can use `admin:audit` and refuse any other with `FORBIDDEN`, an agent token with `CREDENTIAL_REQUIRED`; the export answers the entries the list would for the same filters, as JSON where `format` is `json` or absent and as RFC 4180 CSV with a header row where it is `csv`, a field beginning with `=`, `+`, `-`, `@`, a tab or a carriage return written with a single quote before it, and refuses any other `format` with 400 `INVALID_REQUEST`

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.34.6
+version: 2.35.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/lifecycle, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -145,7 +145,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.24.0 <3.0.0"
+    version: ">=2.27.0 <3.0.0"
     bindings:
       behaviors:
         # Called by the admin gateway for each request it carries to a
@@ -878,7 +878,7 @@ contracts:
         - The role names are exactly `viewer`, `auditor`, `operator` and `admin`
         - Capabilities MUST be derived from the role, never stored per operator
         - The `operator` role MUST carry `admin:read`, `admin:approve` and `admin:strategy` — it is the role every `operator+` endpoint in this document is gated on
-        - Each `content:` capability, `model:attest`, `fabric:read` and `fabric:attest` MUST be carried by the roles the Operator Roles table gives it. Roles are held by operators, who are people, and by nothing else, so a role may carry a capability `protocol/types` marks person only
+        - Each `content:` capability, `llm:chat`, `model:attest`, `fabric:read` and `fabric:attest` MUST be carried by the roles the Operator Roles table gives it. Roles are held by operators, who are people, and by nothing else, so a role may carry a capability `protocol/types` marks person only
         - Every capability this document names for a person's token to carry MUST be carried by some role; a capability no role holds is a constant, not a permission. token:exchange, which this document names as what the admin gateway's registration declares, is a component's and not a person's, and no role carries it (protocol/types, Exchange capability)
         - The last active admin MUST NOT be removable or demotable
         - A role change MUST be audited with the previous and new role
@@ -1549,7 +1549,7 @@ a failed registration.
 
 | Role | Capabilities | Description |
 |------|-------------|-------------|
-| **admin** | `admin:*`, `model:attest`, every `content:` capability, `content:declassify` among them, `fabric:read` and `fabric:attest` | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, declare their replicas, record model provider agreements, and confirm or reject relationships. The only role that carries `content:declassify` |
+| **admin** | `admin:*`, `llm:chat`, `model:attest`, every `content:` capability, `content:declassify` among them, `fabric:read` and `fabric:attest` | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, declare their replicas, ask the tenant's model, record model provider agreements, and confirm or reject relationships. The only role that carries `content:declassify` or `llm:chat` |
 | **operator** | `admin:read`, `admin:approve`, `admin:strategy`, `content:read`, `content:describe`, `content:write`, `content:propose`, `content:decide`, `content:reconcile`, `fabric:read`, `fabric:attest` | Day-to-day operations — view everything, approve recommendations, manage strategies, write documents, decide proposals, and confirm or reject relationships |
 | **viewer** | `admin:read`, `content:read`, `content:describe`, `fabric:read` | Read-only — view dashboards, logs, status, documents and relationships. Cannot modify anything |
 | **auditor** | `admin:read`, `admin:audit`, `content:read`, `content:describe`, `fabric:read` | Read-only plus full audit log access with export capability |
@@ -1568,6 +1568,13 @@ raising a model's ceiling does. No route admits it yet. The content service
 refuses every lowering until the tenant's approval queue can route the request
 to a second person
 ([`architecture/content`](content.md#a-scope-only-rises), the gap there).
+
+`llm:chat` asks the tenant's model for a completion
+([`architecture/orchestrator`](orchestrator.md#administrative-endpoints)),
+which spends what the tenant pays for its model and sends what it carries to
+a model provider. Nothing yet limits what one person's completions may use,
+so `admin` carries it and no other role does, and a role that reads
+everything through `admin:read` asks the model nothing.
 
 `fabric:attest` is the person-only capability the fabric's person routes
 require ([`architecture/fabric`](fabric.md#registration-and-standalone-operation)):
@@ -2746,7 +2753,8 @@ The rest SHOULD be:
 - [ ] Through the admin gateway, a request for a route another component provides is refused by the exchange with `OPERATOR_REVOKED` on the token of an operator removed since it was minted, and with `FORBIDDEN` on the token of an operator since lowered to `viewer`; while the orchestrator cannot be asked it is refused with 503 `ADMIN_TOKEN_UNCHECKED` carrying `retry_after`; where the exchange answers `404` `NOT_FOUND` because the provider is not registered now it is refused with 503 `ADMIN_GROUP_UNAVAILABLE`, never `ADMIN_TOKEN_UNCHECKED`; in none of these is anything forwarded
 - [ ] All admin API responses include Cache-Control: no-store header
 - [ ] Admin auth middleware verifies `type` is `operator`, checks that the operator and credential the token names are live, and checks that the request can use the capability the endpoint's minimum stands for, from the role the operator holds now narrowed to the token's `cap`
-- [ ] An admin's token minted with `cap` `[admin:read]` carries `admin:read`, reaches a `viewer+` route and `POST /v1/admin/complete`, and is refused with `FORBIDDEN` on an `admin` route such as `PUT /v1/admin/operators/{name}/role`
+- [ ] An admin's token minted with `cap` `[admin:read]` carries `admin:read`, reaches a `viewer+` route, and is refused with `FORBIDDEN` at `POST /v1/admin/complete`, which needs `llm:chat`, and on an `admin` route such as `PUT /v1/admin/operators/{name}/role`
+- [ ] Only the `admin` role carries `llm:chat`: an `operator`, a `viewer` or an `auditor` is refused with `FORBIDDEN` at `POST /v1/admin/complete`, and an admin's token whose `cap` names `llm:chat` reaches it
 - [ ] An operator-role token minted with `cap` `[admin:*]` carries `admin:read`, `admin:approve` and `admin:strategy`, and not `admin:*` or `admin:audit`
 - [ ] A token presented in the request body rather than the `Authorization` header is refused on every `/v1/admin/*` route
 - [ ] A console holds no registration at any hub: it never sends `POST /v1/register` with its own key or any key it holds, and does no work at a hub while no signed-in person is present
