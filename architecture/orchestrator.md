@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.27.1
+version: 2.27.2
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -967,8 +967,11 @@ for as the one that ran.
 >   `SCOPE_MISSING` or `SCOPE_CEILING_EXCEEDED`, and runs whatever it is sent,
 >   `restricted` included.
 >
-> No hub serves `POST /v1/admin/model/audit` yet, so nothing a model route does
-> is recorded at any tenant. Until a hub serves all nine as specified:
+> No hub serves `POST /v1/admin/model/audit` yet, and the CLI's gateway neither
+> records through it nor intercepts it, so nothing a model route does is
+> recorded at any tenant, and a hub generated with the route answers it from
+> the network ([Recording what the model routes do](#recording-what-the-model-routes-do)).
+> Until a hub serves all nine as specified:
 >
 > - a client MUST NOT read a `404` from either ceiling route as a ceiling. It
 >   cannot learn one, so it uses `internal`, the ceiling a provider has with
@@ -1029,10 +1032,17 @@ second entry is appended. A route that cannot record answers
 `MODEL_UNRECORDED`, and a refusal of the token is relayed as the
 orchestrator gave it.
 
-On a hub whose platform installs no model gateway, nothing intercepts the
-path, and a person whose token can use an action's capability can append that
-action's entry. It names them as its actor, so it records nothing in anyone
-else's name.
+The admin gateway carries no request for the path, and answers each `404`
+([`architecture/admin`](admin.md#contracts), `admin-gateway-authorization`).
+From the network the route is reached only by a token sent to this
+orchestrator directly, the gap at the boundary from the admin gateway
+([Security](#security)). Where no model gateway intercepts the path, because
+the platform installs none or installs one that does not know the route, as
+the CLI's does not today (the gap note under
+[The tenant's model](#the-tenants-model)), such a request reaches it, and a
+person whose token can use an action's capability can append that action's
+entry. It names them as its actor, so it records nothing in anyone else's
+name.
 
 ### A model is a destination
 
