@@ -487,18 +487,21 @@ spent the call, and says that no provider was asked.
 than at second zero: a port that was free before an hour of generation is not a
 port anybody reserved. The result reports the port it took. A console building a
 tenant beside one that is already running passes `0`, because a fixed default is
-a collision the moment one tenant is up. The port is this run's and nothing
-records it in the tenant, as for any `--port`: a later
+a collision the moment one tenant is up. The port is this run's: as for any
+`--port`, `create` declares it nowhere in the tenant's configuration, so a later
 [`weblisk server start`](#weblisk-server-start) binds what `.weblisk/config.yaml`
-declares, else the convention. A console that starts the tenant again passes the
+declares, else the convention. While the hub runs,
+[`weblisk component orchestrator status --json`](#weblisk-component-name-start--stop--status--logs)
+reports the address it bound. A console that starts the tenant again passes the
 port the result reported.
 
 **The result carries the first operator's token, and nothing writes it down.**
-With `--json`, the last object carries `result`: `root`, `address`, `port`,
-`operator`, `provider`, `model`, what acceptance asked (`checks`), and `token`
-with `token_expires_at` in Unix seconds. That object is the only place the
-token goes. `create` writes no token file, and without `--json` it prints none —
-a person at a terminal connects afterwards with
+With `--json`, the last object carries `result`: `root`, `name`, `address`,
+`port`, `operator`, `provider`, `model`, the `skills` the tenant carries, what
+acceptance asked (`checks`), and `token` with `token_expires_at` in Unix
+seconds. That object is the only place the token goes. `create` writes no
+token file, and without `--json` it prints none — a person at a terminal
+connects afterwards with
 [`weblisk operator connect`](#weblisk-operator-connect). The stream is addressed
 to the program that started the command, which holds the token in memory as it
 holds the passphrase it sent; a caller that copies the stream to a file has
