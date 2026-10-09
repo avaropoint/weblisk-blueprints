@@ -211,11 +211,13 @@ weblisk blueprint update
 
 The CLI resolves blueprints in priority order:
 
-1. **Local project** — `./patterns/` in the user's project
+0. **The corpus you are standing in** — the working directory itself, when it
+   is a blueprint corpus such as this one, read in place
+1. **Local project** — `blueprints/` in the user's project
 2. **Custom sources** — additional repos via configured blueprint sources
 3. **Core** — this repository (always present)
 
-Custom sources override core blueprints with the same path. For example,
+A higher source overrides a lower one at the same path. For example,
 a customer's `domains/checkout.md` takes precedence over the core version.
 
 Blueprint sources are configured via runtime configuration (e.g.,
@@ -253,7 +255,7 @@ This supports multiple distribution models:
 | Core (open source) | `avaropoint/weblisk-blueprints` | Public, always available |
 | Vertical/partner | `avaropoint/weblisk-blueprints-ecommerce` | Granted per-customer |
 | Customer-owned | `acme-corp/acme-blueprints` | Customer's own repo |
-| Local project | `./patterns/` | Project-scoped, checked in |
+| Local project | `blueprints/` | Project-scoped, checked in |
 
 Access control is handled entirely by Git — private repos require the
 user's existing credentials (SSH key or GitHub CLI auth).
