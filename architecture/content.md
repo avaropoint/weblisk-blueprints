@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 2.22.6
+version: 2.22.7
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -2104,15 +2104,22 @@ tenant and recorded there:
   ([What an adopted entry is, and is not](#what-an-adopted-entry-is-and-is-not)).
 - **The tenant installs a copy** into a repository it has declared — a standard
   it will be measured against, a programme it takes on
-  ([`schemas/programme`](../schemas/programme.md#version-and-version_hash-are-not-alternatives))
+  ([`schemas/programme`](../schemas/programme.md#installation-checklist))
   — written as any change is ([Who may move an entry](#who-may-move-an-entry)),
   so the change log of the repository written to holds the digest of every
   file written. The copy is the tenant's, and the repository it came from stays
-  outside. Where the copy came from MUST be recorded in the tenant as the commit
-  the repository was read at, where it has commits, and the digest of every
-  file taken. Its name or address may say where to look, and nothing joins on
+  outside. Where the copy came from belongs in the tenant: the commit the
+  repository was read at, where it has commits, and the digest of every file
+  taken. Its name or address may say where to look, and nothing joins on
   either: a repository outside a tenant has no identity a tenant could cite,
   and both move.
+
+> **Gap.** No field of this contract records where a copy came from. Neither
+> `EntryWrite` nor `ContentChange` carries an origin, so the log of the
+> repository written to shows each file written and not what it was taken
+> from. Until a field does, whatever installs a copy MUST say with its answer
+> that the copy's origin is not recorded in the tenant (Design Principle 5).
+> This line exists so the absence is a known gap rather than an oversight.
 
 A build that reads such a repository as a blueprint source records it, with its
 revision, in the provenance it writes into what it generates
