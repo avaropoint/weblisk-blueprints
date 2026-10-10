@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: cron
-version: 1.0.2
+version: 2.0.0
 port: 9750
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/orchestrator, architecture/change-management]
 extends: [patterns/scheduling, patterns/messaging, patterns/logging, patterns/retry, patterns/versioning, patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -52,7 +52,7 @@ protocol endpoints.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -71,7 +71,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -137,7 +137,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/observability
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: metrics
@@ -149,7 +149,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/change-management
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       events:
         - topic: system.change.assessment
@@ -546,7 +546,7 @@ storage:
 6. Verify relationship integrity:
    a. No orphaned cron_executions (task_id must reference existing task)
 7. Resume cron agent
-8. Log: lifecycle.restored with {backup_file, tasks_imported, orphans_cleaned}
+8. Log: process.restored with {backup_file, tasks_imported, orphans_cleaned}
 ```
 
 ---
@@ -705,7 +705,7 @@ Step 9 — Start Tick Loop
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9750, tasks_loaded: N, mode: leader|standby}
+  Log: process.ready {port: 9750, tasks_loaded: N, mode: leader|standby}
 ```
 
 ### Shutdown Sequence
@@ -745,7 +745,7 @@ Step 7 — Close Storage
   Validates:   Connection closed cleanly
 
 Step 8 — Exit
-  Log: lifecycle.stopped {uptime_seconds, in_flight_drained, tasks_timed_out}
+  Log: process.stopped {uptime_seconds, in_flight_drained, tasks_timed_out}
   agent_state → retired
   Exit process
 ```
@@ -812,7 +812,7 @@ Step 4 — Reload Configuration
   On Fail:     Revert to previous config, log warning
 
 Final:
-  Log: lifecycle.version_updated {from, to, migration_steps}
+  Log: process.version_updated {from, to, migration_steps}
   Emit: cron.blueprint.updated event
 ```
 

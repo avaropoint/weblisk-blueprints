@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: incident-response
-version: 1.3.0
+version: 2.0.0
 port: 9760
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/alerting]
 extends: [patterns/incident-response, patterns/observability, patterns/storage, patterns/state-machine, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -46,7 +46,7 @@ to operators when human judgment is required.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -66,7 +66,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.16.1 <2.0.0"
+    version: ">=1.16.1 <3.0.0"
     bindings:
       types:
         - name: TaskResult
@@ -106,7 +106,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: agents/alerting
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       events:
         - topic: alert.fired
@@ -749,7 +749,7 @@ Step 7 — Load Active Incidents
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9760, runbooks_loaded: N, active_incidents: N}
+  Log: process.ready {port: 9760, runbooks_loaded: N, active_incidents: N}
 ```
 
 ### Shutdown Sequence
@@ -774,7 +774,7 @@ Step 5 — Deregister
   Action:      DELETE /v1/register
 
 Step 6 — Exit
-  Log: lifecycle.stopped {uptime_seconds, active_incidents_preserved}
+  Log: process.stopped {uptime_seconds, active_incidents_preserved}
   agent_state → retired
 ```
 
@@ -816,7 +816,7 @@ When `system.blueprint.changed` is received where `blueprint_name = "incident-re
 2. Reload runbook definitions from new blueprint
 3. Validate all active incidents against new state machine
 4. Apply new configuration values
-5. Log: lifecycle.version_updated {from, to}
+5. Log: process.version_updated {from, to}
 ```
 
 ---

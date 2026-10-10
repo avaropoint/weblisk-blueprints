@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: development
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/types, patterns/security, patterns/observability]
 platform: any
 tier: free
@@ -35,7 +35,7 @@ specification for their chosen stack.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -448,18 +448,19 @@ ErrorResponse format:
 
 ## Observability
 
-The development server emits structured log entries for all requests:
+The development server writes every request as one log line in the envelope
+[`patterns/logging`](logging.md) defines:
 
 ```json
 {
-  "ts": 1713264000,
+  "ts": "2024-04-16T10:40:00.000Z",
   "level": "info",
+  "log_type": "dev-server.request.served",
+  "msg": "GET /index.html 200",
   "component": "dev-server",
-  "msg": "request",
-  "method": "GET",
-  "path": "/index.html",
-  "status": 200,
-  "duration_ms": 3
+  "component_type": "cli",
+  "duration_ms": 3,
+  "details": {"method": "GET", "path": "/index.html", "status_code": 200}
 }
 ```
 

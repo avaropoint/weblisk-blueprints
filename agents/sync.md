@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: sync
-version: 1.0.1
+version: 2.0.0
 port: 9751
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/offline, patterns/observability, patterns/storage, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/privacy, patterns/security, patterns/governance]
@@ -32,7 +32,7 @@ connected clients via real-time channels.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -51,7 +51,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -510,7 +510,7 @@ Step 7 — Initialize Realtime Channel
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9751, conflict_resolution: config.conflict_resolution}
+  Log: process.ready {port: 9751, conflict_resolution: config.conflict_resolution}
 ```
 
 ### Shutdown Sequence
@@ -541,7 +541,7 @@ Step 6 — Close Storage
   Action:      Close database connection
 
 Step 7 — Exit
-  Log: lifecycle.stopped {uptime_seconds, syncs_processed, conflicts_resolved}
+  Log: process.stopped {uptime_seconds, syncs_processed, conflicts_resolved}
   agent_state → retired
 ```
 
@@ -580,7 +580,7 @@ Step 1 — Validate new blueprint
 Step 2 — Check migration requirements
 Step 3 — Execute migration (drain syncs, migrate, resume)
 Step 4 — Reload configuration
-Final:  Log lifecycle.version_updated {from, to}
+Final:  Log process.version_updated {from, to}
 ```
 
 ---

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: tenancy
-version: 1.0.2
+version: 1.0.3
 requires: [protocol/types, protocol/identity, architecture/orchestrator, architecture/storage, patterns/principal-identity, patterns/versioning]
 platform: any
 tier: free
@@ -35,7 +35,7 @@ surface, which is a correct deployment rather than an unfinished one.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -98,7 +98,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/versioning
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       behaviors:
         # The schema migration a tenant's first request after an upgrade

@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: task
-version: 1.1.0
+version: 2.0.0
 port: 9781
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/task-dispatch, patterns/messaging, patterns/retry, patterns/scope, patterns/policy]
@@ -41,7 +41,7 @@ countable, retryable and auditable in one place instead of in every caller.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -65,7 +65,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -95,7 +95,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -322,10 +322,10 @@ types:
      id: task_id
      action: action
      payload: input
-     context: { trace_id, correlation_id, services, workspace_root }
+     context: { trace_id, span_id, correlation_id, services, workspace_root }
    POST target_agent.url + /v1/execute
      Timeout: task timeout (from submit payload or default)
-     Headers: Authorization: Bearer <token>, X-Trace-Id: <trace_id>
+     Headers: Authorization: Bearer <token>, traceparent: 00-<trace_id>-<span_id>-<trace_flags>
 
 6. Handle response:
    2xx + status "success":
@@ -549,7 +549,7 @@ Step 7 — Build Agent Capacity Cache
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9781, pending_tasks: N, agents_cached: N}
+  Log: process.ready {port: 9781, pending_tasks: N, agents_cached: N}
 ```
 
 ### Shutdown Sequence
@@ -577,7 +577,7 @@ Step 6 — Deregister
   Action:      DELETE /v1/register
 
 Step 7 — Exit
-  Log: lifecycle.stopped {uptime_seconds, tasks_drained, tasks_failed}
+  Log: process.stopped {uptime_seconds, tasks_drained, tasks_failed}
   agent_state → retired
 ```
 
@@ -620,7 +620,7 @@ When `system.blueprint.changed` is received where `blueprint_name = "task"`:
 1. Parse new blueprint, verify against schema
 2. Validate in-flight tasks against updated types
 3. Apply new configuration values
-4. Log: lifecycle.version_updated {from, to}
+4. Log: process.version_updated {from, to}
 ```
 
 ---
@@ -690,7 +690,7 @@ triggers:
 4. Publish: task.accepted (scope: requester)
 5. Dispatch via POST target_agent.url + /v1/execute:
    Build TaskRequest with action, payload, context
-   Headers: Authorization: Bearer <token>, X-Trace-Id: <trace_id>
+   Headers: Authorization: Bearer <token>, traceparent: 00-<trace_id>-<span_id>-<trace_flags>
    Timeout: task timeout
 6. Handle response per state machine transitions
 7. Update in-flight tracking, dispatch next queued if capacity freed
@@ -746,7 +746,7 @@ Phase 2 — Capacity Check
 Phase 3 — HTTP Dispatch
   Action:    POST target_agent.url + /v1/execute
   Payload:   TaskRequest {id, action, payload, context}
-  Headers:   Authorization, X-Trace-Id, X-Correlation-Id
+  Headers:   Authorization, traceparent, X-Correlation-Id
   Timeout:   From submit payload or config.default_timeout
   TaskRecord state: queued → dispatched
 

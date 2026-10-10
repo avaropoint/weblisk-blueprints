@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: hub
-version: 1.1.0
+version: 2.0.0
 port: 9770
 requires: [protocol/spec, protocol/identity, protocol/types, protocol/federation, architecture/hub, architecture/agent, architecture/orchestrator]
 extends: [patterns/messaging, patterns/caching, patterns/observability, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/privacy, patterns/security, patterns/interop]
@@ -97,7 +97,7 @@ signature takes none: it is [`protocol/identity`](../protocol/identity.md)'s
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -133,7 +133,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: TaskResult
@@ -1718,7 +1718,7 @@ Step 7 — Initialize Subsystems
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9770, listings: N, providers: M,
+  Log: process.ready {port: 9770, listings: N, providers: M,
        fingerprints: F, active_rules: R, active_mutes: U}
 ```
 
@@ -1746,7 +1746,7 @@ Step 6 — Close Storage
   Action:      Close database connection
 
 Step 7 — Exit
-  Log: lifecycle.stopped {uptime_seconds, crawls_drained, probes_drained,
+  Log: process.stopped {uptime_seconds, crawls_drained, probes_drained,
        verifications_drained, alerts_persisted}
   agent_state → retired
 ```
@@ -1807,7 +1807,7 @@ Step 1 — Validate new blueprint, verify version is newer
 Step 2 — Compare Types block against current storage schema
 Step 3 — Pause all subsystem processing → run migration → resume
 Step 4 — Reload configuration, revocation list, rules, mutes, caches
-Log: lifecycle.version_updated {from, to}
+Log: process.version_updated {from, to}
 ```
 
 ---

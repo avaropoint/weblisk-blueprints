@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.27.8
-requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
+version: 2.28.0
+requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
 -->
@@ -73,7 +73,7 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: protocol/types
-      version: ">=1.18.3 <2.0.0"
+      version: ">=1.18.3 <3.0.0"
       bindings:
         types:
           - name: RegisterRequest
@@ -121,17 +121,19 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/observability
-      version: ">=1.0.0 <2.0.0"
+      version: ">=2.0.0 <3.0.0"
       bindings:
         types:
           - name: HealthStatus
             fields_used: [status, name, version, uptime]
+        behaviors:
+          - name: trace-propagation
       on_change:
         compatible: validate-and-adopt
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/admin
-      version: ">=2.35.0 <3.0.0"
+      version: ">=2.35.0 <4.0.0"
       bindings:
         behaviors:
           - name: operator-registration
@@ -163,6 +165,16 @@ declaration:
             fields_used: [backend, model, ceiling, agreement, not_after, address]
           - name: DestinationRefusal
             fields_used: [destination, ceiling, items]
+      on_change:
+        compatible: validate-and-adopt
+        breaking: version-bump
+        removed: halt-immediately
+    - blueprint: patterns/logging
+      version: ">=2.0.0 <3.0.0"
+      bindings:
+        behaviors:
+          - name: structured-logging
+          - name: redaction-at-emission
       on_change:
         compatible: validate-and-adopt
         breaking: version-bump
@@ -1674,10 +1686,9 @@ Every operation creates an AuditEntry:
 | `model_set` | The tenant's model configuration about to be changed, before and after |
 | `model_complete` | A completion: what it will ask, before anything else, and what ran, when it ends |
 
-Log to stderr in real-time AND persist to append-only flat-file
-storage (JSONL).
-
-Format: `[audit] HH:MM:SS actor → target: detail [status]`
+Each entry is persisted to append-only flat-file storage (JSONL), which is the
+record, and echoed to standard output as one log line whose `log_type` is
+`audit` ([`patterns/logging`](../patterns/logging.md)).
 
 ---
 
@@ -2101,7 +2112,7 @@ agents hold, which is theirs.
 - [ ] `GET /v1/health` returns 200 without auth with agent/domain/channel/namespace counts
 - [ ] system.agent.registered event published after successful registration
 - [ ] system.agent.deregistered event published after deregistration
-- [ ] Every operation creates an `AuditEntry` logged to stderr and persisted to JSONL
+- [ ] Every operation creates an `AuditEntry`, persisted to JSONL and echoed to stdout as an `audit` log line
 - [ ] Domain dependency status recalculated on registration/deregistration
 - [ ] Orchestrator does NOT handle tasks, strategies, context, observations, or approvals
 - [ ] Administrative endpoints are gated on the capability each declares — an `admin:` capability, `llm:chat` or `model:attest` — carried in the caller's token, not on a separate role model

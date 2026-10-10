@@ -1,7 +1,7 @@
 <!-- blueprint
 type: platform
 name: cloudflare
-version: 1.1.0
+version: 1.1.1
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: cloudflare
 tier: free
@@ -50,7 +50,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: HealthStatus
@@ -476,7 +476,7 @@ wrangler secret put WL_AI_KEY
 | Subrequests | Limited per invocation. A component making one call per record does not scale here; batch instead |
 | Error handling | Return a `Response` with a status and a JSON body. Never throw an unhandled exception — there is no supervisor to catch it |
 | Storage errors | Durable Object methods handle storage failure explicitly rather than propagating |
-| Logging | `console.log()` with JSON-structured output, carrying `component`, `trace_id` and `timestamp`. Collected by the platform; see `## Service Mapping` |
+| Logging | `console.log()` with one `LogEntry` per call, in the envelope [`patterns/logging`](../patterns/logging.md) defines. Collected by the platform; see `## Service Mapping` |
 | Background work | There is none. No timer, no thread. Use a Cron Trigger or a Durable Object alarm |
 ### Concurrency
 
@@ -500,7 +500,7 @@ for the `acquireSlot`/`releaseSlot` pattern.
 ### Logging
 
 - Use `console.log()` with JSON-structured output — visible via `wrangler tail`
-- Include `component`, `trace_id`, and `timestamp` in log entries
+- Write the `LogEntry` envelope [`patterns/logging`](../patterns/logging.md) defines
 - Use Cloudflare Logpush for production log retention
 
 ---

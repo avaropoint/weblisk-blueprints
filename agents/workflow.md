@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: workflow
-version: 1.1.0
+version: 2.0.0
 port: 9780
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/workflow, patterns/messaging, patterns/scope, patterns/policy, patterns/safety]
@@ -41,7 +41,7 @@ domain change and never a change to this agent.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -61,7 +61,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -93,7 +93,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -652,7 +652,7 @@ Step 7 — Initialize Definition Cache
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9780, in_flight_recovered: N}
+  Log: process.ready {port: 9780, in_flight_recovered: N}
 ```
 
 ### Shutdown Sequence
@@ -682,7 +682,7 @@ Step 6 — Deregister
   Action:      DELETE /v1/register
 
 Step 7 — Exit
-  Log: lifecycle.stopped {uptime_seconds, workflows_drained, workflows_failed}
+  Log: process.stopped {uptime_seconds, workflows_drained, workflows_failed}
   agent_state → retired
 ```
 
@@ -727,7 +727,7 @@ When `system.blueprint.changed` is received where `blueprint_name = "workflow"`:
 2. Validate in-flight executions against updated types
 3. Clear definition cache (will re-fetch from domains)
 4. Apply new configuration values
-5. Log: lifecycle.version_updated {from, to}
+5. Log: process.version_updated {from, to}
 ```
 
 ---

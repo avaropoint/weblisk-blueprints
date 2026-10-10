@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: secrets
-version: 1.1.0
+version: 1.1.1
 requires: [protocol/types, protocol/identity, protocol/secret-source, architecture/agent, architecture/storage]
 platform: any
 tier: free
@@ -51,7 +51,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentManifest

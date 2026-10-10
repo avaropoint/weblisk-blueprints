@@ -94,8 +94,7 @@ federation:
 # Optional — observability
 observability:
   log_level: enum                  # "debug" | "info" | "warn" | "error" (default: info)
-  log_format: enum                 # "json" | "text" (default: json)
-  trace_enabled: boolean           # Enable distributed tracing (default: false)
+  trace_enabled: boolean           # Record sampled spans (default: false)
   trace_sample_rate: float         # Sampling rate 0.0–1.0 (default: 1.0)
   metrics_enabled: boolean         # Expose /metrics endpoint (default: true)
   otlp_endpoint: string            # OTLP collector URL (optional)
@@ -249,8 +248,7 @@ service's API after reading a census of what would leave
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `log_level` | enum | no | `info` | Minimum log level |
-| `log_format` | enum | no | `json` | Output format. Use `text` for local development. |
-| `trace_enabled` | boolean | no | `false` | Enable span emission and X-Trace-Id propagation |
+| `trace_enabled` | boolean | no | `false` | Record sampled spans. Trace context is carried whether or not this is set ([`protocol/spec`](../protocol/spec.md#trace-propagation)) |
 | `trace_sample_rate` | float | no | `1.0` | Fraction of requests to trace |
 | `metrics_enabled` | boolean | no | `true` | Expose structured metrics at `/metrics` on each component |
 | `trace_export_endpoint` | string | no | — | Send traces/metrics to an external collector |
@@ -382,7 +380,6 @@ federation:
 
 observability:
   log_level: info
-  log_format: json
   trace_enabled: true
   trace_sample_rate: 0.1
   metrics_enabled: true

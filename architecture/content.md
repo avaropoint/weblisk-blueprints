@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 3.0.0
+version: 3.0.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -44,7 +44,7 @@ organisation can open.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.17.2 <2.0.0"
+    version: ">=1.17.2 <3.0.0"
     bindings:
       types:
         - name: ErrorResponse

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: governance
-version: 1.0.1
+version: 1.0.2
 requires: [protocol/identity, protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/messaging]
 platform: any
 tier: free
@@ -92,7 +92,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: HealthStatus
@@ -106,7 +106,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       behaviors:
         - name: event-subscribing

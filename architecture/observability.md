@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: observability
-version: 1.0.2
+version: 2.0.0
 requires: [protocol/types, architecture/orchestrator, architecture/agent]
 platform: any
 tier: free
@@ -18,10 +18,11 @@ produce consistent, queryable telemetry.
 
 Observability in Weblisk has three pillars:
 
-1. **Structured logs** — JSON-formatted, leveled, with consistent
-   fields for correlation
-2. **Distributed traces** — Trace ID propagation from orchestrator
-   through domains to agents, enabling end-to-end request tracking
+1. **Structured logs** — one envelope, JSON lines on standard output
+   ([`patterns/logging`](../patterns/logging.md))
+2. **Distributed traces** — one trace context carried on every request
+   and inside every envelope, so a request can be followed from the
+   component that started it to every component it reached
 3. **Metrics** — Counters, gauges, and histograms exposed in a
    standard format for scraping or push-based collection
 
@@ -35,9 +36,13 @@ events to specific tasks, agents, domains, and workflows.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
+        - name: TraceContext
+          fields_used: [trace_id, span_id, parent_span_id, sampled]
+        - name: Span
+          fields_used: [trace_id, span_id, parent_span_id, name, kind, component, start, end, status, attributes]
         - name: ServiceDirectory
           fields_used: [services]
         - name: HealthStatus
@@ -117,8 +122,7 @@ and the deployment's.
 
 ### Owns
 - Structured log format definition (JSON shape, required fields, levels)
-- Distributed trace context propagation rules (X-Trace-Id, X-Span-Id headers)
-- Trace ID generation and span lifecycle conventions
+- When a span is opened and closed, what it is named, and how a trace is sampled ([Distributed Tracing](#distributed-tracing)). The carrier is `protocol/spec`'s and the identifiers are `protocol/types`'
 - Metrics endpoint contract (standard structured format, `wl_` prefix)
 - Standard metric definitions for orchestrator, domain controllers, and agents
 - Health endpoint response schema and status semantics
@@ -139,26 +143,19 @@ and the deployment's.
 |-----------|------|-------------|
 | `GET /metrics` | HTTP (per-component) | Structured metrics endpoint (no auth required) |
 | `POST /v1/health` (agents) / `GET /v1/health` (orchestrator) | HTTP (per-component) | Structured health status with checks map |
-| `X-Trace-Id` header | HTTP header | 32 hex char trace identifier propagated on all inter-component requests |
-| `X-Span-Id` header | HTTP header | 16 hex char span identifier for trace tree construction |
-| `X-Parent-Span-Id` header | HTTP header | Parent span reference for child span linking |
-| stdout (JSON lines) | Stream | Structured log and span output consumed by runtime log capture |
-| OTLP export | HTTP/protobuf | Optional trace export to OpenTelemetry Collector |
+| `traceparent`, and an envelope's `trace_id` and `span_id` | HTTP header and envelope fields | The one trace carrier ([`protocol/spec`](../protocol/spec.md#trace-propagation)) |
+| stdout (JSON lines) | Stream | Log and span lines, in the one envelope ([`patterns/logging`](../patterns/logging.md)) |
+| OTLP | HTTP/protobuf | The same logs and spans, pushed to telemetry where it is deployed |
 
 ---
 
 ## Data Flow
 
-1. Client request arrives at the orchestrator (or gateway); trace ID is generated or preserved from incoming `X-Trace-Id`
-2. Orchestrator creates root span, logs request with trace context fields
-3. Orchestrator forwards request to domain controller with `X-Trace-Id`, `X-Span-Id`, `X-Parent-Span-Id` headers
-4. Domain controller creates child span, logs operation, forwards to agent with updated span headers
-5. Agent creates child span, executes task, logs measurements and findings
-6. Agent completes span (records duration, status), returns response to domain
-7. Domain completes span, returns aggregated response to orchestrator
-8. Orchestrator completes root span, emits final log with total duration
-9. All spans are written to stdout as JSON (type: span) and optionally exported via OTLP
-10. Metrics counters and histograms are updated at each component throughout the flow
+1. A request reaches the first component (the gateway, the orchestrator, or an agent's own timer), and its trace is continued or started as [`protocol/spec`](../protocol/spec.md#trace-propagation)'s Trace Propagation says
+2. Every component opens a span for the work it does, and a child span for each request it sends ([Span Lifecycle](#span-lifecycle))
+3. Each component closes its spans as its work ends, and writes every sampled span as one log line on standard output, pushing it as OTLP where telemetry is deployed ([Trace Export](#trace-export))
+4. Every log line written while a span is open carries that span's `trace_id` and `span_id`, so a trace gathers the log lines it caused
+5. Metrics counters and histograms are updated at each component throughout the flow
 
 ---
 
@@ -186,184 +183,81 @@ and the deployment's.
 
 ---
 
-## Structured Logging
-
-### Log Format
-
-All components emit JSON logs to stdout, one object per line.
-
-```json
-{
-  "ts": "2026-04-25T10:30:01.123Z",
-  "level": "info",
-  "msg": "Task completed",
-  "component": "seo-analyzer",
-  "component_type": "agent",
-  "trace_id": "abc123def456",
-  "span_id": "span-789",
-  "task_id": "task-a1b2c3",
-  "domain": "seo",
-  "duration_ms": 2100,
-  "status": "completed"
-}
-```
-
-### Required Fields
+## Contracts
 
 ```yaml
-types:
-  Owns:
-    fields:
-      ts:
-        type: string
-        description: "ISO 8601 timestamp with milliseconds"
-      level:
-        type: string
-        description: "`debug`, `info`, `warn`, `error`"
-      msg:
-        type: string
-        description: "Human-readable message"
-      component:
-        type: string
-        description: "Name of the emitting component"
-      component_type:
-        type: string
-        description: "`orchestrator`, `domain`, `agent`"
+contracts:
+  behaviors:
+    - name: trace-propagation
+      description: Carry a trace on every request a component serves and every request and envelope it sends, and open, name and close spans as Distributed Tracing says
+      required: true
+      rules:
+        - A component MUST carry, continue and start traces exactly as protocol/spec's Trace Propagation states; those rules are stated there and nowhere else
+        - A component MUST name, open and close its spans as Distributed Tracing below says
 ```
 
-### Contextual Fields
+---
 
-These fields are included when available:
+## Structured Logging
 
-| Field | Type | When Present |
-|-------|------|-------------|
-| trace_id | string | Always (generated at request entry) |
-| span_id | string | When tracing is enabled |
-| parent_span_id | string | For child spans |
-| task_id | string | During task processing |
-| domain | string | When operating within a domain |
-| workflow | string | During workflow execution |
-| agent | string | When the log relates to a specific agent |
-| duration_ms | int | On operation completion |
-| status | string | On operation completion |
-| error | string | On error (level=error) |
-| error_code | string | Structured error classification |
-
-### Log Levels
-
-| Level | Usage |
-|-------|-------|
-| debug | Verbose diagnostic information (disabled in production by default) |
-| info | Normal operations — task started, completed, agent registered |
-| warn | Recoverable issues — retry, degraded state, approaching limit |
-| error | Failures — task failed, agent unreachable, storage error |
-
-### Level Configuration
-
-```json
-{
-  "log_level": "info",
-  "log_level_overrides": {
-    "seo-analyzer": "debug",
-    "orchestrator": "warn"
-  }
-}
-```
+Every component writes one envelope, which
+[`patterns/logging`](../patterns/logging.md) defines and
+[`protocol/types`](../protocol/types.md#logentry) declares: JSON lines on
+standard output always, the same records pushed as OpenTelemetry logs where
+telemetry is deployed, `ts` in RFC 3339 UTC with milliseconds, and one
+`log_type` vocabulary. Levels and their per-component overrides are
+patterns/logging's Log Levels, and a record is redacted where it is emitted, as
+its [Sensitive Data](../patterns/logging.md#sensitive-data) says.
 
 ---
 
 ## Distributed Tracing
 
-### Trace Context Propagation
-
-Weblisk uses a simplified trace context that propagates through the
-system via the `X-Trace-Id` and `X-Span-Id` HTTP headers.
-
-```
-Client Request
-  → Orchestrator (generates trace_id, root span)
-    → Domain Controller (inherits trace_id, creates child span)
-      → Agent (inherits trace_id, creates child span)
-      ← Agent returns (span completed)
-    ← Domain returns (span completed)
-  ← Orchestrator returns (root span completed)
-```
-
-### Headers
-
-| Header | Description |
-|--------|-------------|
-| `X-Trace-Id` | 16-byte hex trace identifier (32 chars) |
-| `X-Span-Id` | 8-byte hex span identifier (16 chars) |
-| `X-Parent-Span-Id` | Parent span for child spans |
-
-### Span Model
-
-```json
-{
-  "trace_id": "abc123def456789012345678",
-  "span_id": "span1234abcd",
-  "parent_span_id": null,
-  "name": "orchestrator.handle_task",
-  "name": "orchestrator",
-  "start_time": "2026-04-25T10:30:01.000Z",
-  "end_time": "2026-04-25T10:30:03.100Z",
-  "duration_ms": 2100,
-  "status": "ok",
-  "attributes": {
-    "task_id": "task-a1b2c3",
-    "domain": "seo",
-    "workflow": "seo-audit"
-  },
-  "events": [
-    {
-      "name": "agent.dispatch",
-      "time": "2026-04-25T10:30:01.050Z",
-      "attributes": {"agent": "seo-analyzer"}
-    }
-  ]
-}
-```
-
-### Trace ID Generation
-
-- Generated by the orchestrator at request entry point
-- Format: 32 hex characters (128-bit random)
-- Source: `crypto/rand` (not `math/rand`)
-- If an incoming request already carries `X-Trace-Id`, the
-  orchestrator preserves it (for federation or external integration)
+The carrier is [`protocol/spec`](../protocol/spec.md#trace-propagation)'s
+(`traceparent` on every HTTP request, `trace_id` and `span_id` inside every
+envelope) and the identifiers and the `Span` record are
+[`protocol/types`](../protocol/types.md#tracecontext)'. This section says when a
+span exists and what it is called; a component binds both as
+`trace-propagation` ([Contracts](#contracts)).
 
 ### Span Lifecycle
 
 ```
-1. On entry to a component:
-   a. Read X-Trace-Id from incoming request (or generate if missing)
-   b. Read X-Span-Id as parent_span_id
-   c. Generate new span_id
-   d. Record start_time
-   e. Set span name = "<component>.<operation>"
-2. On outgoing requests to other components:
-   a. Set X-Trace-Id = trace_id
-   b. Set X-Span-Id = new span_id for this call
-   c. Set X-Parent-Span-Id = current span_id
-3. On exit from component:
-   a. Record end_time and duration
-   b. Set status (ok, error)
-   c. Emit span to configured exporter
+1. On receiving a request: open a span (kind server, or consumer for an event)
+   with a new span_id and start = now. Its trace_id and parent_span_id are what
+   Trace Propagation (protocol/spec) gives it
+2. On sending a request to another component: open a child span (kind client,
+   or producer for a publish), carry it as Trace Propagation says, and close it
+   when the answer arrives or the call fails
+3. On finishing the work: set end and status (ok or error), and record the span
+   if the trace is sampled
 ```
+
+### Span Names
+
+A span is named for what was done, never for who did it; `component` says who.
+Attribute names follow OpenTelemetry semantic conventions where one exists.
+
+| Name | Opened by | Attributes |
+|------|-----------|------------|
+| `http.request` | A component, for each request it serves that no name below covers | `http.route`, `http.request.method`, `http.response.status_code` |
+| `http.call` | A component, for each request it sends that no name below covers | `server.address`, `http.request.method` |
+| `agent.execute` | An agent, serving `POST /v1/execute` | `task.id`, `task.action` |
+| `agent.message` | An agent, serving `POST /v1/message` | `from`, `to`, `action` |
+| `event.deliver` | A subscriber, serving `POST /v1/event` | `topic`, `event_id`, `source` |
+| `workflow.phase` | The workflow agent, for each phase | `workflow.name`, `phase.name`, `phase.agent` |
+| `health.probe` | Whatever probes a component from outside it | `target`, `result` |
+
+A line between two components is a span whose `parent_span_id` names a span
+another component opened. That is all a reader needs to draw who called whom,
+and it is why every envelope carries `span_id`.
 
 ### Trace Export
 
-Spans are emitted as structured JSON logs by default (same stdout
-stream, with `"type": "span"`). For production deployments, spans
-can be exported to:
-
-- **Trace collector**: Export spans to an external trace collector
-  (e.g., OpenTelemetry-compatible endpoint).
-- **File**: Write spans to a local file (one JSON object per line).
-
-Export configuration is deployment-specific and not prescribed by
-this blueprint.
+Each sampled span is written on standard output as one log line whose
+`log_type` is `span` ([`patterns/logging`](../patterns/logging.md#trace-events)),
+and pushed as an OTLP span where telemetry is deployed. Nothing a component
+does depends on the push arriving.
 
 ---
 
@@ -466,7 +360,7 @@ Given a `task_id`, you can reconstruct the full execution path:
 1. grep logs for task_id → find trace_id
 2. grep logs for trace_id → get all log lines across all components
 3. Sort by timestamp → chronological execution flow
-4. Filter by type=span → get span tree for timing analysis
+4. Filter by log_type=span → get span tree for timing analysis
 ```
 
 ### Agent Debugging
@@ -479,7 +373,7 @@ cat logs.jsonl | jq 'select(.component == "seo-analyzer" and .level == "error")'
 cat logs.jsonl | jq 'select(.duration_ms > 5000 and .msg == "Task completed")'
 
 # Trace a specific workflow execution
-cat logs.jsonl | jq 'select(.trace_id == "abc123...")'
+cat logs.jsonl | jq 'select(.trace_id == "4bf92f3577b34da6a3ce929d0e0e4736")'
 ```
 
 ### Dashboard Queries
@@ -503,16 +397,14 @@ dashboards for these key queries:
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | Log level | `info` | Global log level |
-| Log format | `json` | `json` or `text` (text for local dev) |
-| Tracing enabled | `false` | Enable distributed tracing |
-| Trace sample rate | `1.0` | Trace sampling rate (0.0–1.0) |
-| Trace export target | — | File path or collector endpoint for span export |
+| Tracing enabled | `false` | Record sampled spans. Trace context is carried whether or not this is set |
+| Trace sample rate | `1.0` | Trace sampling rate (0.0–1.0), applied where a trace starts |
+| Trace export target | — | The telemetry OTLP endpoint logs and spans are pushed to, where telemetry is deployed |
 | Metrics enabled | `true` | Expose /metrics endpoint |
 
 ### Local Development
 
 In development mode:
-- Log format defaults to `text` (human-readable, colorized)
 - Tracing is disabled (less noise)
 - Metrics endpoint is available at each component's port + `/metrics`
 - All components write logs to the runtime's own log stream, wherever a developer sees it
@@ -520,7 +412,6 @@ In development mode:
 ### Production
 
 In production:
-- Log format: `json` (parseable by log aggregation)
 - Tracing: enabled with sampling (0.1 = 10% of requests)
 - Metrics: scraped by a compatible metrics collector
 - Components write to stdout; container runtime captures logs
@@ -550,12 +441,11 @@ security:
   enforcement:
     - rule: A record carrying data above its scope is redacted before it is
         written
-      mechanism: Scope read from the payload and redaction applied at emission;
-        a record once written cannot be un-leaked
+      mechanism: patterns/logging's redaction-at-emission
     - rule: An audit record is never modified or removed
       mechanism: Append-only store with a hash chain over entries
     - rule: A trace identifier propagates without carrying payload data
-      mechanism: Correlation identifiers are opaque and contain no subject data
+      mechanism: protocol/spec's Trace Propagation, bound as trace-propagation
     - rule: An aggregate does not disclose what its inputs would not
       mechanism: Aggregates computed within the reader's scope, not filtered
         after computation
@@ -567,8 +457,8 @@ security:
 
 - Structured logging MUST be the default — never use unstructured
   print statements for operational events
-- Trace IDs MUST be propagated on ALL inter-component HTTP requests,
-  including health checks and governance calls
+- Trace context is carried on every inter-component HTTP request, probes
+  and governance calls included (`trace-propagation`)
 - The `/metrics` endpoint MUST NOT require authentication (standard
   metrics collection convention)
 - Metrics MUST NOT include PII or sensitive data in labels
@@ -581,15 +471,14 @@ security:
 
 ## Verification Checklist
 
-- [ ] All components emit JSON logs to stdout with required fields: ts (ISO 8601), level, msg, component, component_type
+- [ ] All components write the one log envelope `patterns/logging` defines: JSON lines on stdout, `ts` in RFC 3339 UTC with milliseconds
 - [ ] Log levels are configurable globally and per-component via configuration parameters
-- [ ] Trace ID (X-Trace-Id, 32 hex chars from crypto/rand) is propagated on ALL inter-component HTTP requests
-- [ ] Incoming requests with an existing X-Trace-Id preserve it; new trace IDs are generated only when missing
-- [ ] Each component creates child spans with X-Span-Id and X-Parent-Span-Id on outgoing requests
+- [ ] Trace context is carried, continued and started as `protocol/spec`'s Trace Propagation says (`trace-propagation`)
+- [ ] Every span takes its name from the Span Names table, and opens and closes as Span Lifecycle says
 - [ ] GET /metrics returns structured metrics with wl_ prefix and does NOT require authentication
 - [ ] Orchestrator exposes wl_agents_registered, wl_tasks_total, wl_task_duration_seconds, and wl_http_requests_total metrics
 - [ ] Agent metrics include wl_tasks_total by action/status, wl_llm_calls_total, and wl_llm_tokens_total by model/type
 - [ ] Metrics labels do NOT include high-cardinality values (user_id, URL) or PII
 - [ ] Health endpoint returns structured JSON with `name`, `status`, `version`, `uptime` and a `checks` map, per protocol/types HealthStatus — not `component`, and not `uptime_seconds`
-- [ ] Spans are emitted as structured JSON logs (type: span) by default and exportable to an external trace collector when configured
+- [ ] Each sampled span is written as one log line whose `log_type` is `span`, and pushed as OTLP where telemetry is deployed
 - [ ] Components limit log output to ~100 lines per task at info level to prevent log flooding

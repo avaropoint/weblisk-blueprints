@@ -692,7 +692,7 @@ philosophy. Must be self-contained.>
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -711,7 +711,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -955,7 +955,7 @@ Step 6 — Subscribe to Events
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port, <agent-specific-fields>}
+  Log: process.ready {port, <agent-specific-fields>}
 ```
 
 ### Shutdown Sequence
@@ -981,7 +981,7 @@ Step N-1 — Close Storage
   Validates:   Connection closed
 
 Step N — Exit
-  Log: lifecycle.stopped {uptime, <metrics>}
+  Log: process.stopped {uptime, <metrics>}
   agent_state → retired
 ```
 
@@ -1015,7 +1015,7 @@ Step 1 — Validate New Blueprint
 Step 2 — Check Migration
 Step 3 — Execute Migration (if needed, with rollback)
 Step 4 — Reload Configuration
-Final: Log lifecycle.version_updated
+Final: Log process.version_updated
 ```
 
 ---

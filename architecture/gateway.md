@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: gateway
-version: 1.1.0
+version: 2.0.0
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/admin, architecture/observability, patterns/auth-session, patterns/auth-token, patterns/user-management, patterns/rate-limiting, patterns/api-ai]
 platform: any
 tier: free
@@ -54,7 +54,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: RegisterRequest
@@ -82,7 +82,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/admin
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: admin-separation
@@ -127,6 +127,16 @@ requires:
       patterns:
         - behavior: rate-enforcement
           parameters: [per_ip, per_session, endpoint_limits]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/observability
+    version: ">=2.0.0 <3.0.0"
+    bindings:
+      behaviors:
+        # The gateway starts or continues the trace of every request it mediates
+        - name: trace-propagation
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -603,7 +613,7 @@ injects a clean set:
 | `X-Gateway-Roles` | Comma-separated roles | User's authorization roles |
 | `X-Gateway-Groups` | Comma-separated groups | User's group memberships |
 | `X-Gateway-Sensitivity` | Route sensitivity level | Tells agent what data masking to apply |
-| `X-Trace-Id` | Trace ID | Distributed tracing correlation |
+| `traceparent` | `00-<trace_id>-<span_id>-<trace_flags>` | The trace this request belongs to, and the gateway's span for it ([`protocol/spec`](../protocol/spec.md#trace-propagation)) |
 | `Authorization` | `Bearer <token>` | Internal WLT token for agent auth |
 | `X-Request-Id` | Request UUID | Unique request identifier |
 
@@ -1132,7 +1142,7 @@ place — and it does not put two versions in service at once.
 - [ ] Session token is validated on every request: ML-DSA-65 signature, expiry, client binding, and server-side state lookup
 - [ ] CSRF validation via X-CSRF-Token header is enforced on all state-changing requests (POST, PUT, DELETE)
 - [ ] ABAC policy engine evaluates subject, resource, and context attributes with deny-by-default resolution
-- [ ] Request mediation injects X-Gateway-Session, X-Gateway-User, X-Gateway-Roles, X-Trace-Id, and Authorization headers
+- [ ] Request mediation injects X-Gateway-Session, X-Gateway-User, X-Gateway-Roles, traceparent, and Authorization headers
 - [ ] Response sanitization strips X-Gateway-*, X-Agent-*, Server, and X-Powered-By headers before reaching the browser
 - [ ] Security headers set on every response: X-Content-Type-Options: nosniff, X-Frame-Options: DENY, CSP, Referrer-Policy, COOP
 - [ ] Requests to /v1/admin/* return 404 (platform admin routes are never served by the application gateway)

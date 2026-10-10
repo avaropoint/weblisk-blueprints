@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: task-dispatch
-version: 1.0.1
+version: 2.0.0
 requires: [protocol/spec, protocol/types, patterns/messaging, patterns/retry]
 platform: any
 tier: free
@@ -43,7 +43,7 @@ through the event and type contracts defined here.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/execute
@@ -55,7 +55,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -71,7 +71,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -341,7 +341,7 @@ Tasks are delivered to target agents via `POST /v1/execute`:
 ```
 POST <target_agent_url>/v1/execute
 Authorization: Bearer <dispatch_token>
-X-Trace-Id: <trace_id>
+traceparent: 00-<trace_id>-<span_id>-<trace_flags>
 Content-Type: application/json
 
 {
@@ -814,9 +814,10 @@ to handle failures in their workflow.
 - **Capacity cache**: Agent capacity is cached from manifests
   received via `system.agent.registered`. The cache is rebuilt
   from the service directory on startup.
-- **Trace propagation**: The `trace_id` from the submission envelope
-  is forwarded to the target agent in the `X-Trace-Id` header and
-  included in all published events for end-to-end correlation.
+- **Trace propagation**: The dispatch continues the submission's trace.
+  It sends `traceparent`, sets `context.trace_id` and `context.span_id` to
+  the span it opened for the dispatch, and every event it publishes carries
+  the same trace ([`protocol/spec`](../protocol/spec.md#trace-propagation)).
 - **No payload in events**: Task events carry metadata (IDs, status,
   timestamps) but NOT the full input/output payload. Consumers
   that need payloads query the task record directly.

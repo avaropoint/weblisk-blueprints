@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: email-send
-version: 1.0.1
+version: 2.0.0
 port: 9754
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/observability, patterns/storage, patterns/retry, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/privacy, patterns/security, patterns/governance]
@@ -31,7 +31,7 @@ deliveries are retried automatically.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -50,7 +50,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -716,7 +716,7 @@ Step 8 — Start Queue Processor
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9754, provider, queue_pending}
+  Log: process.ready {port: 9754, provider, queue_pending}
 ```
 
 ### Shutdown Sequence
@@ -749,7 +749,7 @@ Step 6 — Close Storage
   Validates:   Connection closed
 
 Step 7 — Exit
-  Log: lifecycle.stopped {uptime_seconds, emails_sent, emails_pending}
+  Log: process.stopped {uptime_seconds, emails_sent, emails_pending}
   agent_state → retired
 ```
 
@@ -793,7 +793,7 @@ Step 1 — Validate new blueprint, verify version is newer
 Step 2 — Compare Types block against current storage schema
 Step 3 — Execute migration if needed (pause queue, migrate, resume)
 Step 4 — Reload configuration (provider, rate limits, etc.)
-Final:  Log lifecycle.version_updated {from, to}
+Final:  Log process.version_updated {from, to}
 ```
 
 ---

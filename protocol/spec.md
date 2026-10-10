@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 2.3.0
+version: 3.0.0
 requires: [protocol/types, protocol/identity]
 platform: any
 tier: free
@@ -46,7 +46,7 @@ over standard HTTP endpoints.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.17.2 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -60,9 +60,13 @@ requires:
         - name: TaskResult
           fields_used: [task_id, agent_name, status, summary, changes, observations, recommendations, metrics, signature, timestamp]
         - name: AgentMessage
-          fields_used: [id, from, to, type, action, payload, token, signature, timestamp, trace_id]
+          fields_used: [id, from, to, type, action, payload, token, signature, timestamp, trace_id, span_id]
         - name: EventEnvelope
-          fields_used: [event_id, topic, source, scope, correlation_id, timestamp, trace_id, version, payload, token]
+          fields_used: [event_id, topic, source, scope, correlation_id, timestamp, trace_id, span_id, version, payload, token]
+        - name: TaskContext
+          fields_used: [trace_id, span_id]
+        - name: TraceContext
+          fields_used: [trace_id, span_id, parent_span_id, sampled]
         - name: ErrorResponse
           fields_used: [error, code, category, retryable, detail]
         - name: ServiceDirectory
@@ -192,7 +196,8 @@ is returned.
   "target": "seo-analyzer",
   "input": {"html_files": ["index.html", "about.html"]},
   "context": {
-    "trace_id": "t-abc123",
+    "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "span_id": "00f067aa0ba902b7",
     "correlation_id": "corr-789",
     "services": {}
   },
@@ -318,7 +323,7 @@ Requires auth token in the event envelope.
 The agent MUST:
 1. Accept only POST requests
 2. Validate the `EventEnvelope` structure (event_id, topic, source,
-   scope, timestamp, payload are present)
+   scope, timestamp, trace_id, span_id, payload are present)
 3. Verify the event's auth token (optional — framework-level)
 4. Check idempotency: if `event_id` has already been processed,
    return 200 OK immediately (skip duplicate processing)
@@ -333,6 +338,8 @@ The agent MUST:
   "topic": "workflow.completed",
   "source": "workflow",
   "scope": "seo",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "00f067aa0ba902b7",
   "payload": {"workflow_id": "wf-123", "status": "success", "duration_ms": 4500},
   "token": "<WLT auth token>",
   "timestamp": 1712160000
@@ -354,7 +361,8 @@ agent's framework will retry delivery.
   "scope": "seo",
   "correlation_id": "wf-exec-001",
   "timestamp": 1712160001,
-  "trace_id": "abc123def456789012345678",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "00f067aa0ba902b7",
   "version": "1.0.0",
   "payload": {
     "workflow": "seo-audit",
@@ -813,6 +821,7 @@ handles routing and delivery:
    - scope: provided scope value
    - correlation_id: provided or inherited from current context
    - trace_id: inherited from current trace context
+   - span_id: the span this agent opened for the publish
    - timestamp: now
    - version: agent's event schema version
    - payload: the event data
@@ -949,19 +958,41 @@ registration entry rather than creating a duplicate.
 
 ## Observability
 
-### Trace ID Propagation
+### Trace Propagation
 
-All events, tasks, and messages MUST propagate `trace_id` through the
-entire execution chain. If the originator does not provide a `trace_id`,
-the framework MUST generate one (32 hex chars) at the point of origin.
+Every task, message and event belongs to a trace, and every request between
+components carries the span that sent it. These are the rules for carrying a
+trace, stated here and nowhere else. The values and their formats are
+[`protocol/types`](types.md#tracecontext)'; when a span opens and closes, and
+what it is named, are
+[`architecture/observability`](../architecture/observability.md#distributed-tracing)'s.
+
+- **Every HTTP request** a component sends carries the W3C `traceparent`
+  header, naming the trace and the span the sender opened for this request:
+  probes, `/v1/admin/*` requests and calls to the orchestrator included. No
+  other header carries a trace.
+- **Every envelope** a component builds (a `TaskRequest`'s `context`, an
+  `AgentMessage`, an `EventEnvelope`) carries the same two values as its
+  required `trace_id` and `span_id`, so the trace survives a queue, a retry or
+  a dead letter where no header does.
+- **A receiver continues the trace it is given.** Its span takes the arriving
+  `trace_id` and records the arriving `span_id` as its `parent_span_id`. Where
+  a request carries both a `traceparent` and an envelope and they differ, the
+  envelope's values are used.
+- **A trace starts only where none arrived**: a timer firing, a request from
+  outside the tenant without `traceparent`, or a `traceparent` that does not
+  parse. Its `trace_id` is 16 random bytes from a cryptographic source, and
+  whether it is sampled is decided there, once; every component honours the
+  flags it receives.
+- **A trace identifier carries no subject data.** It is random, and nothing is
+  derived from a request's content.
 
 ```
-Domain publishes workflow.trigger (trace_id: "abc123")
-  → Workflow Agent receives event (same trace_id)
-  → Workflow Agent publishes task.submit (same trace_id)
-  → Task Agent receives event (same trace_id)
-  → Task Agent calls POST /v1/execute (same trace_id in context)
-  → Work Agent executes (same trace_id)
+Domain publishes workflow.trigger        (trace T, span A)
+  → Workflow Agent serves it in span B   (parent A); publishes task.submit (trace T, span C)
+  → Task Agent serves it in span D       (parent C); calls POST /v1/execute
+        traceparent: 00-T-E-01, context.trace_id T, context.span_id E
+  → Work Agent serves it in span F       (parent E)
 ```
 
 ### Correlation ID Propagation
@@ -973,26 +1004,12 @@ specific to one execution chain.
 
 ### Structured Log Format
 
-All components SHOULD emit structured logs as JSON lines to stderr.
-Each log entry MUST include:
-
-| Field | Description |
-|-------|-------------|
-| `ts` | Unix epoch seconds (same as protocol timestamps) |
-| `level` | `debug`, `info`, `warn`, `error` |
-| `msg` | Human-readable message |
-| `component` | Component name (e.g., `orchestrator`, `seo`, `seo-analyzer`) |
-| `trace_id` | Correlation ID (when available) |
-
-Optional fields (when applicable): `agent`, `target`, `action`,
-`task_id`, `phase`, `duration_ms`, `error`, `event_id`,
-`correlation_id`, `scope`.
-
-```json
-{"ts":1712160001,"level":"info","msg":"event published","component":"seo","trace_id":"a1b2c3...","topic":"workflow.trigger","scope":"workflow","correlation_id":"corr-001"}
-{"ts":1712160002,"level":"info","msg":"event received","component":"workflow","trace_id":"a1b2c3...","topic":"workflow.trigger","event_id":"evt-001"}
-{"ts":1712160003,"level":"info","msg":"task dispatched","component":"task","trace_id":"a1b2c3...","agent":"seo-analyzer","task_id":"d4e5f6..."}
-```
+Every component writes the one log envelope that
+[`patterns/logging`](../patterns/logging.md) defines and
+[`protocol/types`](types.md#logentry) declares: JSON lines on standard output,
+`ts` in RFC 3339 UTC with milliseconds, one `log_type` vocabulary, and the same
+records pushed as OpenTelemetry logs where telemetry is deployed. This document
+restates none of it.
 
 **Audit log** entries (specified in [orchestrator.md](../architecture/orchestrator.md))
 are a separate persistent record. Structured logs are operational and
@@ -1191,7 +1208,7 @@ security:
 - [ ] Framework selects one subscriber per consumer group (round-robin)
 - [ ] Framework retries failed deliveries with exponential backoff
 - [ ] Framework dead-letters events after retry exhaustion
-- [ ] Events include event_id, topic, source, scope, correlation_id, trace_id
+- [ ] Events include event_id, topic, source, scope, correlation_id, trace_id, span_id
 
 ### Orchestrator Protocol
 - [ ] Orchestrator `POST /v1/register` validates namespace ownership (409 on conflict)
@@ -1214,6 +1231,7 @@ security:
 ### Cross-Cutting
 - [ ] All error responses use `ErrorResponse` format with `error` field
 - [ ] Error responses include `code` and `category` when available
-- [ ] `trace_id` is propagated through all events, tasks, and messages
+- [ ] Every request between components carries `traceparent`, every task, message and event carries `trace_id` and `span_id` naming the sender's span, and a receiver records that span as its own span's `parent_span_id`
+- [ ] Log lines are the one envelope `patterns/logging` defines, written to standard output
 - [ ] `correlation_id` links all events in a single execution chain
 - [ ] All protected endpoints reject requests without valid tokens

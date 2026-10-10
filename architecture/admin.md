@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.35.4
+version: 3.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -46,7 +46,7 @@ interacting with a Weblisk deployment.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.1.0 <3.0.0"
+    version: ">=2.1.0 <4.0.0"
     bindings:
       endpoints:
         # The admin gateway registers like any component, and serves the
@@ -104,7 +104,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.17.2 <2.0.0"
+    version: ">=1.17.2 <3.0.0"
     bindings:
       types:
         - name: Strategy
@@ -196,7 +196,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/gateway
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: GatewayConfig
@@ -376,7 +376,7 @@ which does not ask the identity.
 6. No factor is re-checked here: two were required where the credential was
    attested and where its key was opened to mint this token
    ([Where the second factor is](#where-the-second-factor-is))
-7. Request forwarded to the provider of the route, with an `X-Trace-Id`
+7. Request forwarded to the provider of the route, with a `traceparent`
    header: to the orchestrator on the operator token as it arrived, and to any
    other provider on a pass the orchestrator exchanged that token for,
    addressed to that provider alone and carrying only the capabilities the
@@ -576,7 +576,7 @@ Critical rules:
    │   and nothing is forwarded
    ├── POST /v1/admin/model/audit, the orchestrator's route for its model
    │   gateway alone → 404 NOT_FOUND, and nothing is forwarded or exchanged
-   ├── Internal header: X-Trace-Id
+   ├── Internal header: traceparent
    └── Response returned to operator browser
 
 8. DESTRUCTIVE ACTION CONFIRMATION (for critical writes)

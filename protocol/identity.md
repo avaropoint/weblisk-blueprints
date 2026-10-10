@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.14.5
+version: 1.14.6
 requires: [protocol/types]
 platform: any
 tier: free
@@ -118,7 +118,7 @@ of hash functions.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.15.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentManifest

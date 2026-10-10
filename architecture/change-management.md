@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: change-management
-version: 1.0.3
+version: 2.0.0
 requires: [protocol/spec, protocol/types, architecture/orchestrator, architecture/agent, patterns/messaging, patterns/versioning]
 platform: any
 tier: free
@@ -49,7 +49,7 @@ The protocol is built on three principles:
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -59,7 +59,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: Strategy
@@ -100,7 +100,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -112,7 +112,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/versioning
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: semver-range
@@ -286,7 +286,7 @@ contract_schema:
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -757,7 +757,7 @@ Phase 5 — Retire or Rollback
     Step 6:   vN+1 process is torn down
     Emit:     system.agent.version.rollback
                 {agent, failed_version, restored_version, reason}
-    Log:      lifecycle.version_rollback
+    Log:      process.version_rollback
     Reconciliation result: "failed" with {rollback_applied: true}
 ```
 

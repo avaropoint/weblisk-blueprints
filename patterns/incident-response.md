@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: incident-response
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/types, patterns/alerting, patterns/state-machine]
 platform: any
 tier: free
@@ -61,7 +61,7 @@ pattern for specialized incident handling.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: TaskResult

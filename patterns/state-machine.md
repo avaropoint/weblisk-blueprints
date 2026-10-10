@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: state-machine
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/types, patterns/storage, patterns/logging, patterns/expression]
 platform: any
 tier: free
@@ -35,7 +35,7 @@ machines consistently.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -55,7 +55,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/logging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: LogEntry

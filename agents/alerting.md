@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: alerting
-version: 1.1.2
+version: 2.0.0
 port: 9752
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/email-send]
 extends: [patterns/alerting, patterns/observability, patterns/storage, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -33,7 +33,7 @@ through which channel, and with what urgency.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -52,7 +52,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.16.1 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -97,7 +97,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: agents/email-send
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       actions:
         - name: send
@@ -547,7 +547,7 @@ Step 8 — Initialize Deduplication Cache
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9752, channels_active, dedup_entries_loaded}
+  Log: process.ready {port: 9752, channels_active, dedup_entries_loaded}
 ```
 
 ### Shutdown Sequence
@@ -580,7 +580,7 @@ Step 6 — Close Storage
   Validates:   Connection closed cleanly
 
 Step 7 — Exit
-  Log: lifecycle.stopped {uptime_seconds, alerts_processed, in_flight_drained}
+  Log: process.stopped {uptime_seconds, alerts_processed, in_flight_drained}
   agent_state → retired
   Exit process
 ```
@@ -644,7 +644,7 @@ Step 4 — Reload Configuration
   On Fail:     Revert to previous config
 
 Final:
-  Log: lifecycle.version_updated {from, to, migration_steps}
+  Log: process.version_updated {from, to, migration_steps}
 ```
 
 ---
