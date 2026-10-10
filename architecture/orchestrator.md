@@ -2,7 +2,7 @@
 type: architecture
 name: orchestrator
 version: 3.0.0
-requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
+requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope]
 platform: any
 tier: free
 -->
@@ -126,16 +126,6 @@ declaration:
         types:
           - name: AuditFilter
             fields_used: [actor, action, since, cursor, limit]
-      on_change:
-        compatible: validate-and-adopt
-        breaking: version-bump
-        removed: halt-immediately
-    # Nothing is bound here while architecture/observability declares nothing
-    # the orchestrator consumes: its one binding was a health status type that
-    # protocol/types declared, retired when health narrowed to liveness and
-    # readiness (RETIRED.md)
-    - blueprint: architecture/observability
-      version: ">=1.0.0 <3.0.0"
       on_change:
         compatible: validate-and-adopt
         breaking: version-bump
