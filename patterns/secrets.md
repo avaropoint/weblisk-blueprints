@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: secrets
-version: 1.1.0
+version: 1.1.1
 requires: [protocol/types, protocol/identity, protocol/secret-source, architecture/agent, architecture/storage]
 platform: any
 tier: free

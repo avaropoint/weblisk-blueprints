@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: user-management
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/types, patterns/auth-session, patterns/auth-token, architecture/gateway]
 platform: any
 tier: free

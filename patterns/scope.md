@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.6.4
+version: 2.6.5
 requires: [protocol/types]
 platform: any
 tier: free

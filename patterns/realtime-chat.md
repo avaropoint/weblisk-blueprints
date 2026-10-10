@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: realtime-chat
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/types, architecture/gateway]
 platform: any
 tier: free

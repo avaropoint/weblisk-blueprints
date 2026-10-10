@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: notification
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/types, patterns/retry, patterns/secrets]
 platform: any
 tier: free

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: policy
-version: 1.0.2
+version: 1.0.3
 requires: [protocol/types, patterns/scope]
 platform: any
 tier: free

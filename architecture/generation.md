@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.0.1
+version: 1.0.2
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free

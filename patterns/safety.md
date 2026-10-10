@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: safety
-version: 1.0.1
+version: 1.0.2
 requires: [protocol/types, patterns/scope, patterns/policy]
 platform: any
 tier: free

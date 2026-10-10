@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: rate-limiting
-version: 1.1.3
+version: 1.1.4
 requires: [protocol/types, protocol/identity, architecture/gateway, architecture/agent]
 platform: any
 tier: free

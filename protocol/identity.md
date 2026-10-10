@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.14.5
+version: 1.14.6
 requires: [protocol/types]
 platform: any
 tier: free

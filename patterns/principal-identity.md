@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.8.7
+version: 1.8.8
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
