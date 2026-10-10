@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: lifecycle
-version: 1.0.3
+version: 1.0.4
 requires: [protocol/types, architecture/domain, architecture/agent, patterns/messaging]
 platform: any
 tier: free
@@ -43,7 +43,7 @@ it does with the output of the ones it does not.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: RegisterRequest

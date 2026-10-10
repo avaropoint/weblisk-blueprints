@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 2.3.0
+version: 2.3.1
 requires: [protocol/types, protocol/identity]
 platform: any
 tier: free
@@ -46,7 +46,7 @@ over standard HTTP endpoints.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.17.2 <2.0.0"
+    version: ">=1.17.2 <3.0.0"
     bindings:
       types:
         - name: AgentManifest

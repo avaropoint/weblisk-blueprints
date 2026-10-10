@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: messaging
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/types, architecture/agent, patterns/retry]
 platform: any
 tier: free
@@ -39,7 +39,7 @@ complete.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: EventEnvelope

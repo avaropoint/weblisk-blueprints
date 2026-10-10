@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.27.8
+version: 2.27.9
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -73,7 +73,7 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: protocol/types
-      version: ">=1.18.3 <2.0.0"
+      version: ">=1.18.3 <3.0.0"
       bindings:
         types:
           - name: RegisterRequest

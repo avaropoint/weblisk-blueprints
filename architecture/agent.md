@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: agent
-version: 1.0.2
+version: 1.0.3
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/observability, patterns/retry, patterns/messaging]
 platform: any
 tier: free
@@ -66,7 +66,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentManifest

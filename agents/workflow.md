@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: workflow
-version: 1.1.0
+version: 1.1.1
 port: 9780
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/workflow, patterns/messaging, patterns/scope, patterns/policy, patterns/safety]
@@ -61,7 +61,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: TaskRequest

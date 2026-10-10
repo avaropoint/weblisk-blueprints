@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: offline
-version: 1.0.2
+version: 1.0.3
 requires: [protocol/types, architecture/client, patterns/storage, patterns/state-machine, patterns/scope, patterns/privacy]
 platform: any
 tier: free
@@ -68,7 +68,7 @@ requires:
     version: ">=2.0.0 <3.0.0"
     bindings:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: ErrorResponse

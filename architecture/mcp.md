@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: mcp
-version: 1.4.4
+version: 1.4.5
 requires: [protocol/types, protocol/identity, protocol/spec, architecture/agent, architecture/gateway, patterns/scope, patterns/safety, patterns/auth-oauth]
 platform: any
 tier: free
@@ -38,7 +38,7 @@ outside the hub's governance, which is the failure this blueprint exists to prev
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.15.0 <2.0.0"
+    version: ">=1.15.0 <3.0.0"
     bindings:
       types:
         - name: ErrorResponse

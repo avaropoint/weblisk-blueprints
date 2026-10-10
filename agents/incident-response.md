@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: incident-response
-version: 1.3.0
+version: 1.3.1
 port: 9760
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/alerting]
 extends: [patterns/incident-response, patterns/observability, patterns/storage, patterns/state-machine, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -66,7 +66,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.16.1 <2.0.0"
+    version: ">=1.16.1 <3.0.0"
     bindings:
       types:
         - name: TaskResult

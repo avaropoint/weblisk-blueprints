@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: retry
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/types, architecture/agent, patterns/rate-limiting]
 platform: any
 tier: free
@@ -38,7 +38,7 @@ periodically allows a probe request to check if the target recovered.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: ErrorResponse

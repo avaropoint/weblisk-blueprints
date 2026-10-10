@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.35.4
+version: 2.36.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -104,7 +104,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.17.2 <2.0.0"
+    version: ">=1.17.2 <3.0.0"
     bindings:
       types:
         - name: Strategy
@@ -875,8 +875,9 @@ contracts:
         - The role names are exactly `viewer`, `auditor`, `operator` and `admin`
         - Capabilities MUST be derived from the role, never stored per operator
         - The `operator` role MUST carry `admin:read`, `admin:approve` and `admin:strategy` — it is the role every `operator+` endpoint in this document is gated on
-        - Each `content:` capability, `llm:chat`, `model:attest`, `fabric:read` and `fabric:attest` MUST be carried by the roles the Operator Roles table gives it. Roles are held by operators, who are people, and by nothing else, so a role may carry a capability `protocol/types` marks person only
-        - Every capability this document names for a person's token to carry MUST be carried by some role; a capability no role holds is a constant, not a permission. token:exchange, which this document names as what the admin gateway's registration declares, is a component's and not a person's, and no role carries it (protocol/types, Exchange capability)
+        - Each `content:` and `programme:` capability, `integration:read`, `integration:manage`, `llm:chat`, `model:attest`, `fabric:read`, `fabric:attest`, `telemetry:read`, `action:invoke` and `scope:admit` MUST be carried by the roles the Operator Roles table gives it, and by no other. Roles are held by operators, who are people, and by nothing else, so a role may carry a capability `protocol/types` marks person only
+        - The wildcard `admin:*` MUST NOT be read as carrying `model:attest`, `telemetry:read`, `action:invoke` or `scope:admit`, which are outside the `admin` family
+        - Every capability this document names for a person's token to carry MUST be carried by some role; a capability no role holds is a constant, not a permission. token:exchange, which this document names as what the admin gateway's registration declares, is a component's and not a person's, and no role carries it (protocol/types, Exchange capability); nor does any role carry integration:use or telemetry:push
         - The last active admin MUST NOT be removable or demotable
         - A role change MUST be audited with the previous and new role
 ```
@@ -1546,10 +1547,10 @@ a failed registration.
 
 | Role | Capabilities | Description |
 |------|-------------|-------------|
-| **admin** | `admin:*`, `llm:chat`, `model:attest`, every `content:` capability, `content:declassify` among them, `fabric:read` and `fabric:attest` | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, declare their replicas, ask the tenant's model, record model provider agreements, and confirm or reject relationships. The only role that carries `content:declassify` or `llm:chat` |
-| **operator** | `admin:read`, `admin:approve`, `admin:strategy`, `content:read`, `content:describe`, `content:write`, `content:propose`, `content:decide`, `content:reconcile`, `fabric:read`, `fabric:attest` | Day-to-day operations — view everything, approve recommendations, manage strategies, write documents, decide proposals, and confirm or reject relationships |
-| **viewer** | `admin:read`, `content:read`, `content:describe`, `fabric:read` | Read-only — view dashboards, logs, status, documents and relationships. Cannot modify anything |
-| **auditor** | `admin:read`, `admin:audit`, `content:read`, `content:describe`, `fabric:read` | Read-only plus full audit log access with export capability |
+| **admin** | `admin:*`, `llm:chat`, `model:attest`, every `content:` and `programme:` capability, `content:declassify` and `programme:switch` among them, `integration:read`, `integration:manage`, `fabric:read`, `fabric:attest`, `telemetry:read`, `action:invoke` and `scope:admit` | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, declare their remotes, ask the tenant's model, record model provider agreements, confirm or reject relationships, install and switch programmes, make and bind integrations, read the tenant's runtime, invoke operator actions, and admit a component's operational scope. The only role that carries `content:declassify`, `llm:chat`, `integration:manage`, `telemetry:read`, `action:invoke` or `scope:admit` |
+| **operator** | `admin:read`, `admin:approve`, `admin:strategy`, `content:read`, `content:describe`, `content:write`, `content:propose`, `content:decide`, `content:reconcile`, every `programme:` capability, `integration:read`, `fabric:read`, `fabric:attest` | Day-to-day operations — view everything, approve recommendations, manage strategies, write documents, decide proposals, run programmes, and confirm or reject relationships |
+| **viewer** | `admin:read`, `content:read`, `content:describe`, `programme:read`, `integration:read`, `fabric:read` | Read-only — view dashboards, logs, status, documents, programmes, integrations and relationships. Cannot modify anything |
+| **auditor** | `admin:read`, `admin:audit`, `content:read`, `content:describe`, `programme:read`, `integration:read`, `fabric:read` | Read-only plus full audit log access with export capability |
 
 A role is held by an operator, and an operator is always a person
 ([`protocol/types`](../protocol/types.md#operator)), so a role may carry a
@@ -1572,6 +1573,23 @@ which spends what the tenant pays for its model and sends what it carries to
 a model provider. Nothing yet limits what one person's completions may use,
 so `admin` carries it and no other role does, and a role that reads
 everything through `admin:read` asks the model nothing.
+
+`programme:switch` decides whether a programme's operations reach people, so
+it is person only; `operator` carries it with the rest of the `programme:`
+family because running the tenant's programmes is day-to-day work, as deciding
+a proposal is. `integration:manage` and `content:connect` together decide which
+outside account the tenant acts as and where its content goes, and `admin`
+holds both by default. A person delegates only their own account, and an
+integration they delegated lapses when they leave or this table stops giving
+their role the grant it was made under. `integration:read` shows no secret, so
+every role reads integrations.
+
+`telemetry:read`, `action:invoke` and `scope:admit` are outside the `admin`
+family ([`protocol/types`](../protocol/types.md#capability)), so `admin:*` does
+not carry them, and this table gives them to `admin` alone. The roles carrying
+`telemetry:read` change only through the change cycle, never by a grant at run
+time. `integration:use`, `telemetry:push` and `token:exchange` are a
+component's, and no role carries them.
 
 `fabric:attest` is the person-only capability the fabric's person routes
 require ([`architecture/fabric`](fabric.md#registration-and-standalone-operation)):

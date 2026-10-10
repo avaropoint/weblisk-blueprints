@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: contract
-version: 1.0.2
+version: 1.0.3
 requires: [protocol/types, patterns/scope, patterns/policy]
 platform: any
 tier: free
@@ -45,7 +45,7 @@ where obligations are declared and enforced.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: IOSpec

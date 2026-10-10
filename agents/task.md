@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: task
-version: 1.1.0
+version: 1.1.1
 port: 9781
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/task-dispatch, patterns/messaging, patterns/retry, patterns/scope, patterns/policy]
@@ -65,7 +65,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: TaskRequest

@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: health-monitor
-version: 1.0.1
+version: 1.0.2
 port: 9755
 requires: [protocol/spec, protocol/types, architecture/agent, agents/alerting]
 extends: [patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/security, patterns/governance]
@@ -63,7 +63,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentManifest

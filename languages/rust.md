@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: rust
-version: 1.0.1
+version: 1.0.2
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: rust
 tier: free
@@ -56,7 +56,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: HealthStatus
