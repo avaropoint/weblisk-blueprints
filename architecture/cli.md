@@ -637,13 +637,13 @@ file — and REFUSES a plan that names another component's files. See
 A build that repairs ends on the best tree it reached, as
 [`architecture/generation`](generation.md#a-repair-round-is-a-transaction)
 specifies, which also says where `weblisk` does not yet rank or judge a tree as
-it specifies. What is the command's: it prints each requirement left
-unrepaired and why, cutting the list for each source short at twelve with a
-count of the rest. When the repair loop ends without an error of its own, it
-then prints the verdict on that tree: that it does not build, with the build's
-output, or what conformance established. When the loop ends on an error, such
-as a provider failure or a failed write, it prints that list and the error and
-no verdict, although the loop returned one. A provider failure the run can
+it specifies. What is the command's: when the repair loop ends without an
+error of its own, it prints the verdict on that tree first, that it does not
+build, with the build's output, or what conformance established, and then each
+requirement left unrepaired and why, cutting the list for each source short at
+twelve with a count of the rest. When the loop ends on an error, such as a
+provider failure or a failed write, it prints that list and the error and no
+verdict, although the loop returned one. A provider failure the run can
 outlast is resumed rather than ended
 ([`architecture/generation`](generation.md#surviving-a-provider-outage)), and
 a resumed run that finishes prints its verdict.

@@ -96,7 +96,10 @@ requires:
 
 Four gates in ascending cost. Each is cheaper than the one after it and
 localises a failure further, so a fault is diagnosed at the earliest layer that
-can see it.
+can see it. Inside the repair loop a tree is read in another order (resolve,
+build, start and conformance-test, then assertions), stated once in [What a
+repair round reads, and in what
+order](#what-a-repair-round-reads-and-in-what-order).
 
 ---
 
@@ -151,7 +154,9 @@ interfaces:
 5. On acceptance, the file's top-level declarations are extracted and added to
    the accumulated declarations passed to every subsequent file.
 6. When every file has succeeded, all are written together.
-7. The gate runs: structure, coherence, properties, behaviour.
+7. The gate runs: structure, coherence, properties, behaviour. Inside the
+   repair loop, a tree is read in the order [What a repair round reads, and in
+   what order](#what-a-repair-round-reads-and-in-what-order) gives.
 8. The plan is recorded with the output as provenance.
 
 ---
@@ -674,7 +679,8 @@ Four layers, run in order, cheapest first. A failure at Layer 1 or Layer 2
 stops the run: a tree that is missing a file or does not build cannot be run,
 and a later layer's result is meaningless once an earlier one has failed. A
 failure at Layer 3 does not void Layer 4. Inside the repair loop, which goes
-on while an assertion has failed, a tree that builds is started and
+on while a tree does not build, does not start or has an assertion read unmet,
+a tree that builds is started and
 conformance-tested before its assertions are read, and those results stand
 whatever the assertions read. See [What a repair round reads, and in what
 order](#what-a-repair-round-reads-and-in-what-order).
@@ -856,10 +862,17 @@ retry makes, is read in this order:
 2. it is built (Layers 1 and 2);
 3. if it builds, the component is started and its conformance tests are run
    (Layer 4);
-4. then its assertions are read (Layer 3).
+4. then, if it started and is not a retry's trial, its assertions are read
+   (Layer 3).
+
+A retry's trials are judged on steps 1 to 3 alone. The assertions are read
+once, on the tree the retry ends on, and only when the retry kept a repair and
+that tree builds and starts. A tree that builds and does not start is not read.
 
 A failed assertion does not void what steps 1 to 3 observed. Once a tree
-builds, the loop goes on only while an assertion has failed, so under the gate's stop rule it would never see
+builds and starts, the loop goes on only while an assertion is read unmet: a
+failing conformance test refutes the verdict (rule 11) and does not by itself
+drive a round. So under the gate's stop rule it would never see
 a component start or a test answer, and could not tell a repair that stopped the
 component starting, or broke a passing test, from one that did not. The stop
 rule's reason does not hold between these two layers: a tree that does not build
@@ -885,14 +898,26 @@ repair, as only `failed` does among Layer 3's outcomes. A reading that failed
 as a whole (the model could not be reached, or its answer could not be parsed)
 reports nothing unmet and refutes nothing: *the assertions were not read*.
 
-**The verdict on the tree the loop returns** is one of four values:
+**The verdict on the tree the loop returns** is one of four values. The rows
+below are taken in order, as `weblisk` takes them, and the first that matches
+gives the value:
 
-| Verdict | When |
+| In order | Verdict |
 |---|---|
-| `verified` | the tree builds and starts, no conformance test counts against it (rule 11), its assertions were read, none is unmet or unanswered, and at least one is satisfied |
-| `failed` (refuted) | the component was built and does not start, a conformance test counts against it, or an assertion was read unmet |
-| `inconclusive` | the tree builds and starts, nothing counts against it, and its assertions were not read, were left unanswered, or were all unverifiable |
-| `unchecked` | dependencies did not resolve or the tree does not build, so nothing was run or read; or the component declares no assertions |
+| dependencies did not resolve, or the tree does not build, so nothing was run or read | `unchecked` |
+| the component was built and does not start | `failed` (refuted) |
+| its assertions were not read (the reading failed as a whole) | `inconclusive` |
+| the component declares no assertions | `unchecked` |
+| an assertion was read unmet | `failed` (refuted) |
+| an assertion was left unanswered, or none was satisfied | `inconclusive` |
+| otherwise: at least one assertion satisfied, none unmet or unanswered | `verified` |
+
+Rule 11 then applies on top of the row that matched, from the third row on (the
+tree builds and starts): a conformance test that counts against the tree makes
+the verdict `failed`. So `verified` means the tree builds and starts, no
+conformance test counts against it, and its assertions were read with none
+unmet or unanswered and at least one satisfied; and a component that declares
+no assertions is `unchecked` only while nothing counts against it.
 
 #### A repair round is a transaction
 
