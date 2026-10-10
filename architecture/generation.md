@@ -676,11 +676,12 @@ with each other rather than that they are all broken.
 ## The verification gate
 
 Four layers, run in order, cheapest first. A failure at Layer 1 or Layer 2
-stops the run: a tree that is missing a file or does not build cannot be run,
-and a later layer's result is meaningless once an earlier one has failed. A
+stops verification of that tree: a tree that is missing a file or does not
+build cannot be run, and a later layer's result is meaningless once an earlier
+one has failed. Inside the repair loop that failure is what a round repairs. A
 failure at Layer 3 does not void Layer 4. Inside the repair loop, which goes
-on while a tree does not build, does not start or has an assertion read unmet,
-a tree that builds is started and
+on while a repair can be aimed at a tree that does not build, does not start or
+has an assertion read unmet, a tree that builds is started and
 conformance-tested before its assertions are read, and those results stand
 whatever the assertions read. See [What a repair round reads, and in what
 order](#what-a-repair-round-reads-and-in-what-order).
@@ -840,7 +841,8 @@ to satisfy something it does not control.
 #### The loop ends when verification passes
 
 Layer 2 succeeding is not completion. A generator MUST continue while any
-assertion is `failed`, and MUST stop when two rounds in a row fail to improve on
+assertion is read unmet (see *What a repair round reads, and in what order*),
+and MUST stop when two rounds in a row fail to improve on
 the best tree it has reached — see *A repair round is a transaction*. Building
 and conforming MUST be ranked as separate stages, with every tree that builds
 above every tree that does not. Errors falling to zero and assertions then
@@ -872,7 +874,7 @@ that tree builds and starts. A tree that builds and does not start is not read.
 A failed assertion does not void what steps 1 to 3 observed. Once a tree
 builds and starts, the loop goes on only while an assertion is read unmet: a
 failing conformance test refutes the verdict (rule 11) and does not by itself
-drive a round. So under the gate's stop rule it would never see
+drive a round. Were the gate's stop rule applied here, the loop would never see
 a component start or a test answer, and could not tell a repair that stopped the
 component starting, or broke a passing test, from one that did not. The stop
 rule's reason does not hold between these two layers: a tree that does not build
@@ -894,7 +896,10 @@ readings:
 These are not Layer 3's outcomes. Nothing mechanical settled them, and the same
 tree read twice can be read differently, so a reading MUST NOT be reported as a
 Layer 3 `verified` or `failed`. Of the four readings, only unmet drives a
-repair, as only `failed` does among Layer 3's outcomes. A reading that failed
+repair. The loop's rounds are driven by these readings alone: `weblisk` runs
+its mechanical Layer 3 check of the assertions once, after the loop, and
+reports it beside the verdict as advice, so a `failed` there does not drive a
+round. A reading that failed
 as a whole (the model could not be reached, or its answer could not be parsed)
 reports nothing unmet and refutes nothing: *the assertions were not read*.
 
@@ -1240,9 +1245,8 @@ A generator MUST treat every repair round as a transaction:
     a provider failure or a failed write. The loop MUST leave on disk the best
     tree it reached, return it, record it, and describe it in the verdict it
     returns to its caller, on this path as on every other. What a command
-    prints of that verdict is the command's: `weblisk component <name> init`
-    prints none after a loop error
-    ([`architecture/cli`](cli.md#weblisk-component-name-init)). When the
+    prints of that verdict is the command's; see
+    [`architecture/cli`](cli.md#weblisk-component-name-init). When the
     one-repair-at-a-time retry ends on an error after keeping repairs, the
     tree it kept has been measured, and it MUST be considered for best before
     the loop ends.
@@ -1575,7 +1579,7 @@ and "nothing contradicted it".
 - [ ] Structural checks read the artifact's parse tree; substring checks are treated as one-way
 - [ ] An artifact that does not parse contributes no structure to any check
 - [ ] Each refuted assertion names the artifacts it is about, attributed by the check that refuted it
-- [ ] The loop continues while any assertion is `failed` and stops after two rounds that do not improve on the best tree reached
+- [ ] The loop continues while any assertion is read unmet and stops after two rounds that do not improve on the best tree reached
 - [ ] Building and conforming are ranked as separate stages; every tree that builds ranks above every tree that does not
 - [ ] Assertions rank two trees only when both trees' assertions were read; otherwise the two tie on them
 - [ ] Every repair round starts from a kept copy of the tree, and every repair in it is asked for against that tree
