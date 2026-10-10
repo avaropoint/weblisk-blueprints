@@ -570,7 +570,7 @@ Step 13:  Agent evaluates impact against its own state:
             Done.
 
           If impact = compatible AND on_change = validate:
-            Run self-validation (health check, test fixtures)
+            Run self-validation (readiness, test fixtures)
             If pass → log + emit result: "validated"
             If fail → escalate to breaking path
 
@@ -694,7 +694,7 @@ Phase 2 — Deploy
                 e. Storage: connect to same database
                 f. Run schema migration (if needed) with versioning
                    pattern (additive-only until cutover)
-  Pre-check:  Current agent (vN) is healthy
+  Pre-check:  Current agent (vN)'s lease is ready
   Validates:  New instance (vN+1) reaches "active" state
   On Fail:    Tear down vN+1, log error, emit deployment.failed
   Emit:       system.agent.version.deployed
@@ -719,7 +719,7 @@ Phase 3 — Shadow
                 {agent, new_version, events_validated, pass_rate}
 
 Phase 4 — Cutover
-  Pre-check:  Phase 3 passed, vN healthy, vN+1 healthy
+  Pre-check:  Phase 3 passed, the leases of vN and vN+1 both ready
   Action:
     Step 1:   vN stops accepting new work (returns 503)
     Step 2:   vN drains in-flight work (per shutdown sequence)
@@ -776,7 +776,7 @@ cutover_strategies:
   canary:
     description: >
       Route a percentage of traffic to new version. Gradually
-      increase if metrics are healthy.
+      increase while its success rate holds above health_threshold.
     when: High-traffic agents where gradual validation is preferred
     risk: Lower — can stop at any percentage
     config:
@@ -869,7 +869,7 @@ inter_agent:
         to instances. Callers never hard-code target addresses.
       enforcement: >
         POST /v1/message addressed to agent name. Orchestrator
-        or bus routes to a healthy instance.
+        or bus routes to an instance whose lease is ready.
 
     - rule: Agents MUST NOT discover or cache other agents' addresses
       reason: >
@@ -939,7 +939,7 @@ intra_agent:
 
 ```
 Normal operation:
-  message → bus → resolve agent_name → route to any healthy instance
+  message → bus → resolve agent_name → route to any instance whose lease is ready
 
 Shadow phase:
   message → bus → resolve agent_name
@@ -1355,7 +1355,7 @@ state_machine:
       - from: shadow
         to: cutover
         trigger: Shadow pass rate >= threshold
-        validates: Both versions healthy
+        validates: Both versions' leases ready
 
       - from: cutover
         to: retired
@@ -1477,7 +1477,7 @@ constraints:
     - If concurrent changes share dependents, assessments are merged
 
   safety:
-    - Blue-green deployment MUST NOT proceed if current version is unhealthy
+    - Blue-green deployment MUST NOT proceed unless the current version's lease is ready
     - Shadow phase MUST validate at least shadow_events_required events
     - Cutover MUST NOT proceed during another active blue-green deployment
       for the same agent

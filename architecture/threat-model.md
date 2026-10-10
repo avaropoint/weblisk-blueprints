@@ -393,10 +393,10 @@ identity on every request.
 | 2.1 | **Rogue gateway** | Attacker deploys fake gateway that claims to be legitimate | Agents verify `Authorization` header contains valid WLT signed by registered gateway's ML-DSA-65 key; orchestrator validates gateway registration | Protocol identity |
 | 2.2 | **Header spoofing** | Attacker injects `X-Gateway-*` headers from non-gateway source | Agents ONLY accept `X-Gateway-*` headers from the registered gateway IP/identity; orchestrator strips these headers from non-gateway requests | Agent validation |
 | 2.3 | **Privilege escalation via header** | Gateway sends `X-Gateway-Roles: admin` for non-admin user | Gateway's role injection is validated against session state (server-side, not from browser); agents can verify via orchestrator callback for critical operations | Defense in depth |
-| 2.4 | **Agent impersonation** | Attacker poses as a legitimate agent | Every agent has unique ML-DSA-65 key pair; orchestrator verifies agent identity on registration and health checks; behavioral fingerprinting detects drift | Protocol identity + lifecycle |
+| 2.4 | **Agent impersonation** | Attacker poses as a legitimate agent | Every agent has unique ML-DSA-65 key pair; orchestrator verifies agent identity on registration and on every lease renewal; behavioral fingerprinting detects drift | Protocol identity + lifecycle |
 | 2.5 | **Man-in-the-middle (internal)** | Intercept gateway-to-agent traffic | mTLS between gateway and agents (zero-trust mode); or TLS + trusted network isolation; ML-DSA-65-signed messages provide additional integrity | Network + protocol |
 | 2.6 | **SSRF via gateway** | Trick gateway into making requests to internal services | Route table uses allowlisted agent targets only; no user-controlled URLs in forwarding; gateway resolves targets from orchestrator registry, not from request input | Gateway route table |
-| 2.7 | **Agent overload** | Route excessive traffic to a single agent | Per-agent rate limiting at gateway; circuit breaker (3 failures → open for 30s); orchestrator redistributes if agent reports degraded | Gateway + orchestrator |
+| 2.7 | **Agent overload** | Route excessive traffic to a single agent | Per-agent rate limiting at gateway; circuit breaker (3 failures → open for 30s); orchestrator routes elsewhere while the agent's lease is not ready | Gateway + orchestrator |
 | 2.8 | **Data exfiltration via agent** | Compromised agent sends data to external endpoint | Enforcement external boundary intercepts all outbound calls; agents can only reach declared external endpoints; scope-based leakage prevention blocks restricted data from crossing boundaries; agent behavioral monitoring detects anomalous external call patterns | Enforcement external boundary + monitoring |
 | 2.9 | **Deserialization attack** | Malicious payload in agent request/response | JSON-only protocol (no binary serialization); strict schema validation on all messages; no arbitrary object deserialization | Protocol spec |
 | 2.10 | **Replay attack (internal)** | Replay a valid gateway-to-agent request | Request includes `X-Request-Id` (UUID) + `X-Trace-Id`; agents track recent request IDs; duplicate requests rejected within replay window (300 seconds) | Protocol spec |
@@ -671,7 +671,7 @@ Layers:    3 independent controls (integrity checksums, audit cross-reference,
 | OWASP baseline scan | Weekly | External scanner or security-scanner agent |
 | Penetration test | Quarterly | External engagement |
 | Audit log integrity (hash chain) | Daily | Observability system |
-| Key rotation compliance | Daily | Admin API health check |
+| Key rotation compliance | Daily | Scheduled check against the Admin API |
 | Rate limiter effectiveness | On deploy | Load test suite |
 
 ---

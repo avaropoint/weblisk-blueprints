@@ -273,7 +273,7 @@ target:
 | Orchestrator | `orchestrator` |
 
 This prevents one failing dependency from blocking communication with
-healthy targets.
+targets that are still answering.
 
 ### Circuit Breaker Events
 

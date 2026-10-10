@@ -1561,7 +1561,7 @@ scaling:
     direct_http: forbidden
     routing: by agent name, never by instance address
     reason: >
-      The message bus resolves agent names to healthy instances.
+      The message bus resolves agent names to instances whose lease is `ready`.
       During blue-green deploys, the bus handles traffic shifting.
 
   intra_agent:
@@ -1617,6 +1617,6 @@ scaling:
 - [ ] Custom alerts from any agent are accepted and routed
 - [ ] Graceful degradation when email-send agent is unavailable
 - [ ] Metrics emit for received, delivered, throttled, and failed alerts
-- [ ] Health endpoint returns agent status
+- [ ] `GET /livez` answers live or not live and nothing else, and every lease renewal carries the readiness declared under Health, with `checks` naming each subsystem `not_ready`
 
 Port: 9752

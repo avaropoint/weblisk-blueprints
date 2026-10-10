@@ -368,13 +368,13 @@ jobs:
 Replace instances one at a time. Zero downtime.
 
 ```
-Instance 1: v1 → v2 (healthy) → route traffic
-Instance 2: v1 → v2 (healthy) → route traffic
-Instance 3: v1 → v2 (healthy) → done
+Instance 1: v1 → v2 (ready) → route traffic
+Instance 2: v1 → v2 (ready) → route traffic
+Instance 3: v1 → v2 (ready) → done
 ```
 
-- Health check must pass before routing traffic to new instance
-- If health check fails → stop rollout, keep remaining on v1
+- `GET /readyz` must answer ready before traffic is routed to a new instance
+- If it does not → stop rollout, keep remaining on v1
 
 ### Blue-Green
 
@@ -382,7 +382,7 @@ Run two identical environments. Switch traffic atomically.
 
 ```
 Blue  (v1): serving traffic
-Green (v2): deployed, health-checked
+Green (v2): deployed, answering ready at /readyz
 
 Switch: route all traffic to Green
 Verify: monitor for errors

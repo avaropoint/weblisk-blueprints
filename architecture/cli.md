@@ -669,7 +669,8 @@ invented address would have it register with nothing and exit.
 that exits or never answers live is reported with what it last wrote — a
 process id alone is not a started component — and one that is live and never
 ready is reported as started and not ready, with its `/readyz` answer, since
-a component started with no orchestrator is never ready by design.
+a component may be not ready by design: the content service started with no
+orchestrator is ([`architecture/content`](content.md)).
 
 ---
 

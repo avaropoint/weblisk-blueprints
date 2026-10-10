@@ -1282,7 +1282,7 @@ scaling:
 - [ ] State machine transitions validated — no implicit states
 - [ ] Startup sequence validation gates — each step has validates/on-fail
 - [ ] Shutdown drains in-flight tasks before exit
-- [ ] Health endpoint reports accurate status per health criteria
+- [ ] `GET /livez` answers live or not live and nothing else, and every lease renewal carries the readiness declared under Health, with `checks` naming each subsystem `not_ready`
 - [ ] Scaling: inter-agent communication via message bus (except /v1/execute)
 - [ ] Scaling: leader election prevents duplicate dispatch
 - [ ] Scaling: consumer group ensures one-per-event delivery

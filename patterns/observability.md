@@ -137,14 +137,13 @@ contracts:
 
 Every agent and domain controller MUST:
 
-1. Serve `GET /livez` and `GET /readyz` on its listener, without
-   authentication, each answering 200 or 503 with `live` or `ready` and
-   nothing else ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)).
-2. Answer liveness from its own process alone: a store, a peer or a provider
-   that is down makes it not ready, never not live.
-3. Renew its lease at `POST /v1/lease`, carrying `ready` and `checks`, on
-   the cadence [`protocol/types`](../protocol/types.md#leaserenewal) sets.
-4. Renew with `ready: false` while it drains for a shutdown, then deregister.
+1. Serve `GET /livez` and `GET /readyz` on its listener, as
+   [`protocol/types`](../protocol/types.md#liveness) and
+   [`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz) define them,
+   the rule that liveness depends on nothing outside the process included.
+2. Renew its lease at `POST /v1/lease`, carrying `ready` and `checks`, as
+   [`protocol/types`](../protocol/types.md#leaserenewal) sets the cadence and
+   the renewals of a component that is draining.
 
 What each answer means, and the three lease states a reader sees, are
 [`protocol/types`](../protocol/types.md#health)'s. A component's version is in
@@ -327,7 +326,7 @@ Implementations SHOULD generate spans for key operations:
 | Task execution | `agent.execute` | `agent.name`, `task.action`, `task.id` |
 | Workflow phase | `workflow.phase` | `workflow.name`, `phase.name`, `phase.agent` |
 | Agent message | `agent.message` | `from`, `to`, `action` |
-| Health probe | `health.probe` | `target`, `result` |
+| Lease renewal | `lease.renew` | `agent.name`, `ready` |
 
 Span IDs are generated per operation and linked via parent span ID
 to form a trace tree. The trace_id remains constant across the

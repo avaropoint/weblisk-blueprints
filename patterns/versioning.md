@@ -371,9 +371,10 @@ than the first.
 
 ### What must be true
 
-- **Both versions MUST be registered and healthy.** Neither is a standby; both
-  are serving, and both report their own version from their own health
-  endpoint.
+- **Both versions MUST be registered and ready.** Neither is a standby; both
+  are serving, each holds a lease whose state is `ready`
+  ([LeaseState](../protocol/types.md#leasestate)), and each reports its own
+  version in the manifest it registered with.
 - **Neither version MAY assume it is the only one.** A version that migrates
   shared state into a shape the other cannot read has ended concurrency
   without announcing it.

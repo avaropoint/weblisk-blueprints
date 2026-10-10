@@ -1687,7 +1687,7 @@ scaling:
     direct_http: forbidden
     routing: by agent name, never by instance address
     reason: >
-      The message bus resolves agent names to healthy instances.
+      The message bus resolves agent names to instances whose lease is `ready`.
       During blue-green deploys, the bus handles traffic shifting
       between versions transparently. Direct HTTP would bypass
       this and break version cutover.
@@ -1715,7 +1715,7 @@ scaling:
       consumer group. All instances subscribe, but only one
       processes each event. Prevents duplicate handling.
     direct_messages:
-      routing: any healthy instance
+      routing: any instance whose lease is ready
       deduplication: via storage constraints (idempotent actions)
 
   blue_green:
@@ -1760,7 +1760,7 @@ scaling:
 - [ ] Distributed lock prevents duplicate tick evaluation
 - [ ] Lock expires after config.lock_ttl if holder crashes
 - [ ] Graceful shutdown drains in-flight per shutdown sequence
-- [ ] Health endpoint reports accurate status per health criteria
+- [ ] `GET /livez` answers live or not live and nothing else, and every lease renewal carries the readiness declared under Health, with `checks` naming each subsystem `not_ready`
 - [ ] Self-update triggers on system.blueprint.changed
 - [ ] All events published to bus with correct topic names
 - [ ] Backup/restore preserves relationship integrity

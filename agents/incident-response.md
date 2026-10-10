@@ -578,7 +578,7 @@ Every incident maintains a chronological timeline of events:
     {"time": "2026-04-25T10:00:00Z", "event": "incident_created", "detail": "Alert: seo-analyzer lease lapsed"},
     {"time": "2026-04-25T10:00:01Z", "event": "runbook_started", "detail": "Executing: agent-lease-lapsed"},
     {"time": "2026-04-25T10:00:02Z", "event": "step_completed", "detail": "verify: lease still unknown"},
-    {"time": "2026-04-25T10:00:05Z", "event": "step_completed", "detail": "check_dependencies: all healthy"},
+    {"time": "2026-04-25T10:00:05Z", "event": "step_completed", "detail": "check_dependencies: all ready"},
     {"time": "2026-04-25T10:00:06Z", "event": "step_started", "detail": "restart: requesting restart"}
   ],
   "runbook": "agent-lease-lapsed",
@@ -1432,7 +1432,7 @@ scaling:
     direct_http: forbidden
     routing: by agent name, never by instance address
     reason: >
-      Message bus resolves agent names to healthy instances.
+      Message bus resolves agent names to instances whose lease is `ready`.
       During blue-green deploys, bus handles traffic shifting.
 
   intra_agent:

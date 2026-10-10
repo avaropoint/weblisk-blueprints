@@ -429,8 +429,8 @@ Health is liveness and readiness only, and this blueprint owns neither.
 states are [`protocol/types`](../protocol/types.md#health)'s, served as
 [`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz) says.
 Observability reads the lease states the orchestrator's directory publishes
-([`architecture/orchestrator`](orchestrator.md#presence)) and never probes an
-internal component for them. How a component is serving its users — latency,
+([`architecture/orchestrator`](orchestrator.md#presence)) and never probes a
+registered component for them. How a component is serving its users — latency,
 errors, the subsystems it uses — is a metric, never a health answer.
 
 ---

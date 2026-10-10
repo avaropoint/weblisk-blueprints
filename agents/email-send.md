@@ -1334,7 +1334,7 @@ scaling:
     protocol: message-bus-only
     direct_http: forbidden
     routing: by agent name
-    reason: Message bus routes to healthy instances
+    reason: Message bus routes to instances whose lease is `ready`
 
   intra_agent:
     coordination: shared-storage

@@ -44,9 +44,17 @@ organisation can open.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.17.2 <3.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
+        # The service serves the two probes and renews its lease
+        # (protocol/types, Health and Presence)
+        - name: Liveness
+          fields_used: [live]
+        - name: Readiness
+          fields_used: [ready]
+        - name: LeaseRenewal
+          fields_used: [ready, checks, timestamp]
         - name: ErrorResponse
           fields_used: [code, error, category, retryable]
         # pass_routes is how the admin gateway learns what a person's request

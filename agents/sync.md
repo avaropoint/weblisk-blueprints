@@ -1019,7 +1019,7 @@ scaling:
     protocol: message-bus-only
     direct_http: forbidden
     routing: by agent name
-    reason: Message bus routes to healthy instances
+    reason: Message bus routes to instances whose lease is `ready`
 
   intra_agent:
     coordination: shared-storage
@@ -1127,6 +1127,6 @@ client can correct the batch rather than bisect it.
 - [ ] Manual conflicts include both versions for resolution
 - [ ] Atomic transaction rolls back on partial failure
 - [ ] Metrics emit for all sync operations
-- [ ] Health endpoint returns agent status and connected client count
+- [ ] `GET /livez` answers live or not live and nothing else; every lease renewal carries the readiness declared under Health, with `checks` naming each subsystem `not_ready`; the connected client count is the `sync_connected_clients` metric, never on the lease or `/readyz`
 
 Port: 9751

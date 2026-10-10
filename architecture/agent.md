@@ -70,7 +70,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -78,7 +78,15 @@ requires:
         - name: RegisterRequest
           fields_used: [manifest, signature, timestamp]
         - name: RegisterResponse
-          fields_used: [agent_id, token, services]
+          fields_used: [agent_id, token, services, lease]
+        - name: Lease
+          fields_used: [agent_id, duration, renewed_at, expires_at]
+        - name: LeaseRenewal
+          fields_used: [ready, checks, timestamp]
+        - name: Liveness
+          fields_used: [live]
+        - name: Readiness
+          fields_used: [ready]
         - name: EventEnvelope
           fields_used: [event_id, topic, payload, source, scope, correlation_id]
         - name: TaskRequest

@@ -675,7 +675,9 @@ Final:  Log lifecycle.version_updated {from, to}
   events (e.g. 3), consider auto-deactivating and notifying the
   subscriber owner.
 - **Observability**: Expose delivery metrics (success rate, avg
-  latency, failure rate) via the health endpoint.
+  latency, failure rate) as metrics ([Observability](#observability)),
+  never on the lease or at `/readyz`, which say only whether the agent
+  is ready.
 
 ---
 
@@ -1283,7 +1285,7 @@ scaling:
     protocol: message-bus-only
     direct_http: forbidden
     routing: by agent name
-    reason: Message bus routes to healthy instances
+    reason: Message bus routes to instances whose lease is `ready`
 
   intra_agent:
     coordination: shared-storage

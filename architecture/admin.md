@@ -108,9 +108,17 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.17.2 <3.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
+        # The admin gateway serves the two probes and renews its lease
+        # (protocol/types, Health and Presence)
+        - name: Liveness
+          fields_used: [live]
+        - name: Readiness
+          fields_used: [ready]
+        - name: LeaseRenewal
+          fields_used: [ready, checks, timestamp]
         - name: Strategy
           fields_used: [id, name, targets, status, priority]
         # Every refusal Error Handling names, with the category and
