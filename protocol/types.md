@@ -178,7 +178,7 @@ for an attestation token, `architecture/admin`'s `attestation-token-issuance`):
 
 | Code | HTTP | Category | Description |
 |------|------|----------|-------------|
-| `TOKEN_REQUEST_REPLAYED` | 401 | permanent | The request's `jti` was already recorded for that operator inside the 300-second replay window. No token is issued; the client signs a new request with a fresh `jti`, and never registers for it |
+| `TOKEN_REQUEST_REPLAYED` | 401 | permanent | The request's `jti` was already recorded for that operator inside the replay window ([`architecture/admin`](../architecture/admin.md#obtaining-a-token), `attestation-token-issuance`). No token is issued; the client signs a new request with a fresh `jti`, and never registers for it |
 
 **Pass codes** (produced by a component that a person's request reaches,
 [`protocol/identity`](identity.md#the-pass)):

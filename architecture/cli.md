@@ -283,9 +283,8 @@ Studio's and the orchestrator's own surfaces.
 - Operator ML-DSA-65 identity creation, and resolving where a named identity
   lives — an encrypted key file, or a holder reference naming the secret source
   that holds the private half ([Where an identity lives](#where-an-identity-lives))
-- Operator registration, its own act, and token management (a token is
-  minted for each command and written nowhere unless the caller asks —
-  `--store`)
+- Operator registration and token management (which commands keep the token
+  they obtain, and where: [`weblisk operator token`](#weblisk-operator-token))
 - One credential per identity per hub, attested once by that identity and kept
   in the platform keychain, or beside the identity where no keychain exists
   ([A credential for each hub](#a-credential-for-each-hub))
@@ -332,7 +331,8 @@ the sections below: [Project Commands](#project-commands),
 
 1. Operator runs a CLI command (e.g., `weblisk agents list`)
 2. CLI resolves which identity acts — `--keys-dir`, else `--identity <label>`, else the unnamed default
-3. CLI loads the token stored beside that identity where `--store` kept one,
+3. CLI loads the token stored beside that identity where one is kept
+   ([Where a token is kept](#weblisk-operator-token)),
    and otherwise obtains one for this command and holds it in memory, as the
    [Authentication Flow](#authentication-flow) says (renewing one near expiry)
 4. CLI constructs an HTTP request to the hub's admin gateway, the tenant's one
@@ -1178,18 +1178,22 @@ CLI holds one for each identity at each hub:
   the vectors it signs nothing more at such a hub until that hub is built
   again from a corpus that has them.
 - **Kept in the platform's keychain.** The CLI keeps each hub credential's
-  private key in the platform keychain source
-  ([`protocol/secret-source`](../protocol/secret-source.md#the-built-in-sources)),
-  apart from the identity's holder, whatever holds the identity: an encrypted
-  key file, a vault or any other source. The keychain releases it to the CLI
-  without a prompt while the person's session on the machine is unlocked, so
-  minting a token asks the person nothing, and the identity's holder is asked
-  only to register, to attest and to change its key. What protects it is the
-  machine session: while it is unlocked, any program running as the person
-  can have the CLI mint with it, as it can read a stored token. The identity's
-  holder keeps it, as the next two items say, only where no keychain exists:
-  on a platform the CLI carries no keychain source for, or where that source
-  answers `not_installed`.
+  private key in the platform keychain source, apart from the identity's
+  holder: as an item of its own, whatever holds the identity, an encrypted
+  key file, a vault or any other source, the keychain itself included. How
+  the keychain releases it is the source's
+  ([`protocol/secret-source`](../protocol/secret-source.md#the-built-in-sources)):
+  without a prompt while the person's session on the machine is unlocked. So
+  once the credential answers a challenge
+  ([Authentication Flow](#authentication-flow)), minting a token there asks
+  nobody, and the identity's holder is asked only to register, to attest and
+  to change its key. What protects it is the machine session: while it is
+  unlocked, any program running as the person can have the CLI mint with it,
+  as it can read a stored token. The identity's holder keeps it, as the next
+  two items say, only where no keychain exists: on a platform the CLI carries
+  no keychain source for, or where that source answers `not_installed`. There
+  every mint asks the holder, and a token is stored by default
+  ([Where a token is kept](#weblisk-operator-token)).
 - **Where no keychain exists, kept as the identity is.** The private key sits beside the identity it
   belongs to, encrypted in the `weblisk-key-v1` envelope with `kdf` `argon2id`
   under the identity's own passphrase, or held by the secret source that
@@ -1230,8 +1234,8 @@ CLI holds one for each identity at each hub:
   as [One approval vouches for every hub](#one-approval-vouches-for-every-hub)
   says, with every other attestation on this device that is due.
 
-`--store` is about the token. The credential is kept either way, because
-keeping it is what spares the identity.
+`--store` and `--no-store` are about the token. The credential is kept
+either way, because keeping it is what spares the identity.
 
 ### One approval vouches for every hub
 
@@ -1422,8 +1426,10 @@ Registering operator 'alice' with https://hub.example.com...
 - Once approved, attests a credential for this hub
   ([A credential for each hub](#a-credential-for-each-hub)) and obtains a token
   with it, as the [Authentication Flow](#authentication-flow) says. The token is
-  returned (stdout, or the `--json` result) and written nowhere unless
-  `--store` is given ([Where a token is kept](#weblisk-operator-token))
+  returned (stdout, or the `--json` result), and written beside the identity
+  as [Where a token is kept](#weblisk-operator-token) says: only with `--store`
+  where a later command can mint its own without asking anybody, and otherwise
+  unless `--no-store` is given
 - If not the first operator, prints "Registration pending admin approval".
   Either way it records the registration the answer names: the hub's
   `hub_id`, the operator's `identity_id` and the address. A repeat's answer
@@ -1474,7 +1480,7 @@ Six outcomes, and they are told apart:
 
 | State | Meaning |
 |---|---|
-| `connected` | a token was issued: returned, and stored beside the identity only where `--store` was given |
+| `connected` | a token was issued: returned, and stored beside the identity as [Where a token is kept](#weblisk-operator-token) says |
 | `not_registered` | registering is what is missing: no registration names this address, or the hub does not know the operator. Nothing was registered; the message names `weblisk operator register` and the address |
 | `pending_approval` | the hub will not issue one yet. **Not a failure** — the first operator of a hub is admitted by its bootstrap secret and every later one needs an existing admin. The message names who can act |
 | `refused` | the hub answered and said no in a way no approval changes, such as the operator name being registered to a different key |
@@ -1490,8 +1496,8 @@ Flags:
 | `--identity <label>` | which identity signs, by label. The CLI resolves where it lives — see `architecture/admin` rule 2 |
 | `--keys-dir <path>` | which identity signs, by location. Outranks `--identity` |
 | `--json` | machine-readable result, for a console driving this |
-| `--store` | also write the token beside the identity, mode 0600, for later commands to use ([Where a token is kept](#weblisk-operator-token)). Without it no token file is written |
-| `--no-store` | accepted, and changes nothing: no token file is written unless `--store` is given |
+| `--store` | also write the token beside the identity, mode 0600, for later commands to use, where the default writes none ([Where a token is kept](#weblisk-operator-token)) |
+| `--no-store` | write no token file, where the default writes one: where a mint asks the identity's holder ([Where a token is kept](#weblisk-operator-token)). Elsewhere it changes nothing |
 | `--no-register` | accepted, and changes nothing: `connect` never registers |
 | `--cap <name,...>` | mint the token with `cap` naming only these capabilities, those the operator's role carries (`architecture/admin`, operator-token-issuance). For a caller that needs less than the role carries, such as a script |
 | `--remember-passphrase` | where the credential key is kept in its own envelope ([A credential for each hub](#a-credential-for-each-hub)), have a source remember the passphrase chosen for it. Refused, keeping nothing, where no source that lists `store` is available |
@@ -1517,26 +1523,53 @@ $ weblisk operator token --refresh
 ✓ Token refreshed. Expires: 2026-04-26T11:00:00Z
 ```
 
-**Where a token is kept: nowhere, by default.** Every command that needs a
-token mints a fresh one with the credential this identity holds for that hub
-([A credential for each hub](#a-credential-for-each-hub)), which asks the
-person nothing, and holds it in memory for that command alone. `connect`,
-`register` and `token` return the token they obtain, on stdout or in the
-`--json` result, and write no token file. **`--store` opts in, per
-command:** with it, they also write the token beside the identity that
-obtained it, mode 0600, and a later command uses that file until the token is
-due for refresh. A stored token is a bearer credential: whoever holds the
-file may use it until it expires. It carries every capability the operator's
-role carries, `admin:*` and every person-only capability for an admin, and
-mode 0600 keeps it from other users, never from another program the same
-user runs, an agent included. `architecture/admin`'s rule that no agent holds
-a person's token binds a console
+**Where a token is kept depends on whether a mint asks anybody.** A mint is
+*silent* where the credential this identity holds for that hub
+([A credential for each hub](#a-credential-for-each-hub)) is kept by the
+platform keychain source and answers the hub's challenge: the keychain
+releases it while the person's session on the machine is unlocked, so minting
+asks nobody. Anywhere else a mint asks the identity's holder: where no
+keychain exists, the credential is opened as the identity's own key is, by a
+passphrase typed or a source approving; and until `weblisk/credential-auth/v1`
+has test vectors, only the deprecated identity-signed path yields a token
+([Authentication Flow](#authentication-flow)), which the identity's holder
+signs.
+
+- **Where a mint is silent: nowhere, by default.** Every command that needs
+  a token mints a fresh one and holds it in memory for that command alone.
+  `connect`, `register` and `token --refresh` return the token they obtain,
+  on stdout or in the `--json` result, and write no token file. **`--store`
+  opts in, per command:** with it, they also write the token beside the
+  identity that obtained it, mode 0600, and a later command uses that file
+  until the token is due for refresh. `--no-store` changes nothing there.
+- **Where a mint asks the identity's holder: beside the identity, by
+  default.** `connect`, `register` and `token --refresh` write the token
+  they obtain beside the identity, mode 0600, and a later command uses that
+  file until the token is due for refresh, so the holder is asked about once
+  a token lifetime rather than by every command. **`--no-store` writes no
+  token file:** the token goes to stdout, or into the `--json` result, and
+  every later command that needs one asks the identity's holder again.
+  `--store` changes nothing there.
+
+A stored token is a bearer credential: whoever holds the file may use it
+until it expires. It carries every capability the operator's role carries,
+`admin:*` and every person-only capability for an admin, and mode 0600 keeps
+it from other users, never from another program the same user runs, an agent
+included. `architecture/admin`'s rule that no agent holds a person's token
+binds a console
 ([`console-credential-use`](admin.md#a-console-holds-a-credential-never-a-token)),
-and a stored file is outside it, which is why none is written unless the
-person asks. A console never passes `--store`, because a console never
-writes an operator token anywhere
+and a stored file is outside it, which is why none is written where a mint
+can be silent, and why a person who runs agents under their own account
+passes `--no-store` where one would be. A console never passes `--store` and
+always passes `--no-store`, because a console never writes an operator token
+anywhere
 ([`architecture/admin`](admin.md#a-console-holds-a-credential-never-a-token)).
-`--no-store` is accepted and changes nothing.
+
+**With no token file, `weblisk operator token` says so.** Plain `weblisk
+operator token` reports the token a stored file holds. Where none is stored,
+it reports `no stored token`, with the operator, the hub and whether a mint
+there would be silent or would ask the identity's holder, and mints nothing;
+`--refresh` mints one.
 
 **A token goes to the hub's admin gateway and nowhere else.** The CLI, and a
 caller it hands a token to, presents it at the hub's admin gateway alone, as
@@ -1547,7 +1580,8 @@ gateway, on a pass addressed to them alone, so a token minted with no `--cap`,
 which carries the role's full set, reaches no component but the orchestrator
 that issued it. `--cap` narrows a token for a caller that needs less than the
 role carries. A narrowed token is never stored, so `--cap` is refused with
-`--store`, and a stored token keeps the role's full set.
+`--store`, and, where a mint asks the identity's holder, requires
+`--no-store`; a stored token keeps the role's full set.
 
 ### `weblisk operator attest`
 
@@ -2708,7 +2742,7 @@ Every command that calls the hub's admin gateway:
 
 ```
 1. Resolve which identity acts: --keys-dir, else --identity <label>, else the unnamed default
-2. Load the token stored beside that identity, where --store kept one. With
+2. Load the token stored beside that identity, where one is kept. With
    none, obtain one as step 3 says, and hold it in memory for this command
 3. If it has expired, or less than a fifth of its lifetime remains, obtain a
    new one as architecture/admin's "Obtaining a token" says: the credential
@@ -2784,8 +2818,9 @@ security:
       mechanism: Redaction at the boundary of every diagnostic path
     - rule: A token is short-lived, and never minted with the identity
       mechanism: Minted with the credential for that hub and lasting an hour.
-        Written nowhere by default; with --store, kept beside the identity,
-        mode 0600
+        Where a mint is silent, written nowhere by default and with --store
+        kept beside the identity, mode 0600; where a mint asks the identity's
+        holder, kept there by default and with --no-store written nowhere
     - rule: A credential key is never in the clear
       mechanism: Kept by the platform keychain source, apart from the
         identity's holder; where no keychain exists, in the weblisk-key-v1
@@ -2878,11 +2913,13 @@ security:
 - [ ] `weblisk operator connect`, `weblisk operator attest` and `weblisk operator attest --batch` never send a registration: at an address no registration names, or a hub that answers `OPERATOR_UNKNOWN`, each reports `not_registered` naming `weblisk operator register` and the address, and against a test hub with no operators none of them sends a bootstrap secret or claims the hub
 - [ ] `weblisk operator connect` with no identity held reports `identity_unavailable`, names `weblisk operator init` and creates no key; `connect --no-register` is accepted and behaves exactly as `connect`
 - [ ] `weblisk operator init` does not overwrite existing keys without --force flag
-- [ ] `weblisk operator register` signs the registration payload with the operator's private key and returns the token it obtains, writing it beside the identity only with `--store`
+- [ ] `weblisk operator register` signs the registration payload with the operator's private key and returns the token it obtains, writing it beside the identity as [Where a token is kept](#weblisk-operator-token) says
 - [ ] `weblisk operator register --bootstrap <path>` sends the bootstrap secret read from that file, and the secret is never accepted as an argument
 - [ ] `weblisk operator token` refreshes the token when it has expired or less than a fifth of its lifetime remains, without asking the identity to sign anything but an attestation
-- [ ] Without `--store`, `weblisk operator connect`, `weblisk operator register` and `weblisk operator token --refresh` return the token on stdout or in the `--json` result and write no token file, and a later command mints its own without asking the person; with `--store` they also write it beside the identity, mode 0600; `--no-store` is accepted and changes nothing
-- [ ] `--cap content:read,content:describe` on `weblisk operator connect` or `weblisk operator token --refresh` returns a token whose `cap` names those two alone, and is refused with `--store`
+- [ ] Where the credential for the hub is kept by the keychain source and answers the hub's challenge, `weblisk operator connect`, `weblisk operator register` and `weblisk operator token --refresh` without `--store` return the token on stdout or in the `--json` result and write no token file, and a later command mints its own without asking the person or the identity's holder; with `--store` they also write it beside the identity, mode 0600
+- [ ] Where a mint asks the identity's holder (no keychain source, the keychain source answering `not_installed`, or only the identity-signed path yielding a token), `weblisk operator connect`, `weblisk operator register` and `weblisk operator token --refresh` write the token beside the identity, mode 0600, and a later command uses it without asking the holder until it is due for refresh; with `--no-store` they return it on stdout or in the `--json` result and write no token file
+- [ ] With no stored token, plain `weblisk operator token` reports `no stored token`, the operator, the hub and whether a mint there is silent, and mints nothing
+- [ ] `--cap content:read,content:describe` on `weblisk operator connect` or `weblisk operator token --refresh` returns a token whose `cap` names those two alone, and is refused with `--store`, and, where a mint asks the identity's holder, without `--no-store`
 - [ ] Once `weblisk/credential-auth/v1` has test vectors, `weblisk operator attest` signs only an `Attestation` it builds itself, refuses a `--days` beyond admin's cap, submits it, reports the credential's `cid` and `not_after`, and writes nothing to disk
 - [ ] Once `weblisk/credential-auth/v1` has test vectors, attesting at several hubs asks the identity once: one passphrase for an encrypted key file, or, for a source that lists `sign_batch`, one `sign` request carrying every hub's attestation-token request and `Attestation`; a source that does not list it is asked once for each, after the CLI has said how many approvals that takes
 - [ ] Once `weblisk/credential-auth/v1` has test vectors, each hub is sent an `Attestation` naming only its own `hub_id`, its recorded `identity_id` and the credential key made for it, no `Attestation` names more than one hub, and one is submitted only where that hub's attestation-token answer names the same `identity_id`
@@ -2890,7 +2927,7 @@ security:
 - [ ] Once `weblisk/credential-auth/v1` has test vectors, `weblisk operator attest --batch <path>` attests every entry in one approval of the identity and, with `--json`, answers an array in the order of the entries, each with `orch` and either `cid` and `not_after` or `code`
 - [ ] Once `weblisk/credential-auth/v1` has test vectors, connecting, switching from one hub to another and refreshing a token ask the identity to sign nothing while this device holds an attested credential at that hub that is not due
 - [ ] Every `Attestation` the CLI builds names the `identity_id` the hub's attestation-token answer carries, never one computed from the identity key, so an identity that changed its key still attests at every hub that accepted the change
-- [ ] Once `weblisk/credential-auth/v1` has test vectors, `connect` and `register` generate one ML-DSA-65 credential per identity per hub the first time they reach it, have the identity attest it once, keep its private key in the platform keychain source apart from the identity's holder, or, only where no keychain exists, in the `weblisk-key-v1` envelope or the identity's secret source, and mint every later token with it without asking the identity
+- [ ] Once `weblisk/credential-auth/v1` has test vectors, `connect` and `register` generate one ML-DSA-65 credential per identity per hub the first time they reach it, have the identity attest it once, keep its private key in the platform keychain source apart from the identity's holder, or, only where no keychain exists, in the `weblisk-key-v1` envelope or the identity's secret source, and mint every later token with it without the identity signing
 - [ ] Once `weblisk/credential-auth/v1` has test vectors, on a platform with a keychain source, the credential key of an identity held by an encrypted key file or by a vault is written to the keychain and not beside the identity or in the vault, and a token is minted with it while the session is unlocked with no passphrase typed and no vault approval asked
 - [ ] Before `weblisk/credential-auth/v1` has test vectors, `connect`, `register` and `operator token` at a hub that serves `POST /v1/admin/credentials/challenge` sign nothing under that prefix, make no credential, ask for no attestation token and exit 2 saying why, `register` after recording the registration the answer names; at a hub that answers it `404` or `405` they take the deprecated identity-signed path
 - [ ] Before `weblisk/credential-auth/v1` has test vectors, `weblisk operator attest`, with or without `--batch`, sends nothing to any hub, asks the identity to sign nothing, and exits 2 saying why

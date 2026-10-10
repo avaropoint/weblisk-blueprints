@@ -332,7 +332,7 @@ because nothing was judged.
 | Code | HTTP | Category | When | Behaviour | principal-identity |
 |---|---|---|---|---|---|
 | `OPERATOR_BOOTSTRAP_REFUSED` | 403 | auth | A registration at a hub with no operator carried no bootstrap secret, or a wrong one | Refuse, write nothing, audit. The caller needs the secret the orchestrator emitted | — |
-| `OPERATOR_UNKNOWN` | [types](../protocol/types.md#errorresponse) | auth | No operator of that name here: never registered, or lost with a hub regenerated without its records | Refuse. The client registers again or stops; retrying changes nothing | `identity_unknown` |
+| `OPERATOR_UNKNOWN` | [types](../protocol/types.md#errorresponse) | auth | No operator of that name here: never registered, or lost with a hub regenerated without its records | Refuse. The client reports it and names the person's own registration (`weblisk operator register`), and never registers to answer it; retrying changes nothing | `identity_unknown` |
 | `OPERATOR_NOT_APPROVED` | [types](../protocol/types.md#errorresponse) | auth | The operator is registered and pending | Refuse. Not a failure: the client reports that an admin must approve | — |
 | `OPERATOR_REVOKED` | [types](../protocol/types.md#errorresponse) | auth | The operator was removed. A removed operator keeps its record with status `revoked` ([`protocol/types`](../protocol/types.md#operatorstatus)), so removal is never mistaken for a name the hub has not seen | Refuse. Every credential and token resting on it ended with it | — |
 | `CREDENTIAL_REQUIRED` | [types](../protocol/types.md#errorresponse) | auth | A route that needs an operator token carrying a `cid` got something else: an operator token with no `cid`, an attestation token anywhere but the attestation route, or an agent or channel token on a `/v1/admin/*` route | Refuse. The client mints an operator token with a credential | — |
@@ -1375,10 +1375,16 @@ on it:
   and nothing more. A client MUST keep a person's credential key where it signs
   only after that person's own act: in the `weblisk-key-v1` envelope with `kdf`
   `argon2id`, opened by a passphrase the person types or one a secret source
-  they unlock remembers; in a secret source they unlock; or, in a console,
-  released only while the person holds a live AAL2 session with it
-  (`console-credential-use`). A key in the clear, under `kdf` `none`, or behind
-  a source nobody unlocks, such as `file:`, is not a person's credential.
+  they unlock remembers; in a secret source they unlock; in the platform
+  keychain source, where the act that unlocks it is the person's own login to
+  the machine, and it releases the key without a prompt while that session is
+  unlocked ([`architecture/cli`](cli.md#a-credential-for-each-hub)); or, in a
+  console, released only while the person holds a live AAL2 session with it
+  (`console-credential-use`). The keychain's cost is accepted, and stated: its
+  key is protected by the machine login, not by the identity's holder, so
+  while the session is unlocked any program running as the person can mint
+  with it. A key in the clear, under `kdf` `none`, or behind a source nobody
+  unlocks, such as `file:`, is not a person's credential.
 - **Not per request.** A token proves that a live credential minted it within
   the hour, and every request re-checks that credential (below). A token
   carries no claim that a factor was presented, and a gateway MUST NOT look for
@@ -2745,7 +2751,7 @@ The rest SHOULD be:
 - [ ] The bootstrap secret is destroyed when claimed, never appears in a response or an audit entry, and is not issued again while any operator record exists
 - [ ] Two registrations presenting the bootstrap secret at once admit exactly one admin, and a restart before the claim replaces the emitted secret
 - [ ] Admin tokens are WLTs with a one-hour TTL, and a console ends a person's tokens when that person's session with it goes idle
-- [ ] Two factors are required with no exception, where each key is opened: an identity key signs only once its passphrase or its secret source opens it, and a client keeps a credential key only in the `weblisk-key-v1` envelope, in a secret source, or behind a console session at AAL2, never in the clear. No gateway checks a factor claim in a token
+- [ ] Two factors are required with no exception, where each key is opened: an identity key signs only once its passphrase or its secret source opens it, and a client keeps a credential key only in the `weblisk-key-v1` envelope, in a secret source, in the platform keychain source released only while the person's machine session is unlocked, or behind a console session at AAL2, never in the clear. No gateway checks a factor claim in a token
 - [ ] Role hierarchy admin > operator > auditor > viewer is enforced server-side on every /v1/admin/* endpoint
 - [ ] Destructive actions (deregister agent, revoke federation, delete operator) require 4-eyes approval and X-Confirm HMAC
 - [ ] Application gateway returns 404 for any request to /v1/admin/* paths
