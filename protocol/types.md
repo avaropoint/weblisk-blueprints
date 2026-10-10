@@ -2240,8 +2240,8 @@ types:
 
 A component renews at `POST /v1/lease` ([`protocol/spec`](spec.md#post-v1lease))
 at intervals no longer than a third of `duration`, so that two lost renewals
-still leave the lease current. A renewal after the lease lapsed restores it
-without a new registration. A component that is draining renews with
+still leave the lease current. What the orchestrator does with a renewal,
+one after a lapse included, is [`protocol/spec`](spec.md#post-v1lease)'s. A component that is draining renews with
 `ready: false` until it deregisters.
 
 **The orchestrator's directory and its leases are the one authority for what is

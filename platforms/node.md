@@ -368,6 +368,13 @@ export interface Readiness {
   ready: boolean;
 }
 
+// Sent to POST /v1/lease on the cadence protocol/types (LeaseRenewal) sets
+export interface LeaseRenewal {
+  ready: boolean;
+  checks?: Record<string, "ready" | "not_ready">;
+  timestamp: number;
+}
+
 export interface Observation {
   type: "observation";
   domain: string;

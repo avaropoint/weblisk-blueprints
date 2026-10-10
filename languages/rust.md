@@ -686,6 +686,15 @@ pub struct Readiness {
     pub ready: bool,
 }
 
+/// Sent to POST /v1/lease on the cadence protocol/types (LeaseRenewal) sets
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LeaseRenewal {
+    pub ready: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub checks: Option<std::collections::HashMap<String, String>>,
+    pub timestamp: i64,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ErrorResponse {
     pub error: String,
@@ -889,7 +898,7 @@ opt-level = 3
 - [ ] Each component declares its routes as one table and builds its router from it in one function; no module registers routes beside its handlers
 - [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` with a registered error code
 - [ ] Path parameters are read through one helper; no handler splits `uri.path()` itself
-- [ ] All protocol types (`AgentManifest`, `TaskRequest`, `TaskResponse`, `Liveness`, `Readiness`, `ErrorResponse`) are defined in `weblisk-core` with `#[derive(Serialize, Deserialize)]` and shared across all binary crates
+- [ ] All protocol types (`AgentManifest`, `TaskRequest`, `TaskResponse`, `Liveness`, `Readiness`, `LeaseRenewal`, `ErrorResponse`) are defined in `weblisk-core` with `#[derive(Serialize, Deserialize)]` and shared across all binary crates
 - [ ] `http_body_util::Limited` is applied on all request body reads: 1 MB for registration/messages, 10 MB for tasks, 64 KB for channels
 - [ ] All shared state is wrapped in `Arc<tokio::sync::RwLock<T>>` or `Arc<tokio::sync::Mutex<T>>` — no raw `Mutex` or unprotected shared mutable state
 - [ ] Concurrency limiter uses `tokio::sync::Semaphore` and returns 429 with `Retry-After` header and structured `ErrorResponse` when agent is at capacity

@@ -301,8 +301,11 @@ must re-register before expiry to maintain connectivity.
    c. New token issued; old token invalidated
 3. If re-registration fails:
    a. Retry with exponential backoff (1s, 2s, 4s, max 30s)
-   b. After 5 failures: log critical, and answer `GET /readyz` and renew
-      the lease with `ready: false`
+   b. After 5 failures: log critical, answer `GET /readyz` not ready, and
+      renew the lease with `ready: false` while the old token is still
+      valid; once it expires the lease cannot be renewed and lapses to
+      `unknown`, as [`protocol/spec`](../protocol/spec.md#token-renewal)
+      says for a token already expired
    c. Continue serving in-flight tasks but reject new ones
 4. On success: update stored token and reset refresh timer
 ```
@@ -312,8 +315,8 @@ must re-register before expiry to maintain connectivity.
 Registration grants a lease (`RegisterResponse.lease`). The agent keeps it:
 
 ```
-1. Every duration/3 seconds at most: POST /v1/lease with LeaseRenewal
-   {ready, checks (when not ready), timestamp}
+1. POST /v1/lease with LeaseRenewal {ready, checks, timestamp}, on the
+   cadence protocol/types (LeaseRenewal) sets
 2. ready is what GET /readyz would answer now
 3. 404 NOT_FOUND: the orchestrator holds no registration → register again
 4. 401: the token has lapsed → Token Refresh, then renew

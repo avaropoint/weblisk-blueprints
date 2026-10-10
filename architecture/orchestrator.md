@@ -1712,20 +1712,12 @@ ready when its last renewal said so. The types and the three states are
 [`protocol/spec`](../protocol/spec.md#post-v1lease)'s. Leases follow the
 Kubernetes model: the holder renews, and nobody probes.
 
-```
-1. POST /v1/register grants the first lease: duration lease_duration,
-   expires_at now + lease_duration, read as not_ready until a renewal.
-   A re-registration of a registered agent (a token refresh) keeps its
-   last renewal and moves expires_at on, as a renewal does
-2. POST /v1/lease from the component: record ready and checks, set
-   renewed_at now and expires_at now + lease_duration, whether or not the
-   lease had lapsed
-3. Reading an entry: expires_at in the past → unknown; otherwise ready or
-   not_ready, as the last renewal said
-4. When an entry's lease_state changes, by a renewal or by a lapse:
-   broadcast the updated ServiceDirectory
-5. DELETE /v1/register ends the lease with the registration
-```
+What the orchestrator MUST do when a registration grants a lease, a renewal
+arrives or a lease lapses is [`protocol/spec`](../protocol/spec.md#post-v1register)'s
+(§POST /v1/register, §POST /v1/lease); how an entry reads is
+[`protocol/types`](../protocol/types.md#leasestate)'s. Its lease lasts
+`lease_duration` ([Configuration](#configuration)), and a deregistration ends
+it with the registration. What is the orchestrator's own is below.
 
 The orchestrator **never probes** a registered component, and keeps no timer
 that calls one: a lapsed lease reads `unknown` and stays in the directory,

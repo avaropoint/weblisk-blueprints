@@ -333,6 +333,7 @@ export default {
     const path = url.pathname;
     
     if (path === '/livez') return handleLivez(env);
+    if (path === '/readyz') return handleReadyz(env);
     if (path === '/v1/register') return handleRegister(request, env);
     // ... auth middleware for remaining routes
   }

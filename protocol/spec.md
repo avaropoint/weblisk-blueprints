@@ -543,8 +543,8 @@ The orchestrator MUST:
 3. When an entry's `lease_state` changes, by a renewal or by a lapse,
    broadcast the updated `ServiceDirectory` as a registration does
 
-A component renews at intervals no longer than a third of its lease's
-`duration` ([`protocol/types`](types.md#leaserenewal)). A lease that lapses
+A component renews on the cadence [`protocol/types`](types.md#leaserenewal)
+sets. A lease that lapses
 reads `unknown` from its `expires_at` on. The orchestrator never calls a
 component to find out why: the lease is the presence fact, and a probe would be
 a second one.

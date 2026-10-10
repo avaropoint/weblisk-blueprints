@@ -1170,6 +1170,10 @@ is configured:
   purpose, and `GET /livez` MUST answer live, because nothing about it has
   failed. It logs that no orchestrator is configured, the one place it can
   name the cause, since `/readyz` says nothing but `ready`.
+- It holds no lease, so no `checks` carry a repository left `establishing`,
+  declined or broken, and its protected listing refuses every caller. It
+  MUST log each such repository by `id` with its state when it records it,
+  and the log is where a standalone operator reads them.
 
 Where an orchestrator URL IS configured, registration failure is fatal: a
 service that believes it is part of a mesh and is not would answer requests

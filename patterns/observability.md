@@ -142,9 +142,8 @@ Every agent and domain controller MUST:
    nothing else ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)).
 2. Answer liveness from its own process alone: a store, a peer or a provider
    that is down makes it not ready, never not live.
-3. Renew its lease at `POST /v1/lease` within a third of its duration,
-   carrying `ready` and, when it is not ready, `checks` naming the subsystems
-   it is short of ([`protocol/types`](../protocol/types.md#leaserenewal)).
+3. Renew its lease at `POST /v1/lease`, carrying `ready` and `checks`, on
+   the cadence [`protocol/types`](../protocol/types.md#leaserenewal) sets.
 4. Renew with `ready: false` while it drains for a shutdown, then deregister.
 
 What each answer means, and the three lease states a reader sees, are
