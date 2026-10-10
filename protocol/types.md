@@ -371,10 +371,15 @@ owners or none is a fault. An owner is named as a unit: `orchestrator`
 ([`architecture/orchestrator`](../architecture/orchestrator.md), with
 [`architecture/admin`](../architecture/admin.md) its administrative surface),
 `content`, `fabric`, `enforcement`, `gateway` and `domain` (each its
-`architecture/` blueprint), and `programme` (`agents/programme`). `integrations`
-and `telemetry` own names here before their blueprints are written, so those
-names guard no route yet; they are listed now because a registration naming an
-unlisted capability is refused ([`protocol/spec`](spec.md#post-v1register)).
+`architecture/` blueprint). Three owners have no blueprint in this corpus yet:
+`programme`, whose blueprint `agents/programme` is drafted but not merged, and
+`integrations` and `telemetry`, whose blueprints are not written. Their names
+guard no route until each blueprint merges. Five names have a nominated owner
+whose blueprint does not yet say what they admit: `file:read`, `file:write` and
+`http:get` (enforcement) and `http:receive` and `realtime:publish` (gateway).
+Those five are judged by no rule until their owner's blueprint states one. All
+of these are listed now because a registration naming an unlisted capability is
+refused ([`protocol/spec`](spec.md#post-v1register)).
 
 **Standard capabilities:**
 - `file:read` (enforcement) — read files (resources: glob patterns)
@@ -400,7 +405,7 @@ unlisted capability is refused ([`protocol/spec`](spec.md#post-v1register)).
 - `content:establish` (content) — create a store and declare it. Required in addition to `content:declare` for `disposition: establish`; adoption does not need it
 - `content:reconcile` (content) — run custody reconciliation on a shared repository
 - `content:replicate` (content) — declare a remote of a repository, and retire one. Declaring one also needs `content:connect`. *Person only*
-- `content:connect` (content) — bind an integration to a destination outside the tenant's store, a remote's among them. It creates nothing: the credential is the integration's, and the content service holds none. Required in addition to `content:replicate` to declare a remote. *Person only*
+- `content:connect` (content) — bind an integration to a destination outside the tenant's store, a remote's among them. It creates nothing in the content service: the credential is the integration's, and the content service holds none. Required in addition to `content:replicate` to declare a remote. *Person only*
 - `content:declassify` (content) — lower a path's recorded scope. It guards no route yet: [`architecture/content`](../architecture/content.md) refuses every lowering until the tenant's approval queue can route such a request to a second person. *Person only*
 
 *Person only* marks a capability that no service and no agent may hold.
@@ -468,24 +473,21 @@ producer's, which is a registered component.
 - `programme:operate` (programme) — pause, resume, run and reschedule an installed operation
 - `programme:switch` (programme) — decide whether an operation's runs reach people: mute, unmute, and who hears them. *Person only*
 
-Which act needs which is `agents/programme`'s, under Who May Switch What. The
-programme service declares the first three, because a grant to a caller is the
-intersection of what it holds and what the serving manifest declares, and
-checks `programme:switch` without ever holding it, as `content` does its own
+Which act needs which will be `agents/programme`'s, under Who May Switch What,
+once that draft merges; until then these names guard no route. The programme
+service is to declare the first three, because a grant to a caller is the
+intersection of what it holds and what the serving manifest declares, and to
+check `programme:switch` without ever holding it, as `content` does its own
 person-only capabilities.
 
 **Integration capabilities:**
 - `integration:read` (integrations) — read the tenant's integrations: provider, account, method, scopes, owner, purposes, expiry and status, and never a secret
-- `integration:manage` (integrations) — make, bind to a declared need, re-purpose, rotate and revoke an integration. *Person only*
+- `integration:manage` (integrations) — make, bind to a declared need, re-purpose, rotate and revoke an integration, where the consuming owner declares no capability of its own for the act (`content:connect` is the one for a remote's key). *Person only*
 - `integration:use` (integrations) — have an integration act for a need the holder's blueprint declares: a token, a signature or verdict, or a relayed call, and never the secret
 
-An integration is one authenticated link to one account at one provider, and
-`integrations` is the one unit that holds an outside credential.
 `integration:use` is a component's, declared for a need its blueprint states,
-and no role carries it. A person delegates only their own account, and an
-integration they delegated lapses when they leave or lose the grant it was made
-under. `content:connect` binds an integration to a content destination and
-makes none.
+and no role carries it. Which roles carry the other two, and what a person may
+delegate, is [`architecture/admin`](../architecture/admin.md#operator-roles)'s.
 
 **Telemetry capabilities:**
 - `telemetry:read` (telemetry) — read the tenant's runtime: metrics, logs, traces, events, probe results and rule state
@@ -493,9 +495,10 @@ makes none.
 
 `telemetry:read` is not person only: an agent whose blueprint declares a read
 of telemetry holds it within that declaration. A person holds it only through
-a role, `admin` alone by default, and which roles carry it changes only through
-the change cycle, never by a grant at run time. `telemetry:push` is declared by
-every component that reports, and no role carries it.
+a role, and which roles carry it is
+[`architecture/admin`](../architecture/admin.md#operator-roles)'s.
+`telemetry:push` is declared by every component that reports, and no role
+carries it.
 
 **Action and admission capabilities:**
 - `action:invoke` (orchestrator) — invoke an operator action a component's blueprint declares, where the action names no capability of that component's own family. *Person only*

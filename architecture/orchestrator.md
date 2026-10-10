@@ -2078,7 +2078,7 @@ agents hold, which is theirs.
 - [ ] `POST /v1/register` verifies ML-DSA-65 signature and replay protection
 - [ ] `POST /v1/register` enforces exclusive namespace ownership (409 on conflict)
 - [ ] `POST /v1/register` rejects reserved namespace claims (403)
-- [ ] `POST /v1/register` refuses a manifest naming any capability `protocol/types` marks person only — `content:write`, `content:decide`, `content:replicate`, `content:connect`, `content:declassify`, `model:attest` or `fabric:attest` — with 403 `CAPABILITY_PERSON_ONLY`, records no agent and issues no token
+- [ ] `POST /v1/register` refuses a manifest naming any capability [`protocol/types`](../protocol/types.md#capability) marks person only, whichever it is, read from that list rather than from a copy of it, with 403 `CAPABILITY_PERSON_ONLY`, records no agent and issues no token
 - [ ] A registration token carries `identity_id`, the fingerprint of `manifest.public_key`
 - [ ] `POST /v1/register` validates subscription scopes (event:observe for "*")
 - [ ] `POST /v1/register` returns `RegisterResponse` with agent ID, token, and service directory
