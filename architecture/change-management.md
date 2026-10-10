@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: change-management
-version: 1.0.3
+version: 1.1.0
 requires: [protocol/spec, protocol/types, architecture/orchestrator, architecture/agent, patterns/messaging, patterns/versioning]
 platform: any
 tier: free
@@ -49,7 +49,7 @@ The protocol is built on three principles:
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -59,7 +59,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: Strategy
@@ -73,7 +73,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -90,7 +90,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentContext
@@ -286,7 +286,7 @@ contract_schema:
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -297,23 +297,24 @@ requires:
           methods: [POST]
           request_type: AgentMessage
           response_fields: [status, response]
-        - path: /v1/health
+        - path: /v1/lease
           methods: [POST]
-          response_fields: [status, details]
+          request_type: LeaseRenewal
+          response_fields: [expires_at]
       types:
         - name: AgentManifest
           fields_used: [name, version, port, capabilities, public_key, url]
         - name: EventEnvelope
           fields_used: [from, to, action, payload, trace_id]
-        - name: HealthStatus
-          fields_used: [status, checks]
+        - name: LeaseRenewal
+          fields_used: [ready, checks]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -733,7 +734,7 @@ Phase 4 — Cutover
     Step 6:   vN+1 is now the active agent
   Validates:
     a. First real event processed successfully by vN+1
-    b. Health check returns healthy
+    b. vN+1's lease reads `ready` in the directory
     c. No errors within first config.cutover_watch_period (default: 120s)
   On Fail:    Trigger automatic rollback (Phase 5)
   Emit:       system.agent.version.cutover
@@ -952,7 +953,7 @@ Cutover (immediate):
 
 Cutover (canary):
   Step 1: Bus routes X% to vN+1, (100-X)% to vN
-  Step 2: Orchestrator monitors health metrics
+  Step 2: Telemetry evaluates vN+1's metrics; the orchestrator probes nothing
   Step 3: Gradually increase X% per cutover_strategies.canary config
   Step 4: At 100% → retire vN
 
@@ -1344,7 +1345,7 @@ state_machine:
       - from: building
         to: deployed
         trigger: New instance reaches active state
-        validates: Health check passes
+        validates: The new instance's lease reads `ready`
 
       - from: deployed
         to: shadow

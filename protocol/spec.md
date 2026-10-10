@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 2.3.0
+version: 3.0.0
 requires: [protocol/types, protocol/identity]
 platform: any
 tier: free
@@ -46,7 +46,7 @@ over standard HTTP endpoints.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.17.2 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -70,13 +70,19 @@ requires:
         - name: RegisterRequest
           fields_used: [manifest, signature, timestamp]
         - name: RegisterResponse
-          fields_used: [agent_id, token, expires_at, services, orchestrator, protocol_version]
+          fields_used: [agent_id, token, expires_at, services, lease, orchestrator, protocol_version]
         - name: ChannelRequest
           fields_used: [from_agent, to_agent, purpose, token, signature]
         - name: ChannelGrant
           fields_used: [channel_id, from_agent, to_agent, target_url, target_pub_key, channel_token, expires_at, signature]
-        - name: HealthStatus
-          fields_used: [name, status, version, uptime, metrics, timestamp]
+        - name: Liveness
+          fields_used: [live]
+        - name: Readiness
+          fields_used: [ready]
+        - name: Lease
+          fields_used: [agent_id, duration, renewed_at, expires_at]
+        - name: LeaseRenewal
+          fields_used: [ready, checks, timestamp]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -110,7 +116,8 @@ its own: a second statement of a type is a second thing to keep right.
 
 ## Conventions
 
-- All paths are prefixed with `/v1`
+- All paths are prefixed with `/v1`, but the two probes `/livez` and `/readyz`
+  ([Probes](#get-livez-and-get-readyz))
 - All request/response bodies are `application/json`
 - All timestamps are Unix epoch seconds (`int64`)
 - All signatures are base64url-encoded ML-DSA-65 signatures (3309 bytes decoded)
@@ -125,8 +132,9 @@ its own: a second statement of a type is a second thing to keep right.
 
 ## Agent Endpoints
 
-Every agent MUST serve these 6 endpoints on a single HTTP port.
-All endpoints use POST for uniformity — this simplifies agent
+Every agent MUST serve these 5 endpoints on a single HTTP port, beside the
+two probes every component serves ([Probes](#get-livez-and-get-readyz)).
+All five use POST for uniformity — this simplifies agent
 implementation (a single HTTP handler dispatch) and avoids URL-encoded
 query strings for future payload extensions on `/v1/describe`.
 
@@ -219,27 +227,22 @@ is returned.
 }
 ```
 
-### POST /v1/health
+### GET /livez and GET /readyz
 
-Health check. No auth required. No body required.
+The two probes. Every component serves them, the orchestrator included, on its
+own listener, without authentication and outside the `/v1` prefix. They are
+the only routes a component serves outside it.
 
-The health endpoint contract — response fields, sub-component checks,
-state derivation rules, and metrics snapshot — is defined in
-[`patterns/observability`](../patterns/observability.md#health-endpoint).
-That pattern is the single source of truth for health response structure.
+| Route | Answers | Read by |
+|-------|---------|---------|
+| `GET /livez` | [`Liveness`](types.md#liveness): 200 `{"live": true}`, or 503 `{"live": false}` | the supervisor on the component's host, which restarts a component that fails it |
+| `GET /readyz` | [`Readiness`](types.md#readiness): 200 `{"ready": true}`, or 503 `{"ready": false}` | the supervisor while it waits for a start to complete; the probe of the orchestrator |
 
-**Response (summary):**
-
-```json
-{
-  "name": "seo-analyzer",
-  "status": "healthy",
-  "version": "1.0.0",
-  "uptime": 3600,
-  "metrics": { ... },
-  "timestamp": 1712160001
-}
-```
+Neither answer carries anything else. What each value means, and the rule that
+liveness depends on no other component, are
+[`protocol/types`](types.md#health)'s. A registered component's readiness
+travels on its lease ([`POST /v1/lease`](#post-v1lease)), and nothing reads
+`/readyz` to learn whether a registered component is present.
 
 ### POST /v1/message
 
@@ -369,8 +372,8 @@ agent's framework will retry delivery.
 
 ## Orchestrator Endpoints
 
-The orchestrator manages agent lifecycle, service discovery, namespace
-control, event routing, channel brokering, and audit. It does NOT
+The orchestrator manages agent lifecycle, presence (each component's
+lease), service discovery, namespace control, event routing, channel brokering, and audit. It does NOT
 execute tasks, run workflows, manage strategies, or store observations.
 Those concerns belong to dedicated infrastructure agents.
 
@@ -417,9 +420,13 @@ The orchestrator MUST:
 7. Issue auth token (WLT format) with capabilities from manifest, `identity_id`
    the fingerprint of `manifest.public_key`
    ([`protocol/identity`](identity.md#payload-claims)), 24-hour TTL
-8. Store agent in registry
+8. Store agent in registry, and grant its first lease: `duration` from
+   `orchestrator.lease_duration`, read as `not_ready` until the first renewal
+   ([`POST /v1/lease`](#post-v1lease)). A re-registration of a registered
+   agent, which is how a token is renewed, keeps its last renewal and moves
+   `expires_at` on as a renewal does
 9. Log audit entry: actor=orchestrator, action=register, target=agent_name
-10. Respond with `RegisterResponse` (includes routing table)
+10. Respond with `RegisterResponse` (includes routing table and the lease)
 11. Asynchronously broadcast updated `ServiceDirectory` (with routing table)
     to ALL OTHER agents via `POST /v1/services`
 
@@ -519,12 +526,28 @@ Rotates an agent's ML-DSA-65 key pair. The request must be dual-signed — once 
 - 400 if new_signature verification fails
 - 409 if a rotation is already in progress
 
-### GET /v1/health
+### POST /v1/lease
 
-Orchestrator health. No auth required.
+Lease renewal. Requires the caller's registration token
+([Authentication](#authentication)); the lease renewed is the token's `sub`'s.
 
-**Response:** `HealthStatus` with metrics including agent count,
-namespace count, and active channel count.
+**Request:** [`LeaseRenewal`](types.md#leaserenewal)
+**Response:** [`Lease`](types.md#lease), its `expires_at` moved on by `duration`
+
+The orchestrator MUST:
+1. Refuse with 404 `NOT_FOUND` a renewal for a component it holds no
+   registration of; the component registers again
+2. Record `ready` and `checks` and move `expires_at`, whether or not the lease
+   had lapsed: a renewal after a lapse restores the lease without a new
+   registration
+3. When an entry's `lease_state` changes, by a renewal or by a lapse,
+   broadcast the updated `ServiceDirectory` as a registration does
+
+A component renews at intervals no longer than a third of its lease's
+`duration` ([`protocol/types`](types.md#leaserenewal)). A lease that lapses
+reads `unknown` from its `expires_at` on. The orchestrator never calls a
+component to find out why: the lease is the presence fact, and a probe would be
+a second one.
 
 ### GET /v1/audit
 
@@ -601,8 +624,8 @@ misreading a response.
 orchestrator serving `/v1` and `/v2` concurrently:
 
 - MUST answer each prefix with that version's contract, including its
-  `protocol_version` field — `GET /v1/health` reports `"1"` and `GET /v2/health`
-  reports `"2"`, from the same process
+  `protocol_version` field — `POST /v1/register` answers `"1"` and
+  `POST /v2/register` answers `"2"`, from the same process
 - MUST NOT share state whose shape differs between the two, and MUST state in
   its own blueprint which stores are shared
 - MUST report both in the service directory, so a client can see what is
@@ -882,7 +905,8 @@ authentication:
     signing: The signature algorithm protocol/identity names
     verification: Verified against the orchestrator's public key
   exempt_endpoints:
-    - GET /v1/health
+    - GET /livez
+    - GET /readyz
     - POST /v1/register
   flow:
     - step: "Read the token from the `Authorization: Bearer` header"
@@ -894,7 +918,7 @@ authentication:
     - step: On success, pass the decoded claims to the handler
 ```
 Applied to ALL orchestrator endpoints except:
-- `GET /v1/health`
+- `GET /livez` and `GET /readyz`
 - `POST /v1/register`
 
 Flow:
@@ -934,8 +958,9 @@ registration entry rather than creating a duplicate.
    c. Agent receives new token in RegisterResponse
 3. On authentication failure to any request (token already expired):
    a. Agent immediately re-registers
-   b. If re-registration fails: log error, enter degraded state, retry
-      with backoff per patterns/retry
+   b. If re-registration fails: log error, answer `GET /readyz` not ready
+      (its lease cannot be renewed without a token, so it lapses to
+      `unknown`), retry with backoff per patterns/retry
 ```
 
 **Key constraints:**
@@ -1174,7 +1199,8 @@ security:
 
 ### Agent Protocol
 - [ ] Agent responds to `POST /v1/describe` with valid `AgentManifest` including `publishes` and `subscriptions`
-- [ ] Agent responds to `POST /v1/health` with valid health response
+- [ ] Every component serves `GET /livez` and `GET /readyz` without authentication, each answering 200 or 503 with `live` or `ready` alone
+- [ ] A registered component renews its lease at `POST /v1/lease` within a third of its `duration`, carrying `ready`
 - [ ] Agent accepts `POST /v1/services` and updates internal directory and routing table
 - [ ] Agent handles `POST /v1/message` with signature verification
 - [ ] Agent returns signed `TaskResult` from `POST /v1/execute`
@@ -1204,12 +1230,13 @@ security:
 - [ ] Orchestrator `DELETE /v1/register` releases namespaces and routing entries
 - [ ] Orchestrator `GET /v1/services` returns service directory with routing table and namespace map
 - [ ] Orchestrator `POST /v1/channel` verifies `agent:message` capability
-- [ ] Orchestrator `GET /v1/health` returns without auth
+- [ ] Orchestrator `POST /v1/lease` moves `expires_at` on by `duration`, restores a lapsed lease, and answers 404 `NOT_FOUND` for an unregistered caller
+- [ ] Orchestrator reads a lease past its `expires_at` as `unknown` and probes no component to learn more
 - [ ] Orchestrator `GET /v1/audit` returns audit entries with pagination
 - [ ] Orchestrator `GET /v1/audit` and `DELETE /v1/register` refuse a person's operator token and a channel token, so neither reads the audit log or deregisters an agent
 - [ ] Orchestrator broadcasts updated service directory on registration changes
 - [ ] Orchestrator rejects unsupported protocol_version with `UNSUPPORTED_VERSION`
-- [ ] RegisterResponse includes negotiated protocol_version and routing table
+- [ ] RegisterResponse includes negotiated `protocol_version`, routing table and `lease`
 
 ### Cross-Cutting
 - [ ] All error responses use `ErrorResponse` format with `error` field

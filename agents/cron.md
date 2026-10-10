@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: cron
-version: 1.0.2
+version: 2.0.0
 port: 9750
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/orchestrator, architecture/change-management]
 extends: [patterns/scheduling, patterns/messaging, patterns/logging, patterns/retry, patterns/versioning, patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -52,7 +52,7 @@ protocol endpoints.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -63,15 +63,16 @@ requires:
           methods: [POST]
           request_type: AgentMessage
           response_fields: [status, response]
-        - path: /v1/health
+        - path: /v1/lease
           methods: [POST]
-          response_fields: [status, details]
+          request_type: LeaseRenewal
+          response_fields: [expires_at]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -82,14 +83,14 @@ requires:
           fields_used: [name, version, port, capabilities, public_key, url]
         - name: EventEnvelope
           fields_used: [from, to, action, payload, trace_id]
-        - name: HealthStatus
-          fields_used: [status, checks]
+        - name: LeaseRenewal
+          fields_used: [ready, checks]
     on_change:
       compatible: validate
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -103,7 +104,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -137,7 +138,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/observability
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: metrics
@@ -752,36 +753,31 @@ Step 8 — Exit
 
 ### Health
 
-Reported via `POST /v1/health`:
+Readiness, as `GET /readyz` answers it and every lease renewal carries it
+([`patterns/observability`](../patterns/observability.md#health-endpoint)).
+Health is liveness and readiness only, so the counts and timestamps a status
+once carried are metrics:
 
 ```yaml
 health:
-  healthy:
+  ready:
     conditions:
       - tick_loop = running
       - storage = connected
       - in_flight < 80% of config.max_concurrent
-    response:
-      status: healthy
-      details: {tick_loop, storage, active_tasks, in_flight,
-                max_concurrent, last_tick, lock_held}
 
-  degraded:
+  ready_with_checks:
     conditions:
       - storage errors (but retrying)
       - in_flight >= 80% of config.max_concurrent
       - lock contention (standby mode)
-    response:
-      status: degraded
-      details: {reason, last_error, retry_count}
+    lease: ready true, its checks naming each subsystem above not_ready
 
-  unhealthy:
+  not_ready:
     conditions:
       - storage unreachable after retry exhaustion
       - tick loop stopped unexpectedly
-    response:
-      status: unhealthy
-      details: {reason, last_error, since}
+    lease: ready false, its checks naming each subsystem above not_ready
 ```
 
 ### Self-Update

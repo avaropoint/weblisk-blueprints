@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: state-machine
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/types, patterns/storage, patterns/logging, patterns/expression]
 platform: any
 tier: free
@@ -20,7 +20,7 @@ and runtime behavior.
 State machines appear throughout the Weblisk framework:
 
 - **Incident response**: detected → triaging → executing → resolved
-- **Health monitoring**: unknown → online → degraded → offline
+- **Leases**: not_ready → ready → unknown (a lapse) → ready (a renewal)
 - **Cron jobs**: pending → running → completed → failed
 - **Blue-green deployments**: building → shadowing → active → retired
 - **Webhook deliveries**: pending → delivering → success → failed
@@ -35,7 +35,7 @@ machines consistently.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -267,11 +267,11 @@ A transition may originate from multiple states:
 
 ```yaml
 transitions:
-  - name: force_offline
-    from: [online, degraded, unknown]
-    to: offline
+  - name: force_retire
+    from: [building, shadowing, active]
+    to: retired
     trigger: admin_override
-    description: Admin forces component offline for maintenance
+    description: Admin retires a deployment out of order for maintenance
 ```
 
 ---

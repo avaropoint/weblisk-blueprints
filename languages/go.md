@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: go
-version: 1.0.0
+version: 1.1.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: go
 tier: free
@@ -63,11 +63,15 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
-        - name: HealthStatus
-          fields_used: [status, name, version, uptime]
+        - name: Liveness
+          fields_used: [live]
+        - name: Readiness
+          fields_used: [ready]
+        - name: LeaseRenewal
+          fields_used: [ready, checks, timestamp]
         - name: AgentManifest
           fields_used: [name, version, capabilities, actions]
         - name: TaskRequest
@@ -422,11 +426,11 @@ channel-based semaphore and `WaitGroup` dispatch patterns.
 ### The HTTP Surface
 
 An architecture blueprint declares endpoints as protocol facts — `POST
-/v1/register`, `GET /v1/health`. This is how they become routes, and it is
+/v1/register`, `GET /livez`. This is how they become routes, and it is
 stated so that two builds of the same blueprints produce the same arrangement.
 
 **Every symbol is spelled from the endpoint's `Operation`.** The architecture
-blueprint's `## Endpoints` table declares the operation — `Register`, `Health`,
+blueprint's `## Endpoints` table declares the operation — `Register`, `Livez`,
 `AdminOverview` — and this is how that one name becomes Go:
 
 | Symbol | Spelling | Example |
@@ -515,7 +519,7 @@ Build: `go build -o bin/<name> ./cmd/<name>`
 Run: `./bin/<name> --port 9700 --orch http://localhost:9800`
 
 A domain controller registers with the same `AgentManifest` as any agent, with
-`type: "domain"`, and serves the same six protocol endpoints. It adds the
+`type: "domain"`, and serves the same seven protocol endpoints. It adds the
 workflow engine from `internal/domain` — see
 [architecture/domain.md](../architecture/domain.md) for the execution flow.
 Its own aggregation rules live in the package its blueprint defines; this
@@ -630,7 +634,7 @@ declared name is neutral and its spelling is this platform's.
 | `endpoint-routed` | Resolving the route table's patterns — constants, local aliases and concatenation — and matching the declared `endpoint`. A pattern the resolver cannot read is reported as unread, never as absent |
 | `type-has-keys` | Parsing the named struct and comparing its `json:` tags against the declared `keys`. The tag is authority, not the field name |
 | `error-codes-registered` | Every SCREAMING_SNAKE string literal used as a code appears as a key of the central registry map. Environment variable names are excluded — they are found in `os.Getenv` calls, not guessed at by shape |
-| `starts-unattended` | Running the built binary with no terminal attached and requiring an answer on the health endpoint. It catches a mux conflict and a passphrase prompt, and neither is visible in source review |
+| `starts-unattended` | Running the built binary with no terminal attached and requiring an answer on `GET /livez`. It catches a mux conflict and a passphrase prompt, and neither is visible in source review |
 
 A check this platform cannot evaluate is reported as **unevaluated**, never as
 passed. "We did not check this" and "this is correct" are different facts, and a
@@ -813,7 +817,7 @@ component. See `schemas/common.md` for what a group heading means.
 - [ ] Routes are registered with Go's method-and-pattern syntax, and path parameters are read with `r.PathValue`; no handler switches on `r.Method` to choose its behaviour
 - [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` carrying a registered error code
 - [ ] 405 and 404 are decided by the single `"/"` handler matching the route table; no method-less pattern is registered anywhere — `net/http` panics at startup when one sits beside a wildcard sibling
-- [ ] The process binds its port and answers `GET /v1/health` when started with no terminal attached
+- [ ] The process binds its port and answers `GET /livez` when started with no terminal attached
 - [ ] Every struct field carries a `json:` tag matching the declared key exactly; no field is added that its type block does not declare, and no `omitempty` appears that the blueprint did not state
 - [ ] An integer field with no stated width is `int64`; an optional scalar is a pointer; a declared map is typed on its value shape and never `map[string]any`
 - [ ] A cursor is carried as an opaque string and never decoded

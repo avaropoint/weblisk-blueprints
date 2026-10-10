@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.19.11
+version: 3.0.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -123,13 +123,15 @@ machine-readable output.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
           methods: [POST]
-        - path: /v1/health
-          methods: [POST]
+        - path: /livez
+          methods: [GET]
+        - path: /readyz
+          methods: [GET]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -165,7 +167,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.6.0 <2.0.0"
+    version: ">=1.6.0 <3.0.0"
     bindings:
       types:
         - name: Operator
@@ -177,7 +179,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/admin/*
@@ -191,7 +193,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/admin
-    version: ">=2.34.0 <3.0.0"
+    version: ">=2.34.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/admin/operators/register
@@ -607,7 +609,10 @@ The same pass `create` ends with, so it can be re-run. Probes are
 unauthenticated on purpose: the question is not *may I do this* but *does this
 tenant serve this*, and the auth middleware answers that first — `401` is a
 pass, `404` means the route is absent, `405` means the client and the tenant
-disagree about the method.
+disagree about the method. The first two probes are the orchestrator's
+`GET /livez` and then its `GET /readyz`, which need no token and pass only on
+`200`; whether each registered component is present is read from the
+directory's lease states, never by probing the component.
 
 A failed non-essential check does not fail the tenant. It is a capability that
 tenant does not have, and **saying so is the point** — "created" must not mean
@@ -655,12 +660,16 @@ $ weblisk component content stop
 A kind a tenant may hold several of takes the instance's name after the verb.
 With no orchestrator named and none running, the component is started without
 one and the command says so: [`architecture/content`](content.md) requires the
-content service to start standalone and report itself `degraded`, and an
+content service to start standalone and answer `GET /readyz` not ready, and an
 invented address would have it register with nothing and exit.
 
-**Started means answering.** A detached start waits until `GET /v1/health`
-answers, and a component that exits or never answers is reported with what it
-last wrote — a process id alone is not a started component.
+**Started means answering.** A detached start waits until the component's
+`GET /livez` answers live, and then until its `GET /readyz` answers ready
+([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)). A component
+that exits or never answers live is reported with what it last wrote — a
+process id alone is not a started component — and one that is live and never
+ready is reported as started and not ready, with its `/readyz` answer, since
+a component started with no orchestrator is never ready by design.
 
 ---
 
@@ -803,7 +812,8 @@ absent or null one declares none. With no file it starts the orchestrator
 alone: the file is an operator's declaration, never a precondition.
 
 - **Order.** The orchestrator first, and each sibling only once the
-  orchestrator answers, passed `--orch` with the address it actually bound.
+  orchestrator's `GET /livez` answers live and then its `GET /readyz` answers
+  ready, passed `--orch` with the address it actually bound.
   Then the content service, domains, agents, and the gateway last.
 - **Refused whole.** A declaration this command cannot carry out — two
   components on one port or one name, `replicas` above 1, an agent with no
@@ -844,7 +854,10 @@ with a registry that has gone.
 
 ### `weblisk server verify`
 
-Verify the server is running and healthy.
+Verify the server is running: the orchestrator's `GET /livez` answers live and
+its `GET /readyz` ready, and every registered component's lease state in the
+directory is `ready`. A component whose lease reads `unknown` is reported as
+unknown, never as down, and no component is probed.
 
 ```bash
 $ weblisk server verify
@@ -1701,7 +1714,7 @@ $ weblisk status
 Weblisk — acme-corp (https://hub.example.com)
 Protocol: v1    Uptime: 2d 14h 32m
 
-Agents:     8 online, 1 degraded, 0 offline
+Agents:     8 registered: 7 ready, 1 not ready, 0 unknown
 Domains:    unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
 Workflows:  unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
 Approvals:  unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
@@ -1730,24 +1743,24 @@ List all registered agents.
 
 ```bash
 $ weblisk agents list
-NAME              TYPE            STATUS    VERSION   LAST SEEN
-seo-analyzer      agent           online    1.0.0     10s ago
-a11y-checker      agent           online    1.0.0     12s ago
-content-analyzer  agent           online    1.0.0     8s ago
-meta-checker      agent           online    1.0.0     15s ago
-uptime-checker    agent           online    1.0.0     3s ago
-perf-auditor      agent           online    1.0.0     21s ago
-cron              infrastructure  online    1.0.0     5s ago
-email-send        infrastructure  degraded  1.0.0     2m ago
+NAME              TYPE            LEASE      VERSION   LAST SEEN
+seo-analyzer      agent           ready      1.0.0     10s ago
+a11y-checker      agent           ready      1.0.0     12s ago
+content-analyzer  agent           ready      1.0.0     8s ago
+meta-checker      agent           ready      1.0.0     15s ago
+uptime-checker    agent           ready      1.0.0     3s ago
+perf-auditor      agent           ready      1.0.0     21s ago
+cron              infrastructure  ready      1.0.0     5s ago
+email-send        infrastructure  not_ready  1.0.0     2m ago
 
-8 agents (7 online, 1 degraded)
+8 agents (7 ready, 1 not ready, 0 unknown)
 ```
 
 - Shows what the orchestrator's registry holds of each agent, from
   `GET /v1/admin/agents`, and no metrics, which no component serves to a
   person yet ([`architecture/admin`](admin.md#agent-management))
 - `--type <domain|agent|infrastructure>` to filter, by the manifest's `type`, an absent one read as `agent`
-- `--status <online|degraded|offline>` to filter
+- `--lease <ready|not_ready|unknown>` to filter, by `lease_state`
 - `--json` for machine-readable output
 
 ### `weblisk agents describe <name>`
@@ -1759,7 +1772,7 @@ $ weblisk agents describe seo-analyzer
 Agent: seo-analyzer
 Type:  agent    Version: 1.0.0
 URL:   http://localhost:9710
-Status: online    Registered: 2d 14h ago
+Lease: ready    Registered: 2d 14h ago
 
 Capabilities:
   file:read     **/*.html
@@ -1808,10 +1821,10 @@ List domain controllers and their status.
 
 ```bash
 $ weblisk domains list
-NAME      STATUS    AGENTS              WORKFLOWS            LAST ACTIVITY
-seo       online    2/2 required        seo-audit, seo-opt   10m ago
-content   online    2/2 required        content-audit, ...   25m ago
-health    online    2/2 required        health-check, ...    5m ago
+NAME      LEASE     AGENTS              WORKFLOWS            LAST ACTIVITY
+seo       ready     2/2 ready           seo-audit, seo-opt   10m ago
+content   ready     2/2 ready           content-audit, ...   25m ago
+health    ready     2/2 ready           health-check, ...    5m ago
 ```
 
 ### `weblisk domains describe <name>`
@@ -1819,12 +1832,12 @@ health    online    2/2 required        health-check, ...    5m ago
 ```bash
 $ weblisk domains describe seo
 Domain: seo
-Version: 1.0.0    Status: online    Port: 9700
+Version: 1.0.0    Lease: ready    Port: 9700
 
 Required Agents:
-  NAME            STATUS
-  seo-analyzer    online ●
-  a11y-checker    online ●
+  NAME            LEASE
+  seo-analyzer    ready ●
+  a11y-checker    ready ●
 
 Workflows:
   NAME          TRIGGER        EXECUTIONS(24h)  SUCCESS RATE
@@ -2248,7 +2261,7 @@ Level 1 — Protocol Basics (12 tests)
   ✓ L1-02  POST /v1/register rejects unsigned request
   ✓ L1-03  agent_id is 32 hex chars
   ...
-  ✓ L1-12  GET /v1/health returns status
+  ✓ L1-12  GET /livez and GET /readyz answer live and ready alone
 
 Level 2 — Behavior (18 tests)
   ✓ L2-01  Events delivered to scoped subscribers
@@ -2269,7 +2282,7 @@ Results: 38/38 passed (0 failed, 0 skipped)
 | `--verbose` | Show request/response details for each test |
 | `--json` | Machine-readable test results |
 
-- Level 1: Protocol basics — registration, auth, health, service directory
+- Level 1: Protocol basics — registration, auth, the two probes, service directory
 - Level 2: Behavior — event delivery, scoping, namespace enforcement
 - Level 3: Integration — full lifecycle loop with real agents
 
@@ -2797,9 +2810,9 @@ security:
 - [ ] `weblisk server start` reads .weblisk/config.yaml and builds+starts all declared components
 - [ ] `weblisk server start` starts the orchestrator alone when `.weblisk/config.yaml` is absent, and refuses a declaration it cannot carry out before starting anything
 - [ ] `weblisk server stop` with no `--component` stops every recorded component, the orchestrator last
-- [ ] `weblisk component <name> start|stop|status|logs` runs any component the tenant has generated, and a detached start reports started only once the component answers
+- [ ] `weblisk component <name> start|stop|status|logs` runs any component the tenant has generated, and a detached start reports started only once the component's `GET /livez` answers live, then waits on its `GET /readyz` and reports a component that never becomes ready as not ready
 - [ ] `weblisk tenant create` writes its `.gitignore` before generation, amends one already present, and does not `git init`
-- [ ] `weblisk server verify` confirms orchestrator health and all registered components
+- [ ] `weblisk server verify` reads the orchestrator's `GET /livez` and `GET /readyz` and every registered component's lease state from the directory, probes no other component, and reports a lease reading `unknown` as unknown
 - [ ] `weblisk agent create` generates agent code from agent.yaml spec via LLM dispatch
 - [ ] `weblisk agent start` builds and runs a single agent with --orch and --port flags
 - [ ] `weblisk agent list` lists all locally scaffolded agents

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: gateway
-version: 1.1.0
+version: 2.0.0
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/admin, architecture/observability, patterns/auth-session, patterns/auth-token, patterns/user-management, patterns/rate-limiting, patterns/api-ai]
 platform: any
 tier: free
@@ -54,7 +54,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: RegisterRequest
@@ -72,17 +72,17 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentEndpoints
-          fields_used: [execute, message, health, describe]
+          fields_used: [execute, message, livez, readyz, describe]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/admin
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: admin-separation
@@ -358,7 +358,11 @@ routes:
     rate_limit: 10/min
     csrf: false
 
-  - path: /health
+  - path: /livez
+    target: gateway:internal
+    auth: none
+
+  - path: /readyz
     target: gateway:internal
     auth: none
 
@@ -555,13 +559,14 @@ redeploy, or fail.
 1. Session state lives in the GATEWAY's storage, not in agents
 2. Agents are stateless request handlers — they receive context
    from the gateway on every request
-3. If an agent goes offline:
-   a. Gateway detects via health check failure
+3. If an agent's lease reads `unknown` or `not_ready` in the directory
+   the gateway holds (protocol/types, LeaseState):
+   a. Gateway learns it from the directory broadcast, never by probing
    b. Requests to that agent return 503 with Retry-After header
    c. Gateway can route to a replica if available
    d. Session remains valid — user does not need to re-authenticate
-4. When agent comes back online:
-   a. Gateway detects via health check recovery
+4. When the agent's lease reads `ready` again:
+   a. Gateway learns it from the next directory broadcast
    b. Requests resume automatically
    c. Session context is injected on the next request — agent
       doesn't need to "remember" anything
@@ -991,7 +996,7 @@ endpoints. Summary:
 |-----------|------|-------------|
 | `GET/POST/PUT/DELETE /api/*` | HTTP (external) | Application routes — proxied to domain agents per route table |
 | `POST /auth/*` | HTTP (external) | Authentication endpoints (login, logout, MFA) — handled internally |
-| `GET /health` | HTTP (external) | Gateway health status |
+| `GET /livez`, `GET /readyz` | HTTP (external) | The gateway's liveness and readiness, `live` or `ready` alone ([`protocol/types`](../protocol/types.md#health)) |
 | `GET /assets/*` | HTTP (external) | Static asset serving (public, cacheable) |
 | `POST /v1/register` | HTTP (internal) | Gateway registers itself with the orchestrator as an infrastructure agent |
 | `POST /v1/services` | HTTP (internal) | Receives service directory updates from the orchestrator |
@@ -1044,7 +1049,7 @@ every one of those a breaking change for a decision the caller had no part in.
 
 | Prefix | Surface | Version means |
 |---|---|---|
-| `/v1/...` | the **wire protocol** — register, services, channel, health, audit | `protocol_version`, fixed by [`protocol/spec`](../protocol/spec.md#the-path-prefix-is-the-protocol-version) |
+| `/v1/...` | the **wire protocol** — register, lease, services, channel, audit | `protocol_version`, fixed by [`protocol/spec`](../protocol/spec.md#the-path-prefix-is-the-protocol-version) |
 | `/api/v{n}/...` | the **tenant's application** — auth, users, files, chat | the application API major, chosen by the tenant |
 
 They are separate namespaces because they are separate contracts with separate
@@ -1096,8 +1101,11 @@ not say which one produced it.
 - Every request log entry and span MUST record `route`, `target` and
   `component`, so a trace answers "which version served this" without
   inference.
-- `GET /v1/health` MUST report the application API versions the map currently
-  targets, so an operator can see the split without reading configuration.
+- The gateway MUST emit the application API versions the map currently
+  targets as the gauge `gateway_route_target`, labelled `route` and `target`
+  (1 for each pair the map holds), so an operator can see the split without
+  reading configuration. Health carries none of it: it is liveness and
+  readiness only.
 
 Without this, a version rollout is a change whose effect cannot be attributed:
 two versions are live, some fraction of traffic reaches each, and every
@@ -1136,10 +1144,10 @@ place — and it does not put two versions in service at once.
 - [ ] Response sanitization strips X-Gateway-*, X-Agent-*, Server, and X-Powered-By headers before reaching the browser
 - [ ] Security headers set on every response: X-Content-Type-Options: nosniff, X-Frame-Options: DENY, CSP, Referrer-Policy, COOP
 - [ ] Requests to /v1/admin/* return 404 (platform admin routes are never served by the application gateway)
-- [ ] Agent failover returns 503 with Retry-After when agent is offline; session remains valid without re-authentication
+- [ ] Agent failover returns 503 with Retry-After when the agent's lease reads `unknown` or `not_ready`; session remains valid without re-authentication
 - [ ] Session store encryption uses AES-256-GCM with key derived from gateway's signing private key via HKDF
 - [ ] Every served route appears in the declared route map with a route, methods, target, component and operation; a route absent from the map answers 404 and no internal target is derived from the request path
 - [ ] The external route carries no version and the internal target does; repointing a route's target changes no URL a caller uses
 - [ ] Every response carries `X-Weblisk-Target` naming the resolved internal path, and it survives response sanitization
 - [ ] Every request log entry and span records route, target and component, so a trace names which version served it
-- [ ] `GET /v1/health` reports the application API versions the map currently targets
+- [ ] The gauge `gateway_route_target` reports the application API versions the map currently targets, and `GET /livez` and `GET /readyz` answer `live` or `ready` alone

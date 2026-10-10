@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: observability
-version: 1.0.0
+version: 2.0.0
 requires: [protocol/types, architecture/agent, patterns/logging]
 platform: any
 tier: free
@@ -9,31 +9,27 @@ tier: free
 
 # Observability Pattern
 
-Standard health endpoint, metrics envelope, component state tracking,
-and alert integration for all Weblisk agents and domain controllers.
-This pattern is a cross-cutting concern — every agent and domain
-`extends: patterns/observability` and inherits the health contract,
-state machine, and base metrics. Agents add domain-specific metrics
-only.
+Health — liveness and readiness — and the base metrics envelope for all
+Weblisk agents and domain controllers. This pattern is a cross-cutting
+concern — every agent and domain `extends: patterns/observability` and
+inherits the health contract and base metrics. Agents add domain-specific
+metrics only.
 
 ## Overview
 
 Every component in a Weblisk deployment must be observable:
 
-1. **Health endpoint** — responds to `POST /v1/health` with
-   structured status
-2. **Component state** — online/degraded/offline with defined
-   transitions
-3. **Base metrics** — standard set every agent emits
-4. **Alert integration** — state changes fire alert events
-5. **Health probing** — how the health-monitor checks components
+1. **Health** — serves `GET /livez` and `GET /readyz`, and renews its lease
+   with the orchestrator carrying its readiness
+2. **Base metrics** — standard set every agent emits
 
-This pattern standardizes all five so that monitoring infrastructure
-works uniformly across agents, domains, and system components.
+This pattern standardizes both so that monitoring infrastructure works
+uniformly across agents, domains, and system components. "Health" means
+liveness and readiness and nothing else: there is no component state machine,
+no latency threshold and no probe of one component by another.
 
 > **Scope boundary.** This pattern defines the per-component observability
-> contract — health endpoints, state machine, base metrics, and alert
-> integration. For system-wide telemetry infrastructure (log shape,
+> contract — health and base metrics. For system-wide telemetry infrastructure (log shape,
 > distributed trace propagation, metric collection pipeline), see
 > [architecture/observability.md](../architecture/observability.md). The
 > two are complementary: this pattern defines what each component emits;
@@ -46,24 +42,28 @@ works uniformly across agents, domains, and system components.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentManifest
           fields_used: [name, version, url]
-        - name: HealthStatus
-          fields_used: [name, status, version, uptime]
+        - name: Liveness
+          fields_used: [live]
+        - name: Readiness
+          fields_used: [ready]
+        - name: LeaseRenewal
+          fields_used: [ready, checks, timestamp]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentState
-          fields_used: [state, health, uptime]
+          fields_used: [state]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -85,10 +85,9 @@ requires:
 
 ## Design Principles
 
-1. **Uniform health contract** — every component responds to `POST /v1/health` with an identical structure, enabling automated monitoring without per-agent configuration.
-2. **State machine consistency** — all components use the same online/degraded/offline states with deterministic transitions based on latency and failure thresholds.
+1. **Uniform health contract** — every component serves `GET /livez` and `GET /readyz` with the same two answers and renews its lease the same way, so no component needs per-component configuration to be restarted or found.
+2. **Nothing polls** — presence is the lease a component renews, never a probe another component sends; a probe would be a second presence fact that can disagree with the first.
 3. **Inherited metrics** — base metrics are emitted by every agent automatically; agents declare only additional domain-specific metrics.
-4. **Alert-driven** — state changes automatically emit structured events for routing through the alerting and notification pipeline.
 
 ---
 
@@ -98,30 +97,11 @@ requires:
 contracts:
   behaviors:
     - name: health-reporting
-      description: Respond to health probes with structured status, sub-checks, and metrics snapshot
-      parameters:
-        - name: response_timeout_ms
-          type: int
-          required: true
-          description: Maximum time to respond to a health probe
-      inherits: Health endpoint response format, sub-component check structure
-      overridable: true
-      override_constraints: Must respond within response_timeout_ms and include required fields
-
-    - name: state-tracking
-      description: Maintain component state via online/degraded/offline state machine
-      parameters:
-        - name: degraded_threshold_ms
-          type: int
-          required: true
-          description: Latency above which component is degraded
-        - name: failure_threshold
-          type: int
-          required: true
-          description: Consecutive failures before component is offline
-      inherits: State machine transitions, threshold defaults
-      overridable: true
-      override_constraints: Must preserve the four defined states and valid transitions
+      description: Serve liveness and readiness, and renew the lease with the orchestrator carrying readiness
+      parameters: []
+      inherits: The Health section — GET /livez and GET /readyz answers, the liveness independence rule, lease renewal within a third of its duration
+      overridable: false
+      override_constraints: None. Health is liveness and readiness, the same for every component
 
     - name: metric-emission
       description: Emit base metrics in structured format
@@ -135,181 +115,53 @@ contracts:
       override_constraints: Must not remove or rename base metrics
 
   types:
-    - name: HealthStatus
-      description: Structured health status with state, sub-checks, and metrics snapshot
-      inherited_by: Health Endpoint section
-    - name: ComponentState
-      description: Enum of component states — unknown, online, degraded, offline
-      inherited_by: Component State Machine section
     - name: MetricsSnapshot
-      description: Key metric values at response time included in health responses
+      description: Key metric values at one moment, as a component reports them
       inherited_by: Base Metrics section
 
   endpoints:
-    - path: /v1/health
-      description: Health probe endpoint returning structured component status
+    - path: /livez
+      description: Liveness, for the supervisor that restarts the component
+      inherited_by: Health Endpoint section
+    - path: /readyz
+      description: Readiness, for the supervisor waiting on a start
       inherited_by: Health Endpoint section
     - path: /v1/metrics
       description: Structured metrics endpoint for monitoring systems
       inherited_by: Base Metrics section
-
-  events:
-    - topic: component.state_change
-      description: Emitted when a component transitions between health states
-      payload: {component, component_type, from_state, to_state, reason, timestamp}
 ```
 
 ---
 
 ## Health Endpoint
 
-Every agent and domain controller MUST respond to `POST /v1/health`:
+Every agent and domain controller MUST:
 
-### Request
+1. Serve `GET /livez` and `GET /readyz` on its listener, without
+   authentication, each answering 200 or 503 with `live` or `ready` and
+   nothing else ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)).
+2. Answer liveness from its own process alone: a store, a peer or a provider
+   that is down makes it not ready, never not live.
+3. Renew its lease at `POST /v1/lease` within a third of its duration,
+   carrying `ready` and, when it is not ready, `checks` naming the subsystems
+   it is short of ([`protocol/types`](../protocol/types.md#leaserenewal)).
+4. Renew with `ready: false` while it drains for a shutdown, then deregister.
 
-No body required. Health checks are lightweight probes.
-
-### Response
-
-```json
-{
-  "name": "<agent-name>",
-  "version": "<semver>",
-  "state": "online",
-  "uptime_seconds": 86400,
-  "checks": {
-    "storage": {"state": "online", "latency_ms": 2},
-    "dependencies": {"state": "online", "details": {}}
-  },
-  "metrics_snapshot": {
-    "requests_total": 15420,
-    "errors_total": 3,
-    "last_activity": 1713264000
-  }
-}
-```
-
-### Response Fields
-
-```yaml
-types:
-  Response:
-    fields:
-      name:
-        type: string
-        required: true
-        description: "Agent or domain name"
-      version:
-        type: string
-        required: true
-        description: "Current semver version"
-      state:
-        type: string
-        required: true
-        description: "`online`, `degraded`, `offline`"
-      uptime_seconds:
-        type: int
-        required: true
-        description: "Seconds since last start"
-      checks:
-        type: object
-        required: false
-        description: "Sub-component health checks"
-      metrics_snapshot:
-        type: object
-        required: false
-        description: "Key metric values at response time"
-```
-
-### Sub-Component Checks
-
-Agents with dependencies (storage, external APIs, other agents)
-SHOULD include sub-checks:
-
-```yaml
-checks:
-  storage:
-    state: online | degraded | offline
-    latency_ms: <int>
-  dependencies:
-    state: online | degraded | offline
-    details:
-      <dependency-name>:
-        state: online | degraded | offline
-        latency_ms: <int>
-        last_success: <timestamp>
-```
-
-The agent's top-level `state` is derived from sub-checks:
-- All checks `online` → agent `online`
-- Any check `degraded` → agent `degraded`
-- Any critical check `offline` → agent `offline`
+What each answer means, and the three lease states a reader sees, are
+[`protocol/types`](../protocol/types.md#health)'s. A component's version is in
+its manifest; its uptime, latency and error counts are metrics (Base Metrics,
+below). None of them is part of health.
 
 ---
 
 ## Component State Machine
 
-All agents and domains use the same state model:
-
-```
-         ┌─────────────────────────────────┐
-         │                                 │
-         v                                 │
-    ┌─────────┐   latency > threshold  ┌──────────┐
-    │  online  │ ────────────────────> │ degraded  │
-    └─────────┘                        └──────────┘
-         ^                                 │
-         │   latency returns normal        │
-         │ <──────────────────────────────-┘
-         │                                 │
-         │   consecutive_failures          │
-         │   >= threshold                  │   consecutive_failures
-         │                                 │   >= threshold
-         │        ┌─────────┐              │
-         └──────  │ offline │ <────────────┘
-     successful   └─────────┘
-     probe             ^
-                       │
-                  ┌─────────┐
-                  │ unknown  │  (initial state)
-                  └─────────┘
-```
-
-### States
-
-| State | Condition | Description |
-|-------|-----------|-------------|
-| `unknown` | No health check performed yet | Initial state after registration |
-| `online` | Healthy response within latency threshold | Operating normally |
-| `degraded` | Healthy response but latency > threshold | Functional but slow |
-| `offline` | No response or error after threshold failures | Unreachable or failing |
-
-### State Transitions
-
-| From | To | Trigger |
-|------|----|---------|
-| `unknown` | `online` | First successful probe |
-| `unknown` | `offline` | First failed probe |
-| `online` | `degraded` | Latency exceeds `degraded_threshold_ms` |
-| `online` | `offline` | `consecutive_failures >= failure_threshold` |
-| `degraded` | `online` | Latency returns below `degraded_threshold_ms` |
-| `degraded` | `offline` | `consecutive_failures >= failure_threshold` |
-| `offline` | `online` | Successful probe after failures |
-
-### Default Thresholds
-
-```yaml
-observability:
-  thresholds:
-    response_timeout_ms: 5000        # max wait for health response
-    degraded_threshold_ms: 500       # latency above this → degraded
-    failure_threshold: 3             # consecutive failures → offline
-    alert_on_degraded: true
-    alert_on_offline: true
-    alert_on_recovery: true
-```
-
-Thresholds are configurable per agent via the agent's config section.
+There is none to implement. A component's state, as every other party sees
+it, is its lease state in the orchestrator's directory: `ready`, `not_ready`
+or `unknown` ([`protocol/types`](../protocol/types.md#leasestate)). It changes
+when the component renews or its lease lapses, never because another component
+measured it. There is no `online`, `degraded` or `offline`, no latency
+threshold and no failure count.
 
 ---
 
@@ -325,7 +177,7 @@ agents do not need to redeclare them.
 | `agent_requests_total` | counter | `action`, `status` | Total requests processed |
 | `agent_request_duration_seconds` | histogram | `action` | Request processing time |
 | `agent_errors_total` | counter | `action`, `error_type` | Errors by type |
-| `agent_state` | gauge | — | Current state (1=online, 0.5=degraded, 0=offline) |
+| `agent_ready` | gauge | — | 1 while the component would answer `GET /readyz` with `ready: true`, 0 otherwise |
 | `agent_uptime_seconds` | gauge | — | Time since last start |
 | `agent_last_activity_timestamp` | gauge | — | Unix timestamp of last processed request |
 
@@ -366,60 +218,18 @@ agent_request_duration_seconds_bucket{action="check",le="+Inf"} 1542
 ### Metrics Endpoint
 
 Agents SHOULD expose metrics at `GET /v1/metrics` in a structured
-format. This endpoint is called by the health-monitor agent and
-any external monitoring system.
+format. This endpoint is called by any external monitoring system.
 
 ---
 
 ## Alert Integration
 
-When a component's state changes, it MUST emit a structured alert
-event to the message bus:
-
-```json
-{
-  "event": "component.state_change",
-  "source": "<agent-name>",
-  "data": {
-    "component": "<agent-name>",
-    "component_type": "agent",
-    "from_state": "online",
-    "to_state": "degraded",
-    "reason": "Latency 850ms exceeds threshold 500ms",
-    "timestamp": 1713264000
-  }
-}
-```
-
-The alerting agent receives these events and routes notifications
-based on severity (see `agents/alerting.md`):
-
-| Transition | Alert Severity |
-|------------|---------------|
-| `* → online` (recovery) | `info` |
-| `online → degraded` | `medium` |
-| `degraded → offline` | `critical` |
-| `online → offline` | `critical` |
-
----
-
-## Health Probe Protocol
-
-The health-monitor agent probes components using a standard protocol.
-Components do not need to implement anything beyond the `/v1/health`
-endpoint — probing is the monitor's responsibility.
-
-```
-1. SEND: POST /v1/health to component
-2. MEASURE: latency_ms from request to response
-3. EVALUATE:
-   - Response 2xx AND latency < threshold → online
-   - Response 2xx AND latency > degraded_threshold → degraded
-   - No response OR non-2xx → increment failure counter
-   - If consecutive_failures >= failure_threshold → offline
-4. UPDATE: component state in health map
-5. ALERT: if state changed, emit component.state_change event
-```
+A component emits no event when its health changes, and nothing probes it to
+find one. A lease that lapses or recovers is the directory entry's
+`lease_state`, which the orchestrator broadcasts
+([`architecture/orchestrator`](../architecture/orchestrator.md#presence)); a
+rule that should page on it is telemetry's, evaluated over the lease states and
+the metrics a component pushes.
 
 ---
 
@@ -442,9 +252,6 @@ observability:
       type: histogram
       labels: [schedule_type]
       description: Time to execute scheduled jobs
-
-  thresholds:
-    degraded_threshold_ms: 1000      # override default 500ms
 ```
 
 ---
@@ -478,18 +285,16 @@ types:
 
 ## Implementation Notes
 
-- **Health checks are lightweight**: The `/v1/health` endpoint MUST
-  respond within the `response_timeout_ms` threshold. Do not perform
-  expensive operations in health checks.
+- **Probes are cheap**: `GET /livez` and `GET /readyz` read state the
+  process already holds. Neither calls a store, a peer or a provider while
+  answering.
 - **Metric cardinality**: Keep label cardinality low. Do not use
   unbounded values (e.g. user IDs) as labels.
 - **Clock sync**: Timestamps in metrics and alerts use Unix epoch
   seconds. Components SHOULD use NTP-synced clocks.
-- **Graceful degradation**: Components should continue serving
-  requests in `degraded` state. Only `offline` means unavailable.
-- **Startup grace period**: New components start in `unknown` state.
-  The first successful health check moves them to `online`. Do not
-  alert on `unknown` → `online` transitions.
+- **Starting and draining**: a component is `not_ready` from registration
+  until its first renewal says `ready: true`, and again while it drains.
+  Neither is a fault.
 
 ## Standards Alignment: OpenTelemetry & W3C Trace Context
 
@@ -544,29 +349,23 @@ Implementations that export to OTel collectors SHOULD use the OTel
 semantic convention names. Internal metrics exposition uses the
 Weblisk names.
 
-### IETF Health Check Draft
+### Kubernetes Probes and Leases
 
-The health endpoint response structure aligns with the
-[IETF Health Check Response draft](https://datatracker.ietf.org/doc/html/draft-inadarei-api-health-check):
-
-| IETF Field | Weblisk Field | Notes |
-|------------|--------------|-------|
-| `status` | `state` | IETF uses pass/fail/warn; Weblisk uses online/degraded/offline |
-| `version` | `version` | Same |
-| `checks` | `checks` | Same structure concept |
-| `output` | `metrics_snapshot` | Similar purpose |
+Health follows Kubernetes probe semantics: `/livez` answers whether the
+process must be restarted and `/readyz` whether it can serve. Presence follows
+the Kubernetes Lease: the holder renews, a lapse is visible to every reader,
+and nobody probes. The IETF health-check response draft, which this pattern
+used to follow, carried a status, a version, checks and output in one
+unauthenticated answer; none of that is health here.
 
 ---
 
 ## Verification Checklist
 
-- [ ] Agent responds to POST /v1/health with valid JSON
-- [ ] Health response includes name, version, state, uptime
-- [ ] State transitions follow the defined state machine
-- [ ] Base metrics (requests, duration, errors, state) are emitted
+- [ ] Agent serves `GET /livez` and `GET /readyz` without authentication, each answering with `live` or `ready` alone
+- [ ] `GET /livez` stays 200 while a store or a peer the agent depends on is down, and `GET /readyz` answers 503
+- [ ] Agent renews its lease at `POST /v1/lease` within a third of its `duration`, with `checks` naming what it is short of when `ready` is false
+- [ ] Agent renews with `ready: false` while draining, then deregisters
+- [ ] Base metrics (requests, duration, errors, readiness) are emitted
 - [ ] Metrics exposed at GET /v1/metrics in structured format
-- [ ] State changes emit component.state_change events
-- [ ] Degraded threshold is configurable per agent
-- [ ] Failure threshold triggers offline state
-- [ ] Recovery from offline emits info-level alert
-- [ ] Health checks complete within response_timeout_ms
+- [ ] No component sends a request to another to learn its health, and none emits a health state-change event

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 2.35.4
+version: 3.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -46,19 +46,23 @@ interacting with a Weblisk deployment.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.1.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         # The admin gateway registers like any component, and serves the
-        # six agent endpoints on its own listener (admin-gateway-authorization):
-        # describe, health and services as protocol/spec says, the last only
-        # as a prompt to read the directory, and execute, message and event
-        # each refused with FORBIDDEN
+        # seven agent endpoints on its own listener (admin-gateway-authorization):
+        # describe, the two probes and services as protocol/spec says, the
+        # last only as a prompt to read the directory, and execute, message
+        # and event each refused with FORBIDDEN; and it renews its lease
         - path: /v1/register
           methods: [POST]
         - path: /v1/describe
           methods: [POST]
-        - path: /v1/health
+        - path: /livez
+          methods: [GET]
+        - path: /readyz
+          methods: [GET]
+        - path: /v1/lease
           methods: [POST]
         - path: /v1/services
           methods: [POST]
@@ -104,7 +108,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.17.2 <2.0.0"
+    version: ">=1.17.2 <3.0.0"
     bindings:
       types:
         - name: Strategy
@@ -145,7 +149,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.27.0 <3.0.0"
+    version: ">=2.27.0 <4.0.0"
     bindings:
       behaviors:
         # Called by the admin gateway for each request it carries to a
@@ -186,7 +190,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/domain
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: DomainManifest
@@ -196,7 +200,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/gateway
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: GatewayConfig
@@ -247,7 +251,7 @@ its own TLS entry point, its own session store and its own cookie domain.
                ▼
    ┌──────────────────────────┐
    │ ORCHESTRATOR             │
-   │ services · audit · health│
+   │ services · audit · leases│
    └──────────────────────────┘
 ```
 
@@ -799,7 +803,7 @@ contracts:
         - An exchange answered issued false MUST be answered with the code it names, at the status protocol/types registers for it, FORBIDDEN included, whatever the role. An exchange answered 404 NOT_FOUND, because the provider is not registered now, MUST be answered ADMIN_GROUP_UNAVAILABLE. Where the orchestrator cannot be asked, or answers anything else, the request MUST be refused with ADMIN_TOKEN_UNCHECKED, never with the code that answer carried, which judged the gateway's own request. None of these refusals forwards anything
         - A provider's 401 refusal of the pass the gateway sent it - PASS_AUDIENCE_MISMATCH, as after the provider's key changed, TOKEN_EXPIRED, as for a pass that arrived after it expired, INVALID_SIGNATURE or PASS_REQUIRED - judged that pass and not the person's token, and MUST be answered ADMIN_TOKEN_UNCHECKED, never with that code or with 401, so a client does not refresh a token nothing refused. A provider's answer that judged the request, FORBIDDEN for a cap that does not name what the body requires included, MUST be relayed as it is
         - The gateway MUST hold a registration of its own (protocol/spec, POST /v1/register) whose manifest declares token:exchange and no other capability (protocol/types). It reads the service directory with it, and exchanges a token a person has just presented, and does nothing else with it. It MUST NOT call a provider on its registration token, exchange a token presented with any request but the one it is carrying, or keep a person's token or a pass once that request is answered. It holds no standing access to data
-        - Its manifest (protocol/types, AgentManifest) MUST have type infrastructure, no subscriptions, no publishes and no pass_routes, so it owns no namespace and no person's request is ever carried to it, and a url naming a listener of its own that the orchestrator can reach, never the admin listener, which the operator IP allowlist guards (Admin Gateway Request Lifecycle, step 1). On that listener it MUST serve protocol/spec's six agent endpoints - POST /v1/describe and POST /v1/health as every registrant does, POST /v1/services, answered 200 and taken only as a prompt to read the directory as the next rule says, and POST /v1/execute, POST /v1/message and POST /v1/event, each answered FORBIDDEN, doing nothing, because it takes no task, message or event. It serves nothing else there, and none of the admin routes
+        - Its manifest (protocol/types, AgentManifest) MUST have type infrastructure, no subscriptions, no publishes and no pass_routes, so it owns no namespace and no person's request is ever carried to it, and a url naming a listener of its own that the orchestrator can reach, never the admin listener, which the operator IP allowlist guards (Admin Gateway Request Lifecycle, step 1). On that listener it MUST serve protocol/spec's seven agent endpoints - POST /v1/describe, GET /livez and GET /readyz as every registrant does, POST /v1/services, answered 200 and taken only as a prompt to read the directory as the next rule says, and POST /v1/execute, POST /v1/message and POST /v1/event, each answered FORBIDDEN, doing nothing, because it takes no task, message or event. It serves nothing else there, and none of the admin routes
         - The gateway MUST read the service directory only by GET /v1/services, on its registration token, at the orchestrator address it was configured with to register, which is its anchor (architecture/orchestrator, Presenting a credential to a component), over a connection it opened - when it starts, again after each POST /v1/services it receives, again whenever the exchange answers 404 for an audience its directory names, and at least once every 60 seconds besides, with no more than one such read in flight. That bound is this gateway's own - protocol/spec's Implementation Notes require every agent to refresh periodically and only recommend 60 seconds. The orchestrator's pushes are best effort, so without the periodic read a failed push could leave the gateway sending a pass to an address a component has left, until the next push. It MUST NOT take a pushed body as the directory, signed or not, and MUST NOT let anything in one choose a provider, an audience, a url, an address_provenance or a pass route. Nothing authenticates a push (protocol/spec, the gap under POST /v1/services), and any party that reaches this listener could otherwise choose where a person's pass is sent, and replay it at its real audience within its lifetime. So everything that decides where a pass goes arrives from the orchestrator
         - A provider other than the orchestrator MUST, on every request for an administrative route, accept a person's request only on a pass addressed to it, as protocol/identity's The pass requires, and refuse with FORBIDDEN a pass whose cap does not name every capability the request requires and any token that is neither a pass nor an operator token. It MUST record who acted as The pass requires, by the pass's identity_id with the gateway's act.identity_id beside it, never by sub or by a header
         - Work a request starts at a provider runs while that request is answered, on the pass that carried it. Work that outlives the request, executing an approved recommendation included, needs an authority on the approver's behalf that no blueprint specifies yet (architecture/lifecycle, the gap under its Security), so no provider performs any on a person's behalf after the request the gateway carried on a pass is answered. Work a provider performs as its own, as a domain controller still executes accepted recommendations under no approver's authority, rests on no pass and on no approval the gateway carried, which is that gap
@@ -1870,8 +1874,8 @@ operator the system is quiet when it is simply not there.
 
 | Path | Method | Role | Purpose |
 |------|--------|------|---------|
-| `/v1/admin/agents` | GET | viewer+ | List all agents with what the orchestrator's registry holds of each: name, type, version, status, `registered_at` and `last_seen`. No metrics: they are another component's (below), and the orchestrator reports no figure it does not hold |
-| `/v1/admin/agents/:name` | GET | viewer+ | Agent detail — the orchestrator's registry entry for it without its token: `manifest`, `agent_id`, `status`, `registered_at` and `last_seen` ([below](#get-v1adminagentsname)). No metrics and no recent tasks: the orchestrator holds neither and handles no task |
+| `/v1/admin/agents` | GET | viewer+ | List all agents with what the orchestrator's registry holds of each: name, type, version, `lease_state`, `registered_at` and `last_seen`. No metrics: they are another component's (below), and the orchestrator reports no figure it does not hold |
+| `/v1/admin/agents/:name` | GET | viewer+ | Agent detail — the orchestrator's registry entry for it without its token: `manifest`, `agent_id`, `lease`, `last_renewal`, `registered_at` and `last_seen` ([below](#get-v1adminagentsname)). No metrics and no recent tasks: the orchestrator holds neither and handles no task |
 | `/v1/admin/agents/:name/deregister` | POST | admin | Force-deregister an agent |
 | `/v1/admin/agents/:name/metrics` | GET | viewer+ | Agent performance metrics history. The Lifecycle Agent holds agent metrics ([`architecture/storage`](storage.md#store-agent-metrics)), not the orchestrator, and no blueprint specifies this route, so the gateway answers it `ADMIN_GROUP_UNAVAILABLE` |
 
@@ -1983,12 +1987,12 @@ Table of all registered agents with real-time status:
 |--------|-------------|
 | Name | Agent name (linked to detail) |
 | Type | The manifest's `type`: `domain`, `agent` or `infrastructure`, an absent `type` shown as `agent` ([`protocol/types`](../protocol/types.md#agentmanifest)) |
-| Status | `online` ●, `degraded` ●, `offline` ● |
+| Lease | `lease_state`: `ready` ●, `not_ready` ●, `unknown` ● |
 | Version | Agent version |
 | Uptime | Time since `registered_at` |
 | Tasks (24h) | Task count in the last 24 hours, from the agent's metrics, which no provider serves to a person yet ([Agent Management](#agent-management)), so shown unavailable, never zero |
 | Avg Latency | Average task execution time, from the same metrics and shown the same way |
-| Last Seen | `last_seen`, the last health check or request |
+| Last Seen | `last_seen`, the last request received from the agent |
 
 #### Agent Detail (`/admin/agents/:name`)
 
@@ -2063,7 +2067,8 @@ The admin gateway answers this route with the System overview it composes
 (`admin-gateway-authorization`). The members the orchestrator holds come from
 its own `GET /v1/admin/overview`, which the gateway forwards as it forwards any
 request for the orchestrator's groups: `deployment`, `version`, `uptime`,
-`agents` (how many are registered, by status and in `by_type` by the
+`agents` (how many are registered, by lease state — `ready`, `not_ready`
+and `unknown`, [`protocol/types`](../protocol/types.md#leasestate) — and in `by_type` by the
 manifest's `type`, an absent `type` counted as `agent`), `namespaces` (how
 many namespaces are owned) and `audit.depth` (how many entries its audit log
 holds). The orchestrator answers its
@@ -2096,9 +2101,9 @@ orchestrator's answer carries none:
   "uptime": 86400,
   "agents": {
     "total": 8,
-    "online": 7,
-    "degraded": 1,
-    "offline": 0,
+    "ready": 7,
+    "not_ready": 1,
+    "unknown": 0,
     "by_type": {"domain": 3, "agent": 3, "infrastructure": 2}
   },
   "namespaces": 6,
@@ -2121,7 +2126,7 @@ orchestrator's answer carries none:
       "name": "seo-analyzer",
       "type": "agent",
       "version": "1.0.0",
-      "status": "online",
+      "lease_state": "ready",
       "registered_at": 1712073600,
       "last_seen": 1712159900
     }
@@ -2154,7 +2159,13 @@ never with its `token`:
     ]
   },
   "agent_id": "3f9a1c2e7b4d4e0f8a6b5c1d2e3f4a5b",
-  "status": "online",
+  "lease": {
+    "agent_id": "3f9a1c2e7b4d4e0f8a6b5c1d2e3f4a5b",
+    "duration": 30,
+    "renewed_at": 1712159890,
+    "expires_at": 1712159920
+  },
+  "last_renewal": {"ready": true, "timestamp": 1712159890},
   "registered_at": 1712073600,
   "last_seen": 1712159900
 }
@@ -2732,7 +2743,7 @@ The rest SHOULD be:
 - [ ] Through the admin gateway, an admin's token minted with `cap` `[admin:*]` reaches `PUT /v1/admin/operators/{name}/role` and changes the role, and the same request on the same admin's token minted with `cap` `[content:read, content:describe]` is refused there with `FORBIDDEN`, by the orchestrator's Auth Middleware
 - [ ] An admin's token minted with `cap` `[admin:read, admin:approve, admin:strategy, admin:audit]` reaches `PUT /v1/admin/operators/{name}/role` as one minted with `cap` `[admin:*]` does, and one naming only three of the four is refused there with `FORBIDDEN`
 - [ ] The admin gateway holds a registration whose manifest declares `token:exchange` and no other capability, calls no provider on its registration token, and adds no `X-Operator` header; the orchestrator receives the operator token the client sent, and every other provider receives a pass addressed to it, never that operator token
-- [ ] The admin gateway's manifest has `type` `infrastructure`, no `subscriptions` and no `publishes`, and a `url` on a listener other than its admin listener; on that listener `POST /v1/describe`, `POST /v1/health` and `POST /v1/services` are answered as protocol/spec says, `POST /v1/execute`, `POST /v1/message` and `POST /v1/event` are answered `FORBIDDEN` and do nothing, and no `/v1/admin/*` route is served
+- [ ] The admin gateway's manifest has `type` `infrastructure`, no `subscriptions` and no `publishes`, and a `url` on a listener other than its admin listener; on that listener `POST /v1/describe`, `GET /livez`, `GET /readyz` and `POST /v1/services` are answered as protocol/spec says, `POST /v1/execute`, `POST /v1/message` and `POST /v1/event` are answered `FORBIDDEN` and do nothing, and no `/v1/admin/*` route is served
 - [ ] A `ServiceDirectory` pushed to the admin gateway's `POST /v1/services`, signed or unsigned, by the orchestrator or by any other party, changes nothing the gateway sends: an entry, a pass route, a `url` or an `address_provenance` in it that the orchestrator's `GET /v1/services` does not answer is never used, no pass is sent to a `url` only it names, and the push prompts one read of `GET /v1/services` at the gateway's configured orchestrator address
 - [ ] With every push to the admin gateway lost, a component that registers again at a new address on the orchestrator's host is sent passes at the new address within 60 seconds, and an exchange answered `404` for an audience the gateway's directory names prompts one read of `GET /v1/services`
 - [ ] For a request to a route another component provides, the admin gateway sends `POST /v1/token/exchange` on its registration token with the person's token as `subject_token`, the provider's identity id as `audience` and as `scope` every capability the provider's blueprint requires for that request and no other, sends the request on the pass it is answered with, and keeps neither the person's token nor the pass once the request is answered

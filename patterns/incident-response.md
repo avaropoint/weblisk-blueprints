@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: incident-response
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/types, patterns/alerting, patterns/state-machine]
 platform: any
 tier: free
@@ -61,7 +61,7 @@ pattern for specialized incident handling.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: TaskResult
@@ -300,7 +300,7 @@ types:
       high: >
         Degraded service affecting users, failed critical workflow.
         Response: within 15 minutes. Escalation: auto after 30 minutes.
-        Example: agent offline, elevated error rate, TLS expiring < 24h.
+        Example: an agent's lease lapsed, elevated error rate, TLS expiring < 24h.
       medium: >
         Non-critical degradation, approaching thresholds.
         Response: within 1 hour. Escalation: auto after 2 hours.

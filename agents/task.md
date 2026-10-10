@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: task
-version: 1.1.0
+version: 2.0.0
 port: 9781
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/task-dispatch, patterns/messaging, patterns/retry, patterns/scope, patterns/policy]
@@ -41,7 +41,7 @@ countable, retryable and auditable in one place instead of in every caller.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -52,9 +52,10 @@ requires:
           methods: [POST]
           request_type: AgentMessage
           response_fields: [status, response]
-        - path: /v1/health
+        - path: /v1/lease
           methods: [POST]
-          response_fields: [status, details]
+          request_type: LeaseRenewal
+          response_fields: [expires_at]
         - path: /v1/execute
           methods: [POST]
           request_type: TaskRequest
@@ -65,7 +66,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -80,7 +81,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -227,7 +228,7 @@ types:
         description: Currently dispatched task count
       last_seen:
         type: int64
-        description: Last registration/health timestamp
+        description: Last registration or lease renewal the directory recorded for the agent
 ```
 
 ## Identity
@@ -583,33 +584,31 @@ Step 7 — Exit
 
 ### Health
 
+Readiness, as `GET /readyz` answers it and every lease renewal carries it
+([`patterns/observability`](../patterns/observability.md#health-endpoint)).
+Health is liveness and readiness only, so the counts and timestamps a status
+once carried are metrics:
+
 ```yaml
 health:
-  healthy:
+  ready:
     conditions:
       - task.submit subscription active
       - storage writable
       - in_flight_total < 80% of config.max_concurrent
-    response:
-      status: healthy
-      details: {in_flight, queue_depth, max_concurrent, agents_tracked}
 
-  degraded:
+  ready_with_checks:
     conditions:
       - storage errors (retrying)
       - queue_depth > 80% of config.queue_max
       - in_flight_total >= 80% of max_concurrent
-    response:
-      status: degraded
-      details: {reason, queue_depth, in_flight}
+    lease: ready true, its checks naming each subsystem above not_ready
 
-  unhealthy:
+  not_ready:
     conditions:
       - storage unreachable after retry exhaustion
       - task.submit subscription lost
-    response:
-      status: unhealthy
-      details: {reason, last_error, since}
+    lease: ready false, its checks naming each subsystem above not_ready
 ```
 
 ### Self-Update

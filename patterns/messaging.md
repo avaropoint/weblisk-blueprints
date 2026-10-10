@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: messaging
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/types, architecture/agent, patterns/retry]
 platform: any
 tier: free
@@ -39,7 +39,7 @@ complete.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: EventEnvelope
@@ -51,7 +51,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentState
@@ -641,7 +641,7 @@ Events and direct messages coexist for different purposes:
 | Workflow coordination | `POST /v1/event` | Decoupled phase progression |
 | Request data from another agent | `POST /v1/message` | Caller needs synchronous response |
 | Fetch workflow definition | `POST /v1/message` | Caller blocks until definition returned |
-| Health check | `POST /v1/health` | Dedicated endpoint |
+| Is another agent present and ready? | its `lease_state` in the service directory | Nothing polls another agent; its lease already says |
 
 **Rule of thumb:** if the sender doesn't need a response, publish an
 event. If the sender blocks until a response arrives, use direct

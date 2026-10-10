@@ -1,7 +1,7 @@
 <!-- blueprint
 type: platform
 name: node
-version: 1.0.0
+version: 1.1.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: node
 tier: free
@@ -103,11 +103,15 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
-        - name: HealthStatus
-          fields_used: [status, name, version, uptime]
+        - name: Liveness
+          fields_used: [live]
+        - name: Readiness
+          fields_used: [ready]
+        - name: LeaseRenewal
+          fields_used: [ready, checks, timestamp]
         - name: AgentManifest
           fields_used: [name, version, capabilities, actions]
         - name: TaskRequest
@@ -356,11 +360,12 @@ export interface TaskResult {
   error?: string;
 }
 
-export interface HealthStatus {
-  status: "healthy" | "degraded" | "unhealthy";
-  component: string;
-  version: string;
-  uptime_seconds: number;
+export interface Liveness {
+  live: boolean;
+}
+
+export interface Readiness {
+  ready: boolean;
 }
 
 export interface Observation {
@@ -448,11 +453,11 @@ export function verify(
 
 ```typescript
 import type { FastifyInstance } from "fastify";
-import type { AgentManifest, HealthStatus, TaskRequest } from "./types.js";
+import type { AgentManifest, Liveness, Readiness, TaskRequest } from "./types.js";
 
 interface EndpointConfig {
   manifest: AgentManifest;
-  startTime: number;
+  isReady: () => boolean;
   onTask: (req: TaskRequest) => Promise<Record<string, unknown>>;
   onMessage?: (msg: Record<string, unknown>) => Promise<void>;
   onEvent?: (event: Record<string, unknown>) => Promise<void>;
@@ -462,18 +467,16 @@ export function registerEndpoints(
   app: FastifyInstance,
   config: EndpointConfig
 ) {
-  const { manifest, startTime, onTask, onMessage, onEvent } = config;
+  const { manifest, isReady, onTask, onMessage, onEvent } = config;
 
-  // Health
-  app.post("/v1/health", async () => {
-    const uptime = Math.floor((Date.now() - startTime) / 1000);
-    const response: HealthStatus = {
-      status: "healthy",
-      component: manifest.name,
-      version: manifest.version,
-      uptime_seconds: uptime,
-    };
+  // Probes: live or ready, and nothing else (protocol/spec)
+  app.get("/livez", async () => {
+    const response: Liveness = { live: true };
     return response;
+  });
+  app.get("/readyz", async (_req, reply) => {
+    const response: Readiness = { ready: isReady() };
+    return reply.code(response.ready ? 200 : 503).send(response);
   });
 
   // Describe
@@ -703,7 +706,7 @@ export function createStorage(dbPath: string) {
 ### The HTTP Surface
 
 **Every symbol is spelled from the endpoint's `Operation`.** The architecture
-blueprint's `## Endpoints` table declares the operation — `Register`, `Health`,
+blueprint's `## Endpoints` table declares the operation — `Register`, `Livez`,
 `AdminOverview` — and this is how that one name becomes TypeScript:
 
 | Symbol | Spelling | Example |
@@ -832,13 +835,13 @@ describe("agent endpoints", () => {
     await app.close();
   });
 
-  it("should respond to health check", async () => {
+  it("should answer the liveness probe", async () => {
     const res = await app.inject({
-      method: "POST",
-      url: "/health",
+      method: "GET",
+      url: "/livez",
     });
     expect(res.statusCode).toBe(200);
-    expect(res.json().status).toBe("healthy");
+    expect(res.json()).toEqual({ live: true });
   });
 
   it("should process a task", async () => {
@@ -938,6 +941,6 @@ the npm ecosystem.
 - [ ] All request payloads are validated with zod schemas — raw `request.body` is never trusted directly
 - [ ] Dependency versions are pinned in `package-lock.json` (committed to repo); production Docker uses `npm ci --omit=dev`
 - [ ] Node is started with `--disable-proto=delete` to prevent prototype pollution
-- [ ] Agent entry point registers all 6 protocol endpoints (health, describe, execute, message, services, event) via `registerEndpoints`
+- [ ] Agent entry point registers all 7 protocol endpoints (`/livez`, `/readyz`, describe, execute, message, services, event) via `registerEndpoints`, and renews its lease at `POST /v1/lease`
 - [ ] Task handler dispatches by `action` field and returns structured `{ task_id, status, output }` or `{ task_id, status, error }`
-- [ ] Integration tests verify health returns 200 with `status: "healthy"` and task endpoint returns `status: "completed"` for valid actions
+- [ ] Integration tests verify `GET /livez` returns 200 with `{"live": true}` and task endpoint returns `status: "completed"` for valid actions

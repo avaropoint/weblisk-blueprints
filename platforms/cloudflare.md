@@ -1,7 +1,7 @@
 <!-- blueprint
 type: platform
 name: cloudflare
-version: 1.1.0
+version: 1.2.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: cloudflare
 tier: free
@@ -50,11 +50,15 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
-        - name: HealthStatus
-          fields_used: [status, name, version, uptime]
+        - name: Liveness
+          fields_used: [live]
+        - name: Readiness
+          fields_used: [ready]
+        - name: LeaseRenewal
+          fields_used: [ready, checks, timestamp]
         - name: AgentManifest
           fields_used: [name, version, capabilities, actions]
         - name: TaskRequest
@@ -328,7 +332,7 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
     
-    if (path === '/v1/health') return handleHealth(env);
+    if (path === '/livez') return handleLivez(env);
     if (path === '/v1/register') return handleRegister(request, env);
     // ... auth middleware for remaining routes
   }
@@ -337,14 +341,14 @@ export default {
 
 ### The HTTP Surface
 
-The chain of `if (path === '/v1/health')` above is how the surface is most often
+The chain of `if (path === '/livez')` above is how the surface is most often
 written and is not the convention. It states each path twice — once in the
 comparison and once wherever a client builds the URL — and every generation
 arranges the chain differently, so a rebuild changes symbols nothing asked it to
 change.
 
 **Every symbol is spelled from the endpoint's `Operation`.** The architecture
-blueprint's `## Endpoints` table declares the operation — `Register`, `Health`,
+blueprint's `## Endpoints` table declares the operation — `Register`, `Livez`,
 `AdminOverview` — and this is how that one name becomes JavaScript:
 
 | Symbol | Spelling | Example |
@@ -478,6 +482,7 @@ wrangler secret put WL_AI_KEY
 | Storage errors | Durable Object methods handle storage failure explicitly rather than propagating |
 | Logging | `console.log()` with JSON-structured output, carrying `component`, `trace_id` and `timestamp`. Collected by the platform; see `## Service Mapping` |
 | Background work | There is none. No timer, no thread. Use a Cron Trigger or a Durable Object alarm |
+| Lease renewal | A Durable Object alarm renews the component's lease at `POST /v1/lease` ([`protocol/types`](../protocol/types.md#leaserenewal)); a Worker that is not invoked renews nothing, and its directory entry reads `unknown` until it does |
 ### Concurrency
 
 Cloudflare Workers are single-threaded per request. Concurrency
@@ -657,7 +662,7 @@ Domain controllers running as Workers dispatch phases using
 wrangler dev
 
 # Test endpoints
-curl -X POST http://localhost:8787/v1/health
+curl http://localhost:8787/livez
 ```
 
 ### Unit Testing
@@ -667,13 +672,11 @@ Use `vitest` with `miniflare` for Workers-compatible testing:
 ```javascript
 import { describe, it, expect } from "vitest";
 
-describe("health endpoint", () => {
-  it("returns healthy status", async () => {
-    const response = await fetch("http://localhost:8787/v1/health", {
-      method: "POST",
-    });
+describe("liveness probe", () => {
+  it("answers live", async () => {
+    const response = await fetch("http://localhost:8787/livez");
     const data = await response.json();
-    expect(data.status).toBe("healthy");
+    expect(data).toEqual({ live: true });
   });
 });
 ```

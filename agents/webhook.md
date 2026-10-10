@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: webhook
-version: 1.0.1
+version: 2.0.0
 port: 9753
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/webhook, patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/security, patterns/governance]
@@ -34,7 +34,7 @@ background process alongside the main server.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -45,15 +45,16 @@ requires:
           methods: [POST]
           request_type: AgentMessage
           response_fields: [status, response]
-        - path: /v1/health
+        - path: /v1/lease
           methods: [POST]
-          response_fields: [status, details]
+          request_type: LeaseRenewal
+          response_fields: [expires_at]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -69,7 +70,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -625,32 +626,30 @@ Step 7 — Exit
 
 ### Health
 
+Readiness, as `GET /readyz` answers it and every lease renewal carries it
+([`patterns/observability`](../patterns/observability.md#health-endpoint)).
+Health is liveness and readiness only, so the counts and timestamps a status
+once carried are metrics:
+
 ```yaml
 health:
-  healthy:
+  ready:
     conditions:
       - event_listener = running
       - retry_sweep = running
       - storage = connected
-    response:
-      status: healthy
-      details: {subscribers_active, pending_deliveries, retry_queue_depth}
 
-  degraded:
+  ready_with_checks:
     conditions:
       - storage errors (but retrying)
       - high delivery failure rate (> 50%)
-    response:
-      status: degraded
-      details: {reason, last_error, failure_rate}
+    lease: ready true, its checks naming each subsystem above not_ready
 
-  unhealthy:
+  not_ready:
     conditions:
       - storage unreachable after retries
       - event listener stopped
-    response:
-      status: unhealthy
-      details: {reason, since}
+    lease: ready false, its checks naming each subsystem above not_ready
 ```
 
 ### Self-Update

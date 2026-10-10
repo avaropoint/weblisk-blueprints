@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: governance
-version: 1.0.1
+version: 1.1.0
 requires: [protocol/identity, protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/messaging]
 platform: any
 tier: free
@@ -92,11 +92,11 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
-        - name: HealthStatus
-          fields_used: [status, metrics, timestamp]
+        - name: ServiceEntry
+          fields_used: [name, lease_state]
         - name: AgentManifest
           fields_used: [name, capabilities, url, type]
         - name: EventEnvelope

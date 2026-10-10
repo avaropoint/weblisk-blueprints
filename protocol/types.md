@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.18.4
+version: 2.0.0
 requires: []
 platform: any
 tier: free
@@ -1788,11 +1788,16 @@ types:
         type: "[]string"
         required: true
         description: "Capability names"
-      status:
-        name: Status
+      lease_state:
+        name: LeaseState
         type: string
         required: true
-        description: "`online`, `offline`, `degraded`"
+        description: "What this component's lease says now: `ready`, `not_ready` or `unknown`. See [LeaseState](#leasestate)"
+      lease_expires_at:
+        name: LeaseExpiresAt
+        type: int64
+        required: true
+        description: "Unix epoch seconds at which the lease lapses unless the component renews it. From then on `lease_state` is `unknown`"
       address_provenance:
         name: AddressProvenance
         type: string
@@ -1907,6 +1912,11 @@ types:
         type: ServiceDirectory
         required: true
         description: "Current service directory"
+      lease:
+        name: Lease
+        type: Lease
+        required: true
+        description: "The lease this registration grants, which the component renews at `POST /v1/lease`. See [Lease](#lease)"
       orchestrator:
         name: Orchestrator
         type: OrchestratorInfo
@@ -2088,42 +2098,139 @@ types:
 
 ## Health
 
-### HealthStatus
+"Health" means **liveness and readiness, and nothing else**. They answer two
+questions, and each has one owner, with the semantics of Kubernetes probes and
+leases:
+
+| Question | Answered by | Read by |
+|----------|-------------|---------|
+| Is the process live, or must it be restarted? | `GET /livez`, served by the component ([Liveness](#liveness)) | the supervisor on its host that restarts it, and nothing else |
+| Is it present, and ready to serve? | the lease the component renews with the orchestrator, carrying its readiness ([Lease](#lease), [LeaseRenewal](#leaserenewal)) | every other party, through the service directory ([LeaseState](#leasestate)) |
+
+Neither carries a version, an uptime, metrics or the state of another
+component. What a component was built from is its manifest; how it is serving
+its users is telemetry's to judge
+([`architecture/observability`](../architecture/observability.md)). **Nothing
+polls an internal component to learn whether it is present**: the lease
+already says, and a second answer reached by polling would be a second
+presence fact that can disagree with the first.
+
+### Liveness
 
 ```yaml
 types:
-  HealthStatus:
+  Liveness:
     fields:
-      name:
-        name: Name
+      live:
+        name: Live
+        type: bool
+        required: true
+        description: "`true` with status 200; `false` with status 503"
+```
+
+`GET /livez` is served by every component, the orchestrator included, without
+authentication and outside the `/v1` prefix, like a Kubernetes probe. It
+answers 200 with `{"live": true}` while the process can still make progress,
+and 503 with `{"live": false}` once it knows it cannot recover without a
+restart. A component that does not answer is not live. It says nothing else:
+no name, version, reason or dependency, because anyone who can reach the
+listener can read it.
+
+A liveness answer MUST NOT depend on another component, a store or a network
+peer. Its reader restarts what fails it, so a dependency's outage that failed
+liveness would restart every dependant and turn one fault into many.
+
+### Readiness
+
+```yaml
+types:
+  Readiness:
+    fields:
+      ready:
+        name: Ready
+        type: bool
+        required: true
+        description: "`true` with status 200; `false` with status 503"
+```
+
+A component is **ready** when it has finished starting, holds what it needs to
+serve its endpoints (its keys, its store, its registration where it runs with
+an orchestrator) and is not draining for a shutdown. It says so in two places,
+and they are one fact:
+
+- **On its lease.** Every renewal carries `ready` ([LeaseRenewal](#leaserenewal)),
+  and that is where every other party reads it.
+- **At `GET /readyz`**, served like `/livez`: without authentication, outside
+  `/v1`, 200 with `{"ready": true}` or 503 with `{"ready": false}`, and nothing
+  else. Its reader is the supervisor on the component's host while it waits for
+  a start to complete ([`architecture/cli`](../architecture/cli.md)), and the
+  probe of the orchestrator, which holds no lease of its own. No one reads it to
+  learn whether a registered component is present.
+
+---
+
+## Presence
+
+### LeaseState
+
+| Value | Means |
+|-------|-------|
+| `ready` | The lease is current and its last renewal said `ready: true` |
+| `not_ready` | The lease is current and its last renewal said `ready: false`: the component is starting, draining, or missing something it needs |
+| `unknown` | The lease has lapsed, or no renewal has arrived since the orchestrator started. The orchestrator does not know, and says so |
+
+`unknown` is never read as `ready`, and never as failed: a lapsed lease means
+the orchestrator has not heard, not that the component is down. There is no
+`online`, `offline` or `degraded`.
+
+### Lease
+
+```yaml
+types:
+  Lease:
+    fields:
+      agent_id:
+        name: AgentID
         type: string
         required: true
-        description: "Component name"
-      status:
-        name: Status
-        type: string
-        required: true
-        description: "`healthy`, `degraded`, `unhealthy`"
-      version:
-        name: Version
-        type: string
-        required: true
-        description: "Component version"
-      uptime:
-        name: Uptime
+        description: "The registration the lease belongs to"
+      duration:
+        name: Duration
         type: int64
         required: true
-        description: "Seconds since start"
+        description: "Seconds the lease lasts from each renewal (`orchestrator.lease_duration`)"
+      renewed_at:
+        name: RenewedAt
+        type: int64
+        required: true
+        description: "Unix epoch seconds of the registration or renewal that set it"
+      expires_at:
+        name: ExpiresAt
+        type: int64
+        required: true
+        description: "Unix epoch seconds at which it lapses unless renewed"
+```
+
+A registration grants the first lease (`RegisterResponse.lease`), with the
+component's readiness taken as `ready: false` until its first renewal says
+otherwise.
+
+### LeaseRenewal
+
+```yaml
+types:
+  LeaseRenewal:
+    fields:
+      ready:
+        name: Ready
+        type: bool
+        required: true
+        description: "The component's readiness now, as `GET /readyz` would answer it"
       checks:
         name: Checks
         type: map
         required: false
-        description: "Per-subsystem health: subsystem name → `ok`, `degraded` or `failed`. A component that names a failing subsystem says WHERE it is unwell; one that reports only `status` says that it is"
-      metrics:
-        name: Metrics
-        type: map
-        required: false
-        description: "Component-specific metrics"
+        description: "Subsystem name → `ready` or `not_ready`, saying where the component is short, whether or not that makes it not ready. Carried on the lease only, never served at `/readyz`"
       timestamp:
         name: Timestamp
         type: int64
@@ -2131,13 +2238,15 @@ types:
         description: "Unix epoch seconds"
 ```
 
-The component's own name is `name` and its age is `uptime`. Neither is
-`component` nor `uptime_seconds`: those were bound by
-[`architecture/observability`](../architecture/observability.md) from this type
-for a while, and since this type never had them, a generated orchestrator
-emitted the observability names, satisfied observability's assertion, and failed
-`L1-01` against this definition. **This table is the authority and every other
-blueprint binds the names in it.**
+A component renews at `POST /v1/lease` ([`protocol/spec`](spec.md#post-v1lease))
+at intervals no longer than a third of `duration`, so that two lost renewals
+still leave the lease current. A renewal after the lease lapsed restores it
+without a new registration. A component that is draining renews with
+`ready: false` until it deregisters.
+
+**The orchestrator's directory and its leases are the one authority for what is
+running and present.** The orchestrator never probes a component to settle it,
+and telemetry never polls one.
 
 ---
 
@@ -2584,13 +2693,14 @@ types:
 
 ## Protocol Paths
 
-All paths are prefixed with `/v1`.
+All paths are prefixed with `/v1` but the two probes, `/livez` and `/readyz`,
+which every component serves outside the protocol version, as Kubernetes
+probes are, and which say nothing a version could change ([Health](#health)).
 
 | Path | Method | Auth | Component | Purpose |
 |------|--------|------|-----------|---------|
 | `/v1/describe` | POST | no | agent | Return manifest |
 | `/v1/execute` | POST | yes | agent | Execute task |
-| `/v1/health` | POST | no | agent | Health check |
 | `/v1/message` | POST | yes | agent | Synchronous request/response |
 | `/v1/services` | POST | yes | agent | Receive service directory updates |
 | `/v1/event` | POST | yes | agent | Receive event delivery (pub/sub) |
@@ -2598,7 +2708,9 @@ All paths are prefixed with `/v1`.
 | `/v1/register` | DELETE | yes | orchestrator | Agent deregistration |
 | `/v1/services` | GET | yes | orchestrator | Service directory + routing table |
 | `/v1/channel` | POST | yes | orchestrator | Broker channel |
-| `/v1/health` | GET | no | orchestrator | Orchestrator health |
+| `/v1/lease` | POST | yes | orchestrator | Renew the caller's lease, carrying its readiness ([LeaseRenewal](#leaserenewal)) |
+| `/livez` | GET | no | every component | Liveness, for the supervisor that restarts it ([Liveness](#liveness)) |
+| `/readyz` | GET | no | every component | Readiness, for the supervisor waiting on a start and the probe of the orchestrator ([Readiness](#readiness)) |
 | `/v1/audit` | GET | yes | orchestrator | Audit log |
 | `/v1/rotate-key` | POST | yes | orchestrator | Key rotation (see identity.md) |
 | `/v1/token/exchange` | POST | yes | orchestrator | Exchange the operator token a person has just presented to the admin gateway for a pass addressed to one component (`TokenExchangeResponse`). The admin gateway's alone |
@@ -3247,9 +3359,14 @@ security:
 - [ ] TaskRequest requires `id`, `from`, `action`, `payload`, `context`, `token`, and `timestamp`; TaskResult status is `success`, `failed`, or `pending_approval`
 - [ ] AgentMessage `signature` covers `canonicalize({from, to, action, payload})` per RFC 8785 and `trace_id` propagates through downstream calls
 - [ ] Finding includes all required fields: `rule_id`, `severity`, `element`, `current`, `expected`, `message`, and `fixable`
-- [ ] RegisterResponse includes `agent_id`, `token`, `expires_at`, `services`, `orchestrator`, and negotiated `protocol_version`
+- [ ] RegisterResponse includes `agent_id`, `token`, `expires_at`, `services`, `lease`, `orchestrator`, and negotiated `protocol_version`
+- [ ] ServiceEntry carries `lease_state` and `lease_expires_at`, and `lease_state` is one of `ready`, `not_ready` and `unknown`
+- [ ] A lease past its `expires_at` reads `unknown`, never `ready`
+- [ ] Lease includes `agent_id`, `duration`, `renewed_at` and `expires_at`; LeaseRenewal includes `ready` and `timestamp`, and its `checks` are never served at `/readyz`
+- [ ] `GET /livez` answers `{"live": true}` with 200 or `{"live": false}` with 503 and no other member, without authentication, and its answer depends on no other component
+- [ ] `GET /readyz` answers `{"ready": true}` with 200 or `{"ready": false}` with 503 and no other member, without authentication
 - [ ] ChannelGrant includes `channel_id`, scoped `channel_token`, `target_url`, `target_pub_key`, and `expires_at`
-- [ ] Protocol paths are all prefixed with `/v1` and method/auth requirements match the Protocol Paths table
+- [ ] Protocol paths are all prefixed with `/v1` but `/livez` and `/readyz`, and method/auth requirements match the Protocol Paths table
 - [ ] DeadLetterEntry includes `original_event`, `failure_reason`, `last_error`, `attempts`, and `subscriber`
 - [ ] PolicyDecision requires `policy_name`, `decision`, and `timestamp`; decision uses DecisionResult enum
 - [ ] OperationIntent requires `id`, `agent`, `operation`, `resource`, `resource_class`, `scope`, `environment`, and `timestamp`; operation includes `list` and `query`

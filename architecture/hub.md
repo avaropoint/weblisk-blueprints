@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: hub
-version: 1.0.0
+version: 1.1.0
 requires: [protocol/federation, protocol/identity, protocol/types, architecture/agent, architecture/gateway]
 platform: any
 tier: free
@@ -90,7 +90,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -102,17 +102,17 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentEndpoints
-          fields_used: [execute, message, describe, health]
+          fields_used: [execute, message, describe, livez, readyz]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/gateway
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: RouteTable

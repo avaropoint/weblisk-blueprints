@@ -68,8 +68,10 @@ The orchestrator starts on port 9800 and waits for agents to register.
 Verify it's running:
 
 ```bash
-curl http://localhost:9800/v1/health
-# {"status": "ok", "agents": 0, "domains": 0}
+curl http://localhost:9800/livez
+# {"live": true}
+curl http://localhost:9800/readyz
+# {"ready": true}
 ```
 
 ## 4. Create a Domain Controller
@@ -99,12 +101,12 @@ weblisk domain start seo
 
 ```
 [INFO] SEO domain controller started on :9700
-[INFO] Registered with orchestrator (status: degraded)
+[INFO] Registered with orchestrator (not ready)
 [INFO] Missing required agents: [seo-analyzer, a11y-checker]
 ```
 
-The domain registers but starts in **degraded** status because its
-required work agents aren't running yet.
+The domain registers but stays **not ready** because its required work
+agents aren't running yet.
 
 ## 5. Create Work Agents
 
@@ -123,10 +125,11 @@ weblisk agent start a11y-checker
 ```
 [INFO] seo-analyzer started on :9710, registered with orchestrator
 [INFO] a11y-checker started on :9711, registered with orchestrator
-[INFO] SEO domain status updated: degraded → online
+[INFO] SEO domain ready: 2/2 required agents ready
 ```
 
-Once all required agents register, the domain transitions to **online**.
+Once all required agents register and renew their leases, the domain is
+**ready**.
 
 ## 6. Create Infrastructure Agents
 
@@ -208,15 +211,15 @@ curl http://localhost:8080/v1/tasks/task-a1b2c3d4 \
 weblisk status
 
 # Output:
-# Orchestrator:  online (port 9800)
-# Gateway:       online (port 8080)
+# Orchestrator:  ready (port 9800)
+# Gateway:       ready (port 8080)
 # Domains:
-#   seo          online (2/2 agents)
+#   seo          ready (2/2 agents ready)
 # Agents:
-#   seo-analyzer work       online (port 9710)
-#   a11y-checker work       online (port 9711)
-#   alerting     infra      online (port 9752)
-#   cron         infra      online (port 9750)
+#   seo-analyzer work       ready (port 9710)
+#   a11y-checker work       ready (port 9711)
+#   alerting     infra      ready (port 9752)
+#   cron         infra      ready (port 9750)
 ```
 
 ## 10. Explore and Extend
