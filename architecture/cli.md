@@ -634,20 +634,19 @@ path, packages present with their exported names, and which component owns which
 file — and REFUSES a plan that names another component's files. See
 [`architecture/generation`](generation.md#deciding-whether-a-file-must-be-rebuilt).
 
-A build that repairs never ends on a tree worse than the best it reached.
-Whatever ends the run, an error included, the command leaves that tree on disk
-and records it as generation's output, and a re-run starts from it. Where it
-could not put that tree back, its error says so. It lists each requirement it
-left unrepaired and why, cutting a long list short with a count of what it left
-out. When the repair loop ends without an error of its own, the command also
-reports the verdict on that tree: that it does not build, with the build's
+A build that repairs ends on the best tree it reached, as
+[`architecture/generation`](generation.md#a-repair-round-is-a-transaction)
+specifies, which also says where `weblisk` does not yet rank or judge a tree as
+it specifies. What is the command's: it prints each requirement left
+unrepaired and why, cutting the list for each source short at twelve with a
+count of the rest. When the repair loop ends without an error of its own, it
+then prints the verdict on that tree: that it does not build, with the build's
 output, or what conformance established. When the loop ends on an error, such
-as a provider failure or a failed write, the command reports that list and the
-error, and no verdict. How trees are ranked, and how a repair round is kept,
-judged and undone, is in
-[`architecture/generation`](generation.md#a-repair-round-is-a-transaction),
-which also says where `weblisk` does not yet rank or judge a tree as it
-specifies.
+as a provider failure or a failed write, it prints that list and the error and
+no verdict, although the loop returned one. A provider failure the run can
+outlast is resumed rather than ended
+([`architecture/generation`](generation.md#surviving-a-provider-outage)), and
+a resumed run that finishes prints its verdict.
 
 ### `weblisk component <name> start` · `stop` · `status` · `logs`
 
