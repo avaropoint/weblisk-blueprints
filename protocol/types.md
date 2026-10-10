@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.18.4
+version: 1.19.0
 requires: []
 platform: any
 tier: free
@@ -172,6 +172,13 @@ has passed, and those two are registered with their status in
 because the exchange refused the person's token, answers with the code
 `TokenExchangeResponse.code` names and the status this table or Error Handling
 gives it.
+
+**Token request codes** (produced by the orchestrator's judgement of a request
+for an attestation token, `architecture/admin`'s `attestation-token-issuance`):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `TOKEN_REQUEST_REPLAYED` | 401 | permanent | The request's `jti` was already recorded for that operator inside the 300-second replay window. No token is issued; the client signs a new request with a fresh `jti`, and never registers for it |
 
 **Pass codes** (produced by a component that a person's request reaches,
 [`protocol/identity`](identity.md#the-pass)):
@@ -2631,6 +2638,11 @@ error_codes:
     category: transient
     retryable: true
     description: Token past expiry — re-register to get a new one
+  - code: TOKEN_REQUEST_REPLAYED
+    status: 401
+    category: permanent
+    retryable: false
+    description: An attestation-token request whose jti the hub already recorded for that operator inside the replay window (architecture/admin, attestation-token-issuance). Nothing is issued. The client signs a new request with a fresh jti; the refusal is never a reason to register
   - code: FORBIDDEN
     status: 403
     category: permanent
