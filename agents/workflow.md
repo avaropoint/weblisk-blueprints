@@ -702,13 +702,11 @@ health:
       - task.complete/failed subscriptions active
       - storage writable
       - in_flight < 80% of config.max_concurrent
-
-  ready_with_checks:
-    conditions:
+    checks:
       - storage errors (retrying)
       - task agent unavailable (phases cannot dispatch)
       - in_flight >= 80% of max_concurrent
-    lease: ready true, its checks naming each subsystem above not_ready
+    lease: ready true, its checks naming each of these that holds not_ready
 
   not_ready:
     conditions:

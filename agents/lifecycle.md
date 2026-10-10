@@ -688,12 +688,10 @@ health:
     conditions:
       - event subscriptions active (workflow.completed, workflow.failed)
       - storage writable
-
-  ready_with_checks:
-    conditions:
+    checks:
       - storage errors (retrying)
       - event subscription partially lost
-    lease: ready true, its checks naming each subsystem above not_ready
+    lease: ready true, its checks naming each of these that holds not_ready
 
   not_ready:
     conditions:

@@ -765,13 +765,11 @@ health:
       - tick_loop = running
       - storage = connected
       - in_flight < 80% of config.max_concurrent
-
-  ready_with_checks:
-    conditions:
+    checks:
       - storage errors (but retrying)
       - in_flight >= 80% of config.max_concurrent
       - lock contention (standby mode)
-    lease: ready true, its checks naming each subsystem above not_ready
+    lease: ready true, its checks naming each of these that holds not_ready
 
   not_ready:
     conditions:

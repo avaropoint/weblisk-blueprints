@@ -768,13 +768,11 @@ health:
       - queue_processor = running
       - storage = connected
       - provider = reachable
-
-  ready_with_checks:
-    conditions:
+    checks:
       - provider unreachable (but queuing emails)
       - storage errors (but retrying)
       - rate limit approaching (> 80%)
-    lease: ready true, its checks naming each subsystem above not_ready
+    lease: ready true, its checks naming each of these that holds not_ready
 
   not_ready:
     conditions:

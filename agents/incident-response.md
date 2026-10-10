@@ -793,12 +793,10 @@ health:
       - alerting subscription active
       - storage writable
       - active_runbooks < 80% of max_concurrent_runbooks
-
-  ready_with_checks:
-    conditions:
+    checks:
       - alerting subscription lost (operating on direct messages only)
       - storage errors (retrying)
-    lease: ready true, its checks naming each subsystem above not_ready
+    lease: ready true, its checks naming each of these that holds not_ready
 
   not_ready:
     conditions:

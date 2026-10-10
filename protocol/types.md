@@ -2177,7 +2177,7 @@ and they are one fact:
 |-------|-------|
 | `ready` | The lease is current and its last renewal said `ready: true` |
 | `not_ready` | The lease is current and its last renewal said `ready: false`: the component is starting, draining, or missing something it needs |
-| `unknown` | The lease has lapsed, or no renewal has arrived since the orchestrator started. The orchestrator does not know, and says so |
+| `unknown` | The lease has lapsed, or the registration predates the orchestrator's last restart and no renewal has arrived since. The orchestrator does not know, and says so |
 
 `unknown` is never read as `ready`, and never as failed: a lapsed lease means
 the orchestrator has not heard, not that the component is down. There is no
@@ -2230,7 +2230,7 @@ types:
         name: Checks
         type: map
         required: false
-        description: "Subsystem name → `ready` or `not_ready`, saying where the component is short, whether or not that makes it not ready. Carried on the lease only, never served at `/readyz`"
+        description: "Subsystem name → `ready` or `not_ready`: each subsystem's readiness, saying where the component is short, whether or not that makes it not ready. It never changes the lease state, which `ready` alone sets. Carried on the lease only, never served at `/readyz`"
       timestamp:
         name: Timestamp
         type: int64

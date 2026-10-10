@@ -601,12 +601,10 @@ health:
       - event_listener = running
       - storage = connected
       - at least one delivery channel = available
-
-  ready_with_checks:
-    conditions:
+    checks:
       - one or more channels unavailable
       - storage errors (but retrying)
-    lease: ready true, its checks naming each subsystem above not_ready
+    lease: ready true, its checks naming each of these that holds not_ready
 
   not_ready:
     conditions:

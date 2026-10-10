@@ -262,15 +262,23 @@ Health is liveness and readiness only; counts and timestamps are metrics.
 health:
   ready:
     conditions: [list]
-
-  ready_with_checks:
-    conditions: [list]
-    lease: ready true, its checks naming each subsystem above not_ready
+    checks: [list]
+    lease: ready true, its checks naming each of these that holds not_ready
 
   not_ready:
     conditions: [list]
     lease: ready false, its checks naming each subsystem above not_ready
 ```
+
+Readiness has two values, and the declaration names no third. `ready`'s
+conditions describe the agent serving fully; it stays ready until a
+`not_ready` condition holds. `ready.checks` lists what can be short while it
+still serves (a dependency retrying, a load near a limit, its own state
+machine's `degraded` state): each is a subsystem's readiness, carried in the
+lease's `checks` ([LeaseRenewal](../protocol/types.md#leaserenewal)), and
+none changes the agent's own, so the lease state stays `ready`. How it is
+serving meanwhile is telemetry's to judge
+([`architecture/observability`](../architecture/observability.md)).
 
 #### Self-Update
 
@@ -988,10 +996,8 @@ Step N — Exit
 health:
   ready:
     conditions: [<condition-list>]
-
-  ready_with_checks:
-    conditions: [<condition-list>]
-    lease: ready true, its checks naming each subsystem above not_ready
+    checks: [<condition-list>]
+    lease: ready true, its checks naming each of these that holds not_ready
 
   not_ready:
     conditions: [<condition-list>]

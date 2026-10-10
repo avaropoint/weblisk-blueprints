@@ -1770,9 +1770,7 @@ health:
       - revocation list loaded
       - fingerprint baselines available
       - alerting agent reachable
-
-  ready_with_checks:
-    conditions:
+    checks:
       - storage errors (retrying)
       - last crawl failed
       - stale listings > 20% of total
@@ -1781,7 +1779,7 @@ health:
       - revocation list stale
       - fingerprint cycle failed
       - alerting agent unreachable (queuing locally)
-    lease: ready true, its checks naming each subsystem above not_ready
+    lease: ready true, its checks naming each of these that holds not_ready
 
   not_ready:
     conditions:

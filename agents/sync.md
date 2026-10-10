@@ -559,12 +559,10 @@ health:
     conditions:
       - storage = connected
       - realtime_channel = available
-
-  ready_with_checks:
-    conditions:
+    checks:
       - storage errors (but retrying)
       - realtime channel unavailable (sync still works via pull)
-    lease: ready true, its checks naming each subsystem above not_ready
+    lease: ready true, its checks naming each of these that holds not_ready
 
   not_ready:
     conditions:
