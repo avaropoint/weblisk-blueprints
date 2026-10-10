@@ -1110,7 +1110,6 @@ orchestrator returns 504 to the caller and marks the task as `failed`.
 | Config Key | Default | Description |
 |------------|---------|-------------|
 | `task_timeout_seconds` | 300 | Maximum time to wait for task completion |
-| `health_timeout_seconds` | 5 | Maximum time to wait for health response |
 | `message_timeout_seconds` | 30 | Maximum time to wait for message response |
 
 Agents MAY override `task_timeout_seconds` in their manifest
