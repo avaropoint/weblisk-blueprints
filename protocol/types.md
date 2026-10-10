@@ -508,6 +508,11 @@ Neither guards a route yet: no blueprint declares an operator action, and
 `AgentManifest` has no operational scope. Both are listed so that each act has
 one name before it is specified.
 
+No capability is listed for a component recording into the one audit ledger:
+a registered component records its own acts there on its registration alone,
+as it reads `GET /v1/audit` on it, and what it records is its own, never
+another's.
+
 **Outside the `admin` family.** `telemetry:read`, `action:invoke` and
 `scope:admit`, like `model:attest`, are not in the `admin` family, so `admin:*`
 does not carry them, and a person holds one only where
