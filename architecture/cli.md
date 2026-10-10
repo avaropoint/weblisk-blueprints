@@ -332,7 +332,9 @@ the sections below: [Project Commands](#project-commands),
 
 1. Operator runs a CLI command (e.g., `weblisk agents list`)
 2. CLI resolves which identity acts — `--keys-dir`, else `--identity <label>`, else the unnamed default
-3. CLI loads the auth token stored beside that identity (refreshes if near expiry)
+3. CLI loads the token stored beside that identity where `--store` kept one,
+   and otherwise obtains one for this command and holds it in memory, as the
+   [Authentication Flow](#authentication-flow) says (renewing one near expiry)
 4. CLI constructs an HTTP request to the hub's admin gateway, the tenant's one
    door for people, whatever group the command addresses
    ([`protocol/identity`](../protocol/identity.md#the-pass))
@@ -969,10 +971,12 @@ goes to the hub's admin gateway, and the address the CLI records for a hub is
 that gateway's, never the orchestrator's (`orchestrator_url`). No hub this CLI
 stands up runs an admin gateway yet (the gap under
 [`weblisk server start`](#weblisk-server-start)), so provision ends there.
-To reach a hub through its admin gateway, use
-[`weblisk operator connect`](#weblisk-operator-connect), which needs only that
-address: it registers again there, is answered as a repeat, and records the
-registration at the gateway's address.
+To reach a hub through its admin gateway, register there with
+[`weblisk operator register`](#weblisk-operator-register), which needs only
+that address: the hub already knows the operator, so it answers the
+registration as a repeat, and the CLI records the registration at the
+gateway's address. `connect` never registers, and at that address answers
+`not_registered` until `register` has.
 
 Generation is deliberately not folded in. It takes tens of minutes, streams
 progress and is resumable; wrapping it in a call that also handles a credential

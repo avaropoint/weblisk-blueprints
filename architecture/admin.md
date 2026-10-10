@@ -721,8 +721,8 @@ contracts:
       rules:
         - The route `POST /v1/admin/operators/token` MUST require no bearer token
         - The request MUST carry hub_id, jti, name, timestamp and signature, and the signed payload MUST be canonicalize({hub_id, jti, name, timestamp}), verified against the STORED public key for that operator, with the timestamp inside the 300-second replay window. hub_id is the one the client recorded for this hub from a registration answer (operator-registration). A request without jti MUST be refused with INVALID_REQUEST before any signature is checked
-        - jti MUST be base64url text without padding (RFC 4648 section 5) that decodes to between 16 and 64 bytes. A client MUST draw it from a cryptographically secure random source, at least 128 bits, for each request alone, and MUST NOT send a jti it has sent before, a retry of an unanswered request included - a retry is a new request. So two requests from one identity never sign the same bytes, however close together, although ML-DSA-65 signs deterministically
-        - The request MUST be refused on replay. Once its signature has verified, the hub MUST record the operator's identity_id with the jti until the request's timestamp is outside the replay window, and a request whose jti is recorded for that operator MUST be refused with TOKEN_REQUEST_REPLAYED, issue no token and be audited. The check and the record MUST be one atomic step, so of concurrent requests carrying one jti exactly one proceeds. Replay is keyed on the jti, never on the signature's bytes, so a signature that differs over the same payload is refused as well. A record is written for every request whose signature verifies, whatever it is then answered, and only for those, so a request nobody signed cannot use up an operator's jti. A TOKEN_REQUEST_REPLAYED answer is never a reason for a client to register: another request from the same identity was answered first
+        - jti MUST be base64url text without padding (RFC 4648 section 5) that decodes to between 16 and 64 bytes. A client MUST draw it from a cryptographically secure random source, at least 128 bits, for each request alone, and MUST NOT send a jti it has sent before, a retry of an unanswered request included - a retry is a new request. A hub MUST refuse a request whose jti is present and is not that form with INVALID_REQUEST before any signature is checked, as it refuses one with no jti. So two requests from one identity never sign the same bytes, however close together, although ML-DSA-65 signs deterministically
+        - The request MUST be refused on replay. Once its signature has verified, the hub MUST record the operator's identity_id with the jti until the request's timestamp is outside the replay window, and a request whose jti is recorded for that operator MUST be refused with TOKEN_REQUEST_REPLAYED, issue no token and be audited. The check and the record MUST be one atomic step, so of concurrent requests carrying one jti exactly one proceeds. The record MUST survive a restart of the orchestrator and be shared by every instance that answers for this hub, so a replay inside the window is refused wherever and whenever it arrives. Replay is keyed on the jti, never on the signature's bytes, so a signature that differs over the same payload is refused as well. A record is written for every request whose signature verifies, whatever it is then answered, and only for those, so a request nobody signed cannot use up an operator's jti. A TOKEN_REQUEST_REPLAYED answer is never a reason for a client to register: another request from the same identity was answered first
         - A request whose signature verifies over a hub_id other than this hub's MUST be refused with CREDENTIAL_FOREIGN_HUB and logged as a security event - the identity signed it for another hub, and it was relayed here
         - A client MUST send this request only to a hub whose hub_id it has recorded, signing that hub_id, and MUST NOT sign a payload that names no hub for any hub, so neither an attestation token nor the deprecated operator token below is obtained with a signature good at every hub. That hub_id is the one a registration answer named, and which hub gave that answer only hub-proof settles, so until hub-proof has test vectors a hub that relays a first registration can have a client record another hub's hub_id at its address (The identity signs only to attest, the gap there). A client that has recorded none for a hub registers there first, which a hub that already knows the operator answers as a repeat
         - An operator with no record MUST be refused with OPERATOR_UNKNOWN, since there is no stored key to verify against. Only once the signature has verified may the hub disclose the operator's status - a signature that does not verify MUST be refused with INVALID_SIGNATURE whatever that status is, and then a pending operator with OPERATOR_NOT_APPROVED and a revoked one with OPERATOR_REVOKED. Each refusal MUST be audited
@@ -871,7 +871,7 @@ contracts:
         - It MUST discard a person's tokens when that person's session ends, by sign-out, idle or absolute expiry, or the account's revocation, even where exp is later
         - Removing an account from the console MUST delete that account's credential keys. Before it does, it MUST revoke each credential at its hub where it can, with a token minted for a person signed in to the console at AAL2 whom that hub permits to revoke it — the account's own person, or one holding the admin role there
         - Where no such person is signed in, it MUST still delete the key, and MUST report for each hub that the credential stays live there until its not_after unless an admin of that hub revokes it
-        - When it drives the CLI to connect, it MUST ask the CLI not to store the token
+        - When it drives the CLI to connect, it MUST NOT pass --store, so the CLI writes no token file
 
     - name: operator-roles
       description: The role names and what each may do
@@ -1051,8 +1051,10 @@ own, and lets the hub key replay on the `jti`, not on the signature. It costs
 no round trip: a nonce the hub issued would need a route that answers anybody
 before any signature is checked, and a request that waits on it, while this
 request already carries a timestamp the hub bounds to 300 seconds. So the hub
-keeps what a replay needs, a `jti` per operator for 300 seconds, and nothing
-for a request whose signature did not verify (`attestation-token-issuance`).
+keeps what a replay needs, a `jti` per operator until the request's timestamp
+leaves the replay window, which for a request stamped ahead of the hub's clock
+is longer than 300 seconds after it arrives, and nothing for a request whose
+signature did not verify (`attestation-token-issuance`).
 
 ```
 200 {
@@ -1082,7 +1084,7 @@ one thing an identity is for.
 > **Gap — until a hub proves it, a recorded `hub_id` is what the answer
 > said.** A client records a hub's `hub_id` from a registration answer. A
 > registration names no hub (`registration-signing-input`), so a hub the
-> person registers or connects at can relay it, inside the replay window, to
+> person registers at can relay it, inside the replay window, to
 > another hub the person belongs to, which answers it as a repeat with its own
 > `hub_id`. A client that has that `hub_id` recorded at another address
 > refuses to move it there
