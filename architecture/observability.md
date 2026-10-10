@@ -200,14 +200,8 @@ contracts:
 
 ## Structured Logging
 
-Every component writes one envelope, which
-[`patterns/logging`](../patterns/logging.md) defines and
-[`protocol/types`](../protocol/types.md#logentry) declares: JSON lines on
-standard output always, the same records pushed as OpenTelemetry logs where
-telemetry is deployed, `ts` in RFC 3339 UTC with milliseconds, and one
-`log_type` vocabulary. Levels and their per-component overrides are
-patterns/logging's Log Levels, and a record is redacted where it is emitted, as
-its [Sensitive Data](../patterns/logging.md#sensitive-data) says.
+Every component writes [`LogEntry`](../protocol/types.md#logentry) as
+[`patterns/logging`](../patterns/logging.md) says.
 
 ---
 
@@ -244,7 +238,7 @@ Attribute names follow OpenTelemetry semantic conventions where one exists.
 | `http.call` | A component, for each request it sends that no name below covers | `server.address`, `http.request.method` |
 | `agent.execute` | An agent, serving `POST /v1/execute` | `task.id`, `task.action` |
 | `agent.message` | An agent, serving `POST /v1/message` | `from`, `to`, `action` |
-| `event.deliver` | A subscriber, serving `POST /v1/event` | `topic`, `event_id`, `source` |
+| `event.deliver` | A subscriber, serving `POST /v1/event` | `messaging.destination.name` (the topic), `messaging.message.id` (the `event_id`), `source` |
 | `workflow.phase` | The workflow agent, for each phase | `workflow.name`, `phase.name`, `phase.agent` |
 | `health.probe` | Whatever probes a component from outside it | `target`, `result` |
 
@@ -359,7 +353,7 @@ Given a `task_id`, you can reconstruct the full execution path:
 ```
 1. grep logs for task_id → find trace_id
 2. grep logs for trace_id → get all log lines across all components
-3. Sort by timestamp → chronological execution flow
+3. Sort by `ts` → chronological execution flow
 4. Filter by log_type=span → get span tree for timing analysis
 ```
 
@@ -399,7 +393,7 @@ dashboards for these key queries:
 | Log level | `info` | Global log level |
 | Tracing enabled | `false` | Record sampled spans. Trace context is carried whether or not this is set |
 | Trace sample rate | `1.0` | Trace sampling rate (0.0–1.0), applied where a trace starts |
-| Trace export target | — | The telemetry OTLP endpoint logs and spans are pushed to, where telemetry is deployed |
+| Trace export target | — | Where sampled spans are exported, where telemetry is deployed |
 | Metrics enabled | `true` | Expose /metrics endpoint |
 
 ### Local Development

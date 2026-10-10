@@ -828,8 +828,9 @@ from patterns/observability):
 - Workflow executions MUST be persisted to durable storage (flat-file
   JSONL+ZSTD by default). If the Workflow Agent crashes mid-execution,
   the record shows which phases completed and enables recovery.
-- The trace_id from the trigger event MUST be propagated to all
-  task.submit events and downstream calls for distributed tracing.
+- The trigger event's trace is carried to every task.submit event and
+  downstream call as [`protocol/spec`](../protocol/spec.md#trace-propagation)
+  says.
 - The Workflow Agent SHOULD cache workflow definitions fetched from
   domains. Cache invalidation occurs on `system.agent.registered`
   events for the source domain.

@@ -22,7 +22,7 @@ JSON using the exact field names shown in the `json` column.
 
 ## Conventions
 
-- All timestamps are Unix epoch seconds (`int64`), except a log line's `ts` ([LogEntry](#logentry)) and a span's `start` and `end` ([Span](#span)), which are RFC 3339 UTC times with milliseconds, because a log orders, and a span measures, what a second cannot
+- All timestamps are Unix epoch seconds (`int64`), except a log line's `ts` ([LogEntry](#logentry)) and a span's `start` and `end` ([Span](#span)), which are RFC 3339 UTC times with milliseconds
 - All IDs are 32-character hex strings (16 random bytes), except a span id, which is 16 lowercase hex characters (8 random bytes), because W3C Trace Context fixes it so ([TraceContext](#tracecontext))
 - All signatures are base64url-encoded ML-DSA-65 signatures (3309 bytes)
 - All public keys are base64url-encoded ML-DSA-65 public keys (1952 bytes)
@@ -3024,11 +3024,7 @@ it from `protocol/identity`.
 
 ### LogEntry
 
-The one log envelope. Every component writes each record as one JSON line on
-standard output, and also pushes it as an OpenTelemetry log record where
-telemetry is deployed. The fields are declared here. The `log_type` and
-`level` vocabularies, when each optional field is present, how each field maps
-to the OpenTelemetry log data model, and what must never be written are
+The one log envelope's fields. Everything else about a log record is
 [`patterns/logging`](../patterns/logging.md)'s.
 
 ```yaml
@@ -3220,7 +3216,7 @@ types:
         name: Attributes
         type: map
         required: false
-        description: "The attributes its name declares, under OpenTelemetry semantic conventions where one exists. Never a payload, a token or a person's details"
+        description: "The attributes its name declares, under OpenTelemetry semantic conventions where one exists"
 ```
 
 ---
@@ -3369,7 +3365,6 @@ security:
 - [ ] Unknown JSON fields are silently ignored on deserialization (forward compatibility); optional fields are omitted when empty/null
 - [ ] AgentManifest requires `name`, `version`, `description`, `url`, `public_key`, and `capabilities`; includes `publishes` and `subscriptions` for event system
 - [ ] EventEnvelope requires `event_id`, `topic`, `source`, `scope`, `timestamp`, `trace_id`, `span_id`, `version`, and `payload`
-- [ ] `TaskContext`, `AgentMessage` and `EventEnvelope` require `trace_id` and `span_id`; `TraceContext` is written on HTTP as `traceparent`; `Span` and `LogEntry` write times as RFC 3339 UTC with milliseconds
 - [ ] Subscription requires `pattern`; `scope` defaults to `"self"`; `group` defaults to agent name
 - [ ] RouteEntry requires `agent`, `url`, and `scope`
 - [ ] ServiceDirectory includes `services`, `routing_table`, and `namespaces`

@@ -1253,8 +1253,9 @@ scaling:
 - **Capacity defaults**: When an agent manifest doesn't declare
   `max_concurrent`, defaults apply: domain controller = 10,
   work agent = 5, infrastructure agent = 20.
-- **Trace propagation**: `trace_id` and `correlation_id` from the
-  submit event are propagated as HTTP headers to target agents.
+- **Trace propagation**: the submit event's trace reaches the target
+  agent as [`protocol/spec`](../protocol/spec.md#trace-propagation) says,
+  and its `correlation_id` as `X-Correlation-Id`.
 - **Dead-letter**: Tasks that fail after retry exhaustion are persisted
   with status = failed. No automatic resubmission — the workflow agent
   decides whether to retry at the workflow level.
@@ -1279,7 +1280,7 @@ scaling:
 - [ ] Agent capacity updated from system.agent.registered events
 - [ ] Agent deregistration fails all in-flight and queued tasks for that agent
 - [ ] Task records persisted to flat-file storage
-- [ ] trace_id and correlation_id propagated to dispatched tasks
+- [ ] Dispatched tasks carry the trace as `protocol/spec`'s Trace Propagation says, and the correlation_id
 - [ ] Dependencies declare version ranges and specific bindings
 - [ ] on_change rules defined for all dependencies
 - [ ] State machine transitions validated — no implicit states

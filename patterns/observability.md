@@ -500,12 +500,11 @@ distributed tracing.
 
 ### Trace Context
 
-Weblisk's trace context is W3C Trace Context: `traceparent` on every HTTP
-request, and `trace_id` and `span_id` inside every envelope
-([`protocol/spec`](../protocol/spec.md#trace-propagation)). A span is an
-OpenTelemetry span ([`protocol/types`](../protocol/types.md#span)); span names,
-and when a span is recorded, are
-[`architecture/observability`](../architecture/observability.md#distributed-tracing)'s.
+Carried as [`protocol/spec`](../protocol/spec.md#trace-propagation) says; a
+span is [`protocol/types`](../protocol/types.md#span)' `Span`, named and
+recorded as
+[`architecture/observability`](../architecture/observability.md#distributed-tracing)
+says.
 
 ### Log Data Model
 

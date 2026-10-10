@@ -214,6 +214,7 @@ owner alone.
 | `process.health_change` | warn | Health state transitions | `{from, to, reason}` |
 | `process.version_updated` | info | Moved to a new blueprint version | `{from, to}` |
 | `process.version_rollback` | warn | Rolled back to a previous blueprint version | `{from, to, reason}` |
+| `process.version_retired` | info | An old version retired after a validated cutover | `{retired_version, active_version, uptime}` |
 | `process.restored` | info | State restored from a backup | `{backup_file}` |
 
 #### Action Events

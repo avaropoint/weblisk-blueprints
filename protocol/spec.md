@@ -974,16 +974,19 @@ what it is named, are
 - **Every envelope** a component builds (a `TaskRequest`'s `context`, an
   `AgentMessage`, an `EventEnvelope`) carries the same two values as its
   required `trace_id` and `span_id`, so the trace survives a queue, a retry or
-  a dead letter where no header does.
+  a dead letter where no header does. An envelope carries no flags: a request
+  sent from a stored envelope (a retry, a redelivery) sends flags `01`.
 - **A receiver continues the trace it is given.** Its span takes the arriving
   `trace_id` and records the arriving `span_id` as its `parent_span_id`. Where
   a request carries both a `traceparent` and an envelope and they differ, the
-  envelope's values are used.
-- **A trace starts only where none arrived**: a timer firing, a request from
-  outside the tenant without `traceparent`, or a `traceparent` that does not
-  parse. Its `trace_id` is 16 random bytes from a cryptographic source, and
-  whether it is sampled is decided there, once; every component honours the
-  flags it receives.
+  envelope's values are used; the flags are always `traceparent`'s.
+- **A trace starts only where none can be continued**: a timer firing, a
+  `traceparent` that does not parse, or any request from outside the tenant,
+  whose `traceparent` the gateway or admin gateway does not continue (W3C
+  Trace Context permits a restart at a trust boundary), so an outside caller
+  chooses neither the trace id nor the sampling. Its `trace_id` is 16 random
+  bytes from a cryptographic source, and whether it is sampled is decided
+  there, once; every component inside honours the flags it receives.
 - **A trace identifier carries no subject data.** It is random, and nothing is
   derived from a request's content.
 
@@ -1004,12 +1007,8 @@ specific to one execution chain.
 
 ### Structured Log Format
 
-Every component writes the one log envelope that
-[`patterns/logging`](../patterns/logging.md) defines and
-[`protocol/types`](types.md#logentry) declares: JSON lines on standard output,
-`ts` in RFC 3339 UTC with milliseconds, one `log_type` vocabulary, and the same
-records pushed as OpenTelemetry logs where telemetry is deployed. This document
-restates none of it.
+Every component writes [`LogEntry`](types.md#logentry) as
+[`patterns/logging`](../patterns/logging.md) says.
 
 **Audit log** entries (specified in [orchestrator.md](../architecture/orchestrator.md))
 are a separate persistent record. Structured logs are operational and

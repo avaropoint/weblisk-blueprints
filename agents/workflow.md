@@ -1428,7 +1428,7 @@ scaling:
 - [ ] callback_topic receives result if specified
 - [ ] WorkflowExecution persisted to flat-file storage
 - [ ] Workflow-level timeout cancels all in-flight phases
-- [ ] trace_id and correlation_id propagated through all events
+- [ ] Every event carries its trace as `protocol/spec`'s Trace Propagation says, and the correlation_id
 - [ ] Dependencies declare version ranges and specific bindings
 - [ ] on_change rules defined for all dependencies
 - [ ] State machine transitions validated — no implicit states

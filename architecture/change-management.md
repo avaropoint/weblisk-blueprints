@@ -350,7 +350,7 @@ requires:
 
 extends:
   - pattern: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -746,7 +746,7 @@ Phase 5 — Retire or Rollback
     Step 3:   vN process exits
     Emit:     system.agent.version.retired
                 {agent, retired_version, active_version, uptime}
-    Log:      lifecycle.version_retired
+    Log:      process.version_retired
 
   On failure (cutover failed):
     Step 1:   vN+1 stops immediately (no drain — it's the broken one)

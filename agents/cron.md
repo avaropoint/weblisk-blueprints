@@ -168,7 +168,7 @@ requires:
 
 extends:
   - pattern: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -183,13 +183,13 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/logging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       patterns:
-        - behavior: log-envelope
-          parameters: [log_type, level, fields, trace_id]
-        - behavior: log-rotation
-          parameters: [max_size, max_files]
+        - behavior: structured-logging
+          parameters: [level, log_type]
+        - behavior: trace-correlation
+          parameters: [trace_id]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -209,7 +209,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/versioning
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: schema-migration
