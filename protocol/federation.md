@@ -485,7 +485,8 @@ Orchestrator A (requester)            Orchestrator B (provider)
    - task payload (data-contract-filtered)
    - contract_name: "seo-audit-v1"
    - requester: A's identity
-   - trace_id: propagated from workflow
+   - trace_id: A's trace, for correlation;
+     B starts its own (spec Trace Propagation)
    - signed by A's key
 
 3. POST /v1/federation/task ──────►
@@ -543,7 +544,7 @@ types:
         name: TraceID
         type: string
         required: false
-        description: "Correlation ID"
+        description: "The requester's trace, recorded for correlation and never continued: the receiving hub starts its own trace ([Trace Propagation](spec.md#trace-propagation))"
       signature:
         name: Signature
         type: string

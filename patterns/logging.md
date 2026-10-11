@@ -155,9 +155,8 @@ Every log line a component writes is one `LogEntry`:
 ### Fields
 
 Each field, its type and whether it is required are
-[`LogEntry`](../protocol/types.md#logentry)'s. `ts` is the one timestamp format
-for logs: RFC 3339 UTC with milliseconds. This pattern adds when each optional
-field is present:
+[`LogEntry`](../protocol/types.md#logentry)'s, `ts`'s format among them. This
+pattern adds when each optional field is present:
 
 | Field | When Present |
 |-------|-------------|
@@ -296,6 +295,11 @@ Agents MAY define custom log types using the pattern:
 
 Example: `cron.task.fired`, `alerting.notification.sent`
 
+`<agent_name>` is the agent's own event namespace, so a filter on a namespace
+still returns its owner alone. An agent never defines a type under a
+namespace it does not own; the rule for standard types above is about types
+every component writes.
+
 Custom log types MUST be documented in the agent's blueprint under
 the Observability section.
 
@@ -379,12 +383,9 @@ Logs MUST NOT contain:
 | PII (email, phone, address) | Hash or redact: `email: "a***@example.com"` |
 | Full request/response bodies | Log size only: `input_size_bytes: 1024` |
 
-A component redacts a record where it is emitted, before it is written or
-pushed (`redaction-at-emission`, [Contracts](#contracts)): a record once
-written cannot be un-leaked, and nothing downstream is trusted to remove what
-it carries. The same holds for a span's attributes and a metric's labels. This
-is the one statement of that rule; a blueprint whose records must be redacted
-points here.
+A record, a span's attributes and a metric's labels are redacted where they
+are emitted (`redaction-at-emission`, [Contracts](#contracts)). A blueprint
+whose records must be redacted points here.
 
 ---
 
@@ -426,9 +427,7 @@ agent-specific custom types need to be declared.
 
 - [ ] Every log line is one JSON object on standard output with the required `LogEntry` fields (`ts`, `level`, `log_type`, `msg`, `component`, `component_type`)
 - [ ] Where telemetry is deployed, every record is also pushed as an OpenTelemetry log record mapped as the OpenTelemetry Log Data Model table says
-- [ ] `ts` is RFC 3339 UTC with milliseconds on every line
 - [ ] Every log line written while a request is served carries its `trace_id` and the `span_id` open at the time
-- [ ] A trace is started for timer-triggered operations
 - [ ] Standard `process.*` log types emit at correct points (`process.startup`, `process.ready`, `process.shutdown`, `process.stopped`)
 - [ ] Standard action log types emit for every action (received, completed, failed)
 - [ ] No standard log type's first segment is an event namespace a component owns

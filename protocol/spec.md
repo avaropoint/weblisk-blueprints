@@ -974,19 +974,24 @@ what it is named, are
 - **Every envelope** a component builds (a `TaskRequest`'s `context`, an
   `AgentMessage`, an `EventEnvelope`) carries the same two values as its
   required `trace_id` and `span_id`, so the trace survives a queue, a retry or
-  a dead letter where no header does. An envelope carries no flags: a request
-  sent from a stored envelope (a retry, a redelivery) sends flags `01`.
+  a dead letter where no header does. An envelope carries no flags, so a
+  request sent from a stored envelope (a retry, a redelivery) sends flags
+  `01`: a retry is recorded even in an unsampled trace, the one exception to
+  sampling being decided once, because a failed delivery is the span a reader
+  most needs.
 - **A receiver continues the trace it is given.** Its span takes the arriving
   `trace_id` and records the arriving `span_id` as its `parent_span_id`. Where
   a request carries both a `traceparent` and an envelope and they differ, the
   envelope's values are used; the flags are always `traceparent`'s.
 - **A trace starts only where none can be continued**: a timer firing, a
   `traceparent` that does not parse, or any request from outside the tenant,
-  whose `traceparent` the gateway or admin gateway does not continue (W3C
-  Trace Context permits a restart at a trust boundary), so an outside caller
-  chooses neither the trace id nor the sampling. Its `trace_id` is 16 random
-  bytes from a cryptographic source, and whether it is sampled is decided
-  there, once; every component inside honours the flags it receives.
+  whose `traceparent`, and the `trace_id` and `span_id` of any envelope it
+  carries, the gateway, the admin gateway or `POST /v1/federation/task` does
+  not continue (W3C Trace Context permits a restart at a trust boundary), so
+  an outside caller chooses neither the trace id nor the sampling. Its
+  `trace_id` is 16 random bytes from a cryptographic source, and whether it is
+  sampled is decided there, once; every component inside honours the flags it
+  receives, retries aside.
 - **A trace identifier carries no subject data.** It is random, and nothing is
   derived from a request's content.
 

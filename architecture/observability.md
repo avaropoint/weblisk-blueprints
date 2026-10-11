@@ -121,14 +121,14 @@ and the deployment's.
 ## Responsibilities
 
 ### Owns
-- Structured log format definition (JSON shape, required fields, levels)
-- When a span is opened and closed, what it is named, and how a trace is sampled ([Distributed Tracing](#distributed-tracing)). The carrier is `protocol/spec`'s and the identifiers are `protocol/types`'
+- When a span is opened and closed, and what it is named ([Distributed Tracing](#distributed-tracing)). The carrier and where sampling is decided are `protocol/spec`'s, the identifiers `protocol/types`'
 - Metrics endpoint contract (standard structured format, `wl_` prefix)
 - Standard metric definitions for orchestrator, domain controllers, and agents
 - Health endpoint response schema and status semantics
 - Correlation patterns for end-to-end debugging
 
 ### Does NOT Own
+- The log envelope, its fields and levels (`protocol/types` LogEntry and `patterns/logging`)
 - Log aggregation infrastructure (deployment-specific: Loki, ELK, CloudWatch)
 - Metrics scraping configuration (deployment-specific)
 - Alerting rules and thresholds (owned by agents/alerting and patterns/observability)

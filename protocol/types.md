@@ -22,7 +22,7 @@ JSON using the exact field names shown in the `json` column.
 
 ## Conventions
 
-- All timestamps are Unix epoch seconds (`int64`), except a log line's `ts` ([LogEntry](#logentry)) and a span's `start` and `end` ([Span](#span)), which are RFC 3339 UTC times with milliseconds
+- All timestamps are Unix epoch seconds (`int64`), except those [LogEntry](#logentry) and [Span](#span) declare
 - All IDs are 32-character hex strings (16 random bytes), except a span id, which is 16 lowercase hex characters (8 random bytes), because W3C Trace Context fixes it so ([TraceContext](#tracecontext))
 - All signatures are base64url-encoded ML-DSA-65 signatures (3309 bytes)
 - All public keys are base64url-encoded ML-DSA-65 public keys (1952 bytes)
@@ -3358,7 +3358,7 @@ security:
 
 ## Verification Checklist
 
-- [ ] All IDs are 32-character hex strings (16 random bytes) and a span id 16 (8 random bytes); all timestamps are Unix epoch seconds (int64), a log line's `ts` and a span's `start` and `end` RFC 3339 UTC with milliseconds
+- [ ] All IDs are 32-character hex strings (16 random bytes) and a span id 16 (8 random bytes); all timestamps are Unix epoch seconds (int64) except those LogEntry and Span declare
 - [ ] ML-DSA-65 signatures serialize as base64url-encoded 3309 bytes; public keys serialize as base64url-encoded 1952 bytes
 - [ ] ErrorResponse includes `error` (required), `code`, `category`, `retryable`, and `detail` fields with exact JSON keys
 - [ ] Error categories are constrained to `transient`, `permanent`, or `partial` and each standard error code maps to the correct HTTP status
