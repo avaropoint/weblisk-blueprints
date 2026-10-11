@@ -779,7 +779,9 @@ conclusive and success is not. Every implementation MUST report five outcomes:
 
 `necessary` MUST NOT be counted as `verified`, and MUST NOT be folded into
 `unchecked` — the first is the fault this layer exists to prevent, the second
-discards a real result. Only `failed` may drive a repair.
+discards a real result. Among this layer's outcomes, only `failed` may drive a
+repair; inside the repair loop, rounds are driven by the model's readings
+instead ([below](#what-a-repair-round-reads-and-in-what-order)).
 
 `not-applicable` MUST NOT be folded into `unchecked` either. They call for
 different things: an unchecked assertion needs a human to look at it and an
@@ -1590,7 +1592,7 @@ and "nothing contradicted it".
 - [ ] A round, or a repair tried alone in the retry, that leaves any package both builds show with more errors is undone, even where the same change fixed an error in that package and the new errors stand at lines it did not alter
 - [ ] A package the earlier failing build showed and the later one hides counts as worse, never as unchanged, when a round is judged, when a repair is tried alone, and when trees are ranked, including where what hid it is an added import of a package that already failed
 - [ ] An error is charged to a change in another file only where the file holding it imports the changed file or its package, or shares its Go package, and the line uses a declaration the change removed or re-signed; a matching word charges nothing, and a language whose imports cannot be read charges nothing across files
-- [ ] A round read worse, and not observed worse, is undone and not retried
+- [ ] A round with more assertions read unmet, and not observed worse, is undone and not retried, but only where both trees' assertions were read and no fewer conformance tests count against the tree
 - [ ] An undone round's responses are retried one repair at a time, a repair across files whole, with no new model call, each kept only if the tree it was tried on is no worse and no holding test fails
 - [ ] Every repair of a Go, JavaScript or TypeScript file is shown each other file's uses of the names its file declares; where the build cannot detect a broken use, a repair that removes a used export or imports a name not exported is refused before it is tried, judged alone and together with the round's earlier kept repairs
 - [ ] A default import is said to be missing only from an ES module with no default and no CommonJS export; a namespace import binds names, and only `require` and `import()` take the whole module

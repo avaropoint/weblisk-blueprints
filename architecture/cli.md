@@ -642,8 +642,10 @@ error of its own, it prints the verdict on that tree first, that it does not
 build, with the build's output, or what conformance established, and then each
 requirement left unrepaired and why, cutting the list for each source short at
 twelve with a count of the rest. When the loop ends on an error, such as a
-provider failure or a failed write, it prints that list and the error and no
-verdict, although the loop returned one. A provider failure the run can
+provider failure or a failed write, or ends on a best tree whose dependencies
+do not resolve, which the loop returns as an error and not as an `unchecked`
+verdict, it prints that list and the error and no verdict, although the loop
+returned one. A provider failure the run can
 outlast is resumed rather than ended
 ([`architecture/generation`](generation.md#surviving-a-provider-outage)), and
 a resumed run that finishes prints its verdict.
