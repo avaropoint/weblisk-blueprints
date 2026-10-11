@@ -65,7 +65,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=2.0.0 <3.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -305,7 +305,7 @@ types:
 ```
 1. Parse submit payload:
    { task_id, workflow_id, phase, target_agent, action,
-     input, timeout, trace_id, correlation_id, priority }
+     input, timeout, correlation_id, priority }
 
 2. Validate target agent exists in service directory
    If not found → publish task.failed immediately
@@ -325,7 +325,7 @@ types:
      context: { trace_id, span_id, correlation_id, services, workspace_root }
    POST target_agent.url + /v1/execute
      Timeout: task timeout (from submit payload or default)
-     Headers: Authorization: Bearer <token>, traceparent: 00-<trace_id>-<span_id>-<trace_flags>
+     Headers: Authorization: Bearer <token>, traceparent (protocol/types TraceContext)
 
 6. Handle response:
    2xx + status "success":
@@ -676,7 +676,7 @@ triggers:
 **Purpose:** Dispatch a task to the target agent via HTTP.
 
 **Input:** `task.submit` event payload:
-`{task_id, workflow_id, phase, target_agent, action, input, timeout, trace_id, correlation_id, priority}`
+`{task_id, workflow_id, phase, target_agent, action, input, timeout, correlation_id, priority}`
 
 **Processing:**
 
@@ -690,7 +690,7 @@ triggers:
 4. Publish: task.accepted (scope: requester)
 5. Dispatch via POST target_agent.url + /v1/execute:
    Build TaskRequest with action, payload, context
-   Headers: Authorization: Bearer <token>, traceparent: 00-<trace_id>-<span_id>-<trace_flags>
+   Headers: Authorization: Bearer <token>, traceparent (protocol/types TraceContext)
    Timeout: task timeout
 6. Handle response per state machine transitions
 7. Update in-flight tracking, dispatch next queued if capacity freed
@@ -1101,7 +1101,7 @@ tests:
     validates:
       - "TaskRecord created with status: dispatched"
       - "TaskRecord updated to status: completed"
-      - trace_id propagated in HTTP headers
+      - trace carried as traceparent and context.trace_id/span_id
 
   - name: Priority queue ordering
     trigger: 3 task.submit events (low, critical, high) while agent at capacity

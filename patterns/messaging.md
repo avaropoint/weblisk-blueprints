@@ -346,7 +346,7 @@ publish(topic, payload, scope, options)
    Headers:
      Content-Type: application/json
      X-Event-Id: <event_id>
-     traceparent: 00-<trace_id>-<span_id>-<trace_flags>
+     traceparent: the envelope's trace (protocol/types TraceContext)
 
 5. Handle responses:
    2xx → acknowledged, proceed
@@ -700,7 +700,7 @@ The Weblisk event envelope is intentionally compatible with the
 | `timestamp` | `time` (OPTIONAL) | Both use timestamp; Weblisk makes it required |
 | `version` | `dataschemaversion` | Weblisk versions the payload schema |
 | `payload` | `data` | Event-specific content |
-| `trace_id`, `span_id` | Extension: `traceparent` | Distributed tracing context, as `00-<trace_id>-<span_id>-<trace_flags>` |
+| `trace_id`, `span_id` | Extension: `traceparent` | Distributed tracing context ([`TraceContext`](../protocol/types.md#tracecontext)) |
 | `scope` | Extension: custom | Weblisk-specific delivery scoping |
 | `correlation_id` | Extension: custom | Weblisk-specific execution chain linking |
 | — | `specversion` (REQUIRED) | CloudEvents requires `"1.0"`; Weblisk omits (implied) |

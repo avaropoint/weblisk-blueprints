@@ -43,7 +43,7 @@ those outputs to downstream phases. The workflow engine handles:
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=2.0.0 <3.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: ErrorResponse

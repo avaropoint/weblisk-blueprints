@@ -613,7 +613,7 @@ injects a clean set:
 | `X-Gateway-Roles` | Comma-separated roles | User's authorization roles |
 | `X-Gateway-Groups` | Comma-separated groups | User's group memberships |
 | `X-Gateway-Sensitivity` | Route sensitivity level | Tells agent what data masking to apply |
-| `traceparent` | `00-<trace_id>-<span_id>-<trace_flags>` | The trace this request belongs to, and the gateway's span for it ([`protocol/spec`](../protocol/spec.md#trace-propagation)) |
+| `traceparent` | [`TraceContext`](../protocol/types.md#tracecontext) | The trace this request belongs to, and the gateway's span for it ([`protocol/spec`](../protocol/spec.md#trace-propagation)) |
 | `Authorization` | `Bearer <token>` | Internal WLT token for agent auth |
 | `X-Request-Id` | Request UUID | Unique request identifier |
 

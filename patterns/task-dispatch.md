@@ -55,7 +55,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=2.0.0 <3.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -238,7 +238,7 @@ contracts:
   events:
     - topic: task.submit
       description: New task submitted for dispatch
-      payload: {task_id, target_agent, action, input, priority, timeout, trace_id, correlation_id}
+      payload: {task_id, target_agent, action, input, priority, timeout, correlation_id}
     - topic: task.accepted
       description: Task accepted and queued for dispatch
       payload: {task_id, position, priority}
@@ -279,7 +279,6 @@ envelope is the universal interface for requesting agent execution.
 | input | object | no | Payload delivered to the target agent |
 | priority | TaskPriority | no | Dispatch priority (default: `normal`) |
 | timeout | int | no | Execution timeout in seconds (default: 300) |
-| trace_id | string | yes | Distributed trace context |
 | correlation_id | string | no | Workflow correlation identifier |
 | workflow_id | string | no | Parent workflow execution ID |
 | phase | string | no | Workflow phase name |
@@ -297,7 +296,6 @@ envelope is the universal interface for requesting agent execution.
   },
   "priority": "normal",
   "timeout": 120,
-  "trace_id": "trace-abc123",
   "workflow_id": "wf-001",
   "phase": "seo-check"
 }
@@ -341,7 +339,7 @@ Tasks are delivered to target agents via `POST /v1/execute`:
 ```
 POST <target_agent_url>/v1/execute
 Authorization: Bearer <dispatch_token>
-traceparent: 00-<trace_id>-<span_id>-<trace_flags>
+traceparent: <TraceContext, protocol/types>
 Content-Type: application/json
 
 {
@@ -350,6 +348,7 @@ Content-Type: application/json
   "payload": <input>,
   "context": {
     "trace_id": "<trace_id>",
+    "span_id": "<span_id>",
     "correlation_id": "<correlation_id>",
     "services": { ... },
     "workspace_root": "<path>"
@@ -577,9 +576,6 @@ types:
         default: 300
         unit: seconds
         description: Execution timeout
-      trace_id:
-        type: string
-        description: Distributed trace context
       correlation_id:
         type: string
         optional: true
@@ -814,10 +810,10 @@ to handle failures in their workflow.
 - **Capacity cache**: Agent capacity is cached from manifests
   received via `system.agent.registered`. The cache is rebuilt
   from the service directory on startup.
-- **Trace propagation**: The dispatch continues the submission's trace.
-  It sends `traceparent`, sets `context.trace_id` and `context.span_id` to
-  the span it opened for the dispatch, and every event it publishes carries
-  the same trace ([`protocol/spec`](../protocol/spec.md#trace-propagation)).
+- **Trace propagation**: The dispatch continues the trace of the
+  `task.submit` event's envelope. It sends `traceparent`, sets
+  `context.trace_id` and `context.span_id` to the span it opened for the
+  dispatch, and every event it publishes carries the same trace ([`protocol/spec`](../protocol/spec.md#trace-propagation)).
 - **No payload in events**: Task events carry metadata (IDs, status,
   timestamps) but NOT the full input/output payload. Consumers
   that need payloads query the task record directly.

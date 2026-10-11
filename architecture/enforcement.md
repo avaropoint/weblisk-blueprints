@@ -100,7 +100,7 @@ Enforcement operates on four principles:
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=2.0.0 <3.0.0"
+    version: ">=1.13.0 <3.0.0"
     bindings:
       types:
         - name: ServiceDirectory

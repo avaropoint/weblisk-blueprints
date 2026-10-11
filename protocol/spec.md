@@ -176,7 +176,8 @@ Executes a task synchronously. Requires auth token in the request body.
 **Response:** `TaskResult`
 
 The agent MUST:
-1. Validate the request has a non-empty `id` and `token`
+1. Validate the request has a non-empty `id` and `token`, and a `context`
+   carrying `trace_id` and `span_id`
 2. Update internal service directory from `context.services` (if provided)
 3. Execute domain-specific logic
 4. Return result with `task_id` matching request `id`
@@ -984,7 +985,8 @@ what it is named, are
   a request carries both a `traceparent` and an envelope and they differ, the
   envelope's values are used; the flags are always `traceparent`'s.
 - **A trace starts only where none can be continued**: a timer firing, a
-  `traceparent` that does not parse, or any request from outside the tenant,
+  request with no `traceparent` and no envelope, or one whose `traceparent`
+  does not parse, or any request from outside the tenant,
   whose `traceparent`, and the `trace_id` and `span_id` of any envelope it
   carries, the gateway, the admin gateway or `POST /v1/federation/task` does
   not continue (W3C Trace Context permits a restart at a trust boundary), so

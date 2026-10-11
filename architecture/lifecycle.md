@@ -43,7 +43,7 @@ it does with the output of the ones it does not.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=2.0.0 <3.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: RegisterRequest

@@ -121,13 +121,11 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/observability
-      version: ">=2.0.0 <3.0.0"
+      version: ">=1.0.0 <3.0.0"
       bindings:
         types:
           - name: HealthStatus
             fields_used: [status, name, version, uptime]
-        behaviors:
-          - name: trace-propagation
       on_change:
         compatible: validate-and-adopt
         breaking: version-bump

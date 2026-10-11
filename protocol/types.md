@@ -23,7 +23,7 @@ JSON using the exact field names shown in the `json` column.
 ## Conventions
 
 - All timestamps are Unix epoch seconds (`int64`), except those [LogEntry](#logentry) and [Span](#span) declare
-- All IDs are 32-character hex strings (16 random bytes), except a span id, which is 16 lowercase hex characters (8 random bytes), because W3C Trace Context fixes it so ([TraceContext](#tracecontext))
+- All IDs are 32-character hex strings (16 random bytes), except a span id ([TraceContext](#tracecontext))
 - All signatures are base64url-encoded ML-DSA-65 signatures (3309 bytes)
 - All public keys are base64url-encoded ML-DSA-65 public keys (1952 bytes)
 - Optional fields MAY be omitted from JSON when empty/null
@@ -3060,7 +3060,7 @@ types:
         name: ComponentType
         type: string
         required: true
-        description: "`agent`, `domain`, or the architecture blueprint the component is built from, e.g. `orchestrator`, `gateway`, `content`"
+        description: "`agent`, `domain`, or the architecture blueprint the component is built from"
       trace_id:
         name: TraceID
         type: string
@@ -3181,7 +3181,7 @@ types:
         name: ParentSpanID
         type: string
         required: false
-        description: "The span that sent the request this span serves. A parent another component opened is the line between the two components"
+        description: "The span that sent the request this span serves"
       name:
         name: Name
         type: string

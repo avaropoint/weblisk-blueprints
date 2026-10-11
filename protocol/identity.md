@@ -118,7 +118,7 @@ of hash functions.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=2.0.0 <3.0.0"
+    version: ">=1.15.0 <3.0.0"
     bindings:
       types:
         - name: AgentManifest

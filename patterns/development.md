@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: development
-version: 1.0.1
+version: 1.1.0
 requires: [protocol/types, patterns/security, patterns/observability]
 platform: any
 tier: free
@@ -459,10 +459,18 @@ The development server writes every request as one log line in the envelope
   "msg": "GET /index.html 200",
   "component": "dev-server",
   "component_type": "cli",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "00f067aa0ba902b7",
   "duration_ms": 3,
   "details": {"method": "GET", "path": "/index.html", "status_code": 200}
 }
 ```
+
+It starts a trace for each request it serves. Its one custom log type:
+
+| Log Type | Level | When | Required Details |
+|----------|-------|------|-----------------|
+| `dev-server.request.served` | info | A request was answered | `{method, path, status_code}` |
 
 Security-relevant events (dotfile access attempts, path traversal
 attempts) are logged at `warn` level with the standard security

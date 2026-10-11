@@ -20,9 +20,6 @@ like, which log types exist, how a record maps to the OpenTelemetry log data
 model, what must never be written, and where a record is redacted.
 
 The fields are [`LogEntry`](../protocol/types.md#logentry)'s.
-[`architecture/observability`](../architecture/observability.md#structured-logging)
-and [`protocol/spec`](../protocol/spec.md#structured-log-format) point here and
-state none of it.
 
 ---
 
@@ -63,15 +60,11 @@ requires:
 
 ## Design Principles
 
-1. **Structured always** — Every log line is valid JSON. No free-text
-   logging. Human-readable messages go in the `msg` field.
-2. **Correlation by default** — Every log line written while a request is
-   served carries its `trace_id` and `span_id`, and every line carries
-   `component`, for cross-system tracing without post-processing.
-3. **Event-typed** — Logs have a `log_type` field that categorizes
-   the event, enabling automated filtering and alerting.
+1. **Structured always** — Every log line is valid JSON; the human message
+   is `msg`.
+2. **Correlation by default** — see [Correlation](#correlation).
+3. **Event-typed** — `log_type` categorizes every record for filtering.
 4. **Minimal overhead** — Logging MUST NOT degrade agent performance.
-   Debug-level logging is disabled by default.
 5. **No vendor lock-in** — The envelope maps onto the OpenTelemetry log data
    model, and standard output works with no collector at all.
 
@@ -191,9 +184,8 @@ A record pushed as OTLP is the same record, field for field:
 
 ## Log Types
 
-Log types categorize records for automated processing. Agents MUST
-use standard log types for framework events and MAY define custom
-types for agent-specific events.
+Agents MUST use the standard types for framework events and MAY define
+custom ones.
 
 ### Standard Log Types
 
@@ -295,10 +287,8 @@ Agents MAY define custom log types using the pattern:
 
 Example: `cron.task.fired`, `alerting.notification.sent`
 
-`<agent_name>` is the agent's own event namespace, so a filter on a namespace
-still returns its owner alone. An agent never defines a type under a
-namespace it does not own; the rule for standard types above is about types
-every component writes.
+`<agent_name>` is the agent's own event namespace; an agent never defines a
+type under a namespace it does not own.
 
 Custom log types MUST be documented in the agent's blueprint under
 the Observability section, in a Custom Log Types table laid out as
@@ -326,15 +316,8 @@ logging:
     orchestrator: warn
 ```
 
-### Configuration Parameters
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| Log level | `info` | Minimum log level |
-| Log level overrides | `""` | Per-component level overrides (component=level pairs) |
-
-There is no output setting and no text format. Records are JSON lines on
-standard output, and a person reads them through a tool that renders them.
+There is no output setting and no text format: a person reads the JSON lines
+through a tool that renders them.
 
 ---
 
@@ -342,18 +325,16 @@ standard output, and a person reads them through a tool that renders them.
 
 ### Trace Correlation
 
-Every log line written while a request is served MUST include its `trace_id`,
-and the `span_id` of the span open when it was written. How a trace arrives,
-starts and is sent on is
+Every log line written while a request is served MUST include its `trace_id`
+and the `span_id` open when it was written. The trace itself is
 [`protocol/spec`](../protocol/spec.md#trace-propagation)'s.
 
 ---
 
 ## Log Rotation
 
-Rotation is the responsibility of the container runtime or process manager
-that captures standard output. A component does not manage rotation, and
-writes to no log file of its own.
+Rotation belongs to whatever captures standard output. A component writes no
+log file of its own.
 
 ---
 
@@ -380,8 +361,6 @@ whose records must be redacted points here.
 - Log emission MUST be non-blocking. If stdout is backed up, or a push to
   telemetry cannot be sent, logs MAY be dropped rather than blocking the
   agent's event loop. Dropped logs SHOULD increment a dropped logs counter.
-- `ts` carries milliseconds, the precision its one format fixes; use
-  `duration_ms` for a duration rather than subtracting two timestamps.
 - The `details` field is typed per `log_type`. Implementations SHOULD
   validate that details match the expected schema in debug builds.
 - Stack traces in error logs SHOULD be truncated to 20 frames maximum.

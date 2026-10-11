@@ -566,7 +566,7 @@ async function start() {
 }
 
 start().catch((err) => {
-  logger.error({ log_type: "process.startup", error: err.message }, "Failed to start agent");
+  logger.error({ log_type: "error.unhandled", error: err.message }, "Failed to start agent");
   process.exit(1);
 });
 ```
