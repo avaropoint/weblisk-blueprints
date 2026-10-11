@@ -1181,12 +1181,12 @@ types:
         name: TraceID
         type: string
         required: true
-        description: "The trace this task belongs to ([TraceContext](#tracecontext)). How it is carried is [`protocol/spec`](spec.md#trace-propagation)'s"
+        description: "The trace this task belongs to ([TraceContext](#tracecontext))"
       span_id:
         name: SpanID
         type: string
         required: true
-        description: "The sender's span for this call ([TraceContext](#tracecontext)). What a receiver does with it is [`protocol/spec`](spec.md#trace-propagation)'s"
+        description: "The sender's span for this call ([TraceContext](#tracecontext))"
 ```
 
 ### TaskResult
@@ -2470,7 +2470,7 @@ types:
         name: SpanID
         type: string
         required: true
-        description: "The publisher's span for this publish ([TraceContext](#tracecontext)). What a subscriber does with it is [`protocol/spec`](spec.md#trace-propagation)'s"
+        description: "The publisher's span for this publish ([TraceContext](#tracecontext))"
       version:
         name: Version
         type: string
@@ -3264,7 +3264,7 @@ types:
         description: Arguments for the action, shaped by the target's declared inputs
       trace_id:
         type: string
-        description: Correlation identifier propagated across every hop of this task
+        description: "The trace this task ran under, kept as a record and never a carrier ([TraceContext](#tracecontext))"
 
   FileRecord:
     description: A stored file and the addresses it can be retrieved from

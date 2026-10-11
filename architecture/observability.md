@@ -107,9 +107,9 @@ it observes.
                                   Reader
 ```
 
-**Responsibilities.** The structured record envelope, metric declarations, trace
-correlation, redaction before a record is written, and an append-only audit with a
-hash chain.
+**Responsibilities.** Metric declarations, trace correlation, and an append-only
+audit with a hash chain. The record envelope and redaction at emission are
+`patterns/logging`'s.
 
 **Not responsibilities.** Acting on what it observes — that is
 `architecture/lifecycle`. Deciding a record's classification, which is
@@ -392,7 +392,7 @@ dashboards for these key queries:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| Log level | — | [`patterns/logging`](../patterns/logging.md#level-configuration)'s Level Configuration |
+| Log level | — | [`schemas/config`](../schemas/config.md)'s `observability.log_level` |
 | Tracing enabled | `false` | Record sampled spans. Trace context is carried whether or not this is set |
 | Trace sample rate | `1.0` | Trace sampling rate (0.0–1.0), applied where a trace starts |
 | Trace export target | — | Where sampled spans are exported, where telemetry is deployed |
@@ -467,7 +467,7 @@ security:
 ## Verification Checklist
 
 - [ ] All components write the one log envelope `patterns/logging` defines
-- [ ] Log levels are configured as `patterns/logging`'s Level Configuration states
+- [ ] The log level is `schemas/config`'s `observability.log_level`
 - [ ] Trace context is carried, continued and started as `protocol/spec`'s Trace Propagation says (`trace-propagation`)
 - [ ] Every span takes its name from the Span Names table, and opens and closes as Span Lifecycle says
 - [ ] GET /metrics returns structured metrics with wl_ prefix and does NOT require authentication

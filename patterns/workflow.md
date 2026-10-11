@@ -445,9 +445,10 @@ for each phase in current level (concurrent):
            target_agent: phase.agent,
            action: phase.action,
            input: resolved_input,
-           timeout: phase.timeout,
-           trace_id: execution.trace_id
+           timeout: phase.timeout
          }
+         (the event envelope carries the trace:
+          protocol/spec#trace-propagation)
 
   d. Workflow Agent waits for corresponding task.complete or
      task.failed event (matched by workflow_id + phase name)

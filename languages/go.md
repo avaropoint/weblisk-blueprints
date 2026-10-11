@@ -417,7 +417,8 @@ channel-based semaphore and `WaitGroup` dispatch patterns.
 
 - One `LogEntry` per line on standard output, in the envelope
   [`patterns/logging`](../patterns/logging.md) defines
-- Use `log/slog` with a JSON handler on `os.Stdout`
+- Use `log/slog` with a JSON handler on `os.Stdout` whose `ReplaceAttr` writes
+  `LogEntry`'s keys: `time` as `ts`, `level` in lower case
 
 ### The HTTP Surface
 

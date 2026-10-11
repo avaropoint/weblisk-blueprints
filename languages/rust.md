@@ -424,7 +424,8 @@ pub enum WebliskError {
 ### Logging
 
 - Use `tracing` crate with `tracing-subscriber` for structured JSON logging
-- Write the `LogEntry` envelope [`patterns/logging`](../patterns/logging.md) defines, on standard output
+- Write the `LogEntry` envelope [`patterns/logging`](../patterns/logging.md) defines, on standard output,
+  through a formatter that writes its keys (`ts`, `level` in lower case, `msg`) rather than the crate's own
 - Configure with `RUST_LOG` environment variable for level filtering
 
 ```rust
@@ -433,7 +434,7 @@ tracing_subscriber::fmt()
     .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
     .init();
 
-tracing::info!(component = "orchestrator", "server started on port {}", port);
+tracing::info!(component = "orchestrator", log_type = "process.startup", port, "server started on port {}", port);
 ```
 
 ### Configuration
@@ -619,8 +620,8 @@ async fn dispatch_phase(tasks: Vec<TaskRequest>, agents: &AgentRegistry) -> Vec<
     while let Some(res) = set.join_next().await {
         match res {
             Ok(Ok(response)) => results.push(response),
-            Ok(Err(e)) => tracing::error!("task failed: {}", e),
-            Err(e) => tracing::error!("join error: {}", e),
+            Ok(Err(e)) => tracing::error!(log_type = "execute.failed", "task failed: {}", e),
+            Err(e) => tracing::error!(log_type = "error.unhandled", "join error: {}", e),
         }
     }
     results

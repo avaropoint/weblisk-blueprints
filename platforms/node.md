@@ -341,11 +341,17 @@ export interface AgentManifest {
   actions: string[];
 }
 
+export interface TaskContext {
+  trace_id: string; // required: protocol/types TaskContext
+  span_id: string;
+  [field: string]: unknown;
+}
+
 export interface TaskRequest {
   task_id: string;
   action: string;
   payload: Record<string, unknown>;
-  trace_id?: string;
+  context: TaskContext;
 }
 
 export interface TaskResult {

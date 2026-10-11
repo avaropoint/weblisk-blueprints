@@ -248,8 +248,8 @@ service's API after reading a census of what would leave
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `log_level` | enum | no | `info` | Minimum log level |
-| `trace_enabled` | boolean | no | `false` | Record sampled spans. Trace context is carried whether or not this is set ([`protocol/spec`](../protocol/spec.md#trace-propagation)) |
-| `trace_sample_rate` | float | no | `1.0` | Fraction of requests to trace |
+| `trace_enabled` | boolean | no | `false` | Whether this component records the spans of sampled traces. When unset it records none, but still carries the trace and passes its flags on unchanged ([`protocol/spec`](../protocol/spec.md#trace-propagation)) |
+| `trace_sample_rate` | float | no | `1.0` | Fraction of traces sampled, applied only where a trace starts |
 | `metrics_enabled` | boolean | no | `true` | Expose structured metrics at `/metrics` on each component |
 | `trace_export_endpoint` | string | no | — | Send traces/metrics to an external collector |
 

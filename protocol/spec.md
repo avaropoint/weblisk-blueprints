@@ -979,21 +979,25 @@ what it is named, are
   request sent from a stored envelope (a retry, a redelivery) sends flags
   `01`: a retry is recorded even in an unsampled trace, the one exception to
   sampling being decided once, because a failed delivery is the span a reader
-  most needs.
+  most needs. Work resumed from a record that keeps only a `trace_id` (a
+  stored task, a cron run) continues that trace with no parent span.
 - **A receiver continues the trace it is given.** Its span takes the arriving
   `trace_id` and records the arriving `span_id` as its `parent_span_id`. Where
   a request carries both a `traceparent` and an envelope and they differ, the
-  envelope's values are used; the flags are always `traceparent`'s.
-- **A trace starts only where none can be continued**: a timer firing, a
-  request with no `traceparent` and no envelope, or one whose `traceparent`
-  does not parse, or any request from outside the tenant,
-  whose `traceparent`, and the `trace_id` and `span_id` of any envelope it
-  carries, the gateway, the admin gateway or `POST /v1/federation/task` does
-  not continue (W3C Trace Context permits a restart at a trust boundary), so
-  an outside caller chooses neither the trace id nor the sampling. Its
+  envelope's values are used; the flags are always `traceparent`'s. A request
+  with an envelope whose `traceparent` is missing or does not parse continues
+  the envelope's trace with flags `01`, as a retry does.
+- **A trace starts only where none can be continued**: a timer firing, or a
+  request with neither a `traceparent` that parses nor an envelope. Its
   `trace_id` is 16 random bytes from a cryptographic source, and whether it is
   sampled is decided there, once; every component inside honours the flags it
-  receives, retries aside.
+  receives, except where a rule above sends `01`.
+- **A trace restarts at the trust boundary.** The gateway, the admin gateway
+  and `POST /v1/federation/task` continue nothing a request from outside the
+  tenant carries: neither its `traceparent` nor the `trace_id` and `span_id`
+  of any envelope in it. Each starts a new trace there (W3C Trace Context
+  permits a restart at a trust boundary), so an outside caller chooses neither
+  the trace id nor the sampling.
 - **A trace identifier carries no subject data.** It is random, and nothing is
   derived from a request's content.
 

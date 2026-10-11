@@ -423,8 +423,9 @@ Else:
       task_id, workflow_id, phase: phase.name,
       target_agent: phase.agent, action: phase.action,
       input: resolved_input, timeout: phase.timeout,
-      trace_id, correlation_id
+      correlation_id
     }
+    (the event envelope carries the trace: protocol/spec#trace-propagation)
   Track: in_flight[workflow_id][phase.name] = task_id
 ```
 

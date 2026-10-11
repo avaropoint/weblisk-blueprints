@@ -279,21 +279,20 @@ A span line's own `trace_id` and `span_id` are the span's.
 
 ### Custom Log Types
 
-Agents MAY define custom log types using the pattern:
+A component MAY define custom log types using the pattern:
 
 ```
-<agent_name>.<entity>.<action>
+<component>.<entity>.<action>
 ```
 
 Example: `cron.task.fired`, `alerting.notification.sent`
 
-`<agent_name>` is the agent's own event namespace; an agent never defines a
-type under a namespace it does not own.
+`<component>` is the component's own name, which for an agent is its own
+event namespace; no component defines a type under a name another owns.
 
-Custom log types MUST be documented in the agent's blueprint under
-the Observability section, in a Custom Log Types table laid out as
-[Standard Log Types](#standard-log-types) is. Standard types are inherited and
-are not declared.
+An agent declares its custom log types in its blueprint's Observability
+section, as [`schemas/agent`](../schemas/agent.md)'s `custom_log_types`.
+Standard types are inherited and are not declared.
 
 ---
 
@@ -308,15 +307,8 @@ are not declared.
 
 ### Level Configuration
 
-```yaml
-logging:
-  level: info                    # Global minimum level
-  level_overrides:               # Per-component overrides
-    seo-analyzer: debug
-    orchestrator: warn
-```
-
-There is no output setting and no text format: a person reads the JSON lines
+The minimum level is [`schemas/config`](../schemas/config.md)'s
+`observability.log_level`. There is no output setting and no text format: a person reads the JSON lines
 through a tool that renders them.
 
 ---
