@@ -807,15 +807,16 @@ same store.
 
 An implementation that puts the reservation check inside `ClaimNamespace`
 therefore refuses the one component that is supposed to own it. That happened:
-a generated orchestrator died two seconds into startup with
+a generated orchestrator failed its startup two seconds in with
 
 ```
 startup: reserve namespace "system": namespace "system" is reserved
 ```
 
-and its own `GET /readyz` then honestly answered not ready, its namespace check
-failing, because the orchestrator did not own the namespace it is required to
-own.
+and its own health check, as the spec then had it, honestly reported
+`namespaces: degraded`, because the orchestrator did not own the namespace it
+is required to own. Under today's spec the same fault is the orchestrator's
+`GET /readyz` answering not ready ([`protocol/types`](../protocol/types.md#readiness)).
 
 The general form is worth stating because it will recur: **a store records, a
 policy decides.** Enforcement that belongs to a request path, placed in the

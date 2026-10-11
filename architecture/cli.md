@@ -1767,7 +1767,7 @@ meta-checker      agent           ready      1.0.0     15s ago
 uptime-checker    agent           ready      1.0.0     3s ago
 perf-auditor      agent           ready      1.0.0     21s ago
 cron              infrastructure  ready      1.0.0     5s ago
-email-send        infrastructure  not_ready  1.0.0     2m ago
+email-send        infrastructure  not_ready  1.0.0     4s ago
 
 8 agents (7 ready, 1 not ready, 0 unknown)
 ```

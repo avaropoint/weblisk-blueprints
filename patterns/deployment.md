@@ -102,7 +102,7 @@ contracts:
           description: Error rate threshold for automatic rollback
       inherits: Health check integration, rollback automation
       overridable: true
-      override_constraints: Must include health check verification before routing traffic
+      override_constraints: Must wait for `GET /readyz` to answer ready before routing traffic
 
     - name: environment-management
       description: Configuration resolution across environment tiers
@@ -552,7 +552,7 @@ weblisk deploy rollback --env production --version 1.1.0
 - [ ] Secrets never appear in source code, config files, Docker images, build logs, or CI pipeline definitions
 - [ ] Configuration resolves in order: built-in defaults → weblisk.yaml → env-specific yaml → WL_* environment variables → secrets manager
 - [ ] CI pipeline executes four stages in order: lint & check → build image → test (unit + integration + security) → deploy
-- [ ] Rolling update verifies health check passes on each new instance before routing traffic; failed health check stops rollout
+- [ ] Rolling update waits for `GET /readyz` to answer ready on each new instance before routing traffic; an instance that never answers ready stops the rollout
 - [ ] Automatic rollback triggers when error rate exceeds 5% during the 5-minute post-deploy monitoring window
 - [ ] Database migrations run on server startup before accepting traffic; failed migration aborts startup
 - [ ] Zero-downtime migrations are additive only — column removal uses a two-phase (or three-release) approach

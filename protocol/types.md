@@ -2211,9 +2211,10 @@ types:
         description: "Unix epoch seconds at which it lapses unless renewed"
 ```
 
-A registration grants the first lease (`RegisterResponse.lease`), with the
-component's readiness taken as `ready: false` until its first renewal says
-otherwise.
+A first registration grants the first lease (`RegisterResponse.lease`), with
+the component's readiness taken as `ready: false` until its first renewal says
+otherwise. A re-registration does not reset it: what it keeps and what it moves
+on is [`protocol/spec`](spec.md#post-v1register)'s (§POST /v1/register, step 8).
 
 ### LeaseRenewal
 
@@ -2246,9 +2247,7 @@ one after a lapse included, is [`protocol/spec`](spec.md#post-v1lease)'s. A comp
 
 What the directory and its leases are the authority for, and who may probe
 whom, is [`architecture/orchestrator`](../architecture/orchestrator.md#presence)
-§Presence's: no registered component is polled for its presence or readiness,
-by the orchestrator or by telemetry; the orchestrator, which holds no lease,
-is the one component telemetry probes.
+§Presence's.
 
 ---
 

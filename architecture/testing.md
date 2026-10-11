@@ -577,9 +577,11 @@ Applies to: every component that registers — **not** the orchestrator itself.
 2. Start the component with that orchestrator's URL
 3. The component MUST reach a listening state and MUST NOT exit
 4. The orchestrator's directory (GET /v1/services, read under a registration
-   the harness makes for itself) MUST list the component, and its
-   lease_state MUST be `ready` within one lease duration
-5. The component's GET /readyz MUST answer ready
+   the harness makes for itself) MUST list the component, and within one
+   lease duration its lease_state MUST be current: `ready`, or `not_ready`
+   where the component's own blueprint says it may serve not ready (content
+   with a repository left establishing or declined), and never `unknown`
+5. The component's GET /readyz MUST answer as its last renewal did
 6. The component MUST hold an agent_id and a token, and MUST renew its lease
    at POST /v1/lease within a third of its duration
 ```
@@ -698,7 +700,7 @@ security:
 
 ## Verification Checklist
 - [ ] Conformance sign-off requires Level 4 against a real orchestrator; the mock alone is never sufficient
-- [ ] Every registering component passes L4-01: it listens, registers, renews its lease, and the orchestrator's directory lists it `ready`
+- [ ] Every registering component passes L4-01: it listens, registers, renews its lease, and the orchestrator's directory lists its lease current (`ready`, or `not_ready` where its blueprint allows), never `unknown`
 - [ ] A manifest carrying an extra field still registers (L4-03)
 - [ ] Every registering component passes L4-04: it starts with no orchestrator, answers `GET /livez` live and `GET /readyz` not ready, and refuses protected endpoints with 401
 
