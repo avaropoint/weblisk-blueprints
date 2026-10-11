@@ -95,6 +95,8 @@ and six folders were absent altogether.
 | [`skills/`](skills/README.md) | Guides for a coding agent — not specifications |
 
 Why the corpus is divided this way is [`CORPUS_SHAPE.md`](CORPUS_SHAPE.md).
+The names it has stopped using, and what replaced each, are listed once, in
+[`RETIRED.md`](RETIRED.md).
 
 ### Architecture Hierarchy
 
@@ -209,27 +211,12 @@ weblisk blueprint update
 
 ### Multiple Blueprint Sources
 
-The CLI resolves blueprints in priority order:
-
-0. **The corpus you are standing in** — the working directory itself, when it
-   is a blueprint corpus such as this one, read in place
-1. **Local project** — `blueprints/` in the user's project
-2. **Custom sources** — additional repos via configured blueprint sources
-3. **Core** — this repository (always present)
-
-A higher source overrides a lower one at the same path. For example,
-a customer's `domains/checkout.md` takes precedence over the core version.
-
-Blueprint sources are configured via runtime configuration (e.g.,
-environment variable, config file, or CLI flag). Multiple sources
-are separated by newlines or commas:
-
-```yaml
-# Example configuration
-blueprint_sources:
-  - https://github.com/acme-corp/acme-blueprints.git
-  - https://github.com/acme-corp/acme-blueprints-internal.git
-```
+The CLI reads blueprints from more than one source, in the order
+[`architecture/cli` → Where blueprints come from](architecture/cli.md#where-blueprints-come-from)
+gives: which sources there are, which one is read where two hold the same file,
+the directory each is judged from, and how a repository is added to them. A
+customer's `domains/checkout.md`, for example, is read in place of the core
+version.
 
 **Source format:**
 
@@ -237,8 +224,7 @@ blueprint_sources:
 |--------|---------|-------|
 | HTTPS | `https://github.com/org/repo.git` | Uses git credential helper |
 | SSH | `git@github.com:org/repo.git` | Uses SSH key |
-| Branch/tag | `https://github.com/org/repo.git@v2.0` | Pin to ref after `@` |
-| Local path | `file:///path/to/local/blueprints` | For development |
+| Local path | `/path/to/local/blueprints` | For development |
 
 **Authentication:** The CLI uses the system's existing Git credentials —
 SSH keys, credential helpers, or GitHub CLI auth. No additional configuration

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: data-security
-version: 1.2.3
+version: 1.2.4
 requires: [protocol/types, protocol/spec, protocol/identity, protocol/federation, architecture/content, architecture/gateway, architecture/observability, architecture/enforcement, patterns/scope, patterns/policy, patterns/privacy, patterns/contract]
 platform: any
 tier: free
@@ -118,7 +118,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/content
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         - name: ContentRepository
