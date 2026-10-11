@@ -1236,6 +1236,5 @@ security:
 - [ ] All error responses use `ErrorResponse` format with `error` field
 - [ ] Error responses include `code` and `category` when available
 - [ ] Every request between components carries `traceparent`, every task, message and event carries `trace_id` and `span_id` naming the sender's span, and a receiver records that span as its own span's `parent_span_id`
-- [ ] Log lines are the one envelope `patterns/logging` defines, written to standard output
 - [ ] `correlation_id` links all events in a single execution chain
 - [ ] All protected endpoints reject requests without valid tokens

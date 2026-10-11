@@ -161,9 +161,11 @@ and the deployment's.
 
 ## Design Principles
 
-> **Scope boundary.** This document defines system-wide observability
-> conventions — log shape, trace propagation, and metric collection
-> infrastructure. For the agent-level health endpoint contract, component
+> **Scope boundary.** This document defines when spans open and close and
+> what they are named, and the metric collection infrastructure. The log
+> envelope is [`patterns/logging`](../patterns/logging.md)'s and
+> [`protocol/types`](../protocol/types.md#logentry)'s; the trace carrier is
+> [`protocol/spec`](../protocol/spec.md#trace-propagation)'s. For the agent-level health endpoint contract, component
 > state machine, base metrics envelope, and alert integration, see
 > [patterns/observability.md](../patterns/observability.md). The two are
 > complementary: architecture/observability defines the telemetry pipeline;
@@ -390,7 +392,7 @@ dashboards for these key queries:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| Log level | `info` | Global log level |
+| Log level | — | [`patterns/logging`](../patterns/logging.md#level-configuration)'s Level Configuration |
 | Tracing enabled | `false` | Record sampled spans. Trace context is carried whether or not this is set |
 | Trace sample rate | `1.0` | Trace sampling rate (0.0–1.0), applied where a trace starts |
 | Trace export target | — | Where sampled spans are exported, where telemetry is deployed |
@@ -426,15 +428,14 @@ security:
   boundaries:
     - boundary: Component → Observability. Components emit; observability never
         calls back into them to act
-    - boundary: Log record → Scope. Redaction applies before a record is written,
-        not before it is read
+    - boundary: Log record → Scope. Redacted at emission, as
+        patterns/logging's Sensitive Data states
     - boundary: Audit record → Mutation. Append-only. An audit record is never
         amended or deleted
     - boundary: Observability → Reader. What a reader sees is bounded by their
         scope, including in aggregates
   enforcement:
-    - rule: A record carrying data above its scope is redacted before it is
-        written
+    - rule: A log record is redacted at emission
       mechanism: patterns/logging's redaction-at-emission
     - rule: An audit record is never modified or removed
       mechanism: Append-only store with a hash chain over entries
@@ -465,8 +466,8 @@ security:
 
 ## Verification Checklist
 
-- [ ] All components write the one log envelope `patterns/logging` defines: JSON lines on stdout, `ts` in RFC 3339 UTC with milliseconds
-- [ ] Log levels are configurable globally and per-component via configuration parameters
+- [ ] All components write the one log envelope `patterns/logging` defines
+- [ ] Log levels are configured as `patterns/logging`'s Level Configuration states
 - [ ] Trace context is carried, continued and started as `protocol/spec`'s Trace Propagation says (`trace-propagation`)
 - [ ] Every span takes its name from the Span Names table, and opens and closes as Span Lifecycle says
 - [ ] GET /metrics returns structured metrics with wl_ prefix and does NOT require authentication

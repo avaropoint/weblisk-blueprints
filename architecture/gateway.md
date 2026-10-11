@@ -135,7 +135,7 @@ requires:
     version: ">=2.0.0 <3.0.0"
     bindings:
       behaviors:
-        # The gateway starts or continues the trace of every request it mediates
+        # The gateway starts the trace of every request it mediates
         - name: trace-propagation
     on_change:
       compatible: validate-and-adopt
@@ -964,8 +964,9 @@ security:
   If present, they MUST be stripped before forwarding. Only the admin
   gateway may inject operator context headers.
 - The gateway emits structured logs and traces following the
-  observability blueprint, with additional fields for the external
-  request context (client IP, user agent, geolocation if available).
+  observability blueprint, with the external request context (client IP,
+  user agent, geolocation if available) in a `LogEntry`'s `details` and as
+  span attributes.
 
 ---
 
@@ -1103,8 +1104,8 @@ not say which one produced it.
   `X-Weblisk-Target: /api/v1/ai/chat`. It is the gateway's own header and is
   NOT stripped by response sanitization, which removes `X-Gateway-*` and
   `X-Agent-*`.
-- Every request log entry and span MUST record `route`, `target` and
-  `component`, so a trace answers "which version served this" without
+- Every request log entry MUST record `route` and `target` in `details`, and
+  every span as attributes, beside its `component`, so a trace answers "which version served this" without
   inference.
 - `GET /v1/health` MUST report the application API versions the map currently
   targets, so an operator can see the split without reading configuration.

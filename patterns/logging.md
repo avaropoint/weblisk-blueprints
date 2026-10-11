@@ -301,7 +301,9 @@ namespace it does not own; the rule for standard types above is about types
 every component writes.
 
 Custom log types MUST be documented in the agent's blueprint under
-the Observability section.
+the Observability section, in a Custom Log Types table laid out as
+[Standard Log Types](#standard-log-types) is. Standard types are inherited and
+are not declared.
 
 ---
 
@@ -345,22 +347,6 @@ and the `span_id` of the span open when it was written. How a trace arrives,
 starts and is sent on is
 [`protocol/spec`](../protocol/spec.md#trace-propagation)'s.
 
-```
-Incoming request (traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01)
-  → every log line written while serving it carries trace_id 4bf92f3577b34da6a3ce929d0e0e4736
-  → and the span_id of the span open at the time
-```
-
-### Correlation Fields
-
-For debugging a specific flow across multiple agents:
-
-```
-jq 'select(.trace_id == "4bf92f3577b34da6a3ce929d0e0e4736")' captured-stdout.jsonl
-```
-
-Returns every log line from every component involved in that request.
-
 ---
 
 ## Log Rotation
@@ -386,27 +372,6 @@ Logs MUST NOT contain:
 A record, a span's attributes and a metric's labels are redacted where they
 are emitted (`redaction-at-emission`, [Contracts](#contracts)). A blueprint
 whose records must be redacted points here.
-
----
-
-## Blueprint Declaration
-
-Agents extending this pattern declare their custom log types:
-
-```markdown
-extends: [patterns/logging]
-
-## Observability
-
-### Custom Log Types
-| Log Type | Level | When | Details |
-|----------|-------|------|---------|
-| cron.task.fired | info | Scheduled task dispatched | {task_id, target_agent} |
-| cron.task.retry | warn | Task retry scheduled | {task_id, attempt, next_retry} |
-```
-
-All standard log types are inherited automatically. Only
-agent-specific custom types need to be declared.
 
 ---
 

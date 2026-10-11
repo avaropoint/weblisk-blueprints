@@ -174,7 +174,6 @@ services:
       - "9800:9800"
     environment:
       - ENV=development
-      - LOG_FORMAT=text
       - LOG_LEVEL=debug
     volumes:
       - ./data:/app/data

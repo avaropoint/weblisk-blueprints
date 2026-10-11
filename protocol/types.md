@@ -1762,7 +1762,7 @@ types:
         name: SpanID
         type: string
         required: true
-        description: "The sender's span for this message ([TraceContext](#tracecontext)). Not covered by `signature`"
+        description: "The sender's span for this message ([TraceContext](#tracecontext))"
 ```
 
 **Signature covers:** `canonicalize({from, to, action, payload})` per

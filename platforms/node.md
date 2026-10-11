@@ -325,7 +325,6 @@ npm start
 | `WL_AI_PROVIDER` | yes | — | LLM provider |
 | `WL_AI_MODEL` | yes | — | Model name |
 | `WL_LOG_LEVEL` | no | `info` | Log level (`debug`, `info`, `warn`, `error`) |
-| `WL_LOG_FORMAT` | no | `json` | Log format (`json`, `text`) |
 | `WL_COMPONENT` | no | `unknown` | Component name for logging |
 
 ---
@@ -563,11 +562,11 @@ async function start() {
   });
 
   await app.listen({ port: PORT, host: "0.0.0.0" });
-  logger.info({ port: PORT, agent: "<component>" }, "Agent started");
+  logger.info({ log_type: "process.startup", details: { port: PORT } }, "Agent started");
 }
 
 start().catch((err) => {
-  logger.error(err, "Failed to start agent");
+  logger.error({ log_type: "process.startup", error: err.message }, "Failed to start agent");
   process.exit(1);
 });
 ```
@@ -601,12 +600,13 @@ export async function handleTask(
 ```typescript
 import pino from "pino";
 
+// One LogEntry per line on standard output (patterns/logging):
+// `ts` in RFC 3339, `level` as a string, `msg` for the message.
 export const logger = pino({
   level: process.env.WL_LOG_LEVEL || "info",
-  transport:
-    process.env.WL_LOG_FORMAT === "text"
-      ? { target: "pino-pretty" }
-      : undefined,
+  timestamp: () => `,"ts":"${new Date().toISOString()}"`,
+  messageKey: "msg",
+  formatters: { level: (label) => ({ level: label }) },
   base: {
     component: process.env.WL_COMPONENT || "unknown",
     component_type: process.env.WL_COMPONENT_TYPE || "agent",
@@ -617,16 +617,19 @@ export const logger = pino({
 ### Usage
 
 ```typescript
-// Info with context
-logger.info({ task_id: task.task_id, action: task.action }, "Task started");
-
-// Error with error object
-logger.error({ err, task_id: task.task_id }, "Task failed");
-
-// Trace context
+// Every line names its log_type, and carries the trace in scope
+// (the task's TaskContext, or the span this request opened from traceparent)
 logger.info(
-  { trace_id: req.headers["x-trace-id"], span_id: newSpanId },
-  "Processing request"
+  { log_type: "execute.received", task_id: task.task_id, action: task.action,
+    trace_id: ctx.trace_id, span_id: ctx.span_id },
+  "Task started"
+);
+
+logger.error(
+  { log_type: "execute.failed", task_id: task.task_id,
+    error: err.message, error_code: err.code,
+    trace_id: ctx.trace_id, span_id: ctx.span_id },
+  "Task failed"
 );
 ```
 
@@ -736,9 +739,8 @@ whose method is unregistered.
 
 ### Logging
 
-- Structured JSON logging via pino with `component` and `component_type` base fields
-- Use pino-pretty for development (`WL_LOG_FORMAT=text`)
-- Include `trace_id` in all log entries for request correlation
+- Write the `LogEntry` envelope [`patterns/logging`](../patterns/logging.md) defines, on standard output, through pino configured as in [Structured Logging](#structured-logging)
+- Every call passes `log_type`, and `trace_id` and `span_id` where a trace is in scope
 
 See [Node.js-Specific Considerations](#nodejs-specific-considerations)
 for process management, performance, and security details.
@@ -869,7 +871,7 @@ describe("agent endpoints", () => {
 
 ```typescript
 process.on("SIGTERM", async () => {
-  logger.info("Shutting down gracefully");
+  logger.info({ log_type: "process.shutdown" }, "Shutting down gracefully");
   await app.close();
   storage.close();
   process.exit(0);
@@ -933,7 +935,7 @@ the npm ecosystem.
 - [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` with a registered error code
 - [ ] ML-DSA-65 keys are generated and verified via `@noble/post-quantum` (FIPS 204); private keys stored with mode 0o600
 - [ ] SQLite is configured with `pragma journal_mode = WAL` and `pragma foreign_keys = ON`
-- [ ] Structured logging uses pino with JSON output in production; log entries include `component` and `component_type` base fields
+- [ ] Every log line is a `LogEntry` on standard output, as [`patterns/logging`](../patterns/logging.md) defines it
 - [ ] SIGTERM triggers graceful shutdown: Fastify server closes, storage closes, then process exits
 - [ ] All request payloads are validated with zod schemas — raw `request.body` is never trusted directly
 - [ ] Dependency versions are pinned in `package-lock.json` (committed to repo); production Docker uses `npm ci --omit=dev`
