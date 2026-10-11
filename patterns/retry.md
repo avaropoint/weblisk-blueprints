@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: retry
-version: 1.0.1
+version: 1.1.0
 requires: [protocol/types, architecture/agent, patterns/rate-limiting]
 platform: any
 tier: free

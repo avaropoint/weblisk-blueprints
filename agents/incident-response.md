@@ -67,7 +67,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.16.1 <3.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: TaskResult
@@ -507,7 +507,7 @@ runbook:
 | site-unreachable | Uptime check failure | DNS check → TLS check → alternate path check | Confirmed outage |
 | performance-regression | Performance threshold breach | Check recent deployments → check resource usage | Sustained regression |
 | tls-expiring | TLS certificate <7 days | Check auto-renewal status → alert operator | <3 days remaining |
-| federation-peer-down | Federation peer unreachable | Check peer health endpoint → check network → notify operator | Peer unresponsive |
+| federation-peer-down | Federation peer unreachable | Read the peer's `GET /v1/federation/status` → check network → notify operator | Peer unresponsive |
 | storage-failure | Storage write/read errors | Check disk space → check connections → failover check | Persistent errors |
 | approval-backlog | Pending approvals exceed threshold | Notify approvers → escalate to admin | Backlog growing |
 

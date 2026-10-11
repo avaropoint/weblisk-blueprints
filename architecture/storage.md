@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: storage
-version: 1.4.3
+version: 1.5.0
 requires: [protocol/types, protocol/identity, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 tier: free
@@ -90,11 +90,11 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.10.0 <4.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentEntry
-          fields_used: [manifest, agent_id, token, registered_at, last_seen, status]
+          fields_used: [manifest, agent_id, token, registered_at, last_seen, lease, last_renewal]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -475,7 +475,7 @@ without changing the store interface.
 | PutAgent | `(name string, entry AgentEntry) → error` | Store or update an agent registration |
 | GetAgent | `(name string) → (AgentEntry, error)` | Retrieve agent by name |
 | DeleteAgent | `(name string) → error` | Remove agent from registry |
-| ListAgents | `(filter AgentFilter) → ([]AgentEntry, error)` | List agents, optionally filtered by type/status |
+| ListAgents | `(filter AgentFilter) → ([]AgentEntry, error)` | List agents, optionally filtered by type. A lease's state is derived from the entry's `lease` when read, never stored ([`architecture/orchestrator`](orchestrator.md#data-structures)), so the store neither holds it nor filters by it |
 
 `AgentEntry` is [`architecture/orchestrator`](orchestrator.md#agententry)'s,
 the store's owner, and is defined there alone.
@@ -813,8 +813,9 @@ a generated orchestrator died two seconds into startup with
 startup: reserve namespace "system": namespace "system" is reserved
 ```
 
-and its own health check then honestly reported `namespaces: degraded`, because
-the orchestrator did not own the namespace it is required to own.
+and its own `GET /readyz` then honestly answered not ready, its namespace check
+failing, because the orchestrator did not own the namespace it is required to
+own.
 
 The general form is worth stating because it will recur: **a store records, a
 policy decides.** Enforcement that belongs to a request path, placed in the

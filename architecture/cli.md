@@ -167,19 +167,15 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    # 2.0.0 is where a directory entry carries its lease state, which
-    # status, server verify and tenant accept read
-    version: ">=2.0.0 <3.0.0"
+    # no command reads a directory entry's lease state: server verify and
+    # status read lease states from the admin API (architecture/admin below)
+    version: ">=1.6.0 <3.0.0"
     bindings:
       types:
         - name: Operator
           fields_used: [name, public_key, role, status]
         - name: AgentManifest
           fields_used: [name, version, type, url, capabilities]
-        - name: ServiceDirectory
-          fields_used: [services]
-        - name: ServiceEntry
-          fields_used: [name, lease_state]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -621,8 +617,10 @@ tenant serve this*, and the auth middleware answers that first — `401` is a
 pass, `404` means the route is absent, `405` means the client and the tenant
 disagree about the method. The first two probes are the orchestrator's
 `GET /livez` and then its `GET /readyz`, which need no token and pass only on
-`200`; whether each registered component is present is read from the
-directory's lease states, never by probing the component.
+`200`. Accept probes no other component and reads no lease: whether each
+registered component is present is a question for an operator's token, which
+[`weblisk server verify`](#weblisk-server-verify) and
+[`weblisk status`](#weblisk-status) ask.
 
 A failed non-essential check does not fail the tenant. It is a capability that
 tenant does not have, and **saying so is the point** — "created" must not mean
@@ -867,11 +865,15 @@ with a registry that has gone.
 
 Verify the server is running: the orchestrator's `GET /livez` answers live and
 its `GET /readyz` ready. Those two decide the verdict, and no other component
-is probed. Every registered component's lease state in the directory is then
-reported beside the verdict, and none of them fails it: a lease reading
+is probed. Every registered component's lease state is then read from
+`GET /v1/admin/agents` on the operator's token (each entry's `lease_state`,
+[`architecture/admin`](admin.md#agent-management)) and reported beside the
+verdict, and none of them fails it: a lease reading
 `not_ready` is reported as not ready, since a component may be not ready
 by design ([`weblisk component <name> start`](#weblisk-component-name-start--stop--status--logs)),
-and one reading `unknown` is reported as unknown, never as down.
+and one reading `unknown` is reported as unknown, never as down. Run with no
+operator token, or one the admin API refuses, verify still gives its verdict
+and says the lease states were not read, never that there are none.
 
 ```bash
 $ weblisk server verify
@@ -2270,12 +2272,12 @@ Run protocol conformance tests against a running system.
 $ weblisk test conformance --orch http://localhost:9800
 Running conformance suite against http://localhost:9800...
 
-Level 1 — Protocol Basics (12 tests)
-  ✓ L1-01  POST /v1/register accepts valid manifest
-  ✓ L1-02  POST /v1/register rejects unsigned request
-  ✓ L1-03  agent_id is 32 hex chars
+Level 1 — Protocol Basics (10 tests)
+  ✓ L1-01  GET /livez and GET /readyz answer live and ready alone
+  ✓ L1-03  POST /v1/register accepts valid manifest
+  ✓ L1-04  POST /v1/register rejects bad signature
   ...
-  ✓ L1-12  GET /livez and GET /readyz answer live and ready alone
+  ✓ L1-10  Errors answer in the protocol's error format
 
 Level 2 — Behavior (18 tests)
   ✓ L2-01  Events delivered to scoped subscribers
@@ -2285,7 +2287,7 @@ Level 3 — Integration (8 tests)
   ✓ L3-01  Full workflow execution end-to-end
   ...
 
-Results: 38/38 passed (0 failed, 0 skipped)
+Results: 36/36 passed (0 failed, 0 skipped)
 ```
 
 | Flag | Description |
@@ -2826,7 +2828,7 @@ security:
 - [ ] `weblisk server stop` with no `--component` stops every recorded component, the orchestrator last
 - [ ] `weblisk component <name> start|stop|status|logs` runs any component the tenant has generated, and a detached start reports started only once the component's `GET /livez` answers live, then waits on its `GET /readyz` and reports a component that never becomes ready as not ready
 - [ ] `weblisk tenant create` writes its `.gitignore` before generation, amends one already present, and does not `git init`
-- [ ] `weblisk server verify` passes or fails on the orchestrator's `GET /livez` and `GET /readyz` alone, reads every registered component's lease state from the directory, probes no other component, and reports a lease reading `not_ready` as not ready and one reading `unknown` as unknown, neither failing the verify
+- [ ] `weblisk server verify` passes or fails on the orchestrator's `GET /livez` and `GET /readyz` alone, reads every registered component's lease state from `GET /v1/admin/agents` on the operator's token, says the lease states were not read when it holds no token the admin API accepts, probes no other component, and reports a lease reading `not_ready` as not ready and one reading `unknown` as unknown, neither failing the verify
 - [ ] `weblisk agent create` generates agent code from agent.yaml spec via LLM dispatch
 - [ ] `weblisk agent start` builds and runs a single agent with --orch and --port flags
 - [ ] `weblisk agent list` lists all locally scaffolded agents
