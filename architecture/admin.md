@@ -344,7 +344,7 @@ because nothing was judged.
 | `CREDENTIAL_CHALLENGE_INVALID` | 401 | auth | The nonce was not issued for this credential, was already used or has expired, or the signature does not verify | Refuse and spend the nonce. Log a signature failure as a security event | `replay_detected` |
 | `CREDENTIAL_ATTESTATION_INVALID` | 400 | validation | The attestation's signature does not verify under ML-DSA-65 against the operator's recorded key, or the attestation names another identity key, or an `identity_id` that is not the operator's at this hub | Refuse. Log as a security event | `attestation_invalid`, `algorithm_not_permitted` |
 | `CREDENTIAL_FORM_UNSUPPORTED` | 400 | validation | The credential key is not an ML-DSA-65 public key, the one form these routes carry | Refuse. A form principal-identity permits beside it is admitted only by a route that declares its own registration and challenge | — |
-| `TOKEN_REQUEST_REPLAYED` | [types](../protocol/types.md#errorresponse) | auth | An attestation-token request whose `jti` this hub has recorded for that operator inside the replay window: the same signed request seen again (`attestation-token-issuance`) | Refuse, issue no token, audit. Not a reason to register and not a key mismatch: the client signs a new request with a fresh `jti` | `replay_detected` |
+| `TOKEN_REQUEST_REPLAYED` | [types](../protocol/types.md#errorresponse) | auth | An attestation-token request whose `jti` this hub has recorded for that operator inside the replay window: the same signed request seen again (`attestation-token-issuance`) | Refuse, issue no token, log as a security event. Not a reason to register and not a key mismatch: the client signs a new request with a fresh `jti` | `replay_detected` |
 | `CREDENTIAL_FOREIGN_HUB` | 400 | validation | The `hub_id` an attestation, an attestation-token request or a key-change request names is not this hub's | Refuse. Log as a security event | `credential_foreign_hub` |
 | `HUB_ADDRESS_FOREIGN` | 400 | validation | A hub proof was asked for an address that is not one of this hub's admin addresses (`hub-proof`) | Refuse and sign nothing. Log as a security event: a hub asked to name another hub's address is being relayed through | — |
 | `HUB_PROOF_UNAVAILABLE` | 501 | io | A hub proof was asked before `weblisk/hub-proof/v1` has test vectors, or of a hub built before they were published (`hub-proof`) | Refuse and sign nothing, whatever the request carries. Not a refusal of the address: before the vectors the client records the registration answer's `hub_id` as it is given, and from then it treats the hub as one that does not answer the proof ([`architecture/cli`](cli.md#a-credential-for-each-hub)) | — |
@@ -722,7 +722,7 @@ contracts:
         - The route `POST /v1/admin/operators/token` MUST require no bearer token
         - The request MUST carry hub_id, jti, name, timestamp and signature, and the signed payload MUST be canonicalize({hub_id, jti, name, timestamp}), verified against the STORED public key for that operator, with the timestamp inside the 300-second replay window. hub_id is the one the client recorded for this hub from a registration answer (operator-registration). A request without jti MUST be refused with INVALID_REQUEST before any signature is checked
         - jti MUST be base64url text without padding (RFC 4648 section 5) that decodes to between 16 and 64 bytes. A client MUST draw it from a cryptographically secure random source, at least 128 bits, for each request alone, and MUST NOT send a jti it has sent before, a retry of an unanswered request included - a retry is a new request. A hub MUST refuse a request whose jti is present and is not that form with INVALID_REQUEST before any signature is checked, as it refuses one with no jti. So two requests from one identity never sign the same bytes, however close together, even where the identity signs deterministically, which a secret source may (protocol/secret-source)
-        - The request MUST be refused on replay. Once its signature has verified, the hub MUST record the operator's identity_id with the jti until the request's timestamp is outside the replay window, and a request whose jti is recorded for that operator MUST be refused with TOKEN_REQUEST_REPLAYED, issue no token and be audited. The check and the record MUST be one atomic step, so of concurrent requests carrying one jti exactly one proceeds. The record MUST survive a restart of the orchestrator and be shared by every instance that answers for this hub, so a replay inside the window is refused wherever and whenever it arrives. Replay is keyed on the jti, never on the signature's bytes, so a signature that differs over the same payload is refused as well. A record is written for every request whose signature verifies, whatever it is then answered, and only for those, so a request nobody signed cannot use up an operator's jti. The jti is checked and recorded once the signature verifies and before hub_id and the operator's status are judged, so a replay of a request first refused with CREDENTIAL_FOREIGN_HUB, OPERATOR_NOT_APPROVED or OPERATOR_REVOKED is answered TOKEN_REQUEST_REPLAYED at every hub. A TOKEN_REQUEST_REPLAYED answer is never a reason for a client to register, since another request from the same identity was answered first
+        - The request MUST be refused on replay. Once its signature has verified, the hub MUST record the operator's identity_id with the jti until the request's timestamp is outside the replay window, and a request whose jti is recorded for that operator MUST be refused with TOKEN_REQUEST_REPLAYED, issue no token and be logged as a security event. The check and the record MUST be one atomic step, so of concurrent requests carrying one jti exactly one proceeds. The record MUST survive a restart of the orchestrator and be shared by every instance that answers for this hub, so a replay inside the window is refused wherever and whenever it arrives at this hub. Where the record cannot be read or written, the request MUST be refused with STORAGE_ERROR, which protocol/types registers as transient, and no token issued, so a hub that cannot check a jti never answers as though it had. A record is written only for a request whose signature verifies under a stored operator key, and every such request is held to auth-route-rate-limit, so one source can make the hub hold at most the jtis of 5 requests a minute for as long as each record lives - at most 600 seconds, a timestamp 300 seconds ahead of the hub's clock plus the window - which is 50 records per source; an operator's records are bounded by the sources that operator's key signs from, and an orchestrator MAY further limit token requests per operator. Replay is keyed on the jti, never on the signature's bytes, so a signature that differs over the same payload is refused as well. A record is written for every request whose signature verifies, whatever it is then answered, and only for those, so a request nobody signed cannot use up an operator's jti. The jti is checked and recorded once the signature verifies and before hub_id and the operator's status are judged, so a replay of a request this hub has recorded is answered TOKEN_REQUEST_REPLAYED by this hub, whatever it first answered, CREDENTIAL_FOREIGN_HUB, OPERATOR_NOT_APPROVED and OPERATOR_REVOKED included. The record is this hub's alone. A request refused here with CREDENTIAL_FOREIGN_HUB names another hub's hub_id, and that hub has no record of it, so the jti does not protect against relaying it there inside the window - that relay is the case the hub_id rule and hub-proof answer, not this one. A TOKEN_REQUEST_REPLAYED answer is never a reason for a client to register, since another request from the same identity was answered first
         - A request whose signature verifies over a hub_id other than this hub's MUST be refused with CREDENTIAL_FOREIGN_HUB and logged as a security event - the identity signed it for another hub, and it was relayed here
         - A client MUST send this request only to a hub whose hub_id it has recorded, signing that hub_id, and MUST NOT sign a payload that names no hub for any hub, so neither an attestation token nor the deprecated operator token below is obtained with a signature good at every hub. That hub_id is the one a registration answer named, and which hub gave that answer only hub-proof settles, so until hub-proof has test vectors a hub that relays a first registration can have a client record another hub's hub_id at its address (The identity signs only to attest, the gap there). Where a client has recorded none for a hub, the person registers there first, by their own act (`weblisk operator register`), which a hub that already knows the operator answers as a repeat; a client never registers on its own initiative (architecture/cli, One approval vouches for every hub)
         - An operator with no record MUST be refused with OPERATOR_UNKNOWN, since there is no stored key to verify against. Only once the signature has verified may the hub disclose the operator's status - a signature that does not verify MUST be refused with INVALID_SIGNATURE whatever that status is, and then a pending operator with OPERATOR_NOT_APPROVED and a revoked one with OPERATOR_REVOKED. Each refusal MUST be audited
@@ -1033,8 +1033,12 @@ outside the 300-second replay window, a `hub_id` that is not its own with
 `CREDENTIAL_FOREIGN_HUB`, logged as a security event, a `jti` it has recorded
 for this operator with `TOKEN_REQUEST_REPLAYED`, and an operator who is
 not approved — a registered but unapproved operator is a different fact from
-an unknown one. The signature names the hub, so it is refused at every hub
-but the one whose `hub_id` the client recorded. The client signs the `hub_id`
+an unknown one. The `jti` is judged first, once the signature verifies and
+before the `hub_id` and the operator's status, so a request this hub has
+already recorded is answered `TOKEN_REQUEST_REPLAYED` whatever it was first
+answered, and a hub that cannot read or write that record refuses with
+`STORAGE_ERROR` and issues nothing. The signature names the hub, so it is
+refused at every hub but the one whose `hub_id` the client recorded. The client signs the `hub_id`
 it recorded from a [registration answer](#the-registration-response), never
 one it is told in the same exchange, and makes no such request to a hub it has
 recorded none for. Which hub gave that answer is a separate question, which
@@ -2279,7 +2283,25 @@ is never accepted again
 | RevokeCredential | `(id string) → error` | Set status revoked, keeping the record |
 
 `Credential` is [`patterns/principal-identity`](../patterns/principal-identity.md)'s
-type. A challenge nonce is not stored here: it lives at most 300 seconds, and an
+type.
+
+### Store: Token request jtis
+
+**Owner:** Orchestrator
+**Durability:** MUST survive restarts and be shared by every instance that
+answers for this hub. A record lives until its request's `timestamp` leaves
+the 300-second replay window, at most 600 seconds, and is then deleted
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| RecordTokenRequest | `(identityID string, jti string, until time) → (recorded bool, error)` | One atomic check-and-put: `false` where the pair is already recorded and unexpired, which is `TOKEN_REQUEST_REPLAYED`. An error refuses the request with `STORAGE_ERROR` and issues no token |
+| ExpireTokenRequests | `(now time) → error` | Delete every record whose `until` has passed |
+
+The rules are `attestation-token-issuance`'s, in [Contracts](#contracts),
+including the bound `auth-route-rate-limit` puts on what one source can make
+this store hold.
+
+A challenge nonce is not stored here: it lives at most 300 seconds, and an
 orchestrator MAY keep it in memory only, so a restart discards the outstanding
 ones and a client asks again.
 
@@ -2364,9 +2386,12 @@ state.
 
 **Asking for a token before attempting registration is required, not an
 optimisation.** A client that holds a credential at the hub mints with it; one
-that holds none asks for an attestation token, and the answer says whether the
-hub knows this operator. A hub that already knows the operator needs no
-registration, and connecting never sends one: registering is its own act
+that holds none, where this device has recorded a registration for that
+address, asks for an attestation token, and the answer says whether the hub
+knows this operator. There, a hub that already knows the operator needs no
+registration; a device that has recorded none for the address asks for no
+token, and needs a registration, which a hub that knows the operator answers as
+a repeat. Connecting never sends one: registering is its own act
 ([`architecture/cli`](cli.md#weblisk-operator-register)), so connecting never
 claims a hub. At a hub with no operators, a registration without the bootstrap
 secret is refused; only presenting the secret claims one.
@@ -2686,7 +2711,7 @@ The rest SHOULD be:
 - [ ] A token is requested BEFORE any registration is attempted, and connecting never sends a registration: registering is its own act (`architecture/cli`, `weblisk operator register`)
 - [ ] A hub that refuses to register a new operator unauthenticated is reported as pending approval, naming who can act, and not as a failure
 - [ ] A hub that does not serve the token endpoint is reported as such, never as pending approval
-- [ ] Connecting is idempotent: running it against a hub that already knows the operator issues a token and changes nothing else
+- [ ] Connecting is idempotent: where this device has recorded a registration for that address, running it against a hub that already knows the operator issues a token and changes nothing else
 - [ ] A passphrase supplied as a command-line argument is REFUSED, and the refusal names stdin as the alternative
 - [ ] The operator key location is parameterisable, so two signed-in accounts on one machine hold separate identities
 - [ ] Provisioning against an existing identity reuses it; a passphrase that does not open it is an error and no new key is generated
@@ -2696,9 +2721,10 @@ The rest SHOULD be:
 - [ ] `POST /v1/admin/operators/token` issues an attestation token (`type` `attestation`, no `cap`, no `cid`, at most 300 seconds, with `hub_id` and the operator's `identity_id`) to an approved operator who signs `{hub_id, jti, name, timestamp}` with their identity key, and every route but `POST /v1/admin/operators/{name}/credentials` refuses that token with `CREDENTIAL_REQUIRED`
 - [ ] The signature is verified against the public key in the orchestrator's OWN operator record, never a directory
 - [ ] A token request outside the 300-second replay window is refused
-- [ ] A token request with no `jti`, or one that does not decode to between 16 and 64 bytes, is refused with `400` `INVALID_REQUEST` before its signature is checked; the same signed request sent twice is answered once and then refused with `TOKEN_REQUEST_REPLAYED`, issuing no token, and audited; of two concurrent requests carrying one `jti` exactly one is answered; a request whose signature does not verify records no `jti`, so the operator's own request with that `jti` is still answered
+- [ ] A token request with no `jti`, or one that does not decode to between 16 and 64 bytes, is refused with `400` `INVALID_REQUEST` before its signature is checked; the same signed request sent twice is answered once and then refused with `TOKEN_REQUEST_REPLAYED`, issuing no token, and logged as a security event; of two concurrent requests carrying one `jti` exactly one is answered; a request whose signature does not verify records no `jti`, so the operator's own request with that `jti` is still answered
+- [ ] A token request whose signature verifies, at a hub whose `jti` record cannot be read or written, is refused with `500` `STORAGE_ERROR` and issues no token; the record survives a restart of the orchestrator, and a request answered by one instance is refused as a replay by another instance answering for the same hub
 - [ ] Two token requests from one identity in the same second carry different `jti`s and so different signed bytes, and both are answered
-- [ ] A signed token request first refused with `CREDENTIAL_FOREIGN_HUB`, `OPERATOR_NOT_APPROVED` or `OPERATOR_REVOKED`, sent again inside the replay window, is refused with `TOKEN_REQUEST_REPLAYED`
+- [ ] A signed token request first refused with `CREDENTIAL_FOREIGN_HUB`, `OPERATOR_NOT_APPROVED` or `OPERATOR_REVOKED`, sent again to the same hub inside the replay window, is refused with `TOKEN_REQUEST_REPLAYED`
 - [ ] A token request for a pending operator is refused with 403 `OPERATOR_NOT_APPROVED`, distinctly from an unknown operator (`OPERATOR_UNKNOWN`)
 - [ ] Registration that also approves returns an attestation token, `hub_id`, `identity_id` and `status: approved`; registration that does not returns `status: pending`, `hub_id` and `identity_id`, and no token
 - [ ] A registration repeating an operator's name and current identity key, with a fresh timestamp, is answered `200` with `hub_id` and `identity_id` alone, carrying no record, role, status or token and changing nothing, for a pending, an approved and a revoked operator alike; the same name with another key is refused with 409

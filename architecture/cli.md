@@ -147,7 +147,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/secret-source
-    version: ">=1.6.0 <2.0.0"
+    version: ">=1.7.0 <2.0.0"
     bindings:
       types:
         - name: HolderReference
@@ -165,7 +165,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.6.0 <2.0.0"
+    version: ">=1.19.0 <2.0.0"
     bindings:
       types:
         - name: Operator
