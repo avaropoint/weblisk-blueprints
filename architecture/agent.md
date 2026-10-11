@@ -645,7 +645,11 @@ this:
   that wants it present between invocations sets `orchestrator.lease_duration`
   above its eviction interval.
 - **Keep-warm** — the [cron agent](../agents/cron.md) MAY be configured
-  to ping serverless agents on a schedule to prevent cold eviction.
+  to invoke a serverless agent on a schedule to prevent cold eviction.
+  The invocation only keeps the agent warm: nothing reads its answer as
+  presence or readiness, and the agent's own lease renewal stays the
+  only presence fact ([`architecture/orchestrator`](orchestrator.md#presence)
+  §Presence).
 - **Timeout tolerance** — the Task Agent SHOULD use the agent's
   declared `timeout` from its manifest rather than a global default.
   Serverless agents MAY declare longer timeouts.

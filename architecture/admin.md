@@ -157,7 +157,10 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.27.0 <4.0.0"
+    # 3.0.0 is where the registry holds each agent's lease; the overview's
+    # lease-state counts and the agents' lease_state, lease and
+    # last_renewal are read from it, and a 2.x orchestrator holds none
+    version: ">=3.0.0 <4.0.0"
     bindings:
       behaviors:
         # Called by the admin gateway for each request it carries to a

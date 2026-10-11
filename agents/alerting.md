@@ -1097,7 +1097,7 @@ The following events generate alerts automatically:
 | orchestrator | low | Agent registered | New agent completes registration |
 | orchestrator | medium | Approval backlog | > 20 pending recommendations for > 1 hour |
 | domain | high | Workflow failed | Workflow execution fails |
-| domain | medium | Domain degraded | Required agent unavailable |
+| telemetry | medium | Domain not ready | The domain's `lease_state` reads `not_ready`, its lease's `checks` naming the required agent it cannot reach ([`protocol/types`](../protocol/types.md#leasestate) §LeaseState) |
 | uptime-checker | critical | Site unreachable | HTTP check fails after retries |
 | perf-auditor | high | Performance regression | Page load time exceeds threshold |
 | federation | medium | Peer disconnected | Federation peer unreachable |

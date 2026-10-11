@@ -723,9 +723,8 @@ component's data behind the trust anchor's identity.
 5. **Auth Enforcement** — verify tokens on all protected endpoints
 6. **Audit Logging** — record every operation in an append-only log
 7. **Presence** — grant each registered component a lease, record the
-   readiness each renewal carries, and read a lapsed lease as `unknown`. The
-   directory and its leases are the one authority for what is running and
-   present; the orchestrator never probes a component for it
+   readiness each renewal carries, and read a lapsed lease as `unknown`
+   ([Presence](#presence))
 8. **System Events** — publish to `system.*` namespace (agent lifecycle events)
 
 See [Protocol Specification](../protocol/spec.md) for the authoritative
@@ -1719,8 +1718,8 @@ arrives or a lease lapses is [`protocol/spec`](../protocol/spec.md#post-v1regist
 `lease_duration` ([Configuration](#configuration)), and a deregistration ends
 it with the registration. What is the orchestrator's own is below.
 
-The orchestrator **never probes** a registered component, and keeps no timer
-that calls one: a lapsed lease reads `unknown` and stays in the directory,
+The orchestrator **never probes** a registered component for its presence or
+readiness, and keeps no timer that calls one for them: a lapsed lease reads `unknown` and stays in the directory,
 neither removed nor reported as failed, until the component renews or
 deregisters. Restarting a component that stopped answering is the supervisor's
 on its host, which reads `GET /livez`; judging whether a component is serving
@@ -1732,7 +1731,9 @@ The orchestrator holds no lease of its own. It serves `GET /livez` and
 `GET /readyz` like every component ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)),
 and it is ready once its registry, namespace map and audit log are loaded and
 its listener is open (Startup Sequence, step 5). It is the one internal
-component telemetry probes, since it cannot report itself to itself.
+component telemetry probes, since it cannot report itself to itself; no
+registered component is polled for its presence or readiness by telemetry
+either.
 
 An orchestrator that restarts reads every lease it holds as `unknown` until
 each component renews: it heard nothing while it was down, and says so.

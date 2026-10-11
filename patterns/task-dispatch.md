@@ -709,7 +709,7 @@ types:
         description: Currently dispatched task count
       last_seen:
         type: int64
-        description: Last registration or health timestamp
+        description: When the agent last registered or renewed its lease
 ```
 
 ---

@@ -2244,9 +2244,11 @@ still leave the lease current. What the orchestrator does with a renewal,
 one after a lapse included, is [`protocol/spec`](spec.md#post-v1lease)'s. A component that is draining renews with
 `ready: false` until it deregisters.
 
-**The orchestrator's directory and its leases are the one authority for what is
-running and present.** The orchestrator never probes a component to settle it,
-and telemetry never polls one.
+What the directory and its leases are the authority for, and who may probe
+whom, is [`architecture/orchestrator`](../architecture/orchestrator.md#presence)
+§Presence's: no registered component is polled for its presence or readiness,
+by the orchestrator or by telemetry; the orchestrator, which holds no lease,
+is the one component telemetry probes.
 
 ---
 

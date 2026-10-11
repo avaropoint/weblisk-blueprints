@@ -167,19 +167,27 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.6.0 <3.0.0"
+    # 2.0.0 is where a directory entry carries its lease state, which
+    # status, server verify and tenant accept read
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: Operator
           fields_used: [name, public_key, role, status]
         - name: AgentManifest
           fields_used: [name, version, type, url, capabilities]
+        - name: ServiceDirectory
+          fields_used: [services]
+        - name: ServiceEntry
+          fields_used: [name, lease_state]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <4.0.0"
+    # 3.0.0 is where the directory holds leases and the orchestrator
+    # serves /livez and /readyz; a 2.x orchestrator answers neither
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/admin/*
@@ -193,7 +201,9 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/admin
-    version: ">=2.34.0 <4.0.0"
+    # 3.0.0 is where the overview counts agents by lease state and the
+    # agent list and detail carry lease_state, lease and last_renewal
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/admin/operators/register
@@ -856,9 +866,12 @@ with a registry that has gone.
 ### `weblisk server verify`
 
 Verify the server is running: the orchestrator's `GET /livez` answers live and
-its `GET /readyz` ready, and every registered component's lease state in the
-directory is `ready`. A component whose lease reads `unknown` is reported as
-unknown, never as down, and no component is probed.
+its `GET /readyz` ready. Those two decide the verdict, and no other component
+is probed. Every registered component's lease state in the directory is then
+reported beside the verdict, and none of them fails it: a lease reading
+`not_ready` is reported as not ready, since a component may be not ready
+by design ([`weblisk component <name> start`](#weblisk-component-name-start--stop--status--logs)),
+and one reading `unknown` is reported as unknown, never as down.
 
 ```bash
 $ weblisk server verify
@@ -2813,7 +2826,7 @@ security:
 - [ ] `weblisk server stop` with no `--component` stops every recorded component, the orchestrator last
 - [ ] `weblisk component <name> start|stop|status|logs` runs any component the tenant has generated, and a detached start reports started only once the component's `GET /livez` answers live, then waits on its `GET /readyz` and reports a component that never becomes ready as not ready
 - [ ] `weblisk tenant create` writes its `.gitignore` before generation, amends one already present, and does not `git init`
-- [ ] `weblisk server verify` reads the orchestrator's `GET /livez` and `GET /readyz` and every registered component's lease state from the directory, probes no other component, and reports a lease reading `unknown` as unknown
+- [ ] `weblisk server verify` passes or fails on the orchestrator's `GET /livez` and `GET /readyz` alone, reads every registered component's lease state from the directory, probes no other component, and reports a lease reading `not_ready` as not ready and one reading `unknown` as unknown, neither failing the verify
 - [ ] `weblisk agent create` generates agent code from agent.yaml spec via LLM dispatch
 - [ ] `weblisk agent start` builds and runs a single agent with --orch and --port flags
 - [ ] `weblisk agent list` lists all locally scaffolded agents

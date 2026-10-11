@@ -240,6 +240,12 @@ Examples:
 - `health.agent.state_change` — agent health state changed
 - `seo.audit.result` — SEO domain audit result callback
 
+The `health.*` topics here and below are
+[`agents/health-monitor`](../agents/health-monitor.md)'s, and go when it
+retires. A component has no health state to change: health is liveness
+and readiness only, and readiness travels on the component's lease
+([`patterns/observability`](observability.md#health-endpoint)).
+
 ### Topic Matching
 
 | Pattern | Matches |

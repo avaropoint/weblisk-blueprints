@@ -407,9 +407,10 @@ it overrides the category-based default.
 - Circuit breaker state is in-memory per agent process. It resets on
   agent restart, which is acceptable — if an agent restarts, its view
   of dependency health should be fresh.
-- Domain controllers use circuit breaker state to determine their own
-  health status. If a required agent's circuit is open, the domain
-  reports as degraded.
+- Domain controllers use circuit breaker state to decide their own
+  readiness. While a required agent's circuit is open, the domain
+  renews its lease not ready, its `checks` naming that agent
+  ([`protocol/types`](../protocol/types.md#leasestate) §LeaseState).
 - The retry pattern works with the rate-limiting pattern: when a 429
   is received, the Retry-After header takes precedence over
   calculated backoff.
