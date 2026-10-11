@@ -247,11 +247,11 @@ weblisk pattern apply user-management
 
 ### Use custom blueprints
 
-```bash
-# Add a custom blueprint source
-# Add a custom blueprint source (implementation-specific)
-# Configure blueprint sources per your platform's documentation
+Add your repository to the blueprint sources, as
+[`architecture/cli` → Where blueprints come from](architecture/cli.md#where-blueprints-come-from)
+says, and build from it:
 
+```bash
 # Create a domain from your custom blueprints
 weblisk domain create checkout --platform go
 ```
