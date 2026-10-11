@@ -752,11 +752,11 @@ requires:
 
 extends:
   - pattern: patterns/observability
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       patterns:
-        - behavior: health-endpoint
-          parameters: [status, details]
+        - behavior: health-reporting
+          parameters: []
         - behavior: metrics
           parameters: [gauge, counter, histogram]
     on_change:

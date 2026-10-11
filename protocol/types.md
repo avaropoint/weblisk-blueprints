@@ -2154,9 +2154,12 @@ types:
 ```
 
 A component is **ready** when it has finished starting, holds what it needs to
-serve its endpoints (its keys, its store, its registration where it runs with
-an orchestrator) and is not draining for a shutdown. It says so in two places,
-and they are one fact:
+serve its endpoints (its keys, its store, and the orchestrator's key it verifies
+tokens with) and is not draining for a shutdown. A component that cannot verify
+a token is therefore **not ready**: one started with no orchestrator, or before
+its registration returns that key, can serve nothing a token protects, however
+long it runs ([`architecture/testing`](../architecture/testing.md) L4-04). It
+says so in two places, and they are one fact:
 
 - **On its lease.** Every renewal carries `ready` ([LeaseRenewal](#leaserenewal)),
   and that is where every other party reads it.

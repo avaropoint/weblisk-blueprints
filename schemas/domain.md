@@ -355,7 +355,7 @@ requires:
 
 extends:
   - pattern: patterns/domain-controller
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: workflow-execution

@@ -1321,7 +1321,7 @@ types:
         description: The listing these metrics describe
       uptime_30d:
         type: float
-        description: Proportion of successful health checks over thirty days
+        description: Proportion of availability probes of the provider hub (`HEAD /status`, an external federation peer, never an internal component) that succeeded over thirty days
       error_rate_30d:
         type: float
         description: Proportion of invocations that failed over thirty days
