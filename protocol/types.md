@@ -2213,8 +2213,9 @@ types:
 
 A first registration grants the first lease (`RegisterResponse.lease`), with
 the component's readiness taken as `ready: false` until its first renewal says
-otherwise. A re-registration does not reset it: what it keeps and what it moves
-on is [`protocol/spec`](spec.md#post-v1register)'s (§POST /v1/register, step 8).
+otherwise. What a re-registration does to a lease, and why it never carries a
+readiness over a lapse or an orchestrator restart, is
+[`protocol/spec`](spec.md#post-v1register)'s (§POST /v1/register, step 8).
 
 ### LeaseRenewal
 

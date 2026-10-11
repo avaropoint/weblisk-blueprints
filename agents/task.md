@@ -372,6 +372,10 @@ types:
 3. If agent was previously unreachable:
    Check queue for pending tasks targeting this agent
    Dispatch queued tasks
+   (A restart with an unchanged manifest quicker than the agent's lease
+   lapses publishes no event: architecture/orchestrator, Registration Flow
+   step 10. Tasks sent to it meanwhile recover through the step 6 retry of
+   HandleEvent: task.submit.)
 ```
 
 ### HandleEvent: system.agent.deregistered

@@ -423,8 +423,12 @@ The orchestrator MUST:
 8. Store agent in registry, and grant its first lease: `duration` from
    `orchestrator.lease_duration`, read as `not_ready` until the first renewal
    ([`POST /v1/lease`](#post-v1lease)). A re-registration of a registered
-   agent, which is how a token is renewed, keeps its last renewal and moves
-   `expires_at` on as a renewal does
+   agent, which is how a token is renewed, changes no current lease: its last
+   renewal and its `expires_at` stay as they were, so only a renewal moves a
+   lease on. A re-registration over a lease that has lapsed, or that was
+   granted or last renewed before the orchestrator last started, is granted a
+   lease as a first registration is, read as `not_ready` until its first
+   renewal: no readiness from before a lapse or a restart is carried over
 9. Log audit entry: actor=orchestrator, action=register, target=agent_name
 10. Respond with `RegisterResponse` (includes routing table and the lease)
 11. Asynchronously broadcast updated `ServiceDirectory` (with routing table)

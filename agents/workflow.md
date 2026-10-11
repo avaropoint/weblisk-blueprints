@@ -1393,8 +1393,11 @@ scaling:
   `$entity.*` and `$config.*` read from the trigger context.
 - **Definition caching**: Workflow definitions are fetched from source
   domains via POST /v1/message (action: get_workflow). Cached in memory
-  per domain+workflow name. Cache invalidated when domain re-registers
-  (system.agent.registered event).
+  per domain+workflow name. Cache invalidated on the domain's
+  system.agent.registered event, which a token renewal does not publish
+  (architecture/orchestrator, Registration Flow step 10). A deployment that
+  changes a domain's workflow definitions changes its manifest `version`, so
+  its registration publishes.
 - **Approval gates**: When a phase has `approval: required`, the phase
   output is stored but NOT exposed to downstream phases until approval.
   The workflow enters `pending_approval` state and waits for a

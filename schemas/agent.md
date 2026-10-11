@@ -263,7 +263,7 @@ health:
   ready:
     conditions: [list]
     checks: [list]
-    lease: ready true, its checks naming each of these that holds not_ready
+    lease: ready true, with checks marking each of these that holds as not_ready
 
   not_ready:
     conditions: [list]
@@ -997,7 +997,7 @@ health:
   ready:
     conditions: [<condition-list>]
     checks: [<condition-list>]
-    lease: ready true, its checks naming each of these that holds not_ready
+    lease: ready true, with checks marking each of these that holds as not_ready
 
   not_ready:
     conditions: [<condition-list>]

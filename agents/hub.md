@@ -1779,7 +1779,7 @@ health:
       - revocation list stale
       - fingerprint cycle failed
       - alerting agent unreachable (queuing locally)
-    lease: ready true, its checks naming each of these that holds not_ready
+    lease: ready true, with checks marking each of these that holds as not_ready
 
   not_ready:
     conditions:

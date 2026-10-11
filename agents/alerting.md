@@ -368,7 +368,7 @@ The alert event is delivered to the agent's `/task` endpoint.
 | Level | Meaning | Examples |
 |-------|---------|---------|
 | critical | Service down or data loss risk | Site unreachable, agent crashed, storage full |
-| high | Degraded service or failed workflow | Workflow failed, agent degraded, high error rate |
+| high | Degraded service or failed workflow | Workflow failed, agent lease not ready, high error rate |
 | medium | Notable event requiring attention | Approval backlog, federation peer disconnect |
 | low | Informational | Agent registered, strategy completed, routine audit |
 

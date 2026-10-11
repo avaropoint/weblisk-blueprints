@@ -771,7 +771,7 @@ Page: /dashboard
 │  ┌──────────────────┐  ┌────────────────┐ │
 │  │  Metrics Panel    │  │  Alert Feed    │ │
 │  │  GET /api/        │  │  GET /api/     │ │
-│  │  health/metrics   │  │  alerts/       │ │
+│  │  usage/metrics    │  │  alerts/       │ │
 │  │                   │  │  recent        │ │
 │  └──────────────────┘  └────────────────┘ │
 │  ┌─────────────────────────────────────┐  │
@@ -805,7 +805,7 @@ Multiple islands on the same page fire requests concurrently:
 If one island's agent is down:
 
 ```
-GET /api/health/metrics     → 200 OK (health domain responding)
+GET /api/usage/metrics      → 200 OK (usage domain responding)
 GET /api/alerts/recent      → 503 (alerting agent down)
 GET /api/strategies/active  → 200 OK (orchestrator responding)
 ```

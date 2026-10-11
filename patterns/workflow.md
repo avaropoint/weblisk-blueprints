@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: workflow
-version: 1.0.1
+version: 1.1.0
 requires: [protocol/types, patterns/storage, patterns/state-machine, patterns/messaging, patterns/observability, patterns/expression]
 platform: any
 tier: free
@@ -378,8 +378,10 @@ POST /v1/message to "seo":
 ```
 
 The Workflow Agent caches definitions per domain. Cache is invalidated
-when `system.agent.registered` events indicate the domain has
-re-registered (possible definition change).
+on the domain's `system.agent.registered` event, which the orchestrator
+publishes when the domain starts or its manifest changes, and not on a token
+renewal (architecture/orchestrator, Registration Flow step 10). A deployment that changes a domain's workflow
+definitions changes its manifest `version`, so its registration publishes.
 
 ### Phase 3 — Initialize Execution
 

@@ -1233,7 +1233,7 @@ REGISTRATION          agent → POST /v1/register
                         → refuse reserved namespaces, refuse conflicts
                         → store agent, claim namespaces, build routes
                         → audit, mint token
-                        → publish system.agent.registered (new or changed manifest)
+                        → publish system.agent.registered (unless a token renewal: step 10)
                         → broadcast the directory to every agent
 
 DISCOVERY             agent → GET /v1/services
@@ -1373,11 +1373,15 @@ for the authoritative registration contract.
 8.  Log audit entry: actor=orchestrator, action=register, target=agent_name
 9.  Respond with RegisterResponse (includes agent_id, token, service directory
     and the lease)
-10. If the agent had no stored entry, or the manifest it registered with
-    differs from the one its stored entry held, publish
-    system.agent.registered (scope: "*"). A re-registration with an
-    unchanged manifest (a token renewal, or every component's re-registration
-    after this orchestrator restarts) publishes nothing
+10. Publish system.agent.registered (scope: "*") unless the agent
+    re-registered with an unchanged manifest over a lease that is still
+    current. So a first registration, a changed manifest, and a
+    re-registration that step 6 grants a fresh lease (over a lapsed lease,
+    or over one from before this orchestrator last started) each publish,
+    and a token renewal publishes nothing. A component restarted with an
+    unchanged manifest before its lease lapsed cannot be told from a token
+    renewal here: it publishes nothing, and its first renewal carries its
+    readiness
 11. Asynchronously broadcast updated ServiceDirectory to ALL OTHER agents
     via POST /v1/services (includes routing_table and namespaces)
 ```
@@ -1650,20 +1654,22 @@ events that all agents may subscribe to:
 
 | Topic | Scope | Published When |
 |-------|-------|----------------|
-| `system.agent.registered` | `*` | An agent registered with no stored entry, or with a manifest that differs from its stored entry's (Registration Flow, step 10); never on a re-registration with an unchanged manifest |
+| `system.agent.registered` | `*` | An agent registered, except a re-registration with an unchanged manifest over a lease still current, such as a token renewal (Registration Flow, step 10) |
 | `system.agent.deregistered` | `*` | Agent deregistered |
 | `system.model.agreement_recorded` | `*` | A person recorded a model provider agreement. Carries its `id`, `party`, `backends`, `models`, `level`, `not_after` and `recorded_by` |
 | `system.model.agreement_withdrawn` | `*` | A person withdrew one. Carries its `id`, `backends` and `withdrawn_by` |
 | `system.shutdown` | `*` | Orchestrator is shutting down gracefully |
 
 `system.agent.registered` and `system.agent.deregistered` are also the tenant's
-**deploy markers**: a component that starts after stopping registers with no
-stored entry, one that is upgraded or reconfigured registers a changed
-manifest, and one that stops deregisters, so telemetry places these two on the
-investigator's timeline and needs no other record of a deployment. A token
-renewal is a re-registration with an unchanged manifest, as is every
-component's re-registration after the orchestrator restarts, and neither
-publishes, so neither is a deployment. A lease that lapses or recovers is not
+**deploy markers**: a component that is upgraded or reconfigured registers a
+changed manifest, one that starts after it deregistered registers with no
+stored entry, one that starts after its lease lapsed (a crash, a kill, a long
+stop) is granted a fresh lease, and one that stops cleanly deregisters, so
+telemetry places these two on the investigator's timeline and needs no other
+record of a deployment. A token renewal publishes nothing, so it is not a
+deployment. One start is not marked: a restart with an unchanged manifest
+quicker than the lease lapses, which registration cannot tell from a token
+renewal (Registration Flow, step 10). A lease that lapses or recovers is not
 an event: it is the entry's `lease_state`, carried by the next directory
 broadcast.
 
@@ -1744,7 +1750,9 @@ registered component is polled for its presence or readiness by telemetry
 either.
 
 An orchestrator that restarts reads every lease it holds as `unknown` until
-each component renews: it heard nothing while it was down, and says so.
+each component renews: it heard nothing while it was down, and says so. A
+component that registers again first reads `not_ready` until it renews
+(protocol/spec §POST /v1/register, step 8).
 
 ---
 
@@ -2152,12 +2160,12 @@ agents hold, which is theirs.
 - [ ] Auth middleware rejects unauthenticated requests on protected endpoints
 - [ ] On a `/v1/admin/*` route, Auth Middleware refuses with `FORBIDDEN`, before any handler, an operator token whose role carries the route's capability but whose `cap` does not name it, and reads a token only from the `Authorization` header
 - [ ] `GET /livez` and `GET /readyz` answer without auth with `live` or `ready` alone, and no count, version or name
-- [ ] A first `POST /v1/register` grants a `Lease` of `orchestrator.lease_duration`, and the entry reads `not_ready` until the first renewal; a re-registration keeps the last renewal and moves `expires_at` on
+- [ ] A first `POST /v1/register` grants a `Lease` of `orchestrator.lease_duration`, and the entry reads `not_ready` until the first renewal; a re-registration over a current lease leaves its last renewal and `expires_at` unchanged, and one over a lapsed lease or a lease from before the orchestrator's last start is granted a fresh lease that reads `not_ready` until the first renewal
 - [ ] An entry whose lease is past `expires_at` reads `lease_state` `unknown`, stays in the directory, and is never reported `ready`
 - [ ] A renewal at `POST /v1/lease` after a lapse restores the lease without a new registration
 - [ ] The orchestrator sends no request to a registered component to learn its presence or readiness, and has no setting that times, bounds or counts such a request
 - [ ] A change of an entry's `lease_state` is followed by a `ServiceDirectory` broadcast
-- [ ] system.agent.registered published after a registration with no stored entry or a changed manifest, and not after a re-registration with an unchanged manifest
+- [ ] system.agent.registered published after every registration except a re-registration with an unchanged manifest over a current lease, which publishes nothing
 - [ ] system.agent.deregistered event published after deregistration
 - [ ] Every operation creates an `AuditEntry` logged to stderr and persisted to JSONL
 - [ ] The orchestrator keeps no domain status of its own: a domain's readiness is its lease
