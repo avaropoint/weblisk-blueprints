@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 2.20.0
+version: 2.21.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -721,9 +721,8 @@ build, with the build's output, or what conformance established, and then each
 requirement left unrepaired and why, cutting the list for each source short at
 twelve with a count of the rest. When the loop ends on an error, such as a
 provider failure or a failed write, or ends on a best tree whose dependencies
-do not resolve, which the loop returns as an error and not as an `unchecked`
-verdict, it prints that list and the error and no verdict, although the loop
-returned one. A provider failure the run can
+do not resolve, for which the loop returns its `unchecked` verdict together
+with an error, it prints that list and the error and no verdict. A provider failure the run can
 outlast is resumed rather than ended
 ([`architecture/generation`](generation.md#surviving-a-provider-outage)), and
 a resumed run that finishes prints its verdict.

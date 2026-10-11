@@ -1246,7 +1246,11 @@ A generator MUST treat every repair round as a transaction:
     repair can be aimed at, assertions that cannot be read, and an error such as
     a provider failure or a failed write. The loop MUST leave on disk the best
     tree it reached, return it, record it, and describe it in the verdict it
-    returns to its caller, on this path as on every other. What a command
+    returns to its caller, on this path as on every other. Where the best
+    tree's dependencies do not resolve, the loop MUST return its `unchecked`
+    verdict together with an error saying that dependency resolution failed,
+    because most such failures (a network failure, a missing toolchain) are not
+    faults in the source, and the run reports no build. What a command
     prints of that verdict is the command's; see
     [`architecture/cli`](cli.md#weblisk-component-name-init). When the
     one-repair-at-a-time retry ends on an error after keeping repairs, the
