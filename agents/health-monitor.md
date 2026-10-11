@@ -69,7 +69,7 @@ requires:
         - name: AgentManifest
           fields_used: [name, version, port, capabilities, public_key, url]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
+          fields_used: [from, to, action, payload, trace_id, span_id]
         - name: TaskRequest
           fields_used: [id, from, target_agent, payload, context]
         - name: TaskResult

@@ -70,10 +70,12 @@ requires:
       types:
         - name: TaskRequest
           fields_used: [id, from, target_agent, action, payload, context]
+        - name: TaskContext
+          fields_used: [trace_id, span_id]
         - name: TaskResult
           fields_used: [task_id, agent_name, status, summary, timestamp]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
+          fields_used: [from, to, action, payload, trace_id, span_id]
     on_change:
       compatible: validate
       breaking: version-bump

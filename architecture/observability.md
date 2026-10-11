@@ -232,17 +232,20 @@ span exists and what it is called; a component binds both as
 ### Span Names
 
 A span is named for what was done, never for who did it; `component` says who.
-Attribute names follow OpenTelemetry semantic conventions where one exists.
+An HTTP span takes OpenTelemetry's name for it. Attribute names follow
+OpenTelemetry semantic conventions where one exists, and otherwise sit under
+`weblisk.`, as a log record's do
+([`patterns/logging`](../patterns/logging.md#opentelemetry-log-data-model)).
 
 | Name | Opened by | Attributes |
 |------|-----------|------------|
-| `http.request` | A component, for each request it serves that no name below covers | `http.route`, `http.request.method`, `http.response.status_code` |
-| `http.call` | A component, for each request it sends that no name below covers | `server.address`, `http.request.method` |
-| `agent.execute` | An agent, serving `POST /v1/execute` | `task.id`, `task.action` |
-| `agent.message` | An agent, serving `POST /v1/message` | `from`, `to`, `action` |
-| `event.deliver` | A subscriber, serving `POST /v1/event` | `messaging.destination.name` (the topic), `messaging.message.id` (the `event_id`), `source` |
-| `workflow.phase` | The workflow agent, for each phase | `workflow.name`, `phase.name`, `phase.agent` |
-| `health.probe` | Whatever probes a component from outside it | `target`, `result` |
+| `{method} {route}`, such as `GET /v1/health` | A component, for each request it serves that no name below covers | `http.route`, `http.request.method`, `http.response.status_code` |
+| `{method}` | A component, for each request it sends that no name below covers | `server.address`, `http.request.method` |
+| `agent.execute` | An agent, serving `POST /v1/execute` | `weblisk.task_id`, `weblisk.action` |
+| `agent.message` | An agent, serving `POST /v1/message` | `weblisk.from`, `weblisk.to`, `weblisk.action` |
+| `event.deliver` | A subscriber, serving `POST /v1/event` | `messaging.destination.name` (the topic), `messaging.message.id` (the `event_id`), `weblisk.source` |
+| `workflow.phase` | The workflow agent, for each phase | `weblisk.workflow`, `weblisk.phase`, `weblisk.phase_agent` |
+| `health.probe` | Whatever probes a component from outside it | `server.address` (the target), `weblisk.result` |
 
 A line between two components is a span whose `parent_span_id` names a span
 another component opened. That is all a reader needs to draw who called whom,
@@ -392,7 +395,7 @@ dashboards for these key queries:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| Log level | — | [`schemas/config`](../schemas/config.md)'s `observability.log_level` |
+| Log level | `info` | [`schemas/config`](../schemas/config.md)'s `observability.log_level` |
 | Tracing enabled | `false` | Record sampled spans. Trace context is carried whether or not this is set |
 | Trace sample rate | `1.0` | Trace sampling rate (0.0–1.0), applied where a trace starts |
 | Trace export target | — | Where sampled spans are exported, where telemetry is deployed |

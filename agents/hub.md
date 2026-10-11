@@ -143,7 +143,7 @@ requires:
         - name: ErrorResponse
           fields_used: [error, code]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
+          fields_used: [from, to, action, payload, trace_id, span_id]
         - name: HealthStatus
           fields_used: [status, checks]
     on_change:

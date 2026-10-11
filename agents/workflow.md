@@ -71,7 +71,7 @@ requires:
         - name: WorkflowResult
           fields_used: [workflow_name, invoker, status, phase_results, observations, recommendations]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
+          fields_used: [from, to, action, payload, trace_id, span_id]
     on_change:
       compatible: validate
       breaking: version-bump
