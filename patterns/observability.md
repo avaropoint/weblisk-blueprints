@@ -159,7 +159,9 @@ it, is its lease state in the orchestrator's directory: `ready`, `not_ready`
 or `unknown` ([`protocol/types`](../protocol/types.md#leasestate)). It changes
 when the component renews or its lease lapses, never because another component
 measured it. There is no `online`, `degraded` or `offline`, no latency
-threshold and no failure count.
+threshold and no failure count. A component may keep lifecycle states of its
+own, a `degraded` among them, to decide what it does; no other party reads
+them, and what it reports is only the `ready` its renewal carries.
 
 ---
 

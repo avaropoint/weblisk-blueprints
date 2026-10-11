@@ -1380,8 +1380,8 @@ for the authoritative registration contract.
     or over one from before this orchestrator last started) each publish,
     and a token renewal publishes nothing. A component restarted with an
     unchanged manifest before its lease lapsed cannot be told from a token
-    renewal here: it publishes nothing, and its first renewal carries its
-    readiness
+    renewal here: it publishes nothing, and the renewal it sends as soon as
+    its registration is answered carries its readiness
 11. Asynchronously broadcast updated ServiceDirectory to ALL OTHER agents
     via POST /v1/services (includes routing_table and namespaces)
 ```
@@ -1751,8 +1751,8 @@ either.
 
 An orchestrator that restarts reads every lease it holds as `unknown` until
 each component renews: it heard nothing while it was down, and says so. A
-component that registers again first reads `not_ready` until it renews
-(protocol/spec §POST /v1/register, step 8).
+component that registers again after the restart first reads `not_ready`
+until it renews (protocol/spec §POST /v1/register, step 8).
 
 ---
 
@@ -2160,7 +2160,7 @@ agents hold, which is theirs.
 - [ ] Auth middleware rejects unauthenticated requests on protected endpoints
 - [ ] On a `/v1/admin/*` route, Auth Middleware refuses with `FORBIDDEN`, before any handler, an operator token whose role carries the route's capability but whose `cap` does not name it, and reads a token only from the `Authorization` header
 - [ ] `GET /livez` and `GET /readyz` answer without auth with `live` or `ready` alone, and no count, version or name
-- [ ] A first `POST /v1/register` grants a `Lease` of `orchestrator.lease_duration`, and the entry reads `not_ready` until the first renewal; a re-registration over a current lease leaves its last renewal and `expires_at` unchanged, and one over a lapsed lease or a lease from before the orchestrator's last start is granted a fresh lease that reads `not_ready` until the first renewal
+- [ ] A first `POST /v1/register` grants a `Lease` of `orchestrator.lease_duration`, and the entry reads `not_ready` until the first renewal; a re-registration with an unchanged manifest over a current lease leaves its last renewal and `expires_at` unchanged, and one with a changed manifest, over a lapsed lease or over a lease from before the orchestrator's last start is granted a fresh lease that reads `not_ready` until the first renewal
 - [ ] An entry whose lease is past `expires_at` reads `lease_state` `unknown`, stays in the directory, and is never reported `ready`
 - [ ] A renewal at `POST /v1/lease` after a lapse restores the lease without a new registration
 - [ ] The orchestrator sends no request to a registered component to learn its presence or readiness, and has no setting that times, bounds or counts such a request

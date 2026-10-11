@@ -423,12 +423,17 @@ The orchestrator MUST:
 8. Store agent in registry, and grant its first lease: `duration` from
    `orchestrator.lease_duration`, read as `not_ready` until the first renewal
    ([`POST /v1/lease`](#post-v1lease)). A re-registration of a registered
-   agent, which is how a token is renewed, changes no current lease: its last
-   renewal and its `expires_at` stay as they were, so only a renewal moves a
-   lease on. A re-registration over a lease that has lapsed, or that was
-   granted or last renewed before the orchestrator last started, is granted a
-   lease as a first registration is, read as `not_ready` until its first
-   renewal: no readiness from before a lapse or a restart is carried over
+   agent with an unchanged manifest, which is how a token is renewed, changes
+   no current lease: its last renewal and its `expires_at` stay as they were,
+   so only a renewal moves a lease on. A re-registration with a changed
+   manifest, or over a lease that has lapsed, or over one that was granted or
+   last renewed before the orchestrator last started, is granted a lease as a
+   first registration is, read as `not_ready` until its first renewal: no
+   readiness from before a deployment, a lapse or an orchestrator restart is
+   carried over. A component renews as soon as its registration is answered
+   ([`protocol/types`](types.md#leaserenewal)), which is what keeps a
+   component restarted with an unchanged manifest from reading the old
+   process's readiness for longer than that first renewal takes
 9. Log audit entry: actor=orchestrator, action=register, target=agent_name
 10. Respond with `RegisterResponse` (includes routing table and the lease)
 11. Asynchronously broadcast updated `ServiceDirectory` (with routing table)
@@ -484,7 +489,7 @@ answer the orchestrator's is the connection the caller opened to the
 orchestrator address it registered at.
 
 The response includes:
-- `services` — all registered agents with URL, public key, capabilities, status
+- `services` — all registered agents with URL, public key, capabilities, `lease_state` and `lease_expires_at`
 - `routing_table` — topic pattern → subscriber list (URL, group, scope)
 - `namespaces` — namespace → owning agent name
 - `updated_at` — timestamp of last change

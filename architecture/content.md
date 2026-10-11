@@ -5333,7 +5333,7 @@ security:
 - [ ] A successful `establish` leaves no entry at all in the store it created, and a census over it returns the digest of the empty set
 - [ ] `establish` against a backend that cannot create is refused with `CONTENT_ESTABLISH_UNSUPPORTED`, no placeholder is written, and `adopt` against that same backend succeeds
 - [ ] The declaration is durable with `state: establishing` before the adapter is asked to create anything, demonstrated by killing the service between the two and finding the record on restart
-- [ ] A repository in `establishing` appears in `GET /v1/content/repositories` reporting `custody: opaque`, every attestation `false`, `ceiling: internal` and no `verified_at`; it serves no read, accepts no write, and health reports `degraded` naming it
+- [ ] A repository in `establishing` appears in `GET /v1/content/repositories` reporting `custody: opaque`, every attestation `false`, `ceiling: internal` and no `verified_at`; it serves no read, accepts no write, and the `checks` the service's lease carries name it `not_ready`
 - [ ] A create that fails after the store exists answers `CONTENT_ESTABLISH_INCOMPLETE` with `store_created: true`, and no repository is reported as declared
 - [ ] A repeated `establish` with identical arguments against a repository in `establishing` completes it, creates no second store, and increments `attempts`
 - [ ] A repeated `establish` differing in `placement`, `custody` or `attestations` is refused with `CONTENT_REPOSITORY_EXISTS`, and the reserved declaration is unchanged
