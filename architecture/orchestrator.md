@@ -1362,10 +1362,9 @@ for the authoritative registration contract.
       identity_id=fingerprint(manifest.public_key)
     - Expiry: 24 hours (configurable via token TTL setting)
 6.  Store agent in registry ({manifest, agentID, token, registeredAt,
-    lastSeen} and its lease, as an AgentEntry). The lease is granted or
-    carried over as protocol/spec §POST /v1/register step 8 says: a first
-    registration's reads `not_ready` until its first renewal, and a
-    re-registration keeps its last renewal
+    lastSeen} and its lease, as an AgentEntry). The lease is granted, or on
+    a re-registration carried over, as protocol/spec §POST /v1/register
+    step 8 says, and nowhere else
     Its ServiceEntry carries manifest.pass_routes unchanged, which is where
     the admin gateway learns what a person's request may reach on this
     component and what each needs (protocol/types, PassRoute)
