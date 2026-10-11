@@ -480,7 +480,7 @@ security:
 - [ ] An argument not declared in `input_contract` MUST be rejected rather than ignored
 - [ ] An unknown tool name and a tool outside the caller's scope MUST produce identical refusals
 - [ ] A caller presenting a person's operator token, whatever its `cap`, is refused with `PASS_REQUIRED` before any tool is resolved, a security event is logged, and nothing is performed
-- [ ] A caller whose credential `patterns/auth-oauth` issued for this surface, for a person whose role carries `content:write`, `content:decide`, `model:attest` or `fabric:attest`, invokes no tool whose operation needs one of them: the call is refused as an unknown name is, and nothing is performed
+- [ ] A caller whose credential `patterns/auth-oauth` issued for this surface, for a person whose role carries a capability [`protocol/types`](../protocol/types.md#capability) marks person only, invokes no tool whose operation needs one: the call is refused as an unknown name is, and nothing is performed
 - [ ] Discovery without credentials MUST return only declarations marked discoverable
 - [ ] An authenticated caller's discovery MUST return nothing outside its resolved scope
 - [ ] A tool with `mutates: true` MUST be refused without an idempotency key

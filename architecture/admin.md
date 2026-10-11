@@ -104,7 +104,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.17.2 <3.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: Strategy
@@ -1270,7 +1270,9 @@ POST /v1/admin/credentials/token
   "capabilities": ["admin:read", "admin:approve", "admin:strategy",
                    "content:read", "content:describe", "content:write",
                    "content:propose", "content:decide", "content:reconcile",
-                   "fabric:read", "fabric:attest"],
+                   "programme:read", "programme:install",
+                   "programme:operate", "programme:switch",
+                   "integration:read", "fabric:read", "fabric:attest"],
   "not_after": 1714752000
 }
 ```
@@ -1628,6 +1630,8 @@ Operator tokens use the same WLT format as agent tokens, with the `cid`,
   "cap": ["admin:read", "admin:approve", "admin:strategy",
           "content:read", "content:describe", "content:write",
           "content:propose", "content:decide", "content:reconcile",
+          "programme:read", "programme:install", "programme:operate",
+          "programme:switch", "integration:read",
           "fabric:read", "fabric:attest"],
   "cid": "<id of the credential that obtained it>",
   "identity_id": "<alice's identity id at this hub>",

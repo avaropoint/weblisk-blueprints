@@ -367,7 +367,11 @@ types:
 **One home, one owner.** This section is the one home of every capability
 name, and each bullet names its one **owner** in brackets: the unit whose
 blueprint says what the capability admits and which judges it. A name with two
-owners or none is a fault. An owner is named as a unit: `orchestrator`
+owners or none is a fault. The vocabulary is what a manifest, a role and a
+token's `cap` may name; a capability listing one hub publishes to another
+([`architecture/hub`](../architecture/hub.md)) is named by the hub that
+publishes it and is not part of it, so `architecture/hub`'s federation
+examples, such as `inventory:check`, are listings and are not listed here. An owner is named as a unit: `orchestrator`
 ([`architecture/orchestrator`](../architecture/orchestrator.md), with
 [`architecture/admin`](../architecture/admin.md) its administrative surface),
 `content`, `fabric`, `enforcement`, `gateway` and `domain` (each its
@@ -508,10 +512,11 @@ Neither guards a route yet: no blueprint declares an operator action, and
 `AgentManifest` has no operational scope. Both are listed so that each act has
 one name before it is specified.
 
-No capability is listed for a component recording into the one audit ledger:
-a registered component records its own acts there on its registration alone,
-as it reads `GET /v1/audit` on it, and what it records is its own, never
-another's.
+No capability is listed here for a component recording into the one audit
+ledger. No route for that write exists yet; whether it needs a capability is
+decided where the route is specified, in
+[`architecture/orchestrator`](../architecture/orchestrator.md), which owns the
+audit routes and adds its name here first if it needs one.
 
 **Outside the `admin` family.** `telemetry:read`, `action:invoke` and
 `scope:admit`, like `model:attest`, are not in the `admin` family, so `admin:*`
