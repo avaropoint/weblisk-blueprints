@@ -721,9 +721,8 @@ build, with the build's output, or what conformance established, and then each
 requirement left unrepaired and why, cutting the list for each source short at
 twelve with a count of the rest. When the loop ends on an error, such as a
 provider failure or a failed write, or ends on a best tree whose dependencies
-do not resolve, for which the loop returns its `unchecked` verdict together
-with an error, it prints that list and the error and no verdict. A provider failure the run can
-outlast is resumed rather than ended
+do not resolve, it prints that list and the error and no verdict. A provider
+failure the run can outlast is resumed rather than ended
 ([`architecture/generation`](generation.md#surviving-a-provider-outage)), and
 a resumed run that finishes prints its verdict.
 

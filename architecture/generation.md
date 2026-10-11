@@ -1221,8 +1221,10 @@ A generator MUST treat every repair round as a transaction:
    generation wrote them. An interrupt anywhere else leaves the record
    describing the tree on disk.
 
-9. **What was not repaired is said.** The run MUST list every requirement still
-   unmet on the best tree, with a reason:
+9. **What was not repaired is said.** The verdict the loop returns MUST list
+   every requirement still unmet on the best tree, with a reason; how a command
+   shows that list is the command's (see
+   [`architecture/cli`](cli.md#weblisk-component-name-init)):
 
    - dependency resolution that fails;
    - build errors, a package clash against its files;
