@@ -57,7 +57,7 @@ production deployments.
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

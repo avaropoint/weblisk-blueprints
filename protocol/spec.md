@@ -87,7 +87,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.8.0 <2.0.0"
+    version: ">=1.8.0 <3.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -116,12 +116,12 @@ its own: a second statement of a type is a second thing to keep right.
 
 - All paths are prefixed with `/v1`
 - All request/response bodies are `application/json`
-- All timestamps are Unix epoch seconds (`int64`)
+- Timestamps and IDs take the forms [types.md](types.md#conventions) states
 - All signatures are base64url-encoded ML-DSA-65 signatures (3309 bytes decoded)
 - All public keys are base64url-encoded ML-DSA-65 public keys (1952 bytes decoded)
 - Errors return `ErrorResponse` JSON (see [types.md](types.md)); at minimum `{"error": "message"}`
-- IDs are 32-character hex strings (16 random bytes); event IDs use UUID v7
-  (time-sortable, 32 hex chars when formatted without hyphens)
+- Event IDs use UUID v7 (time-sortable, 32 hex chars when formatted
+  without hyphens)
 - Unknown JSON fields MUST be ignored (forward compatibility)
 - Request bodies MUST be limited: 1 MB default, 10 MB for task execution
 
@@ -259,10 +259,11 @@ event delivery, use `/v1/event` instead.
 
 The agent MUST:
 1. Accept only POST requests
-2. If signature is present AND sender's public key is known from the
+2. Validate the message carries `trace_id` and `span_id`
+3. If signature is present AND sender's public key is known from the
    service directory, verify the signature
-3. Dispatch to the appropriate message handler based on `action`
-4. Sign the response
+4. Dispatch to the appropriate message handler based on `action`
+5. Sign the response
 
 Signature covers: `canonicalize({from, to, action, payload})` per
 [RFC 8785 (JCS)](https://www.rfc-editor.org/rfc/rfc8785) — see
@@ -278,7 +279,9 @@ Signature covers: `canonicalize({from, to, action, payload})` per
   "type": "request",
   "payload": {"url": "/blog/post-1", "keywords": ["seo", "performance"]},
   "signature": "<hex ML-DSA-65 signature>",
-  "timestamp": 1712160000
+  "timestamp": 1712160000,
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "00f067aa0ba902b7"
 }
 ```
 
@@ -302,7 +305,7 @@ required).
 > names every other's `url`. An agent that takes a pushed body as its
 > directory follows the routes, addresses and `address_provenance` that party
 > chose, and checks a message's signature
-> ([`POST /v1/message`](#post-v1message), step 2) against a public key that
+> ([`POST /v1/message`](#post-v1message), step 3) against a public key that
 > party chose, so it accepts a message that party signed in another agent's
 > name. The admin gateway, which turns the directory into where it sends a
 > person's pass, therefore reads it only by `GET /v1/services` at its anchor
@@ -978,26 +981,24 @@ what it is named, are
   a dead letter where no header does. An envelope carries no flags, so a
   request sent from a stored envelope (a retry, a redelivery) sends flags
   `01`: a retry is recorded even in an unsampled trace, the one exception to
-  sampling being decided once, because a failed delivery is the span a reader
-  most needs. Work resumed from a record that keeps only a `trace_id` (a
-  stored task, a cron run) continues that trace with no parent span.
+  sampling being decided once. Work resumed from a record that keeps only a
+  `trace_id` (a stored task) continues that trace with no parent span.
 - **A receiver continues the trace it is given.** Its span takes the arriving
   `trace_id` and records the arriving `span_id` as its `parent_span_id`. Where
   a request carries both a `traceparent` and an envelope and they differ, the
   envelope's values are used; the flags are always `traceparent`'s. A request
   with an envelope whose `traceparent` is missing or does not parse continues
   the envelope's trace with flags `01`, as a retry does.
-- **A trace starts only where none can be continued**: a timer firing, or a
-  request with neither a `traceparent` that parses nor an envelope. Its
-  `trace_id` is 16 random bytes from a cryptographic source, and whether it is
+- **A trace starts only where none can be continued**: a timer firing (each
+  firing of a cron schedule starts its own), or a request with neither a
+  `traceparent` that parses nor an envelope. Its `trace_id` is drawn from a
+  cryptographic source, and whether it is
   sampled is decided there, once; every component inside honours the flags it
   receives, except where a rule above sends `01`.
 - **A trace restarts at the trust boundary.** The gateway, the admin gateway
   and `POST /v1/federation/task` continue nothing a request from outside the
   tenant carries: neither its `traceparent` nor the `trace_id` and `span_id`
-  of any envelope in it. Each starts a new trace there (W3C Trace Context
-  permits a restart at a trust boundary), so an outside caller chooses neither
-  the trace id nor the sampling.
+  of any envelope in it. Each starts a new trace there.
 - **A trace identifier carries no subject data.** It is random, and nothing is
   derived from a request's content.
 

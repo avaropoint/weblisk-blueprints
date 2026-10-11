@@ -244,14 +244,14 @@ owner alone.
 | `storage.write` | debug | Storage write operation | `{table, duration_ms, rows_affected}` |
 | `storage.error` | error | Storage operation failed | `{table, operation, error}` |
 
-#### Security Events
+#### Auth Events
 
 | Log Type | Level | When | Required Details |
 |----------|-------|------|-----------------|
-| `security.auth_success` | debug | Request authenticated | `{method, identity}` |
-| `security.auth_failure` | warn | Authentication failed | `{method, reason, source_ip}` |
-| `security.permission_denied` | warn | Authorization failed | `{action, required, actual}` |
-| `security.override` | info | Manual override applied | `{operator, action, reason}` |
+| `auth.success` | debug | Request authenticated | `{method, identity}` |
+| `auth.failure` | warn | Authentication failed | `{method, reason, source_ip}` |
+| `auth.denied` | warn | Authorization failed | `{action, required, actual}` |
+| `auth.override` | info | Manual override applied | `{operator, action, reason}` |
 
 #### Audit Events
 
@@ -288,7 +288,10 @@ A component MAY define custom log types using the pattern:
 Example: `cron.task.fired`, `alerting.notification.sent`
 
 `<component>` is the component's own name, which for an agent is its own
-event namespace; no component defines a type under a name another owns.
+event namespace. A blueprint that is not a component's MAY declare a family
+its implementers write, under a first segment it names (as
+[`patterns/command`](command.md) does). No custom type's first segment is a
+standard type's, another declarer's, or a namespace another component owns.
 
 An agent declares its custom log types in its blueprint's Observability
 section, as [`schemas/agent`](../schemas/agent.md)'s `custom_log_types`.
@@ -369,7 +372,6 @@ whose records must be redacted points here.
 - [ ] No standard log type's first segment is an event namespace a component owns
 - [ ] Error logs include error code and message
 - [ ] Log level filtering works (debug disabled by default)
-- [ ] Per-component level overrides work
 - [ ] Sensitive data (tokens, keys, PII) is never logged, and a record is redacted where it is emitted (`redaction-at-emission`)
 - [ ] Custom log types follow the naming convention
 - [ ] Log lines do not exceed 8 KB

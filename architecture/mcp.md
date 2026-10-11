@@ -52,7 +52,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.14.4 <2.0.0"
+    version: ">=1.14.4 <3.0.0"
     bindings:
       types:
         # Read only to recognise a person's operator token and refuse it

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: secret-source
-version: 1.6.0
+version: 1.6.1
 requires: [protocol/identity, patterns/principal-identity]
 platform: any
 tier: free
@@ -68,7 +68,7 @@ requires:
   # Fixed-form statements, which a caller builds before it asks a source to
   # sign, and the holder probe registered there
   - blueprint: protocol/identity
-    version: ">=1.7.0 <2.0.0"
+    version: ">=1.7.0 <3.0.0"
     bindings:
       types:
         - name: SigningKeyPair

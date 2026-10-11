@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: development
-version: 1.1.0
+version: 2.0.0
 requires: [protocol/types, patterns/security, patterns/observability]
 platform: any
 tier: free
@@ -466,15 +466,12 @@ The development server writes every request as one log line in the envelope
 }
 ```
 
-It starts a trace for each request it serves. Its one custom log type:
+It starts a trace for each request it serves. Its custom log types:
 
 | Log Type | Level | When | Required Details |
 |----------|-------|------|-----------------|
 | `dev-server.request.served` | info | A request was answered | `{method, path, status_code}` |
-
-Security-relevant events (dotfile access attempts, path traversal
-attempts) are logged at `warn` level with the standard security
-event format from `patterns/security`.
+| `dev-server.request.refused` | warn | A dotfile access or path traversal attempt was refused | `{method, path, reason}` |
 
 ---
 
@@ -520,6 +517,6 @@ Implementation MUST:
 - [ ] Listen on localhost only by default (not `0.0.0.0`)
 - [ ] Set `Cache-Control: no-cache` on all responses
 - [ ] Log all requests with structured JSON logging
-- [ ] Log security events (dotfile, traversal) at warn level
+- [ ] Log a refused dotfile or traversal request as `dev-server.request.refused` at warn level
 - [ ] Use native language/framework HTTP server (no cross-platform shims)
 - [ ] Work without any external tooling (no Docker, no platform CLI)

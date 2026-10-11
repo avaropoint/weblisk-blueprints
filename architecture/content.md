@@ -68,7 +68,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.14.4 <2.0.0"
+    version: ">=1.14.4 <3.0.0"
     bindings:
       types:
         # identity_id is who a change names; type and aud say a person's
@@ -155,7 +155,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/secrets
-    version: ">=1.1.0 <2.0.0"
+    version: ">=1.1.0 <3.0.0"
     bindings:
       behaviors:
         # How a remote's credential is held (see Declaring a remote)

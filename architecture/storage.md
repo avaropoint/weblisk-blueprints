@@ -67,7 +67,7 @@ requires:
   # fixed-form statement signed and verified as Sign and Verify Signature say,
   # and names each key by its Key Fingerprint
   - blueprint: protocol/identity
-    version: ">=1.6.0 <2.0.0"
+    version: ">=1.6.0 <3.0.0"
     bindings:
       types:
         - name: SigningKeyPair

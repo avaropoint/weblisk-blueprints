@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: workflow
-version: 1.0.1
+version: 2.0.0
 requires: [protocol/types, patterns/storage, patterns/state-machine, patterns/messaging, patterns/observability, patterns/expression]
 platform: any
 tier: free

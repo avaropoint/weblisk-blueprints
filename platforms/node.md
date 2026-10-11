@@ -1,7 +1,7 @@
 <!-- blueprint
 type: platform
 name: node
-version: 1.0.1
+version: 2.0.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: node
 tier: free
@@ -97,7 +97,7 @@ weblisk-app/
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

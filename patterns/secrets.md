@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: secrets
-version: 1.1.1
+version: 2.0.0
 requires: [protocol/types, protocol/identity, protocol/secret-source, architecture/agent, architecture/storage]
 platform: any
 tier: free
@@ -35,7 +35,7 @@ so that:
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -261,7 +261,7 @@ secrets.exists(key) → bool
 | Agent can only access its own declared secrets | Framework rejects undeclared key access |
 | Secret values are strings | Binary secrets must be base64-encoded |
 | Secrets are not cached by the framework | Each `get()` reads from store (implementations MAY cache with short TTL) |
-| Secret access is audited | Every `get()` emits a `security.secret_accessed` log event |
+| Secret access is audited | Every `get()` emits a `secrets.accessed` log record |
 
 ### Access During Startup
 
@@ -292,7 +292,7 @@ Required secrets are validated during agent startup:
    { "key": "SMTP_PASSWORD" }
 3. Agent receives signal → clears any cached value
 4. Next secrets.get() reads new value
-5. Log: security.secret_rotated with {key, rotated_by}
+5. Log: secrets.rotated with {key, rotated_by}
 6. Emit event: security.secret.rotated
 ```
 
@@ -317,7 +317,7 @@ The framework invokes the rotation handler on schedule:
    b. Handler generates/fetches new secret value
    c. Framework writes new value to store
    d. Framework signals agent to clear cache
-   e. Log: security.secret_rotated with {key, method: "scheduled"}
+   e. Log: secrets.rotated with {key, method: "scheduled"}
 ```
 
 ### Automatic Rotation
@@ -331,7 +331,7 @@ be regenerated via the provider's API):
 3. Handler uses provider API to generate new key
 4. New key written to store
 5. Retry original operation with new key
-6. Log: security.secret_rotated with {key, method: "automatic", trigger: "auth_failure"}
+6. Log: secrets.rotated with {key, method: "automatic", trigger: "auth_failure"}
 ```
 
 ---
@@ -389,11 +389,11 @@ Every secret operation is logged:
 
 | Event | Log Type | Level | Details |
 |-------|----------|-------|---------|
-| Secret accessed | `security.secret_accessed` | debug | `{key, agent}` |
-| Secret not found | `security.secret_missing` | warn | `{key, agent, required}` |
-| Secret rotated | `security.secret_rotated` | info | `{key, method, rotated_by}` |
-| Unauthorized access | `security.secret_denied` | warn | `{key, requesting_agent, owning_agent}` |
-| Secret expired | `security.secret_expired` | warn | `{key, expired_at}` |
+| Secret accessed | `secrets.accessed` | debug | `{key, agent}` |
+| Secret not found | `secrets.missing` | warn | `{key, agent, required}` |
+| Secret rotated | `secrets.rotated` | info | `{key, method, rotated_by}` |
+| Unauthorized access | `secrets.denied` | warn | `{key, requesting_agent, owning_agent}` |
+| Secret expired | `secrets.expired` | warn | `{key, expired_at}` |
 
 ---
 
@@ -584,7 +584,7 @@ types:
 - [ ] Agent startup fails if a required secret is missing
 - [ ] Agent startup succeeds with optional secrets missing
 - [ ] Agents can only access their own declared secrets
-- [ ] Cross-agent secret access is rejected with security.secret_denied log
+- [ ] Cross-agent secret access is rejected with a `secrets.denied` log
 - [ ] Secret values never appear in logs (any level)
 - [ ] Secret values never appear in event payloads
 - [ ] Secret values never appear in API responses
