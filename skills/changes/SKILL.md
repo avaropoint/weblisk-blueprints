@@ -113,8 +113,11 @@ the graph a rebuild resolves. It changes nothing.
 ## What must pass
 
 `architecture/generation.md`, "The verification gate",
-declares four layers, run in order, cheapest first. A failure at any layer stops
-the run, because a later layer's result is meaningless once an earlier one failed.
+declares four layers, run in order, cheapest first. A failure at Layer 1 or
+Layer 2 stops verification of that tree, because a tree that is missing a file
+or does not build cannot be run; inside the repair loop that failure is what a
+round repairs. A failure at Layer 3 does not void Layer 4. The order a repair
+round reads them in, and what it does with each, is that section's.
 
 Then, over HTTP against the running thing:
 

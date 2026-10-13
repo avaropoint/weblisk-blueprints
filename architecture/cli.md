@@ -732,6 +732,20 @@ path, packages present with their exported names, and which component owns which
 file — and REFUSES a plan that names another component's files. See
 [`architecture/generation`](generation.md#deciding-whether-a-file-must-be-rebuilt).
 
+A build that repairs ends on the best tree it reached, as
+[`architecture/generation`](generation.md#a-repair-round-is-a-transaction)
+specifies, which also says where `weblisk` does not yet rank or judge a tree as
+it specifies. What is the command's: when the repair loop ends without an
+error of its own, it prints the verdict on that tree first, that it does not
+build, with the build's output, or what conformance established, and then each
+requirement left unrepaired and why, cutting the list for each source short at
+twelve with a count of the rest. When the loop ends on an error, such as a
+provider failure or a failed write, or ends on a best tree whose dependencies
+do not resolve, it prints that list and the error and no verdict. A provider
+failure the run can outlast is resumed rather than ended
+([`architecture/generation`](generation.md#surviving-a-provider-outage)), and
+a resumed run that finishes prints its verdict.
+
 ### `weblisk component <name> start` · `stop` · `status` · `logs`
 
 Run one component of a tenant — any kind the tenant has generated, not only the
@@ -3188,6 +3202,7 @@ security:
 - [ ] `weblisk providers --json` marks at most one backend `default`, the one the CLI's own model would start with, and marks none when there would be nothing to start with
 - [ ] `weblisk providers --json` says `local` only for a model server on this machine's loopback address, judged from the address's host — never for a coding-agent CLI, a `WL_AI_COMMAND` tool, or a server at another host
 - [ ] `weblisk component help` lists a component only when the pipeline will read that component's own blueprint, so a listed kind is never generated from the protocol alone
+- [ ] `weblisk component <name> init` ends on the best tree it reached and never a worse one — on an error too — names the requirements it left unrepaired, and a re-run starts from that tree
 - [ ] `weblisk server init` reads YAML specs and dispatches to the configured LLM for code generation
 - [ ] `weblisk server start` reads .weblisk/config.yaml and builds+starts all declared components
 - [ ] `weblisk server start` starts the orchestrator alone when `.weblisk/config.yaml` is absent, and refuses a declaration it cannot carry out before starting anything
