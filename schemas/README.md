@@ -68,7 +68,7 @@ This applies to:
 | [language.md](language.md) | Programming language bindings — what is essential when building in one language | `languages/` directory |
 | [platform.md](platform.md) | Platform implementation bindings — what a runtime offers | `platforms/` directory |
 | [framework.md](framework.md) | Framework blueprints — what building *with* a framework requires | `frameworks/<name>/` directories |
-| [standard.md](standard.md) | Industry standards — ISO, SOC 2, NIST, CSA — as JSON | `standards/` directory |
+| [standard.md](standard.md) | Industry standards — ISO, SOC 2, NIST, CSA — as JSON, and how a tenant adopts one: generated as a link and its own adjustments, never copied | `standards/` directory |
 | [programme.md](programme.md) | Programmes — which artifacts a body of work requires, what each answers, the recurring work it commits an organisation to, what else adopting it brings, and what an adoption records | `programmes/` directory |
 | [position.md](position.md) | Positions — the hand-written judgement a role brief cannot derive | `positions/` directory |
 | [policy-domain.md](policy-domain.md) | Policy domains — what a subject area covers, where it stops, and what a programme claiming it must provide | `policy-domains/` directory |

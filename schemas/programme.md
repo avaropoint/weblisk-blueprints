@@ -1800,6 +1800,14 @@ adopting is the act that turns the template into the organisation's own:
 documents in its repositories, standing work in its services, and a record of
 exactly what was taken.
 
+**A standard is adopted by the same act.** The rules below that are not about
+a programme's files and blocks — that adopting is a person's act at an
+organisation, the pin's per-file entry, adopting twice, updates arriving as
+proposals, un-adopting — hold for a standard as written here, and
+[`standard.md`](standard.md#adopting-a-standard) states only what differs: a
+standard is never copied but generated for the organisation, as a link to the
+published standard and the organisation's own adjustments.
+
 ### One act, by a person, at the organisation
 
 - **Adoption is a person's act**, made through the tenant's admin gateway on
