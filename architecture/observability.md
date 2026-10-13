@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: observability
-version: 1.0.2
+version: 1.0.3
 requires: [protocol/types, architecture/orchestrator, architecture/agent]
 platform: any
 tier: free
@@ -35,7 +35,7 @@ events to specific tasks, agents, domains, and workflows.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: ServiceDirectory

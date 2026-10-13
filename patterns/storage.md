@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: storage
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/types]
 platform: any
 tier: free
@@ -43,7 +43,7 @@ the format so that:
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: ErrorResponse

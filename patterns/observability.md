@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: observability
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/types, architecture/agent, patterns/logging]
 platform: any
 tier: free
@@ -46,7 +46,7 @@ works uniformly across agents, domains, and system components.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentManifest

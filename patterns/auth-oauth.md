@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: auth-oauth
-version: 1.0.1
+version: 1.0.2
 requires: [protocol/types, patterns/auth-token, patterns/principal-identity, patterns/scope]
 platform: any
 tier: free
@@ -41,7 +41,7 @@ constructed and validated, cross-resource access is not a check that can be omit
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: ErrorResponse

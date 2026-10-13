@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: domain-controller
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/types, protocol/identity, architecture/domain, architecture/lifecycle, patterns/observability]
 platform: any
 tier: free
@@ -51,7 +51,7 @@ variant parts.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: Feedback

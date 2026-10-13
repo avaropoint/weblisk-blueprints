@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.18.4
+version: 2.0.0
 requires: []
 platform: any
 tier: free
@@ -364,32 +364,53 @@ types:
         description: "Glob patterns scoping the capability"
 ```
 
+**One home, one owner.** This section is the one home of every capability
+name, and each bullet names its one **owner** in brackets: the unit whose
+blueprint says what the capability admits and which judges it. A name with two
+owners or none is a fault. The vocabulary is what a manifest, a role and a
+token's `cap` may name; a capability listing one hub publishes to another
+([`architecture/hub`](../architecture/hub.md)) is named by the hub that
+publishes it and is not part of it, so `architecture/hub`'s federation
+examples, such as `inventory:check`, are listings and are not listed here. An owner is named as a unit: `orchestrator`
+([`architecture/orchestrator`](../architecture/orchestrator.md), with
+[`architecture/admin`](../architecture/admin.md) its administrative surface),
+`content`, `fabric`, `enforcement`, `gateway` and `domain` (each its
+`architecture/` blueprint). Three owners have no blueprint in this corpus yet:
+`programme`, whose blueprint `agents/programme` is drafted but not merged, and
+`integrations` and `telemetry`, whose blueprints are not written. Their names
+guard no route until each blueprint merges. Five names have a nominated owner
+whose blueprint does not yet say what they admit: `file:read`, `file:write` and
+`http:get` (enforcement) and `http:receive` and `realtime:publish` (gateway).
+Those five are judged by no rule until their owner's blueprint states one. All
+of these are listed now because a registration naming an unlisted capability is
+refused ([`protocol/spec`](spec.md#post-v1register)).
+
 **Standard capabilities:**
-- `file:read` — read files (resources: glob patterns)
-- `file:write` — write/modify files
-- `llm:chat` — use a language model. A person's request needs it to ask the tenant's model for a completion at `POST /v1/admin/complete` ([`architecture/orchestrator`](../architecture/orchestrator.md#administrative-endpoints)), and `architecture/admin`'s roles table says which roles carry it. It is the one capability a requester needs to ask a model, and no other is minted for that: the model capabilities below are for recording an agreement (`model:attest`) and for serving the tenant's model route (`model:route`)
-- `agent:message` — communicate with other agents
-- `workflow:execute` — execute multi-agent workflows (domain controllers)
-- `http:get` — make external HTTP requests
-- `http:send` — make outbound HTTP requests
-- `http:receive` — receive inbound HTTP requests
-- `database:read` — read from data store
-- `database:write` — write to data store
-- `event:observe` — observe all events for a topic regardless of scope
-- `realtime:publish` — publish to real-time channels
+- `file:read` (enforcement) — read files (resources: glob patterns)
+- `file:write` (enforcement) — write/modify files
+- `llm:chat` (orchestrator) — use a language model. A person's request needs it to ask the tenant's model for a completion at `POST /v1/admin/complete` ([`architecture/orchestrator`](../architecture/orchestrator.md#administrative-endpoints)), and `architecture/admin`'s roles table says which roles carry it. It is the one capability a requester needs to ask a model, and no other is minted for that: the model capabilities below are for recording an agreement (`model:attest`) and for serving the tenant's model route (`model:route`)
+- `agent:message` (orchestrator) — communicate with other agents
+- `workflow:execute` (domain) — execute multi-agent workflows (domain controllers)
+- `http:get` (enforcement) — make external HTTP requests
+- `http:send` (enforcement) — make outbound HTTP requests
+- `http:receive` (gateway) — receive inbound HTTP requests
+- `database:read` (enforcement) — read from data store
+- `database:write` (enforcement) — write to data store
+- `event:observe` (orchestrator) — observe all events for a topic regardless of scope
+- `realtime:publish` (gateway) — publish to real-time channels
 
 **Content capabilities:**
-- `content:read` — read entries and list a content repository, read the proposals made against it, and read its change log
-- `content:write` — create, modify and remove entries directly. *Person only*
-- `content:propose` — stage a change to one entry for a person to decide. Writes nothing
-- `content:decide` — apply or reject a proposed change, and, beside `content:declare`, declare a repository's `self_decision_ceiling` or `scope_floor`. *Person only*
-- `content:describe` — read a repository's custody class, attestations and derived ceiling, its replicas, and its change log's head, and have that log sealed
-- `content:declare` — bring a store under governance. Adopting one that already holds bytes needs it alone only where the census does not report `keeps_history` and the declaration carries neither `scope_floor` nor `self_decision_ceiling`; adopting a store that keeps history must carry a `scope_floor`, so it also needs `content:decide`. Establishing a new store also needs `content:establish`
-- `content:establish` — create a store and declare it. Required in addition to `content:declare` for `disposition: establish`; adoption does not need it
-- `content:reconcile` — run custody reconciliation on a shared repository
-- `content:replicate` — declare a replica of a repository, and retire one. Declaring one also needs `content:connect`. *Person only*
-- `content:connect` — have the content service create and hold a credential that reaches a destination outside the tenant's store. Required in addition to `content:replicate` to declare a replica. *Person only*
-- `content:declassify` — lower a path's recorded scope. It guards no route yet: [`architecture/content`](../architecture/content.md) refuses every lowering until the tenant's approval queue can route such a request to a second person. *Person only*
+- `content:read` (content) — read entries and list a content repository, read the proposals made against it, and read its change log
+- `content:write` (content) — create, modify and remove entries directly. *Person only*
+- `content:propose` (content) — stage a change to one entry for a person to decide. Writes nothing
+- `content:decide` (content) — apply or reject a proposed change, and, beside `content:declare`, declare a repository's `self_decision_ceiling` or `scope_floor`. *Person only*
+- `content:describe` (content) — read a repository's custody class, attestations and derived ceiling, its remotes, and its change log's head, and have that log sealed
+- `content:declare` (content) — bring a store under governance. Adopting one that already holds bytes needs it alone only where the census does not report `keeps_history` and the declaration carries neither `scope_floor` nor `self_decision_ceiling`; adopting a store that keeps history must carry a `scope_floor`, so it also needs `content:decide`. Establishing a new store also needs `content:establish`
+- `content:establish` (content) — create a store and declare it. Required in addition to `content:declare` for `disposition: establish`; adoption does not need it
+- `content:reconcile` (content) — run custody reconciliation on a shared repository
+- `content:replicate` (content) — declare a remote of a repository, and retire one. Declaring one also needs `content:connect`. *Person only*
+- `content:connect` (content) — bind an integration to a destination outside the tenant's store, a remote's among them. It creates nothing in the content service: the credential is the integration's, and the content service holds none. Required in addition to `content:replicate` to declare a remote. *Person only*
+- `content:declassify` (content) — lower a path's recorded scope. It guards no route yet: [`architecture/content`](../architecture/content.md) refuses every lowering until the tenant's approval queue can route such a request to a second person. *Person only*
 
 *Person only* marks a capability that no service and no agent may hold.
 [`patterns/principal-identity`](../patterns/principal-identity.md) keeps it out
@@ -403,14 +424,14 @@ separate from `content:write` for the reason `fabric:attest` is separate from
 covering both would make that unenforceable at the tenant. What each does to a
 request is [`architecture/content`](../architecture/content.md#proposals).
 `content:replicate` and `content:connect` are two capabilities so that sending
-a repository outside the tenant takes two grants: a replica with no credential
-reaches nothing, and a credential with no replica is sent nothing
+a repository outside the tenant takes two grants: a remote with no integration
+bound reaches nothing, and an integration bound to no remote is sent nothing
 ([`architecture/content`](../architecture/content.md#who-may-declare-a-remote),
 which also says whom the two grants separate today).
 
 **Model capabilities:**
-- `model:attest` — record and withdraw an agreement attestation, which raises what a model provider may be sent ([`patterns/scope`](../patterns/scope.md#model-providers)). *Person only*
-- `model:route` — send to a model provider's endpoint as the tenant's model route ([`patterns/scope`](../patterns/scope.md#the-gate)). Declared by a component that serves `patterns/api-ai`'s endpoints, and by nothing else. `POST /v1/admin/complete` is the orchestrator's own route and is served by no component, so nothing declares it there ([`patterns/scope`](../patterns/scope.md#the-gate), Where the tenant applies it)
+- `model:attest` (orchestrator) — record and withdraw an agreement attestation, which raises what a model provider may be sent ([`patterns/scope`](../patterns/scope.md#model-providers)). *Person only*
+- `model:route` (enforcement) — send to a model provider's endpoint as the tenant's model route ([`patterns/scope`](../patterns/scope.md#the-gate)). Declared by a component that serves `patterns/api-ai`'s endpoints, and by nothing else. `POST /v1/admin/complete` is the orchestrator's own route and is served by no component, so nothing declares it there ([`patterns/scope`](../patterns/scope.md#the-gate), Where the tenant applies it)
 
 `model:route` is how [`architecture/enforcement`](../architecture/enforcement.md#external-proxy)'s
 external boundary tells the model route from a call made around it. It
@@ -435,10 +456,10 @@ nothing else, whichever component serves the route
 `admin-gateway-authorization`).
 
 **Fabric capabilities:**
-- `fabric:read` — read relationships, coverage, impact, lineage and the ledger projection
-- `fabric:produce` — state a producer's full current view for one partition
-- `fabric:observe` — report one relationship incrementally
-- `fabric:attest` — assert, judge or re-anchor a relationship as a person. *Person only*
+- `fabric:read` (fabric) — read relationships, coverage, impact, lineage and the ledger projection
+- `fabric:produce` (fabric) — state a producer's full current view for one partition
+- `fabric:observe` (fabric) — report one relationship incrementally
+- `fabric:attest` (fabric) — assert, judge or re-anchor a relationship as a person. *Person only*
 
 `fabric:attest` is separate from `fabric:observe` for the reason
 `architecture/fabric` is built around: only a person reaches `confirmed`. One
@@ -450,6 +471,63 @@ and `fabric:read`, only through a role that
 for every person-only capability. `fabric:produce` and `fabric:observe` are a
 producer's, which is a registered component.
 
+**Programme capabilities:**
+- `programme:read` (programme) — read a programme's installed operations and what they have produced
+- `programme:install` (programme) — install a programme's operations at a scope
+- `programme:operate` (programme) — pause, resume, run and reschedule an installed operation
+- `programme:switch` (programme) — decide whether an operation's runs reach people: mute, unmute, and who hears them. *Person only*
+
+Which act needs which will be `agents/programme`'s, under Who May Switch What,
+once that draft merges; until then these names guard no route. The programme
+service is to declare the first three, because a grant to a caller is the
+intersection of what it holds and what the serving manifest declares, and to
+check `programme:switch` without ever holding it, as `content` does its own
+person-only capabilities.
+
+**Integration capabilities:**
+- `integration:read` (integrations) — read the tenant's integrations: provider, account, method, scopes, owner, purposes, expiry and status, and never a secret
+- `integration:manage` (integrations) — make, bind to a declared need, re-purpose, rotate and revoke an integration, where the consuming owner declares no capability of its own for the act (`content:connect` is the one for a remote's key). *Person only*
+- `integration:use` (integrations) — have an integration act for a need the holder's blueprint declares: a token, a signature or verdict, or a relayed call, and never the secret
+
+`integration:use` is a component's, declared for a need its blueprint states,
+and no role carries it. Which roles carry the other two, and what a person may
+delegate, is [`architecture/admin`](../architecture/admin.md#operator-roles)'s.
+
+**Telemetry capabilities:**
+- `telemetry:read` (telemetry) — read the tenant's runtime: metrics, logs, traces, events, probe results and rule state
+- `telemetry:push` (telemetry) — push a component's own signals to telemetry over OTLP, under a pass. Reads nothing
+
+`telemetry:read` is not person only: an agent whose blueprint declares a read
+of telemetry holds it within that declaration. A person holds it only through
+a role, and which roles carry it is
+[`architecture/admin`](../architecture/admin.md#operator-roles)'s.
+`telemetry:push` is declared by every component that reports, and no role
+carries it.
+
+**Action and admission capabilities:**
+- `action:invoke` (orchestrator) — invoke an operator action a component's blueprint declares, where the action names no capability of that component's own family. *Person only*
+- `scope:admit` (orchestrator) — admit the operational scope a component declares, the highest classification it may reach. *Person only*
+
+Neither guards a route yet: no blueprint declares an operator action, and
+`AgentManifest` has no operational scope. Both are listed so that each act has
+one name before it is specified.
+
+No capability is listed here for a component recording into the one audit
+ledger. No route for that write exists yet; whether it needs a capability is
+decided where the route is specified, in
+[`architecture/orchestrator`](../architecture/orchestrator.md), which owns the
+audit routes and adds its name here first if it needs one.
+
+**Outside the `admin` family.** `telemetry:read`, `action:invoke` and
+`scope:admit`, like `model:attest`, are not in the `admin` family, so `admin:*`
+does not carry them, and a person holds one only where
+[`architecture/admin`](../architecture/admin.md#operator-roles)'s roles table
+names it. Adding one to the family would change what `admin:*` means to every
+rule that names it. `programme:switch`, `integration:manage`, `action:invoke`
+and `scope:admit` are person only because each is a decision a person makes and
+answers for: what reaches people, which outside account the tenant acts as,
+an operational control, and what data a component may reach.
+
 A capability name is `family:verb`. A component that invents one is refused at
 registration with `INVALID_REQUEST` — which is correct, and is why a component's
 capabilities belong in this list before that component is built. The content
@@ -457,11 +535,11 @@ service was generated asking for `content.read`, with a dot and no declared
 family, and the orchestrator rejected it exactly as it should.
 
 **Administrative capabilities:**
-- `admin:read` — read administrative state: overview, agents, domains, workflows, operators
-- `admin:approve` — act on the approval queue
-- `admin:strategy` — create, amend and retire strategies
-- `admin:audit` — read the full audit log, including export
-- `admin:*` — every capability in the `admin` family
+- `admin:read` (orchestrator) — read administrative state: overview, agents, domains, workflows, operators
+- `admin:approve` (orchestrator) — act on the approval queue
+- `admin:strategy` (orchestrator) — create, amend and retire strategies
+- `admin:audit` (orchestrator) — read the full audit log, including export
+- `admin:*` (orchestrator) — every capability in the `admin` family
 
 Administration is expressed in capabilities like everything else, and an
 operator's **role is a bundle of them** — `architecture/admin` defines each
@@ -493,7 +571,7 @@ glob — resource scoping stays in `resources`, as for every other capability.
 > means.
 
 **Exchange capability:**
-- `token:exchange` — have the orchestrator exchange the operator token a person has just presented for a pass addressed to one component ([`protocol/identity`](identity.md#the-pass); `architecture/orchestrator`, `token-exchange`). The admin gateway declares it, and no other blueprint does. No role carries it
+- `token:exchange` (orchestrator) — have the orchestrator exchange the operator token a person has just presented for a pass addressed to one component ([`protocol/identity`](identity.md#the-pass); `architecture/orchestrator`, `token-exchange`). The admin gateway declares it, and no other blueprint does. No role carries it
 
 `token:exchange` is what the admin gateway's registration declares, and the
 only capability it declares: the gateway reads the service directory, which
@@ -3264,3 +3342,7 @@ security:
 - [ ] `ADDRESS_CONFLICT` is registered with status 409, beside `NAMESPACE_CONFLICT`
 - [ ] `content:declassify` is in the Content capabilities and marked *person only*, so a registration whose manifest declares it is refused with `CAPABILITY_PERSON_ONLY`
 - [ ] Administrative authority is expressed as `admin:` capabilities in the standard list — not as a separate role model — and `admin:*` denotes the whole family
+- [ ] Every capability bullet in Capability names exactly one owner in brackets, and no capability name is listed twice
+- [ ] `programme:switch`, `integration:manage`, `action:invoke` and `scope:admit` are marked *person only*; `programme:read`, `programme:install`, `programme:operate`, `integration:read`, `integration:use`, `telemetry:read` and `telemetry:push` are not
+- [ ] `telemetry:read`, `action:invoke` and `scope:admit` are outside the `admin` family, so `admin:*` carries none of them
+- [ ] `content:connect` binds an integration to an outside destination and creates no credential

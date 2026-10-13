@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: client
-version: 1.0.2
+version: 1.0.3
 requires: [protocol/types, protocol/identity, architecture/gateway, architecture/agent, patterns/scope]
 platform: any
 tier: free
@@ -46,7 +46,7 @@ This architecture ensures that:
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentManifest

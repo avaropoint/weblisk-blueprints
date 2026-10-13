@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: file-upload
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/types, patterns/auth-token]
 platform: any
 tier: free
@@ -28,7 +28,7 @@ and CDN integration for public assets.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: FileRecord
