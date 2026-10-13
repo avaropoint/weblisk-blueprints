@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: enforcement
-version: 2.3.5
+version: 2.3.6
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, patterns/privacy, architecture/orchestrator, architecture/gateway]
 platform: any
 tier: free
@@ -100,7 +100,7 @@ Enforcement operates on four principles:
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.13.0 <3.0.0"
+    version: ">=1.13.0 <4.0.0"
     bindings:
       types:
         - name: ServiceDirectory
@@ -181,7 +181,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.14.0 <3.0.0"
+    version: ">=2.14.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/model/ceiling
@@ -191,7 +191,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/gateway
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: GatewayConfig

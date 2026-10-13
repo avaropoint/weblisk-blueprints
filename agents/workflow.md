@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: workflow
-version: 1.1.1
+version: 2.0.0
 port: 9780
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/workflow, patterns/messaging, patterns/scope, patterns/policy, patterns/safety]
@@ -41,7 +41,7 @@ domain change and never a change to this agent.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -52,16 +52,17 @@ requires:
           methods: [POST]
           request_type: AgentMessage
           response_fields: [status, response]
-        - path: /v1/health
+        - path: /v1/lease
           methods: [POST]
-          response_fields: [status, details]
+          request_type: LeaseRenewal
+          response_fields: [expires_at]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -78,7 +79,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -688,34 +689,30 @@ Step 7 — Exit
 
 ### Health
 
+Readiness, as `GET /readyz` answers it and every lease renewal carries it
+([`patterns/observability`](../patterns/observability.md#health-endpoint)).
+Health is liveness and readiness only, so the counts and timestamps a status
+once carried are metrics:
+
 ```yaml
 health:
-  healthy:
+  ready:
     conditions:
       - workflow.trigger subscription active
       - task.complete/failed subscriptions active
       - storage writable
       - in_flight < 80% of config.max_concurrent
-    response:
-      status: healthy
-      details: {in_flight, max_concurrent, cached_definitions, storage}
-
-  degraded:
-    conditions:
+    checks:
       - storage errors (retrying)
       - task agent unavailable (phases cannot dispatch)
       - in_flight >= 80% of max_concurrent
-    response:
-      status: degraded
-      details: {reason, in_flight, last_error}
+    lease: ready true, its checks naming each of these that holds not_ready
 
-  unhealthy:
+  not_ready:
     conditions:
       - storage unreachable after retry exhaustion
       - workflow.trigger subscription lost
-    response:
-      status: unhealthy
-      details: {reason, last_error, since}
+    lease: ready false, its checks naming each subsystem above not_ready
 ```
 
 ### Self-Update
@@ -1396,8 +1393,11 @@ scaling:
   `$entity.*` and `$config.*` read from the trigger context.
 - **Definition caching**: Workflow definitions are fetched from source
   domains via POST /v1/message (action: get_workflow). Cached in memory
-  per domain+workflow name. Cache invalidated when domain re-registers
-  (system.agent.registered event).
+  per domain+workflow name. Cache invalidated on the domain's
+  system.agent.registered event, which a token renewal does not publish
+  (architecture/orchestrator, Registration Flow step 10). A deployment that
+  changes a domain's workflow definitions changes its manifest `version`, so
+  its registration publishes.
 - **Approval gates**: When a phase has `approval: required`, the phase
   output is stored but NOT exposed to downstream phases until approval.
   The workflow enters `pending_approval` state and waits for a
@@ -1434,7 +1434,7 @@ scaling:
 - [ ] State machine transitions validated — no implicit states
 - [ ] Startup sequence validation gates — each step has validates/on-fail
 - [ ] Shutdown cancels in-flight phases and fails active workflows
-- [ ] Health endpoint reports accurate status per health criteria
+- [ ] `GET /livez` answers live or not live and nothing else, and every lease renewal carries the readiness declared under Health, with `checks` naming each subsystem `not_ready`
 - [ ] Scaling: inter-agent communication via message bus (except definition fetch)
 - [ ] Scaling: leader election prevents duplicate workflow execution
 - [ ] Scaling: consumer group ensures one-per-event delivery

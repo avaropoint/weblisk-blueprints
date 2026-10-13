@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: domain
-version: 1.0.2
+version: 2.0.0
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/orchestrator, patterns/messaging, patterns/workflow]
 platform: any
 tier: free
@@ -52,7 +52,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -78,7 +78,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentContext
@@ -89,7 +89,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -186,7 +186,7 @@ which is the orchestrator's.
 
 ## Interfaces
 
-The domain controller’s public API is the standard 6 protocol endpoints
+The domain controller’s public API is the standard 7 protocol endpoints
 (inherited from `architecture/agent`) plus domain-specific
 `HandleMessage` actions defined in
 [Domain HandleMessage Actions](#domain-handlemessage-actions):
@@ -240,7 +240,7 @@ ownership, security, and service directory distribution.
 **Domain controller** — Directs a business function. Owns workflow
 definitions and publishes `workflow.trigger` events. Receives results
 via scoped `workflow.completed` events. A domain IS an agent
-(implements the same 6 protocol endpoints) but with additional
+(implements the same 7 protocol endpoints) but with additional
 responsibilities.
 
 **Infrastructure agents** — Workflow Agent executes DAGs, Task Agent
@@ -334,24 +334,21 @@ orchestrator behaviour:
 1. Domain sends RegisterRequest (same as any agent)
 2. Orchestrator verifies signature and identity (standard flow)
 3. Orchestrator reads manifest.type = "domain"
-4. Orchestrator reads manifest.required_agents
-5. For each required agent:
-   a. Check if agent is in the registry
-   b. If ALL present: domain status = "online"
-   c. If ANY missing: domain status = "degraded"
+4. Orchestrator records manifest.required_agents with the manifest
+5. Issue token and lease, and respond (standard flow)
+6. Broadcast service directory (standard flow)
+7. The domain reads each required agent's lease_state in the directory:
+   a. If ALL read ready: it renews its lease ready
+   b. If ANY does not: it renews not ready, its checks naming each one
       Log warning: "domain 'seo' registered but missing agents: [a11y-checker]"
-6. Issue token and respond (standard flow)
-7. Broadcast service directory (standard flow)
 ```
 
 When a missing agent registers later:
 ```
-1. Agent registers normally
-2. Orchestrator checks if any domain requires this agent
-3. If yes and domain was "degraded":
-   a. Re-evaluate: are all required agents now present?
-   b. If yes: update domain status to "online"
-   c. Notify domain via POST /v1/services with updated directory
+1. Agent registers normally, and renews its lease ready
+2. The orchestrator broadcasts the directory, as on every lease change
+3. The domain re-evaluates: do all required agents now read ready?
+4. If yes: its next renewal says ready
 ```
 
 This allows agents and domains to start in any order.
@@ -660,8 +657,8 @@ the domain.
 Returns the domain's current state:
 ```json
 {
-  "status": "online",
-  "required_agents": {"seo-analyzer": "online", "a11y-checker": "online"},
+  "ready": true,
+  "required_agents": {"seo-analyzer": "ready", "a11y-checker": "ready"},
   "active_workflows": 2,
   "completed_workflows": 47,
   "failed_workflows": 3

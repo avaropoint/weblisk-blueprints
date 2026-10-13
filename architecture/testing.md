@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: testing
-version: 1.0.1
+version: 2.0.0
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/domain]
 platform: any
 tier: free
@@ -45,7 +45,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: RegisterRequest
@@ -71,17 +71,17 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentEndpoints
-          fields_used: [describe, execute, message, health, services]
+          fields_used: [describe, execute, message, livez, readyz, services]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/domain
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: DomainManifest
@@ -147,7 +147,8 @@ is generation's. Judging whether a blueprint's assertion is the right one.
 | `weblisk test conformance --test <id>` | CLI | Run a single test by ID (e.g., L1-03) |
 | `weblisk test mock-orchestrator --port <n>` | CLI | Start mock orchestrator on specified port |
 | Mock Orchestrator: `POST /v1/register` | HTTP | Accept valid registrations, return token |
-| Mock Orchestrator: `GET /v1/health` | HTTP | Return healthy status |
+| Mock Orchestrator: `GET /livez`, `GET /readyz` | HTTP | Answer live and ready |
+| Mock Orchestrator: `POST /v1/lease` | HTTP | Accept a renewal from a registered test agent, return its `Lease` |
 | Mock Agent: `POST /v1/execute` | HTTP | Return configurable `TaskResult` |
 | Mock Agent: `POST /v1/message` | HTTP | Return configurable response payload |
 
@@ -248,7 +249,9 @@ Implements only the endpoints agents call during their lifecycle.
 | Endpoint | Behavior |
 |----------|----------|
 | `POST /v1/register` | Accept any valid registration, return token + empty service directory |
-| `GET /v1/health` | Return `{"name": "mock-orchestrator", "status": "healthy", ...}` |
+| `GET /livez` | Return `{"live": true}` |
+| `GET /readyz` | Return `{"ready": true}` |
+| `POST /v1/lease` | Accept a renewal from a registered test agent and return its `Lease`; 404 `NOT_FOUND` for any other caller |
 | `POST /v1/channel` | Return a channel grant with a test channel token |
 | `GET /v1/services` | Return the current registered agents |
 
@@ -310,7 +313,8 @@ Responds to execute and message with configurable responses.
 | `POST /v1/describe` | Return the test agent manifest |
 | `POST /v1/execute` | Return a configurable `TaskResult` |
 | `POST /v1/message` | Return a configurable response payload |
-| `POST /v1/health` | Return healthy status |
+| `GET /livez` | Return `{"live": true}` |
+| `GET /readyz` | Return a configurable `{"ready": ...}` |
 | `POST /v1/services` | Accept and store |
 
 ### Configurable Responses
@@ -346,26 +350,21 @@ not a failure of an orchestrator: they serve different endpoints, and running
 every test against every component reports a correct implementation as broken —
 the same fault the Verification Checklists had before their groups were read.
 
-#### L1-01: Health Check
+#### L1-01: Probes
 
-Applies to: **orchestrator**, **agent**. Method differs by component —
-`protocol/spec` gives the orchestrator `GET /v1/health` and an agent
-`POST /v1/health`.
+Applies to: **orchestrator**, **agent** — every component serves the same two,
+as `protocol/spec` says.
 
 ```
-GET /v1/health  (orchestrator)   → 200
-POST /v1/health (agent)          → 200
+GET /livez   → 200, body {"live": true}
+GET /readyz  → 200 {"ready": true}, or 503 {"ready": false}
 No auth required.
-Response MUST be a HealthStatus: name, status, version, uptime, timestamp
-status MUST be one of: healthy, degraded, unhealthy
+Each body MUST carry `live` or `ready` and no other member
 ```
 
-This test previously read `POST /v1/health`, required fields `state` and
-`uptime_seconds`, and demanded `state == "online"`. `protocol/types` defines
-HealthStatus with `status`, `uptime` and the values healthy/degraded/unhealthy,
-and `protocol/spec` gives the orchestrator GET. A conformant implementation
-failed the test, which is the wrong way round: **the type definition is the
-authority and a test asserts it**, never the reverse.
+A probe that also answers a name, a version, an uptime or checks fails:
+health is liveness and readiness only, and `protocol/types` (Health) is the
+authority a test asserts, never the reverse.
 
 #### L1-02: Describe
 
@@ -501,9 +500,9 @@ Tests the full feedback loop. Requires orchestrator + domain + agent.
 ```
 1. Start orchestrator
 2. Register domain (type: "domain", required_agents: ["test-agent"])
-3. Domain status → "degraded" (test-agent not registered yet)
+3. Domain's lease_state → "not_ready" (test-agent not registered yet)
 4. Register test-agent
-5. Domain status → "online"
+5. Domain's lease_state → "ready"
 6. Submit task to domain targeting action "test-workflow"
 7. Domain publishes workflow.trigger event:
    a. Workflow Agent resolves DAG
@@ -577,9 +576,14 @@ Applies to: every component that registers — **not** the orchestrator itself.
 1. Start a real orchestrator on an ephemeral port
 2. Start the component with that orchestrator's URL
 3. The component MUST reach a listening state and MUST NOT exit
-4. GET /v1/health on the orchestrator MUST report agents >= 1
-5. The component's health MUST report its registration as healthy
-6. The component MUST hold an agent_id and a token
+4. The orchestrator's directory (GET /v1/services, read under a registration
+   the harness makes for itself) MUST list the component, and within one
+   lease duration its lease_state MUST be current: `ready`, or `not_ready`
+   where the component's own blueprint says it may serve not ready (content
+   with a repository left establishing or declined), and never `unknown`
+5. The component's GET /readyz MUST answer as its last renewal did
+6. The component MUST hold an agent_id and a token, and MUST renew its lease
+   at POST /v1/lease within a third of its duration
 ```
 
 The order of 3 and 4 matters. A component that requires the orchestrator's
@@ -616,9 +620,10 @@ parse gets wrong, and the case a shared struct definition hides.
 Applies to: every component that registers.
 ```
 1. Start the component with NO orchestrator URL
-2. It MUST serve GET /v1/health unauthenticated and MUST NOT exit
+2. It MUST serve GET /livez and GET /readyz unauthenticated and MUST NOT exit
 3. Every protected endpoint MUST refuse with 401 and a structured ErrorResponse
-4. Health MUST report degraded — never healthy, never unhealthy
+4. GET /livez MUST answer live, and GET /readyz MUST answer not ready, since
+   the component can serve nothing a token protects
 ```
 
 A component that cannot verify a token MUST NOT accept one, and a component that
@@ -695,11 +700,12 @@ security:
 
 ## Verification Checklist
 - [ ] Conformance sign-off requires Level 4 against a real orchestrator; the mock alone is never sufficient
-- [ ] Every registering component passes L4-01: it listens, registers, and the orchestrator counts it
+- [ ] Every registering component passes L4-01: it listens, registers, renews its lease, and the orchestrator's directory lists its lease current (`ready`, or `not_ready` where its blueprint allows), never `unknown`
 - [ ] A manifest carrying an extra field still registers (L4-03)
-- [ ] Every registering component passes L4-04: it starts with no orchestrator, serves health, and refuses protected endpoints with 401
+- [ ] Every registering component passes L4-04: it starts with no orchestrator, answers `GET /livez` live and `GET /readyz` not ready, and refuses protected endpoints with 401
 
 - [ ] All Level 1 tests pass (protocol compliance)
+- [ ] L1-01 refuses a probe body carrying any member but `live` or `ready`
 - [ ] All Level 2 tests pass (security compliance)
 - [ ] All Level 3 tests pass (lifecycle compliance)
 - [ ] Mock orchestrator can start and accept registrations
@@ -722,8 +728,8 @@ code registers from a table of named constants:
 ```
 
 It found no literals, recorded no routes, and refuted twenty-one correct
-assertions with `no handler is registered for: GET /v1/health` — about a hub
-that registers `/v1/health` correctly. Resolving constants, local aliases and
+assertions with `no handler is registered for:` the health route of the day —
+about a hub that registered that route correctly. Resolving constants, local aliases and
 concatenation took the same artifact from **0 routes found to 17**, the complete
 surface.
 
@@ -770,7 +776,7 @@ that it costs time and looks like diligence.
 ### Level 0: it starts
 
 Before any assertion about behaviour, the component MUST be started with **no
-terminal attached** and MUST answer its health endpoint. Two separate faults
+terminal attached** and MUST answer `GET /livez`. Two separate faults
 were caught only by doing this by hand:
 
 - a mux pattern conflict that compiles, passes every structural check, and

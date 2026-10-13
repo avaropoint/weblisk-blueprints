@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: observability
-version: 1.0.3
+version: 2.0.0
 requires: [protocol/types, architecture/orchestrator, architecture/agent]
 platform: any
 tier: free
@@ -35,13 +35,13 @@ events to specific tasks, agents, domains, and workflows.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: ServiceDirectory
           fields_used: [services]
-        - name: HealthStatus
-          fields_used: [name, status, version, uptime, checks]
+        - name: ServiceEntry
+          fields_used: [name, lease_state]
         - name: AuditEntry
           fields_used: [timestamp, actor, action]
         - name: TaskResult
@@ -57,26 +57,26 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    # 2.10.0 is the first version whose AgentEntry.status is online, offline
-    # or degraded, the values wl_agents_status is labelled by
-    version: ">=2.10.0 <3.0.0"
+    # 3.0.0 is the first version whose AgentEntry holds a lease rather than an
+    # online, offline or degraded status
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         # wl_agents_registered counts the registry's entries, and
-        # wl_agents_status counts them by status (Orchestrator Metrics)
+        # wl_agents_status counts them by lease state (Orchestrator Metrics)
         - name: AgentEntry
-          fields_used: [status]
+          fields_used: [lease, last_renewal]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
-        # Where an agent serves the response Health Endpoint specifies
+        # Where an agent serves the probes Health Endpoint points to
         - name: AgentEndpoints
-          fields_used: [health]
+          fields_used: [livez, readyz]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -138,7 +138,7 @@ and the deployment's.
 | Interface | Type | Description |
 |-----------|------|-------------|
 | `GET /metrics` | HTTP (per-component) | Structured metrics endpoint (no auth required) |
-| `POST /v1/health` (agents) / `GET /v1/health` (orchestrator) | HTTP (per-component) | Structured health status with checks map |
+| `GET /livez` / `GET /readyz` | HTTP (per-component) | Liveness and readiness, `live` or `ready` alone ([`protocol/types`](../protocol/types.md#health)) |
 | `X-Trace-Id` header | HTTP header | 32 hex char trace identifier propagated on all inter-component requests |
 | `X-Span-Id` header | HTTP header | 16 hex char span identifier for trace tree construction |
 | `X-Parent-Span-Id` header | HTTP header | Parent span reference for child span linking |
@@ -383,7 +383,7 @@ metric tables below. The wire format is deployment-specific.
 | Metric | Type | Labels | Description |
 |--------|------|--------|-------------|
 | `wl_agents_registered` | gauge | — | Total registered agents |
-| `wl_agents_status` | gauge | `status` | Agents by status (online/degraded/offline) |
+| `wl_agents_status` | gauge | `lease_state` | Agents by lease state (`ready`, `not_ready`, `unknown`) |
 | `wl_tasks_total` | counter | `domain`, `status` | Tasks processed |
 | `wl_task_duration_seconds` | histogram | `domain` | Task duration |
 | `wl_approvals_pending` | gauge | — | Pending recommendations |
@@ -424,35 +424,14 @@ metric tables below. The wire format is deployment-specific.
 
 ## Health Endpoint
 
-Every component's `/health` endpoint returns structured health data
-suitable for monitoring:
-
-```json
-{
-  "name": "seo-analyzer",
-  "status": "healthy",
-  "version": "1.0.0",
-  "uptime": 172800,
-  "checks": {
-    "storage": "ok",
-    "llm": "ok",
-    "dependencies": "ok"
-  },
-  "metrics_snapshot": {
-    "tasks_24h": 45,
-    "error_rate": 0.04,
-    "avg_latency_ms": 2300
-  }
-}
-```
-
-### Health Status Values
-
-| Status | Meaning | HTTP Code |
-|--------|---------|-----------|
-| healthy | All systems operational | 200 |
-| degraded | Functioning with reduced capability | 200 |
-| unhealthy | Not functioning correctly | 503 |
+Health is liveness and readiness only, and this blueprint owns neither.
+`GET /livez`, `GET /readyz`, the lease that carries readiness and its three
+states are [`protocol/types`](../protocol/types.md#health)'s, served as
+[`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz) says.
+Observability reads the lease states the orchestrator's directory publishes
+([`architecture/orchestrator`](orchestrator.md#presence)) and never probes a
+registered component for them. How a component is serving its users — latency,
+errors, the subsystems it uses — is a metric, never a health answer.
 
 ---
 
@@ -491,8 +470,8 @@ dashboards for these key queries:
   entries per agent over a rolling window (e.g., 24h)
 - **P95 task duration by domain** — 95th percentile of
   `wl_task_duration_seconds` grouped by domain
-- **Active agents** — current value of `wl_agents_status` where
-  status is `online`
+- **Ready agents** — current value of `wl_agents_status` where
+  `lease_state` is `ready`
 
 ---
 
@@ -590,6 +569,6 @@ security:
 - [ ] Orchestrator exposes wl_agents_registered, wl_tasks_total, wl_task_duration_seconds, and wl_http_requests_total metrics
 - [ ] Agent metrics include wl_tasks_total by action/status, wl_llm_calls_total, and wl_llm_tokens_total by model/type
 - [ ] Metrics labels do NOT include high-cardinality values (user_id, URL) or PII
-- [ ] Health endpoint returns structured JSON with `name`, `status`, `version`, `uptime` and a `checks` map, per protocol/types HealthStatus — not `component`, and not `uptime_seconds`
+- [ ] No component answers a health request with more than `live` or `ready`, and observability counts agents by `lease_state` without probing any
 - [ ] Spans are emitted as structured JSON logs (type: span) by default and exportable to an external trace collector when configured
 - [ ] Components limit log output to ~100 lines per task at info level to prevent log flooding

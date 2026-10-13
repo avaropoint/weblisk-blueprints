@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 1.6.4
+version: 2.0.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
@@ -48,7 +48,7 @@ and is reachable from either.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.17.2 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -64,8 +64,12 @@ requires:
           fields_used: [method, path, capabilities]
         - name: Capability
           fields_used: [name, resources]
-        - name: HealthStatus
-          fields_used: [status, name, version, uptime]
+        - name: Liveness
+          fields_used: [live]
+        - name: Readiness
+          fields_used: [ready]
+        - name: LeaseRenewal
+          fields_used: [ready, checks]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -122,7 +126,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/content
-    version: ">=2.22.10 <4.0.0"
+    version: ">=2.22.10 <5.0.0"
     bindings:
       types:
         - name: ContentEntry
@@ -165,7 +169,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/orchestrator
-    version: ">=2.15.0 <3.0.0"
+    version: ">=2.15.0 <4.0.0"
     bindings:
       behaviors:
         # What a pass this service accepts rests on. See This service honours
@@ -293,7 +297,8 @@ unattributable zero reads as a finding.
 | GET | /v1/fabric/projection | Graph | yes | `fabric:read` | The byte-stable graph of the live ledger |
 | GET | /v1/fabric/chain | Verify | yes | `fabric:read` | Verify the hash chain over a range of sequence numbers |
 | GET | /v1/fabric/producers | Producers | yes | `fabric:read` | Producers in scope, their partitions, watermarks and last run |
-| GET | /v1/health | Health | no | | Fabric service health. Served with or without an orchestrator |
+| GET | /livez | Livez | no | | Liveness, for the supervisor that restarts the service. Served with or without an orchestrator |
+| GET | /readyz | Readyz | no | | Readiness, for the supervisor waiting on its start. Served with or without an orchestrator |
 
 **On the operation names.** `Sync`, `Observe`, `Attest`, `Decide` and
 `Relocate` echo their paths, which
@@ -1502,12 +1507,13 @@ reason: the key this service authenticates with arrives in the registration
 response, so an authenticator that demanded it up front would exit before it
 could be obtained. The one addition is that the chain is verified from the last
 known-good sequence before the service accepts a write, and a broken chain leaves
-the service reporting `degraded` and refusing appends while still answering
-reads — refusing to read would hide the evidence somebody now needs.
+the service refusing appends while still answering reads, and naming the
+chain `not_ready` in the `checks` its lease carries — refusing to read would hide the evidence somebody now needs.
 
 **An orchestrator is not required in order to start.** Where none is configured,
-health is served unauthenticated and reports `degraded` naming the absent
-orchestrator; every protected endpoint refuses, because a component holding no
+`GET /livez` and `GET /readyz` are served unauthenticated, `/readyz` answering
+`ready: false`, and the service logs that no orchestrator is configured; every
+protected endpoint refuses, because a component holding no
 issuer key can verify no token and MUST NOT accept one. Where an orchestrator is
 configured, a failed registration is fatal.
 
@@ -1697,5 +1703,5 @@ security:
 - [ ] An impact path reports its weakest step, and a recorded derivation and an inferred match never render identically
 - [ ] A partition whose recorded input digests are unchanged is skipped entirely, with no edge touched and no claim resolved
 - [ ] An edit to a governing document marks dependent edges stale and causes nothing to be regenerated
-- [ ] With no orchestrator configured, the service starts, serves health, reports `degraded` naming the absent orchestrator, and refuses every protected endpoint
+- [ ] With no orchestrator configured, the service starts, serves `GET /livez` live and `GET /readyz` not ready, logs that no orchestrator is configured, and refuses every protected endpoint
 - [ ] A broken chain leaves the service refusing appends while still answering reads

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.0.2
+version: 1.0.3
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -43,7 +43,7 @@ Checklist, and the conformance result.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - name: orchestrator-endpoints
@@ -54,7 +54,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/testing
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       behaviors:
         - name: conformance-suite
@@ -64,7 +64,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: storage
-version: 1.4.3
+version: 1.5.0
 requires: [protocol/types, protocol/identity, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 tier: free
@@ -42,7 +42,7 @@ generated once and run against any of them.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -90,17 +90,17 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.10.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentEntry
-          fields_used: [manifest, agent_id, token, registered_at, last_seen, status]
+          fields_used: [manifest, agent_id, token, registered_at, last_seen, lease, last_renewal]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/domain
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: DomainWorkflow
@@ -110,7 +110,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: agents/workflow
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: WorkflowExecution
@@ -120,7 +120,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: agents/task
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: TaskRecord
@@ -130,7 +130,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: agents/lifecycle
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentMetrics
@@ -475,7 +475,7 @@ without changing the store interface.
 | PutAgent | `(name string, entry AgentEntry) → error` | Store or update an agent registration |
 | GetAgent | `(name string) → (AgentEntry, error)` | Retrieve agent by name |
 | DeleteAgent | `(name string) → error` | Remove agent from registry |
-| ListAgents | `(filter AgentFilter) → ([]AgentEntry, error)` | List agents, optionally filtered by type/status |
+| ListAgents | `(filter AgentFilter) → ([]AgentEntry, error)` | List agents, optionally filtered by type. A lease's state is derived from the entry's `lease` when read, never stored ([`architecture/orchestrator`](orchestrator.md#data-structures)), so the store neither holds it nor filters by it |
 
 `AgentEntry` is [`architecture/orchestrator`](orchestrator.md#agententry)'s,
 the store's owner, and is defined there alone.
@@ -807,14 +807,16 @@ same store.
 
 An implementation that puts the reservation check inside `ClaimNamespace`
 therefore refuses the one component that is supposed to own it. That happened:
-a generated orchestrator died two seconds into startup with
+a generated orchestrator failed its startup two seconds in with
 
 ```
 startup: reserve namespace "system": namespace "system" is reserved
 ```
 
-and its own health check then honestly reported `namespaces: degraded`, because
-the orchestrator did not own the namespace it is required to own.
+and its own health check, as the spec then had it, honestly reported
+`namespaces: degraded`, because the orchestrator did not own the namespace it
+is required to own. Under today's spec the same fault is the orchestrator's
+`GET /readyz` answering not ready ([`protocol/types`](../protocol/types.md#readiness)).
 
 The general form is worth stating because it will recur: **a store records, a
 policy decides.** Enforcement that belongs to a request path, placed in the

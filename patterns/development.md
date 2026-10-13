@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: development
-version: 1.0.1
+version: 2.0.0
 requires: [protocol/types, patterns/security, patterns/observability]
 platform: any
 tier: free
@@ -35,7 +35,7 @@ specification for their chosen stack.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -55,11 +55,12 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/observability
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
-      types:
-        - name: Response
-          fields_used: [name, state]
+      patterns:
+        # The dev server answers the liveness probe as every component does
+        - behavior: health-reporting
+          parameters: []
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -139,8 +140,8 @@ contracts:
     - path: /api/blueprint/{path}
       description: Blueprint YAML file serving
       inherited_by: Routes section
-    - path: /api/health
-      description: Health check endpoint
+    - path: /livez
+      description: Liveness probe
       inherited_by: Routes section
     - path: /__livereload
       description: Server-Sent Events stream for live reload
@@ -201,23 +202,17 @@ allowed_prefixes:
   - components/
 ```
 
-### Health Check
+### Liveness
 
 | Property | Value |
 |----------|-------|
-| Path | `/api/health` |
+| Path | `/livez` |
 | Methods | `GET` |
 | Content-Type | `application/json` |
 
-**Response:**
-
-```json
-{
-  "name": "weblisk-dev",
-  "status": "healthy",
-  "mode": "development"
-}
-```
+**Response:** `{"live": true}` and nothing else
+([`protocol/types`](../protocol/types.md#liveness)). The dev server holds no
+lease and registers with no orchestrator, so it serves no `/readyz`.
 
 ### Live Reload
 
@@ -502,7 +497,7 @@ Implementation MUST:
 - [ ] Serve blueprint YAML files via `/api/blueprint/{path}` with path validation
 - [ ] Validate blueprint paths against allowed prefixes and extensions
 - [ ] Return 400 (not 404) for invalid blueprint paths with ErrorResponse body
-- [ ] Provide health check at `/api/health` returning JSON with status and mode
+- [ ] Serve `GET /livez` answering `{"live": true}` and nothing else
 - [ ] Implement SSE-based live reload at `/__livereload`
 - [ ] Watch configured directories and extensions for file changes
 - [ ] Send `data: reload\n\n` SSE event on file change

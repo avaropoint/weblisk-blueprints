@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: domain-controller
-version: 1.0.1
+version: 2.0.0
 requires: [protocol/types, protocol/identity, architecture/domain, architecture/lifecycle, patterns/observability]
 platform: any
 tier: free
@@ -51,7 +51,7 @@ variant parts.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: Feedback
@@ -79,7 +79,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/domain
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: DomainManifest
@@ -95,7 +95,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/observability
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: MetricDefinition
@@ -177,8 +177,8 @@ contracts:
     - path: /v1/execute
       description: Primary workflow entry point
       inherited_by: Standard HandleMessage Actions section
-    - path: /v1/health (get_status)
-      description: Domain health and agent availability
+    - path: /v1/message (get_status)
+      description: Domain readiness and the lease states of its required agents
       inherited_by: Standard HandleMessage Actions section
 ```
 
@@ -240,7 +240,7 @@ behavior.
 | compile_report | Internal | Build the domain report from aggregated results, recommendations, and observations. |
 | apply_changes | Internal | Apply approved changes to target files. Used by optimize workflows. |
 | compare_before_after | Internal | Measure score improvement, produce Feedback entries with before/after metrics. |
-| get_status | Orchestrator/Admin | Domain health, agent availability, current state (online/degraded/offline). |
+| get_status | Orchestrator/Admin | Whether the domain is ready, and the lease state (`ready`, `not_ready`, `unknown`) of each required agent, as the directory holds it. |
 | get_workflows | Orchestrator/Admin | Available workflow definitions with phase counts. |
 | workflow_history | Admin | Recent workflow executions with results and durations. |
 
@@ -386,10 +386,10 @@ Standard error handling model — inherited by all domains:
 
 | Error | Handling |
 |-------|---------|
-| Agent unavailable | Domain status → degraded. Retry dispatch up to 3 times. If all fail, workflow fails with partial results. |
+| Agent unavailable | The domain's lease `checks` name the agent `not_ready`. Retry dispatch up to 3 times. If all fail, workflow fails with partial results. |
 | Agent timeout | Cancel timed-out phase. Continue with available results if non-blocking. Log warning. |
 | Agent error response | Record error in findings. Continue workflow if other phases are independent. |
-| All agents unavailable | Domain status → offline. Reject new workflows with 503. |
+| All agents unavailable | The domain renews its lease with `ready: false`. Reject new workflows with 503. |
 | Aggregation conflict | Apply domain-specific conflict resolution rules. |
 
 Domains MAY override or extend with domain-specific handling
@@ -399,11 +399,11 @@ Domains MAY override or extend with domain-specific handling
 
 ## Implementation Notes
 
-- Domain controllers are agents with `type: domain` — they implement all 6 protocol endpoints
+- Domain controllers are agents with `type: domain` — they implement all 7 protocol endpoints
 - The domain manifest is returned as part of `POST /v1/describe` alongside the AgentManifest
 - Workflow phases should be dispatched in dependency order; independent phases may run in parallel
 - Scoring weights must sum to 1.0; implementations should validate at startup
-- Domain controllers should cache agent availability to avoid redundant health checks during workflow execution
+- Domain controllers read agent availability from the lease states in the service directory they hold, and never probe an agent
 - Observation and recommendation storage should use the patterns/storage schema for consistency
 
 ---
@@ -415,7 +415,7 @@ domain-specific items.
 
 - [ ] Registers with orchestrator and receives WLT token
 - [ ] Manifest declares type: domain with required_agents and workflows
-- [ ] Domain status reflects agent availability (online/degraded/offline)
+- [ ] The domain's readiness reflects its required agents' lease states, and it probes none of them
 - [ ] execute_workflow routes to correct workflow by task.action
 - [ ] Workflow phases execute in correct dependency order
 - [ ] Independent phases run in parallel

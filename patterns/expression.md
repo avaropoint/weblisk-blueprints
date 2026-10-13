@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: expression
-version: 1.0.1
+version: 1.0.2
 requires: [protocol/types]
 platform: any
 tier: free
@@ -36,7 +36,7 @@ scalar value, never mutates state, and never performs I/O.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: ErrorResponse

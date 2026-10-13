@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: hub
-version: 1.1.1
+version: 2.0.0
 port: 9770
 requires: [protocol/spec, protocol/identity, protocol/types, protocol/federation, architecture/hub, architecture/agent, architecture/orchestrator]
 extends: [patterns/messaging, patterns/caching, patterns/observability, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/privacy, patterns/security, patterns/interop]
@@ -97,7 +97,7 @@ signature takes none: it is [`protocol/identity`](../protocol/identity.md)'s
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -108,9 +108,10 @@ requires:
           methods: [POST]
           request_type: AgentMessage
           response_fields: [status, response]
-        - path: /v1/health
+        - path: /v1/lease
           methods: [POST]
-          response_fields: [status, details]
+          request_type: LeaseRenewal
+          response_fields: [expires_at]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -133,7 +134,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: TaskResult
@@ -144,8 +145,8 @@ requires:
           fields_used: [error, code]
         - name: EventEnvelope
           fields_used: [from, to, action, payload, trace_id]
-        - name: HealthStatus
-          fields_used: [status, checks]
+        - name: LeaseRenewal
+          fields_used: [ready, checks]
     on_change:
       compatible: validate
       breaking: version-bump
@@ -230,7 +231,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -244,7 +245,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -285,7 +286,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/caching
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: ttl-cache
@@ -298,7 +299,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/observability
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: metrics
@@ -1753,11 +1754,14 @@ Step 7 — Exit
 
 ### Health
 
-Reported via `POST /v1/health`:
+Readiness, as `GET /readyz` answers it and every lease renewal carries it
+([`patterns/observability`](../patterns/observability.md#health-endpoint)).
+Health is liveness and readiness only, so the counts and timestamps a status
+once carried are metrics:
 
 ```yaml
 health:
-  healthy:
+  ready:
     conditions:
       - storage connected
       - event subscriptions active
@@ -1766,16 +1770,7 @@ health:
       - revocation list loaded
       - fingerprint baselines available
       - alerting agent reachable
-    response:
-      status: healthy
-      details: {storage, listings_total, providers_total, stale_listings,
-                tracked_listings, last_crawl, last_probe_cycle,
-                last_aggregation, last_fingerprint_cycle,
-                revocation_list_size, fingerprints_loaded,
-                active_rules, active_mutes, pending_alerts, subscriptions}
-
-  degraded:
-    conditions:
+    checks:
       - storage errors (retrying)
       - last crawl failed
       - stale listings > 20% of total
@@ -1784,18 +1779,13 @@ health:
       - revocation list stale
       - fingerprint cycle failed
       - alerting agent unreachable (queuing locally)
-    response:
-      status: degraded
-      details: {reason, stale_count, probe_failure_rate,
-                queued_alerts, last_error}
+    lease: ready true, with checks marking each of these that holds as not_ready
 
-  unhealthy:
+  not_ready:
     conditions:
       - storage unreachable after retries
       - no event subscriptions active
-    response:
-      status: unhealthy
-      details: {reason, since}
+    lease: ready false, its checks naming each subsystem above not_ready
 ```
 
 ### Self-Update

@@ -59,9 +59,8 @@ contract:
 
   declares:
     types:
-      HealthStatus:
-        status:  { type: string, required: true }
-        uptime:  { type: int64,  required: true }
+      Liveness:
+        live:    { type: bool,   required: true }
     behaviors:
       - name: durable-records
         rules:
@@ -70,7 +69,7 @@ contract:
 
   serves:
     - { method: POST, path: /v1/register, operation: Register, auth: none }
-    - { method: GET,  path: /v1/health,   operation: Health,   auth: none }
+    - { method: GET,  path: /livez,       operation: Livez,    auth: none }
 
   verifies:
     - assertion: Every operation writes an audit entry chained to the previous one

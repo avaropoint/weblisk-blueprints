@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: messaging
-version: 1.0.1
+version: 1.0.2
 requires: [protocol/types, architecture/agent, patterns/retry]
 platform: any
 tier: free
@@ -39,7 +39,7 @@ complete.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: EventEnvelope
@@ -51,7 +51,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentState
@@ -239,6 +239,12 @@ Examples:
 - `lifecycle.recommendation.created` — new recommendation proposed
 - `health.agent.state_change` — agent health state changed
 - `seo.audit.result` — SEO domain audit result callback
+
+The `health.*` topics here and below are
+[`agents/health-monitor`](../agents/health-monitor.md)'s, and go when it
+retires. A component has no health state to change: health is liveness
+and readiness only, and readiness travels on the component's lease
+([`patterns/observability`](observability.md#health-endpoint)).
 
 ### Topic Matching
 
@@ -641,7 +647,7 @@ Events and direct messages coexist for different purposes:
 | Workflow coordination | `POST /v1/event` | Decoupled phase progression |
 | Request data from another agent | `POST /v1/message` | Caller needs synchronous response |
 | Fetch workflow definition | `POST /v1/message` | Caller blocks until definition returned |
-| Health check | `POST /v1/health` | Dedicated endpoint |
+| Is another agent present and ready? | its `lease_state` in the service directory | Nothing polls another agent; its lease already says |
 
 **Rule of thumb:** if the sender doesn't need a response, publish an
 event. If the sender blocks until a response arrives, use direct

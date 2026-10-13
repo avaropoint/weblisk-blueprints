@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: privacy
-version: 1.0.2
+version: 1.0.3
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/contract]
 platform: any
 tier: free
@@ -58,7 +58,7 @@ system scales privacy proportionally — not uniformly.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: ErrorResponse

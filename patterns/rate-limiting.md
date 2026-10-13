@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: rate-limiting
-version: 1.1.4
+version: 1.1.5
 requires: [protocol/types, protocol/identity, architecture/gateway, architecture/agent]
 platform: any
 tier: free
@@ -34,7 +34,7 @@ domain-specific throttling (e.g., external API call budgets).
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.16.1 <3.0.0"
+    version: ">=1.16.1 <4.0.0"
     bindings:
       types:
         - name: RateLimitConfig
@@ -59,7 +59,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/gateway
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: GatewayConfig
@@ -69,7 +69,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentConfig

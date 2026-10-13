@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: alerting
-version: 1.0.1
+version: 1.0.2
 requires: [protocol/types, patterns/messaging, patterns/notification]
 platform: any
 tier: free
@@ -41,7 +41,7 @@ extend this pattern.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: TaskRequest

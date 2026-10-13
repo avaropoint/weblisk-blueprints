@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: migration
-version: 1.0.1
+version: 1.0.2
 requires: [protocol/types, patterns/safety, patterns/approval, patterns/storage, patterns/versioning, patterns/state-machine, patterns/logging]
 platform: any
 tier: free
@@ -70,7 +70,7 @@ violation subject to kill-switch enforcement.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: ErrorResponse

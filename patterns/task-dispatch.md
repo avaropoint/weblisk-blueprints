@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: task-dispatch
-version: 1.0.2
+version: 1.1.0
 requires: [protocol/spec, protocol/types, patterns/messaging, patterns/retry]
 platform: any
 tier: free
@@ -43,7 +43,7 @@ through the event and type contracts defined here.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/execute
@@ -55,7 +55,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -709,7 +709,7 @@ types:
         description: Currently dispatched task count
       last_seen:
         type: int64
-        description: Last registration or health timestamp
+        description: When the agent last registered or renewed its lease
 ```
 
 ---
