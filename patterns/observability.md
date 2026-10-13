@@ -70,7 +70,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/logging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: LogEntry
@@ -303,36 +303,18 @@ Weblisk observability aligns with
 [W3C Trace Context](https://www.w3.org/TR/trace-context/) for
 distributed tracing.
 
-### Trace Context Propagation
+### Trace Context
 
-The `trace_id` field in `TaskContext` and `AgentMessage` maps to the
-W3C `traceparent` header format:
+Carried as [`protocol/spec`](../protocol/spec.md#trace-propagation) says; a
+span is [`protocol/types`](../protocol/types.md#span)' `Span`, named and
+recorded as
+[`architecture/observability`](../architecture/observability.md#distributed-tracing)
+says.
 
-```
-traceparent: 00-<trace_id>-<span_id>-<trace_flags>
-```
+### Log Data Model
 
-| W3C Field | Weblisk Equivalent | Notes |
-|-----------|-------------------|-------|
-| `trace-id` | `trace_id` in TaskContext | 32-char hex (16 bytes) |
-| `parent-id` (span) | Not yet modeled | Implementations MAY generate per-phase span IDs |
-| `trace-flags` | Not yet modeled | Default `01` (sampled) |
-| `tracestate` | Not yet modeled | Vendor-specific; reserved for future use |
-
-### Span Model (Recommended)
-
-Implementations SHOULD generate spans for key operations:
-
-| Operation | Span Name | Attributes |
-|-----------|-----------|------------|
-| Task execution | `agent.execute` | `agent.name`, `task.action`, `task.id` |
-| Workflow phase | `workflow.phase` | `workflow.name`, `phase.name`, `phase.agent` |
-| Agent message | `agent.message` | `from`, `to`, `action` |
-| Lease renewal | `lease.renew` | `agent.name`, `ready` |
-
-Span IDs are generated per operation and linked via parent span ID
-to form a trace tree. The trace_id remains constant across the
-entire workflow execution.
+A log record is an OpenTelemetry log record, mapped field for field in
+[`patterns/logging`](logging.md#opentelemetry-log-data-model).
 
 ### Metrics Convention
 

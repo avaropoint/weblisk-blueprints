@@ -63,7 +63,7 @@ requires:
         - name: AgentManifest
           fields_used: [name, version, port, capabilities, public_key, url]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
+          fields_used: [from, to, action, payload, trace_id, span_id]
         - name: LeaseRenewal
           fields_used: [ready, checks]
     on_change:
@@ -71,7 +71,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.14.4 <2.0.0"
+    version: ">=1.14.4 <3.0.0"
     bindings:
       types:
         # Read only to recognise a person's operator token and refuse it on
@@ -134,7 +134,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -549,7 +549,7 @@ Step 8 — Initialize Deduplication Cache
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9752, channels_active, dedup_entries_loaded}
+  Log: process.ready {port: 9752, channels_active, dedup_entries_loaded}
 ```
 
 ### Shutdown Sequence
@@ -582,7 +582,7 @@ Step 6 — Close Storage
   Validates:   Connection closed cleanly
 
 Step 7 — Exit
-  Log: lifecycle.stopped {uptime_seconds, alerts_processed, in_flight_drained}
+  Log: process.stopped {uptime_seconds, alerts_processed, in_flight_drained}
   agent_state → retired
   Exit process
 ```
@@ -640,7 +640,7 @@ Step 4 — Reload Configuration
   On Fail:     Revert to previous config
 
 Final:
-  Log: lifecycle.version_updated {from, to, migration_steps}
+  Log: process.version_updated {from, to, migration_steps}
 ```
 
 ---

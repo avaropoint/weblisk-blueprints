@@ -22,8 +22,8 @@ JSON using the exact field names shown in the `json` column.
 
 ## Conventions
 
-- All timestamps are Unix epoch seconds (`int64`)
-- All IDs are 32-character hex strings (16 random bytes)
+- All timestamps are Unix epoch seconds (`int64`), except those [LogEntry](#logentry) and [Span](#span) declare
+- All IDs are 32-character hex strings (16 random bytes), except a span id ([TraceContext](#tracecontext))
 - All signatures are base64url-encoded ML-DSA-65 signatures (3309 bytes)
 - All public keys are base64url-encoded ML-DSA-65 public keys (1952 bytes)
 - Optional fields MAY be omitted from JSON when empty/null
@@ -1265,8 +1265,13 @@ types:
       trace_id:
         name: TraceID
         type: string
-        required: false
-        description: "Correlation ID for distributed tracing (propagated through all downstream calls)"
+        required: true
+        description: "The trace this task belongs to ([TraceContext](#tracecontext))"
+      span_id:
+        name: SpanID
+        type: string
+        required: true
+        description: "The sender's span for this call ([TraceContext](#tracecontext))"
 ```
 
 ### TaskResult
@@ -1836,8 +1841,13 @@ types:
       trace_id:
         name: TraceID
         type: string
-        required: false
-        description: "Correlation ID (propagated from TaskContext)"
+        required: true
+        description: "The trace this message belongs to ([TraceContext](#tracecontext))"
+      span_id:
+        name: SpanID
+        type: string
+        required: true
+        description: "The sender's span for this message ([TraceContext](#tracecontext))"
 ```
 
 **Signature covers:** `canonicalize({from, to, action, payload})` per
@@ -2655,7 +2665,12 @@ types:
         name: TraceID
         type: string
         required: true
-        description: "Distributed trace context (propagated through all downstream operations)"
+        description: "The trace this event belongs to ([TraceContext](#tracecontext))"
+      span_id:
+        name: SpanID
+        type: string
+        required: true
+        description: "The publisher's span for this publish ([TraceContext](#tracecontext))"
       version:
         name: Version
         type: string
@@ -3217,8 +3232,8 @@ it from `protocol/identity`.
 
 ### LogEntry
 
-Structured log entry emitted by agents. See [patterns/logging](../patterns/logging.md)
-for the full logging specification.
+The one log envelope's fields. Everything else about a log record is
+[`patterns/logging`](../patterns/logging.md)'s.
 
 ```yaml
 types:
@@ -3226,54 +3241,100 @@ types:
     fields:
       ts:
         name: Timestamp
-        type: int64
+        type: string
         required: true
-        description: "Unix epoch seconds (consistent with all protocol timestamps)"
+        description: "RFC 3339 UTC time with milliseconds, e.g. `2026-04-25T10:30:01.123Z`: the one timestamp format for log lines"
       level:
         name: Level
         type: string
         required: true
-        description: "`debug`, `info`, `warn`, `error`, `fatal`"
+        description: "`debug`, `info`, `warn` or `error`"
       log_type:
         name: LogType
         type: string
         required: true
-        description: "`app`, `access`, `audit`, `security`"
+        description: "A type from `patterns/logging`'s Log Types, or a custom type a blueprint declares"
       msg:
         name: Message
         type: string
         required: true
-        description: "Human-readable log message"
+        description: "Human-readable summary (max 256 characters)"
       component:
         name: Component
         type: string
         required: true
-        description: "Agent or subsystem name"
+        description: "The component's name, as the service directory names it"
       component_type:
         name: ComponentType
         type: string
         required: true
-        description: "`agent`, `orchestrator`, `gateway`"
+        description: "`agent`, `domain`, or the architecture blueprint the component is built from"
       trace_id:
         name: TraceID
         type: string
         required: false
-        description: "Distributed trace correlation"
+        description: "The trace being served when the line was written ([TraceContext](#tracecontext))"
       span_id:
         name: SpanID
         type: string
         required: false
-        description: "Span within trace"
+        description: "The span open when the line was written"
+      task_id:
+        name: TaskID
+        type: string
+        required: false
+        description: "The task being processed"
+      domain:
+        name: Domain
+        type: string
+        required: false
+        description: "The domain being operated within"
+      workflow:
+        name: Workflow
+        type: string
+        required: false
+        description: "The workflow being executed"
+      action:
+        name: Action
+        type: string
+        required: false
+        description: "The action being processed"
+      duration_ms:
+        name: DurationMS
+        type: int64
+        required: false
+        description: "On completion of an operation"
+      status:
+        name: Status
+        type: string
+        required: false
+        description: "On completion of an operation: `success`, `failed` or `timeout`"
       error:
         name: Error
         type: string
         required: false
-        description: "Error message (when level is error/fatal)"
+        description: "Error message (when level is error)"
+      error_code:
+        name: ErrorCode
+        type: string
+        required: false
+        description: "Structured error code"
+      details:
+        name: Details
+        type: map
+        required: false
+        description: "Data typed by `log_type`, as `patterns/logging` declares for each"
 ```
 
 ### TraceContext
 
-Distributed trace propagation context (W3C Trace Context compatible).
+The trace a request belongs to, and the span within it that sent the request:
+W3C Trace Context's. On an HTTP request it is the `traceparent` header,
+`00-<trace_id>-<span_id>-<trace_flags>`, where `<trace_flags>` is `01` when the
+trace is sampled and `00` when it is not. In a `TaskContext`, `AgentMessage` or
+`EventEnvelope` it is that envelope's `trace_id` and `span_id`. Which requests
+carry it, and what a receiver does with what arrives, are
+[`protocol/spec`](spec.md#trace-propagation)'s, stated there once.
 
 ```yaml
 types:
@@ -3283,22 +3344,87 @@ types:
         name: TraceID
         type: string
         required: true
-        description: "32-char hex trace identifier"
+        description: "32 lowercase hex characters (16 random bytes), never all zeros"
       span_id:
         name: SpanID
         type: string
         required: true
-        description: "16-char hex span identifier"
+        description: "16 lowercase hex characters (8 random bytes), never all zeros"
       parent_span_id:
         name: ParentSpanID
         type: string
         required: false
-        description: "Parent span for nesting"
+        description: "The span that sent the request this span serves. Absent on a trace's first span"
       sampled:
         name: Sampled
         type: bool
         required: false
-        description: "Whether this trace is sampled (default: true)"
+        description: "Whether this trace's spans are recorded: `traceparent` flags `01` is true and `00` is false (default: true)"
+```
+
+### Span
+
+One operation a component performed within a trace, shaped as an
+OpenTelemetry span: each field is the OpenTelemetry field of the same name,
+`component` is the resource's `service.name`, and `start` and `end` become
+`start_time_unix_nano` and `end_time_unix_nano` when pushed as OTLP. When a
+span opens and closes, and what it is named, are
+[`architecture/observability`](../architecture/observability.md#distributed-tracing)'s.
+
+```yaml
+types:
+  Span:
+    fields:
+      trace_id:
+        name: TraceID
+        type: string
+        required: true
+        description: "The trace this span belongs to ([TraceContext](#tracecontext))"
+      span_id:
+        name: SpanID
+        type: string
+        required: true
+        description: "This span's id ([TraceContext](#tracecontext))"
+      parent_span_id:
+        name: ParentSpanID
+        type: string
+        required: false
+        description: "The span that sent the request this span serves"
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "A span name `architecture/observability` declares"
+      kind:
+        name: Kind
+        type: string
+        required: true
+        description: "`server`, `client`, `producer`, `consumer` or `internal`, as OpenTelemetry's SpanKind"
+      component:
+        name: Component
+        type: string
+        required: true
+        description: "The component that performed it, as the service directory names it"
+      start:
+        name: Start
+        type: string
+        required: true
+        description: "RFC 3339 UTC time with milliseconds"
+      end:
+        name: End
+        type: string
+        required: true
+        description: "RFC 3339 UTC time with milliseconds"
+      status:
+        name: Status
+        type: string
+        required: true
+        description: "`unset`, `ok` or `error`, as OpenTelemetry's status code"
+      attributes:
+        name: Attributes
+        type: map
+        required: false
+        description: "The attributes its name declares, under OpenTelemetry semantic conventions where one exists"
 ```
 
 ---
@@ -3346,7 +3472,7 @@ types:
         description: Arguments for the action, shaped by the target's declared inputs
       trace_id:
         type: string
-        description: Correlation identifier propagated across every hop of this task
+        description: "The trace this task ran under, kept as a record and never a carrier ([TraceContext](#tracecontext))"
 
   FileRecord:
     description: A stored file and the addresses it can be retrieved from
@@ -3440,20 +3566,20 @@ security:
 
 ## Verification Checklist
 
-- [ ] All IDs are 32-character hex strings (16 random bytes) and all timestamps are Unix epoch seconds (int64)
+- [ ] All IDs are 32-character hex strings (16 random bytes) and a span id 16 (8 random bytes); all timestamps are Unix epoch seconds (int64) except those LogEntry and Span declare
 - [ ] ML-DSA-65 signatures serialize as base64url-encoded 3309 bytes; public keys serialize as base64url-encoded 1952 bytes
 - [ ] ErrorResponse includes `error` (required), `code`, `category`, `retryable`, and `detail` fields with exact JSON keys
 - [ ] Error categories are constrained to `transient`, `permanent`, or `partial` and each standard error code maps to the correct HTTP status
 - [ ] Unknown JSON fields are silently ignored on deserialization (forward compatibility); optional fields are omitted when empty/null
 - [ ] AgentManifest requires `name`, `version`, `description`, `url`, `public_key`, and `capabilities`; includes `publishes` and `subscriptions` for event system
-- [ ] EventEnvelope requires `event_id`, `topic`, `source`, `scope`, `timestamp`, `trace_id`, `version`, and `payload`
+- [ ] EventEnvelope requires `event_id`, `topic`, `source`, `scope`, `timestamp`, `trace_id`, `span_id`, `version`, and `payload`
 - [ ] Subscription requires `pattern`; `scope` defaults to `"self"`; `group` defaults to agent name
 - [ ] RouteEntry requires `agent`, `url`, and `scope`
 - [ ] ServiceDirectory includes `services`, `routing_table`, and `namespaces`
 - [ ] WorkflowPhase `on_error` supports `fail`, `skip`, and `retry`; `max_retries` applies only when `on_error` = `"retry"`
 - [ ] WorkflowExecution `status` transitions follow `pending` → `running` → `completed` | `failed`; PhaseResult adds `skipped`
 - [ ] TaskRequest requires `id`, `from`, `action`, `payload`, `context`, `token`, and `timestamp`; TaskResult status is `success`, `failed`, or `pending_approval`
-- [ ] AgentMessage `signature` covers `canonicalize({from, to, action, payload})` per RFC 8785 and `trace_id` propagates through downstream calls
+- [ ] AgentMessage `signature` covers `canonicalize({from, to, action, payload})` per RFC 8785
 - [ ] Finding includes all required fields: `rule_id`, `severity`, `element`, `current`, `expected`, `message`, and `fixable`
 - [ ] RegisterResponse includes `agent_id`, `token`, `expires_at`, `services`, `lease`, `orchestrator`, and negotiated `protocol_version`
 - [ ] ServiceEntry carries `lease_state` and `lease_expires_at`, and `lease_state` is one of `ready`, `not_ready` and `unknown`

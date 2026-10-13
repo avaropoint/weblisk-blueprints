@@ -104,7 +104,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -646,7 +646,7 @@ Step 6 — Load Active Strategies
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9782, strategies_loaded: N}
+  Log: process.ready {port: 9782, strategies_loaded: N}
 ```
 
 ### Shutdown Sequence
@@ -671,7 +671,7 @@ Step 5 — Deregister
   Action:      DELETE /v1/register
 
 Step 6 — Exit
-  Log: lifecycle.stopped {uptime_seconds, observations_processed}
+  Log: process.stopped {uptime_seconds, observations_processed}
   agent_state → retired
 ```
 
@@ -708,7 +708,7 @@ When `system.blueprint.changed` is received where `blueprint_name = "lifecycle"`
 1. Parse new blueprint, verify against schema
 2. Validate active strategies against updated types
 3. Apply new configuration values
-4. Log: lifecycle.version_updated {from, to}
+4. Log: process.version_updated {from, to}
 ```
 
 ---

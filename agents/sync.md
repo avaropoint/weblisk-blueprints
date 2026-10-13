@@ -62,7 +62,7 @@ requires:
         - name: AgentManifest
           fields_used: [name, version, port, capabilities, public_key, url]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
+          fields_used: [from, to, action, payload, trace_id, span_id]
     on_change:
       compatible: validate
       breaking: version-bump
@@ -511,7 +511,7 @@ Step 7 — Initialize Realtime Channel
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9751, conflict_resolution: config.conflict_resolution}
+  Log: process.ready {port: 9751, conflict_resolution: config.conflict_resolution}
 ```
 
 ### Shutdown Sequence
@@ -542,7 +542,7 @@ Step 6 — Close Storage
   Action:      Close database connection
 
 Step 7 — Exit
-  Log: lifecycle.stopped {uptime_seconds, syncs_processed, conflicts_resolved}
+  Log: process.stopped {uptime_seconds, syncs_processed, conflicts_resolved}
   agent_state → retired
 ```
 
@@ -577,7 +577,7 @@ Step 1 — Validate new blueprint
 Step 2 — Check migration requirements
 Step 3 — Execute migration (drain syncs, migrate, resume)
 Step 4 — Reload configuration
-Final:  Log lifecycle.version_updated {from, to}
+Final:  Log process.version_updated {from, to}
 ```
 
 ---

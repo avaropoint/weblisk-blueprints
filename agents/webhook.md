@@ -64,7 +64,7 @@ requires:
         - name: AgentManifest
           fields_used: [name, version, port, capabilities, public_key, url]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
+          fields_used: [from, to, action, payload, trace_id, span_id]
     on_change:
       compatible: validate
       breaking: version-bump
@@ -589,7 +589,7 @@ Step 7 — Start Retry Sweep Timer
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9753, subscribers_active: N, pending_deliveries: N}
+  Log: process.ready {port: 9753, subscribers_active: N, pending_deliveries: N}
 ```
 
 ### Shutdown Sequence
@@ -620,7 +620,7 @@ Step 6 — Close Storage
   Action:      Close database connection
 
 Step 7 — Exit
-  Log: lifecycle.stopped {uptime_seconds, deliveries_sent, deliveries_pending}
+  Log: process.stopped {uptime_seconds, deliveries_sent, deliveries_pending}
   agent_state → retired
 ```
 
@@ -657,7 +657,7 @@ Step 1 — Validate new blueprint
 Step 2 — Check migration requirements
 Step 3 — Execute migration (pause processing, migrate, resume)
 Step 4 — Reload configuration
-Final:  Log lifecycle.version_updated {from, to}
+Final:  Log process.version_updated {from, to}
 ```
 
 ---

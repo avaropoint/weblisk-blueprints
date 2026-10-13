@@ -60,9 +60,13 @@ requires:
         - name: TaskResult
           fields_used: [task_id, agent_name, status, summary, changes, observations, recommendations, metrics, signature, timestamp]
         - name: AgentMessage
-          fields_used: [id, from, to, type, action, payload, token, signature, timestamp, trace_id]
+          fields_used: [id, from, to, type, action, payload, token, signature, timestamp, trace_id, span_id]
         - name: EventEnvelope
-          fields_used: [event_id, topic, source, scope, correlation_id, timestamp, trace_id, version, payload, token]
+          fields_used: [event_id, topic, source, scope, correlation_id, timestamp, trace_id, span_id, version, payload, token]
+        - name: TaskContext
+          fields_used: [trace_id, span_id]
+        - name: TraceContext
+          fields_used: [trace_id, span_id, parent_span_id, sampled]
         - name: ErrorResponse
           fields_used: [error, code, category, retryable, detail]
         - name: ServiceDirectory
@@ -89,7 +93,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.8.0 <2.0.0"
+    version: ">=1.8.0 <3.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -119,12 +123,12 @@ its own: a second statement of a type is a second thing to keep right.
 - All paths are prefixed with `/v1`, but the two probes `/livez` and `/readyz`
   ([Probes](#get-livez-and-get-readyz))
 - All request/response bodies are `application/json`
-- All timestamps are Unix epoch seconds (`int64`)
+- Timestamps and IDs take the forms [types.md](types.md#conventions) states
 - All signatures are base64url-encoded ML-DSA-65 signatures (3309 bytes decoded)
 - All public keys are base64url-encoded ML-DSA-65 public keys (1952 bytes decoded)
 - Errors return `ErrorResponse` JSON (see [types.md](types.md)); at minimum `{"error": "message"}`
-- IDs are 32-character hex strings (16 random bytes); event IDs use UUID v7
-  (time-sortable, 32 hex chars when formatted without hyphens)
+- Event IDs use UUID v7 (time-sortable, 32 hex chars when formatted
+  without hyphens)
 - Unknown JSON fields MUST be ignored (forward compatibility)
 - Request bodies MUST be limited: 1 MB default, 10 MB for task execution
 
@@ -180,7 +184,8 @@ Executes a task synchronously. Requires auth token in the request body.
 **Response:** `TaskResult`
 
 The agent MUST:
-1. Validate the request has a non-empty `id` and `token`
+1. Validate the request has a non-empty `id` and `token`, and a `context`
+   carrying `trace_id` and `span_id`
 2. Update internal service directory from `context.services` (if provided)
 3. Execute domain-specific logic
 4. Return result with `task_id` matching request `id`
@@ -200,7 +205,8 @@ is returned.
   "target": "seo-analyzer",
   "input": {"html_files": ["index.html", "about.html"]},
   "context": {
-    "trace_id": "t-abc123",
+    "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "span_id": "00f067aa0ba902b7",
     "correlation_id": "corr-789",
     "services": {}
   },
@@ -256,10 +262,11 @@ event delivery, use `/v1/event` instead.
 
 The agent MUST:
 1. Accept only POST requests
-2. If signature is present AND sender's public key is known from the
+2. Validate the message carries `trace_id` and `span_id`
+3. If signature is present AND sender's public key is known from the
    service directory, verify the signature
-3. Dispatch to the appropriate message handler based on `action`
-4. Sign the response
+4. Dispatch to the appropriate message handler based on `action`
+5. Sign the response
 
 Signature covers: `canonicalize({from, to, action, payload})` per
 [RFC 8785 (JCS)](https://www.rfc-editor.org/rfc/rfc8785) — see
@@ -275,7 +282,9 @@ Signature covers: `canonicalize({from, to, action, payload})` per
   "type": "request",
   "payload": {"url": "/blog/post-1", "keywords": ["seo", "performance"]},
   "signature": "<hex ML-DSA-65 signature>",
-  "timestamp": 1712160000
+  "timestamp": 1712160000,
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "00f067aa0ba902b7"
 }
 ```
 
@@ -299,7 +308,7 @@ required).
 > names every other's `url`. An agent that takes a pushed body as its
 > directory follows the routes, addresses and `address_provenance` that party
 > chose, and checks a message's signature
-> ([`POST /v1/message`](#post-v1message), step 2) against a public key that
+> ([`POST /v1/message`](#post-v1message), step 3) against a public key that
 > party chose, so it accepts a message that party signed in another agent's
 > name. The admin gateway, which turns the directory into where it sends a
 > person's pass, therefore reads it only by `GET /v1/services` at its anchor
@@ -321,7 +330,7 @@ Requires auth token in the event envelope.
 The agent MUST:
 1. Accept only POST requests
 2. Validate the `EventEnvelope` structure (event_id, topic, source,
-   scope, timestamp, payload are present)
+   scope, timestamp, trace_id, span_id, payload are present)
 3. Verify the event's auth token (optional — framework-level)
 4. Check idempotency: if `event_id` has already been processed,
    return 200 OK immediately (skip duplicate processing)
@@ -336,6 +345,8 @@ The agent MUST:
   "topic": "workflow.completed",
   "source": "workflow",
   "scope": "seo",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "00f067aa0ba902b7",
   "payload": {"workflow_id": "wf-123", "status": "success", "duration_ms": 4500},
   "token": "<WLT auth token>",
   "timestamp": 1712160000
@@ -357,7 +368,8 @@ agent's framework will retry delivery.
   "scope": "seo",
   "correlation_id": "wf-exec-001",
   "timestamp": 1712160001,
-  "trace_id": "abc123def456789012345678",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "00f067aa0ba902b7",
   "version": "1.0.0",
   "payload": {
     "workflow": "seo-audit",
@@ -845,6 +857,7 @@ handles routing and delivery:
    - scope: provided scope value
    - correlation_id: provided or inherited from current context
    - trace_id: inherited from current trace context
+   - span_id: the span this agent opened for the publish
    - timestamp: now
    - version: agent's event schema version
    - payload: the event data
@@ -983,19 +996,52 @@ registration entry rather than creating a duplicate.
 
 ## Observability
 
-### Trace ID Propagation
+### Trace Propagation
 
-All events, tasks, and messages MUST propagate `trace_id` through the
-entire execution chain. If the originator does not provide a `trace_id`,
-the framework MUST generate one (32 hex chars) at the point of origin.
+Every task, message and event belongs to a trace, and every request between
+components carries the span that sent it. These are the rules for carrying a
+trace, stated here and nowhere else. The values and their formats are
+[`protocol/types`](types.md#tracecontext)'; when a span opens and closes, and
+what it is named, are
+[`architecture/observability`](../architecture/observability.md#distributed-tracing)'s.
+
+- **Every HTTP request** a component sends carries the W3C `traceparent`
+  header, naming the trace and the span the sender opened for this request:
+  probes, `/v1/admin/*` requests and calls to the orchestrator included. No
+  other header carries a trace.
+- **Every envelope** a component builds (a `TaskRequest`'s `context`, an
+  `AgentMessage`, an `EventEnvelope`) carries the same two values as its
+  required `trace_id` and `span_id`, so the trace survives a queue, a retry or
+  a dead letter where no header does. An envelope carries no flags, so a
+  request sent from a stored envelope (a retry, a redelivery) sends flags
+  `01`: a retry is recorded even in an unsampled trace, the one exception to
+  sampling being decided once. Work resumed from a record that keeps only a
+  `trace_id` (a stored task) continues that trace with no parent span.
+- **A receiver continues the trace it is given.** Its span takes the arriving
+  `trace_id` and records the arriving `span_id` as its `parent_span_id`. Where
+  a request carries both a `traceparent` and an envelope and they differ, the
+  envelope's values are used; the flags are always `traceparent`'s. A request
+  with an envelope whose `traceparent` is missing or does not parse continues
+  the envelope's trace with flags `01`, as a retry does.
+- **A trace starts only where none can be continued**: a timer firing (each
+  firing of a cron schedule starts its own), or a request with neither a
+  `traceparent` that parses nor an envelope. Its `trace_id` is drawn from a
+  cryptographic source, and whether it is
+  sampled is decided there, once; every component inside honours the flags it
+  receives, except where a rule above sends `01`.
+- **A trace restarts at the trust boundary.** The gateway, the admin gateway
+  and `POST /v1/federation/task` continue nothing a request from outside the
+  tenant carries: neither its `traceparent` nor the `trace_id` and `span_id`
+  of any envelope in it. Each starts a new trace there.
+- **A trace identifier carries no subject data.** It is random, and nothing is
+  derived from a request's content.
 
 ```
-Domain publishes workflow.trigger (trace_id: "abc123")
-  → Workflow Agent receives event (same trace_id)
-  → Workflow Agent publishes task.submit (same trace_id)
-  → Task Agent receives event (same trace_id)
-  → Task Agent calls POST /v1/execute (same trace_id in context)
-  → Work Agent executes (same trace_id)
+Domain publishes workflow.trigger        (trace T, span A)
+  → Workflow Agent serves it in span B   (parent A); publishes task.submit (trace T, span C)
+  → Task Agent serves it in span D       (parent C); calls POST /v1/execute
+        traceparent: 00-T-E-01, context.trace_id T, context.span_id E
+  → Work Agent serves it in span F       (parent E)
 ```
 
 ### Correlation ID Propagation
@@ -1007,26 +1053,8 @@ specific to one execution chain.
 
 ### Structured Log Format
 
-All components SHOULD emit structured logs as JSON lines to stderr.
-Each log entry MUST include:
-
-| Field | Description |
-|-------|-------------|
-| `ts` | Unix epoch seconds (same as protocol timestamps) |
-| `level` | `debug`, `info`, `warn`, `error` |
-| `msg` | Human-readable message |
-| `component` | Component name (e.g., `orchestrator`, `seo`, `seo-analyzer`) |
-| `trace_id` | Correlation ID (when available) |
-
-Optional fields (when applicable): `agent`, `target`, `action`,
-`task_id`, `phase`, `duration_ms`, `error`, `event_id`,
-`correlation_id`, `scope`.
-
-```json
-{"ts":1712160001,"level":"info","msg":"event published","component":"seo","trace_id":"a1b2c3...","topic":"workflow.trigger","scope":"workflow","correlation_id":"corr-001"}
-{"ts":1712160002,"level":"info","msg":"event received","component":"workflow","trace_id":"a1b2c3...","topic":"workflow.trigger","event_id":"evt-001"}
-{"ts":1712160003,"level":"info","msg":"task dispatched","component":"task","trace_id":"a1b2c3...","agent":"seo-analyzer","task_id":"d4e5f6..."}
-```
+Every component writes [`LogEntry`](types.md#logentry) as
+[`patterns/logging`](../patterns/logging.md) says.
 
 **Audit log** entries (specified in [orchestrator.md](../architecture/orchestrator.md))
 are a separate persistent record. Structured logs are operational and
@@ -1225,7 +1253,7 @@ security:
 - [ ] Framework selects one subscriber per consumer group (round-robin)
 - [ ] Framework retries failed deliveries with exponential backoff
 - [ ] Framework dead-letters events after retry exhaustion
-- [ ] Events include event_id, topic, source, scope, correlation_id, trace_id
+- [ ] Events include event_id, topic, source, scope, correlation_id, trace_id, span_id
 
 ### Orchestrator Protocol
 - [ ] Orchestrator `POST /v1/register` validates namespace ownership (409 on conflict)
@@ -1249,6 +1277,6 @@ security:
 ### Cross-Cutting
 - [ ] All error responses use `ErrorResponse` format with `error` field
 - [ ] Error responses include `code` and `category` when available
-- [ ] `trace_id` is propagated through all events, tasks, and messages
+- [ ] Every request between components carries `traceparent`, every task, message and event carries `trace_id` and `span_id` naming the sender's span, and a receiver records that span as its own span's `parent_span_id`
 - [ ] `correlation_id` links all events in a single execution chain
 - [ ] All protected endpoints reject requests without valid tokens

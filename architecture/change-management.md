@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: change-management
-version: 1.1.0
+version: 2.0.0
 requires: [protocol/spec, protocol/types, architecture/orchestrator, architecture/agent, patterns/messaging, patterns/versioning]
 platform: any
 tier: free
@@ -100,7 +100,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -112,7 +112,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/versioning
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: semver-range
@@ -305,7 +305,7 @@ requires:
         - name: AgentManifest
           fields_used: [name, version, port, capabilities, public_key, url]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
+          fields_used: [from, to, action, payload, trace_id, span_id]
         - name: LeaseRenewal
           fields_used: [ready, checks]
     on_change:
@@ -351,7 +351,7 @@ requires:
 
 extends:
   - pattern: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -747,7 +747,7 @@ Phase 5 — Retire or Rollback
     Step 3:   vN process exits
     Emit:     system.agent.version.retired
                 {agent, retired_version, active_version, uptime}
-    Log:      lifecycle.version_retired
+    Log:      process.version_retired
 
   On failure (cutover failed):
     Step 1:   vN+1 stops immediately (no drain — it's the broken one)
@@ -758,7 +758,7 @@ Phase 5 — Retire or Rollback
     Step 6:   vN+1 process is torn down
     Emit:     system.agent.version.rollback
                 {agent, failed_version, restored_version, reason}
-    Log:      lifecycle.version_rollback
+    Log:      process.version_rollback
     Reconciliation result: "failed" with {rollback_applied: true}
 ```
 

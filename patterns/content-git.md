@@ -109,14 +109,14 @@ requires:
   # Rules 6 to 10, which hold the remote's private key, and the scope of the
   # quantum-vulnerable ban, which allows it to be classical
   - blueprint: protocol/identity
-    version: ">=1.5.0 <2.0.0"
+    version: ">=1.5.0 <3.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 
   - blueprint: patterns/secrets
-    version: ">=1.1.0 <2.0.0"
+    version: ">=1.1.0 <3.0.0"
     bindings:
       behaviors:
         # Where the remote's private key is held

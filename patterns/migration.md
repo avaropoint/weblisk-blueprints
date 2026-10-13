@@ -134,7 +134,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/versioning
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: BlueprintRevision
@@ -161,7 +161,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/logging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: LogEntry

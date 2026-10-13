@@ -726,7 +726,7 @@ requires:
         - name: AgentManifest
           fields_used: [name, version, port, capabilities, public_key, url]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
+          fields_used: [from, to, action, payload, trace_id, span_id]
         - name: LeaseRenewal
           fields_used: [ready, checks]
     on_change:
@@ -960,7 +960,7 @@ Step 6 — Subscribe to Events
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port, <agent-specific-fields>}
+  Log: process.ready {port, <agent-specific-fields>}
 ```
 
 ### Shutdown Sequence
@@ -986,7 +986,7 @@ Step N-1 — Close Storage
   Validates:   Connection closed
 
 Step N — Exit
-  Log: lifecycle.stopped {uptime, <metrics>}
+  Log: process.stopped {uptime, <metrics>}
   agent_state → retired
 ```
 
@@ -1011,7 +1011,7 @@ Step 1 — Validate New Blueprint
 Step 2 — Check Migration
 Step 3 — Execute Migration (if needed, with rollback)
 Step 4 — Reload Configuration
-Final: Log lifecycle.version_updated
+Final: Log process.version_updated
 ```
 
 ---

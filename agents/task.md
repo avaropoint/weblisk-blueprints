@@ -71,10 +71,12 @@ requires:
       types:
         - name: TaskRequest
           fields_used: [id, from, target_agent, action, payload, context]
+        - name: TaskContext
+          fields_used: [trace_id, span_id]
         - name: TaskResult
           fields_used: [task_id, agent_name, status, summary, timestamp]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
+          fields_used: [from, to, action, payload, trace_id, span_id]
     on_change:
       compatible: validate
       breaking: version-bump
@@ -96,7 +98,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -306,7 +308,7 @@ types:
 ```
 1. Parse submit payload:
    { task_id, workflow_id, phase, target_agent, action,
-     input, timeout, trace_id, correlation_id, priority }
+     input, timeout, correlation_id, priority }
 
 2. Validate target agent exists in service directory
    If not found → publish task.failed immediately
@@ -323,10 +325,10 @@ types:
      id: task_id
      action: action
      payload: input
-     context: { trace_id, correlation_id, services, workspace_root }
+     context: { trace_id, span_id, correlation_id, services, workspace_root }
    POST target_agent.url + /v1/execute
      Timeout: task timeout (from submit payload or default)
-     Headers: Authorization: Bearer <token>, X-Trace-Id: <trace_id>
+     Headers: Authorization: Bearer <token>, traceparent (protocol/types TraceContext)
 
 6. Handle response:
    2xx + status "success":
@@ -554,7 +556,7 @@ Step 7 — Build Agent Capacity Cache
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9781, pending_tasks: N, agents_cached: N}
+  Log: process.ready {port: 9781, pending_tasks: N, agents_cached: N}
 ```
 
 ### Shutdown Sequence
@@ -582,7 +584,7 @@ Step 6 — Deregister
   Action:      DELETE /v1/register
 
 Step 7 — Exit
-  Log: lifecycle.stopped {uptime_seconds, tasks_drained, tasks_failed}
+  Log: process.stopped {uptime_seconds, tasks_drained, tasks_failed}
   agent_state → retired
 ```
 
@@ -621,7 +623,7 @@ When `system.blueprint.changed` is received where `blueprint_name = "task"`:
 1. Parse new blueprint, verify against schema
 2. Validate in-flight tasks against updated types
 3. Apply new configuration values
-4. Log: lifecycle.version_updated {from, to}
+4. Log: process.version_updated {from, to}
 ```
 
 ---
@@ -677,7 +679,7 @@ triggers:
 **Purpose:** Dispatch a task to the target agent via HTTP.
 
 **Input:** `task.submit` event payload:
-`{task_id, workflow_id, phase, target_agent, action, input, timeout, trace_id, correlation_id, priority}`
+`{task_id, workflow_id, phase, target_agent, action, input, timeout, correlation_id, priority}`
 
 **Processing:**
 
@@ -691,7 +693,7 @@ triggers:
 4. Publish: task.accepted (scope: requester)
 5. Dispatch via POST target_agent.url + /v1/execute:
    Build TaskRequest with action, payload, context
-   Headers: Authorization: Bearer <token>, X-Trace-Id: <trace_id>
+   Headers: Authorization: Bearer <token>, traceparent (protocol/types TraceContext)
    Timeout: task timeout
 6. Handle response per state machine transitions
 7. Update in-flight tracking, dispatch next queued if capacity freed
@@ -747,7 +749,7 @@ Phase 2 — Capacity Check
 Phase 3 — HTTP Dispatch
   Action:    POST target_agent.url + /v1/execute
   Payload:   TaskRequest {id, action, payload, context}
-  Headers:   Authorization, X-Trace-Id, X-Correlation-Id
+  Headers:   Authorization, traceparent, X-Correlation-Id
   Timeout:   From submit payload or config.default_timeout
   TaskRecord state: queued → dispatched
 
@@ -1102,7 +1104,7 @@ tests:
     validates:
       - "TaskRecord created with status: dispatched"
       - "TaskRecord updated to status: completed"
-      - trace_id propagated in HTTP headers
+      - trace carried as traceparent and context.trace_id/span_id
 
   - name: Priority queue ordering
     trigger: 3 task.submit events (low, critical, high) while agent at capacity
@@ -1254,8 +1256,9 @@ scaling:
 - **Capacity defaults**: When an agent manifest doesn't declare
   `max_concurrent`, defaults apply: domain controller = 10,
   work agent = 5, infrastructure agent = 20.
-- **Trace propagation**: `trace_id` and `correlation_id` from the
-  submit event are propagated as HTTP headers to target agents.
+- **Trace propagation**: the submit event's trace reaches the target
+  agent as [`protocol/spec`](../protocol/spec.md#trace-propagation) says,
+  and its `correlation_id` as `X-Correlation-Id`.
 - **Dead-letter**: Tasks that fail after retry exhaustion are persisted
   with status = failed. No automatic resubmission — the workflow agent
   decides whether to retry at the workflow level.
@@ -1280,7 +1283,7 @@ scaling:
 - [ ] Agent capacity updated from system.agent.registered events
 - [ ] Agent deregistration fails all in-flight and queued tasks for that agent
 - [ ] Task records persisted to flat-file storage
-- [ ] trace_id and correlation_id propagated to dispatched tasks
+- [ ] Dispatched tasks carry the trace as `protocol/spec`'s Trace Propagation says, and the correlation_id
 - [ ] Dependencies declare version ranges and specific bindings
 - [ ] on_change rules defined for all dependencies
 - [ ] State machine transitions validated — no implicit states

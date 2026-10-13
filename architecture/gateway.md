@@ -44,7 +44,7 @@ separate listener with a separate threat profile — see
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -127,6 +127,16 @@ requires:
       patterns:
         - behavior: rate-enforcement
           parameters: [per_ip, per_session, endpoint_limits]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/observability
+    version: ">=2.0.0 <3.0.0"
+    bindings:
+      behaviors:
+        # The gateway starts the trace of every request it mediates
+        - name: trace-propagation
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -608,7 +618,7 @@ injects a clean set:
 | `X-Gateway-Roles` | Comma-separated roles | User's authorization roles |
 | `X-Gateway-Groups` | Comma-separated groups | User's group memberships |
 | `X-Gateway-Sensitivity` | Route sensitivity level | Tells agent what data masking to apply |
-| `X-Trace-Id` | Trace ID | Distributed tracing correlation |
+| `traceparent` | [`TraceContext`](../protocol/types.md#tracecontext) | The trace this request belongs to, and the gateway's span for it ([`protocol/spec`](../protocol/spec.md#trace-propagation)) |
 | `Authorization` | `Bearer <token>` | Internal WLT token for agent auth |
 | `X-Request-Id` | Request UUID | Unique request identifier |
 
@@ -959,8 +969,9 @@ security:
   If present, they MUST be stripped before forwarding. Only the admin
   gateway may inject operator context headers.
 - The gateway emits structured logs and traces following the
-  observability blueprint, with additional fields for the external
-  request context (client IP, user agent, geolocation if available).
+  observability blueprint, with the external request context (client IP,
+  user agent, geolocation if available) in a `LogEntry`'s `details` and as
+  span attributes.
 
 ---
 
@@ -1098,8 +1109,8 @@ not say which one produced it.
   `X-Weblisk-Target: /api/v1/ai/chat`. It is the gateway's own header and is
   NOT stripped by response sanitization, which removes `X-Gateway-*` and
   `X-Agent-*`.
-- Every request log entry and span MUST record `route`, `target` and
-  `component`, so a trace answers "which version served this" without
+- Every request log entry MUST record `route` and `target` in `details`, and
+  every span as attributes, beside its `component`, so a trace answers "which version served this" without
   inference.
 - The gateway MUST emit the application API versions the map currently
   targets as the gauge `gateway_route_target`, labelled `route` and `target`
@@ -1140,7 +1151,7 @@ place — and it does not put two versions in service at once.
 - [ ] Session token is validated on every request: ML-DSA-65 signature, expiry, client binding, and server-side state lookup
 - [ ] CSRF validation via X-CSRF-Token header is enforced on all state-changing requests (POST, PUT, DELETE)
 - [ ] ABAC policy engine evaluates subject, resource, and context attributes with deny-by-default resolution
-- [ ] Request mediation injects X-Gateway-Session, X-Gateway-User, X-Gateway-Roles, X-Trace-Id, and Authorization headers
+- [ ] Request mediation injects X-Gateway-Session, X-Gateway-User, X-Gateway-Roles, traceparent, and Authorization headers
 - [ ] Response sanitization strips X-Gateway-*, X-Agent-*, Server, and X-Powered-By headers before reaching the browser
 - [ ] Security headers set on every response: X-Content-Type-Options: nosniff, X-Frame-Options: DENY, CSP, Referrer-Policy, COOP
 - [ ] Requests to /v1/admin/* return 404 (platform admin routes are never served by the application gateway)

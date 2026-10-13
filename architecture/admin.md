@@ -77,7 +77,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.14.4 <2.0.0"
+    version: ">=1.14.4 <3.0.0"
     bindings:
       types:
         - name: WLToken
@@ -394,7 +394,7 @@ which does not ask the identity.
 6. No factor is re-checked here: two were required where the credential was
    attested and where its key was opened to mint this token
    ([Where the second factor is](#where-the-second-factor-is))
-7. Request forwarded to the provider of the route, with an `X-Trace-Id`
+7. Request forwarded to the provider of the route, with a `traceparent`
    header: to the orchestrator on the operator token as it arrived, and to any
    other provider on a pass the orchestrator exchanged that token for,
    addressed to that provider alone and carrying only the capabilities the
@@ -594,7 +594,7 @@ Critical rules:
    │   and nothing is forwarded
    ├── POST /v1/admin/model/audit, the orchestrator's route for its model
    │   gateway alone → 404 NOT_FOUND, and nothing is forwarded or exchanged
-   ├── Internal header: X-Trace-Id
+   ├── Internal header: traceparent
    └── Response returned to operator browser
 
 8. DESTRUCTIVE ACTION CONFIRMATION (for critical writes)

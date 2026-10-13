@@ -57,7 +57,7 @@ production deployments.
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -419,9 +419,10 @@ channel-based semaphore and `WaitGroup` dispatch patterns.
 
 ### Logging
 
-- Structured JSON logging to stdout
-- Include `component`, `trace_id`, and `timestamp` in all log entries
-- Use `log/slog`, or `fmt.Fprintf(os.Stderr, ...)` for minimal logging
+- One `LogEntry` per line on standard output, in the envelope
+  [`patterns/logging`](../patterns/logging.md) defines
+- Use `log/slog` with a JSON handler on `os.Stdout` whose `ReplaceAttr` writes
+  `LogEntry`'s keys: `time` as `ts`, `level` in lower case
 
 ### The HTTP Surface
 

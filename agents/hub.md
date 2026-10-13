@@ -117,7 +117,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -144,7 +144,7 @@ requires:
         - name: ErrorResponse
           fields_used: [error, code]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
+          fields_used: [from, to, action, payload, trace_id, span_id]
         - name: LeaseRenewal
           fields_used: [ready, checks]
     on_change:
@@ -271,7 +271,7 @@ requires:
 
 extends:
   - pattern: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -1719,7 +1719,7 @@ Step 7 — Initialize Subsystems
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9770, listings: N, providers: M,
+  Log: process.ready {port: 9770, listings: N, providers: M,
        fingerprints: F, active_rules: R, active_mutes: U}
 ```
 
@@ -1747,7 +1747,7 @@ Step 6 — Close Storage
   Action:      Close database connection
 
 Step 7 — Exit
-  Log: lifecycle.stopped {uptime_seconds, crawls_drained, probes_drained,
+  Log: process.stopped {uptime_seconds, crawls_drained, probes_drained,
        verifications_drained, alerts_persisted}
   agent_state → retired
 ```
@@ -1797,7 +1797,7 @@ Step 1 — Validate new blueprint, verify version is newer
 Step 2 — Compare Types block against current storage schema
 Step 3 — Pause all subsystem processing → run migration → resume
 Step 4 — Reload configuration, revocation list, rules, mutes, caches
-Log: lifecycle.version_updated {from, to}
+Log: process.version_updated {from, to}
 ```
 
 ---

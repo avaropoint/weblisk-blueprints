@@ -961,6 +961,8 @@ and event envelopes:
     "declared_by": "content-analyzer",
     "declared_at": 1712160001
   },
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "00f067aa0ba902b7",
   "payload": { }
 }
 ```

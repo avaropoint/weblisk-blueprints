@@ -112,7 +112,7 @@ requires:
         - name: AgentManifest
           fields_used: [name, type, capabilities, publishes, subscriptions]
         - name: AgentMessage
-          fields_used: [from, to, action, payload, signature, trace_id]
+          fields_used: [from, to, action, payload, signature, trace_id, span_id]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

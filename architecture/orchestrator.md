@@ -2,7 +2,7 @@
 type: architecture
 name: orchestrator
 version: 3.0.0
-requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope]
+requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
 -->
@@ -59,7 +59,7 @@ this replaces.
 declaration:
   requires:
     - blueprint: protocol/identity
-      version: ">=1.14.4 <2.0.0"
+      version: ">=1.14.4 <3.0.0"
       bindings:
         types:
           - name: SigningKeyPair
@@ -163,6 +163,16 @@ declaration:
             fields_used: [backend, model, ceiling, agreement, not_after, address]
           - name: DestinationRefusal
             fields_used: [destination, ceiling, items]
+      on_change:
+        compatible: validate-and-adopt
+        breaking: version-bump
+        removed: halt-immediately
+    - blueprint: patterns/logging
+      version: ">=2.0.0 <3.0.0"
+      bindings:
+        behaviors:
+          - name: structured-logging
+          - name: redaction-at-emission
       on_change:
         compatible: validate-and-adopt
         breaking: version-bump
@@ -1710,10 +1720,9 @@ Every operation creates an AuditEntry:
 | `model_set` | The tenant's model configuration about to be changed, before and after |
 | `model_complete` | A completion: what it will ask, before anything else, and what ran, when it ends |
 
-Log to stderr in real-time AND persist to append-only flat-file
-storage (JSONL).
-
-Format: `[audit] HH:MM:SS actor → target: detail [status]`
+Each entry is persisted to append-only flat-file storage (JSONL), which is the
+record, and echoed to standard output as one log line whose `log_type` is
+`audit` ([`patterns/logging`](../patterns/logging.md)).
 
 ---
 
@@ -2168,7 +2177,7 @@ agents hold, which is theirs.
 - [ ] A change of an entry's `lease_state` is followed by a `ServiceDirectory` broadcast
 - [ ] system.agent.registered published after every registration except a re-registration with an unchanged manifest over a current lease, which publishes nothing
 - [ ] system.agent.deregistered event published after deregistration
-- [ ] Every operation creates an `AuditEntry` logged to stderr and persisted to JSONL
+- [ ] Every operation creates an `AuditEntry`, persisted to JSONL and echoed to stdout as an `audit` log line
 - [ ] The orchestrator keeps no domain status of its own: a domain's readiness is its lease
 - [ ] Orchestrator does NOT handle tasks, strategies, context, observations, or approvals
 - [ ] Administrative endpoints are gated on the capability each declares — an `admin:` capability, `llm:chat` or `model:attest` — carried in the caller's token, not on a separate role model

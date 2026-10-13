@@ -78,7 +78,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.14.4 <2.0.0"
+    version: ">=1.14.4 <3.0.0"
     bindings:
       types:
         # Read only to recognise a person's operator token and refuse it on
@@ -156,7 +156,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -750,7 +750,7 @@ Step 7 — Load Active Incidents
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9760, runbooks_loaded: N, active_incidents: N}
+  Log: process.ready {port: 9760, runbooks_loaded: N, active_incidents: N}
 ```
 
 ### Shutdown Sequence
@@ -775,7 +775,7 @@ Step 5 — Deregister
   Action:      DELETE /v1/register
 
 Step 6 — Exit
-  Log: lifecycle.stopped {uptime_seconds, active_incidents_preserved}
+  Log: process.stopped {uptime_seconds, active_incidents_preserved}
   agent_state → retired
 ```
 
@@ -813,7 +813,7 @@ When `system.blueprint.changed` is received where `blueprint_name = "incident-re
 2. Reload runbook definitions from new blueprint
 3. Validate all active incidents against new state machine
 4. Apply new configuration values
-5. Log: lifecycle.version_updated {from, to}
+5. Log: process.version_updated {from, to}
 ```
 
 ---

@@ -72,7 +72,7 @@ requires:
         - name: WorkflowResult
           fields_used: [workflow_name, invoker, status, phase_results, observations, recommendations]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
+          fields_used: [from, to, action, payload, trace_id, span_id]
     on_change:
       compatible: validate
       breaking: version-bump
@@ -94,7 +94,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -107,7 +107,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/workflow
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: dag-resolution
@@ -424,8 +424,9 @@ Else:
       task_id, workflow_id, phase: phase.name,
       target_agent: phase.agent, action: phase.action,
       input: resolved_input, timeout: phase.timeout,
-      trace_id, correlation_id
+      correlation_id
     }
+    (the event envelope carries the trace: protocol/spec#trace-propagation)
   Track: in_flight[workflow_id][phase.name] = task_id
 ```
 
@@ -653,7 +654,7 @@ Step 7 — Initialize Definition Cache
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9780, in_flight_recovered: N}
+  Log: process.ready {port: 9780, in_flight_recovered: N}
 ```
 
 ### Shutdown Sequence
@@ -683,7 +684,7 @@ Step 6 — Deregister
   Action:      DELETE /v1/register
 
 Step 7 — Exit
-  Log: lifecycle.stopped {uptime_seconds, workflows_drained, workflows_failed}
+  Log: process.stopped {uptime_seconds, workflows_drained, workflows_failed}
   agent_state → retired
 ```
 
@@ -724,7 +725,7 @@ When `system.blueprint.changed` is received where `blueprint_name = "workflow"`:
 2. Validate in-flight executions against updated types
 3. Clear definition cache (will re-fetch from domains)
 4. Apply new configuration values
-5. Log: lifecycle.version_updated {from, to}
+5. Log: process.version_updated {from, to}
 ```
 
 ---
@@ -1428,7 +1429,7 @@ scaling:
 - [ ] callback_topic receives result if specified
 - [ ] WorkflowExecution persisted to flat-file storage
 - [ ] Workflow-level timeout cancels all in-flight phases
-- [ ] trace_id and correlation_id propagated through all events
+- [ ] Every event carries its trace as `protocol/spec`'s Trace Propagation says, and the correlation_id
 - [ ] Dependencies declare version ranges and specific bindings
 - [ ] on_change rules defined for all dependencies
 - [ ] State machine transitions validated — no implicit states

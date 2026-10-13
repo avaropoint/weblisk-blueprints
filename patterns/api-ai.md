@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: api-ai
-version: 2.4.3
+version: 3.0.0
 requires: [protocol/types, patterns/scope, architecture/agent, architecture/gateway, architecture/orchestrator]
 platform: any
 tier: free
@@ -272,8 +272,7 @@ the provider's own choice.
   "temperature": 0.7,
   "max_tokens": 2048,
   "tools": [],
-  "stream": false,
-  "trace_id": "a1b2c3..."
+  "stream": false
 }
 ```
 
@@ -293,8 +292,7 @@ the provider's own choice.
     "completion_tokens": 156,
     "total_tokens": 198
   },
-  "latency_ms": 1200,
-  "trace_id": "a1b2c3..."
+  "latency_ms": 1200
 }
 ```
 
@@ -505,10 +503,6 @@ types:
         type: bool
         required: false
         description: "Stream response tokens (default: false)"
-      trace_id:
-        type: string
-        required: false
-        description: "Correlation ID for tracing"
 ```
 
 ### Message
@@ -565,10 +559,6 @@ types:
         type: int
         required: true
         description: "End-to-end latency"
-      trace_id:
-        type: string
-        required: false
-        description: "Correlation ID"
 ```
 
 ### ExtractRequest
@@ -880,8 +870,10 @@ than the one first chosen, the response's `provider` says so.
   Agents MUST NOT silently fall back to a non-streaming response when
   `stream: true` is explicitly requested — the caller may depend on
   SSE framing for incremental rendering.
-- **Token tracking**: Usage data MUST be tracked per-agent (using
-  `trace_id` to attribute to the calling agent) for cost attribution.
+- **Token tracking**: Usage data MUST be tracked per calling agent for
+  cost attribution. The request's trace travels as
+  [`protocol/spec`](../protocol/spec.md#trace-propagation) says, never in
+  the body.
 - **Schema validation**: The `/ai/extract` endpoint MUST validate
   extracted JSON against the provided schema before returning. Invalid
   extractions trigger one retry with an error-correction prompt.
@@ -917,7 +909,7 @@ than the one first chosen, the response's `provider` says so.
 - [ ] A provider key that no current agreement lists, whether or not the tenant's model configuration names it, gets the ceiling `internal` from `GET /v1/model/ceiling?backend=<key>`, and a `confidential` request to it is refused with `SCOPE_CEILING_EXCEEDED`
 - [ ] A request whose `scope` is `confidential` goes only to a provider and a model a current agreement lists both of at `confidential`, through resolution, a failover and a request-level `provider` and `model` override alike
 - [ ] A request-level override naming a provider a current agreement lists at `confidential` and a model that agreement does not list is gated at `internal`, the ceiling `GET /v1/model/ceiling?backend=<key>&model=<model>` answers, so a `confidential` request is refused with `SCOPE_CEILING_EXCEEDED` and sent nowhere else
-- [ ] Token usage is tracked per request with `trace_id` attribution
+- [ ] Token usage is tracked per calling agent
 - [ ] Streaming responses use SSE format
 - [ ] Streaming request to a non-streaming model returns 406 Not Acceptable
 - [ ] Request body is capped at 1 MB

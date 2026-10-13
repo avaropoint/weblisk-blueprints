@@ -61,7 +61,7 @@ requires:
         - name: AgentManifest
           fields_used: [name, version, port, capabilities, public_key, url]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
+          fields_used: [from, to, action, payload, trace_id, span_id]
         - name: LeaseRenewal
           fields_used: [ready, checks]
     on_change:
@@ -717,7 +717,7 @@ Step 8 — Start Queue Processor
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9754, provider, queue_pending}
+  Log: process.ready {port: 9754, provider, queue_pending}
 ```
 
 ### Shutdown Sequence
@@ -750,7 +750,7 @@ Step 6 — Close Storage
   Validates:   Connection closed
 
 Step 7 — Exit
-  Log: lifecycle.stopped {uptime_seconds, emails_sent, emails_pending}
+  Log: process.stopped {uptime_seconds, emails_sent, emails_pending}
   agent_state → retired
 ```
 
@@ -790,7 +790,7 @@ Step 1 — Validate new blueprint, verify version is newer
 Step 2 — Compare Types block against current storage schema
 Step 3 — Execute migration if needed (pause queue, migrate, resume)
 Step 4 — Reload configuration (provider, rate limits, etc.)
-Final:  Log lifecycle.version_updated {from, to}
+Final:  Log process.version_updated {from, to}
 ```
 
 ---

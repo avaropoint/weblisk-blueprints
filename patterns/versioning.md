@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: versioning
-version: 1.0.2
+version: 2.0.0
 requires: [protocol/types, architecture/agent]
 platform: any
 tier: free
@@ -329,7 +329,7 @@ How a running agent transitions to a new blueprint version:
 5. Reload agent configuration from new blueprint
 6. Agent exits "transitioning" state → returns to "active"
 7. Emit event: system.blueprint.updated
-8. Log: lifecycle.version_updated with {from, to, duration_ms}
+8. Log: process.version_updated with {from, to, duration_ms}
 ```
 
 ### Zero-downtime transition is not blue/green
@@ -421,7 +421,7 @@ the rollback_steps in reverse order:
 2. Execute rollback_step 2 (reverse of step 2)
 3. Execute rollback_step 1 (reverse of step 1)
 4. Agent reverts to previous blueprint version
-5. Log: lifecycle.version_rollback with {from, to, reason}
+5. Log: process.version_rollback with {from, to, reason}
 6. Emit alert: high severity
 ```
 

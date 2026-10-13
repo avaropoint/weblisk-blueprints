@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: health-monitor
-version: 1.1.0
+version: 2.0.0
 port: 9755
 requires: [protocol/spec, protocol/types, architecture/agent, agents/alerting]
 extends: [patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/security, patterns/governance]
@@ -71,7 +71,7 @@ requires:
         - name: AgentManifest
           fields_used: [name, version, port, capabilities, public_key, url]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
+          fields_used: [from, to, action, payload, trace_id, span_id]
         - name: TaskRequest
           fields_used: [id, from, target_agent, payload, context]
         - name: TaskResult
@@ -487,7 +487,7 @@ Step 8 — Start Health Sweep Timer
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9755, components_monitored: N}
+  Log: process.ready {port: 9755, components_monitored: N}
 ```
 
 ### Shutdown Sequence
@@ -517,7 +517,7 @@ Step 6 — Close Storage
   Action:      Close database connection
 
 Step 7 — Exit
-  Log: lifecycle.stopped {uptime_seconds, sweeps_completed, alerts_fired}
+  Log: process.stopped {uptime_seconds, sweeps_completed, alerts_fired}
   agent_state → retired
 ```
 
@@ -557,7 +557,7 @@ Step 1 — Validate new blueprint
 Step 2 — Check migration requirements
 Step 3 — Execute migration (pause sweeps, migrate, resume)
 Step 4 — Reload configuration (thresholds, intervals)
-Final:  Log lifecycle.version_updated {from, to}
+Final:  Log process.version_updated {from, to}
 ```
 
 ---

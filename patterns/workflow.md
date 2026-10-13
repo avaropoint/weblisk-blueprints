@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: workflow
-version: 1.1.0
+version: 2.0.0
 requires: [protocol/types, patterns/storage, patterns/state-machine, patterns/messaging, patterns/observability, patterns/expression]
 platform: any
 tier: free
@@ -75,7 +75,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: EventEnvelope
@@ -447,9 +447,10 @@ for each phase in current level (concurrent):
            target_agent: phase.agent,
            action: phase.action,
            input: resolved_input,
-           timeout: phase.timeout,
-           trace_id: execution.trace_id
+           timeout: phase.timeout
          }
+         (the event envelope carries the trace:
+          protocol/spec#trace-propagation)
 
   d. Workflow Agent waits for corresponding task.complete or
      task.failed event (matched by workflow_id + phase name)
@@ -830,8 +831,9 @@ from patterns/observability):
 - Workflow executions MUST be persisted to durable storage (flat-file
   JSONL+ZSTD by default). If the Workflow Agent crashes mid-execution,
   the record shows which phases completed and enables recovery.
-- The trace_id from the trigger event MUST be propagated to all
-  task.submit events and downstream calls for distributed tracing.
+- The trigger event's trace is carried to every task.submit event and
+  downstream call as [`protocol/spec`](../protocol/spec.md#trace-propagation)
+  says.
 - The Workflow Agent SHOULD cache workflow definitions fetched from
   domains. Cache invalidation occurs on `system.agent.registered`
   events for the source domain.

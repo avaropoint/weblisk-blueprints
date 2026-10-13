@@ -443,24 +443,30 @@ ErrorResponse format:
 
 ## Observability
 
-The development server emits structured log entries for all requests:
+The development server writes every request as one log line in the envelope
+[`patterns/logging`](logging.md) defines:
 
 ```json
 {
-  "ts": 1713264000,
+  "ts": "2024-04-16T10:40:00.000Z",
   "level": "info",
+  "log_type": "dev-server.request.served",
+  "msg": "GET /index.html 200",
   "component": "dev-server",
-  "msg": "request",
-  "method": "GET",
-  "path": "/index.html",
-  "status": 200,
-  "duration_ms": 3
+  "component_type": "cli",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "00f067aa0ba902b7",
+  "duration_ms": 3,
+  "details": {"method": "GET", "path": "/index.html", "status_code": 200}
 }
 ```
 
-Security-relevant events (dotfile access attempts, path traversal
-attempts) are logged at `warn` level with the standard security
-event format from `patterns/security`.
+It starts a trace for each request it serves. Its custom log types:
+
+| Log Type | Level | When | Required Details |
+|----------|-------|------|-----------------|
+| `dev-server.request.served` | info | A request was answered | `{method, path, status_code}` |
+| `dev-server.request.refused` | warn | A dotfile access or path traversal attempt was refused | `{method, path, reason}` |
 
 ---
 
@@ -506,6 +512,6 @@ Implementation MUST:
 - [ ] Listen on localhost only by default (not `0.0.0.0`)
 - [ ] Set `Cache-Control: no-cache` on all responses
 - [ ] Log all requests with structured JSON logging
-- [ ] Log security events (dotfile, traversal) at warn level
+- [ ] Log a refused dotfile or traversal request as `dev-server.request.refused` at warn level
 - [ ] Use native language/framework HTTP server (no cross-platform shims)
 - [ ] Work without any external tooling (no Docker, no platform CLI)

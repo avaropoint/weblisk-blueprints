@@ -41,7 +41,7 @@ touching the execution engine.
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -105,7 +105,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -118,7 +118,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/workflow
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: workflow-declaration
