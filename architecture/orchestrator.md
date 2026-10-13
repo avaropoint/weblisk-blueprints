@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.27.9
+version: 2.28.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
 platform: any
 tier: free
@@ -131,7 +131,7 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/admin
-      version: ">=2.35.0 <3.0.0"
+      version: ">=3.0.0 <4.0.0"
       bindings:
         behaviors:
           - name: operator-registration
@@ -774,7 +774,7 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 | Method | Path | Operation | Capability | Purpose |
 |--------|------|-----------|-----------|---------|
 | POST | /v1/admin/operators/register | OperatorRegister | — | Register an operator, with no token. The first presents the bootstrap secret this orchestrator emitted and is admitted as admin; every later one is recorded pending until an operator whose request can use `admin:*` approves it (`OperatorApprove`). Returns a token ONLY when registration also approved — see [`architecture/admin`](admin.md#the-registration-response) |
-| POST | /v1/admin/operators/token | OperatorToken | — | Issue an attestation token to a caller who signs `{hub_id, name, timestamp}`, naming this hub, with the private key matching this orchestrator's record. Unauthenticated by token, because it is what issues them. Deprecated as a way to an operator token — see [`architecture/admin`](admin.md#the-identity-signs-only-to-attest) |
+| POST | /v1/admin/operators/token | OperatorToken | — | Issue an attestation token to a caller who signs `{hub_id, jti, name, timestamp}`, naming this hub, with the private key matching this orchestrator's record, refusing a `jti` already recorded for that operator with `TOKEN_REQUEST_REPLAYED`. Unauthenticated by token, because it is what issues them. Deprecated as a way to an operator token — see [`architecture/admin`](admin.md#the-identity-signs-only-to-attest) |
 | POST | /v1/admin/credentials/challenge | CredentialChallenge | — | Issue a single-use nonce for a credential |
 | POST | /v1/admin/credentials/token | CredentialToken | — | Issue an operator token to a credential that signed the nonce. The ordinary way to an operator token |
 | POST | /v1/admin/hub/proof | HubProof | — | Sign, with the key `hub_id` names, that this hub is reached at one of its admin addresses. Unauthenticated by token, because a client asks it before it holds anything here. Answered `501` `HUB_PROOF_UNAVAILABLE` until `weblisk/hub-proof/v1` has test vectors — see [`architecture/admin`](admin.md#proving-the-hub-at-an-address) |
@@ -2067,6 +2067,7 @@ agents hold, which is theirs.
 ## Verification Checklist
 - [ ] `POST /v1/admin/operators/token` issues a token to an approved operator whose signature verifies against the stored public key — an attestation token, per `architecture/admin`
 - [ ] `POST /v1/admin/operators/token` requires no bearer token — it is the endpoint that issues them
+- [ ] `POST /v1/admin/operators/token` refuses a request with no `jti` with `INVALID_REQUEST`, and one whose `jti` it has recorded for that operator with `TOKEN_REQUEST_REPLAYED`, as `architecture/admin`'s `attestation-token-issuance` states
 - [ ] An operator token carries the role and capabilities from the orchestrator's own record, never from the request
 - [ ] `POST /v1/admin/credentials/challenge` and `POST /v1/admin/credentials/token` require no bearer token, and every other operator route refuses a token whose operator or credential is no longer live
 - [ ] The credential routes are served with the Operation names declared above: `CredentialChallenge`, `CredentialToken`, `CredentialAttest`, `CredentialList` and `CredentialRevoke`
