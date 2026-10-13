@@ -36,7 +36,7 @@ engine.
 
 **The domain-controller class is for a tenant's own business domains.** Entity
 context and scoring are a domain's own. Its workflows are definitions execution
-runs, held in the tenant's content, and dispatch is execution's. Whether the
+runs, fetched from the domain with `get_workflow`, and dispatch is execution's. Whether the
 agents it needs are present is registration today, below; the same
 architecture moves presence to leases the orchestrator holds, which
 [`orchestrator`](orchestrator.md) does not yet specify.
@@ -55,7 +55,7 @@ it changes when the runner does.
 operation or workflow can express names a domain service it needs built, and
 brings the domain's blueprint with it
 ([`schemas/programme`](../schemas/programme.md#domain_services--a-domain-service-the-programme-asks-to-have-built)).
-Adopting the programme only requests it. The domain is built through
+Adopting the programme only requests it. The domain is to be built through
 `weblisk domain create`, a model-written build, and admitted by a person like
 any other component; once built it is a domain controller exactly as this
 document describes, owned by nobody but itself.
@@ -392,8 +392,7 @@ This allows agents and domains to start in any order.
 Every domain defines one or more workflows — multi-step, multi-agent
 processes that accomplish a business function. Workflows are defined in
 the domain's blueprint file (in `domains/`), not in the runtime manifest
-(which only lists workflow names). Built into a tenant, the definitions are
-held in the tenant's content, where execution reads them.
+(which only lists workflow names).
 
 ### Workflow Structure
 
