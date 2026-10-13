@@ -41,8 +41,10 @@ agents it needs are present is registration today, below; the same
 architecture moves presence to leases the orchestrator holds, which
 [`orchestrator`](orchestrator.md) does not yet specify.
 
-**Execution replaces the Workflow and Task agents.** The tenant's approved
-service architecture merges cron, task and workflow into one execution service,
+**Execution replaces the Workflow and Task agents.** The tenant service
+architecture the owner approved on 2026-10-05 — recorded in Weblisk Studio's
+`TENANT_RUNTIME_MAP.md`; no document in this corpus states it yet — merges cron,
+task and workflow into one execution service,
 which runs every declared definition on a pass minted for the definition's
 owner. Execution's blueprint is not yet written. Until it is,
 [`agents/workflow.md`](../agents/workflow.md) and
@@ -56,8 +58,8 @@ operation or workflow can express names a domain service it needs built, and
 brings the domain's blueprint with it
 ([`schemas/programme`](../schemas/programme.md#domain_services--a-domain-service-the-programme-asks-to-have-built)).
 Adopting the programme only requests it. The domain is to be built through
-`weblisk domain create`, a model-written build, and admitted by a person like
-any other component; once built it is a domain controller exactly as this
+`weblisk domain create`, a model-written build, and registers like any other
+component; once built it is a domain controller exactly as this
 document describes, owned by nobody but itself.
 
 ---

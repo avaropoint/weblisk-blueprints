@@ -163,9 +163,14 @@ table is what the judgement is made against.
 
 | class | edits |
 |---|---|
-| **MAJOR** | `id` changed · a tier removed or renamed · **any change to which artifacts a tier contains**, including moving one between tiers · an artifact dropped from the map · an `operations` entry removed or its `does` changed · a `workflows` entry removed, or a step added, removed or reordered, or a step's `task`, `approval`, `does` or `needs` changed · a `notices` entry removed or its `to` changed · a `skills` entry removed · a `domain_services` entry removed or its `blueprint` changed |
-| **MINOR** | a new tier **above** the current top · an artifact placed at an existing tier · a new operation · a new workflow, notice or skill · a new `domain_services` entry · a new `domains` or `conforms_to` entry |
+| **MAJOR** | `id` changed · a tier removed or renamed · **any change to which artifacts a tier contains**, including moving one between tiers · an artifact dropped from the map · an `operations` entry removed or its `does` changed · a `workflows` entry removed, or a step added, removed or reordered, or a step's `task`, `approval`, `does` or `needs` changed · a workflow's `schedule`, `on`, `when`, `for` or `start` changed · a step's `escalate` changed · a `notices` entry removed or its `on` or `to` changed · a `skills` entry removed · a `domain_services` entry removed or its `blueprint` changed |
+| **MINOR** | a new tier **above** the current top · an artifact placed at an existing tier · a new operation · a new workflow, notice or skill · a skill's `for` changed · a new `domain_services` entry · a new `domains` or `conforms_to` entry |
 | **PATCH** | `title` · `rationale` · the overview body · `order` · a `why` · a notice's `says` · the bytes of a skill file the map brings |
+
+**A domain service's blueprint is versioned on its own.** It is a `type: domain`
+blueprint and carries its own `version:`, so a change to its bytes is classified
+by that blueprint's bump under [`common.md`](common.md#versioning), not by the
+map; only pointing the map at another blueprint is the map's MAJOR.
 
 **Any change to a tier's membership is MAJOR**, in both directions, and that is
 the one rule here worth arguing with. A tier is a **threshold**: readiness is
@@ -272,13 +277,15 @@ extends:
     version: ">=1.0.0 <2.0.0"
     resolved:
       map.md:
-        digest:   sha256:…
-        version:  1.2.0
-        revision: 4883cfa88c55769560f8287d4a2fb4c94c5a6c98
+        digest:     sha256:…
+        version:    1.2.0
+        revision:   4883cfa88c55769560f8287d4a2fb4c94c5a6c98
+        repository: 0192f7c4-…
       specs/rec.policy.md:
-        digest:   sha256:…
-        version:  unversioned
-        revision: 4883cfa88c55769560f8287d4a2fb4c94c5a6c98
+        digest:     sha256:…
+        version:    unversioned
+        revision:   4883cfa88c55769560f8287d4a2fb4c94c5a6c98
+        repository: 0192f7c4-…
     on_change:
       compatible: validate-and-adopt
       breaking:   version-bump
@@ -626,7 +633,7 @@ incident investigation do not escalate to the same person.
 | field | type | required | means |
 |---|---|---|---|
 | `template` | string | **yes** | the `id` of a form under this programme's `templates/` — the blank the card starts from |
-| `path` | string | **yes** | where each card is created. `{key}` is replaced by the subject's or the trigger row's key, and `{date}` by the day the card is created, `YYYY-MM-DD`. Nothing else is substituted |
+| `path` | string | **yes** | where each card is created. `{key}` is replaced by the subject's or the trigger row's key **as a slug** — lower-cased, with every character other than `a-z`, `0-9`, `-` and `_` turned into `-` and leading and trailing `-` trimmed — and `{date}` by the day the card is created, `YYYY-MM-DD`. Nothing else is substituted. Two keys that differ only in what the slug folds land at one path, and the second card answers with the first |
 
 Some work is discharged by filling in a **document**, not a cell: a field-level
 hazard assessment carries a list of hazards, a signature per crew member and
@@ -1453,10 +1460,13 @@ itself; a latched condition cannot, because the count only goes up.
 **`across` is not a way to see more than the operation's own scope.** An
 operation only ever observes events at or below where its programme is
 installed. `across` says how the events it can *already* see are bucketed —
-`org` pools every project together, `project` counts each one separately. An
-operation installed at a project that asks to count across its org is **refused
-at install**, naming the level, because the alternative is one project's events
-in an org-shaped bucket reporting a pattern it looked at a fraction of.
+`org` pools every project together, `project` counts each one separately. A
+programme is installed at an organisation ([Adopting a
+programme](#one-act-by-a-person-at-the-organisation)), so an operation sees its
+organisation's events and those of every project under it, and `across: tenant`
+asks for more than that: it is **refused at install**, naming the level, because
+the alternative is one organisation's events in a tenant-shaped bucket reporting
+a pattern it looked at a fraction of.
 
 **A condition that cannot be evaluated says so.** `distinct:` naming a field no
 event carries counts zero forever, and zero renders identically to "nothing
@@ -1509,11 +1519,11 @@ block, not chosen per entry:
 | `workflows` | the programme service | execution holds the definition's runs, waits and timers | install each definition, paused unless it says otherwise |
 | `notices` | the programme service | notification delivers, by position, each person their own way | install each |
 | `agent:`, in an operation or a workflow step | the programme service records it | the prompt worker runs it through the model service, under the step's ceiling | nothing more: it is an instruction, never a component |
-| `domain_services` | the domain controller, once built | the orchestrator admits it; execution runs its workflows | nothing: adoption reports each as requested, and a person starts its build |
+| `domain_services` | the domain controller, once built | it registers with the orchestrator like any other component; execution runs its workflows | nothing: adoption reports each as requested, and a person starts its build |
 
-These are the tenant services of the approved service architecture. **None of
-the programme service, execution or notification is specified in this corpus
-yet**, and a tenant today runs none of them, so adopting can create documents
+These are the tenant services of the tenant service architecture the owner approved on 2026-10-05, recorded in Weblisk Studio's `TENANT_RUNTIME_MAP.md`; no document in this corpus states it yet. **None of the programme service,
+execution, notification, the model service, the prompt worker or the admin
+gateway's decision inbox is specified in this corpus yet**, and a tenant today runs none of them, so adopting can create documents
 and nothing else. An adoption reports every block it could not hand to its
 owner, by name, with the service that is missing — never a smaller programme
 presented as a whole one.
@@ -1589,9 +1599,12 @@ step opening is told to its position by the step, so no notice is declared for
 it, and a notice declared for one would tell the same person twice.
 
 **A workflow decides nothing a person must.** An `agent:` or `does:` step may
-prepare, check or propose. A decision — approving, signing, closing — is an
-`approval` or `task` step, and no capability lets a machine step take one: the
-same three things no `needs` grants on an operation hold on every step.
+prepare, check or propose. Approving and closing are decisions, and a decision
+is an `approval` or `task` step a person completes: no `does:` action and no
+`needs` capability lets a machine step approve, reject or close anything.
+Separately, the three things no `needs` grants on an operation — attesting or
+signing, changing its own authority, and silent egress — are granted on no
+step either.
 
 #### What starts a run
 
@@ -1704,8 +1717,8 @@ would overrule every person it reached.
 
 | field | type | required | means |
 |---|---|---|---|
-| `id` | string | **yes** | unique within the programme |
-| `file` | string | **yes** | the skill's file, under this programme's `skills/` directory |
+| `id` | string | **yes** | unique within the programme. Never `map` |
+| `file` | string | **yes** | the skill's file, under this programme's `skills/` directory, and never named `map.md` |
 | `for` | string[] | no | the positions it is written for. Absent means it is read by this programme's `agent:` work |
 | `why` | string | no | what it is for |
 
@@ -1732,8 +1745,8 @@ measured on.
 
 | field | type | required | means |
 |---|---|---|---|
-| `id` | string | **yes** | the domain controller's `name` — [`domain.md`](domain.md)'s rule, `[a-z][a-z0-9-]*` |
-| `blueprint` | string | **yes** | its `type: domain` blueprint, under this programme's `domains/` directory |
+| `id` | string | **yes** | the domain controller's `name` — [`domain.md`](domain.md)'s rule, `[a-z][a-z0-9-]*`. Never `map` |
+| `blueprint` | string | **yes** | its `type: domain` blueprint, at exactly `domains/<id>.md` in this programme |
 | `why` | string | **yes** | what business logic the programme needs that operations and workflows cannot express |
 
 `domains:` names the subject areas a programme operates in. A programme may
@@ -1748,7 +1761,7 @@ takes, **for the owner to confirm**. Adoption delivers the blueprint with the
 programme and reports each domain service as *requested, not built*. A build is
 a person's act, to be made through the CLI (`weblisk domain create`) on the
 tenant's change cycle: it is model-written, at a build's cost, and the
-component it produces is admitted by a person like any other. Adopting a
+component it produces registers like any other component. Adopting a
 programme never starts a build, and un-adopting one never removes a component.
 `weblisk domain create` cannot yet be pointed at a blueprint a programme
 delivered ([Known gaps](#known-gaps)).
@@ -1770,8 +1783,8 @@ notice declares that instead.
 | an `approval` with no `approvers`, or an `approval_order` other than `sequential` | — |
 | `needs:` on a step that is not `agent:`, or a capability outside the closed set | — |
 | a notice with no `on`, `to` or `says` | — |
-| a skill whose `file` is not under `skills/` or does not exist, or which names an artifact id or a register path | — |
-| a domain service whose `id` breaks the name rule, whose `blueprint` is not under `domains/` or does not exist, or with no `why` | a domain service whose `depends_on` names an agent neither the corpus's `agents/` publishes nor the tenant runs |
+| a skill whose `id` is `map`, whose `file` is not under `skills/`, is named `map.md` or does not exist, or which names an artifact id or a register path | — |
+| a domain service whose `id` breaks the name rule or is `map`, whose `blueprint` is not `domains/<id>.md` or does not exist, or with no `why` | a domain service whose `depends_on` names an agent neither the corpus's `agents/` publishes nor the tenant runs |
 | — | a domain service whose `port` is taken by another agent or domain the tenant runs, or by another domain service the same adoption requests — [`domain.md`](domain.md) requires a port unique across all agents and domains |
 | an `agents:` block | — |
 
@@ -1809,8 +1822,16 @@ exactly what was taken.
 
 Every file the map resolves to — the map, every spec it places and every spec
 those require, every form a spec names, every skill file, every domain service
-blueprint — is written into the organisation's programme repository at the
-path it has in the template, **its bytes unchanged**. Nothing is added on the
+blueprint — is written into the organisation's programme repository under
+**`programmes/<id>/`**, `<id>` being the template's id, at the path it has in
+the template, **its bytes unchanged**.
+
+**A file already at a path is never overwritten.** Adoption writes only where
+nothing is. A file already there whose bytes are the template's is reported
+*already there*; one whose bytes differ is reported *edited*, left exactly as
+it is, and recorded in `resolved` with the template's digest, so it reads
+`edited` from the first moment. Overwriting it would destroy somebody's work
+in the name of setting things up. Nothing is added on the
 way in, because the digest of the tenant's copy is how anyone answers *"has
 this changed?"* with `sha256sum` and no parser. Records about a person go to
 the records repository instead
@@ -1834,31 +1855,17 @@ programme: records-management
 tier: conformant
 source: weblisk-blueprints
 extends:
-  - blueprint: programmes/records-management
-    version: ">=1.0.0 <2.0.0"
-    resolved:
-      map.md:
-        digest:   sha256:…
-        version:  1.2.0
-        revision: 4883cfa88c55769560f8287d4a2fb4c94c5a6c98
-      specs/rec.policy.md:
-        digest:   sha256:…
-        version:  unversioned
-        revision: 4883cfa88c55769560f8287d4a2fb4c94c5a6c98
-    on_change:
-      compatible: validate-and-adopt
-      breaking:   version-bump
-      removed:    halt-immediately
+  - …                      # the pin, exactly as in "What a tenant pins against"
 ---
 ```
 
 | field | required | means |
 |---|---|---|
 | `kind` | **yes** | `reference` |
-| `programme` | **yes** | the template map's `id` as adopted |
+| `programme` | **yes** | the template map's `id`, **unchanged**. An adoption cannot rename a programme: there is no field or option that adopts one under an id of the tenant's choosing |
 | `tier` | no | the tier the organisation is working to. Absent means none was chosen, and readiness is reported for every tier |
 | `source` | **yes** | where the template was read from — a locator, never an identity. Nothing joins on it |
-| `extends` | **yes** | one entry: the [pin](#what-a-tenant-pins-against). `version` is the range, or `unversioned` for a template that declared none. `resolved` holds an entry for **every** file written, keyed by its path in the template |
+| `extends` | **yes** | one entry: the [pin](#what-a-tenant-pins-against), whose example is the one this record carries. `version` is the range, or `unversioned` for a template that declared none. `resolved` holds an entry for **every** file written, keyed by its path in the template |
 
 Each `resolved` entry:
 
@@ -1867,6 +1874,7 @@ Each `resolved` entry:
 | `digest` | **yes** | `sha256:` and the hex digest of the bytes written |
 | `version` | **yes** | the file's own `version:` when it was taken, or `unversioned` when it declared none. Never a number the file did not state |
 | `revision` | **yes** | the source's commit the file was read at, as its full 40- or 64-character object name, or `none` where the source has no commit |
+| `repository` | **yes** | the `id` of the content repository the file was written into ([`ContentRepository`](../architecture/content.md#types)) — the programme's repository, or the records repository for what [holds `pii`](#where-a-record-holding-pii-lives). The id, never a name or an address, because both move |
 
 **Per file, because files move separately.** A digest alone says *that* a
 template file moved, never how: classifying an update needs the version the
@@ -1885,18 +1893,27 @@ file never touches it.
 
 ### Adopting twice creates nothing
 
-**The key is the organisation and the programme's `id`** — and every earlier
-id the programme's map records, once maps record them. An adoption is looked
-up by that key before anything is written.
+**The key is the organisation and the programme's `id`** — the template's id,
+which the adoption record carries unchanged. Before anything is written, every
+`adoption.md` in the organisation's repositories is read, and an adoption whose
+`programme` is the same id, or an id the template's map lists under `formerly`,
+is the same programme.
 
 - **Asked again under the same id,** it writes nothing and hands nothing to any
   owner. It answers *already adopted*, reporting each file as already there and
   each operation, workflow and notice as already installed. Repeating the act
   is safe because it does nothing.
-- **Asked under a second name** — another id, another directory, another
-  repository at the same organisation — it is **refused**, naming the
-  adoption that exists. Two adoptions of one template in one organisation are
-  two copies drifting apart, each measured as the programme.
+- **Asked into another directory or another repository** at the same
+  organisation, it is **refused**, naming the adoption that exists. Two
+  adoptions of one template in one organisation are two copies drifting apart,
+  each measured as the programme.
+- **Asked under another id** is recognised **only through `formerly`**: a
+  template published under a new id, whose map lists the old one, is the same
+  programme and is refused or answered as above. Two templates with no
+  `formerly` between them are two programmes as far as any tool can tell, and
+  this schema claims no more. Once maps record `formerly`, nothing else is
+  needed; until then, a renamed template is not recognised. `formerly` is not
+  yet a field of this schema ([Known gaps](#known-gaps)).
 
 ### The tenant's copy is the tenant's
 
@@ -1989,6 +2006,11 @@ name and resolves the spec itself
 nothing says it looks in a programme's `domains/` in the tenant's content. So a
 domain service a programme requests cannot yet be built from the blueprint the
 programme delivered; the verb needs a way to be given one.
+
+**`formerly` is not declared here yet.** [Adopting twice](#adopting-twice-creates-nothing)
+recognises a renamed template only through the earlier ids its map lists, and
+no map field lists them in this schema. Until one does, an adoption under an id
+a template used to have is not recognised as the same programme.
 
 **Nothing performs an adoption yet.** [Adopting a programme](#adopting-a-programme)
 states the act, the record, the refusals and the update rule. No tool writes
@@ -2116,8 +2138,8 @@ files; these are acts of the tenant and the client that installs into it.
 - [ ] The client writing a person's next change to a document created from a spec or a form adds `scope:` and `scope_metadata:` from the spec or form where the document lacks them, never on open, and never below the entry's recorded scope
 - [ ] An install that copies a programme from a repository outside a tenant says with its answer that where the copy came from is not recorded in the tenant, because no field of `architecture/content` records it ([Repositories Outside a Tenant](../architecture/content.md#repositories-outside-a-tenant))
 - [ ] An adoption is made by a person, at an organisation; one asked for at a project is refused, naming the organisation
-- [ ] Every file an adoption writes keeps the template's bytes and path, and `adoption.md` is written after them in the same sitting, with `kind: reference`, `programme`, `source` and one `extends` entry whose `resolved` holds, for every file written, its `digest`, its own `version` or `unversioned`, and the full `revision` it was read at
-- [ ] A second adoption of the same programme at the same organisation writes nothing and answers *already adopted*; one under another id, directory or repository is refused, naming the adoption that exists
+- [ ] Every file an adoption writes goes under `programmes/<id>/` with the template's bytes and path, nothing already at a path is overwritten — a file there is reported *already there* or *edited* — and `adoption.md` is written after them in the same sitting, with `kind: reference`, `programme` (the template's id, unchanged), `source` and one `extends` entry whose `resolved` holds, for every file written, its `digest`, its own `version` or `unversioned`, the full `revision` it was read at, and the `repository` it went to
+- [ ] A second adoption of the same programme at the same organisation writes nothing and answers *already adopted*; one into another directory or repository is refused, naming the adoption that exists; one under another id is recognised only through `formerly`
 - [ ] Every block of the package is handed to its owning service, or reported by name with the service that is missing — never dropped
 - [ ] An update is offered as a content proposal and applied by a person; none is taken over an `edited` or `diverged` file without a person merging it; an unreachable template reports `unknown`, and no state is stored
 - [ ] Un-adopting removes `adoption.md` and withdraws the operations, workflows and notices installed under it, and removes no document, record or built domain service

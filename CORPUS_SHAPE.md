@@ -89,7 +89,7 @@ Obligations and registers, yes — including a register's column schema — and,
 since step 6a, the rest of the package: workflows with their tasks and
 approvals, notices, skills, the domain services a programme asks to have built,
 and a card per occurrence through `creates`. What is still missing is anything
-that **reads** those declarations or **receives** them: no loader places them,
+that **reads** those declarations or **receives** them: no programme loader places them,
 and no tenant runs the services that own them. That is the gap between what
 exists and the sentence at the top of this section, and it is the substance of
 the work rather than a detail of the move.
@@ -423,17 +423,13 @@ furniture so that this one is possible.
 
 **6a — the declarations. DONE.** [`schemas/programme.md`](schemas/programme.md)
 declares the package on the map — `workflows`, `notices`, `skills` and
-`domain_services` — each owned by a named tenant service, takes `creates` onto
-the obligation, and states what adopting a programme is: one act by a person at
-an organisation, pinned to the template's version and every file's digest,
-refused the second time, updated only by proposals a person applies, and undone
-by an act of its own. Agents stay `agent:` instructions run by the tenant's
-prompt worker under a ceiling; a programme never asks for a component to be
-generated. A domain service is the exception that is built, and only on a
-person's act.
+`domain_services` — takes `creates` onto the obligation, and states what
+adopting a programme is. The rules are that schema's, and are not restated
+here.
 
-**6b — reading and receiving them. NOT DONE.** No loader reads the four new
-blocks or `creates`, no shipped map declares one, and none of the programme
+**6b — reading and receiving them. NOT DONE.** No programme loader reads the
+four new blocks or `creates` (Studio's obligation engine reads `creates` from a
+document, not from a programme), no shipped map declares one, and none of the programme
 service, execution or notification that would receive them is specified here
 yet.
 
