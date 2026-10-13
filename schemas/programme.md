@@ -66,6 +66,12 @@ entirely. The segment above them names the **programme**, so provenance survives
 the merge — "which programme claimed this" is the first question asked of a
 programme somebody did not write.
 
+Two more directories travel with a programme without being programme files:
+`skills/`, holding the [skill files](#skills--files-the-programme-brings) its map
+names, and `domains/`, holding the blueprint of each
+[domain service](#domain_services--a-domain-service-the-programme-asks-to-have-built)
+it asks for. The loader ignores both; adoption delivers them.
+
 A root that *is* a single programme loads too, with its `map.md` and `specs/` at
 the top. One rule covers both shapes, so nobody has to learn a nesting depth.
 
@@ -157,9 +163,9 @@ table is what the judgement is made against.
 
 | class | edits |
 |---|---|
-| **MAJOR** | `id` changed · a tier removed or renamed · **any change to which artifacts a tier contains**, including moving one between tiers · an artifact dropped from the map · an `operations` entry removed or its `does` changed |
-| **MINOR** | a new tier **above** the current top · an artifact placed at an existing tier · a new operation · a new `domains` or `conforms_to` entry |
-| **PATCH** | `title` · `rationale` · the overview body · `order` |
+| **MAJOR** | `id` changed · a tier removed or renamed · **any change to which artifacts a tier contains**, including moving one between tiers · an artifact dropped from the map · an `operations` entry removed or its `does` changed · a `workflows` entry removed, or a step added, removed or reordered, or a step's `task`, `approval`, `does` or `needs` changed · a `notices` entry removed or its `to` changed · a `skills` entry removed · a `domain_services` entry removed or its `blueprint` changed |
+| **MINOR** | a new tier **above** the current top · an artifact placed at an existing tier · a new operation · a new workflow, notice or skill · a new `domain_services` entry · a new `domains` or `conforms_to` entry |
+| **PATCH** | `title` · `rationale` · the overview body · `order` · a `why` · a notice's `says` · the bytes of a skill file the map brings |
 
 **Any change to a tier's membership is MAJOR**, in both directions, and that is
 the one rule here worth arguing with. A tier is a **threshold**: readiness is
@@ -273,10 +279,13 @@ extends:
       removed:    halt-immediately
 ```
 
-The **range is the permission** — a compatible improvement flows in under
-`on_change.compatible`. The **hash is the record** — it says exactly what was
-taken, so *"did it move?"* is answerable without trusting that anyone bumped
-anything.
+The **range is the permission** — a compatible improvement is offered under
+`on_change.compatible`, and a person takes it
+([Updates arrive as proposals](#updates-arrive-as-proposals)). The **hash is the
+record** — it says exactly what was taken, so *"did it move?"* is answerable
+without trusting that anyone bumped anything. Where this block is kept, and
+what else the act of adopting records and refuses, is
+[Adopting a programme](#adopting-a-programme)'s.
 
 A range is the default rather than an exact pin because a governance programme
 is pinned against a body of law that moves. An organisation that froze
@@ -328,10 +337,15 @@ One file per programme: `map.md`, at the programme's own root.
 | `id` | string | **yes** | stable identifier. What everything else cites, and what an override replaces |
 | `version` | string | no | `MAJOR.MINOR.PATCH` — the author's compatibility claim, and what a tenant's adoption pins a range against. Absent means **unversioned**, never `1.0.0`; present and unparseable is refused. See [Versioning](#versioning) |
 | `title` | string | no | display name. Defaults to `id` |
-| `domains` | string[] | no | the policy domains this programme operates in — the same catalogue the classifier uses, so a programme is measurable through machinery that already exists. Each one is defined in [`../policy-domains/`](../policy-domains/README.md), which also states **what claiming it requires**; a claim on a domain nothing declares is reported, and so is a claim nothing answers |
+| `domains` | string[] | no | the policy domains this programme operates in — the same catalogue the classifier uses, so a programme is measurable through machinery that already exists. Each one is defined in [`../policy-domains/`](../policy-domains/README.md), which also states **what claiming it requires**; a claim on a domain nothing declares is reported, and so is a claim nothing answers. A subject area only: a domain **service** the programme asks to have built is [`domain_services`](#domain_services--a-domain-service-the-programme-asks-to-have-built) |
 | `conforms_to` | string[] | no | the standard `id`s this programme is built to answer. **Context, not a constraint**: a programme with no framework at all is valid |
 | `tiers` | array | no | the progression, below |
 | `artifacts` | array | no | `{id, tier}` placements, below |
+| `operations` | array | no | the standing machine work adopting it takes on — [below](#operations--the-standing-work-a-programme-installs) |
+| `workflows` | array | no | multi-step work with waits and approvals — [below](#workflows--multi-step-work-with-waits-and-approvals) |
+| `notices` | array | no | who is told what, by position — [below](#notices--who-is-told-what) |
+| `skills` | array | no | skill files the programme brings — [below](#skills--files-the-programme-brings) |
+| `domain_services` | array | no | domain controllers the programme asks to have built — [below](#domain_services--a-domain-service-the-programme-asks-to-have-built) |
 | `order` | int | no | display position in the catalogue. A catalogue that reorders itself between runs of the same binary is one nobody can document |
 | *body* | prose | no | the `overview` — what this programme is and why it is drawn this way |
 
@@ -490,6 +504,7 @@ generating the document and starting the programme loop are one act.
 | `satisfies` | string[] | no | the controls this activity answers, as `framework:control` |
 | `for` | mapping | conditional | a **record-origin** trigger, below. Mutually exclusive with `cadence` |
 | `escalate` | mapping | no | `{after, to}` — what happens when an occurrence stays overdue |
+| `creates` | mapping | no | `{template, path}` — the document each occurrence is discharged by filling in, below |
 
 **An obligation with no `records:` is a statement that something must happen and
 no way to tell whether it did.** That is worth saying — an unverifiable
@@ -599,6 +614,44 @@ positions are deliberately flat — a construction firm's and a hospital's have 
 common shape — so "the position above" is not a question the platform can
 answer. It is also where the judgement belongs: a late inspection and a late
 incident investigation do not escalate to the same person.
+
+### `creates` — a document per occurrence, not a row
+
+| field | type | required | means |
+|---|---|---|---|
+| `template` | string | **yes** | the `id` of a form under this programme's `templates/` — the blank the card starts from |
+| `path` | string | **yes** | where each card is created. `{key}` is replaced by the subject's or the trigger row's key, and `{date}` by the day the card is created, `YYYY-MM-DD`. Nothing else is substituted |
+
+Some work is discharged by filling in a **document**, not a cell: a field-level
+hazard assessment carries a list of hazards, a signature per crew member and
+photographs, and none of that fits a row. `creates` names the form each
+occurrence is filled in on and where the filled-in card is kept. The obligation
+still names `records:`, and the register keeps one row per completed card.
+
+**Taken, and the form the engine already reads.** Studio's obligation engine
+reads `creates: {template, path}` from a document's frontmatter today; this is
+that shape, with no second spelling. It was once left out of this schema
+because a pack that declared it had it silently dropped by the programme
+loader. A field the schema declares and a reader drops is the same fault, so a
+reader that does not yet place `creates` **refuses the spec**, naming the
+field, rather than loading it without the card
+([Known gaps](#known-gaps)).
+
+**Creating a card does not discharge the occurrence.** An occurrence is
+recorded when its row is in `records:`, and the row is written when the card is
+completed, never when the blank is created. A blank card counted as done would
+report a day's work as finished at the moment somebody pressed the button.
+
+**A card is never overwritten.** A card already at the resolved path is
+somebody's filled-in record, and creating one again answers with the card that
+is there.
+
+Refused at load, and the file is named: a `creates` with no `template` or no
+`path`; a `template` that names no form in the programme's `templates/`; a
+`path` that is absolute or leaves the repository; a `path` with no `{key}` on
+an obligation that has `per:` or `for:`, or with no `{date}` on one that has a
+`cadence`, because every subject's or every period's card would then be
+created at one path, and only the first could exist.
 
 ---
 
@@ -1185,6 +1238,7 @@ never people.** People change jobs and the duty does not.
 | an artifact placed at an undeclared tier | an artifact placed below something it requires *(reported against the map)* |
 | a `register:` schema on an artifact whose `kind` is not `register`, or with no `path` | — |
 | an `artifact_scope` or a column `scope` that is not a `ScopeLevel`, or `custom_labels` with no level declared beside them | — |
+| a `creates` with no `template` or `path`, a `template` naming no form in the programme, or a `path` missing the `{key}` or `{date}` its obligation needs | — |
 
 The right-hand column is the one to read twice. Those mistakes produce a file
 that loads, renders and reviews cleanly, and are discovered when somebody asks
@@ -1430,32 +1484,379 @@ file would make a programme unreadable rather than partly installable.
 
 ---
 
+## The package — what a programme brings besides its documents
+
+Adopting a programme creates more than documents: the standing work, the
+multi-step work, who is told what, the skills its people and its agent work
+read, and any domain service it needs built. **The map is the package
+manifest.** Nothing else lists the pieces, because a second list would
+disagree with the map the first time either changed.
+
+**Every block names the tenant service that owns it**, so that adoption knows
+where to send it and nothing is held by a client. The owner is fixed by the
+block, not chosen per entry:
+
+| block | owned by | run or held by | what adoption asks of the owner |
+|---|---|---|---|
+| specs, forms, `skills` | content | content | write each file into the adopting scope's repository ([Adopting a programme](#adopting-a-programme)) |
+| `operations` | the programme service | execution fires the clock and the events | install each, paused unless it says otherwise |
+| `workflows` | the programme service | execution holds the definition's runs, waits and timers | install each definition, paused unless it says otherwise |
+| `notices` | the programme service | notification delivers, by position, each person their own way | install each |
+| `agent:`, in an operation or a workflow step | the programme service records it | the prompt worker runs it through the model service, under the step's ceiling | nothing more: it is an instruction, never a component |
+| `domain_services` | the domain controller, once built | the orchestrator admits it; execution runs its workflows | nothing: adoption reports each as requested, and a person starts its build |
+
+These are the tenant services of the approved service architecture. **None of
+the programme service, execution or notification is specified in this corpus
+yet**, and a tenant today runs none of them, so adopting can create documents
+and nothing else. An adoption reports every block it could not hand to its
+owner, by name, with the service that is missing — never a smaller programme
+presented as a whole one.
+
+**What reads these blocks today.** Studio's programme loader reads
+`operations`; it reads none of `workflows`, `notices`, `skills` or
+`domain_services`, and the YAML decoder discards a key it cannot place. A map
+carrying one loads, and the block is dropped. So whatever adopts a programme
+MUST read the map's keys itself and report every block it does not act on, by
+name, as not installed.
+
+### Agents are instructions, never components
+
+A programme gets machine help one way: an **`agent:` instruction**, in the
+author's own words, on an [operation](#operations--the-standing-work-a-programme-installs)
+or a [workflow step](#workflows--multi-step-work-with-waits-and-approvals),
+under a `needs:` ceiling. The tenant's shared prompt worker runs it. A model is
+a worker and never an owner, so an agent keeps no state of its own: what it
+produces is written through an owner's API, as a proposal where the owner
+requires one.
+
+**There is no `agents:` block, and no programme names a component to be
+generated or registered.** Expertise is data and authority is code: a
+programme supplies the expertise as instructions and skills, and the authority
+an agent runs with is the intersection of its ceiling, the worker's own
+declaration and the identity underneath. A component a programme could ask
+for would be authority a programme granted itself.
+
+### `workflows` — multi-step work with waits and approvals
+
+An obligation says a thing must happen, on a clock or per record. A workflow
+says **how a piece of work moves**: a submission is reviewed, then approved,
+then filed; an incident is triaged, investigated, and its corrective action
+verified. Each step waits for the one before it, and some wait for a person.
+
+| field | type | required | means |
+|---|---|---|---|
+| `id` | string | **yes** | stable and local to the programme. An installed definition is matched back to it, so installing twice does not create it twice |
+| `title` | string | no | what a person reads. Defaults to `id` |
+| `schedule` · `on` · `when` | — | conditional | what starts a run — the same three fields, vocabularies and allow-lists as an [operation](#operations--the-standing-work-a-programme-installs). At least one |
+| `steps` | array | **yes** | at least one, below |
+| `why` | string | no | prose for whoever finds a run waiting and wants to know who asked for it |
+| `start` | enum | no | `paused` (default) or `running`, as on an operation and for the same reason |
+
+Each step:
+
+| field | type | required | means |
+|---|---|---|---|
+| `id` | string | **yes** | unique within the workflow. What a run records each step's outcome against |
+| `title` | string | no | defaults to `id` |
+| `task` | mapping | conditional | a person's work: `{activity, responsible, due}`. `responsible` is a **position**; `due` is `<n><h\|d\|w>` from the moment the step opens |
+| `approval` | mapping | conditional | a decision: `{approvers, approval_order}` — **positions**, and `sequential` or omitted, as on a register |
+| `does` | string | conditional | a deterministic action the platform runs, from the same list an operation's `does:` names |
+| `agent` | string | conditional | an instruction for a model. Takes `needs:`, on the closed set and default an operation's has |
+| `needs` | string[] | no | the agent's ceiling. Only beside `agent:` |
+| `after` | string[] | no | the steps this one waits for. **Absent means the step listed before it**; the first step waits for nothing |
+| `escalate` | mapping | no | `{after, to}`, on an obligation's closed form, for a `task` or `approval` step left open |
+
+Exactly one of `task`, `approval`, `does` and `agent` on each step.
+
+**A step that waits for a person announces itself.** A `task` or `approval`
+step opening is told to its position by the step, so no notice is declared for
+it, and a notice declared for one would tell the same person twice.
+
+**A workflow decides nothing a person must.** An `agent:` or `does:` step may
+prepare, check or propose. A decision — approving, signing, closing — is an
+`approval` or `task` step, and no capability lets a machine step take one: the
+same three things no `needs` grants on an operation hold on every step.
+
+### `notices` — who is told what
+
+| field | type | required | means |
+|---|---|---|---|
+| `id` | string | **yes** | stable and local to the programme |
+| `on` | string[] | **yes** | the events it tells about — the [`on:` allow-list](#on--reacting-to-a-fact-instead-of-to-the-clock) an operation uses, and nothing outside it |
+| `to` | string[] | **yes** | the **positions** told. Never a person, and never a channel |
+| `says` | string | **yes** | what the notice says, in the author's words. The notification service words the message from it |
+| `why` | string | no | prose for whoever receives it and wonders why |
+
+**Told once, when it advances.** A notice is sent when the fact it is about
+first becomes true — an obligation turning overdue, an escalation — and not
+again while it merely stays true. A notice repeated on every sweep is the
+notice people learn to filter.
+
+**How a person is told is theirs.** Email, chat, a digest or nothing outside
+working hours is each person's preference, held by the notification service. A
+programme names who and what, never how: a programme that chose the channel
+would overrule every person it reached.
+
+### `skills` — files the programme brings
+
+| field | type | required | means |
+|---|---|---|---|
+| `id` | string | **yes** | unique within the programme |
+| `file` | string | **yes** | the skill's file, under this programme's `skills/` directory |
+| `for` | string[] | no | the positions it is written for. Absent means it is read by this programme's `agent:` work |
+| `why` | string | no | what it is for |
+
+A skill is **a file and nothing more**: no identity, no store, no schedule. It
+is delivered with the programme into content and read from there, by a person
+holding a position it names or by the prompt worker running this programme's
+agent work.
+
+**Not the corpus's [`skills/`](../skills/README.md).** Those are builders'
+skills, installed by a CLI verb and embedded in the CLI. A programme's skills
+are for the people doing the work and for the agent work that helps them.
+
+**Not a role brief.** What a position does under a programme is derived on read
+from every programme the organisation adopted, and is never a file
+([`../CORPUS_SHAPE.md`](../CORPUS_SHAPE.md), step 7). A skill is guidance a
+derivation cannot reach, and is refused, as a position guide is, if it names an
+artifact id or a register path — the two shapes that drift.
+
+A skill file carries no `version:` of its own. A change to it is a PATCH on the
+map that brings it, because a skill is guidance and changes nothing a tenant is
+measured on.
+
+### `domain_services` — a domain service the programme asks to have built
+
+| field | type | required | means |
+|---|---|---|---|
+| `id` | string | **yes** | the domain controller's `name` — [`domain.md`](domain.md)'s rule, `[a-z][a-z0-9-]*` |
+| `blueprint` | string | **yes** | its `type: domain` blueprint, under this programme's `domains/` directory |
+| `why` | string | **yes** | what business logic the programme needs that operations and workflows cannot express |
+
+`domains:` names the subject areas a programme operates in. A programme may
+also need **business logic of its own** — entity context, scoring, rules over
+its records — that no operation or workflow expresses. It asks for that as a
+domain service: a domain controller
+([`architecture/domain`](../architecture/domain.md)) built for the tenant from
+a blueprint the programme brings.
+
+**Asking is not building.** Adoption delivers the blueprint with the programme
+and reports each domain service as *requested, not built*. A build is a
+person's act through the CLI (`weblisk domain create`), on the tenant's change
+cycle: it is model-written, at a build's cost, and the component it produces is
+admitted by a person like any other. Adopting a programme never starts a build,
+and un-adopting one never removes a component.
+
+`why` is required because a domain service is the most expensive thing a
+programme can ask for. A programme whose need is a sweep, a chain of steps or a
+notice declares that instead.
+
+### The package's refusals
+
+| refused at load — the file is skipped and reported | reported at adoption, naming the entry |
+|---|---|
+| a workflow, notice, skill or domain service with no `id`, or two of one block sharing one | a workflow step's `does:` this build does not have |
+| a workflow with no `steps`, or with none of `schedule`, `on` and `when` | an `on:` or `when.event` outside the allow-list |
+| a step with none, or more than one, of `task`, `approval`, `does` and `agent` | a block whose owning service the tenant does not run |
+| a step `after` a step the workflow does not declare, or steps in a cycle | a domain service whose blueprint fails [`domain.md`](domain.md) |
+| a `task` with no `activity` or `responsible`, or a `due` outside `<n><h\|d\|w>` | — |
+| an `approval` with no `approvers`, or an `approval_order` other than `sequential` | — |
+| `needs:` on a step that is not `agent:`, or a capability outside the closed set | — |
+| a notice with no `on`, `to` or `says` | — |
+| a skill whose `file` is not under `skills/` or does not exist, or which names an artifact id or a register path | — |
+| a domain service whose `id` breaks the name rule, whose `blueprint` is not under `domains/` or does not exist, or with no `why` | — |
+| an `agents:` block | — |
+
+`responsible`, `approvers`, `to` and `escalate.to` name positions everywhere
+here, as they do on an obligation.
+
+---
+
+## Adopting a programme
+
+A programme is a template. An organisation **adopts** it when it is ready, and
+adopting is the act that turns the template into the organisation's own:
+documents in its repositories, standing work in its services, and a record of
+exactly what was taken.
+
+### One act, by a person, at the organisation
+
+- **Adoption is a person's act**, made through the tenant's admin gateway on
+  that person's own pass, and recorded in the tenant's change log like any
+  change. Nothing is adopted when a client starts, connects or upgrades. A
+  service or an agent may propose an adoption; it never makes one
+  ([Install is a person's act](#where-a-record-holding-pii-lives)).
+- **Adoption is made at an organisation.** A project inherits every programme
+  its organisation adopted, and is measured against it. A project does not
+  adopt: an adoption asked for at a project is refused, naming the
+  organisation, and a project that needs a programme its organisation lacks
+  asks for an organisation adoption.
+- **A project refines what it inherits** by keeping, in a repository at its own
+  scope, a map or spec with the same `id`. It replaces the organisation's for
+  that project only, in place, as any override does
+  ([The programme map](#the-programme-map)). A refinement carries no adoption
+  record and is offered no update: it is the project's own document.
+
+### What is written
+
+Every file the map resolves to — the map, every spec it places and every spec
+those require, every form a spec names, every skill file, every domain service
+blueprint — is written into the organisation's programme repository at the
+path it has in the template, **its bytes unchanged**. Nothing is added on the
+way in, because the digest of the tenant's copy is how anyone answers *"has
+this changed?"* with `sha256sum` and no parser. Records about a person go to
+the records repository instead
+([Where a record holding `pii` lives](#where-a-record-holding-pii-lives)).
+
+Each block in the [package](#the-package--what-a-programme-brings-besides-its-documents)
+is then handed to its owner. An adoption that stops part way reports every
+file and block it did not write, and is never reported as adopted.
+
+### The adoption record
+
+One file per adopted programme, **`adoption.md`**, at the programme's own root
+in the repository the programme was written into, beside its `map.md`. The
+loader ignores it ([Three file kinds](#three-file-kinds-and-where-a-file-sits-decides)),
+and it declares `kind: reference`, so it counts for nothing.
+
+```yaml
+---
+kind: reference
+programme: records-management
+tier: conformant
+source: weblisk-blueprints
+revision: 4883cfa88c55769560f8287d4a2fb4c94c5a6c98
+extends:
+  - blueprint: programmes/records-management
+    version: ">=1.0.0 <2.0.0"
+    resolved:
+      map.md:              sha256:…
+      specs/rec.policy.md: sha256:…
+    on_change:
+      compatible: validate-and-adopt
+      breaking:   version-bump
+      removed:    halt-immediately
+---
+```
+
+| field | required | means |
+|---|---|---|
+| `kind` | **yes** | `reference` |
+| `programme` | **yes** | the template map's `id` as adopted |
+| `tier` | no | the tier the organisation is working to. Absent means none was chosen, and readiness is reported for every tier |
+| `source` | **yes** | where the template was read from — a locator, never an identity. Nothing joins on it |
+| `revision` | **yes** | the source's commit the files were read at, as its full 40- or 64-character object name, or `none` where the source has no commit |
+| `extends` | **yes** | one entry: the [pin](#what-a-tenant-pins-against). `version` is the range, or `unversioned` for a template that declared none. `resolved` holds the digest of **every** file written, keyed by its path in the template |
+
+**Who and when are not fields.** The change that wrote the record records
+both, in the repository's log.
+
+**The record is written after the files, in the same sitting, by the same
+person.** It records what was taken, not what is held: an edit to an adopted
+file never touches it.
+
+### Adopting twice creates nothing
+
+**The key is the organisation and the programme's `id`** — and every earlier
+id the programme's map records, once maps record them. An adoption is looked
+up by that key before anything is written.
+
+- **Asked again under the same id,** it writes nothing and hands nothing to any
+  owner. It answers *already adopted*, reporting each file as already there and
+  each operation, workflow and notice as already installed. Repeating the act
+  is safe because it does nothing.
+- **Asked under a second name** — another id, another directory, another
+  repository at the same organisation — it is **refused**, naming the
+  adoption that exists. Two adoptions of one template in one organisation are
+  two copies drifting apart, each measured as the programme.
+
+### The tenant's copy is the tenant's
+
+An adopted file is edited **in place**, through the content service, like any
+document in the repository that holds it. Every edit is a recorded change in
+the tenant's log. Adoption gives the publisher no say over the copy.
+
+Three digests say where each file stands, and none needs a parser: the copy
+now, its `resolved` digest, and the template's file now.
+
+| the copy, against `resolved` | the template, against `resolved` | state |
+|---|---|---|
+| same | same | `current` |
+| same | moved | `behind` — an update is offered |
+| changed | same | `edited` — the tenant's own version; nothing is offered |
+| changed | moved | `diverged` — both moved |
+
+A template that cannot be reached leaves the state `unknown`, never `current`.
+The states are computed on a person's request, by whatever can read both sides,
+and never stored.
+
+### Updates arrive as proposals
+
+- **A `behind` file is offered, never taken.** The offer is a content proposal
+  into the organisation's programme repository, classified by the
+  [hash and version](#version-and-version_hash-are-not-alternatives) and shown
+  in the admin gateway's one decision inbox. `on_change.compatible:
+  validate-and-adopt` means the proposal is validated before it is offered, and
+  a person applies it. Nothing writes an update silently.
+- **A breaking change needs a new range.** It is offered only once a person has
+  widened `extends.version` to admit it.
+- **A removed template halts.** Nothing is withdrawn or deleted on the
+  publisher's account; the adoption is reported as having no template, and a
+  person decides.
+- **An update over an `edited` or `diverged` file needs a person to merge.** No
+  tool merges one. The person takes the new file, keeps theirs, or edits theirs
+  toward it, and the change that does it is in the log.
+- **Taking an update replaces that file's `resolved` digest**, with `revision`,
+  in the same sitting. A file a person kept keeps its old digest, so it goes on
+  reporting the update it has not taken.
+
+An update to a block is handed to its owner the same way, as a proposal a
+person applies.
+
+### Un-adopting
+
+**Un-adopting is also a person's act.** The person removes `adoption.md`, and
+in the same sitting the programme service withdraws the operations, workflows
+and notices installed under it: they stop, and their withdrawal is recorded.
+
+What the programme created stays. Documents and records are the
+organisation's, held under their own retention, and removing one is a separate
+act. A domain service that was built stays admitted until a person retires it.
+Adopting the same programme again later is a new adoption, which finds the
+files already there and reports an edited one as `edited`.
+
+---
+
 ## Known gaps
 
 Stated because a schema that describes only what works teaches an author to
 write something that is silently ignored.
 
-**`creates:` is not in this schema.** An obligation discharged by filling in a
-*document* rather than a register row — a card per site per day, with N hazards,
-N signatures and N photos, which do not fit a cell — is expressible in the
-engine as `creates: {template, path}`. **A pack declaring it has it silently
-dropped**: the field exists only on the engine's own obligation type, and the
-YAML decoder discards what it cannot place. Do not write it until this schema
-says otherwise.
+**[`creates`](#creates--a-document-per-occurrence-not-a-row) is declared, and
+the programme loader does not read it yet.** Studio's obligation engine reads
+the field from a document's frontmatter; its programme loader's obligation type
+has no place for it, and the YAML decoder discards what it cannot place. Until
+the loader places it, a spec declaring it loads without its card — the fault
+this schema requires a reader to refuse instead — so no shipped spec declares
+it yet.
 
 That failure mode is not hypothetical here. `for:` and `escalate:` were both
 declared by packs and absent from the loader's type for a period, so prepared
 programmes arrived with no trigger and no escalation path — an obligation with
 no clock at all, correctly reported as undeclarable three layers from the cause.
 
-**A programme can now declare its standing work, and not yet its people or its
-forms.** `operations:` closes the scheduled half of what this gap used to
-describe: sweeps, checks and event-driven passes are declarable, install with
-the programme, and carry the capability ceiling they run under. What is still
-configured by hand and still unannounced is **who holds a position**, **who is
-notified**, and **the approval campaigns** a submission travels through. The
-first of those is tenant data and belongs to the customer rather than to a
-programme; the other two are `CORPUS_SHAPE.md` step 6's remainder.
+**The package is declared, and nothing reads it or receives it yet.**
+[`workflows`, `notices`, `skills` and `domain_services`](#the-package--what-a-programme-brings-besides-its-documents)
+are declared here, each with its owning service. No loader reads them, no
+validator checks them, and no tenant runs the programme service, execution or
+notification that would receive them, so no shipped map declares one yet. **Who
+holds a position** stays configured by hand: it is tenant data, and belongs to
+the customer rather than to a programme.
+
+**Nothing performs an adoption yet.** [Adopting a programme](#adopting-a-programme)
+states the act, the record, the refusals and the update rule. No tool writes
+`adoption.md`, computes the four states or offers an update, and a tenant whose
+content service is not running cannot hold an adopted programme at all.
 
 **An operation is created paused and nothing enables it.** That is deliberate —
 see `operations` above — but it means an organisation that installs a programme
@@ -1543,7 +1944,13 @@ than naming a statute that does not exist.
 - [ ] No spec writes a top-level `scope:` to mean the document it creates; that is `artifact_scope`
 - [ ] Every register whose rows are about a person — any row of which may record an injury to them or their health, a credential they hold, a complaint by or about them, the end of their employment, or a request about their own personal information — is `restricted` and labelled `pii` on each column about the person, and on its own spec when it is a standing register
 - [ ] Every form whose document is about one person carries `scope: restricted` and `scope_metadata: {custom_labels: [pii]}` under `frontmatter:`, and no form carries a top-level `scope:` meaning the document it creates
-- [ ] No spec declares `creates:`
+- [ ] Every `creates` names a form in the programme's `templates/` and a relative `path` carrying `{key}` where its obligation has `per:` or `for:` and `{date}` where it has a `cadence` — and no shipped spec declares one until the programme loader places it
+- [ ] No map declares `agents:`; every agent is an `agent:` instruction on an operation or a workflow step, with its `needs:`
+- [ ] Every workflow has an `id`, a `schedule`, `on:` or `when:`, and at least one step; every step has an `id` and exactly one of `task`, `approval`, `does` and `agent`; every `after` names a declared step and no steps form a cycle
+- [ ] Every `task` names an `activity`, a `responsible` position and a `due` of `<n><h|d|w>`; every `approval` names positions; no machine step approves, signs or closes anything
+- [ ] Every notice names its `on` events from the allow-list, the positions it goes `to`, and what it `says` — and never a person or a channel
+- [ ] Every skill's `file` is under the programme's `skills/` and exists, and names no artifact id or register path
+- [ ] Every domain service names a `type: domain` blueprint under the programme's `domains/`, and says `why` an operation or a workflow would not do
 - [ ] Every operation declares an `id` unique within the programme, and a `does:` **or** an `agent:` — never both
 - [ ] Every operation has a `schedule`, an `on:`, or both, and every `cadence`, `weekday` and `at` is in the declared vocabulary
 - [ ] Every `does:` names an action the target installation actually runs — ask `GET /api/jobs/actions`, do not trust a list in a document
@@ -1569,3 +1976,9 @@ files; these are acts of the tenant and the client that installs into it.
 - [ ] The declaration of the repository that holds the rest of the programme carries a `scope_floor` a person chose, and every write install makes into it declares on the change the higher of the level the spec or form gives the document and the floor
 - [ ] The client writing a person's next change to a document created from a spec or a form adds `scope:` and `scope_metadata:` from the spec or form where the document lacks them, never on open, and never below the entry's recorded scope
 - [ ] An install that copies a programme from a repository outside a tenant says with its answer that where the copy came from is not recorded in the tenant, because no field of `architecture/content` records it ([Repositories Outside a Tenant](../architecture/content.md#repositories-outside-a-tenant))
+- [ ] An adoption is made by a person, at an organisation; one asked for at a project is refused, naming the organisation
+- [ ] Every file an adoption writes keeps the template's bytes and path, and `adoption.md` is written after them in the same sitting, with `kind: reference`, `programme`, `source`, `revision` and one `extends` entry whose `resolved` holds the digest of every file written
+- [ ] A second adoption of the same programme at the same organisation writes nothing and answers *already adopted*; one under another id, directory or repository is refused, naming the adoption that exists
+- [ ] Every block of the package is handed to its owning service, or reported by name with the service that is missing — never dropped
+- [ ] An update is offered as a content proposal and applied by a person; none is taken over an `edited` or `diverged` file without a person merging it; an unreachable template reports `unknown`, and no state is stored
+- [ ] Un-adopting removes `adoption.md` and withdraws the operations, workflows and notices installed under it, and removes no document, record or built domain service

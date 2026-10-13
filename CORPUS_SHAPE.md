@@ -1,6 +1,6 @@
 # The shape of the corpus
 
-> **Status: in progress. Steps 1, 2, 4, 7 and 8 are done; 3, 5 and 6 are not.**
+> **Status: in progress. Steps 1, 2, 4, 7 and 8 are done; 3, 5 and 6 are not, though 6's declarations are.**
 > Written 2026-09-18 as a proposal, and it was one until things started moving.
 > Each step below states its own state; the header no longer claims for all of
 > them. It records what each family is *for*, names three that were misfiled,
@@ -85,10 +85,14 @@ appears instead of two hundred gaps at once.
 
 ### What a programme cannot yet declare
 
-Obligations and registers, yes — including a register's column schema. But
-**nothing declares the agents, workflows, tasks or forms a programme needs.**
-That is the gap between what exists and the sentence at the top of this section,
-and it is the substance of the work rather than a detail of the move.
+Obligations and registers, yes — including a register's column schema — and,
+since step 6a, the rest of the package: workflows with their tasks and
+approvals, notices, skills, the domain services a programme asks to have built,
+and a card per occurrence through `creates`. What is still missing is anything
+that **reads** those declarations or **receives** them: no loader places them,
+and no tenant runs the services that own them. That is the gap between what
+exists and the sentence at the top of this section, and it is the substance of
+the work rather than a detail of the move.
 
 ### The pipeline is the one that already exists
 
@@ -416,6 +420,22 @@ forms, so `weblisk programme <id> init` can bootstrap an operating programme fro
 the specification, the standards it conforms to, and the tenant's knowledge. This
 is the step that makes the collection worth having; the five before it are moving
 furniture so that this one is possible.
+
+**6a — the declarations. DONE.** [`schemas/programme.md`](schemas/programme.md)
+declares the package on the map — `workflows`, `notices`, `skills` and
+`domain_services` — each owned by a named tenant service, takes `creates` onto
+the obligation, and states what adopting a programme is: one act by a person at
+an organisation, pinned to the template's version and every file's digest,
+refused the second time, updated only by proposals a person applies, and undone
+by an act of its own. Agents stay `agent:` instructions run by the tenant's
+prompt worker under a ceiling; a programme never asks for a component to be
+generated. A domain service is the exception that is built, and only on a
+person's act.
+
+**6b — reading and receiving them. NOT DONE.** No loader reads the four new
+blocks or `creates`, no shipped map declares one, and none of the programme
+service, execution or notification that would receive them is specified here
+yet.
 
 **7 — `positions/`, and the audience the corpus did not have. DONE.**
 

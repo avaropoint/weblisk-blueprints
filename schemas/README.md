@@ -69,7 +69,7 @@ This applies to:
 | [platform.md](platform.md) | Platform implementation bindings — what a runtime offers | `platforms/` directory |
 | [framework.md](framework.md) | Framework blueprints — what building *with* a framework requires | `frameworks/<name>/` directories |
 | [standard.md](standard.md) | Industry standards — ISO, SOC 2, NIST, CSA — as JSON | `standards/` directory |
-| [programme.md](programme.md) | Programmes — which artifacts a body of work requires, what each answers, and the recurring work it commits an organisation to | `programmes/` directory |
+| [programme.md](programme.md) | Programmes — which artifacts a body of work requires, what each answers, the recurring work it commits an organisation to, what else adopting it brings, and what an adoption records | `programmes/` directory |
 | [position.md](position.md) | Positions — the hand-written judgement a role brief cannot derive | `positions/` directory |
 | [policy-domain.md](policy-domain.md) | Policy domains — what a subject area covers, where it stops, and what a programme claiming it must provide | `policy-domains/` directory |
 | [kinds.md](kinds.md) | What sorts of thing the platform can talk about, what each drives, and which relations join them | Every tool that classifies, relates or scores content |
