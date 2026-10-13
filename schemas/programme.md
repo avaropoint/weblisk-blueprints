@@ -271,8 +271,14 @@ extends:
   - blueprint: programmes/records-management
     version: ">=1.0.0 <2.0.0"
     resolved:
-      map.md:              sha256:…
-      specs/rec.policy.md: sha256:…
+      map.md:
+        digest:   sha256:…
+        version:  1.2.0
+        revision: 4883cfa88c55769560f8287d4a2fb4c94c5a6c98
+      specs/rec.policy.md:
+        digest:   sha256:…
+        version:  unversioned
+        revision: 4883cfa88c55769560f8287d4a2fb4c94c5a6c98
     on_change:
       compatible: validate-and-adopt
       breaking:   version-bump
@@ -320,7 +326,7 @@ So the rule is:
 
 - A version claims compatibility **from the moment it is declared**, forward.
 - An adoption made **before** the file carried a version records
-  `version: unversioned` and its `resolved:` hashes. It is never back-filled to
+  `version: unversioned` and its `resolved:` entries. It is never back-filled to
   `1.0.0`, because that would assert the tenant agreed to a number that did not
   exist.
 - The hashes are what make those adoptions checkable at all, which is the
@@ -1529,12 +1535,21 @@ a worker and never an owner, so an agent keeps no state of its own: what it
 produces is written through an owner's API, as a proposal where the owner
 requires one.
 
-**There is no `agents:` block, and no programme names a component to be
+**There is no `agents:` block, and a programme never asks for an agent to be
 generated or registered.** Expertise is data and authority is code: a
 programme supplies the expertise as instructions and skills, and the authority
 an agent runs with is the intersection of its ceiling, the worker's own
-declaration and the identity underneath. A component a programme could ask
-for would be authority a programme granted itself.
+declaration and the identity underneath. An agent a programme could ask for
+would be authority a programme granted itself.
+
+**A domain service is not an agent request.** A domain service the programme
+asks for ([below](#domain_services--a-domain-service-the-programme-asks-to-have-built))
+is the one component a programme may ask to have built. Its blueprint names, in
+`depends_on`, the work agents it dispatches to, as [`domain.md`](domain.md)
+requires — and those must be agents that already exist: published in the
+corpus's [`agents/`](../agents/README.md) or already running in the tenant. A
+programme brings no agent blueprint for one, and a domain service depending on
+an agent nobody publishes or runs is reported rather than built.
 
 ### `workflows` — multi-step work with waits and approvals
 
@@ -1547,7 +1562,8 @@ verified. Each step waits for the one before it, and some wait for a person.
 |---|---|---|---|
 | `id` | string | **yes** | stable and local to the programme. An installed definition is matched back to it, so installing twice does not create it twice |
 | `title` | string | no | what a person reads. Defaults to `id` |
-| `schedule` · `on` · `when` | — | conditional | what starts a run — the same three fields, vocabularies and allow-lists as an [operation](#operations--the-standing-work-a-programme-installs). At least one |
+| `schedule` · `on` · `when` | — | conditional | what starts a run on a clock or a fact — the same three fields, vocabularies and allow-lists as an [operation](#operations--the-standing-work-a-programme-installs), with one event more on `on:`, [`adopted`](#adopted--one-off-work-adopting-owes). Any of them, or `for` |
+| `for` | mapping | conditional | `{records}` — **one run per row added** to the named register, [below](#for--one-run-per-record). Mutually exclusive with `schedule`, `on` and `when` |
 | `steps` | array | **yes** | at least one, below |
 | `why` | string | no | prose for whoever finds a run waiting and wants to know who asked for it |
 | `start` | enum | no | `paused` (default) or `running`, as on an operation and for the same reason |
@@ -1576,6 +1592,93 @@ it, and a notice declared for one would tell the same person twice.
 prepare, check or propose. A decision — approving, signing, closing — is an
 `approval` or `task` step, and no capability lets a machine step take one: the
 same three things no `needs` grants on an operation hold on every step.
+
+#### What starts a run
+
+The two workflows above each begin with **one record** — a submission, an
+incident — and the operation vocabulary cannot say that: `on:` refuses
+`register.row_added`, and `when:` only counts it. A programme also owes
+**one-off work** the day it is adopted — appoint the coordinator, post the
+policy, run the first inspection — and `schedule` deliberately has no `once`.
+So a workflow has two starts an operation does not.
+
+##### `adopted` — one-off work adopting owes
+
+`adopted` is an event on a workflow's `on:`, and only there. It fires **once,
+when an adoption of this programme completes** at an organisation, and is heard
+only by that programme's own workflows, carrying the programme's `id` and the
+organisation.
+
+It is safe to start work on because adoption is idempotent: a second adoption
+under the same id [writes nothing](#adopting-twice-creates-nothing), so it
+fires nothing, and taking an update is not an adoption and fires nothing
+either. Un-adopting and adopting again is a new adoption, and fires it again —
+the set-up work a returning programme owes is owed again.
+
+It is not on an operation's allow-list, because an operation is standing work
+and set-up is not; a `does:` or `agent:` step in a workflow started by
+`adopted` is how one-off machine work at adoption is declared.
+
+##### `for` — one run per record
+
+| field | type | required | means |
+|---|---|---|---|
+| `records` | string | **yes** | the register whose added rows each start a run. A path, resolved as every [path a spec gives](#where-a-record-holding-pii-lives) |
+
+Each row added to that register starts **one run, carrying the row's key and
+columns**. Rows are delivered one at a time and **never coalesced**: a burst of
+twelve incidents is twelve investigations, and coalescing them — right for an
+operation, which looks at a pile — would close eleven of them unexamined. A row
+that is edited starts nothing, for the reason it emits nothing to an operation.
+
+This is safe where `on: [register.row_added]` is not, for the two reasons that
+event is refused there. **It names the register**, so "react to incidents" is
+sayable without reacting to every row everywhere. And **a run never starts
+itself**: a row written by a step of a run of this workflow carries that run,
+and does not start a run of the same workflow. A step of an incident workflow
+that records a corrective action in another register may start that
+register's workflow, once; it may not start its own.
+
+`for` is exclusive of `schedule`, `on` and `when` because a run per record and
+a run per tick are different counts of the same work, and declaring both would
+multiply them.
+
+#### How a workflow maps onto `patterns/workflow`
+
+[`patterns/workflow`](../patterns/workflow.md) is the authoritative workflow
+declaration ([`protocol/types`](../protocol/types.md#workflows)), and
+**execution runs `patterns/workflow` declarations** — there is no second engine
+and no second format at run time. A programme's workflow is the author-facing
+form, installed by the programme service as one `WorkflowDefinition`:
+
+| a programme workflow | a `patterns/workflow` declaration |
+|---|---|
+| `id` | the workflow's name |
+| `title`, `why` | `description` |
+| `schedule`, `on`, `when`, `for` | `trigger` — the action the programme service invokes when the start fires |
+| a step | a phase |
+| step `id` | phase `name` |
+| `after` (absent: the step before) | `depends_on` (absent: none) — written out in full at install |
+| `does:` | a phase whose `agent` is the programme service and whose `action` is the named action |
+| `agent:` with `needs:` | a phase whose `agent` is the prompt worker, its `input` the instruction and the ceiling |
+| `approval` | a phase with `approval: required` |
+
+Three things a programme workflow says have **no field in `patterns/workflow`
+yet**, and are gaps in the pattern rather than licence for a second format:
+
+- **`approval.approvers` and `approval_order`.** The pattern's approval gate
+  waits for one decision event and does not say whose; the positions that must
+  decide, and their order, have nowhere to go.
+- **`task`, and its `due`.** The pattern has no phase that is a person's work:
+  every phase names an agent and an action. A task step needs a phase that waits
+  for a person and a deadline measured from when it opened, which a phase
+  `timeout` in seconds does not express.
+- **`escalate`.** The pattern fails a phase on timeout; it does not hand it to
+  another position.
+
+Until the pattern carries them, a workflow with a `task`, an `approval` naming
+positions, or an `escalate` is reported at adoption as not installable, naming
+the step — never installed with the step dropped.
 
 ### `notices` — who is told what
 
@@ -1640,12 +1743,15 @@ domain service: a domain controller
 ([`architecture/domain`](../architecture/domain.md)) built for the tenant from
 a blueprint the programme brings.
 
-**Asking is not building.** Adoption delivers the blueprint with the programme
-and reports each domain service as *requested, not built*. A build is a
-person's act through the CLI (`weblisk domain create`), on the tenant's change
-cycle: it is model-written, at a build's cost, and the component it produces is
-admitted by a person like any other. Adopting a programme never starts a build,
-and un-adopting one never removes a component.
+**Asking is not building** — the reading of the owner's decision this schema
+takes, **for the owner to confirm**. Adoption delivers the blueprint with the
+programme and reports each domain service as *requested, not built*. A build is
+a person's act, to be made through the CLI (`weblisk domain create`) on the
+tenant's change cycle: it is model-written, at a build's cost, and the
+component it produces is admitted by a person like any other. Adopting a
+programme never starts a build, and un-adopting one never removes a component.
+`weblisk domain create` cannot yet be pointed at a blueprint a programme
+delivered ([Known gaps](#known-gaps)).
 
 `why` is required because a domain service is the most expensive thing a
 programme can ask for. A programme whose need is a sweep, a chain of steps or a
@@ -1656,7 +1762,8 @@ notice declares that instead.
 | refused at load — the file is skipped and reported | reported at adoption, naming the entry |
 |---|---|
 | a workflow, notice, skill or domain service with no `id`, or two of one block sharing one | a workflow step's `does:` this build does not have |
-| a workflow with no `steps`, or with none of `schedule`, `on` and `when` | an `on:` or `when.event` outside the allow-list |
+| a workflow with no `steps`, or with none of `schedule`, `on`, `when` and `for` | an `on:` or `when.event` outside the allow-list |
+| a workflow with `for` beside `schedule`, `on` or `when`; a `for` with no `records`; `adopted` on anything but a workflow's `on:` | a workflow step `patterns/workflow` cannot yet carry — a `task`, an `approval` naming positions, an `escalate` |
 | a step with none, or more than one, of `task`, `approval`, `does` and `agent` | a block whose owning service the tenant does not run |
 | a step `after` a step the workflow does not declare, or steps in a cycle | a domain service whose blueprint fails [`domain.md`](domain.md) |
 | a `task` with no `activity` or `responsible`, or a `due` outside `<n><h\|d\|w>` | — |
@@ -1664,7 +1771,8 @@ notice declares that instead.
 | `needs:` on a step that is not `agent:`, or a capability outside the closed set | — |
 | a notice with no `on`, `to` or `says` | — |
 | a skill whose `file` is not under `skills/` or does not exist, or which names an artifact id or a register path | — |
-| a domain service whose `id` breaks the name rule, whose `blueprint` is not under `domains/` or does not exist, or with no `why` | — |
+| a domain service whose `id` breaks the name rule, whose `blueprint` is not under `domains/` or does not exist, or with no `why` | a domain service whose `depends_on` names an agent neither the corpus's `agents/` publishes nor the tenant runs |
+| — | a domain service whose `port` is taken by another agent or domain the tenant runs, or by another domain service the same adoption requests — [`domain.md`](domain.md) requires a port unique across all agents and domains |
 | an `agents:` block | — |
 
 `responsible`, `approvers`, `to` and `escalate.to` name positions everywhere
@@ -1725,13 +1833,18 @@ kind: reference
 programme: records-management
 tier: conformant
 source: weblisk-blueprints
-revision: 4883cfa88c55769560f8287d4a2fb4c94c5a6c98
 extends:
   - blueprint: programmes/records-management
     version: ">=1.0.0 <2.0.0"
     resolved:
-      map.md:              sha256:…
-      specs/rec.policy.md: sha256:…
+      map.md:
+        digest:   sha256:…
+        version:  1.2.0
+        revision: 4883cfa88c55769560f8287d4a2fb4c94c5a6c98
+      specs/rec.policy.md:
+        digest:   sha256:…
+        version:  unversioned
+        revision: 4883cfa88c55769560f8287d4a2fb4c94c5a6c98
     on_change:
       compatible: validate-and-adopt
       breaking:   version-bump
@@ -1745,8 +1858,23 @@ extends:
 | `programme` | **yes** | the template map's `id` as adopted |
 | `tier` | no | the tier the organisation is working to. Absent means none was chosen, and readiness is reported for every tier |
 | `source` | **yes** | where the template was read from — a locator, never an identity. Nothing joins on it |
-| `revision` | **yes** | the source's commit the files were read at, as its full 40- or 64-character object name, or `none` where the source has no commit |
-| `extends` | **yes** | one entry: the [pin](#what-a-tenant-pins-against). `version` is the range, or `unversioned` for a template that declared none. `resolved` holds the digest of **every** file written, keyed by its path in the template |
+| `extends` | **yes** | one entry: the [pin](#what-a-tenant-pins-against). `version` is the range, or `unversioned` for a template that declared none. `resolved` holds an entry for **every** file written, keyed by its path in the template |
+
+Each `resolved` entry:
+
+| field | required | means |
+|---|---|---|
+| `digest` | **yes** | `sha256:` and the hex digest of the bytes written |
+| `version` | **yes** | the file's own `version:` when it was taken, or `unversioned` when it declared none. Never a number the file did not state |
+| `revision` | **yes** | the source's commit the file was read at, as its full 40- or 64-character object name, or `none` where the source has no commit |
+
+**Per file, because files move separately.** A digest alone says *that* a
+template file moved, never how: classifying an update needs the version the
+file had when it was taken beside the version it has now
+([`version` and `version_hash`](#version-and-version_hash-are-not-alternatives)),
+and an update a person takes for one file and declines for another leaves the
+two at different versions and revisions. One `version` or `revision` for the
+whole adoption would be wrong for one of them the first time that happened.
 
 **Who and when are not fields.** The change that wrote the record records
 both, in the repository's log.
@@ -1777,7 +1905,9 @@ document in the repository that holds it. Every edit is a recorded change in
 the tenant's log. Adoption gives the publisher no say over the copy.
 
 Three digests say where each file stands, and none needs a parser: the copy
-now, its `resolved` digest, and the template's file now.
+now, its `resolved` entry's `digest`, and the template's file now. The entry's
+`version` beside the template file's `version:` now classifies a `behind` or
+`diverged` file's update.
 
 | the copy, against `resolved` | the template, against `resolved` | state |
 |---|---|---|
@@ -1806,9 +1936,9 @@ and never stored.
 - **An update over an `edited` or `diverged` file needs a person to merge.** No
   tool merges one. The person takes the new file, keeps theirs, or edits theirs
   toward it, and the change that does it is in the log.
-- **Taking an update replaces that file's `resolved` digest**, with `revision`,
-  in the same sitting. A file a person kept keeps its old digest, so it goes on
-  reporting the update it has not taken.
+- **Taking an update replaces that file's `resolved` entry** — `digest`,
+  `version` and `revision` — in the same sitting. A file a person kept keeps
+  its old entry, so it goes on reporting the update it has not taken.
 
 An update to a block is handed to its owner the same way, as a proposal a
 person applies.
@@ -1852,6 +1982,13 @@ validator checks them, and no tenant runs the programme service, execution or
 notification that would receive them, so no shipped map declares one yet. **Who
 holds a position** stays configured by hand: it is tenant data, and belongs to
 the customer rather than to a programme.
+
+**`weblisk domain create` takes no blueprint path.** It is given a domain's
+name and resolves the spec itself
+([`architecture/cli`](../architecture/cli.md#weblisk-domain-create)), and
+nothing says it looks in a programme's `domains/` in the tenant's content. So a
+domain service a programme requests cannot yet be built from the blueprint the
+programme delivered; the verb needs a way to be given one.
 
 **Nothing performs an adoption yet.** [Adopting a programme](#adopting-a-programme)
 states the act, the record, the refusals and the update rule. No tool writes
@@ -1951,6 +2088,8 @@ than naming a statute that does not exist.
 - [ ] Every notice names its `on` events from the allow-list, the positions it goes `to`, and what it `says` — and never a person or a channel
 - [ ] Every skill's `file` is under the programme's `skills/` and exists, and names no artifact id or register path
 - [ ] Every domain service names a `type: domain` blueprint under the programme's `domains/`, and says `why` an operation or a workflow would not do
+- [ ] Every agent a domain service's blueprint names in `depends_on` is published in the corpus's `agents/` or run by the tenant, and its `port` collides with no agent or domain the tenant runs and no other domain service the adoption requests
+- [ ] Every workflow starts on `schedule`, `on` or `when`, or on `for` alone; `adopted` appears only on a workflow's `on:`; and every step `patterns/workflow` cannot yet carry is reported at adoption rather than dropped
 - [ ] Every operation declares an `id` unique within the programme, and a `does:` **or** an `agent:` — never both
 - [ ] Every operation has a `schedule`, an `on:`, or both, and every `cadence`, `weekday` and `at` is in the declared vocabulary
 - [ ] Every `does:` names an action the target installation actually runs — ask `GET /api/jobs/actions`, do not trust a list in a document
@@ -1977,7 +2116,7 @@ files; these are acts of the tenant and the client that installs into it.
 - [ ] The client writing a person's next change to a document created from a spec or a form adds `scope:` and `scope_metadata:` from the spec or form where the document lacks them, never on open, and never below the entry's recorded scope
 - [ ] An install that copies a programme from a repository outside a tenant says with its answer that where the copy came from is not recorded in the tenant, because no field of `architecture/content` records it ([Repositories Outside a Tenant](../architecture/content.md#repositories-outside-a-tenant))
 - [ ] An adoption is made by a person, at an organisation; one asked for at a project is refused, naming the organisation
-- [ ] Every file an adoption writes keeps the template's bytes and path, and `adoption.md` is written after them in the same sitting, with `kind: reference`, `programme`, `source`, `revision` and one `extends` entry whose `resolved` holds the digest of every file written
+- [ ] Every file an adoption writes keeps the template's bytes and path, and `adoption.md` is written after them in the same sitting, with `kind: reference`, `programme`, `source` and one `extends` entry whose `resolved` holds, for every file written, its `digest`, its own `version` or `unversioned`, and the full `revision` it was read at
 - [ ] A second adoption of the same programme at the same organisation writes nothing and answers *already adopted*; one under another id, directory or repository is refused, naming the adoption that exists
 - [ ] Every block of the package is handed to its owning service, or reported by name with the service that is missing — never dropped
 - [ ] An update is offered as a content proposal and applied by a person; none is taken over an `edited` or `diverged` file without a person merging it; an unreachable template reports `unknown`, and no state is stored
