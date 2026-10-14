@@ -137,7 +137,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.14.0 <3.0.0"
+    version: ">=2.1.0 <3.0.0"
     bindings:
       types:
         - name: WLToken
@@ -1913,7 +1913,7 @@ this verb is how the account's operator identity attests the public half
 without the console ever holding the identity
 ([`protocol/secret-source`](../protocol/secret-source.md#a-console-never-holds-the-secrets-of-an-identity-it-acts-for)).
 Once `weblisk/credential-auth/v1` has test vectors, and not before (they are
-published: [The credential's answer has test vectors](#weblisk-operator-attest)),
+published: [`protocol/identity`](../protocol/identity.md#fixed-form-statements)),
 the steps are [`architecture/admin`](admin.md#obtaining-a-token)'s:
 
 - Reads the credential's public key from the file `--credential-key` names
@@ -3260,7 +3260,7 @@ security:
 - [ ] Once `weblisk/credential-auth/v1` has test vectors, `connect` and `register` generate one ML-DSA-65 credential per identity per hub the first time they reach it, have the identity attest it once, keep its private key in the platform keychain source apart from the identity's holder, or, only where no keychain exists, in the `weblisk-key-v1` envelope or the identity's secret source, and mint every later token with it without the identity signing
 - [ ] Once `weblisk/credential-auth/v1` has test vectors, on a platform with a keychain source, the credential key of an identity held by an encrypted key file or by a vault is written to the keychain and not beside the identity or in the vault, and a token is minted with it while the session is unlocked with no passphrase typed and no vault approval asked
 - [ ] `connect`, `register` and `operator token` take the deprecated identity-signed path only at a hub that answers `POST /v1/admin/credentials/challenge` `404` or `405`, and at a hub that serves it obtain every operator token with a credential
-- [ ] For every vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) under a prefix the CLI signs, `weblisk/auth/v1` and `weblisk/credential-auth/v1`, the CLI's builder makes the vector's message byte for byte from its field values, and a signature it makes with the vector's seed verifies under the vector's public key
+- [ ] For every vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) under a prefix the CLI signs, `weblisk/auth/v1` and `weblisk/credential-auth/v1`, the CLI, which signs those statements and verifies neither, passes the test [`architecture/generation`](generation.md#published-test-vectors) gives for a component that signs
 - [ ] Once `weblisk/credential-auth/v1` has test vectors, where no keychain exists, for an identity held by a secret source whose `capabilities` do not list `store`, `connect` keeps the new credential key beside the identity in its own `weblisk-key-v1` envelope with `kdf` `argon2id`, under a passphrase the person chose for it, and never in the clear or under `kdf` `none`
 - [ ] Once `weblisk/credential-auth/v1` has test vectors, where no keychain exists, for an identity held by a source that lists `store` but answers `named_fields` false, or names `private_key` in `withheld_fields`, `connect` keeps the credential key in its own envelope beside the identity, never in that source, and signs every later challenge with it
 - [ ] Once `weblisk/credential-auth/v1` has test vectors, `connect --remember-passphrase` for such an identity has a source that lists `store` keep the envelope's passphrase, and is refused, keeping nothing, when neither the identity's source nor one named with `--passphrase-holder` lists `store`

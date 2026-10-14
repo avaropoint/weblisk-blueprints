@@ -76,7 +76,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.14.4 <3.0.0"
+    version: ">=2.1.0 <3.0.0"
     bindings:
       types:
         # identity_id is who a change names; type and aud say a person's
@@ -2996,9 +2996,10 @@ remote sends and custody re-verification change no entry either.
 > waits on its own specification: what it records, who signs it, and, if it is
 > a fixed-form statement of its own, a prefix with published test vectors
 > ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)). The
-> signing that seals this log
+> signing that seals this log is specified
 > ([`architecture/storage`](storage.md#sealing-a-chained-log)) and its three
-> prefixes' vectors already exist. It is not specified here. Until it is, the
+> prefixes' vectors are published. The egress record is not specified here.
+> Until it is, the
 > [Remote Send Flow](#remote-send-flow) sends nothing to any remote
 > (step 4), and a consumer MUST NOT report what a remote holds, or that it
 > holds nothing above a level, from `checked_at` or from the remote's
@@ -3214,9 +3215,9 @@ relays a person's statement can drop it and still have the change recorded. A
 client that sent a statement MUST check that the `ContentChange` it gets back
 carries it, and report the change as unsigned where it does not.
 `weblisk/content-change/v1` has test vectors
-([`protocol/identity`](../protocol/identity.md#fixed-form-statements)) for
-a write that creates, modifies and deletes, and for a decision to apply one
-that modifies and one that deletes, so every empty field above appears in one.
+([`protocol/identity`](../protocol/identity.md#fixed-form-statements)), and
+every empty field above appears in one; which cases they cover is the file's
+to say.
 A client that signs a statement and this service, which verifies it, each test
 against them. One that verifies is recorded, and one that fails refuses the
 request, as [Security](#security) requires.
@@ -5450,7 +5451,7 @@ security:
 - [ ] An offline verifier reports inconsistent a `change` entry recording `separation` `independent` whose `approved_by` is its `actor`, one recording `separation` `self` whose `scope` is above the `self_decision_ceiling` in the `declare` entry, and one recording `separation` `self` on a change with no scope — none declared, and on a removal no recorded scope for the path, the floor included
 - [ ] Every signature in a change log is ML-DSA-65, and a signature on a commit in a version-controlled store appears nowhere in the log
 - [ ] With the log key unavailable, writes still succeed, their entries are appended, and `LogHead.unsealed` counts them; once a log key can sign, the next checkpoint covers them all
-- [ ] For every vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) under `weblisk/content-change/v1`, the service rebuilds the vector's message byte for byte from its field values and accepts the published signature under the vector's public key, and refuses it over the message with one byte changed
+- [ ] For every vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) under `weblisk/content-change/v1`, the service, which verifies that statement and does not sign it, passes the test [`architecture/generation`](generation.md#published-test-vectors) gives for a component that verifies
 - [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, `POST /v1/content/repositories/{repository}/log/checkpoint` on a log whose tip has moved appends a `checkpoint` entry covering the tip, and on one whose tip has not moved appends nothing
 - [ ] A service started over a change log whose lines after its latest checkpoint were altered settles no reservation in it, refuses writes, removals, decisions to apply, reconciles and checkpoints on that repository with `CONTENT_LOG_BROKEN` naming the `seq`, still serves its entries and its log, names it `not_ready` in its lease's `checks`, and reports `chain` `broken` with that `broken_at` in its `LogHead`
 - [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, rotating the service's registered key appends a succession entry to every change log that has an authority, and a verifier that brings only the key the tenant's service directory now lists verifies checkpoints sealed before the rotation

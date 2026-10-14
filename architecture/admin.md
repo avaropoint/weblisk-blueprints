@@ -77,7 +77,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.14.4 <3.0.0"
+    version: ">=2.1.0 <3.0.0"
     bindings:
       types:
         - name: WLToken
@@ -2767,6 +2767,7 @@ The rest SHOULD be:
 - [ ] After a change of identity key, `POST /v1/admin/operators/token` signed with the new key answers the operator's kept `identity_id`; an attestation naming that `identity_id` is accepted, and one naming the new key's fingerprint instead is refused with `CREDENTIAL_ATTESTATION_INVALID`
 - [ ] Once `weblisk/credential-auth/v1` has test vectors, an expired operator token is replaced by a new challenge answered with the credential, without re-registering and without the identity
 - [ ] Once `weblisk/credential-auth/v1` has test vectors, `POST /v1/admin/credentials/token` issues an operator token carrying `cid`, expiring one hour after issue and never after the attestation's `not_after`, only for a signature by the stored credential key over `weblisk/credential-auth/v1`, 0x00, `hub_id` as its 64 hex characters, 0x00 and the base64url text of a nonce this hub issued for that credential
+- [ ] For every vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) under `weblisk/credential-auth/v1`, the hub, which verifies a credential's answer and does not sign one, passes the test [`architecture/generation`](generation.md#published-test-vectors) gives for a component that verifies
 - [ ] `POST /v1/admin/operators/token` never issues an operator token, whatever its request carries
 - [ ] A hub that rotates its orchestrator key answers every challenge with the `hub_id` it had before, and, once `weblisk/credential-auth/v1` has test vectors, every credential attested for that `hub_id` still mints
 - [ ] A nonce from `POST /v1/admin/credentials/challenge` is spent by the first token request that presents it, whether or not the signature verifies, and a revoked or expired credential's status is disclosed only after its signature verifies

@@ -67,7 +67,7 @@ requires:
   # fixed-form statement signed and verified as Sign and Verify Signature say,
   # and names each key by its Key Fingerprint
   - blueprint: protocol/identity
-    version: ">=1.6.0 <3.0.0"
+    version: ">=2.1.0 <3.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -1522,5 +1522,5 @@ security:
 - [ ] An owner whose log fails its check from the latest checkpoint appends nothing and seals nothing, still serves reads of the log, and reports where it fails
 - [ ] Every checkpoint is reported `uncountersigned`
 - [ ] With the log key unavailable, appends continue, no checkpoint is written, and the reported count of unsealed entries rises
-- [ ] For every vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) under `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` or `weblisk/log-succession/v1`, the owner's builder makes the vector's message byte for byte from its field values, a signature it makes with the vector's seed verifies under the vector's public key, and a verifier accepts the published signature and refuses it over the message with one byte changed
+- [ ] For every vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) under `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` or `weblisk/log-succession/v1`, the owner, which signs those statements, and a verifier of them each pass the test [`architecture/generation`](generation.md#published-test-vectors) gives for a component that signs and one that verifies
 - [ ] Changing one byte of an entry a checkpoint covers fails verification — the chain is `broken` at the next entry's `seq`, or, for the entry the checkpoint names, its `tip` no longer matches — and the failure is reported rather than repaired
