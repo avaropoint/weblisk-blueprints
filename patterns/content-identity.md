@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: content-identity
-version: 1.0.2
+version: 1.1.0
 requires: [protocol/types, patterns/versioning]
 platform: any
 tier: free
@@ -119,6 +119,7 @@ contracts:
         - The algorithm MUST be declared alongside the digest, never assumed
         - Implementations MUST NOT normalise, reformat or reorder before hashing
         - The same bytes MUST produce the same digest on every platform
+        - The single exception is a control's text digest, taken over a declared projection of the control rather than stored bytes, as schemas/standard.md "Outputs cite the control text they were made from" defines
 
     - name: reference-with-version
       description: Record a reference that names what it saw

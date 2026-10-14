@@ -68,7 +68,7 @@ Closed. Each names a real behaviour and the code that honours it.
 
 | capability | what having it means |
 |---|---|
-| `versioned` | its content hashes to a version, so it can go **stale**. A published control cannot |
+| `versioned` | its content hashes to a version, so it can go **stale**. A control has no version of its own; a claim that cites a control's text digest can still go stale ([Relations](#relations)) |
 | `has-custody` | the bytes are somewhere we can reason about; without it no custody claim may be made |
 | `chain-member` | participates in an evidence chain, at the `layer` it declares |
 | `counts-as-coverage` | its presence is evidence toward a control |
@@ -131,8 +131,11 @@ nothing else. Advice is not compliance and its absence is not a gap — which is
 the fault this replaces.
 
 **`control` has only `is-criterion`.** No version, no custody, no chain
-membership. It is a clause of somebody else's published framework: it cannot go
-stale, cannot be edited, nothing derives it, and nothing may attempt to hash it.
+membership. It is a clause of somebody else's published framework: it has no
+version of its own, cannot be edited and nothing derives it. The one digest
+taken of it is the per-control text digest a `generated_from` claim cites
+([`standard.md`](standard.md#outputs-cite-the-control-text-they-were-made-from)),
+which belongs to the claim and not to the kind.
 Every other kind is content that lives somewhere; a control is what content is
 measured against.
 
@@ -369,7 +372,8 @@ relation.
 | `requires`, `extends`, `depends_on`, `supersedes` | blueprint | blueprint | declared |
 | `implemented_by` | specification | `code` | implementation |
 | `generated_from` | `code` | blueprint | generation |
-| `generated_from` | standard, policy, procedure, document, obligation, register | `control` | adoption |
+| `generated_from` | standard | `control` | declared |
+| `generated_from` | policy, procedure, sop, document, guideline, reference, obligation, register | `control` | adoption |
 | `applies_to` | `code` | `provider` | provider configuration |
 | `reached_through` | `provider` | `integration` | integration |
 | `exchanges_with` | `integration` | `partner` | data flow |
@@ -382,13 +386,7 @@ relation.
 `implements` accepting `control` as a target is what allows an author to state
 which control a document answers, instead of leaving it to keyword inference.
 
-`generated_from` onto a `control` says something else: what an output was
-**made from**. It cites the digest of that control's text at the edition the
-output was made against — a per-control digest
-([`standard.md`](standard.md#outputs-cite-the-control-text-they-were-made-from))
-— so a revision that changes the control's text makes the claim stale. A
-`control` still has no version of its own and gains no capability; the digest
-is the claim's cited version, not the kind's.
+`generated_from` onto a `control` records what an output was made from, citing the control's text digest ([`standard.md`](standard.md#outputs-cite-the-control-text-they-were-made-from)).
 
 ### Naming a target's kind
 
