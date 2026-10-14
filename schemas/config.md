@@ -401,7 +401,10 @@ observability:
 15. No two `content.repositories[]` may name placements where one equals, contains or sits inside another
 16. No `agents[].env` entry may hold a secret. It is judged from the entry alone, without asking any source, and refused where:
     - its name is a vendor key variable: `WL_AI_KEY`, or one a model backend names for its key (`needs_key`, [`weblisk providers`](../architecture/cli.md#weblisk-providers));
-    - a word of its name, split at `_` and compared without regard to case, is or ends in `KEY`, `KEYS`, `TOKEN`, `SECRET`, `PASSWORD`, `PASSWD`, `PASSPHRASE`, `CREDENTIAL`, `CREDENTIALS`, `CREDS`, `AUTH`, `COOKIE` or `PRIVATE` (`OPENAI_API_KEY`, `APIKEY`, `GH_TOKEN`, `DB_PASSWORD`);
+    - a word of its name, split at `_` and compared without regard to case, is or ends in `KEY`, `KEYS`, `TOKEN`, `SECRET`, `PASSWORD`, `PASSWD`, `PASSPHRASE`, `PASS`, `PW`, `PWD`, `CREDENTIAL`, `CREDENTIALS`, `CREDS`, `AUTH`, `COOKIE` or `PRIVATE` (`OPENAI_API_KEY`, `APIKEY`, `GH_TOKEN`, `DB_PASSWORD`, `DB_PASS`, `MYSQL_PW`);
+    - its value begins with a prefix a vendor publishes for its keys, compared with case: `sk-` (which `sk-ant-` and `sk-proj-` begin with), `ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`, `github_pat_`, `glpat-`, `xoxb-`, `xoxp-`, `xoxa-`, `xapp-`, `AIza`, `hf_`, or `AKIA` or `ASIA` followed by 16 upper-case letters and digits;
     - its value holds a PEM block (`-----BEGIN`), or is a URL with a user or a password before its host (`scheme://user:password@host`).
+
+    These recognise a secret; they cannot prove a value is not one. A credential under a neutral name in a form none of them knows passes, and is the declarer's fault rather than a check's: the list grows by a change to this rule, never by a setting.
 
     The CLI applies it when it generates a component from this file and when it starts one, refusing the whole declaration with every such entry named, before anything is generated or started ([`architecture/cli`](../architecture/cli.md#a-component-starts-with-a-clean-environment)). The name is judged as well as the value because a name is what a person types and a credential's form changes by vendor. A false refusal costs a rename; a false pass puts a credential in every process the agent starts and in its crash dumps
