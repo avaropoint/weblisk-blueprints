@@ -527,6 +527,15 @@ same way: the project's link reads `behind`, and the project takes it.
   them, so `basis.characteristic` is a name nothing checks.
 - **Nothing generates or adopts a standard yet**, and a tenant whose content
   service is not running cannot hold one.
+- **Nothing records a link.** [Linking without adopting](#linking-without-adopting)
+  says what a link is, and no file, field or route records that a scope has
+  linked a standard, from which source, at which digest, or by whose act. Which
+  standards a scope has linked is the customer's choice, so the record belongs
+  in the tenant; which service holds it, and under what capability, are not
+  decided. It is never a generated `standards/<id>.json` carrying `extends` at
+  the organisation, which is the adoption record. Until a record is declared, a
+  client that keeps one holds an answer that is not its own, and two clients of
+  one tenant can disagree about it.
 
 ---
 
