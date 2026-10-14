@@ -6,9 +6,10 @@ inside an organisation.**
 Governed by [`../schemas/position.md`](../schemas/position.md).
 
 A programme names positions: an obligation's `responsible`, an `escalate.to`, a
-register's `approvers`, an artifact's `approved_by`. Across
-[`../programmes/`](../programmes/) that is **twenty-one positions, named 475
-times**. Everything those namings imply — how often the work recurs, where each
+register's `approvers`, an artifact's `approved_by` — how many, and how often,
+is measured once, in
+[`../programmes/README.md`](../programmes/README.md#the-positions-a-programme-names).
+Everything those namings imply — how often the work recurs, where each
 occurrence is recorded, what authority requires it, what escalates in and from
 whom, what escalates away and how fast, what nobody else can sign — is
 **derived**, on read, and is never written down here.

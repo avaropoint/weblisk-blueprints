@@ -11,9 +11,13 @@ path: control-matrix.md
 # standard the scope has adopted, when the document is created — never typed
 # here and never copied from a framework the scope has not adopted. A scope
 # that has adopted no standard gets a matrix with no rows, which is the honest
-# answer. Each row cites its control by standard id, edition and text digest
-# and carries no control text: ../../../schemas/standard.md, "Outputs cite the
-# control text they were made from".
+# answer. A row names its standard and control id and nothing else of the
+# control: no text, no edition and no text digest. The edition and text digest
+# each row was made against are recorded as a `generated_from` fabric claim
+# from the created document to the control, when the document is created, and
+# are never written into its bytes, because documents carry nothing of that
+# reference in their bytes: ../../../schemas/standard.md, "Outputs cite the
+# control text they were made from", "What records the reference".
 template: true
 kind: reference
 order: 40
@@ -27,12 +31,13 @@ frontmatter:
 
 > [!NOTE]
 > The rows below are generated from the standards this scope has adopted, one
-> per control. Each cites the control by standard, edition and text digest; the
-> control's own words stay in the standard and are read from there. If this
+> per control. Each names the standard and the control; the control's own
+> words stay in the standard and are read from there, and the edition each row
+> was made against is recorded outside this document, never in it. If this
 > table is empty, no standard has been adopted here yet.
 
-| Standard | Edition | Control | Text digest | Implementation | Status | Evidence |
-| --- | --- | --- | --- | --- | --- | --- |
+| Standard | Control | Implementation | Status | Evidence |
+| --- | --- | --- | --- | --- |
 
 ## Notes
 

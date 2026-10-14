@@ -73,6 +73,9 @@ in a scope that has adopted this programme who starts a document of that kind
 from nothing, whether or not a spec names them. They arrive with the adoption
 and only with it: a scope that has not adopted `document-control` has no blank,
 policy or procedure form at all, and is told so rather than handed one. The control matrix carries no control: its rows are generated from the
-standards the scope has adopted, each citing the control by id, edition and text
-digest, as [`../../schemas/standard.md`](../../schemas/standard.md#outputs-cite-the-control-text-they-were-made-from)
-requires of every output made from a standard.
+standards the scope has adopted, each naming only the standard and the control
+id. The edition and text digest a row was made against are a `generated_from`
+fabric claim recorded when the document is created, never bytes in it — a
+document carries nothing of that reference
+([`../../schemas/standard.md`](../../schemas/standard.md#outputs-cite-the-control-text-they-were-made-from),
+"What records the reference").

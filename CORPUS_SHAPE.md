@@ -444,9 +444,11 @@ Every skill in [`skills/`](skills/README.md) is a **builder's** skill —
 doing a job *inside* a tenant, which is the audience every programme in
 [`programmes/`](programmes/README.md) is written for.
 
-The programmes already name those people, as data, with weight: measured across
-the corpus, **twenty-one positions named 475 times** through `responsible`,
-`escalate.to`, `approvers` and `approved_by`. So a role brief is **derived**,
+The programmes already name those people, as data, with weight, through
+`responsible`, `escalate.to`, `approvers` and `approved_by` — the count is
+measured once, in
+[`programmes/README.md`](programmes/README.md#the-positions-a-programme-names).
+So a role brief is **derived**,
 and [`positions/`](positions/README.md) holds only the half derivation cannot
 reach — what to do first, what good looks like, how it goes wrong.
 
