@@ -10,7 +10,7 @@ specifications that all implementations must satisfy.
 | Blueprint | Purpose |
 |-----------|---------|
 | [orchestrator.md](orchestrator.md) | Trust anchor — registration, namespaces, security, directory |
-| [domain.md](domain.md) | Domain controller — workflow declarations, event-driven triggering |
+| [domain.md](domain.md) | Domain controller — a tenant's own business domain: workflow declarations that execution runs, event-driven triggering |
 | [agent.md](agent.md) | Agent base — 7 endpoints, capabilities, pub/sub, retry/circuit breaker |
 | [hub.md](hub.md) | Collaborative hub — discovery, tiers, commerce |
 | [gateway.md](gateway.md) | Application gateway — auth, ABAC, rate limiting, route protection |

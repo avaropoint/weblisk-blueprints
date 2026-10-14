@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 2.0.0
+version: 2.1.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
@@ -889,9 +889,13 @@ These map onto the staleness verdict the corpus already defines rather than
 replacing it: `current` and `stale` are that verdict, `unreachable` is its
 `unknown`, and `moved` and `broken` are facts about an address that a
 single-reference verdict has no way to express. `unversioned` is the honest
-answer for a kind that declares no version — a published criterion cannot be
-hashed and cannot go stale, and treating it as current would be a claim nobody
-made.
+answer for a kind that declares no version — a published criterion declares
+no version of its own, and treating it as current would be a claim nobody
+made. The one exception is a claim that cites a criterion's text by the
+per-control digest [`schemas/standard.md`](../schemas/standard.md#outputs-cite-the-control-text-they-were-made-from)
+defines: it is compared on that digest like any cited version, and reads
+`stale` when a revision changes the control's text. A claim about a criterion
+that cites none is `unversioned`.
 
 ### Where relationships do not live
 
@@ -1068,8 +1072,10 @@ types:
       cited_version:
         type: ContentIdentity
         required: false
-        description: What this end was when the claim was made. Absent only for a
-          kind that declares no version
+        description: What this end was when the claim was made — or, on a
+          control end, the per-control text digest schemas/standard.md defines,
+          which is a digest of a declared projection rather than of stored
+          bytes. Absent only for a kind that declares no version
       cited_size:
         type: integer
         required: false

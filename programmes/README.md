@@ -17,6 +17,12 @@ and the recurring work the organisation takes on by adopting it — the
 obligations, the registers those obligations record into, who is responsible,
 how long the records are kept, and what happens when something is late.
 
+And what else adopting it brings: the standing work and the multi-step work it
+runs, who is told what, the skills its people and its agent work read, and any
+domain service it needs built. Each names the tenant service that owns it, and
+adopting is one recorded act by a person at an organisation —
+[`../schemas/programme.md`](../schemas/programme.md#adopting-a-programme).
+
 It declares all of that in **tiers**, which is the difference between a roadmap
 and a wall. Adopting a standard without them means being handed two hundred gaps
 at once, and that is indistinguishable from being told the programme is
@@ -51,6 +57,8 @@ why it is data here and not a judgement in code.
     programmes/<programme>/map.md              the map: tiers and placements
     programmes/<programme>/specs/<name>.md     one specification, and its brief
     programmes/<programme>/templates/<name>.md one blank form
+    programmes/<programme>/skills/<name>.md    a skill file the map names
+    programmes/<programme>/domains/<name>.md   a domain service's blueprint
 
 The **name of the thing holding a file** says what the file is. The segment above
 it names the programme, so provenance survives being merged with every other

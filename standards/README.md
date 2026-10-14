@@ -17,6 +17,10 @@ measured against, how well it does, and what evidence answers which control are
 **tenant content** — the customer's, in the customer's repositories. A standard
 here is the ruler, never the measurement.
 
+A tenant never takes a copy of one. Adopting a standard generates the
+organisation's own, linking this file and adding its adjustments —
+[`../schemas/standard.md`](../schemas/standard.md#adopting-a-standard).
+
 ## Why they are here and not in a product
 
 They were embedded in Weblisk Studio's Go packages. That made them invisible to
