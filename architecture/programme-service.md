@@ -258,14 +258,14 @@ a person-only capability.
 
 | action | answers |
 |---|---|
-| `get_workflow` | The `WorkflowDefinition` an installed workflow became, as [`patterns/workflow`](../patterns/workflow.md) Phase 2 fetches one from its source. A paused or withdrawn workflow answers `NOT_FOUND`, so no new run starts |
+| `get_workflow` | The `WorkflowDefinition` an installed workflow became, as [`patterns/workflow`](../patterns/workflow.md) Phase 2 fetches one from its source. A withdrawn workflow answers `NOT_FOUND` |
 | any action a `does:` names | Runs that deterministic action for the operation or phase, and answers its outcome. A name this build does not run answers `NOT_FOUND`, never success |
 
 **What it hands each neighbour:**
 
 | to | what | how |
 |---|---|---|
-| execution | each operation's `schedule` and `on`, and each workflow's start, as the trigger that invokes `get_workflow` and then its definition | as [`architecture/domain`](domain.md) states for any owner's definition: `workflow.trigger` out, `workflow.completed` or `workflow.failed` back |
+| execution | each operation's and each workflow's `schedule`, `on`, `when` or `for`, registered as its start. Pausing an item pauses its start there, so no new run begins | when a start fires, execution runs the definition it fetches with `get_workflow`, as [`architecture/domain`](domain.md) states for any owner's definition: `workflow.trigger` out, `workflow.completed` or `workflow.failed` back |
 | notification | a notice that has advanced: its `says`, its `to` positions, and the fact it is about | [Notification](#notification) |
 | the prompt worker | nothing directly. An `agent:` phase names the worker as its agent, and execution dispatches it | [The prompt worker](#the-prompt-worker) |
 
@@ -617,6 +617,6 @@ security:
 - [ ] Pausing, resuming or running an unmuted item on a component's registration token is refused with `FORBIDDEN`. The same act on a muted item is admitted with `programme:operate`
 - [ ] A notice is sent once when its fact first becomes true, and not again while the fact stays true
 - [ ] A notice on a muted item reaches nobody
-- [ ] `get_workflow` for a paused or withdrawn workflow answers `NOT_FOUND`
+- [ ] Pausing a workflow starts no new run and lets a started run finish; `get_workflow` for a withdrawn workflow answers `NOT_FOUND`
 - [ ] `DELETE /v1/programme/installations/{programme}` stops every item under it and deletes no document
 - [ ] An `agent:` item is reported as not runnable while no model route is open to a service, and is never reported as having run
