@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 4.0.1
+version: 4.1.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -2993,11 +2993,12 @@ remote sends and custody re-verification change no entry either.
 > nothing is sent.** A send owes a signed egress record of what left, for
 > which destination, and under what demonstrated ceiling, and this service
 > cannot yet make one. That record is the next gap after this contract, and it
-> waits on two things: the signing that seals this log
-> ([`architecture/storage`](storage.md#sealing-a-chained-log)), and the test
-> vectors [`protocol/identity`](../protocol/identity.md#fixed-form-statements)
-> requires before any implementation signs under the prefixes that signing
-> uses. It is not specified here. Until it is, the
+> waits on its own specification: what it records, who signs it, and, if it is
+> a fixed-form statement of its own, a prefix with published test vectors
+> ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)). The
+> signing that seals this log
+> ([`architecture/storage`](storage.md#sealing-a-chained-log)) and its three
+> prefixes' vectors already exist. It is not specified here. Until it is, the
 > [Remote Send Flow](#remote-send-flow) sends nothing to any remote
 > (step 4), and a consumer MUST NOT report what a remote holds, or that it
 > holds nothing above a level, from `checked_at` or from the remote's
@@ -3117,7 +3118,7 @@ authority ([`architecture/storage`](storage.md#a-change-of-long-lived-key)), so
 the key the directory lists now vouches for every key the log used before it.
 A change log has an authority once it holds a key entry
 ([`architecture/storage`](storage.md#the-log-key)), so a rotation before its
-first appends nothing. A key generated afresh because the one before it was
+first key entry appends nothing. A key generated afresh because the one before it was
 lost has no succession entry.
 A verifier holding only the directory's key then reports every earlier
 authority `unvouched`, and the service's latest checkpoint still seals

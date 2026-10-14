@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: storage
-version: 1.5.1
+version: 1.6.0
 requires: [protocol/types, protocol/identity, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 tier: free
@@ -1117,8 +1117,7 @@ vectors for all three, `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and
 ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)). In
 them `key id`, `outgoing` and `incoming` are fingerprints of published vector
 keys, so an owner and a verifier test each statement against the very keys it
-names. Every owner of a sealed log, and every verifier of one, tests against
-them.
+names.
 
 A long-lived key whose `key_protection` is `development-only` is a key under
 `kdf = none`. `protocol/identity` rule 6 requires such a key to be reported as

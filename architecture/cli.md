@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 3.0.1
+version: 3.1.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1844,9 +1844,10 @@ releases it while the person's session on the machine is unlocked, so minting
 asks nobody. Anywhere else a mint asks the identity's holder: where no
 keychain exists, the credential is opened as the identity's own key is, by a
 passphrase typed or a source approving; and until `weblisk/credential-auth/v1`
-has test vectors, only the deprecated identity-signed path yields a token
-([Authentication Flow](#authentication-flow)), which the identity's holder
-signs.
+has test vectors, only the deprecated identity-signed path yields a token,
+which the identity's holder signs. Those vectors are published
+([`protocol/identity`](../protocol/identity.md#fixed-form-statements)), so a
+credential mints.
 
 - **Where a mint is silent: nowhere, by default.** Every command that needs
   a token mints a fresh one and holds it in memory for that command alone.
@@ -1911,7 +1912,8 @@ For a console. The console generates the credential's key pair and keeps it;
 this verb is how the account's operator identity attests the public half
 without the console ever holding the identity
 ([`protocol/secret-source`](../protocol/secret-source.md#a-console-never-holds-the-secrets-of-an-identity-it-acts-for)).
-Once `weblisk/credential-auth/v1` has test vectors, and not before (below),
+Once `weblisk/credential-auth/v1` has test vectors, and not before (they are
+published: [The credential's answer has test vectors](#weblisk-operator-attest)),
 the steps are [`architecture/admin`](admin.md#obtaining-a-token)'s:
 
 - Reads the credential's public key from the file `--credential-key` names

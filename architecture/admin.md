@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 3.0.1
+version: 3.1.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free

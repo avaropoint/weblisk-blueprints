@@ -1455,8 +1455,8 @@ is in no build graph and costs no prompt a byte. The build writes it, as the
 corpus revision the build was generated from holds it, to
 `testdata/weblisk-vectors/fixed-form-statements.json` under the component's
 directory, and the prompt names that path with the platform constraints
-(element 5) and nothing of its content. The build never edits it, and a
-generated file that changes it is a rebuild input the build changed
+(element 5) and nothing of its content. The build MUST NOT change the file:
+it is a rebuild input, and a file the build can change cannot be one
 ([A rebuild input MUST NOT be something the build changes](#a-rebuild-input-must-not-be-something-the-build-changes)).
 
 So a generated signer tests against the same vectors as every other
@@ -1467,8 +1467,8 @@ message from the vector's field values and compares it with the published
 bytes, verifies the published signature under the published key, verifies a
 signature it makes itself over those bytes with the vector's seed, and refuses
 the published signature over the message with one byte changed. The test is
-the only code that reads a vector key: a vector key is no one's identity, and
-nothing a component ships loads one.
+the only code that reads a vector key, and nothing a component ships loads one
+([a vector key is no one's identity](../protocol/identity.md#fixed-form-statements)).
 
 ---
 
