@@ -150,24 +150,31 @@ recorded into nothing would have told the reader the opposite of the truth.
 
 ## Known gaps
 
-**Nothing declares who holds a position.** This schema covers what a position
-is (the programmes that name it) and how the job is done well (its guide). Who
-holds it in one organisation is neither: it is a fact about the customer's
-organisation, so it is the tenant's to hold and never a client's. No schema
-declares a holding, no tenant service is specified to keep one, and no route or
-capability reads or records one. Which service holds it, at which scope a
-holding is recorded, and under what capability are not decided.
+**Nothing declares the register of who holds a position.** This schema covers
+what a position is (the programmes that name it) and how the job is done well
+(its guide). Who holds it in one organisation is neither: it is a fact about
+the customer's organisation, so it is the tenant's to hold and never a
+client's. Its home is decided: a register whose rows are
+[about a person](programme.md#records-about-a-person), so `restricted` and
+labelled `pii`, kept in the scope's
+[records repository](programme.md#where-a-record-holding-pii-lives), the one
+repository [`architecture/content`](../architecture/content.md#where-an-entry-labelled-pii-is-kept)
+lets hold it. What is not specified:
 
-Until one is:
+- the register's spec: its columns, its key, and how a row names a position
+  and a person;
+- the scope a holding is recorded at, and so which scope's records repository
+  holds it;
+- how a tenant service resolves a position an approval, escalation or
+  obligation names (`approved_by`, a register's `approvers`, `escalate.to`,
+  `responsible`) to a person against it.
 
-- an approval, escalation or obligation that names a position (`approved_by`,
-  a register's `approvers`, `escalate.to`, `responsible`) cannot be resolved to
-  a person by the tenant, so nothing in the tenant can check that whoever acted
-  held the position at the time;
-- a client that records holdings is keeping the customer's org chart as the only
-  copy, and says so — held by that client, not by the tenant — rather than
-  presenting it as the tenant's record. Two clients of one tenant can disagree
-  about who holds a position, and neither can settle it.
+Until they are, nothing in the tenant resolves those names to a person, so
+nothing in the tenant can check that whoever acted held the position at the
+time. A client that records holdings is keeping the customer's org chart as
+the only copy, and says so, held by that client and not by the tenant, rather
+than presenting it as the tenant's record. Two clients of one tenant can
+disagree about who holds a position, and neither can settle it.
 
 ---
 

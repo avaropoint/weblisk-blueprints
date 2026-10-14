@@ -84,5 +84,5 @@ reader learns to skip, and then they skip the one that mattered.
 What an organisation calls these jobs, who holds one, and what it adds to the
 description is **the customer's**, in the customer's repositories. Nothing here
 records a person, an organisation or a project.
-No schema declares how a tenant records who holds a position yet
+No spec declares the register in which a tenant records who holds a position yet
 ([`schemas/position.md`, Known gaps](../schemas/position.md#known-gaps)).

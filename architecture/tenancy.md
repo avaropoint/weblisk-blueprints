@@ -158,7 +158,9 @@ so compromising it exposes billing metadata rather than any tenant's records.
 
 **Owns**
 
-- The tenant, org and project registry, and the lifecycle state of each
+- The host's provisioning registry of tenants, orgs and projects, and the lifecycle
+  state of each. It records what the host provisioned, not the tenant's own structure
+  (the gap under [Endpoints](#endpoints))
 - Admission control — whether a new tenant may be created now
 - The artifact registry: which component versions exist, and their provenance
 - Fleet deployment: rolling a version across tenants, and pinning individual tenants
@@ -209,7 +211,10 @@ so compromising it exposes billing metadata rather than any tenant's records.
 > the customer's, so the answer belongs to the tenant's own hub, not to the
 > control plane and not to a client. Which component holds it, the routes and
 > capabilities that read and change it, and how the control plane's registry
-> relates to it are not specified.
+> relates to it are not specified. Until they are, a client that holds an
+> organisation or project the tenant does not declare says so, held by that
+> client and not by the tenant, rather than presenting it as the tenant's
+> record.
 
 ---
 

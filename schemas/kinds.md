@@ -462,19 +462,6 @@ table above, not a spelling.
 
 ---
 
-## Known gaps
-
-**No tenant serves the declaration it holds.** Studio and the CLI read this
-file, and a tenant's fabric refuses a relation this file does not declare
-between two kinds ([`architecture/fabric`](../architecture/fabric.md)). Nothing
-records which revision of it a tenant holds, and no route returns it, so a
-client classifies with whatever copy it has. Where the two differ, one file is
-two nodes depending on which side asked — the fault rule 7 forbids, carried
-across the wire. Which component serves the declaration, under what capability,
-is not specified.
-
----
-
 ## Verification Checklist
 
 - [ ] Every declared kind's `specializes` names a declared kind or is empty
