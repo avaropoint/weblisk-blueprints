@@ -1521,10 +1521,15 @@ block, not chosen per entry:
 | `agent:`, in an operation or a workflow step | the programme service records it | the prompt worker runs it through the model service, under the step's ceiling | nothing more: it is an instruction, never a component |
 | `domain_services` | the domain controller, once built | it registers with the orchestrator like any other component; execution runs its workflows | nothing: adoption reports each as requested, and a person starts its build |
 
-These are the tenant services of the tenant service architecture the owner approved on 2026-10-05, recorded in Weblisk Studio's `TENANT_RUNTIME_MAP.md`; no document in this corpus states it yet. **None of the programme service,
-execution, notification, the model service, the prompt worker or the admin
-gateway's decision inbox is specified in this corpus yet**, and a tenant today runs none of them, so adopting can create documents
-and nothing else. An adoption reports every block it could not hand to its
+These are the tenant services of the tenant service architecture the owner approved on 2026-10-05, recorded in Weblisk Studio's `TENANT_RUNTIME_MAP.md`.
+[`architecture/programme-service`](../architecture/programme-service.md)
+specifies the part these blocks reach: the programme service's routes and
+capabilities, who may do what and on which token, what it hands execution,
+notification and the prompt worker, and how a decision reaches the admin
+gateway's one inbox. **No component blueprint implements any of them, and
+the model service is not specified**
+([Known Gaps](../architecture/programme-service.md#known-gaps)). A tenant today
+runs none of them, so adopting can create documents and nothing else. An adoption reports every block it could not hand to its
 owner, by name, with the service that is missing — never a smaller programme
 presented as a whole one.
 
@@ -2023,7 +2028,9 @@ no clock at all, correctly reported as undeclarable three layers from the cause.
 [`workflows`, `notices`, `skills` and `domain_services`](#the-package--what-a-programme-brings-besides-its-documents)
 are declared here, each with its owning service. No loader reads them, no
 validator checks them, and no tenant runs the programme service, execution or
-notification that would receive them, so no shipped map declares one yet. **Who
+notification that would receive them
+([`architecture/programme-service`](../architecture/programme-service.md#known-gaps)),
+so no shipped map declares one yet. **Who
 holds a position** stays configured by hand: it is tenant data, and belongs to
 the customer rather than to a programme.
 

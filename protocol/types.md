@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 3.0.0
+version: 3.0.1
 requires: []
 platform: any
 tier: free
@@ -484,8 +484,10 @@ producer's, which is a registered component.
 - `programme:operate` (programme) — pause, resume, run and reschedule an installed operation
 - `programme:switch` (programme) — decide whether an operation's runs reach people: mute, unmute, and who hears them. *Person only*
 
-Which act needs which will be `agents/programme`'s, under Who May Switch What,
-once that draft merges; until then these names guard no route. The programme
+Which route needs which is
+[`architecture/programme-service`](../architecture/programme-service.md#endpoints)'s.
+No component implements that document yet, so these names guard no running
+route. The programme
 service is to declare the first three, because a grant to a caller is the
 intersection of what it holds and what the serving manifest declares, and to
 check `programme:switch` without ever holding it, as `content` does its own

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 3.0.0
+version: 3.0.1
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1840,7 +1840,8 @@ presents a token it received
 | Audit | Orchestrator | always |
 | Model | Orchestrator, on the platform-provided routes the CLI installs: `/v1/admin/model` (GET and PUT), `/v1/admin/model/providers` (GET), `/v1/admin/complete` (POST), `/v1/admin/model/agreements` (POST and GET), `/v1/admin/model/agreements/{id}` (DELETE) and `/v1/admin/model/ceiling` (GET) ([`architecture/orchestrator`](orchestrator.md#administrative-endpoints)) | always |
 | System overview | composed by the admin gateway | always, with absent providers reported absent |
-| Domain & workflow | Domain controllers | a domain controller is deployed |
+| Domains | Domain controllers | a domain controller is deployed |
+| Workflow runs: `/v1/admin/workflows` and `/v1/admin/workflows/:id` | Execution, which holds every run, a programme's and a domain's ([`architecture/programme-service`](programme-service.md#execution)) | an execution component whose blueprint specifies both routes and a pass for them is deployed. No blueprint does yet |
 | Strategies, approvals, observations | Lifecycle Agent | the lifecycle agent is deployed |
 | Federation | Federation layer | the deployment federates |
 | Alerts | Alerting agent ([`agents/alerting`](../agents/alerting.md)) | the alerting agent is deployed |
@@ -1851,7 +1852,7 @@ An earlier version of this section read *"These extend the orchestrator's
 existing endpoint set"*, which cannot be satisfied.
 [`architecture/lifecycle`](lifecycle.md) states that *"Strategies, approvals, and
 feedback are managed entirely by the Lifecycle Agent — not the orchestrator"*,
-and workflows belong to domain controllers. An orchestrator asked to serve
+and a workflow's runs belong to execution. An orchestrator asked to serve
 `/v1/admin/strategies` would have to own state another component owns.
 
 **An endpoint whose provider is not deployed MUST report itself unavailable, and
@@ -1860,9 +1861,12 @@ system are different facts, and a console that renders them identically tells an
 operator the system is quiet when it is simply not there.
 
 > **Gap — no provider but the orchestrator serves its group on a pass yet.**
-> No blueprint specifies the administrative routes of the Domain & workflow,
+> No blueprint specifies the administrative routes of the Domains,
 > Strategies, approvals, observations, or Federation groups, or
 > `/v1/admin/metrics` and `/v1/admin/agents/:name/metrics`.
+> [`architecture/programme-service`](programme-service.md#execution) names
+> execution as the provider of the two workflow routes, on a pass carrying
+> `admin:read`, and no execution blueprint specifies them yet.
 > [`architecture/lifecycle`](lifecycle.md) offers strategies and approvals only
 > as `POST /v1/message` actions, which check no operator token
 > ([`protocol/spec`](../protocol/spec.md#post-v1message)), and
