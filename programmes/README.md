@@ -144,7 +144,9 @@ own documents: the management-system spine every other programme assumes. **4
 artifacts** across three tiers — a policy and its procedure (`essential`), the
 register of controlled documents (`conformant`) and an internal audit
 (`certifiable`) — and the five generic **templates** a document of any kind can
-start from: blank, policy, procedure, standard and control matrix. The control
+start from: blank, policy, procedure, standard and control matrix. They reach a
+scope only when it adopts `document-control`; a scope that has not has none of
+these forms. The control
 matrix holds no control; its rows are generated from the standards the scope has
 adopted. It was authored in Weblisk Studio's source tree and moved here so that
 it is offered, pinned and adopted like the rest.

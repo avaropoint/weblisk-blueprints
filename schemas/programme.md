@@ -223,8 +223,9 @@ A file that declares no `version:` is **unversioned**. It is not `1.0.0`, not
 adoption of it is describable only by content hashes.
 
 This is the state of every programme file in this corpus except
-`document-control`'s, which arrived from Studio's source tree already carrying
-versions, and it is reported rather than defaulted. Studio's loader (`internal/program/version.go`) reads the field, and
+`document-control`'s map and four specs, which arrived from Studio's source tree
+already carrying versions; its five templates declare none, like every other
+form. It is reported rather than defaulted. Studio's loader (`internal/program/version.go`) reads the field, and
 `Catalogue.Versions()` names every file that declares none — because a reader
 that filled the gap with a number would be inventing the one fact an adoption
 most depends on.
