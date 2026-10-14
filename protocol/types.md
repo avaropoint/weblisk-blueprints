@@ -382,10 +382,11 @@ examples, such as `inventory:check`, are listings and are not listed here. An ow
 ([`architecture/orchestrator`](../architecture/orchestrator.md), with
 [`architecture/admin`](../architecture/admin.md) its administrative surface),
 `content`, `fabric`, `enforcement`, `gateway` and `domain` (each its
-`architecture/` blueprint). Three owners have no blueprint in this corpus yet:
-`programme`, whose blueprint `agents/programme` is drafted but not merged, and
-`integrations` and `telemetry`, whose blueprints are not written. Their names
-guard no route until each blueprint merges. Five names have a nominated owner
+`architecture/` blueprint). `programme` is
+[`architecture/programme-service`](../architecture/programme-service.md), which
+no component blueprint implements yet. Two owners have no blueprint in this
+corpus yet: `integrations` and `telemetry`. The names of these three guard no
+running route until a component implements their owner's blueprint. Five names have a nominated owner
 whose blueprint does not yet say what they admit: `file:read`, `file:write` and
 `http:get` (enforcement) and `http:receive` and `realtime:publish` (gateway).
 Those five are judged by no rule until their owner's blueprint states one. All

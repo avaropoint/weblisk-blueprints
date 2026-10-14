@@ -196,6 +196,8 @@ requires:
   execution invokes it
 - Deciding when a notice has advanced, and asking notification to tell its
   positions
+- **The due answers**: occurrences, what is due and readiness. This document
+  does not specify them ([Known Gaps](#known-gaps))
 
 ### Does NOT Own
 
@@ -209,8 +211,6 @@ requires:
 - **A model.** The prompt worker asks the tenant's model service
 - **Any decision.** A decision belongs to the owner whose work waits on it,
   and only a person makes one ([The decision inbox](#the-decision-inbox))
-- **The due answers.** Occurrences, what is due and readiness are also this
-  service's. This document does not specify them ([Known Gaps](#known-gaps))
 
 ---
 
@@ -234,15 +234,40 @@ requires:
 | POST | /v1/programme/workflows/{id}/resume | ResumeWorkflow | yes | `programme:operate` | Start runs again. On an unmuted workflow, a pass only |
 | POST | /v1/programme/workflows/{id}/mute | MuteWorkflow | yes | `programme:switch` | Withhold from people everything its runs produce |
 | POST | /v1/programme/workflows/{id}/unmute | UnmuteWorkflow | yes | `programme:switch` | Let its runs reach people |
-| GET | /v1/programme/notices | ListNotices | yes | `programme:read` | Installed notices, and each time one advanced: when, which positions, and whether notification accepted it |
+| GET | /v1/programme/notices | ListNotices | yes | `programme:read` | Installed notices, each with its mute switch, and each time one advanced: when, which positions, and whether notification accepted it |
+| POST | /v1/programme/notices/{id}/mute | MuteNotice | yes | `programme:switch` | Withhold the notice from people. It still advances, and each advance is recorded as not sent |
+| POST | /v1/programme/notices/{id}/unmute | UnmuteNotice | yes | `programme:switch` | Let the notice reach its positions the next time it advances |
 | GET | /livez | Livez | no | | Liveness, for the supervisor that restarts the service |
 | GET | /readyz | Readyz | no | | Readiness, for the supervisor waiting on its start |
+
+**A notice has its own mute switch and no clock.** A notice is a block of its
+own in the map, belonging to no operation or workflow
+([`schemas/programme.md`](../schemas/programme.md#notices--who-is-told-what)),
+so it is muted and unmuted by itself, and has nothing to pause.
+
+**Every request names its organisation and programme.** Installing names
+both in its body. Every other route but `/livez` and `/readyz` carries the
+organisation as the query parameter `organisation`, which is required. A route with
+`{id}` in its path also requires the query parameter `programme`, a list
+route takes it to narrow the list, and withdrawing names the programme in
+its path. An item's `id` is local to its programme
+([`schemas/programme.md`](../schemas/programme.md#notices--who-is-told-what)),
+so `{id}` alone names nothing: the item is the one with that programme, `id`
+and organisation. A route missing a parameter it requires is refused with
+`INVALID_REQUEST`. Naming an organisation grants nothing: the route's
+capability is checked as on any other request.
 
 Each route in the table but `/livez` and `/readyz` is declared among the
 manifest's `pass_routes`, with the one capability in its row and no body
 requirement. The admin gateway carries a person's request here only on a
 route that list declares ([`architecture/admin`](admin.md#contracts),
 `admin-gateway-authorization`), so the list and the table MUST agree.
+
+**`pass_routes` is not the only way in.** The pause, resume and run routes
+of an operation or a workflow also admit a registered component's own
+registration token carrying `programme:operate`, while the item is muted
+([Who May Do What](#who-may-do-what), rule 3). Every other route admits a
+pass only.
 
 The service declares `programme:read`, `programme:install` and
 `programme:operate` on its manifest. It checks `programme:switch` but never
@@ -276,8 +301,8 @@ a person-only capability.
 | `PASS_REQUIRED` | An operator token was presented on any route ([`protocol/identity`](../protocol/identity.md#the-pass), rule 4) |
 | `PASS_AUDIENCE_MISMATCH` | A pass addressed to another component |
 | `FORBIDDEN` | The pass does not carry the route's capability; or a route this document reserves to a pass was reached on any other token |
-| `INVALID_REQUEST` | An installation asked for at a project rather than its organisation, naming the organisation; or a body that is not an installation |
-| `NOT_FOUND` | No installed item with that `id` at the caller's scope |
+| `INVALID_REQUEST` | An installation asked for at a project rather than its organisation, naming the organisation; a body that is not an installation; or a route missing the `organisation` or `programme` it requires |
+| `NOT_FOUND` | No installed item with that programme and `id` at the organisation named |
 
 An installation that hands some blocks to their owners and not others is not
 an error. It answers `200`, lists every block it could not hand over, and
@@ -311,24 +336,28 @@ does not call itself complete
 2. It fetches the definition with `get_workflow`. It dispatches each phase:
    a `does:` phase to this service, and an `agent:` phase to the prompt
    worker.
-3. What a muted item's run produces reaches nobody. It is kept so that a
-   person can compare it before unmuting.
+3. What a muted item's run produces reaches nobody. It is kept in
+   execution's run ledger, with the run, so that a person can compare it
+   before unmuting. The programme service holds no run output, and the
+   prompt worker keeps nothing.
 
 ### Telling
 
 1. A fact one of the `on:` events names becomes true.
 2. The service decides whether the notice has advanced. It advances when the
    fact first becomes true, and not again while it merely stays true.
-3. If it has advanced, and the notice's operation or workflow is unmuted, the
-   service asks notification to tell the `to` positions. It records that it
-   asked, and what notification answered.
+3. If it has advanced and the notice is unmuted, the service asks
+   notification to tell the `to` positions. It records that it asked, and
+   what notification answered. A muted notice's advance is recorded as not
+   sent, and nobody is told.
 
 ### Withdrawing
 
 When a person un-adopts
 ([`schemas/programme.md`](../schemas/programme.md#un-adopting)), their client
-sends `DELETE /v1/programme/installations/{programme}` on their pass. Every
-item installed under the programme stops, the withdrawal is recorded, and
+sends `DELETE /v1/programme/installations/{programme}?organisation=…` on
+their pass. Every item installed under the programme at that organisation
+stops, the withdrawal is recorded, and
 `get_workflow` answers `NOT_FOUND` for each of its definitions. Runs already
 in execution's ledger stay there.
 
@@ -348,8 +377,9 @@ they are not restated here.
    are a person's acts; muting and unmuting, because `programme:switch` is
    person only; and pausing, resuming or running an item **while it is
    unmuted**, because starting or stopping work that reaches people is a
-   person's decision. Any other token on one of these is refused with
-   `FORBIDDEN`, whatever capabilities it carries.
+   person's decision. A registration or channel token on one of these is
+   refused with `FORBIDDEN`, whatever capabilities it carries. An operator
+   token is refused with `PASS_REQUIRED`, as on every route (rule 1).
 3. **A service or an agent may operate muted work.** Holding
    `programme:operate` on its own registration, it may pause, resume or run
    an item while that item is muted. Nobody is reached. A service or an agent
@@ -474,12 +504,32 @@ different thing.
 **Notification has no route, capability or blueprint.** The notify-by-position
 call above has no declared action name or capability yet. Nothing is
 specified for how a person sets their own preferences. Who holds a position
-is tenant data, and its home in content is not specified.
+is the tenant's personal data, so content keeps it in the scope's records
+repository ([`architecture/content`](content.md#where-an-entry-labelled-pii-is-kept)),
+as a restricted register of who holds each
+[position](../schemas/position.md). No schema declares that register yet,
+so notification has nothing it can read a holder from.
+
+**Two acts the capabilities name have no route.** [`protocol/types`](../protocol/types.md#capability)
+gives `programme:operate` "reschedule" and `programme:switch` "who hears
+them". No route here reschedules an installed item: its `schedule` is the
+map's, and changes when the adopted map does. No route changes who hears an
+item: a notice's `to` positions are the map's, and who holds them is the
+register above. Until a route is specified, neither act is admitted
+anywhere.
 
 **The prompt worker has no model to call.** The tenant's model is served at
 `POST /v1/admin/complete`, which is a person's route
-([`architecture/orchestrator`](orchestrator.md#the-tenants-model)). No route
-lets a service ask the model for unattended work. So an `agent:` operation or
+([`architecture/orchestrator`](orchestrator.md#the-tenants-model)). A
+registered component can reach a provider itself today, by declaring
+`model:route` ([`protocol/types`](../protocol/types.md#capability)) and
+reading `GET /v1/model/ceiling`
+([`architecture/orchestrator`](orchestrator.md#a-model-is-a-destination)),
+through enforcement's external boundary. The prompt worker does not: that
+makes every component that runs agent work its own model route, and the
+tenant service architecture puts the model in one model service instead.
+That service is not specified, so no route lets a service ask the tenant's
+model for unattended work. So an `agent:` operation or
 step installs, and cannot run, until the model service is specified. It is
 reported as not runnable, never as having run.
 
@@ -597,8 +647,9 @@ security:
   ([`schemas/programme.md`](../schemas/programme.md#the-tenants-copy-is-the-tenants)).
 - Matching on programme, `id` and scope is what keeps a second installation
   from creating a second clock.
-- A muted item's runs still produce output. Keep it, so that a person can
-  compare it with what they expected before they unmute.
+- A muted item's runs still produce output. Execution keeps it in its run
+  ledger, so that a person can compare it with what they expected before
+  they unmute. This service keeps no copy.
 - Report a `does:` name this build does not run by name, with the names it
   does run. Never skip it.
 
@@ -608,15 +659,17 @@ security:
 
 - [ ] Every route in [Endpoints](#endpoints) but `GET /livez` and `GET /readyz` is declared among the manifest's `pass_routes`, with the one capability its row gives
 - [ ] An operator token on any route is refused with `PASS_REQUIRED`
-- [ ] `POST /v1/programme/installations` on any token but a pass is refused with `FORBIDDEN`, and installs nothing
+- [ ] `POST /v1/programme/installations` on a registration or channel token is refused with `FORBIDDEN`, and installs nothing
 - [ ] Every item an installation creates is muted, and is paused unless its `start` is `running`
 - [ ] Installing the same programme twice at one scope creates no second item
 - [ ] An installation asked for at a project is refused with `INVALID_REQUEST`, naming the organisation
 - [ ] An installation lists every block it could not hand to an owner, with the owner named, and does not call itself complete
-- [ ] `POST /v1/programme/operations/{id}/unmute` and `POST /v1/programme/operations/{id}/mute` need `programme:switch`, and the service never declares `programme:switch` on its own manifest
+- [ ] A route other than `/livez`, `/readyz` and installing, missing `organisation`, or a route with `{id}` in its path missing `programme`, is refused with `INVALID_REQUEST`
+- [ ] With one programme installed at two organisations, `DELETE /v1/programme/installations/{programme}` withdraws only the organisation it names
+- [ ] The mute and unmute routes of operations, workflows and notices each need `programme:switch`, and the service never declares `programme:switch` on its own manifest
 - [ ] Pausing, resuming or running an unmuted item on a component's registration token is refused with `FORBIDDEN`. The same act on a muted item is admitted with `programme:operate`
 - [ ] A notice is sent once when its fact first becomes true, and not again while the fact stays true
-- [ ] A notice on a muted item reaches nobody
+- [ ] A muted notice that advances reaches nobody, and its advance is recorded as not sent; once unmuted, its next advance is sent
 - [ ] Pausing a workflow starts no new run and lets a started run finish; `get_workflow` for a withdrawn workflow answers `NOT_FOUND`
 - [ ] `DELETE /v1/programme/installations/{programme}` stops every item under it and deletes no document
 - [ ] An `agent:` item is reported as not runnable while no model route is open to a service, and is never reported as having run

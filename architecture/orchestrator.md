@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 3.0.0
+version: 3.0.1
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -772,9 +772,9 @@ source of truth for them.
 The orchestrator is the trust anchor and it holds the operator and agent
 records and its own audit log, so it serves the administrative endpoints
 backed by that state, beside the tenant's model surface the CLI installs.
-It serves **only** those. Strategies, approvals and observations belong to the
-Lifecycle Agent, workflows to domain controllers, and peers to the federation
-layer; each provider specifies and serves its own, and
+It serves **only** those. Every other group belongs to the provider
+[`architecture/admin`](admin.md#the-admin-api-is-an-aggregate)'s provider
+table names for it; each provider specifies and serves its own, and
 [`architecture/admin`](admin.md) composes them behind one operator surface.
 
 Every endpoint here requires the stated capability from
