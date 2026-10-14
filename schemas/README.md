@@ -70,6 +70,7 @@ This applies to:
 | [framework.md](framework.md) | Framework blueprints — what building *with* a framework requires | `frameworks/<name>/` directories |
 | [standard.md](standard.md) | Industry standards — ISO, SOC 2, NIST, CSA — as JSON, and how a tenant adopts one: generated as a link and its own adjustments, never copied | `standards/` directory |
 | [programme.md](programme.md) | Programmes — which artifacts a body of work requires, what each answers, the recurring work it commits an organisation to, what else adopting it brings, and what an adoption records | `programmes/` directory |
+| [structures/](structures/) | The section structures a document is checked against — one file per structure, seeded and published, citing no standard. The form is declared in [programme.md](programme.md#the-structures-a-document-is-checked-against) | A spec's `structure`, and an organisation's own documents by kind |
 | [position.md](position.md) | Positions — the hand-written judgement a role brief cannot derive | `positions/` directory |
 | [policy-domain.md](policy-domain.md) | Policy domains — what a subject area covers, where it stops, and what a programme claiming it must provide | `policy-domains/` directory |
 | [kinds.md](kinds.md) | What sorts of thing the platform can talk about, what each drives, and which relations join them | Every tool that classifies, relates or scores content |
@@ -103,6 +104,7 @@ common.md (inherited by all)
 ├── framework.md (frameworks/<name>/ — building WITH a framework)
 ├── standard.md (standards/ — industry standards, as JSON)
 ├── programme.md (programmes/ — programme maps and artifact specifications)
+│   └── structures/ (the section structures a document is checked against)
 ├── position.md (positions/ — the hand-written half of a role brief)
 ├── policy-domain.md (policy-domains/ — what a subject area covers and requires)
 └── kinds.md (what sorts of thing exist — read at runtime, not checked against a document)

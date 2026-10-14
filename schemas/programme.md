@@ -485,8 +485,10 @@ tool reads it.
 
 A heading satisfies a section when it equals the title or an alias, ignoring
 case. A structure with no sections is refused, because it would report every
-document as complete; so is a section title given twice, because the checklist
-could satisfy only one of them.
+document as complete. So is one in which a title or an alias equals another
+title or alias of the same structure, ignoring case — two sections' titles, a
+title and another section's alias, or two aliases — because one heading would
+then satisfy two sections and the checklist could not say which.
 
 **The seeded structures cite no standard.** They are conventions of document
 writing, not obligations, and a framework clause written into them would be
@@ -495,13 +497,33 @@ twice, cited by a tenant that never adopted it. `authority` is how a tenant
 says a section is required by something it *has* adopted, and it is empty in
 every seeded file.
 
-**Which structure a document is checked against** is the `structure` of the
-spec that created it, and, for a document no spec created, the structure whose
-`id` is the document's kind as [`kinds.md`](kinds.md) classifies it. A structure
-declares no path of its own: a second list of folder names beside the
-classification stems in `kinds.md` would drift from them. A document whose kind
-names no structure has **no check**, and says so; it is never reported as
-complete.
+**Which structure a document is checked against**, first match wins:
+
+1. the `structure` in the document's own frontmatter, which a form's
+   `frontmatter:` block writes ([A form's `frontmatter:`](#a-forms-frontmatter));
+2. the `structure` of the spec that created it;
+3. for a document no form or spec created, its kind as [`kinds.md`](kinds.md)
+   classifies it, resolved through `specializes`: the structure whose `id` is
+   the kind, else the one whose `id` is the kind it specializes, and so on up
+   the chain. `document` is never reached this way — it means unclassified,
+   and an unclassified document is not checked as anything. So an `sop`,
+   runbook or playbook with no structure of its own is checked as a
+   `procedure`, while a `reference` has no check.
+
+A structure declares no path of its own: a second list of folder names beside
+the classification stems in `kinds.md` would drift from them. A document whose
+resolution ends without a structure has **no check**, and says so; it is never
+reported as complete.
+
+**Only an organisation's own documents fall back by kind.** Step 3 applies to
+what a tenant authors. Published content has no structure check: an industry
+standard delivered and adopted as [`standard.md`](standard.md) declares, and
+any file of this corpus read as a source. `kinds.md` classifies the `standards`
+and `schemas` segments as `standard`, so without this rule every adopted
+standard and every schema file — the files in [`structures/`](structures/)
+among them — would be reported as an organisation standard lacking Overview
+and Requirements: a gap in a document nobody in the organisation writes. A
+published file is reported as not checked, never as incomplete.
 
 **Whose copy is checked.** The seeded files are published content: delivered
 into a tenant, where an organisation may edit, add or remove structures, and
@@ -510,6 +532,14 @@ no copy of either. No route of [`architecture/content`](../architecture/content.
 yet names where a tenant's structures live, so a client that cannot read them
 reports that the check did not run rather than checking against a list of its
 own.
+
+**What tests this.** The corpus has no test harness of its own, and no test yet
+reads these files. The Verification Checklist row below is a person's check
+until Studio lane S19 (which reads these structures live and removes its own
+copies) adds a test against the pinned corpus that fails when a file in
+[`structures/`](structures/) does not parse, has no section, repeats a title or
+alias, or carries an `authority`; when a shipped spec's or form's `structure`
+names no file there; or when this section stops linking the directory.
 
 ### `path` is a suggestion
 
@@ -2215,7 +2245,7 @@ than naming a statute that does not exist.
 - [ ] Every operation says `why:`, in terms that answer somebody who finds it running at three in the morning
 - [ ] No operation declares `start: running` unless adopting the programme is genuinely meant to change behaviour that day
 - [ ] Every artifact's body is a brief for **this organisation** — not the document itself, and not a recital of the standard
-- [ ] Every `structure` a shipped spec names is the `id` of a file in [`structures/`](structures/), and every file there parses, has at least one section, repeats no title and carries no `authority`
+- [ ] Every `structure` a shipped spec or form names is the `id` of a file in [`structures/`](structures/), and every file there parses, has at least one section, repeats no title or alias and carries no `authority`
 
 ---
 
