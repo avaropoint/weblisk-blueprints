@@ -37,9 +37,8 @@ engine.
 **The domain-controller class is for a tenant's own business domains.** Entity
 context and scoring are a domain's own. Its workflows are definitions execution
 runs, fetched from the domain with `get_workflow`, and dispatch is execution's. Whether the
-agents it needs are present is registration today, below; the same
-architecture moves presence to leases the orchestrator holds, which
-[`orchestrator`](orchestrator.md) does not yet specify.
+agents it needs are present is read from each one's `lease_state` in the
+service directory, below.
 
 **Execution replaces the Workflow and Task agents.** The tenant service
 architecture the owner approved on 2026-10-05 — recorded in Weblisk Studio's

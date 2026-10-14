@@ -50,6 +50,10 @@ One file per standard, named for its `id`: `standards/<id>.json`.
 | `status` | enum | `active` · `superseded` · `withdrawn` |
 | `families` | array | its control families, below |
 
+**A file carrying `extends` is a generated standard**
+([Adopting a standard](#adopting-a-standard)): it requires only `id`, `extends`
+and `adjustments`, and every other field is read through the link.
+
 ## Optional fields
 
 | field | type | means |
@@ -182,7 +186,7 @@ relations point at.
 
 | field | type | means |
 |---|---|---|
-| `id` | string | the authority's own identifier — `A.5.15`, `COR-10`. **Never invented**: an auditor cites this |
+| `id` | string | the authority's own identifier — `A.5.15`, `COR-10`. **Never invented** for a published control: an auditor cites this. A control an organisation adds to its generated standard carries an id of its own, which no published control of the standard carries ([Adjustments](#adjustments-and-the-characteristics-they-answer)) |
 | `name` | string | short title |
 | `description` | string | what it requires |
 | `family` | string | the family `id` this belongs to |
@@ -266,7 +270,7 @@ citation and a programme's `conforms_to` resolve to it unchanged.
   "extends": {
     "standard": "standards/iso_27001.json",
     "source": "weblisk-blueprints",
-    "version": "2022",
+    "version": "2022, incorporating Amd 1:2024",
     "digest": "sha256:…",
     "revision": "4883cfa88c55769560f8287d4a2fb4c94c5a6c98"
   },
@@ -277,8 +281,10 @@ citation and a programme's `conforms_to` resolve to it unchanged.
     {"control": "A.8.24", "priority": "critical",
      "reason": "Holds payment card data",
      "basis": {"scope": "organisation", "characteristic": "data held"}},
-    {"add": {"id": "local-1", "family": "A.8", "name": "…", "description": "…",
-             "requires_procedure": true},
+    {"add": {"id": "local-1", "family": "TECH", "name": "…", "description": "…",
+             "priority": "high",
+             "requires_policy": false, "requires_procedure": true,
+             "requires_technical": false, "requires_evidence": true},
      "reason": "A contract requires it",
      "basis": {"scope": "organisation", "decision": true}}
   ]
@@ -295,10 +301,19 @@ citation and a programme's `conforms_to` resolve to it unchanged.
 its source; `source` is a locator, never an identity; `version` is the
 published edition as adopted; `digest` is `sha256:` over the published file's
 bytes when it was read; `revision` is the source's commit, full, or `none`.
-These are the per-file pin fields of
-[`programme.md`](programme.md#the-adoption-record), with `version` holding the
+They follow a programme's per-file `resolved` entry
+([`programme.md`](programme.md#the-adoption-record)) with three differences:
+there is one file, so one entry and no map of paths; `version` holds the
 **edition**, because a standard's version is its publisher's
-([Required fields](#required-fields)).
+([Required fields](#required-fields)); and `repository` appears only on a
+project's link, below, because what an organisation links is outside the tenant.
+
+**The generated file is the adoption record.** A standard has no `adoption.md`.
+Its key is the organisation and the standard's `id`. A second adoption is any
+`standards/<id>.json` carrying `extends` in the organisation's repositories,
+and is answered *already adopted* or refused as
+[`programme.md`](programme.md#adopting-twice-creates-nothing) says.
+Un-adopting is a person removing that file, and removes nothing else.
 
 **A generated standard carries no control it did not adjust.** The published
 families and controls are read through the link at the pinned digest. A file
@@ -315,7 +330,7 @@ Each adjustment names one published control, or adds one, and carries a
 | `priority` | a different priority, from the closed set |
 | `requires_policy` · `requires_procedure` · `requires_technical` · `requires_evidence` | a different answer to what kind of thing satisfies the control |
 | `note` | the organisation's reading of the control, in its own words, beside the authority's — never replacing it |
-| `add` | a control of the organisation's own, as a [control](#controls) whose `id` no published control of the standard carries, in a family the standard declares |
+| `add` | a control of the organisation's own, as a [control](#controls) whose `id` no published control of the standard carries, in a family the standard declares. It requires `id`, `family`, `name`, `description`, `priority` and the four `requires_*` flags; `framework` is the standard's `id` and may be left out; the rest are optional |
 
 `basis` says where the adjustment came from: the **scope** whose
 characteristic it answers — `tenant`, `organisation` or `project` — and the
@@ -338,8 +353,9 @@ project ([`architecture/content`](../architecture/content.md)), so the tenant's
 characteristics are applied in each organisation's generated standard, with
 `basis.scope: tenant`. A project that needs its own adjustments keeps a
 generated standard of its own in a repository at the project, whose `extends`
-links the **organisation's** generated standard — its path, the repository's
-`id` as `source`, its digest — rather than the published one. What a project is
+links the **organisation's** generated standard — its path as `standard`, the
+organisation repository's `id` as **`repository`**, its digest — rather than
+the published one. What a project is
 measured against is the published standard, then the organisation's
 adjustments, then the project's, each applied over the last. A project with no
 file of its own is measured against its organisation's. A project's file is a
@@ -368,8 +384,16 @@ The **source** a generated standard links is edited only where the person
 editing it holds write permission on that source — a standards repository the
 tenant keeps itself, for instance. Such an edit is a change to the source,
 recorded in the source's own history: every scope linking it then reads as
-`behind`, and takes it as an update. The corpus's published standards are never
-editable from a tenant; a change wanted there is a proposal to the publisher.
+`behind`, and takes it as an update. A tenant holds no write permission on the
+corpus, so a change wanted in a published standard is a proposal to the
+publisher.
+
+**What an export or an audit package carries.** An export or audit package that
+reports against a generated standard includes the linked standard's bytes, read
+at the pinned digest and verified against it, beside the generated file. A
+package carrying only the adjustments would be unreadable without the source,
+and one carrying bytes it had not verified would cite a ruler nobody can show
+was the one adopted.
 
 ### Updates to the published standard
 
@@ -410,7 +434,7 @@ same way: the project's link reads `behind`, and the project takes it.
 
 ## Verification Checklist
 
-- [ ] Every file in `standards/` is valid JSON and carries all nine required fields
+- [ ] Every published standard in this corpus is valid JSON and carries all nine required fields
 - [ ] The filename equals the `id`
 - [ ] Every `control.framework` equals the `id` of the standard it appears in
 - [ ] Every `control.family` names a family declared in that standard
@@ -431,5 +455,9 @@ same way: the project's link reads `behind`, and the project takes it.
 - [ ] No adjustment reaches the file without a person keeping it; a model's adjustment is a proposal
 - [ ] A project's generated standard links its organisation's, not the published one, and is a refinement, never a second adoption
 - [ ] A link that cannot be read at its pinned digest leaves the scope unscoreable, naming the link
-- [ ] A source a generated standard links is edited only under write permission on that source; the corpus's published standards never are
+- [ ] A source a generated standard links is edited only under write permission on that source, and a tenant holds none on the corpus
+- [ ] The generated file is the standard's adoption record: a second `standards/<id>.json` carrying `extends` at the organisation is answered *already adopted* or refused, and un-adopting removes that file and nothing else
+- [ ] A project's generated standard carries its organisation repository's `id` in `repository`, never in `source`
+- [ ] Every `add` carries `id`, `family`, `name`, `description`, `priority` and the four `requires_*` flags
+- [ ] An export or audit package against a generated standard includes the linked standard's bytes, verified against the pinned digest
 - [ ] A new edition is offered as a choice and a revised one as an update, each as a regenerated standard a person applies, with every adjustment naming a missing control reported, never dropped

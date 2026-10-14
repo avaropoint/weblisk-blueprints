@@ -163,7 +163,7 @@ table is what the judgement is made against.
 
 | class | edits |
 |---|---|
-| **MAJOR** | `id` changed · a tier removed or renamed · **any change to which artifacts a tier contains**, including moving one between tiers · an artifact dropped from the map · an `operations` entry removed or its `does` changed · a `workflows` entry removed, or a step added, removed or reordered, or a step's `task`, `approval`, `does` or `needs` changed · a workflow's `schedule`, `on`, `when`, `for` or `start` changed · a step's `escalate` changed · a `notices` entry removed or its `on` or `to` changed · a `skills` entry removed · a `domain_services` entry removed or its `blueprint` changed |
+| **MAJOR** | `id` changed · a tier removed or renamed · **any change to which artifacts a tier contains**, including moving one between tiers · an artifact dropped from the map · an `operations` entry removed or its `does` changed · a `workflows` entry removed, or a step added, removed or reordered, or a step's `task`, `approval`, `does` or `needs` changed · an operation's `agent:` changed · a workflow's `schedule`, `on`, `when`, `for` or `start` changed · a step's `agent:`, `after` or `escalate` changed · a `notices` entry removed or its `on` or `to` changed · a `skills` entry removed or its `file` changed · a `domain_services` entry removed or its `blueprint` changed |
 | **MINOR** | a new tier **above** the current top · an artifact placed at an existing tier · a new operation · a new workflow, notice or skill · a skill's `for` changed · a new `domain_services` entry · a new `domains` or `conforms_to` entry |
 | **PATCH** | `title` · `rationale` · the overview body · `order` · a `why` · a notice's `says` · the bytes of a skill file the map brings |
 
@@ -1628,6 +1628,12 @@ fires nothing, and taking an update is not an adoption and fires nothing
 either. Un-adopting and adopting again is a new adoption, and fires it again —
 the set-up work a returning programme owes is owed again.
 
+**A workflow installed paused hears `adopted` when it is first started**: the
+event is held for it, once, and delivered on first start. Workflows install
+paused by default, and an event delivered to a paused workflow and lost would
+mean the set-up work adoption owes never ran. Un-adopting discards an
+undelivered one.
+
 It is not on an operation's allow-list, because an operation is standing work
 and set-up is not; a `does:` or `agent:` step in a workflow started by
 `adopted` is how one-off machine work at adoption is declared.
@@ -1644,13 +1650,22 @@ twelve incidents is twelve investigations, and coalescing them — right for an
 operation, which looks at a pile — would close eleven of them unexamined. A row
 that is edited starts nothing, for the reason it emits nothing to an operation.
 
+**Rows added while the workflow is paused are not lost.** Each is held and
+delivered when the workflow is started, or, where it cannot be held, reported
+as missed, naming the row. A row is never dropped silently: an incident added
+while its workflow was paused and then forgotten is an investigation nobody
+knows is owed.
+
 This is safe where `on: [register.row_added]` is not, for the two reasons that
 event is refused there. **It names the register**, so "react to incidents" is
 sayable without reacting to every row everywhere. And **a run never starts
-itself**: a row written by a step of a run of this workflow carries that run,
-and does not start a run of the same workflow. A step of an incident workflow
-that records a corrective action in another register may start that
-register's workflow, once; it may not start its own.
+itself, directly or round a loop**: a row written by a run carries that run's
+chain — the run and every run that, through `for`, started it. A row whose
+chain already holds a run of workflow W does not start W. So a step of an
+incident workflow that records a corrective action in another register may
+start that register's workflow, once; and a step of that workflow writing back
+into the incident register starts nothing, because its chain already holds the
+incident workflow's run.
 
 `for` is exclusive of `schedule`, `on` and `when` because a run per record and
 a run per tick are different counts of the same work, and declaring both would
@@ -1976,7 +1991,7 @@ and notices installed under it: they stop, and their withdrawal is recorded.
 
 What the programme created stays. Documents and records are the
 organisation's, held under their own retention, and removing one is a separate
-act. A domain service that was built stays admitted until a person retires it.
+act. A domain service that was built stays registered until a person retires it.
 Adopting the same programme again later is a new adoption, which finds the
 files already there and reports an edited one as `edited`.
 
@@ -2007,6 +2022,16 @@ validator checks them, and no tenant runs the programme service, execution or
 notification that would receive them, so no shipped map declares one yet. **Who
 holds a position** stays configured by hand: it is tenant data, and belongs to
 the customer rather than to a programme.
+
+**No content entry records the run that wrote it**, so the chain
+[`for`](#for--one-run-per-record) relies on to stop a loop is not carried by any
+specified service yet.
+
+**No workflow with a person's step is installable yet.** An `approval` naming
+positions and a `task` have no field in `patterns/workflow`
+([How a workflow maps](#how-a-workflow-maps-onto-patternsworkflow)), so a
+workflow with either is reported at adoption as not installable — which today
+is every workflow a person takes part in.
 
 **`weblisk domain create` takes no blueprint path.** It is given a domain's
 name and resolves the spec itself
