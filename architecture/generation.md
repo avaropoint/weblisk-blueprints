@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.0.2
+version: 1.1.0
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -43,7 +43,7 @@ Checklist, and the conformance result.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - name: orchestrator-endpoints
@@ -54,7 +54,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/testing
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       behaviors:
         - name: conformance-suite
@@ -64,7 +64,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -96,7 +96,10 @@ requires:
 
 Four gates in ascending cost. Each is cheaper than the one after it and
 localises a failure further, so a fault is diagnosed at the earliest layer that
-can see it.
+can see it. Inside the repair loop a tree is read in another order (resolve,
+build, start and conformance-test, then assertions), stated once in [What a
+repair round reads, and in what
+order](#what-a-repair-round-reads-and-in-what-order).
 
 ---
 
@@ -151,7 +154,9 @@ interfaces:
 5. On acceptance, the file's top-level declarations are extracted and added to
    the accumulated declarations passed to every subsequent file.
 6. When every file has succeeded, all are written together.
-7. The gate runs: structure, coherence, properties, behaviour.
+7. The gate runs: structure, coherence, properties, behaviour. Inside the
+   repair loop, a tree is read in the order [What a repair round reads, and in
+   what order](#what-a-repair-round-reads-and-in-what-order) gives.
 8. The plan is recorded with the output as provenance.
 
 ---
@@ -670,8 +675,16 @@ with each other rather than that they are all broken.
 
 ## The verification gate
 
-Four layers, run in order, cheapest first. A failure at any layer stops the run:
-a later layer's result is meaningless once an earlier one has failed.
+Four layers, run in order, cheapest first. A failure at Layer 1 or Layer 2
+stops verification of that tree: a tree that is missing a file or does not
+build cannot be run, and a later layer's result is meaningless once an earlier
+one has failed. Inside the repair loop that failure is what a round repairs. A
+failure at Layer 3 does not void Layer 4. Inside the repair loop, which goes
+on while a repair can be aimed at a tree that does not build, does not start or
+has an assertion read unmet, a tree that builds is started and
+conformance-tested before its assertions are read, and those results stand
+whatever the assertions read. See [What a repair round reads, and in what
+order](#what-a-repair-round-reads-and-in-what-order).
 
 ### Layer 1 — Structure
 
@@ -766,7 +779,9 @@ conclusive and success is not. Every implementation MUST report five outcomes:
 
 `necessary` MUST NOT be counted as `verified`, and MUST NOT be folded into
 `unchecked` — the first is the fault this layer exists to prevent, the second
-discards a real result. Only `failed` may drive a repair.
+discards a real result. Among this layer's outcomes, only `failed` may drive a
+repair; inside the repair loop, rounds are driven by the model's readings
+instead ([below](#what-a-repair-round-reads-and-in-what-order)).
 
 `not-applicable` MUST NOT be folded into `unchecked` either. They call for
 different things: an unchecked assertion needs a human to look at it and an
@@ -828,10 +843,604 @@ to satisfy something it does not control.
 #### The loop ends when verification passes
 
 Layer 2 succeeding is not completion. A generator MUST continue while any
-assertion is `failed`, and MUST stop when the count of failures stops falling.
-Build errors and failing assertions MUST be counted separately: errors falling to
-zero and assertions then appearing is progress, and one counter reads it as a
-regression precisely when the loop begins doing the more valuable half of its job.
+assertion is read unmet (see *What a repair round reads, and in what order*),
+and MUST stop when two rounds in a row fail to improve on
+the best tree it has reached — see *A repair round is a transaction*. Building
+and conforming MUST be ranked as separate stages, with every tree that builds
+above every tree that does not. Errors falling to zero and assertions then
+appearing is progress; a single counter reads it as a regression just when the
+loop begins the more valuable half of its job.
+
+A generator MAY also stop at a **round ceiling**, a fixed number of rounds it
+sets so a run that keeps improving by a little forever still ends. The ceiling
+is a guard against a runaway loop, never the exit condition: a run that stops
+there ends as any other run does (see *A repair round is a transaction*, rules
+7 and 10), and its verdict says the rounds ran out. `weblisk` sets it at twelve.
+
+#### What a repair round reads, and in what order
+
+Each tree the loop measures, the tree it starts from and each tree a round or a
+retry makes, is read in this order:
+
+1. its dependencies are resolved;
+2. it is built (Layers 1 and 2);
+3. if it builds, the component is started and its conformance tests are run
+   (Layer 4);
+4. then, if it started and is not a retry's trial, its assertions are read
+   (Layer 3).
+
+A retry's trials are judged on steps 1 to 3 alone. The assertions are read
+once, on the tree the retry ends on, and only when the retry kept a repair and
+that tree builds and starts. A tree that builds and does not start is not read.
+
+A failed assertion does not void what steps 1 to 3 observed. Once a tree
+builds and starts, the loop goes on only while an assertion is read unmet: a
+failing conformance test refutes the verdict (rule 11) and does not by itself
+drive a round. Were the gate's stop rule applied here, the loop would never see
+a component start or a test answer, and could not tell a repair that stopped the
+component starting, or broke a passing test, from one that did not. The stop
+rule's reason does not hold between these two layers: a tree that does not build
+cannot be run, but an unmet assertion does not make a test's pass meaningless,
+because the test observed what it observed. The build, the start and the
+conformance tests are observations, and they judge a round first.
+
+**The loop's assertions are read by a model.** The checklist is given to a model
+verbatim, with the tree's source, and each assertion comes back as one of four
+readings:
+
+| Reading | Meaning |
+|---|---|
+| satisfied | the model read the source as meeting the assertion |
+| unmet | the model read the source as not meeting it |
+| unverifiable | the model answered that it could not tell from the source |
+| unanswered | the model gave the assertion no reading at all |
+
+These are not Layer 3's outcomes. Nothing mechanical settled them, and the same
+tree read twice can be read differently, so a reading MUST NOT be reported as a
+Layer 3 `verified` or `failed`. Of the four readings, only unmet drives a
+repair. The loop's rounds are driven by these readings alone: `weblisk` runs
+its mechanical Layer 3 check of the assertions once, after the loop, and
+reports it beside the verdict as advice, so a `failed` there does not drive a
+round. A reading that failed
+as a whole (the model could not be reached, or its answer could not be parsed)
+reports nothing unmet and refutes nothing: *the assertions were not read*.
+
+**The verdict on the tree the loop returns** is one of four values. The rows
+below are taken in order, as `weblisk` takes them, and the first that matches
+gives the value:
+
+| In order | Verdict |
+|---|---|
+| dependencies did not resolve, or the tree does not build, so nothing was run or read | `unchecked` |
+| the component was built and does not start | `failed` (refuted) |
+| its assertions were not read (the reading failed as a whole) | `inconclusive` |
+| the component declares no assertions | `unchecked` |
+| an assertion was read unmet | `failed` (refuted) |
+| an assertion was left unanswered, or none was satisfied | `inconclusive` |
+| otherwise: at least one assertion satisfied, none unmet or unanswered | `verified` |
+
+Rule 11 then applies on top of the row that matched, from the third row on (the
+tree builds and starts): a conformance test that counts against the tree makes
+the verdict `failed`. So `verified` means the tree builds and starts, no
+conformance test counts against it, and its assertions were read with none
+unmet or unanswered and at least one satisfied; and a component that declares
+no assertions is `unchecked` only while nothing counts against it.
+
+#### A repair round is a transaction
+
+A repair round rewrites several files against several requirements, and a repair
+that is right for its own requirement can be wrong for the tree. A
+content-service build reached a tree that compiled, ran, and satisfied 97
+assertions with 69 unmet. One round then repaired fourteen files, each against
+its own unmet assertion and each shown only its own source. One repair removed a
+struct field that other files read; another left a helper with a signature that
+five call sites did not match. The tree stopped compiling, the next round made it
+worse, and the run ended on the broken tree. The working tree existed nowhere,
+because nothing had kept it.
+
+A generator MUST treat every repair round as a transaction:
+
+1. **The tree the round starts from is kept**, with what was measured about it,
+   so it can be put back exactly. Every repair in the round is asked for against
+   that tree. None is kept, recorded as generation's output, or banked until the
+   round is judged.
+
+2. **Only a change is tried, and a repair is told what became of the last
+   one.** A repair that returns its file unchanged MUST NOT be tried. A round
+   left with nothing to try counts as a round without progress, and it is not
+   measured. Measuring it reads the same tree again, and a reader can answer
+   differently for one tree read twice: a luckier second reading of an
+   unchanged tree became the best tree and reset the count of rounds without
+   progress.
+
+   The prompt for a file whose latest repair was not kept MUST say why. Where
+   that repair was built, the prompt MUST also list the errors its build
+   reported that the tree it was tried on did not; a long list may be cut short
+   if it says how many were left out. A repair of the file that is kept clears
+   this. An undone round puts back the tree it started on, so without this the
+   next round's prompts are byte for byte the ones that produced the repair just
+   undone, and a model that answers one prompt alike twice returns the same
+   repair to be undone again.
+
+3. **The round is judged against where it started.** After its repairs are
+   applied, the tree is measured again, in the order *What a repair round
+   reads, and in what order* gives. The
+   round is **worse** when, against that tree:
+
+   - dependency resolution that succeeded now fails;
+   - a tree that built no longer builds;
+   - a failing build got further from compiling. Either a package both builds
+     show has more errors, however much another package improved; or a package
+     the earlier build showed is one the later build hides; or the build now
+     fails in a way whose distance from compiling cannot be read where before
+     it could. See *Ranking failing builds* below;
+   - a component that started no longer starts;
+   - a conformance test that was holding now fails.
+
+   A test is **holding** when its last answer on the line of kept trees was a
+   pass. A test that passed and then gave no answer (it timed out, or the
+   component stopped answering it) is still holding: an inconclusive outcome
+   establishes nothing, so it does not clear the pass before it. Judged against
+   the previous tree alone, one change can take a test from passing to
+   unreachable, which is allowed, and the next can take it from unreachable to
+   failing. Neither step then looks like a passing test broken.
+
+   **Revealed or made, a package shown worse is worse.** A round MUST be
+   undone when any package both builds show has more errors than it had on the
+   tree the round started from, and a repair tried on its own in the retry
+   (rule 4) MUST be discarded when any such package has more errors than on
+   the tree it was tried on. This holds even where the same change made an
+   error in that package go and the new errors stand at lines it did not alter. No error is
+   exempted as revealed rather than made.
+
+   The type checker hides errors as a failing package hides its importers.
+   Given `cfg := loadConfg()`, the compiler reports the undefined name and
+   nothing about `cfg`, whose type it never learned, and fixing the typo
+   reveals "cfg.Host undefined" and "cfg.Port undefined". No count of
+   diagnostics tells an error a change revealed from one it made, and an
+   exemption for the revealed kind let one package's improvement carry another
+   package's regression into the best tree.
+
+   The rule costs such a fix a round, not the fix. The prompt for the undone
+   repair's file lists the errors its build reported (rule 2), so the next
+   repair is shown them and can put them right along with the typo. Where what
+   a fix reveals stands in a file the fix did not change, no repair of the
+   fix's own file alone can be kept, and that package stays as the tree before
+   showed it.
+
+   **Losing sight of a package is not progress.** A package the earlier build
+   showed, which the later build hides, MUST count as worse, never as
+   unchanged. That holds when a round is judged, when a repair is tried on its
+   own in the retry, and when two trees are ranked (see *Ranking failing
+   builds* below). Hidden, its errors leave the count without one of them
+   being fixed. Where it is hidden because a package it imports went from
+   compiling to failing, that package is shown on both builds with more
+   errors, and the round is undone for it already. But a change that adds an
+   import of a package that already fails hides the importer, and every
+   package that imports it in turn, while no package shown on both builds
+   rises. Counted as unchanged, such a round could be kept for what it fixed
+   elsewhere, and whatever it did to the packages it hid would reach the best
+   tree unseen.
+
+   > **Gap — `weblisk` does not yet count a hidden package as worse.** When
+   > it judges a round, or a repair tried on its own, it compares only the
+   > packages both builds show, so a round that adds an import of a package
+   > that already fails, hiding the importer, is not undone for it. When it
+   > ranks two trees, a package the later build hides counts against the
+   > later tree only where the change touched that package's directory. One
+   > the change did not touch is taken to be as the earlier build showed it,
+   > so a dependency that starts failing, and hides its importers, can be
+   > outweighed by what improved elsewhere.
+
+   More assertions read unmet also makes a round worse, but only where both
+   trees' assertions were read and nothing observed shows the round did any
+   good, that is, when no fewer conformance tests count against the tree. Such
+   a round MUST be undone and MUST NOT be retried one repair at a time. The
+   retry judges only what is observed, so it would keep every repair and
+   rebuild the tree the round was undone for. None of its repairs is kept, and
+   the next round asks again from the tree the undone round started on.
+
+4. **A worse round is undone, then retried one repair at a time.** The kept
+   tree is restored, and the round's repairs are applied one at a time, a
+   repair across several files (see *Repairing a disagreement between files*)
+   as one, whole. These are the same responses, with no new model call. Each
+   repair MUST be judged against the tree the retry has kept so far, and kept only if that tree is no worse
+   for it. In particular, no conformance test that was holding at the start of
+   the round, or on any repair kept since, may fail. A repair that fails this is
+   discarded, and its requirement is reported as unrepaired, with the reason.
+
+5. **A repair MUST be shown the uses of what its file declares.** For each
+   package-level name a Go file declares (type, field, function, method,
+   variable, constant), and each export of a JavaScript or TypeScript file (the
+   forms below), the repair is given every place another file uses it. Being
+   shown the uses gives a single-file repair no authority over them. Where a
+   build of the trial shows its change breaking them, the repair is discarded,
+   and the change belongs to a repair across those files — see *Repairing a
+   disagreement between files*.
+
+   A break no build shows is not caught. A Go change whose broken uses sit in
+   an importer that a failing package hides, on the tree before and on the
+   trial alike, moves no count, and nothing undoes its round for it. A later
+   round that lets the build reach those uses, without touching the importer,
+   is not charged with them either: they stand in a package the build before
+   it hid, and its own change did not make them (see *Ranking failing builds*
+   below).
+
+   What a file in any other language declares is not read. Such a file is shown
+   no uses, no change to it is refused before a trial, and no error is charged
+   to its change as one the change made.
+
+   **An error is charged across files only through a dependency.** An error
+   that stands in one file MUST be charged to a change in another file only
+   through a dependency the generator establishes from the source. The file
+   holding the error imports the changed file or its package, or is in the
+   same Go package, and the error's line uses, through that import or package,
+   a declaration the change removed or re-signed. A word on the line that
+   matches the name MUST NOT be enough. The same word can be a field of
+   another type, a local variable, or a name another file declares, and an
+   error there is not the change's. A language whose imports the generator
+   cannot read MUST charge nothing across files, and an import it cannot
+   place, such as a path alias or a package name, establishes nothing. What a
+   charge does to the count is in *Ranking failing builds* below.
+
+   > **Gap — `weblisk` charges an error across files by spelling, not
+   > through a dependency.** In Go it charges an error only in a file of the
+   > changed file's package, or of a package that imports it where the name
+   > is exported, but on any line holding an identifier spelled as the
+   > removed or re-signed name, whatever that identifier refers to. In
+   > JavaScript and TypeScript it charges any line of any JavaScript or
+   > TypeScript file where the name appears as a word, comments and strings
+   > included, whether or not that file imports the changed one. Only a use
+   > of the default export, or of a star re-export, is traced through an
+   > import.
+
+   Some builds do not check where another file uses a name. Here that means
+   JavaScript and TypeScript, whose build may bundle or may not exist. For those
+   languages a repair MUST be refused before any trial when either of these
+   holds:
+
+   - it removes an export another file uses;
+   - it imports, from another planned file, a name that file does not export,
+     unless the tree before already had that same import of that same missing
+     name.
+
+   The refusal MUST name the export or import and where it is used. Each repair
+   MUST be judged twice:
+
+   - alone, against the tree the round started on;
+   - against that tree with every repair already kept this round applied.
+
+   A repair that clashes with an earlier one is refused, and the earlier one
+   stands. Every prompt in a round is built from the same tree, so one repair
+   naturally leans on a name another removes. It is judged alone as well because
+   an undone round retries its repairs on whatever subset was kept.
+
+   The export forms read are:
+
+   - declarations: function, class, interface, type, enum, namespace, written on
+     one line or across lines;
+   - every name a const, let or var export binds, destructured patterns
+     included;
+   - export lists and re-exports;
+   - `export * as ns from`;
+   - CommonJS `exports.a =`, `module.exports.a =`, `exports['a'] =` and
+     `module.exports = { … }`;
+   - the default export, however written (`export default`,
+     `export { x as default }`, `export =`, `module.exports = x`). It is used
+     wherever an importer binds the default (`import d from`,
+     `export { default } from`) or takes the whole module, which means
+     `require(…)` and `import(…)`;
+   - `export * from`, which is used wherever an importer binds names. A
+     namespace import (`import * as ns from`) binds names; it does not take the
+     whole module.
+
+   These are not read, and an implementation MUST NOT claim them:
+
+   - an export made by a call: `Object.assign(module.exports, …)`,
+     `Object.defineProperty(exports, …)`;
+   - a use through an import this pipeline cannot place: a path alias or a
+     package name;
+   - the default read through a namespace import as `ns.default`. A repair that
+     removes `export default` while an importer reads `ns.default` is not
+     refused;
+   - the default a CommonJS module is to an importer (below). It is not an
+     export a repair can be refused for removing, so a repair that rewrites
+     such a module as an ES module with no default is not refused.
+
+   A named import is never said to be missing from a file whose exports cannot
+   be closed: one that has `export * from`, an export made by a call, or
+   `module.exports` assigned anything but an object literal. A default import
+   is said to be missing only from an ES module, meaning a file with an
+   `export` statement, that has no default and no CommonJS export. A CommonJS
+   module is its own default, so a default import of one is never said to be
+   missing, and neither is a default import of a file that exports nothing.
+   `export * from` does not pass on a default, so a file that has it and no
+   default of its own lacks one like any other ES module. A changed signature
+   is not detected in these languages.
+
+6. **A package clash is repaired where it is.** The toolchain reports two
+   package clauses in one directory at the line that imports that directory, so
+   it names a file that cannot fix it. "found packages A (f1) and B (f2) in DIR"
+   MUST be asked of `DIR/f1` and `DIR/f2` together (of whichever of them the
+   plan holds), and each must be shown what package every file in the directory
+   declares. An importer blamed only for such a clash is not asked. A clash left
+   unrepaired is listed against its files.
+
+7. **The run ends on the best tree it reached, never on the last.** Trees are
+   ranked in this order:
+
+   - one whose dependencies resolve beats one whose do not;
+   - one that builds beats one that does not;
+   - when neither builds, the build that is further along — see *Ranking
+     failing builds* below;
+   - one that starts beats one that does not;
+   - then fewer conformance tests count against it. That means those that fail
+     on it, and those the other tree answered and it does not. Silencing a
+     failing test ties with failing it, and silencing a passing one loses to
+     passing it;
+   - then, only between two trees whose assertions were both read, fewer
+     assertions reported unmet, and then more assertions satisfied. Where
+     either tree's assertions were not read, the two tie here. A reading that
+     failed reports nothing unmet. Counted, it would outrank a read tree with
+     unmet assertions, become the best tree, and end the run inconclusive where
+     the read tree ends it refuted.
+
+   A tie is not an improvement. Progress is measured against the best tree, not
+   the previous round. Counting against the previous round read a tree that
+   built, then one with ten errors, then one with twenty, as a stall rather than
+   the regression it was. Two rounds in a row that do not improve on the best
+   tree end the run.
+
+   A round that is not worse is kept and becomes the base for the next round,
+   whether or not it beat the best tree. A tree that reads nothing left to
+   repair but is not the best MUST NOT end the run as complete. The best tree is
+   put back and the loop repairs from there, bounded by the stall count and the
+   round ceiling. A component that stopped answering every test can read with
+   every assertion met.
+
+   Unmet ranks before satisfied. The satisfied count moves with what the reader
+   left unverifiable or unanswered, so ranked first it would prefer the same
+   code read more decisively, with more of it refuted.
+
+8. **Only the best tree is banked, and only a tree the loop accepted is
+   recorded.** A repair is remembered because the tree it belongs to was the
+   best measured, not because it was received. The cache holds the best tree's
+   files, so a re-run, a resumed run included, starts from it.
+
+   The record of what generation wrote MUST move only when the disk holds a tree
+   the loop accepted:
+
+   - a round that was kept;
+   - a repair the retry kept;
+   - the tree a round started from, put back after an undo;
+   - the best tree, put back during the run or at its end.
+
+   A prepare step that rewrites a file the pipeline wrote (`go mod tidy`
+   rewriting `go.mod`) records that rewrite and nothing else. So an interrupt
+   while a trial is on disk leaves the trial's files refused as changed since
+   generation wrote them. An interrupt anywhere else leaves the record
+   describing the tree on disk.
+
+9. **What was not repaired is said.** The verdict the loop returns MUST list
+   every requirement still unmet on the best tree, with a reason; how a command
+   shows that list is the command's (see
+   [`architecture/cli`](cli.md#weblisk-component-name-init)):
+
+   - dependency resolution that fails;
+   - build errors, a package clash against its files;
+   - a startup failure;
+   - each conformance test that fails on it;
+   - each test that failed on an earlier tree and has given it no answer since
+     ("owed");
+   - each test that passed on an earlier tree and has given it no answer since;
+   - each assertion still read unmet.
+
+   Where the latest repair aimed at a requirement was discarded or refused, the
+   reason is what decided that: the build error it caused, the test it broke,
+   the shared name it changed or the missing name it imports and where that name
+   is used, that it returned its file unchanged, or that its round was read
+   worse and undone whole. The reason given for a requirement MUST come from the
+   latest attempt at it, so a repair kept in a later round clears the reason an
+   earlier attempt was discarded.
+
+10. **Whatever ends the loop, the best tree is what it leaves.** That includes
+    completion, no progress over two rounds, the round ceiling, a failure no
+    repair can be aimed at, assertions that cannot be read, and an error such as
+    a provider failure or a failed write. The loop MUST leave on disk the best
+    tree it reached, return it, record it, and describe it in the verdict it
+    returns to its caller, on this path as on every other. Where the best
+    tree's dependencies do not resolve, the loop MUST return its `unchecked`
+    verdict together with an error saying that dependency resolution failed,
+    because most such failures (a network failure, a missing toolchain) are not
+    faults in the source, and the run reports no build. What a command
+    prints of that verdict is the command's; see
+    [`architecture/cli`](cli.md#weblisk-component-name-init). When the
+    one-repair-at-a-time retry ends on an error after keeping repairs, the
+    tree it kept has been measured, and it MUST be considered for best before
+    the loop ends.
+
+    When the last build was of another tree, the best tree MUST be built again
+    once it is back on disk and before the loop returns. The build directory and
+    the verdict then both reflect an observation of the tree returned.
+
+    - Where the rebuild stops at a different stage than the tree was measured at
+      (dependencies, build, start), the rebuild is the answer, in either
+      direction. A tree that was built, started and died is refuted, because
+      that was observed. Any other disagreement is unchecked, because nothing
+      was read against the tree as it now stands.
+    - Where it stops at the same stage, what the rebuild observed (the
+      diagnostics, the startup failure, the conformance tests) is the answer for
+      everything it observed. The assertions, which a rebuild does not read, are
+      kept from the measurement. A test that failed when the tree was measured
+      and gives the rebuild no answer is still owed.
+
+    The list of what is unrepaired is derived from the same observation.
+
+    A write that fails part-way leaves neither tree on disk, and the loop MUST
+    NOT treat the tree it last wrote successfully as the tree on disk. Where the
+    loop cannot put the best tree back, its error MUST say so. No file the disk
+    holds differently from what the loop returns may be recorded as generation's
+    output, with one exception: a file a prepare step rewrote while the disk
+    held the tree returned, whose rewrite is recorded as item 8 says. The loop
+    returns `go.mod` as the pipeline wrote it, and the disk and the record hold
+    what `go mod tidy` made of it. Where the disk does not hold the tree
+    returned, a prepare step's last rewrite was of another tree, and the
+    exception does not apply.
+
+    The verdict MUST say what became of each undone round: for a retried round,
+    how many of its repairs were kept.
+
+11. **The verdict follows the conformance tests too.** The verdict on the best
+    tree MUST NOT be verified while a conformance test fails on it, or failed on
+    an earlier tree and has given it no answer since. Either one refutes the
+    tree, whatever the assertions read, met or unreadable, and the verdict names
+    the tests. Read from the assertions alone, a repair that made a failing
+    test's handler stop answering was read as meeting the assertion that test
+    checks. The run ended "verified", and the component's own conformance run,
+    seeing that test inconclusive rather than failing, let the command succeed.
+
+    An owed test is not an **unrun** test in the sense of
+    [`architecture/testing`](testing.md), which says an unrun test MUST NOT
+    fail the build. An owed test ran, on an earlier tree of the same run, and
+    failed; the best tree's silence has not cleared that failure, so it counts
+    as the failure it last gave.
+
+12. **A build is bounded and interruptible.** A build's timeout MUST stop
+    everything its build line started. An interrupt, termination request or
+    hangup that stops the CLI MUST stop the build the CLI is running. A timeout
+    that stops only the shell leaves the compiler holding the output open, so
+    the bound bounds nothing. A build that outlives an interrupted CLI writes
+    into the tenant after the command that started it has gone.
+
+    > **Gap — on Windows, `weblisk`'s build timeout stops only the shell.**
+    > `weblisk` is released there, and there a timeout ends the shell that
+    > runs the build line (`cmd /C …`) and nothing that shell started, so the
+    > compiler runs on past the bound, and the CLI stops waiting for its
+    > output rather than stopping it. Ending the whole tree there takes a Job
+    > Object, which the CLI does not create. Everywhere else the build line
+    > runs in a process group of its own, and the timeout kills the group.
+
+**Ranking failing builds: what hides what.** A failing build is ranked by what
+hides what, not by its error count. A compiler does not report everything wrong
+with a tree; it reports what it reached.
+
+- A Go package with a parse error ("syntax error:" in cmd/compile's words) is
+  never type-checked, so only its syntax errors are seen. A scanner error (an
+  unterminated string, an invalid character, an unterminated comment, an unknown
+  escape) is not a parse error. The package is type-checked, its type errors are
+  reported beside it, and they are counted with it.
+- A Go package that does not compile hides every error in the packages that
+  import it, directly or through another.
+
+So each package is judged by what its own build could show of it, and two builds
+are compared package by package. What hides what is read for Go only; a build in
+any other language is compared as *Other builds* below says.
+
+- A package both show is compared with itself: every error when both show every
+  error, and its syntax errors when either shows only those.
+- A package the earlier build hid, which the change did not touch, goes
+  uncounted: a fix that let it be seen is not charged with what it revealed.
+- A package the earlier build hid, which the change touched, is charged with
+  every error the later build shows there, the most the change can have done.
+  Where the later build cannot count it either, the later tree is not nearer
+  compiling, whatever else improved.
+- A package the later build shows less of than the earlier build did makes the
+  later tree further from compiling, whatever else improved and whether or not
+  the change touched it. That includes a package the later build hides
+  entirely: losing sight of a package is not progress (rule 3).
+- An error on the later tree at a use of a name that the change removed or
+  re-signed was not revealed; the change made it. It counts against the package
+  whose change made it. Only the tree a change made is charged with what the
+  change made, and only a use established through a dependency is charged,
+  never a word that matches (rule 5).
+
+The ranking sums these comparisons. Undoing a round does not: one package shown
+worse is a regression however much another improved, and whether the change
+revealed its new errors or made them, as one holding test that now fails is. A
+package the later build hides counts as worse too, whether or not a package it
+imports rose to hide it (rule 3).
+
+**Other builds.** A build in any other language is not read for what hides
+what. No directory hides another, and nothing in a directory is hidden behind
+a syntax error, so two of its failing builds are compared directory by
+directory, each on the count of the diagnostics that name a file there. A
+diagnostic charged to a change (rule 5) counts against the directory of the
+file whose change made it rather than its own, as in a Go build, and where the
+generator cannot read a language's imports nothing is charged; see rule 5's gap
+for how `weblisk` charges in JavaScript and TypeScript. A fix that lets such a
+build reach errors in another directory has them counted against that
+directory, and its round is undone for them.
+
+A diagnostic names a file only when its line, after any leading space, begins
+with the file's path and line, as `path:line: message` or
+`path:line:col: message`, which is how Go's tools write it. Measured
+2026-10-01 on real output, neither of the corpus's other compilers writes
+that. cargo, the build in
+[`languages/rust`](../languages/rust.md), puts the position on a line of its
+own beneath the message (`--> server/src/main.rs:2:13`). `tsc`, which
+[`platforms/node`](../platforms/node.md) builds with, writes
+`src/a.ts(1,7): error TS2322: …` when its output is piped. Each of their failing
+builds therefore names no file the plan owns. It ranks with the failures below,
+and a loop whose current tree fails that way stops, because no repair can be
+aimed at it.
+
+A failure whose distance from compiling cannot be read ranks below every failure
+that can, and two such failures tie. These are:
+
+- a package-loading failure, wherever the toolchain attributes it;
+- a failure that names no file the plan owns;
+- a dependency fault;
+- a build stopped at its timeout.
+
+A Go package-loading failure MUST be recognised by where the toolchain reports
+it, not by its words. The compiler reports every error under a "# importpath"
+line naming the package. The go command's loader reports before any package is
+compiled, under no such line. A Go diagnostic under no such line is a load
+failure when it stands at a line the loader reads:
+
+- a file's package clause and imports;
+- any line of a file whose header does not parse;
+- a `//go:embed` directive;
+- or any line of a file the plan does not hold.
+
+A load failure that names no position ("found packages … in DIR", "import cycle
+not allowed") is recognised by its words, on a line the toolchain reports under
+no "# importpath" line. A compile error that quotes those words stands under
+its package's line and MUST NOT be read as a load failure.
+
+> **Gap — `weblisk` matches load-failure words on every line.** It matches
+> them on every line of a build's output, positioned or not and under a
+> "# importpath" line or not, so a compile error that quotes them is read as a
+> load failure, and its build ranks as one whose distance from compiling
+> cannot be read. Measured with go1.27.1, `cannot use "no Go files in"
+> (untyped string constant) as int value in variable declaration`, standing
+> under its package's "# importpath" line, is read that way.
+
+Words alone do not find the rest. Measured with go1.27.1, each of the following
+names a planned file and line, hides every type error in the build, and was
+missed by a list of phrases:
+
+- "use of internal package … not allowed";
+- "case-insensitive import collision";
+- "pattern P: no matching files found";
+- go/build's "expected ';', found …" in an import block.
+
+`go vet` also prints its findings under no header. A finding in a function body
+is no line the loader reads, and is counted as the finding it is. The plan's
+build line is what is run, so this has to hold for any line a platform blueprint
+may give.
+
+**The counts must be whole.** A compiler that stops at ten errors in a
+dependency package pins every comparison at ten. The `have` and `want` lines
+printed beneath a mismatched call are one error, not three. Error counts used to
+judge a round MUST be uncapped, in every package the build compiles, and MUST
+count each diagnostic once. Output naming no file beside real diagnostics is the
+build commenting on them, and is not counted.
+
+**Assertions judged by a model are the least reliable of these readings**,
+because the same tree read twice can differ, so they rank last. The
+one-repair-at-a-time retry is judged only on what is observed: the build, the
+running component and its conformance tests.
 
 ### Layer 4 — Behaviour
 
@@ -978,8 +1587,33 @@ and "nothing contradicted it".
 - [ ] Structural checks read the artifact's parse tree; substring checks are treated as one-way
 - [ ] An artifact that does not parse contributes no structure to any check
 - [ ] Each refuted assertion names the artifacts it is about, attributed by the check that refuted it
-- [ ] The loop continues while any assertion is `failed` and stops when the failure count stops falling
-- [ ] Build errors and failing assertions are counted separately for progress
-- [ ] A failure at any layer prevents later layers from reporting a result
+- [ ] The loop continues while any assertion is read unmet and stops after two rounds that do not improve on the best tree reached
+- [ ] Building and conforming are ranked as separate stages; every tree that builds ranks above every tree that does not
+- [ ] Assertions rank two trees only when both trees' assertions were read; otherwise the two tie on them
+- [ ] Every repair round starts from a kept copy of the tree, and every repair in it is asked for against that tree
+- [ ] A repair that returns its file unchanged is not tried, and a round with nothing to try is not measured
+- [ ] The next repair of a file is told why its last repair was not kept and what that attempt's build reported; a kept repair clears it
+- [ ] A round is worse when resolution, the build or the start stops working, a package a failing build shows has more errors, a package the earlier failing build showed is hidden on the later one, a failing build becomes one whose distance from compiling cannot be read, or a holding conformance test fails — and a worse round is undone
+- [ ] A conformance test that passed and has given no answer since is still held to passing, in the retry and in later rounds
+- [ ] A round, or a repair tried alone in the retry, that leaves any package both builds show with more errors is undone, even where the same change fixed an error in that package and the new errors stand at lines it did not alter
+- [ ] A package the earlier failing build showed and the later one hides counts as worse, never as unchanged, when a round is judged, when a repair is tried alone, and when trees are ranked, including where what hid it is an added import of a package that already failed
+- [ ] An error is charged to a change in another file only where the file holding it imports the changed file or its package, or shares its Go package, and the line uses a declaration the change removed or re-signed; a matching word charges nothing, and a language whose imports cannot be read charges nothing across files
+- [ ] A round with more assertions read unmet, and not observed worse, is undone and not retried, but only where both trees' assertions were read and no fewer conformance tests count against the tree
+- [ ] An undone round's responses are retried one repair at a time, a repair across files whole, with no new model call, each kept only if the tree it was tried on is no worse and no holding test fails
+- [ ] Every repair of a Go, JavaScript or TypeScript file is shown each other file's uses of the names its file declares; where the build cannot detect a broken use, a repair that removes a used export or imports a name not exported is refused before it is tried, judged alone and together with the round's earlier kept repairs
+- [ ] A default import is said to be missing only from an ES module with no default and no CommonJS export; a namespace import binds names, and only `require` and `import()` take the whole module
+- [ ] A package clash is asked of the two files that declare the packages, not of the importer the toolchain reports it at
+- [ ] A failing Go build is ranked by what hides what: only a parse error hides a package's type errors, a package hides its importers, packages are compared one by one, and an error at a use of a name a change removed counts against that change; a failing build in any other language is compared directory by directory, with charged diagnostics counted where the change was made
+- [ ] A failing build that is a package-loading failure (one standing under no compile header at a line the loader reads, or a positionless one under no compile header whose words say so), names no planned file, is a dependency fault, or was stopped at its timeout never ranks above a failure that can be counted
+- [ ] A tree that reads nothing left to repair but is not the best does not end the run; the best tree is put back and repaired from
+- [ ] The run ends on the best tree reached, whatever ended it; that tree is on disk, is built again once put back when the last build was of another tree, is what is recorded, and is what the verdict describes; where the rebuild disagrees, the rebuild is the answer
+- [ ] A write that fails part-way ends on the best tree or says it could not, and no file the disk holds differently from what is returned is recorded, except a prepare step's rewrite made while the disk held the tree returned
+- [ ] The record of generation's output moves only when the disk holds a tree the loop accepted
+- [ ] Only the best tree's files are banked; no repair is banked before its tree is measured
+- [ ] The run names every requirement left unrepaired, including tests that failed or passed and then went quiet, and for each discarded or refused repair, why
+- [ ] The verdict is never verified while a conformance test fails on the best tree or failed earlier and has given it no answer since
+- [ ] Build error counts are uncapped and count each diagnostic once
+- [ ] A build is stopped at its timeout with everything its line started, and stops when the CLI is interrupted
+- [ ] A failure at Layer 1 or Layer 2 prevents later layers from reporting a result; inside the repair loop a tree that builds is started and conformance-tested before its assertions are read, and a failed assertion does not void those results
 - [ ] Generated file paths are validated for containment before any write
 - [ ] The model, blueprint versions and the plan used are recorded with the output

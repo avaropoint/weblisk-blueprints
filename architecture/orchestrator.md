@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 2.27.9
-requires: [protocol/identity, protocol/types, architecture/storage, architecture/observability, architecture/admin, patterns/scope]
+version: 3.0.0
+requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
 -->
@@ -59,7 +59,7 @@ this replaces.
 declaration:
   requires:
     - blueprint: protocol/identity
-      version: ">=1.14.4 <2.0.0"
+      version: ">=1.14.4 <3.0.0"
       bindings:
         types:
           - name: SigningKeyPair
@@ -73,19 +73,29 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: protocol/types
-      version: ">=1.18.3 <3.0.0"
+      version: ">=3.0.0 <4.0.0"
       bindings:
         types:
           - name: RegisterRequest
             fields_used: [manifest, signature, timestamp]
           - name: RegisterResponse
-            fields_used: [agent_id, token, expires_at, services]
+            fields_used: [agent_id, token, expires_at, services, lease]
           - name: ServiceDirectory
             fields_used: [services, routing_table, namespaces]
           # Each entry republishes what the registration recorded, the routes
           # at which the component admits a person's request on a pass included
           - name: ServiceEntry
-            fields_used: [name, url, public_key, capabilities, status, address_provenance, pass_routes]
+            fields_used: [name, url, public_key, capabilities, lease_state, lease_expires_at, address_provenance, pass_routes]
+          # A component's presence is the lease it renews; the orchestrator
+          # grants it, records its readiness and never probes for it
+          - name: Lease
+            fields_used: [agent_id, duration, renewed_at, expires_at]
+          - name: LeaseRenewal
+            fields_used: [ready, checks, timestamp]
+          - name: Liveness
+            fields_used: [live]
+          - name: Readiness
+            fields_used: [ready]
           - name: ChannelRequest
             fields_used: [from_agent, to_agent, purpose]
           - name: ChannelGrant
@@ -120,18 +130,8 @@ declaration:
         compatible: validate-and-adopt
         breaking: version-bump
         removed: halt-immediately
-    - blueprint: architecture/observability
-      version: ">=1.0.0 <2.0.0"
-      bindings:
-        types:
-          - name: HealthStatus
-            fields_used: [status, name, version, uptime]
-      on_change:
-        compatible: validate-and-adopt
-        breaking: version-bump
-        removed: halt-immediately
     - blueprint: architecture/admin
-      version: ">=2.35.0 <3.0.0"
+      version: ">=3.0.0 <4.0.0"
       bindings:
         behaviors:
           - name: operator-registration
@@ -167,6 +167,16 @@ declaration:
         compatible: validate-and-adopt
         breaking: version-bump
         removed: halt-immediately
+    - blueprint: patterns/logging
+      version: ">=2.0.0 <3.0.0"
+      bindings:
+        behaviors:
+          - name: structured-logging
+          - name: redaction-at-emission
+      on_change:
+        compatible: validate-and-adopt
+        breaking: version-bump
+        removed: halt-immediately
   serves:
     - method: POST
       path: "/v1/register"
@@ -192,10 +202,18 @@ declaration:
       path: "/v1/token/exchange"
       operation: TokenExchange
       auth: "token"
+    - method: POST
+      path: "/v1/lease"
+      operation: Lease
+      auth: "token"
     - method: GET
-      path: "/v1/health"
-      operation: Health
-      auth: "identity"
+      path: "/livez"
+      operation: Livez
+      auth: "none"
+    - method: GET
+      path: "/readyz"
+      operation: Readyz
+      auth: "none"
     - method: GET
       path: "/v1/audit"
       operation: Audit
@@ -366,10 +384,14 @@ declaration:
     - check: endpoint-routed
       endpoint: POST /v1/token/exchange
     - check: endpoint-routed
-      endpoint: GET /v1/health
+      endpoint: POST /v1/lease
+    - check: endpoint-routed
+      endpoint: GET /livez
+    - check: endpoint-routed
+      endpoint: GET /readyz
     - check: type-has-keys
       type: RegisterResponse
-      keys: [agent_id, token, expires_at, services, orchestrator, protocol_version]
+      keys: [agent_id, token, expires_at, services, lease, orchestrator, protocol_version]
     - check: type-has-keys
       type: ChannelGrant
       keys: [channel_id, channel_token, target_url, target_pub_key, expires_at]
@@ -540,9 +562,9 @@ itself, and it cannot hold both answers at once.
 > to add; this document states only what the orchestrator does with it once it
 > exists.
 
-> **Gap — nothing can currently reach `verified`.** `GET /v1/health` is
-> unauthenticated, so a probe that answers proves something is listening, which
-> is not the claim. `verified` needs a probe the registered key signs over a
+> **Gap — nothing can currently reach `verified`.** `GET /livez` and
+> `GET /readyz` are unauthenticated, so a probe that answers proves something is
+> listening, which is not the claim. `verified` needs a probe the registered key signs over a
 > nonce the orchestrator chose, and no endpoint in this document provides one.
 > Until one does, `declared` is the strongest rung a tenant can occupy — which
 > is enough to authorise, and is honest about what it did not prove.
@@ -702,19 +724,22 @@ component's data behind the trust anchor's identity.
 
 1. **Agent Registration** — accept agents, verify identity, issue tokens,
    enforce namespace ownership
-2. **Service Directory** — maintain and broadcast the registry of live
-   agents, the routing table, and the namespace map
+2. **Service Directory** — maintain and broadcast the registry of
+   registered agents with each one's lease state, the routing table, and the
+   namespace map
 3. **Namespace Control** — enforce exclusive namespace ownership at
    registration, reserve `system.*` for itself
 4. **Channel Brokering** — establish secure direct connections between agents
 5. **Auth Enforcement** — verify tokens on all protected endpoints
 6. **Audit Logging** — record every operation in an append-only log
-7. **Health Aggregation** — report overall system health
+7. **Presence** — grant each registered component a lease, record the
+   readiness each renewal carries, and read a lapsed lease as `unknown`
+   ([Presence](#presence))
 8. **System Events** — publish to `system.*` namespace (agent lifecycle events)
 
 See [Protocol Specification](../protocol/spec.md) for the authoritative
 endpoint contracts.
-See [Agent Architecture](agent.md) for the 6-endpoint agent protocol.
+See [Agent Architecture](agent.md) for the 7-endpoint agent protocol.
 See [Lifecycle](lifecycle.md) for the continuous optimization loop.
 
 ## Endpoints
@@ -728,7 +753,9 @@ See [Lifecycle](lifecycle.md) for the continuous optimization loop.
 | GET | /v1/services | Services | yes | Service directory (routing table + namespaces) |
 | POST | /v1/channel | Channel | yes | Request direct agent-to-agent channel |
 | POST | /v1/rotate-key | RotateKey | yes | Rotate an agent's ML-DSA-65 key pair. Dual-signed with the current and the new key, which proves possession of both; the caller's existing token still authenticates the request |
-| GET | /v1/health | Health | no | Orchestrator and hub health |
+| POST | /v1/lease | Lease | yes | Renew the caller's lease, carrying its readiness — see [Presence](#presence) |
+| GET | /livez | Livez | no | The orchestrator's own liveness, for the supervisor that restarts it |
+| GET | /readyz | Readyz | no | The orchestrator's own readiness, for the supervisor waiting on its start and the probe of the orchestrator, which holds no lease |
 | GET | /v1/audit | Audit | yes | Query audit log |
 | POST | /v1/token/exchange | TokenExchange | yes | Exchange the operator token a person has just presented to the admin gateway for a pass addressed to one component, for the admin gateway's registration and no other — see [Token Exchange](#token-exchange-post-v1tokenexchange) |
 | GET | /v1/model/ceiling | ModelCeiling | yes | What a model backend may be sent now, and where it is reached, for a registered component (platform-provided — see [A model is a destination](#a-model-is-a-destination)) |
@@ -774,7 +801,7 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 | Method | Path | Operation | Capability | Purpose |
 |--------|------|-----------|-----------|---------|
 | POST | /v1/admin/operators/register | OperatorRegister | — | Register an operator, with no token. The first presents the bootstrap secret this orchestrator emitted and is admitted as admin; every later one is recorded pending until an operator whose request can use `admin:*` approves it (`OperatorApprove`). Returns a token ONLY when registration also approved — see [`architecture/admin`](admin.md#the-registration-response) |
-| POST | /v1/admin/operators/token | OperatorToken | — | Issue an attestation token to a caller who signs `{hub_id, name, timestamp}`, naming this hub, with the private key matching this orchestrator's record. Unauthenticated by token, because it is what issues them. Deprecated as a way to an operator token — see [`architecture/admin`](admin.md#the-identity-signs-only-to-attest) |
+| POST | /v1/admin/operators/token | OperatorToken | — | Issue an attestation token to a caller who signs `{hub_id, jti, name, timestamp}`, naming this hub, with the private key matching this orchestrator's record, refusing a `jti` already recorded for that operator with `TOKEN_REQUEST_REPLAYED`. Unauthenticated by token, because it is what issues them. Deprecated as a way to an operator token — see [`architecture/admin`](admin.md#the-identity-signs-only-to-attest) |
 | POST | /v1/admin/credentials/challenge | CredentialChallenge | — | Issue a single-use nonce for a credential |
 | POST | /v1/admin/credentials/token | CredentialToken | — | Issue an operator token to a credential that signed the nonce. The ordinary way to an operator token |
 | POST | /v1/admin/hub/proof | HubProof | — | Sign, with the key `hub_id` names, that this hub is reached at one of its admin addresses. Unauthenticated by token, because a client asks it before it holds anything here. Answered `501` `HUB_PROOF_UNAVAILABLE` until `weblisk/hub-proof/v1` has test vectors — see [`architecture/admin`](admin.md#proving-the-hub-at-an-address) |
@@ -787,8 +814,8 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 | DELETE | /v1/admin/operators/{name} | OperatorDelete | `admin:*` | Remove an operator |
 | POST | /v1/admin/operators/{name}/approve | OperatorApprove | `admin:*` | Admit a registered operator |
 | PUT | /v1/admin/operators/{name}/role | OperatorRole | `admin:*` | Change an operator's role |
-| GET | /v1/admin/agents | AdminAgentList | `admin:read` | Agents with what the registry holds of each: name, type, version, status, `registered_at` and `last_seen`, and no metrics, which another component holds ([`architecture/admin`](admin.md#get-v1adminagents)) |
-| GET | /v1/admin/agents/{name} | AdminAgentGet | `admin:read` | Agent detail — its [AgentEntry](#agententry) without the token: `manifest`, `agent_id`, `status`, `registered_at` and `last_seen` ([`architecture/admin`](admin.md#get-v1adminagentsname)), and no metrics or recent tasks, which this orchestrator neither holds nor handles. The entry's `token` is never answered |
+| GET | /v1/admin/agents | AdminAgentList | `admin:read` | Agents with what the registry holds of each: name, type, version, `lease_state`, `registered_at` and `last_seen`, and no metrics, which another component holds ([`architecture/admin`](admin.md#get-v1adminagents)) |
+| GET | /v1/admin/agents/{name} | AdminAgentGet | `admin:read` | Agent detail — its [AgentEntry](#agententry) without the token: `manifest`, `agent_id`, `lease`, `last_renewal`, `registered_at` and `last_seen` ([`architecture/admin`](admin.md#get-v1adminagentsname)), and no metrics or recent tasks, which this orchestrator neither holds nor handles. The entry's `token` is never answered |
 | POST | /v1/admin/agents/{name}/deregister | AdminAgentDeregister | `admin:*` | Force-deregister an agent |
 | GET | /v1/admin/overview | AdminOverview | `admin:read` | Summary of the state this orchestrator holds |
 | GET | /v1/admin/audit | AdminAuditList | `admin:audit` | This orchestrator's audit log, with the query parameters and the answer of `GET /v1/audit` ([`protocol/spec`](../protocol/spec.md#get-v1audit)). The route a person reads it at; `GET /v1/audit` is a registered component's, and refuses a person's token ([Auth Middleware](#auth-middleware), step 6) |
@@ -1216,7 +1243,7 @@ REGISTRATION          agent → POST /v1/register
                         → refuse reserved namespaces, refuse conflicts
                         → store agent, claim namespaces, build routes
                         → audit, mint token
-                        → publish system.agent.registered
+                        → publish system.agent.registered (unless a token renewal: step 10)
                         → broadcast the directory to every agent
 
 DISCOVERY             agent → GET /v1/services
@@ -1344,16 +1371,27 @@ for the authoritative registration contract.
     - Claims: sub=agent_name, iss="orchestrator", cap=manifest.capabilities,
       identity_id=fingerprint(manifest.public_key)
     - Expiry: 24 hours (configurable via token TTL setting)
-6.  Store agent in registry:
-    {manifest, agentID, token, registeredAt, lastSeen, status: "online"}
+6.  Store agent in registry ({manifest, agentID, token, registeredAt,
+    lastSeen} and its lease, as an AgentEntry). The lease is granted, or on
+    a re-registration carried over, as protocol/spec §POST /v1/register
+    step 8 says, and nowhere else
     Its ServiceEntry carries manifest.pass_routes unchanged, which is where
     the admin gateway learns what a person's request may reach on this
     component and what each needs (protocol/types, PassRoute)
 7.  Build routing table entries for this agent's subscriptions:
     For each subscription → add RouteEntry to routing_table[pattern]
 8.  Log audit entry: actor=orchestrator, action=register, target=agent_name
-9.  Respond with RegisterResponse (includes agent_id, token, service directory)
-10. Publish system.agent.registered event (scope: "*")
+9.  Respond with RegisterResponse (includes agent_id, token, service directory
+    and the lease)
+10. Publish system.agent.registered (scope: "*") unless the agent
+    re-registered with an unchanged manifest over a lease that is still
+    current. So a first registration, a changed manifest, and a
+    re-registration that step 6 grants a fresh lease (over a lapsed lease,
+    or over one from before this orchestrator last started) each publish,
+    and a token renewal publishes nothing. A component restarted with an
+    unchanged manifest before its lease lapsed cannot be told from a token
+    renewal here: it publishes nothing, and the renewal it sends as soon as
+    its registration is answered carries its readiness
 11. Asynchronously broadcast updated ServiceDirectory to ALL OTHER agents
     via POST /v1/services (includes routing_table and namespaces)
 ```
@@ -1370,19 +1408,13 @@ for the authoritative registration contract.
 
 ### Domain Dependency Tracking
 
-When `manifest.type = "domain"`, the orchestrator tracks whether the
-domain's `required_agents` are all registered:
-
-```
-1. Extract required_agents from manifest
-2. Check each against current registry
-3. Store domain dependency status:
-   - "ready": all required agents registered
-   - "degraded": some missing (log which)
-4. Include dependency status in ServiceDirectory
-5. On future registrations: re-evaluate all domains that list the
-   newly-registered agent in required_agents
-```
+When `manifest.type = "domain"`, the orchestrator records the domain's
+`required_agents` with its manifest and computes nothing from them. Whether a
+domain can serve is its own readiness, carried on its own lease
+([Presence](#presence)): it renews `ready: false`, its `checks` naming each
+required agent whose lease does not read `ready` in the directory it holds,
+until all of them do. A second domain status kept here would be a second
+presence fact that could disagree with the lease.
 
 ---
 
@@ -1417,7 +1449,8 @@ routing table and namespace map:
       "url": "http://localhost:9801",
       "public_key": "<ML-DSA-65 public key (base64url)>",
       "capabilities": ["file:read", "agent:message"],
-      "status": "online",
+      "lease_state": "ready",
+      "lease_expires_at": 1712160030,
       "address_provenance": "self-asserted"
     }
   ],
@@ -1489,7 +1522,7 @@ never block.
 
 ## Auth Middleware
 
-Applied to all endpoints except `/v1/health`, `POST /v1/register`, the four
+Applied to all endpoints except `GET /livez`, `GET /readyz`, `POST /v1/register`, the four
 operator routes that establish or issue tokens — `OperatorRegister`,
 `OperatorToken`, `CredentialChallenge` and `CredentialToken` — `HubProof`,
 which a client asks before it holds anything here, and `OperatorKeyChange`,
@@ -1631,11 +1664,24 @@ events that all agents may subscribe to:
 
 | Topic | Scope | Published When |
 |-------|-------|----------------|
-| `system.agent.registered` | `*` | New agent successfully registered |
+| `system.agent.registered` | `*` | An agent registered, except a re-registration with an unchanged manifest over a lease still current, such as a token renewal (Registration Flow, step 10) |
 | `system.agent.deregistered` | `*` | Agent deregistered |
 | `system.model.agreement_recorded` | `*` | A person recorded a model provider agreement. Carries its `id`, `party`, `backends`, `models`, `level`, `not_after` and `recorded_by` |
 | `system.model.agreement_withdrawn` | `*` | A person withdrew one. Carries its `id`, `backends` and `withdrawn_by` |
 | `system.shutdown` | `*` | Orchestrator is shutting down gracefully |
+
+`system.agent.registered` and `system.agent.deregistered` are also the tenant's
+**deploy markers**: a component that is upgraded or reconfigured registers a
+changed manifest, one that starts after it deregistered registers with no
+stored entry, one that starts after its lease lapsed (a crash, a kill, a long
+stop) is granted a fresh lease, and one that stops cleanly deregisters, so
+telemetry places these two on the investigator's timeline and needs no other
+record of a deployment. A token renewal publishes nothing, so it is not a
+deployment. One start is not marked: a restart with an unchanged manifest
+quicker than the lease lapses, which registration cannot tell from a token
+renewal (Registration Flow, step 10). A lease that lapses or recovers is not
+an event: it is the entry's `lease_state`, carried by the next directory
+broadcast.
 
 System events are published via the same HTTP-based pub/sub mechanism.
 The orchestrator resolves subscribers from its own routing table and
@@ -1674,31 +1720,48 @@ Every operation creates an AuditEntry:
 | `model_set` | The tenant's model configuration about to be changed, before and after |
 | `model_complete` | A completion: what it will ask, before anything else, and what ran, when it ends |
 
-Log to stderr in real-time AND persist to append-only flat-file
-storage (JSONL).
-
-Format: `[audit] HH:MM:SS actor → target: detail [status]`
+Each entry is persisted to append-only flat-file storage (JSONL), which is the
+record, and echoed to standard output as one log line whose `log_type` is
+`audit` ([`patterns/logging`](../patterns/logging.md)).
 
 ---
 
-## Health (GET /v1/health)
+## Presence
 
-No auth. Returns:
+A registered component is present for as long as it holds a current lease, and
+ready when its last renewal said so. The types and the three states are
+[`protocol/types`](../protocol/types.md#presence)'; the route is
+[`protocol/spec`](../protocol/spec.md#post-v1lease)'s. Leases follow the
+Kubernetes model: the holder renews, and nobody probes.
 
-```json
-{
-  "name": "orchestrator",
-  "status": "healthy",
-  "version": "2.0.0",
-  "uptime": 3600,
-  "metrics": {
-    "agents": 8,
-    "domains": 3,
-    "channels": 2,
-    "namespaces": 7
-  }
-}
-```
+What the orchestrator MUST do when a registration grants a lease, a renewal
+arrives or a lease lapses is [`protocol/spec`](../protocol/spec.md#post-v1register)'s
+(§POST /v1/register, §POST /v1/lease); how an entry reads is
+[`protocol/types`](../protocol/types.md#leasestate)'s. Its lease lasts
+`lease_duration` ([Configuration](#configuration)), and a deregistration ends
+it with the registration. What is the orchestrator's own is below.
+
+The orchestrator **never probes** a registered component for its presence or
+readiness, and keeps no timer that calls one for them: a lapsed lease reads `unknown` and stays in the directory,
+neither removed nor reported as failed, until the component renews or
+deregisters. Restarting a component that stopped answering is the supervisor's
+on its host, which reads `GET /livez`; judging whether a component is serving
+its users well is telemetry's. **The directory and its leases are the one
+authority for what is running and present**, so every reader asks the
+directory and none keeps a second record of presence.
+
+The orchestrator holds no lease of its own. It serves `GET /livez` and
+`GET /readyz` like every component ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)),
+and it is ready once its registry, namespace map and audit log are loaded and
+its listener is open (Startup Sequence, step 5). It is the one internal
+component telemetry probes, since it cannot report itself to itself; no
+registered component is polled for its presence or readiness by telemetry
+either.
+
+An orchestrator that restarts reads every lease it holds as `unknown` until
+each component renews: it heard nothing while it was down, and says so. A
+component that registers again after the restart first reads `not_ready`
+until it renews (protocol/spec §POST /v1/register, step 8).
 
 ---
 
@@ -1716,8 +1779,9 @@ and [protocol/types.md](../protocol/types.md) for type definitions.
 - **Routing Table** — Map of topic pattern → []RouteEntry. Rebuilt from
   agent subscriptions at registration. Distributed as part of the
   service directory.
-- **Domain Dependency Map** — Map of domain name → `{required_agents: [], status}`.
-  Recalculated on every registration/deregistration.
+- **Leases** — per agent, the lease and its last renewal, held on the
+  registry's entry ([AgentEntry](#agententry)). Its state is derived when read,
+  never stored, because it changes with the clock.
 - **Channel Registry** — Map of channel ID → active channel info, with
   1-hour TTL. Expired channels cleaned up periodically.
 - **Audit Log** — Append-only flat-file (JSONL). In-memory buffer for
@@ -1733,6 +1797,7 @@ and [protocol/types.md](../protocol/types.md) for type definitions.
 | Identity key path | `--keys` | — | Implementation-defined |
 | Audit log path | `--audit` | — | Implementation-defined |
 | Channel TTL | — | — | `3600` (1 hour) |
+| Lease duration, how long a lease lasts from each renewal | — | `orchestrator.lease_duration` ([`schemas/config`](../schemas/config.md#orchestrator)) | `30s` |
 | Admin addresses, the origins the admin gateway is reached at | — | `orchestrator.admin_addresses` ([`schemas/config`](../schemas/config.md#orchestrator)) | none |
 | The addresses the admin gateway's requests arrive from | — | `orchestrator.admin_gateway_from` ([`schemas/config`](../schemas/config.md#orchestrator)) | none |
 
@@ -1775,12 +1840,17 @@ types:
         name: LastSeen
         type: int64
         required: true
-        description: "Unix epoch seconds of the last health check or request"
-      status:
-        name: Status
-        type: string
+        description: "Unix epoch seconds of the last request received from the agent"
+      lease:
+        name: Lease
+        type: Lease
         required: true
-        description: "`online`, `offline` or `degraded`"
+        description: "The agent's current lease (protocol/types, Lease). Past its `expires_at` the entry reads `unknown`"
+      last_renewal:
+        name: LastRenewal
+        type: LeaseRenewal
+        required: false
+        description: "The last renewal received (protocol/types, LeaseRenewal). Absent until the first renewal, when the entry reads `not_ready`"
 ```
 
 ### ModelConfig
@@ -2067,6 +2137,7 @@ agents hold, which is theirs.
 ## Verification Checklist
 - [ ] `POST /v1/admin/operators/token` issues a token to an approved operator whose signature verifies against the stored public key — an attestation token, per `architecture/admin`
 - [ ] `POST /v1/admin/operators/token` requires no bearer token — it is the endpoint that issues them
+- [ ] `POST /v1/admin/operators/token` refuses a request with no `jti` with `INVALID_REQUEST`, and one whose `jti` it has recorded for that operator with `TOKEN_REQUEST_REPLAYED`, as `architecture/admin`'s `attestation-token-issuance` states
 - [ ] An operator token carries the role and capabilities from the orchestrator's own record, never from the request
 - [ ] `POST /v1/admin/credentials/challenge` and `POST /v1/admin/credentials/token` require no bearer token, and every other operator route refuses a token whose operator or credential is no longer live
 - [ ] The credential routes are served with the Operation names declared above: `CredentialChallenge`, `CredentialToken`, `CredentialAttest`, `CredentialList` and `CredentialRevoke`
@@ -2090,7 +2161,7 @@ agents hold, which is theirs.
 - [ ] Service directory broadcast to ALL agents after every registration/deregistration
 - [ ] `POST /v1/register` refuses with `409 ADDRESS_CONFLICT` when the registered `url` contradicts the address the tenant declared for that component
 - [ ] Every `ServiceEntry` carries `address_provenance`, and an entry the orchestrator has not matched against the tenant's declaration reports `self-asserted` rather than omitting the field
-- [ ] `address_provenance` is never reported as `verified` on the strength of an unauthenticated `GET /v1/health` probe
+- [ ] `address_provenance` is never reported as `verified` on the strength of an unauthenticated `GET /livez` or `GET /readyz` probe
 - [ ] A `ChannelGrant` names a `target_url` only where the orchestrator would publish that address as `declared`
 - [ ] A `ChannelGrant`'s capabilities are the intersection of the requester's and the target's registered manifest, and no wider on either side
 - [ ] `POST /v1/channel` verifies `from_agent` matches token.sub
@@ -2098,11 +2169,16 @@ agents hold, which is theirs.
 - [ ] Channel tokens expire after configured TTL
 - [ ] Auth middleware rejects unauthenticated requests on protected endpoints
 - [ ] On a `/v1/admin/*` route, Auth Middleware refuses with `FORBIDDEN`, before any handler, an operator token whose role carries the route's capability but whose `cap` does not name it, and reads a token only from the `Authorization` header
-- [ ] `GET /v1/health` returns 200 without auth with agent/domain/channel/namespace counts
-- [ ] system.agent.registered event published after successful registration
+- [ ] `GET /livez` and `GET /readyz` answer without auth with `live` or `ready` alone, and no count, version or name
+- [ ] A first `POST /v1/register` grants a `Lease` of `orchestrator.lease_duration`, and the entry reads `not_ready` until the first renewal; a re-registration with an unchanged manifest over a current lease leaves its last renewal and `expires_at` unchanged, and one with a changed manifest, over a lapsed lease or over a lease from before the orchestrator's last start is granted a fresh lease that reads `not_ready` until the first renewal
+- [ ] An entry whose lease is past `expires_at` reads `lease_state` `unknown`, stays in the directory, and is never reported `ready`
+- [ ] A renewal at `POST /v1/lease` after a lapse restores the lease without a new registration
+- [ ] The orchestrator sends no request to a registered component to learn its presence or readiness, and has no setting that times, bounds or counts such a request
+- [ ] A change of an entry's `lease_state` is followed by a `ServiceDirectory` broadcast
+- [ ] system.agent.registered published after every registration except a re-registration with an unchanged manifest over a current lease, which publishes nothing
 - [ ] system.agent.deregistered event published after deregistration
-- [ ] Every operation creates an `AuditEntry` logged to stderr and persisted to JSONL
-- [ ] Domain dependency status recalculated on registration/deregistration
+- [ ] Every operation creates an `AuditEntry`, persisted to JSONL and echoed to stdout as an `audit` log line
+- [ ] The orchestrator keeps no domain status of its own: a domain's readiness is its lease
 - [ ] Orchestrator does NOT handle tasks, strategies, context, observations, or approvals
 - [ ] Administrative endpoints are gated on the capability each declares — an `admin:` capability, `llm:chat` or `model:attest` — carried in the caller's token, not on a separate role model
 - [ ] `POST /v1/admin/complete` refuses with `FORBIDDEN` a token that cannot use `llm:chat`, one carrying `admin:read` or `admin:*` without it included, and sends nothing to a backend
@@ -2119,7 +2195,7 @@ agents hold, which is theirs.
 - [ ] The orchestrator serves only the administrative endpoints backed by state it owns — operators, agents, its audit log, its own overview, and the tenant's model surface the CLI installs
 - [ ] `GET /v1/admin/audit` and `GET /v1/admin/audit/export` answer a request that can use `admin:audit` and refuse any other with `FORBIDDEN`, an agent token with `CREDENTIAL_REQUIRED`; the export answers the entries the list would for the same filters, as JSON where `format` is `json` or absent and as RFC 4180 CSV with a header row where it is `csv`, a field beginning with `=`, `+`, `-`, `@`, a tab or a carriage return written with a single quote before it, and refuses any other `format` with 400 `INVALID_REQUEST`
 - [ ] `/v1/admin/overview` reports only figures this orchestrator holds, and never reports a figure another component owns, as zero or otherwise
-- [ ] `GET /v1/admin/agents/{name}` answers the agent's `manifest`, `agent_id`, `status`, `registered_at` and `last_seen`, and no `token` member, so the registration token its `AgentEntry` holds, live for up to 24 hours and carrying the agent's capabilities, reaches no operator
+- [ ] `GET /v1/admin/agents/{name}` answers the agent's `manifest`, `agent_id`, `lease`, `last_renewal`, `registered_at` and `last_seen`, and no `status` or `token` member, so the registration token its `AgentEntry` holds, live for up to 24 hours and carrying the agent's capabilities, reaches no operator
 - [ ] `POST /v1/admin/complete` with no `scope` is refused with `SCOPE_MISSING`, one above the ceiling `GET /v1/admin/model/ceiling` reports for the backend and model it would run is refused with `SCOPE_CEILING_EXCEEDED`, and one at `restricted` is refused whatever the ceiling; none of them runs a backend
 - [ ] `POST /v1/admin/model/agreements` and `DELETE /v1/admin/model/agreements/{id}` refuse a token without `model:attest` with `FORBIDDEN`, including one holding `admin:*`, and a service's or an agent's token with `CREDENTIAL_REQUIRED`
 - [ ] A `PUT /v1/admin/model` on a token carrying `admin:*` and not `model:attest` that sets a name a current agreement lists, and changes anything of it but its models, `model` and the models `roles` gives, or held another name before, withdraws that agreement, names it in its answer, and `GET /v1/admin/model/ceiling` then answers that name `internal`

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: content-git
-version: 2.0.0
+version: 2.1.0
 requires: [architecture/content, patterns/content-identity, protocol/identity, patterns/secrets, patterns/principal-identity]
 platform: any
 tier: free
@@ -66,7 +66,7 @@ all of what this blueprint says about it.
 ```yaml
 requires:
   - blueprint: architecture/content
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       types:
         - name: ContentChange
@@ -109,14 +109,14 @@ requires:
   # Rules 6 to 10, which hold the remote's private key, and the scope of the
   # quantum-vulnerable ban, which allows it to be classical
   - blueprint: protocol/identity
-    version: ">=1.5.0 <2.0.0"
+    version: ">=1.5.0 <3.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 
   - blueprint: patterns/secrets
-    version: ">=1.1.0 <2.0.0"
+    version: ">=1.1.0 <3.0.0"
     bindings:
       behaviors:
         # Where the remote's private key is held
@@ -258,7 +258,7 @@ contracts:
         - A process that must reach another repository allows only the transport it needs, on that process alone - file, for the record mirror to fetch from its store; ssh, to push to a remote or ask a remote's head; and, with no credential, the transports of a remote's read addresses, to test anonymous read
         - The service runs only these git commands - init, rev-parse, symbolic-ref, for-each-ref, cat-file, ls-tree, ls-files, check-ignore, hash-object, read-tree, update-index, write-tree, commit-tree, update-ref, merge-base, rev-list, diff-tree with --no-ext-diff and --no-textconv, config reading the store's own file, fetch run in the record mirror from its store, push from the record mirror to a remote, and ls-remote against a remote
         - The service never runs gc, repack or prune on a store, and never checks out, resets, merges, rebases or stashes
-        - The git binary is found once, at start, by absolute path. Below version 2.38.0, the first release that honours safe.directory given with -c (earlier ones read it only from system or global configuration, which the environment above empties, and refuse a store another user owns), or where no git is found, the backend is unavailable. The service does not exit, health reports degraded naming the backend and what was found, and every operation on the backend's repositories answers CONTENT_UNREADABLE
+        - The git binary is found once, at start, by absolute path. Below version 2.38.0, the first release that honours safe.directory given with -c (earlier ones read it only from system or global configuration, which the environment above empties, and refuse a store another user owns), or where no git is found, the backend is unavailable. The service does not exit, its lease checks name the backend not_ready and it logs what was found, and every operation on the backend's repositories answers CONTENT_UNREADABLE
 
     - name: git-control-census
       description: What an adoption census reports about the store's control state
@@ -283,7 +283,7 @@ contracts:
       rules:
         - A repository is diverted when its line is missing, when the line does not descend from the record mirror's line, when the store has become partial, or when its backend is unavailable
         - A repository with a working tree is also diverted when HEAD does not name the line, when a merge, rebase, cherry-pick, revert or bisect is in progress, or when the index has unmerged entries
-        - While a repository is diverted, every read and write answers CONTENT_UNREADABLE, with identity unknown, never current and never stale. Health reports degraded naming the repository and the reason, and backend_report carries it
+        - While a repository is diverted, every read and write answers CONTENT_UNREADABLE, with identity unknown, never current and never stale. The lease checks name the repository not_ready and the reason, and backend_report carries it
         - Nothing is repaired automatically. A diverted repository is served again once the condition has cleared, which is checked on each request and at re-verification
 
     - name: git-remote-destination
@@ -747,9 +747,9 @@ from the line's, returning both of those digests.
 - [ ] Adopting a store with a detached HEAD, or whose working tree differs from its line, is refused with `CONTENT_LINE_UNSETTLED`, and the census's `backend_report` names the reason
 - [ ] The census over a git store reports `keeps_history` true, and adopting one whose declaration carries no `scope_floor` is refused with `CONTENT_SCOPE_UNDECLARED`
 - [ ] An adoption whose store gained a configured remote after the census is refused with `CONTENT_PRECONDITION_FAILED`
-- [ ] After a person resets the line to an earlier commit, every read and write answers `CONTENT_UNREADABLE`, health reports degraded naming `line-rewritten`, and nothing in the store is changed by the service
+- [ ] After a person resets the line to an earlier commit, every read and write answers `CONTENT_UNREADABLE`, the service's lease `checks` name `line-rewritten` `not_ready`, and nothing in the store is changed by the service
 - [ ] A path inside a nested repository, and a path the line records as a symbolic link, are refused with `CONTENT_RESERVED_PATH`
-- [ ] With git below 2.38.0 on the host, the service starts, health reports degraded naming the backend, and reads of its repositories answer `CONTENT_UNREADABLE`
+- [ ] With git below 2.38.0 on the host, the service starts, its lease `checks` name the backend `not_ready`, and reads of its repositories answer `CONTENT_UNREADABLE`
 - [ ] `tamper_evident` is false after an anchored commit is removed from the record mirror, and the ceiling is recomputed
 - [ ] A remote on a `git-remote` backend returns `credential` as an OpenSSH `ssh-ed25519` public key, and the private key appears in no response, log or event, and in no file at any time, including while a push runs
 - [ ] Outside development, a remote's private key is held in a store that meets `protocol/identity` rule 8, never under file permissions alone

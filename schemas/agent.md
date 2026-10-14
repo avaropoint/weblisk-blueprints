@@ -60,7 +60,7 @@ at the listed position.
 | 5 | Configuration | `## Configuration` | yaml:config | **Yes** | Runtime parameters in YAML |
 | 6 | Types | `## Types` | yaml:types | **Yes** | Data structures in YAML |
 | 7 | Storage | `## Storage` | yaml:storage | Conditional | Required if agent persists data |
-| 8 | Endpoints | `## Endpoints` | table | Conditional | HTTP surface beyond the six protocol endpoints. **Required if the agent serves any** — same shape and rules as `schemas/architecture.md` |
+| 8 | Endpoints | `## Endpoints` | table | Conditional | HTTP surface beyond the seven protocol endpoints. **Required if the agent serves any** — same shape and rules as `schemas/architecture.md` |
 | 9 | State Machine | `## State Machine` | yaml:state_machine | **Yes** | Agent and entity state transitions |
 | 10 | Lifecycle | `## Lifecycle` | yaml:health | **Yes** | Startup, shutdown, health, self-update |
 | 11 | Triggers | `## Triggers` | yaml:triggers | **Yes** | Events, schedules, messages that activate the agent |
@@ -124,10 +124,10 @@ See [common.md](common.md) Configuration Section for full specification.
 
 ### Endpoints (`## Endpoints`)
 
-**Required if the agent serves HTTP beyond the six protocol endpoints** that
+**Required if the agent serves HTTP beyond the seven protocol endpoints** that
 `architecture/agent` gives every agent (`/v1/describe`, `/v1/execute`,
-`/v1/health`, `/v1/message`, `/v1/services`, `/v1/event`). Those six are the
-protocol's and are not restated here.
+`/v1/message`, `/v1/services`, `/v1/event`, and the probes `/livez` and
+`/readyz`). Those seven are the protocol's and are not restated here.
 
 Same table, same required `Operation` column, and the same rules — defined once
 in [`schemas/architecture.md`](architecture.md#endpoints-endpoints). A serving
@@ -253,28 +253,32 @@ Step N — Step Name
 
 #### Health
 
-Declares health endpoint response for each state:
+Declares, for each readiness, the conditions that produce it: what
+`GET /readyz` answers and what each lease renewal carries
+([`patterns/observability`](../patterns/observability.md#health-endpoint)).
+Health is liveness and readiness only; counts and timestamps are metrics.
 
 ```yaml
 health:
-  healthy:
+  ready:
     conditions: [list]
-    response:
-      status: healthy
-      details: {fields}
+    checks: [list]
+    lease: ready true, with checks marking each of these that holds as not_ready
 
-  degraded:
+  not_ready:
     conditions: [list]
-    response:
-      status: degraded
-      details: {fields}
-
-  unhealthy:
-    conditions: [list]
-    response:
-      status: unhealthy
-      details: {fields}
+    lease: ready false, its checks naming each subsystem above not_ready
 ```
+
+Readiness has two values, and the declaration names no third. `ready`'s
+conditions describe the agent serving fully; it stays ready until a
+`not_ready` condition holds. `ready.checks` lists what can be short while it
+still serves (a dependency retrying, a load near a limit, its own state
+machine's `degraded` state): each is a subsystem's readiness, carried in the
+lease's `checks` ([LeaseRenewal](../protocol/types.md#leaserenewal)), and
+none changes the agent's own, so the lease state stays `ready`. How it is
+serving meanwhile is telemetry's to judge
+([`architecture/observability`](../architecture/observability.md)).
 
 #### Self-Update
 
@@ -692,7 +696,7 @@ philosophy. Must be self-contained.>
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -703,15 +707,16 @@ requires:
           methods: [POST]
           request_type: AgentMessage
           response_fields: [status, response]
-        - path: /v1/health
+        - path: /v1/lease
           methods: [POST]
-          response_fields: [status, details]
+          request_type: LeaseRenewal
+          response_fields: [expires_at]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -721,15 +726,15 @@ requires:
         - name: AgentManifest
           fields_used: [name, version, port, capabilities, public_key, url]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
-        - name: HealthStatus
-          fields_used: [status, checks]
+          fields_used: [from, to, action, payload, trace_id, span_id]
+        - name: LeaseRenewal
+          fields_used: [ready, checks]
     on_change:
       compatible: validate
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -747,11 +752,11 @@ requires:
 
 extends:
   - pattern: patterns/observability
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       patterns:
-        - behavior: health-endpoint
-          parameters: [status, details]
+        - behavior: health-reporting
+          parameters: []
         - behavior: metrics
           parameters: [gauge, counter, histogram]
     on_change:
@@ -955,7 +960,7 @@ Step 6 — Subscribe to Events
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port, <agent-specific-fields>}
+  Log: process.ready {port, <agent-specific-fields>}
 ```
 
 ### Shutdown Sequence
@@ -981,7 +986,7 @@ Step N-1 — Close Storage
   Validates:   Connection closed
 
 Step N — Exit
-  Log: lifecycle.stopped {uptime, <metrics>}
+  Log: process.stopped {uptime, <metrics>}
   agent_state → retired
 ```
 
@@ -989,23 +994,14 @@ Step N — Exit
 
 ```yaml
 health:
-  healthy:
+  ready:
     conditions: [<condition-list>]
-    response:
-      status: healthy
-      details: {<field-list>}
+    checks: [<condition-list>]
+    lease: ready true, with checks marking each of these that holds as not_ready
 
-  degraded:
+  not_ready:
     conditions: [<condition-list>]
-    response:
-      status: degraded
-      details: {<field-list>}
-
-  unhealthy:
-    conditions: [<condition-list>]
-    response:
-      status: unhealthy
-      details: {<field-list>}
+    lease: ready false, its checks naming each subsystem above not_ready
 ```
 
 ### Self-Update
@@ -1015,7 +1011,7 @@ Step 1 — Validate New Blueprint
 Step 2 — Check Migration
 Step 3 — Execute Migration (if needed, with rollback)
 Step 4 — Reload Configuration
-Final: Log lifecycle.version_updated
+Final: Log process.version_updated
 ```
 
 ---

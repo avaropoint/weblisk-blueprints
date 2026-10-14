@@ -4,6 +4,12 @@
 what they bind** — 80 types and 6 behaviours. Every one is
 accounted for below.
 
+Those counts predate the change that narrowed health to liveness and
+readiness. It removed both `HealthStatus` rows below (from
+`architecture/observability.md` and `patterns/deployment.md`) by retiring the
+binding itself ([RETIRED.md](RETIRED.md)), so those two rows are kept as the
+record of what was measured, not as open bindings.
+
 A binding is what generation reads to know a thing exists. An unbound one means the
 model is asked to produce something with no definition, so it invents one — and
 nothing about that is visible in the generated code afterwards.
@@ -66,7 +72,7 @@ and does not, or a binding that should not be there.
 | `architecture/data-security.md` | `FederationPeer` | `protocol/federation` |
 | `architecture/enforcement.md` | `ServiceDirectory` | `architecture/orchestrator` |
 | `architecture/generation.md` | `protocol-types` | `protocol/types` |
-| `architecture/observability.md` | `HealthStatus` | `architecture/agent` |
+| `architecture/observability.md` | `HealthStatus` | `architecture/agent` (retired with the binding, RETIRED.md) |
 | `architecture/observability.md` | `ServiceDirectory` | `architecture/orchestrator` |
 | `architecture/threat-model.md` | `AuditEntry` | `architecture/observability` |
 | `architecture/threat-model.md` | `DataContract` | `patterns/contract` |
@@ -84,7 +90,7 @@ and does not, or a binding that should not be there.
 | `patterns/auth-token.md` | `Identity` | `protocol/identity` |
 | `patterns/command.md` | `AgentManifest` | `architecture/agent` |
 | `patterns/command.md` | `FieldType` | `protocol/types` |
-| `patterns/deployment.md` | `HealthStatus` | `architecture/orchestrator` |
+| `patterns/deployment.md` | `HealthStatus` | `architecture/orchestrator` (retired with the binding, RETIRED.md) |
 | `patterns/deployment.md` | `OrchestratorConfig` | `architecture/orchestrator` |
 | `patterns/domain-controller.md` | `Feedback` | `architecture/lifecycle` |
 | `patterns/domain-controller.md` | `Identity` | `protocol/identity` |

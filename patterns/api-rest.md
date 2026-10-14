@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: api-rest
-version: 1.0.1
+version: 1.0.2
 requires: [protocol/types]
 platform: any
 tier: free
@@ -28,7 +28,7 @@ built-in — not bolted on.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: ErrorResponse

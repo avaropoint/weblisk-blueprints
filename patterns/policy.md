@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: policy
-version: 1.0.3
+version: 1.0.4
 requires: [protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -43,7 +43,7 @@ reporting belong to `patterns/governance`, which consumes this engine.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: ErrorResponse

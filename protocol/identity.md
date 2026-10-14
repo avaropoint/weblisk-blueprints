@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 1.14.6
+version: 2.0.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -118,7 +118,7 @@ of hash functions.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.15.0 <3.0.0"
+    version: ">=1.15.0 <4.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -255,7 +255,7 @@ When `kdf = none`:
    during the decrypt operation. This binds the implementation, which never
    writes a passphrase anywhere; a secret source MAY keep one under its own
    protection, as [`protocol/secret-source`](secret-source.md) describes.
-5. Failed passphrase attempts log `security.key_decrypt_failed` and
+5. Failed passphrase attempts log `identity.key_decrypt_failed` and
    exit with code 2 (auth error). No retry loop — the operator
    re-runs the command.
 

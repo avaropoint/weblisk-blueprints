@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scheduling
-version: 1.0.1
+version: 1.0.2
 requires: [protocol/types, patterns/messaging, patterns/state-machine, patterns/storage]
 platform: any
 tier: free
@@ -44,7 +44,7 @@ policies, and target actions.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: EventEnvelope
@@ -56,7 +56,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish

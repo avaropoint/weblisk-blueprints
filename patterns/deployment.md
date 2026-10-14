@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: deployment
-version: 1.0.2
+version: 2.0.0
 requires: [protocol/types, architecture/orchestrator]
 platform: any
 tier: free
@@ -29,11 +29,13 @@ safely, and automate the build-test-deploy pipeline.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
-        - name: HealthStatus
-          fields_used: [status]
+        - name: Liveness
+          fields_used: [live]
+        - name: Readiness
+          fields_used: [ready]
         - name: ErrorResponse
           fields_used: [error, code, category]
     on_change:
@@ -41,7 +43,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         - name: OrchestratorConfig
@@ -100,7 +102,7 @@ contracts:
           description: Error rate threshold for automatic rollback
       inherits: Health check integration, rollback automation
       overridable: true
-      override_constraints: Must include health check verification before routing traffic
+      override_constraints: Must wait for `GET /readyz` to answer ready before routing traffic
 
     - name: environment-management
       description: Configuration resolution across environment tiers
@@ -122,8 +124,11 @@ contracts:
       inherited_by: Deployment Strategies section
 
   endpoints:
-    - path: /health
-      description: Deployment health check for startup, readiness, and liveness
+    - path: /livez
+      description: Liveness, which the platform's liveness probe reads
+      inherited_by: Health Checks section
+    - path: /readyz
+      description: Readiness, which the platform's startup and readiness probes read
       inherited_by: Health Checks section
 ```
 
@@ -174,7 +179,6 @@ services:
       - "9800:9800"
     environment:
       - ENV=development
-      - LOG_FORMAT=text
       - LOG_LEVEL=debug
     volumes:
       - ./data:/app/data
@@ -363,13 +367,13 @@ jobs:
 Replace instances one at a time. Zero downtime.
 
 ```
-Instance 1: v1 → v2 (healthy) → route traffic
-Instance 2: v1 → v2 (healthy) → route traffic
-Instance 3: v1 → v2 (healthy) → done
+Instance 1: v1 → v2 (ready) → route traffic
+Instance 2: v1 → v2 (ready) → route traffic
+Instance 3: v1 → v2 (ready) → done
 ```
 
-- Health check must pass before routing traffic to new instance
-- If health check fails → stop rollout, keep remaining on v1
+- `GET /readyz` must answer ready before traffic is routed to a new instance
+- If it does not → stop rollout, keep remaining on v1
 
 ### Blue-Green
 
@@ -377,7 +381,7 @@ Run two identical environments. Switch traffic atomically.
 
 ```
 Blue  (v1): serving traffic
-Green (v2): deployed, health-checked
+Green (v2): deployed, answering ready at /readyz
 
 Switch: route all traffic to Green
 Verify: monitor for errors
@@ -409,44 +413,49 @@ If error rate spikes:
 
 ### Deployment Health Check
 
-The orchestrator's `/health` endpoint is the primary health check
-target for deployment platforms:
+Every component serves `GET /livez` and `GET /readyz`
+([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)), and a
+deployment platform probes those two and nothing else:
 
 ```
-GET /health HTTP/1.1
+GET /readyz HTTP/1.1
 
-200 OK — healthy, route traffic
-503 Service Unavailable — unhealthy, do not route traffic
+200 OK {"ready": true} — ready, route traffic
+503 Service Unavailable {"ready": false} — not ready, do not route traffic
 ```
+
+A platform's probes are the supervisor's on that platform: they decide
+restarts and routing on the host. Whether a registered component is present
+in the tenant is its lease with the orchestrator, which no probe replaces.
 
 ### Startup vs Readiness
 
 | Check | Purpose | Endpoint | Timing |
 |-------|---------|----------|--------|
-| Startup | Has the process started? | `/health` | On boot, with timeout |
-| Readiness | Can it serve traffic? | `/health` (status=healthy) | Continuous |
-| Liveness | Is the process stuck? | `/health` | Continuous, less frequent |
+| Startup | Has the process finished starting? | `/readyz` | On boot, with timeout |
+| Readiness | Can it serve traffic? | `/readyz` | Continuous, on the host |
+| Liveness | Must the process be restarted? | `/livez` | Continuous, less frequent |
 
 ### Kubernetes Probes
 
 ```yaml
 livenessProbe:
   httpGet:
-    path: /health
+    path: /livez
     port: 9800
   initialDelaySeconds: 10
   periodSeconds: 30
 
 readinessProbe:
   httpGet:
-    path: /health
+    path: /readyz
     port: 9800
   initialDelaySeconds: 5
   periodSeconds: 10
 
 startupProbe:
   httpGet:
-    path: /health
+    path: /readyz
     port: 9800
   failureThreshold: 30
   periodSeconds: 2
@@ -542,10 +551,10 @@ weblisk deploy rollback --env production --version 1.1.0
 - [ ] Secrets never appear in source code, config files, Docker images, build logs, or CI pipeline definitions
 - [ ] Configuration resolves in order: built-in defaults → weblisk.yaml → env-specific yaml → WL_* environment variables → secrets manager
 - [ ] CI pipeline executes four stages in order: lint & check → build image → test (unit + integration + security) → deploy
-- [ ] Rolling update verifies health check passes on each new instance before routing traffic; failed health check stops rollout
+- [ ] Rolling update waits for `GET /readyz` to answer ready on each new instance before routing traffic; an instance that never answers ready stops the rollout
 - [ ] Automatic rollback triggers when error rate exceeds 5% during the 5-minute post-deploy monitoring window
 - [ ] Database migrations run on server startup before accepting traffic; failed migration aborts startup
 - [ ] Zero-downtime migrations are additive only — column removal uses a two-phase (or three-release) approach
 - [ ] Base images are pinned to specific versions (e.g., `golang:1.27-alpine`, not `golang:latest`)
 - [ ] Container security scanning (Trivy or equivalent) runs in CI before image push
-- [ ] Health endpoint returns 200 for healthy and 503 for unhealthy; Kubernetes probes (liveness, readiness, startup) are configured
+- [ ] `GET /livez` and `GET /readyz` return 200 or 503 with `live` or `ready` alone; the liveness probe reads `/livez` and the readiness and startup probes `/readyz`

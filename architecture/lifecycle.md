@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: lifecycle
-version: 1.0.4
+version: 1.1.0
 requires: [protocol/types, architecture/domain, architecture/agent, patterns/messaging]
 platform: any
 tier: free
@@ -43,7 +43,7 @@ it does with the output of the ones it does not.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: RegisterRequest
@@ -64,14 +64,14 @@ requires:
           fields_used: [services, routing_table]
         - name: EventEnvelope
           fields_used: [topic, scope, payload, source]
-        - name: HealthStatus
-          fields_used: [status, name, checks]
+        - name: ServiceEntry
+          fields_used: [name, lease_state]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/domain
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: DomainWorkflow
@@ -81,17 +81,17 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentEndpoints
-          fields_used: [execute, message, event, health]
+          fields_used: [execute, message, event, livez, readyz]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish

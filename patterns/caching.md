@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: caching
-version: 1.0.1
+version: 2.0.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -40,13 +40,11 @@ is what does not travel.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: ErrorResponse
           fields_used: [error, code, category]
-        - name: HealthStatus
-          fields_used: [name, status, version, uptime]
         - name: AgentManifest
           fields_used: [name, type, capabilities]
     on_change:
@@ -104,11 +102,6 @@ contracts:
     - name: CacheEntry
       description: Namespaced key-value with TTL metadata
       inherited_by: Cache Namespaces section
-
-  endpoints:
-    - path: /v1/health (cache field)
-      description: Cache metrics exposed in agent health response
-      inherited_by: Observability section
 ```
 
 ---
@@ -251,28 +244,15 @@ deterministic responses (temperature = 0) and embeddings:
 |-----------|---------|-------------|
 | Maximum cache size | `10000` | Maximum entries per agent cache |
 | Default TTL | `300` | Default TTL in seconds when not specified per-entry |
-| Stats enabled | `true` | Include cache stats in health response |
+| Stats enabled | `true` | Emit the cache metrics below |
 | Sweep interval | `60` | Background sweep interval in seconds |
 
 ## Observability
 
-Agents that extend this pattern SHOULD expose cache metrics in their
-health response (POST /v1/health):
-
-```json
-{
-  "state": "online",
-  "cache": {
-    "hits": 15420,
-    "misses": 892,
-    "hit_rate": 0.945,
-    "evictions": 203,
-    "size": 4210,
-    "max_size": 10000,
-    "memory_bytes": 8421376
-  }
-}
-```
+Agents that extend this pattern SHOULD emit cache statistics as metrics.
+Health carries none of them: it is liveness and readiness only
+([`protocol/types`](../protocol/types.md#health)), and a cold or full cache
+makes an agent neither not live nor not ready.
 
 Standard metrics (if patterns/observability is extended):
 
@@ -305,7 +285,7 @@ Standard metrics (if patterns/observability is extended):
 - [ ] TTL expiry removes entries after configured duration
 - [ ] LRU eviction triggers when max_size is reached
 - [ ] Service directory push clears service + route namespaces
-- [ ] Cache stats are exposed in POST /v1/health response
+- [ ] Cache stats are emitted as the standard cache metrics, and never in a health answer
 - [ ] Concurrent access is safe (no data races)
 - [ ] Cache keys are namespaced (no collisions)
 - [ ] AI embedding cache uses content-hash keys

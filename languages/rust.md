@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: rust
-version: 1.0.2
+version: 1.1.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: rust
 tier: free
@@ -50,17 +50,21 @@ trait-based abstractions, and type safety.
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
-        - name: HealthStatus
-          fields_used: [status, name, version, uptime]
+        - name: Liveness
+          fields_used: [live]
+        - name: Readiness
+          fields_used: [ready]
+        - name: LeaseRenewal
+          fields_used: [ready, checks, timestamp]
         - name: AgentManifest
           fields_used: [name, version, capabilities, actions]
         - name: TaskRequest
@@ -362,7 +366,7 @@ pub trait Agent: Send + Sync {
 ### The HTTP Surface
 
 **Every symbol is spelled from the endpoint's `Operation`.** The architecture
-blueprint's `## Endpoints` table declares the operation — `Register`, `Health`,
+blueprint's `## Endpoints` table declares the operation — `Register`, `Livez`,
 `AdminOverview` — and this is how that one name becomes Rust:
 
 | Symbol | Spelling | Example |
@@ -424,7 +428,8 @@ pub enum WebliskError {
 ### Logging
 
 - Use `tracing` crate with `tracing-subscriber` for structured JSON logging
-- Include `component`, `trace_id`, and `timestamp` in all log entries
+- Write the `LogEntry` envelope [`patterns/logging`](../patterns/logging.md) defines, on standard output,
+  through a formatter that writes its keys (`ts`, `level` in lower case, `msg`) rather than the crate's own
 - Configure with `RUST_LOG` environment variable for level filtering
 
 ```rust
@@ -433,7 +438,7 @@ tracing_subscriber::fmt()
     .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
     .init();
 
-tracing::info!(component = "orchestrator", "server started on port {}", port);
+tracing::info!(component = "orchestrator", log_type = "process.startup", port, "server started on port {}", port);
 ```
 
 ### Configuration
@@ -619,8 +624,8 @@ async fn dispatch_phase(tasks: Vec<TaskRequest>, agents: &AgentRegistry) -> Vec<
     while let Some(res) = set.join_next().await {
         match res {
             Ok(Ok(response)) => results.push(response),
-            Ok(Err(e)) => tracing::error!("task failed: {}", e),
-            Err(e) => tracing::error!("join error: {}", e),
+            Ok(Err(e)) => tracing::error!(log_type = "execute.failed", "task failed: {}", e),
+            Err(e) => tracing::error!(log_type = "error.unhandled", "join error: {}", e),
         }
     }
     results
@@ -673,11 +678,22 @@ pub struct TaskResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct HealthStatus {
-    pub status: String,
-    pub component: String,
-    pub version: String,
-    pub uptime_seconds: i64,
+pub struct Liveness {
+    pub live: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Readiness {
+    pub ready: bool,
+}
+
+/// Sent to POST /v1/lease on the cadence protocol/types (LeaseRenewal) sets
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LeaseRenewal {
+    pub ready: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub checks: Option<std::collections::HashMap<String, String>>,
+    pub timestamp: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -820,11 +836,11 @@ async fn test_registration_flow() {
     let orch = start_test_orchestrator().await;
     let agent = start_test_agent(&orch.url).await;
 
-    let resp = reqwest::get(format!("{}/health", agent.url)).await.unwrap();
+    let resp = reqwest::get(format!("{}/livez", agent.url)).await.unwrap();
     assert_eq!(resp.status(), 200);
 
-    let health: HealthStatus = resp.json().await.unwrap();
-    assert_eq!(health.status, "healthy");
+    let liveness: Liveness = resp.json().await.unwrap();
+    assert!(liveness.live);
 }
 ```
 
@@ -883,7 +899,7 @@ opt-level = 3
 - [ ] Each component declares its routes as one table and builds its router from it in one function; no module registers routes beside its handlers
 - [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` with a registered error code
 - [ ] Path parameters are read through one helper; no handler splits `uri.path()` itself
-- [ ] All protocol types (`AgentManifest`, `TaskRequest`, `TaskResponse`, `HealthStatus`, `ErrorResponse`) are defined in `weblisk-core` with `#[derive(Serialize, Deserialize)]` and shared across all binary crates
+- [ ] All protocol types (`AgentManifest`, `TaskRequest`, `TaskResponse`, `Liveness`, `Readiness`, `LeaseRenewal`, `ErrorResponse`) are defined in `weblisk-core` with `#[derive(Serialize, Deserialize)]` and shared across all binary crates
 - [ ] `http_body_util::Limited` is applied on all request body reads: 1 MB for registration/messages, 10 MB for tasks, 64 KB for channels
 - [ ] All shared state is wrapped in `Arc<tokio::sync::RwLock<T>>` or `Arc<tokio::sync::Mutex<T>>` — no raw `Mutex` or unprotected shared mutable state
 - [ ] Concurrency limiter uses `tokio::sync::Semaphore` and returns 429 with `Retry-After` header and structured `ErrorResponse` when agent is at capacity

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: secret-source
-version: 1.6.0
+version: 1.7.0
 requires: [protocol/identity, patterns/principal-identity]
 platform: any
 tier: free
@@ -68,7 +68,7 @@ requires:
   # Fixed-form statements, which a caller builds before it asks a source to
   # sign, and the holder probe registered there
   - blueprint: protocol/identity
-    version: ">=1.7.0 <2.0.0"
+    version: ">=1.7.0 <3.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -182,7 +182,7 @@ hardware token. None is required, and none is special.
 | `1password` | the CLI | what its vault item holds, as named fields |
 | `file` | every caller that runs unattended | one value, read from a file ([Headless references](#headless-references-file-and-fd)) |
 | `fd` | every caller that runs unattended | one value, read from an inherited file descriptor |
-| `keychain` | the CLI, on each platform below | an identity whole, or only its passphrase where the person asks ([An identity held by a source](#an-identity-held-by-a-source)) |
+| `keychain` | the CLI, on each platform below | an identity whole, or only its passphrase where the person asks ([An identity held by a source](#an-identity-held-by-a-source)); and each hub credential's private key the CLI keeps there, as an item of its own ([`architecture/cli`](../architecture/cli.md#a-credential-for-each-hub)) |
 
 **The CLI MUST carry a `1password` source built in, and MUST reach it through
 this protocol.** That makes it the protocol's first user: every request the CLI
@@ -197,6 +197,16 @@ identity whole unless the person asks it to remember only the passphrase. On
 a platform it carries none for, it answers `not_installed`. No CLI carries
 one yet, so until it does, a person who wants a keychain names a helper that
 speaks for it.
+
+**The keychain source also holds each hub credential the CLI keeps there**,
+each as an item of its own: never inside the item or the file that holds the
+identity it belongs to, including where this source holds that identity
+whole. It releases a credential's private key to the CLI without a prompt
+while the person's session on the machine is unlocked, and not while it is
+locked, so what protects the key is the machine session. Which credentials
+the CLI keeps here, and where it keeps them when it has no keychain source,
+are the CLI's
+([`architecture/cli`](../architecture/cli.md#a-credential-for-each-hub)).
 
 ### Discovery
 
@@ -1055,4 +1065,5 @@ security:
 - [ ] A master key that protects a private key, directly or through a key derived from it, never comes from an environment variable
 - [ ] An installation whose master key came from an environment variable reports that it did
 - [ ] A `file:` master key is outside the installation's state and outside that state's backups and replicas
+- [ ] A hub credential key the `keychain` source holds is an item of its own, never inside the item holding its identity, and is released to the CLI without a prompt while the session is unlocked and not while it is locked
 - [ ] A console never receives a value a source returned for the identity of anyone it acts for

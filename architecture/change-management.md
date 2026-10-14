@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: change-management
-version: 1.0.4
+version: 2.0.0
 requires: [protocol/spec, protocol/types, architecture/orchestrator, architecture/agent, patterns/messaging, patterns/versioning]
 platform: any
 tier: free
@@ -49,7 +49,7 @@ The protocol is built on three principles:
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -59,7 +59,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: Strategy
@@ -73,7 +73,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -90,7 +90,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentContext
@@ -100,7 +100,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -112,7 +112,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/versioning
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: semver-range
@@ -286,7 +286,7 @@ contract_schema:
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -297,23 +297,24 @@ requires:
           methods: [POST]
           request_type: AgentMessage
           response_fields: [status, response]
-        - path: /v1/health
+        - path: /v1/lease
           methods: [POST]
-          response_fields: [status, details]
+          request_type: LeaseRenewal
+          response_fields: [expires_at]
       types:
         - name: AgentManifest
           fields_used: [name, version, port, capabilities, public_key, url]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
-        - name: HealthStatus
-          fields_used: [status, checks]
+          fields_used: [from, to, action, payload, trace_id, span_id]
+        - name: LeaseRenewal
+          fields_used: [ready, checks]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -350,7 +351,7 @@ requires:
 
 extends:
   - pattern: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -569,7 +570,7 @@ Step 13:  Agent evaluates impact against its own state:
             Done.
 
           If impact = compatible AND on_change = validate:
-            Run self-validation (health check, test fixtures)
+            Run self-validation (readiness, test fixtures)
             If pass → log + emit result: "validated"
             If fail → escalate to breaking path
 
@@ -693,7 +694,7 @@ Phase 2 — Deploy
                 e. Storage: connect to same database
                 f. Run schema migration (if needed) with versioning
                    pattern (additive-only until cutover)
-  Pre-check:  Current agent (vN) is healthy
+  Pre-check:  Current agent (vN)'s lease is ready
   Validates:  New instance (vN+1) reaches "active" state
   On Fail:    Tear down vN+1, log error, emit deployment.failed
   Emit:       system.agent.version.deployed
@@ -718,7 +719,7 @@ Phase 3 — Shadow
                 {agent, new_version, events_validated, pass_rate}
 
 Phase 4 — Cutover
-  Pre-check:  Phase 3 passed, vN healthy, vN+1 healthy
+  Pre-check:  Phase 3 passed, the leases of vN and vN+1 both ready
   Action:
     Step 1:   vN stops accepting new work (returns 503)
     Step 2:   vN drains in-flight work (per shutdown sequence)
@@ -733,7 +734,7 @@ Phase 4 — Cutover
     Step 6:   vN+1 is now the active agent
   Validates:
     a. First real event processed successfully by vN+1
-    b. Health check returns healthy
+    b. vN+1's lease reads `ready` in the directory
     c. No errors within first config.cutover_watch_period (default: 120s)
   On Fail:    Trigger automatic rollback (Phase 5)
   Emit:       system.agent.version.cutover
@@ -746,7 +747,7 @@ Phase 5 — Retire or Rollback
     Step 3:   vN process exits
     Emit:     system.agent.version.retired
                 {agent, retired_version, active_version, uptime}
-    Log:      lifecycle.version_retired
+    Log:      process.version_retired
 
   On failure (cutover failed):
     Step 1:   vN+1 stops immediately (no drain — it's the broken one)
@@ -757,7 +758,7 @@ Phase 5 — Retire or Rollback
     Step 6:   vN+1 process is torn down
     Emit:     system.agent.version.rollback
                 {agent, failed_version, restored_version, reason}
-    Log:      lifecycle.version_rollback
+    Log:      process.version_rollback
     Reconciliation result: "failed" with {rollback_applied: true}
 ```
 
@@ -775,7 +776,7 @@ cutover_strategies:
   canary:
     description: >
       Route a percentage of traffic to new version. Gradually
-      increase if metrics are healthy.
+      increase while its success rate holds above health_threshold.
     when: High-traffic agents where gradual validation is preferred
     risk: Lower — can stop at any percentage
     config:
@@ -868,7 +869,7 @@ inter_agent:
         to instances. Callers never hard-code target addresses.
       enforcement: >
         POST /v1/message addressed to agent name. Orchestrator
-        or bus routes to a healthy instance.
+        or bus routes to an instance whose lease is ready.
 
     - rule: Agents MUST NOT discover or cache other agents' addresses
       reason: >
@@ -938,7 +939,7 @@ intra_agent:
 
 ```
 Normal operation:
-  message → bus → resolve agent_name → route to any healthy instance
+  message → bus → resolve agent_name → route to any instance whose lease is ready
 
 Shadow phase:
   message → bus → resolve agent_name
@@ -952,7 +953,7 @@ Cutover (immediate):
 
 Cutover (canary):
   Step 1: Bus routes X% to vN+1, (100-X)% to vN
-  Step 2: Orchestrator monitors health metrics
+  Step 2: Telemetry evaluates vN+1's metrics; the orchestrator probes nothing
   Step 3: Gradually increase X% per cutover_strategies.canary config
   Step 4: At 100% → retire vN
 
@@ -1344,7 +1345,7 @@ state_machine:
       - from: building
         to: deployed
         trigger: New instance reaches active state
-        validates: Health check passes
+        validates: The new instance's lease reads `ready`
 
       - from: deployed
         to: shadow
@@ -1354,7 +1355,7 @@ state_machine:
       - from: shadow
         to: cutover
         trigger: Shadow pass rate >= threshold
-        validates: Both versions healthy
+        validates: Both versions' leases ready
 
       - from: cutover
         to: retired
@@ -1476,7 +1477,7 @@ constraints:
     - If concurrent changes share dependents, assessments are merged
 
   safety:
-    - Blue-green deployment MUST NOT proceed if current version is unhealthy
+    - Blue-green deployment MUST NOT proceed unless the current version's lease is ready
     - Shadow phase MUST validate at least shadow_events_required events
     - Cutover MUST NOT proceed during another active blue-green deployment
       for the same agent

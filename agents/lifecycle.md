@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: lifecycle
-version: 1.1.1
+version: 2.0.0
 port: 9782
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/lifecycle]
 extends: [patterns/messaging, patterns/scope, patterns/policy]
@@ -42,7 +42,7 @@ without being able to alter anything on its own.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -53,16 +53,17 @@ requires:
           methods: [POST]
           request_type: AgentMessage
           response_fields: [status, response]
-        - path: /v1/health
+        - path: /v1/lease
           methods: [POST]
-          response_fields: [status, details]
+          request_type: LeaseRenewal
+          response_fields: [expires_at]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: TaskResult
@@ -75,7 +76,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -103,7 +104,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -645,7 +646,7 @@ Step 6 — Load Active Strategies
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9782, strategies_loaded: N}
+  Log: process.ready {port: 9782, strategies_loaded: N}
 ```
 
 ### Shutdown Sequence
@@ -670,37 +671,33 @@ Step 5 — Deregister
   Action:      DELETE /v1/register
 
 Step 6 — Exit
-  Log: lifecycle.stopped {uptime_seconds, observations_processed}
+  Log: process.stopped {uptime_seconds, observations_processed}
   agent_state → retired
 ```
 
 ### Health
 
+Readiness, as `GET /readyz` answers it and every lease renewal carries it
+([`patterns/observability`](../patterns/observability.md#health-endpoint)).
+Health is liveness and readiness only, so the counts and timestamps a status
+once carried are metrics:
+
 ```yaml
 health:
-  healthy:
+  ready:
     conditions:
       - event subscriptions active (workflow.completed, workflow.failed)
       - storage writable
-    response:
-      status: healthy
-      details: {subscriptions, storage, active_strategies, pending_recommendations}
-
-  degraded:
-    conditions:
+    checks:
       - storage errors (retrying)
       - event subscription partially lost
-    response:
-      status: degraded
-      details: {reason, last_error, retry_count}
+    lease: ready true, its checks naming each of these that holds not_ready
 
-  unhealthy:
+  not_ready:
     conditions:
       - storage unreachable after retry exhaustion
       - all event subscriptions lost
-    response:
-      status: unhealthy
-      details: {reason, last_error, since}
+    lease: ready false, its checks naming each subsystem above not_ready
 ```
 
 ### Self-Update
@@ -711,7 +708,7 @@ When `system.blueprint.changed` is received where `blueprint_name = "lifecycle"`
 1. Parse new blueprint, verify against schema
 2. Validate active strategies against updated types
 3. Apply new configuration values
-4. Log: lifecycle.version_updated {from, to}
+4. Log: process.version_updated {from, to}
 ```
 
 ---
@@ -1376,7 +1373,7 @@ scaling:
 - [ ] State machine transitions validated — no implicit states
 - [ ] Startup sequence validation gates — each step has validates/on-fail
 - [ ] Shutdown drains in-flight events before exit
-- [ ] Health endpoint reports accurate status per health criteria
+- [ ] `GET /livez` answers live or not live and nothing else, and every lease renewal carries the readiness declared under Health, with `checks` naming each subsystem `not_ready`
 - [ ] Scaling: inter-agent communication via message bus only
 - [ ] Scaling: leader election prevents duplicate event processing
 - [ ] Scaling: consumer group ensures one-per-event delivery

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: governance
-version: 1.0.2
+version: 1.1.0
 requires: [protocol/identity, protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/messaging]
 platform: any
 tier: free
@@ -40,7 +40,7 @@ framework. It does not define policies (see
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: WLToken
@@ -92,11 +92,11 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
-        - name: HealthStatus
-          fields_used: [status, metrics, timestamp]
+        - name: ServiceEntry
+          fields_used: [name, lease_state]
         - name: AgentManifest
           fields_used: [name, capabilities, url, type]
         - name: EventEnvelope
@@ -106,7 +106,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       behaviors:
         - name: event-subscribing

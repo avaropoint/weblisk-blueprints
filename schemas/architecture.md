@@ -127,7 +127,7 @@ component that serves HTTP.
 | Method | Path | Operation | Auth | Purpose |
 |--------|------|-----------|------|---------|
 | POST | /v1/register | Register | no* | Agent registration (identity-verified) |
-| GET | /v1/health | Health | no | Component health |
+| GET | /livez | Livez | no | Liveness, for the supervisor that restarts the component |
 ```
 
 **The table form is load-bearing, not cosmetic.** Generation reads a component's
@@ -228,7 +228,7 @@ neither side wrong about anything it had been told.
 A blueprint that documents paths and has **no `## Endpoints` section of its own**
 is specifying a surface for another component to serve. One that has an
 `## Endpoints` section is a peer stating what *it* serves: every component
-serves `/v1/health`, and two components sharing a path is not one specifying the
+serves `/livez` and `/readyz`, and two components sharing a path is not one specifying the
 other.
 
 #### Operations declared outside the endpoint table
