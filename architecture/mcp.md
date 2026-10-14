@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: mcp
-version: 1.4.4
+version: 1.4.6
 requires: [protocol/types, protocol/identity, protocol/spec, architecture/agent, architecture/gateway, patterns/scope, patterns/safety, patterns/auth-oauth]
 platform: any
 tier: free
@@ -38,7 +38,7 @@ outside the hub's governance, which is the failure this blueprint exists to prev
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.15.0 <2.0.0"
+    version: ">=1.15.0 <4.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -52,7 +52,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.14.4 <2.0.0"
+    version: ">=1.14.4 <3.0.0"
     bindings:
       types:
         # Read only to recognise a person's operator token and refuse it
@@ -64,19 +64,19 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/gateway
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -480,7 +480,7 @@ security:
 - [ ] An argument not declared in `input_contract` MUST be rejected rather than ignored
 - [ ] An unknown tool name and a tool outside the caller's scope MUST produce identical refusals
 - [ ] A caller presenting a person's operator token, whatever its `cap`, is refused with `PASS_REQUIRED` before any tool is resolved, a security event is logged, and nothing is performed
-- [ ] A caller whose credential `patterns/auth-oauth` issued for this surface, for a person whose role carries `content:write`, `content:decide`, `model:attest` or `fabric:attest`, invokes no tool whose operation needs one of them: the call is refused as an unknown name is, and nothing is performed
+- [ ] A caller whose credential `patterns/auth-oauth` issued for this surface, for a person whose role carries a capability [`protocol/types`](../protocol/types.md#capability) marks person only, invokes no tool whose operation needs one: the call is refused as an unknown name is, and nothing is performed
 - [ ] Discovery without credentials MUST return only declarations marked discoverable
 - [ ] An authenticated caller's discovery MUST return nothing outside its resolved scope
 - [ ] A tool with `mutates: true` MUST be refused without an idempotency key

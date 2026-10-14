@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: agent
-version: 1.0.2
+version: 2.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/observability, patterns/retry, patterns/messaging]
 platform: any
 tier: free
@@ -34,7 +34,7 @@ only what makes this agent different.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -43,8 +43,12 @@ requires:
           methods: [POST]
         - path: /v1/message
           methods: [POST]
-        - path: /v1/health
+        - path: /v1/lease
           methods: [POST]
+        - path: /livez
+          methods: [GET]
+        - path: /readyz
+          methods: [GET]
         - path: /v1/services
           methods: [POST]
         - path: /v1/event
@@ -54,7 +58,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -66,7 +70,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -74,7 +78,15 @@ requires:
         - name: RegisterRequest
           fields_used: [manifest, signature, timestamp]
         - name: RegisterResponse
-          fields_used: [agent_id, token, services]
+          fields_used: [agent_id, token, services, lease]
+        - name: Lease
+          fields_used: [agent_id, duration, renewed_at, expires_at]
+        - name: LeaseRenewal
+          fields_used: [ready, checks, timestamp]
+        - name: Liveness
+          fields_used: [live]
+        - name: Readiness
+          fields_used: [ready]
         - name: EventEnvelope
           fields_used: [event_id, topic, payload, source, scope, correlation_id]
         - name: TaskRequest
@@ -100,7 +112,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -119,7 +131,8 @@ requires:
 
 ### Owns
 
-- HTTP server hosting the 6 protocol endpoints (describe, execute, health, message, services, event)
+- HTTP server hosting the 7 protocol endpoints: describe, execute, message, services and event under `/v1`, and the two probes `/livez` and `/readyz`
+- Renewing its lease with the orchestrator, carrying its readiness
 - ML-DSA-65 key pair generation and message signing/verification
 - Registration with the orchestrator and token management
 - Service directory cache, routing table cache, and namespace map cache
@@ -138,7 +151,7 @@ requires:
 
 ## Endpoints
 
-Every agent serves the same six. The surface is the protocol's, not each
+Every agent serves the same seven: five under `/v1` and the two probes. The surface is the protocol's, not each
 agent's: an orchestrator, a domain controller and a peer must be able to call
 any agent without knowing which one it is.
 
@@ -152,15 +165,18 @@ blueprint's mapping table.
 |--------|------|-----------|------|---------|
 | POST | /v1/describe | Describe | no | Return this agent's manifest |
 | POST | /v1/execute | Execute | yes | Execute a task synchronously and return a signed TaskResult |
-| POST | /v1/health | Health | no | Health check — state, uptime, sub-component checks, metrics snapshot |
+| GET | /livez | Livez | no | Liveness, for the supervisor that restarts the agent |
+| GET | /readyz | Readyz | no | Readiness, for the supervisor waiting on the agent's start |
 | POST | /v1/message | Message | yes | Direct agent-to-agent request/response |
 | POST | /v1/services | Services | yes | Accept a service directory and routing table pushed by the orchestrator |
 | POST | /v1/event | Event | yes | Receive a delivered event |
 
-`POST /v1/health` rather than `GET` is deliberate and is the protocol's choice:
-an agent answers every endpoint with one method, so a caller needs no
-per-endpoint knowledge. The orchestrator's health is a `GET`, because its
-surface is browsable.
+The five `/v1` endpoints are `POST` and the two probes `GET`, outside `/v1`:
+the probes are every component's, the orchestrator's included, and their
+readers are a supervisor and a probe that know nothing of the protocol
+([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)). An agent's
+presence is not served at all: it is the lease the agent renews
+([Lease Renewal](#lease-renewal)).
 
 The implementation of each is in
 [Protocol Endpoint Implementations](#protocol-endpoint-implementations) below;
@@ -170,7 +186,7 @@ this table is what the endpoint IS, that section is how it behaves.
 
 ## Interfaces
 
-The agent’s public API surface is the 6 protocol endpoints defined in
+The agent’s public API surface is the 7 protocol endpoints (five under `/v1` and the two probes) defined in
 [Protocol Endpoint Implementations](#protocol-endpoint-implementations)
 and the three developer-facing methods defined in
 [Agent Logic Interface](#agent-logic-interface):
@@ -201,12 +217,12 @@ and the three developer-facing methods defined in
 │                                         │
 │  ┌──────────────────────────────────┐   │
 │  │  Agent Framework (base)          │   │
-│  │  - HTTP server (6 endpoints)     │   │
+│  │  - HTTP server (7 endpoints)     │   │
 │  │  - Registration with orchestrator│   │
 │  │  - Service directory + routing   │   │
 │  │  - Event publishing + receiving  │   │
 │  │  - Message signing/verification  │   │
-│  │  - Health reporting              │   │
+│  │  - Probes and lease renewal      │   │
 │  └────────────┬─────────────────────┘   │
 │               │ delegates to            │
 │  ┌────────────▼─────────────────────┐   │
@@ -255,13 +271,13 @@ The runtime context provided to Execute and HandleMessage:
 4. Set manifest.url to the agent's listen address
 5. Configure LLM provider (if LLM configuration is provided)
 6. Configure workspace (current directory)
-7. Register HTTP routes for all 6 protocol endpoints
+7. Register HTTP routes for all 7 protocol endpoints, the two probes among them
 8. Register event handlers (on_event bindings)
 9. Start HTTP server in background
 10. Wait briefly for server to accept connections
 11. Register with orchestrator (if orchestrator URL provided)
 12. On registration response: cache routing table and namespace map
-    from service directory
+    from service directory, and start renewing the lease (Lease Renewal)
 13. Block indefinitely (agent is a long-running process)
 ```
 
@@ -293,10 +309,32 @@ must re-register before expiry to maintain connectivity.
    c. New token issued; old token invalidated
 3. If re-registration fails:
    a. Retry with exponential backoff (1s, 2s, 4s, max 30s)
-   b. After 5 failures: log critical, enter degraded state
+   b. After 5 failures: log critical, answer `GET /readyz` not ready, and
+      renew the lease with `ready: false` while the old token is still
+      valid; once it expires the lease cannot be renewed and lapses to
+      `unknown`, as [`protocol/spec`](../protocol/spec.md#token-renewal)
+      says for a token already expired
    c. Continue serving in-flight tasks but reject new ones
 4. On success: update stored token and reset refresh timer
 ```
+
+## Lease Renewal
+
+Registration grants a lease (`RegisterResponse.lease`). The agent keeps it:
+
+```
+1. POST /v1/lease with LeaseRenewal {ready, checks, timestamp}, on the
+   cadence protocol/types (LeaseRenewal) sets
+2. ready is what GET /readyz would answer now
+3. 404 NOT_FOUND: the orchestrator holds no registration → register again
+4. 401: the token has lapsed → Token Refresh, then renew
+5. Any other failure: retry at the next interval; a lapse only makes the
+   directory read unknown until a renewal arrives
+```
+
+The types and the three states are
+[`protocol/types`](../protocol/types.md#presence)'s. Renewal never waits on a
+task: it runs beside them.
 
 The orchestrator treats re-registration from an already-registered agent
 (same name + valid signature) as a token refresh. The agent's subscriptions,
@@ -321,14 +359,15 @@ implementation that can only be stopped abruptly must say so rather than claim
 this.
 
 ```
-1. Stop accepting new tasks (return 503 Service Unavailable)
+1. Stop accepting new tasks (return 503 Service Unavailable), and renew the
+   lease with `ready: false`
 2. Wait for in-flight tasks to complete (up to the configured shutdown timeout)
 3. Deregister with orchestrator: DELETE /v1/register
    - Header: Authorization: Bearer <token>
    - Orchestrator releases namespaces, removes routing entries,
      broadcasts updated ServiceDirectory to remaining agents
-4. If deregistration fails: log warning (orchestrator will detect
-   the agent is offline via health check timeout)
+4. If deregistration fails: log warning (the lease lapses, and the
+   directory reads the agent `unknown`)
 5. Close HTTP server
 6. Exit process
 ```
@@ -340,9 +379,10 @@ this.
 | Shutdown timeout | `30s` | Max time to wait for in-flight tasks |
 | Shutdown drain | `true` | Whether to drain tasks before exit |
 
-If an agent crashes without graceful shutdown, the orchestrator detects
-the failure via periodic health probes (default interval: 30s, timeout: 5s)
-and automatically deregisters unresponsive agents after 3 consecutive failures.
+If an agent crashes without graceful shutdown, its lease lapses and the
+directory reads it `unknown`; the orchestrator never probes it and does not
+deregister it. The supervisor on its host, which reads `GET /livez`, restarts
+it, and the restarted agent registers again.
 
 ## Protocol Endpoint Implementations
 
@@ -367,12 +407,11 @@ for the endpoint contract.
 9. Return result as JSON
 ```
 
-### POST /v1/health
+### GET /livez and GET /readyz
 
 See [`patterns/observability` — Health Endpoint](../patterns/observability.md#health-endpoint)
-for the full response contract. The response includes `name`, `version`,
-`state` (online/degraded/offline), `uptime_seconds`, optional sub-component
-`checks`, and `metrics_snapshot`.
+for what each answers and the rule that liveness depends on nothing outside the
+process. Each answers `live` or `ready` and nothing else.
 
 ### POST /v1/message
 
@@ -601,10 +640,16 @@ not known in advance:
 Serverless agents face cold start latency. The protocol accommodates
 this:
 
-- **Health checks** — the orchestrator SHOULD configure longer health
-  check timeouts for serverless agents (30s vs 5s default).
+- **Leases** — a serverless agent that is evicted between invocations
+  cannot renew; it reads `unknown` until it runs again, and a tenant
+  that wants it present between invocations sets `orchestrator.lease_duration`
+  above its eviction interval.
 - **Keep-warm** — the [cron agent](../agents/cron.md) MAY be configured
-  to ping serverless agents on a schedule to prevent cold eviction.
+  to invoke a serverless agent on a schedule to prevent cold eviction.
+  The invocation only keeps the agent warm: nothing reads its answer as
+  presence or readiness, and the agent's own lease renewal stays the
+  only presence fact ([`architecture/orchestrator`](orchestrator.md#presence)
+  §Presence).
 - **Timeout tolerance** — the Task Agent SHOULD use the agent's
   declared `timeout` from its manifest rather than a global default.
   Serverless agents MAY declare longer timeouts.
@@ -740,11 +785,16 @@ types:
         type: string
         required: true
         description: "Path to message endpoint (`/v1/message`)"
-      health:
-        name: Health
+      livez:
+        name: Livez
         type: string
         required: true
-        description: "Path to health endpoint (`/v1/health`)"
+        description: "Path to the liveness probe (`/livez`)"
+      readyz:
+        name: Readyz
+        type: string
+        required: true
+        description: "Path to the readiness probe (`/readyz`)"
       services:
         name: Services
         type: string
@@ -844,7 +894,7 @@ types:
         name: State
         type: string
         required: true
-        description: "`\"registered\"`, `\"active\"`, `\"degraded\"`, `\"offline\"`"
+        description: "The agent's lease state in the directory: `ready`, `not_ready` or `unknown` (protocol/types, LeaseState)"
       url:
         name: URL
         type: string
@@ -855,11 +905,11 @@ types:
         type: "[]Subscription"
         required: true
         description: "Active event subscriptions"
-      last_health_check:
-        name: LastHealthCheck
+      lease_expires_at:
+        name: LeaseExpiresAt
         type: int64
         required: false
-        description: "Unix epoch of last health probe"
+        description: "Unix epoch at which the agent's lease lapses unless renewed"
       registered_at:
         name: RegisteredAt
         type: int64
@@ -910,7 +960,7 @@ security:
 - The ML-DSA-65 key pair is generated once at first startup and persisted for the agent's lifetime
 - Service directory caching avoids repeated calls to the orchestrator for agent-to-agent communication
 - Backpressure via concurrent task limiting prevents overload; rejected tasks return 429 to the orchestrator
-- Health checks should complete within the configured timeout; slow health responses degrade system-wide visibility
+- `/livez` and `/readyz` answer from state the process already holds; a lease renewal runs beside tasks and never waits on one
 
 ---
 
@@ -919,7 +969,8 @@ security:
 - [ ] POST /v1/describe returns the agent manifest as JSON without requiring authentication
 - [ ] POST /v1/execute parses TaskRequest, calls Execute, and returns a signed TaskResult with task_id, agent_name, and timestamp
 - [ ] POST /v1/execute returns status=failed with the error summary when Execute returns an error
-- [ ] POST /v1/health returns the health response per patterns/observability
+- [ ] `GET /livez` and `GET /readyz` answer without authentication with `live` or `ready` alone, per patterns/observability
+- [ ] The agent renews its lease at `POST /v1/lease` within a third of its `duration`, registers again on 404 `NOT_FOUND`, and renews with `ready: false` while draining
 - [ ] POST /v1/message verifies the sender's ML-DSA-65 signature when present and returns 401 on invalid signature
 - [ ] POST /v1/message builds a signed response with from=self, to=original sender, type=response
 - [ ] POST /v1/services updates the internal service list, routing table, and namespace map (thread-safe)
@@ -932,8 +983,8 @@ security:
 - [ ] Agent returns 429 Too Many Requests with Retry-After header and retryable error body when at max concurrent capacity
 - [ ] Default max concurrent limits are enforced: domain=10, work=5, infrastructure=20 (configurable via runtime configuration)
 - [ ] Outbound HTTP calls respect the configured outbound rate limit (default 50 req/s)
-- [ ] Agent startup sequence generates ML-DSA-65 keys, registers HTTP routes (6 endpoints), starts server, and registers with orchestrator
+- [ ] Agent startup sequence generates ML-DSA-65 keys, registers HTTP routes (7 endpoints, the two probes among them), starts server, registers with orchestrator, and starts renewing its lease
 - [ ] Token refresh triggers re-registration when remaining TTL drops below the configured refresh threshold (default 10%)
-- [ ] Token refresh failure enters degraded state after 5 retries with exponential backoff
+- [ ] Token refresh failure makes the agent not ready, on `/readyz` and on its lease, after 5 retries with exponential backoff
 - [ ] Graceful shutdown when asked to stop, by whatever mechanism the platform blueprint names: stops accepting tasks, drains in-flight work, sends DELETE /v1/register, closes the server
 - [ ] Shutdown respects the configured shutdown timeout (default 30s) for in-flight task drain

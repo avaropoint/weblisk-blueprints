@@ -140,7 +140,7 @@ The orchestrator uses the validated blueprint as the agent's contract:
 
 ### 4. Continuous Compliance
 Running agents are periodically audited against their blueprint:
-- Health endpoints must report the structure declared in the blueprint
+- Lease renewals must carry the readiness and checks declared in the blueprint
 - Event publishing must stay within declared namespaces
 - Resource usage must stay within declared constraints
 - Violations are logged, flagged, and escalated per compliance rules

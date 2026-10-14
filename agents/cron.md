@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: cron
-version: 1.0.2
+version: 2.0.0
 port: 9750
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/orchestrator, architecture/change-management]
 extends: [patterns/scheduling, patterns/messaging, patterns/logging, patterns/retry, patterns/versioning, patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -52,7 +52,7 @@ protocol endpoints.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -63,15 +63,16 @@ requires:
           methods: [POST]
           request_type: AgentMessage
           response_fields: [status, response]
-        - path: /v1/health
+        - path: /v1/lease
           methods: [POST]
-          response_fields: [status, details]
+          request_type: LeaseRenewal
+          response_fields: [expires_at]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -81,15 +82,15 @@ requires:
         - name: AgentManifest
           fields_used: [name, version, port, capabilities, public_key, url]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
-        - name: HealthStatus
-          fields_used: [status, checks]
+          fields_used: [from, to, action, payload, trace_id, span_id]
+        - name: LeaseRenewal
+          fields_used: [ready, checks]
     on_change:
       compatible: validate
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -103,7 +104,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -137,7 +138,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/observability
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: metrics
@@ -149,7 +150,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/change-management
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       events:
         - topic: system.change.assessment
@@ -168,7 +169,7 @@ requires:
 
 extends:
   - pattern: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -183,13 +184,13 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/logging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       patterns:
-        - behavior: log-envelope
-          parameters: [log_type, level, fields, trace_id]
-        - behavior: log-rotation
-          parameters: [max_size, max_files]
+        - behavior: structured-logging
+          parameters: [level, log_type]
+        - behavior: trace-correlation
+          parameters: [trace_id]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -209,7 +210,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/versioning
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: schema-migration
@@ -546,7 +547,7 @@ storage:
 6. Verify relationship integrity:
    a. No orphaned cron_executions (task_id must reference existing task)
 7. Resume cron agent
-8. Log: lifecycle.restored with {backup_file, tasks_imported, orphans_cleaned}
+8. Log: process.restored with {backup_file, tasks_imported, orphans_cleaned}
 ```
 
 ---
@@ -705,7 +706,7 @@ Step 9 — Start Tick Loop
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9750, tasks_loaded: N, mode: leader|standby}
+  Log: process.ready {port: 9750, tasks_loaded: N, mode: leader|standby}
 ```
 
 ### Shutdown Sequence
@@ -745,43 +746,36 @@ Step 7 — Close Storage
   Validates:   Connection closed cleanly
 
 Step 8 — Exit
-  Log: lifecycle.stopped {uptime_seconds, in_flight_drained, tasks_timed_out}
+  Log: process.stopped {uptime_seconds, in_flight_drained, tasks_timed_out}
   agent_state → retired
   Exit process
 ```
 
 ### Health
 
-Reported via `POST /v1/health`:
+Readiness, as `GET /readyz` answers it and every lease renewal carries it
+([`patterns/observability`](../patterns/observability.md#health-endpoint)).
+Health is liveness and readiness only, so the counts and timestamps a status
+once carried are metrics:
 
 ```yaml
 health:
-  healthy:
+  ready:
     conditions:
       - tick_loop = running
       - storage = connected
       - in_flight < 80% of config.max_concurrent
-    response:
-      status: healthy
-      details: {tick_loop, storage, active_tasks, in_flight,
-                max_concurrent, last_tick, lock_held}
-
-  degraded:
-    conditions:
+    checks:
       - storage errors (but retrying)
       - in_flight >= 80% of config.max_concurrent
       - lock contention (standby mode)
-    response:
-      status: degraded
-      details: {reason, last_error, retry_count}
+    lease: ready true, its checks naming each of these that holds not_ready
 
-  unhealthy:
+  not_ready:
     conditions:
       - storage unreachable after retry exhaustion
       - tick loop stopped unexpectedly
-    response:
-      status: unhealthy
-      details: {reason, last_error, since}
+    lease: ready false, its checks naming each subsystem above not_ready
 ```
 
 ### Self-Update
@@ -812,7 +806,7 @@ Step 4 — Reload Configuration
   On Fail:     Revert to previous config, log warning
 
 Final:
-  Log: lifecycle.version_updated {from, to, migration_steps}
+  Log: process.version_updated {from, to, migration_steps}
   Emit: cron.blueprint.updated event
 ```
 
@@ -1693,7 +1687,7 @@ scaling:
     direct_http: forbidden
     routing: by agent name, never by instance address
     reason: >
-      The message bus resolves agent names to healthy instances.
+      The message bus resolves agent names to instances whose lease is `ready`.
       During blue-green deploys, the bus handles traffic shifting
       between versions transparently. Direct HTTP would bypass
       this and break version cutover.
@@ -1721,7 +1715,7 @@ scaling:
       consumer group. All instances subscribe, but only one
       processes each event. Prevents duplicate handling.
     direct_messages:
-      routing: any healthy instance
+      routing: any instance whose lease is ready
       deduplication: via storage constraints (idempotent actions)
 
   blue_green:
@@ -1766,7 +1760,7 @@ scaling:
 - [ ] Distributed lock prevents duplicate tick evaluation
 - [ ] Lock expires after config.lock_ttl if holder crashes
 - [ ] Graceful shutdown drains in-flight per shutdown sequence
-- [ ] Health endpoint reports accurate status per health criteria
+- [ ] `GET /livez` answers live or not live and nothing else, and every lease renewal carries the readiness declared under Health, with `checks` naming each subsystem `not_ready`
 - [ ] Self-update triggers on system.blueprint.changed
 - [ ] All events published to bus with correct topic names
 - [ ] Backup/restore preserves relationship integrity

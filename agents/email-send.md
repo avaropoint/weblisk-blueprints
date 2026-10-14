@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: email-send
-version: 1.0.1
+version: 2.0.0
 port: 9754
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/observability, patterns/storage, patterns/retry, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/privacy, patterns/security, patterns/governance]
@@ -31,7 +31,7 @@ deliveries are retried automatically.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -42,15 +42,16 @@ requires:
           methods: [POST]
           request_type: AgentMessage
           response_fields: [status, response]
-        - path: /v1/health
+        - path: /v1/lease
           methods: [POST]
-          response_fields: [status, details]
+          request_type: LeaseRenewal
+          response_fields: [expires_at]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -60,15 +61,15 @@ requires:
         - name: AgentManifest
           fields_used: [name, version, port, capabilities, public_key, url]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
-        - name: HealthStatus
-          fields_used: [status, checks]
+          fields_used: [from, to, action, payload, trace_id, span_id]
+        - name: LeaseRenewal
+          fields_used: [ready, checks]
     on_change:
       compatible: validate
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -84,7 +85,7 @@ requires:
 
 extends:
   - pattern: patterns/observability
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: metrics
@@ -716,7 +717,7 @@ Step 8 — Start Queue Processor
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9754, provider, queue_pending}
+  Log: process.ready {port: 9754, provider, queue_pending}
 ```
 
 ### Shutdown Sequence
@@ -749,39 +750,35 @@ Step 6 — Close Storage
   Validates:   Connection closed
 
 Step 7 — Exit
-  Log: lifecycle.stopped {uptime_seconds, emails_sent, emails_pending}
+  Log: process.stopped {uptime_seconds, emails_sent, emails_pending}
   agent_state → retired
 ```
 
 ### Health
 
+Readiness, as `GET /readyz` answers it and every lease renewal carries it
+([`patterns/observability`](../patterns/observability.md#health-endpoint)).
+Health is liveness and readiness only, so the counts and timestamps a status
+once carried are metrics:
+
 ```yaml
 health:
-  healthy:
+  ready:
     conditions:
       - queue_processor = running
       - storage = connected
       - provider = reachable
-    response:
-      status: healthy
-      details: {queue_pending, queue_failed, provider_status, rate_remaining}
-
-  degraded:
-    conditions:
+    checks:
       - provider unreachable (but queuing emails)
       - storage errors (but retrying)
       - rate limit approaching (> 80%)
-    response:
-      status: degraded
-      details: {reason, last_error, queue_pending}
+    lease: ready true, its checks naming each of these that holds not_ready
 
-  unhealthy:
+  not_ready:
     conditions:
       - storage unreachable after retry exhaustion
       - queue processor stopped
-    response:
-      status: unhealthy
-      details: {reason, last_error, since}
+    lease: ready false, its checks naming each subsystem above not_ready
 ```
 
 ### Self-Update
@@ -793,7 +790,7 @@ Step 1 — Validate new blueprint, verify version is newer
 Step 2 — Compare Types block against current storage schema
 Step 3 — Execute migration if needed (pause queue, migrate, resume)
 Step 4 — Reload configuration (provider, rate limits, etc.)
-Final:  Log lifecycle.version_updated {from, to}
+Final:  Log process.version_updated {from, to}
 ```
 
 ---
@@ -1337,7 +1334,7 @@ scaling:
     protocol: message-bus-only
     direct_http: forbidden
     routing: by agent name
-    reason: Message bus routes to healthy instances
+    reason: Message bus routes to instances whose lease is `ready`
 
   intra_agent:
     coordination: shared-storage

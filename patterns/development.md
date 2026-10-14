@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: development
-version: 1.0.0
+version: 2.0.0
 requires: [protocol/types, patterns/security, patterns/observability]
 platform: any
 tier: free
@@ -35,7 +35,7 @@ specification for their chosen stack.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -55,11 +55,12 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/observability
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
-      types:
-        - name: Response
-          fields_used: [name, state]
+      patterns:
+        # The dev server answers the liveness probe as every component does
+        - behavior: health-reporting
+          parameters: []
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -139,8 +140,8 @@ contracts:
     - path: /api/blueprint/{path}
       description: Blueprint YAML file serving
       inherited_by: Routes section
-    - path: /api/health
-      description: Health check endpoint
+    - path: /livez
+      description: Liveness probe
       inherited_by: Routes section
     - path: /__livereload
       description: Server-Sent Events stream for live reload
@@ -201,23 +202,17 @@ allowed_prefixes:
   - components/
 ```
 
-### Health Check
+### Liveness
 
 | Property | Value |
 |----------|-------|
-| Path | `/api/health` |
+| Path | `/livez` |
 | Methods | `GET` |
 | Content-Type | `application/json` |
 
-**Response:**
-
-```json
-{
-  "name": "weblisk-dev",
-  "status": "healthy",
-  "mode": "development"
-}
-```
+**Response:** `{"live": true}` and nothing else
+([`protocol/types`](../protocol/types.md#liveness)). The dev server holds no
+lease and registers with no orchestrator, so it serves no `/readyz`.
 
 ### Live Reload
 
@@ -448,24 +443,30 @@ ErrorResponse format:
 
 ## Observability
 
-The development server emits structured log entries for all requests:
+The development server writes every request as one log line in the envelope
+[`patterns/logging`](logging.md) defines:
 
 ```json
 {
-  "ts": 1713264000,
+  "ts": "2024-04-16T10:40:00.000Z",
   "level": "info",
+  "log_type": "dev-server.request.served",
+  "msg": "GET /index.html 200",
   "component": "dev-server",
-  "msg": "request",
-  "method": "GET",
-  "path": "/index.html",
-  "status": 200,
-  "duration_ms": 3
+  "component_type": "cli",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "00f067aa0ba902b7",
+  "duration_ms": 3,
+  "details": {"method": "GET", "path": "/index.html", "status_code": 200}
 }
 ```
 
-Security-relevant events (dotfile access attempts, path traversal
-attempts) are logged at `warn` level with the standard security
-event format from `patterns/security`.
+It starts a trace for each request it serves. Its custom log types:
+
+| Log Type | Level | When | Required Details |
+|----------|-------|------|-----------------|
+| `dev-server.request.served` | info | A request was answered | `{method, path, status_code}` |
+| `dev-server.request.refused` | warn | A dotfile access or path traversal attempt was refused | `{method, path, reason}` |
 
 ---
 
@@ -502,7 +503,7 @@ Implementation MUST:
 - [ ] Serve blueprint YAML files via `/api/blueprint/{path}` with path validation
 - [ ] Validate blueprint paths against allowed prefixes and extensions
 - [ ] Return 400 (not 404) for invalid blueprint paths with ErrorResponse body
-- [ ] Provide health check at `/api/health` returning JSON with status and mode
+- [ ] Serve `GET /livez` answering `{"live": true}` and nothing else
 - [ ] Implement SSE-based live reload at `/__livereload`
 - [ ] Watch configured directories and extensions for file changes
 - [ ] Send `data: reload\n\n` SSE event on file change
@@ -511,6 +512,6 @@ Implementation MUST:
 - [ ] Listen on localhost only by default (not `0.0.0.0`)
 - [ ] Set `Cache-Control: no-cache` on all responses
 - [ ] Log all requests with structured JSON logging
-- [ ] Log security events (dotfile, traversal) at warn level
+- [ ] Log a refused dotfile or traversal request as `dev-server.request.refused` at warn level
 - [ ] Use native language/framework HTTP server (no cross-platform shims)
 - [ ] Work without any external tooling (no Docker, no platform CLI)

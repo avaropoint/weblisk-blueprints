@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: messaging
-version: 1.0.0
+version: 2.0.0
 requires: [protocol/types, architecture/agent, patterns/retry]
 platform: any
 tier: free
@@ -39,11 +39,11 @@ complete.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: EventEnvelope
-          fields_used: [event_id, topic, source, scope, correlation_id, timestamp, trace_id, version, payload, token]
+          fields_used: [event_id, topic, source, scope, correlation_id, timestamp, trace_id, span_id, version, payload, token]
         - name: AgentManifest
           fields_used: [name, subscriptions, namespace]
     on_change:
@@ -51,7 +51,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentState
@@ -183,7 +183,8 @@ body of `POST /v1/event`:
   "scope": "seo",
   "correlation_id": "wf-exec-001",
   "timestamp": 1712160001,
-  "trace_id": "abc123def456789012345678",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "00f067aa0ba902b7",
   "version": "1.0.0",
   "payload": {
     "workflow": "seo-audit",
@@ -204,7 +205,8 @@ body of `POST /v1/event`:
 | scope | string | yes | Target agent name, or `"*"` for global |
 | correlation_id | string | no | Links all events in one execution chain |
 | timestamp | int64 | yes | Unix epoch seconds |
-| trace_id | string | yes | Distributed trace context |
+| trace_id | string | yes | The trace this event belongs to ([TraceContext](../protocol/types.md#tracecontext)) |
+| span_id | string | yes | The publisher's span for this publish; what a subscriber does with it is [`protocol/spec`](../protocol/spec.md#trace-propagation)'s |
 | version | string | yes | Schema version of the payload |
 | payload | object | yes | Event-specific typed data |
 | token | string | no | Auth token for delivery verification |
@@ -239,6 +241,12 @@ Examples:
 - `lifecycle.recommendation.created` — new recommendation proposed
 - `health.agent.state_change` — agent health state changed
 - `seo.audit.result` — SEO domain audit result callback
+
+The `health.*` topics here and below are
+[`agents/health-monitor`](../agents/health-monitor.md)'s, and go when it
+retires. A component has no health state to change: health is liveness
+and readiness only, and readiness travels on the component's lease
+([`patterns/observability`](observability.md#health-endpoint)).
 
 ### Topic Matching
 
@@ -323,6 +331,7 @@ publish(topic, payload, scope, options)
    scope:          provided scope
    correlation_id: provided or inherited from current context
    trace_id:       inherited from current trace context
+   span_id:        the span this agent opened for the publish
    timestamp:      now (Unix epoch seconds)
    version:        agent's event schema version
    payload:        provided payload
@@ -343,7 +352,7 @@ publish(topic, payload, scope, options)
    Headers:
      Content-Type: application/json
      X-Event-Id: <event_id>
-     X-Trace-Id: <trace_id>
+     traceparent: the envelope's trace (protocol/types TraceContext)
 
 5. Handle responses:
    2xx → acknowledged, proceed
@@ -641,7 +650,7 @@ Events and direct messages coexist for different purposes:
 | Workflow coordination | `POST /v1/event` | Decoupled phase progression |
 | Request data from another agent | `POST /v1/message` | Caller needs synchronous response |
 | Fetch workflow definition | `POST /v1/message` | Caller blocks until definition returned |
-| Health check | `POST /v1/health` | Dedicated endpoint |
+| Is another agent present and ready? | its `lease_state` in the service directory | Nothing polls another agent; its lease already says |
 
 **Rule of thumb:** if the sender doesn't need a response, publish an
 event. If the sender blocks until a response arrives, use direct
@@ -697,7 +706,7 @@ The Weblisk event envelope is intentionally compatible with the
 | `timestamp` | `time` (OPTIONAL) | Both use timestamp; Weblisk makes it required |
 | `version` | `dataschemaversion` | Weblisk versions the payload schema |
 | `payload` | `data` | Event-specific content |
-| `trace_id` | Extension: `traceparent` | Distributed tracing context |
+| `trace_id`, `span_id` | Extension: `traceparent` | Distributed tracing context ([`TraceContext`](../protocol/types.md#tracecontext)) |
 | `scope` | Extension: custom | Weblisk-specific delivery scoping |
 | `correlation_id` | Extension: custom | Weblisk-specific execution chain linking |
 | — | `specversion` (REQUIRED) | CloudEvents requires `"1.0"`; Weblisk omits (implied) |
@@ -727,7 +736,7 @@ perform the conversion.
 
 ## Verification Checklist
 
-- [ ] Events published with complete envelope (event_id, topic, source, scope, timestamp, trace_id, version, payload)
+- [ ] Events published with complete envelope (`event_id`, `topic`, `source`, `scope`, `timestamp`, `trace_id`, `span_id`, `version`, `payload`)
 - [ ] Event IDs are globally unique (UUID v7)
 - [ ] Framework validates namespace ownership before publishing
 - [ ] Framework resolves subscribers from local routing table (no orchestrator call)
@@ -740,4 +749,4 @@ perform the conversion.
 - [ ] Exhausted retries result in dead-letter storage (not discard)
 - [ ] 429 responses from subscribers respected with Retry-After
 - [ ] Correlation ID propagated through execution chains
-- [ ] Trace ID propagated through all events and downstream calls
+- [ ] Every event and every delivery carries its trace as `protocol/spec`'s Trace Propagation says

@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: health-monitor
-version: 1.0.1
+version: 2.0.0
 port: 9755
 requires: [protocol/spec, protocol/types, architecture/agent, agents/alerting]
 extends: [patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/security, patterns/governance]
@@ -40,7 +40,7 @@ CLI interrogation, and federation advertisement.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -51,9 +51,10 @@ requires:
           methods: [POST]
           request_type: AgentMessage
           response_fields: [status, response]
-        - path: /v1/health
+        - path: /v1/lease
           methods: [POST]
-          response_fields: [status, details]
+          request_type: LeaseRenewal
+          response_fields: [expires_at]
         - path: /v1/describe
           methods: [POST]
           response_fields: [name, version, capabilities]
@@ -63,13 +64,14 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    # 3.0.0 is where LeaseRenewal, the request this agent's lease renewal sends, exists
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentManifest
           fields_used: [name, version, port, capabilities, public_key, url]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
+          fields_used: [from, to, action, payload, trace_id, span_id]
         - name: TaskRequest
           fields_used: [id, from, target_agent, payload, context]
         - name: TaskResult
@@ -80,7 +82,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -95,7 +97,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: agents/alerting
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       actions:
         - name: alert
@@ -107,7 +109,7 @@ requires:
 
 extends:
   - pattern: patterns/observability
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: metrics
@@ -485,7 +487,7 @@ Step 8 — Start Health Sweep Timer
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9755, components_monitored: N}
+  Log: process.ready {port: 9755, components_monitored: N}
 ```
 
 ### Shutdown Sequence
@@ -515,7 +517,7 @@ Step 6 — Close Storage
   Action:      Close database connection
 
 Step 7 — Exit
-  Log: lifecycle.stopped {uptime_seconds, sweeps_completed, alerts_fired}
+  Log: process.stopped {uptime_seconds, sweeps_completed, alerts_fired}
   agent_state → retired
 ```
 
@@ -555,7 +557,7 @@ Step 1 — Validate new blueprint
 Step 2 — Check migration requirements
 Step 3 — Execute migration (pause sweeps, migrate, resume)
 Step 4 — Reload configuration (thresholds, intervals)
-Final:  Log lifecycle.version_updated {from, to}
+Final:  Log process.version_updated {from, to}
 ```
 
 ---

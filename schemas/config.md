@@ -24,9 +24,7 @@ orchestrator:
   storage: enum                    # "memory" | "sqlite" | "postgres"
   storage_path: string             # Path for sqlite (default: .weblisk/data/orchestrator.db)
   token_ttl: duration              # WLT token lifetime (default: 24h)
-  health_interval: duration        # Health probe interval (default: 30s)
-  health_timeout: duration         # Health probe timeout (default: 5s)
-  health_failures: integer         # Failures before deregistration (default: 3)
+  lease_duration: duration         # How long a component's lease lasts from each renewal (default: 30s)
   admin_addresses: list[string]    # Origins the admin gateway is reached at (default: [])
   admin_gateway_from: list[string] # Addresses the admin gateway's requests reach the orchestrator from (default: [])
 
@@ -94,8 +92,7 @@ federation:
 # Optional — observability
 observability:
   log_level: enum                  # "debug" | "info" | "warn" | "error" (default: info)
-  log_format: enum                 # "json" | "text" (default: json)
-  trace_enabled: boolean           # Enable distributed tracing (default: false)
+  trace_enabled: boolean           # Record sampled spans (default: false)
   trace_sample_rate: float         # Sampling rate 0.0–1.0 (default: 1.0)
   metrics_enabled: boolean         # Expose /metrics endpoint (default: true)
   otlp_endpoint: string            # OTLP collector URL (optional)
@@ -130,9 +127,7 @@ observability:
 | `storage` | enum | no | `memory` | Backing store for registry, audit log, event history |
 | `storage_path` | string | no | `.weblisk/data/orchestrator.db` | File path when storage is `sqlite` |
 | `token_ttl` | duration | no | `24h` | WLT token lifetime. Agents must re-register before expiry. |
-| `health_interval` | duration | no | `30s` | How often to probe registered agents |
-| `health_timeout` | duration | no | `5s` | Max wait for health response |
-| `health_failures` | integer | no | `3` | Consecutive failures before auto-deregistration |
+| `lease_duration` | duration | no | `30s` | How long a registered component's lease lasts from each renewal; components renew on the cadence [`protocol/types`](../protocol/types.md#leaserenewal) sets. Past it, the component's directory entry reads `unknown` ([`protocol/types`](../protocol/types.md#presence)). The orchestrator probes no component, so nothing here sets an interval, a timeout or a failure count |
 | `admin_addresses` | list | no | `[]` | The origins at which this hub's admin gateway is reached, each in the ASCII serialisation of RFC 6454 section 6.2 (`https://admin.example.org`, with a port only where it is not the scheme's default). The orchestrator signs a hub proof for these and no other ([`architecture/admin`](../architecture/admin.md#proving-the-hub-at-an-address)), so a hub that lists none proves its `hub_id` at no address, and once `weblisk/hub-proof/v1` has test vectors no client records it at a new address. Wherever an admin gateway runs, every origin it is reached at MUST be listed here. No command writes the key yet, because none stands an admin gateway up (the gap above): whoever runs one lists its origins. |
 | `admin_gateway_from` | list | no | `[]` | The IP addresses the admin gateway's requests reach the orchestrator from. The orchestrator trusts `X-Forwarded-For` from these and no other, to count a request the gateway forwards to a route served without a token by the client's address rather than the gateway's ([`architecture/admin`](../architecture/admin.md#contracts), `auth-route-rate-limit`). Empty, it counts every such request by its connection's address, so the clients of a gateway share one count, and one client sending a route the five requests a minute the gateway lets it send uses up that route's count for every other person until the minute passes. Wherever an admin gateway runs, every address its requests reach the orchestrator from MUST be listed here. An address other callers share, such as loopback on one host, lets each of them name its own source. No command writes the key yet, because none stands an admin gateway up (the gap above): whoever runs one lists its addresses |
 
@@ -249,9 +244,8 @@ service's API after reading a census of what would leave
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `log_level` | enum | no | `info` | Minimum log level |
-| `log_format` | enum | no | `json` | Output format. Use `text` for local development. |
-| `trace_enabled` | boolean | no | `false` | Enable span emission and X-Trace-Id propagation |
-| `trace_sample_rate` | float | no | `1.0` | Fraction of requests to trace |
+| `trace_enabled` | boolean | no | `false` | Whether this component records the spans of sampled traces. When unset it records none; carrying the trace is [`protocol/spec`](../protocol/spec.md#trace-propagation)'s |
+| `trace_sample_rate` | float | no | `1.0` | Fraction of traces sampled, applied only where a trace starts |
 | `metrics_enabled` | boolean | no | `true` | Expose structured metrics at `/metrics` on each component |
 | `trace_export_endpoint` | string | no | — | Send traces/metrics to an external collector |
 
@@ -315,7 +309,7 @@ orchestrator:
   storage: sqlite
   storage_path: /var/lib/weblisk/orchestrator.db
   token_ttl: 12h
-  health_interval: 15s
+  lease_duration: 20s
   admin_addresses:
     - https://admin.acme.com
 
@@ -382,7 +376,6 @@ federation:
 
 observability:
   log_level: info
-  log_format: json
   trace_enabled: true
   trace_sample_rate: 0.1
   metrics_enabled: true

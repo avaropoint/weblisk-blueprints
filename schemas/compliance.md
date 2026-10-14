@@ -65,7 +65,7 @@ compliance_levels:
       - event publishing limited to own namespace only
       - event subscribing limited to system.* events only
       - flagged in service directory as "restricted"
-      - health endpoint must report compliance status
+      - the flag is the directory's alone: the lease and /readyz carry readiness only
     badge: "🟡 Restricted"
 
   non_compliant:
@@ -85,7 +85,7 @@ compliance_levels:
       - no access to shared storage
       - sandboxed network — cannot reach other agents
       - flagged in service directory as "non-compliant"
-      - health endpoint reports "non-compliant" status
+      - the flag is the directory's alone: the lease and /readyz carry readiness only
     badge: "🔴 Non-Compliant"
 
   rejected:
@@ -629,7 +629,7 @@ registration_enforcement:
       - no inter-agent messaging
       - no event publishing or subscribing
       - isolated network (cannot reach other agents)
-      - health endpoint must report "non-compliant"
+      - the flag is the directory's alone: the lease and /readyz carry readiness only
 
   rejected:
     action: reject
@@ -646,9 +646,9 @@ Running agents are periodically audited for compliance drift:
 
 ```yaml
 runtime_monitoring:
-  frequency: every health check cycle
+  frequency: every lease renewal
   checks:
-    - Agent health endpoint returns declared structure
+    - Lease renewals carry the readiness and checks the blueprint declares under Health
     - Published events stay within declared namespaces
     - Storage writes stay within declared tables
     - Capabilities in use match declared capabilities

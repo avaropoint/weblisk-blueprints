@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: task
-version: 1.1.0
+version: 2.0.0
 port: 9781
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/task-dispatch, patterns/messaging, patterns/retry, patterns/scope, patterns/policy]
@@ -41,7 +41,7 @@ countable, retryable and auditable in one place instead of in every caller.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -52,9 +52,10 @@ requires:
           methods: [POST]
           request_type: AgentMessage
           response_fields: [status, response]
-        - path: /v1/health
+        - path: /v1/lease
           methods: [POST]
-          response_fields: [status, details]
+          request_type: LeaseRenewal
+          response_fields: [expires_at]
         - path: /v1/execute
           methods: [POST]
           request_type: TaskRequest
@@ -65,22 +66,24 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: TaskRequest
           fields_used: [id, from, target_agent, action, payload, context]
+        - name: TaskContext
+          fields_used: [trace_id, span_id]
         - name: TaskResult
           fields_used: [task_id, agent_name, status, summary, timestamp]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
+          fields_used: [from, to, action, payload, trace_id, span_id]
     on_change:
       compatible: validate
       breaking: version-bump
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -95,7 +98,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -227,7 +230,7 @@ types:
         description: Currently dispatched task count
       last_seen:
         type: int64
-        description: Last registration/health timestamp
+        description: Last registration or lease renewal the directory recorded for the agent
 ```
 
 ## Identity
@@ -305,7 +308,7 @@ types:
 ```
 1. Parse submit payload:
    { task_id, workflow_id, phase, target_agent, action,
-     input, timeout, trace_id, correlation_id, priority }
+     input, timeout, correlation_id, priority }
 
 2. Validate target agent exists in service directory
    If not found → publish task.failed immediately
@@ -322,10 +325,10 @@ types:
      id: task_id
      action: action
      payload: input
-     context: { trace_id, correlation_id, services, workspace_root }
+     context: { trace_id, span_id, correlation_id, services, workspace_root }
    POST target_agent.url + /v1/execute
      Timeout: task timeout (from submit payload or default)
-     Headers: Authorization: Bearer <token>, X-Trace-Id: <trace_id>
+     Headers: Authorization: Bearer <token>, traceparent (protocol/types TraceContext)
 
 6. Handle response:
    2xx + status "success":
@@ -371,6 +374,10 @@ types:
 3. If agent was previously unreachable:
    Check queue for pending tasks targeting this agent
    Dispatch queued tasks
+   (A restart with an unchanged manifest quicker than the agent's lease
+   lapses publishes no event: architecture/orchestrator, Registration Flow
+   step 10. Tasks sent to it meanwhile recover through the step 6 retry of
+   HandleEvent: task.submit.)
 ```
 
 ### HandleEvent: system.agent.deregistered
@@ -549,7 +556,7 @@ Step 7 — Build Agent Capacity Cache
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9781, pending_tasks: N, agents_cached: N}
+  Log: process.ready {port: 9781, pending_tasks: N, agents_cached: N}
 ```
 
 ### Shutdown Sequence
@@ -577,39 +584,35 @@ Step 6 — Deregister
   Action:      DELETE /v1/register
 
 Step 7 — Exit
-  Log: lifecycle.stopped {uptime_seconds, tasks_drained, tasks_failed}
+  Log: process.stopped {uptime_seconds, tasks_drained, tasks_failed}
   agent_state → retired
 ```
 
 ### Health
 
+Readiness, as `GET /readyz` answers it and every lease renewal carries it
+([`patterns/observability`](../patterns/observability.md#health-endpoint)).
+Health is liveness and readiness only, so the counts and timestamps a status
+once carried are metrics:
+
 ```yaml
 health:
-  healthy:
+  ready:
     conditions:
       - task.submit subscription active
       - storage writable
       - in_flight_total < 80% of config.max_concurrent
-    response:
-      status: healthy
-      details: {in_flight, queue_depth, max_concurrent, agents_tracked}
-
-  degraded:
-    conditions:
+    checks:
       - storage errors (retrying)
       - queue_depth > 80% of config.queue_max
       - in_flight_total >= 80% of max_concurrent
-    response:
-      status: degraded
-      details: {reason, queue_depth, in_flight}
+    lease: ready true, its checks naming each of these that holds not_ready
 
-  unhealthy:
+  not_ready:
     conditions:
       - storage unreachable after retry exhaustion
       - task.submit subscription lost
-    response:
-      status: unhealthy
-      details: {reason, last_error, since}
+    lease: ready false, its checks naming each subsystem above not_ready
 ```
 
 ### Self-Update
@@ -620,7 +623,7 @@ When `system.blueprint.changed` is received where `blueprint_name = "task"`:
 1. Parse new blueprint, verify against schema
 2. Validate in-flight tasks against updated types
 3. Apply new configuration values
-4. Log: lifecycle.version_updated {from, to}
+4. Log: process.version_updated {from, to}
 ```
 
 ---
@@ -676,7 +679,7 @@ triggers:
 **Purpose:** Dispatch a task to the target agent via HTTP.
 
 **Input:** `task.submit` event payload:
-`{task_id, workflow_id, phase, target_agent, action, input, timeout, trace_id, correlation_id, priority}`
+`{task_id, workflow_id, phase, target_agent, action, input, timeout, correlation_id, priority}`
 
 **Processing:**
 
@@ -690,7 +693,7 @@ triggers:
 4. Publish: task.accepted (scope: requester)
 5. Dispatch via POST target_agent.url + /v1/execute:
    Build TaskRequest with action, payload, context
-   Headers: Authorization: Bearer <token>, X-Trace-Id: <trace_id>
+   Headers: Authorization: Bearer <token>, traceparent (protocol/types TraceContext)
    Timeout: task timeout
 6. Handle response per state machine transitions
 7. Update in-flight tracking, dispatch next queued if capacity freed
@@ -746,7 +749,7 @@ Phase 2 — Capacity Check
 Phase 3 — HTTP Dispatch
   Action:    POST target_agent.url + /v1/execute
   Payload:   TaskRequest {id, action, payload, context}
-  Headers:   Authorization, X-Trace-Id, X-Correlation-Id
+  Headers:   Authorization, traceparent, X-Correlation-Id
   Timeout:   From submit payload or config.default_timeout
   TaskRecord state: queued → dispatched
 
@@ -1101,7 +1104,7 @@ tests:
     validates:
       - "TaskRecord created with status: dispatched"
       - "TaskRecord updated to status: completed"
-      - trace_id propagated in HTTP headers
+      - trace carried as traceparent and context.trace_id/span_id
 
   - name: Priority queue ordering
     trigger: 3 task.submit events (low, critical, high) while agent at capacity
@@ -1253,8 +1256,9 @@ scaling:
 - **Capacity defaults**: When an agent manifest doesn't declare
   `max_concurrent`, defaults apply: domain controller = 10,
   work agent = 5, infrastructure agent = 20.
-- **Trace propagation**: `trace_id` and `correlation_id` from the
-  submit event are propagated as HTTP headers to target agents.
+- **Trace propagation**: the submit event's trace reaches the target
+  agent as [`protocol/spec`](../protocol/spec.md#trace-propagation) says,
+  and its `correlation_id` as `X-Correlation-Id`.
 - **Dead-letter**: Tasks that fail after retry exhaustion are persisted
   with status = failed. No automatic resubmission — the workflow agent
   decides whether to retry at the workflow level.
@@ -1279,13 +1283,13 @@ scaling:
 - [ ] Agent capacity updated from system.agent.registered events
 - [ ] Agent deregistration fails all in-flight and queued tasks for that agent
 - [ ] Task records persisted to flat-file storage
-- [ ] trace_id and correlation_id propagated to dispatched tasks
+- [ ] Dispatched tasks carry the trace as `protocol/spec`'s Trace Propagation says, and the correlation_id
 - [ ] Dependencies declare version ranges and specific bindings
 - [ ] on_change rules defined for all dependencies
 - [ ] State machine transitions validated — no implicit states
 - [ ] Startup sequence validation gates — each step has validates/on-fail
 - [ ] Shutdown drains in-flight tasks before exit
-- [ ] Health endpoint reports accurate status per health criteria
+- [ ] `GET /livez` answers live or not live and nothing else, and every lease renewal carries the readiness declared under Health, with `checks` naming each subsystem `not_ready`
 - [ ] Scaling: inter-agent communication via message bus (except /v1/execute)
 - [ ] Scaling: leader election prevents duplicate dispatch
 - [ ] Scaling: consumer group ensures one-per-event delivery

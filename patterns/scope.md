@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.6.4
+version: 2.6.6
 requires: [protocol/types]
 platform: any
 tier: free
@@ -41,7 +41,7 @@ Scope is the primitive; everything else is a consumer.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.13.0 <2.0.0"
+    version: ">=1.13.0 <4.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -961,6 +961,8 @@ and event envelopes:
     "declared_by": "content-analyzer",
     "declared_at": 1712160001
   },
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "00f067aa0ba902b7",
   "payload": { }
 }
 ```

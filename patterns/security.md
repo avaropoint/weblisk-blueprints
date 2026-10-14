@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: security
-version: 1.0.0
+version: 1.0.2
 requires: [protocol/types, protocol/identity, patterns/logging]
 platform: any
 tier: free
@@ -41,7 +41,7 @@ credential management, and `patterns/rate-limiting` for throughput.
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -55,7 +55,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -65,7 +65,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/logging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: LogEntry
@@ -494,7 +494,7 @@ is inherited and extends the agent-specific verification checklist.
 ### Transport
 
 - [ ] TLS 1.2+ enforced in production environments
-- [ ] Non-TLS requests rejected in production (except /health)
+- [ ] Non-TLS requests rejected in production (except `/livez` and `/readyz`)
 - [ ] Certificate validation enabled for outbound HTTPS requests
 
 ### Input

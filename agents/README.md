@@ -12,7 +12,7 @@ configuration, and operational behavior.
 |---|---|---|
 | **Scope** | Hub-wide services | Domain-specific tasks |
 | **Defined by** | These blueprints | Domain controller specs |
-| **Examples** | Workflow engine, alerting, health | Invoice processor, chat responder |
+| **Examples** | Workflow engine, alerting, scheduling | Invoice processor, chat responder |
 | **Deployed** | Once per hub | Per domain as needed |
 
 ## Agent Blueprints
@@ -24,7 +24,7 @@ configuration, and operational behavior.
 | [lifecycle.md](lifecycle.md) | Continuous optimization — strategies, observations, approvals |
 | [alerting.md](alerting.md) | Notification routing and delivery |
 | [incident-response.md](incident-response.md) | Automated incident detection, runbooks, remediation |
-| [health-monitor.md](health-monitor.md) | Internal hub health — agent liveness, storage, gateway |
+| [health-monitor.md](health-monitor.md) | Retiring, and not what decides whether a component is live or present: liveness is the supervisor's, through [`GET /livez`](../protocol/spec.md#get-livez-and-get-readyz), and presence is the orchestrator's, through [leases](../architecture/orchestrator.md#presence) |
 | [hub.md](hub.md) | Registry hub — indexing, search, metrics, verification |
 | [sync.md](sync.md) | Background data sync (client ↔ server) |
 | [cron.md](cron.md) | Scheduled task execution |

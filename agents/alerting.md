@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: alerting
-version: 1.1.2
+version: 2.0.0
 port: 9752
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/email-send]
 extends: [patterns/alerting, patterns/observability, patterns/storage, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -33,7 +33,7 @@ through which channel, and with what urgency.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -44,15 +44,16 @@ requires:
           methods: [POST]
           request_type: AgentMessage
           response_fields: [status, response]
-        - path: /v1/health
+        - path: /v1/lease
           methods: [POST]
-          response_fields: [status, details]
+          request_type: LeaseRenewal
+          response_fields: [expires_at]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.16.1 <2.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -62,15 +63,15 @@ requires:
         - name: AgentManifest
           fields_used: [name, version, port, capabilities, public_key, url]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
-        - name: HealthStatus
-          fields_used: [status, checks]
+          fields_used: [from, to, action, payload, trace_id, span_id]
+        - name: LeaseRenewal
+          fields_used: [ready, checks]
     on_change:
       compatible: validate
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.14.4 <2.0.0"
+    version: ">=1.14.4 <3.0.0"
     bindings:
       types:
         # Read only to recognise a person's operator token and refuse it on
@@ -83,7 +84,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -97,7 +98,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: agents/email-send
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       actions:
         - name: send
@@ -111,7 +112,7 @@ requires:
 
 extends:
   - pattern: patterns/observability
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: metrics
@@ -133,7 +134,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -306,7 +307,8 @@ config:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/v1/health` | Health check — returns agent status |
+| GET | `/livez` | Liveness, for the supervisor that restarts the agent |
+| GET | `/readyz` | Readiness, for the supervisor waiting on its start |
 | POST | `/v1/describe` | Returns agent capabilities and manifest |
 | POST | `/v1/execute` | Receive and process an alert event |
 | POST | `/v1/message` | Receive messages from other agents |
@@ -366,7 +368,7 @@ The alert event is delivered to the agent's `/task` endpoint.
 | Level | Meaning | Examples |
 |-------|---------|---------|
 | critical | Service down or data loss risk | Site unreachable, agent crashed, storage full |
-| high | Degraded service or failed workflow | Workflow failed, agent degraded, high error rate |
+| high | Degraded service or failed workflow | Workflow failed, agent lease not ready, high error rate |
 | medium | Notable event requiring attention | Approval backlog, federation peer disconnect |
 | low | Informational | Agent registered, strategy completed, routine audit |
 
@@ -547,7 +549,7 @@ Step 8 — Initialize Deduplication Cache
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9752, channels_active, dedup_entries_loaded}
+  Log: process.ready {port: 9752, channels_active, dedup_entries_loaded}
 ```
 
 ### Shutdown Sequence
@@ -580,41 +582,35 @@ Step 6 — Close Storage
   Validates:   Connection closed cleanly
 
 Step 7 — Exit
-  Log: lifecycle.stopped {uptime_seconds, alerts_processed, in_flight_drained}
+  Log: process.stopped {uptime_seconds, alerts_processed, in_flight_drained}
   agent_state → retired
   Exit process
 ```
 
 ### Health
 
-Reported via `POST /v1/health`:
+Readiness, as `GET /readyz` answers it and every lease renewal carries it
+([`patterns/observability`](../patterns/observability.md#health-endpoint)).
+Health is liveness and readiness only, so the counts and timestamps a status
+once carried are metrics:
 
 ```yaml
 health:
-  healthy:
+  ready:
     conditions:
       - event_listener = running
       - storage = connected
       - at least one delivery channel = available
-    response:
-      status: healthy
-      details: {channels_active, alerts_24h, throttled_24h, storage_status}
-
-  degraded:
-    conditions:
+    checks:
       - one or more channels unavailable
       - storage errors (but retrying)
-    response:
-      status: degraded
-      details: {reason, unavailable_channels, last_error}
+    lease: ready true, its checks naming each of these that holds not_ready
 
-  unhealthy:
+  not_ready:
     conditions:
       - storage unreachable after retry exhaustion
       - all delivery channels unavailable
-    response:
-      status: unhealthy
-      details: {reason, last_error, since}
+    lease: ready false, its checks naming each subsystem above not_ready
 ```
 
 ### Self-Update
@@ -644,7 +640,7 @@ Step 4 — Reload Configuration
   On Fail:     Revert to previous config
 
 Final:
-  Log: lifecycle.version_updated {from, to, migration_steps}
+  Log: process.version_updated {from, to, migration_steps}
 ```
 
 ---
@@ -1096,12 +1092,12 @@ The following events generate alerts automatically:
 
 | Source | Severity | Title | Trigger |
 |--------|----------|-------|---------|
-| orchestrator | critical | Agent offline | Agent health check fails 3 consecutive times |
-| orchestrator | high | Agent degraded | Agent health check returns degraded status |
+| telemetry | critical | Agent lease lapsed | The agent's `lease_state` reads `unknown` (a rule over the directory's lease states; nothing probes the agent) |
+| telemetry | high | Agent not ready | The agent's `lease_state` reads `not_ready` past the rule's window |
 | orchestrator | low | Agent registered | New agent completes registration |
 | orchestrator | medium | Approval backlog | > 20 pending recommendations for > 1 hour |
 | domain | high | Workflow failed | Workflow execution fails |
-| domain | medium | Domain degraded | Required agent unavailable |
+| telemetry | medium | Domain not ready | The domain's `lease_state` reads `not_ready`, its lease's `checks` naming the required agent it cannot reach ([`protocol/types`](../protocol/types.md#leasestate) §LeaseState) |
 | uptime-checker | critical | Site unreachable | HTTP check fails after retries |
 | perf-auditor | high | Performance regression | Page load time exceeds threshold |
 | federation | medium | Peer disconnected | Federation peer unreachable |
@@ -1531,7 +1527,7 @@ tests:
       title: Performance regression
       message: "Page load > 5s"
       timestamp: 1712160200
-    condition: email-send agent is offline
+    condition: email-send agent's lease reads unknown
     expected:
       delivered_to: [webhook]
       throttled: false
@@ -1539,7 +1535,7 @@ tests:
 
   - name: All channels failed
     action: alert
-    condition: email-send offline, webhook URL unreachable, Slack disabled
+    condition: email-send's lease reads unknown, webhook URL unreachable, Slack disabled
     expected: Alert stored in history with delivery_failed status
     validates: Alert not lost, delivery_failed state recorded
 
@@ -1565,7 +1561,7 @@ scaling:
     direct_http: forbidden
     routing: by agent name, never by instance address
     reason: >
-      The message bus resolves agent names to healthy instances.
+      The message bus resolves agent names to instances whose lease is `ready`.
       During blue-green deploys, the bus handles traffic shifting.
 
   intra_agent:
@@ -1621,6 +1617,6 @@ scaling:
 - [ ] Custom alerts from any agent are accepted and routed
 - [ ] Graceful degradation when email-send agent is unavailable
 - [ ] Metrics emit for received, delivered, throttled, and failed alerts
-- [ ] Health endpoint returns agent status
+- [ ] `GET /livez` answers live or not live and nothing else, and every lease renewal carries the readiness declared under Health, with `checks` naming each subsystem `not_ready`
 
 Port: 9752

@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: incident-response
-version: 1.3.0
+version: 2.0.0
 port: 9760
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/alerting]
 extends: [patterns/incident-response, patterns/observability, patterns/storage, patterns/state-machine, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -46,7 +46,7 @@ to operators when human judgment is required.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -57,16 +57,17 @@ requires:
           methods: [POST]
           request_type: AgentMessage
           response_fields: [status, response]
-        - path: /v1/health
+        - path: /v1/lease
           methods: [POST]
-          response_fields: [status, details]
+          request_type: LeaseRenewal
+          response_fields: [expires_at]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.16.1 <2.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: TaskResult
@@ -77,7 +78,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.14.4 <2.0.0"
+    version: ">=1.14.4 <3.0.0"
     bindings:
       types:
         # Read only to recognise a person's operator token and refuse it on
@@ -91,7 +92,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -106,7 +107,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: agents/alerting
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       events:
         - topic: alert.fired
@@ -120,7 +121,7 @@ requires:
 
 extends:
   - pattern: patterns/observability
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: metrics
@@ -155,7 +156,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/messaging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -452,16 +453,16 @@ criteria (when to give up and call a human).
 
 ```yaml
 runbook:
-  name: agent-offline
-  description: Remediate an offline agent
+  name: agent-lease-lapsed
+  description: Remediate an agent whose lease has lapsed
   trigger:
-    alert_type: agent_offline
+    alert_type: agent_lease_lapsed
     severity: [critical, high]
   
   steps:
     - name: verify
-      action: check_agent_health
-      description: Confirm agent is actually offline (not a false alarm)
+      action: check_agent_lease
+      description: Confirm the agent's lease still reads unknown (not a renewal that arrived late)
       timeout: 10
       on_success: next
       on_failure: escalate
@@ -482,8 +483,8 @@ runbook:
       on_failure: escalate
 
     - name: verify_recovery
-      action: check_agent_health
-      description: Confirm agent recovered after restart
+      action: check_agent_lease
+      description: Confirm the agent's lease reads ready after the restart
       timeout: 30
       retry: 3
       retry_delay: 10
@@ -500,13 +501,13 @@ runbook:
 
 | Runbook | Trigger | Automated Steps | Escalation |
 |---------|---------|----------------|------------|
-| agent-offline | Agent unreachable | Health check → dependency check → restart request → verify | Agent won't recover |
-| agent-degraded | Agent responding slowly | Health check → check load → check dependencies | Persistent degradation |
+| agent-lease-lapsed | Agent's lease reads `unknown` | Lease check → dependency check → restart request → verify | Agent won't recover |
+| agent-not-ready | Agent's lease reads `not_ready` | Lease check (its `checks`) → check load → check dependencies | Persistently not ready |
 | workflow-failed | Domain workflow failure | Check agent status → check inputs → retry workflow | Repeated failures |
 | site-unreachable | Uptime check failure | DNS check → TLS check → alternate path check | Confirmed outage |
 | performance-regression | Performance threshold breach | Check recent deployments → check resource usage | Sustained regression |
 | tls-expiring | TLS certificate <7 days | Check auto-renewal status → alert operator | <3 days remaining |
-| federation-peer-down | Federation peer unreachable | Check peer health endpoint → check network → notify operator | Peer unresponsive |
+| federation-peer-down | Federation peer unreachable | Read the peer's `GET /v1/federation/status` → check network → notify operator | Peer unresponsive |
 | storage-failure | Storage write/read errors | Check disk space → check connections → failover check | Persistent errors |
 | approval-backlog | Pending approvals exceed threshold | Notify approvers → escalate to admin | Backlog growing |
 
@@ -543,7 +544,7 @@ Actions are the atomic operations a runbook step can perform:
 
 | Action | Description | Approval Required |
 |--------|-------------|------------------|
-| check_agent_health | Query agent's /v1/health endpoint | No |
+| check_agent_lease | Read the agent's `lease_state`, and the `checks` of its last renewal, from the orchestrator's directory; never probe the agent | No |
 | check_agent_dependencies | Verify agent's required services | No |
 | request_agent_restart | Ask orchestrator to restart an agent | No (safe) |
 | check_dns | Resolve hostname and verify | No |
@@ -569,18 +570,18 @@ Every incident maintains a chronological timeline of events:
   "state": "runbook_executing",
   "created_at": "2026-04-25T10:00:00Z",
   "source": {
-    "alert_type": "agent_offline",
+    "alert_type": "agent_lease_lapsed",
     "agent": "seo-analyzer",
     "domain": "seo"
   },
   "timeline": [
-    {"time": "2026-04-25T10:00:00Z", "event": "incident_created", "detail": "Alert: seo-analyzer offline"},
-    {"time": "2026-04-25T10:00:01Z", "event": "runbook_started", "detail": "Executing: agent-offline"},
-    {"time": "2026-04-25T10:00:02Z", "event": "step_completed", "detail": "verify: confirmed offline"},
-    {"time": "2026-04-25T10:00:05Z", "event": "step_completed", "detail": "check_dependencies: all healthy"},
+    {"time": "2026-04-25T10:00:00Z", "event": "incident_created", "detail": "Alert: seo-analyzer lease lapsed"},
+    {"time": "2026-04-25T10:00:01Z", "event": "runbook_started", "detail": "Executing: agent-lease-lapsed"},
+    {"time": "2026-04-25T10:00:02Z", "event": "step_completed", "detail": "verify: lease still unknown"},
+    {"time": "2026-04-25T10:00:05Z", "event": "step_completed", "detail": "check_dependencies: all ready"},
     {"time": "2026-04-25T10:00:06Z", "event": "step_started", "detail": "restart: requesting restart"}
   ],
-  "runbook": "agent-offline",
+  "runbook": "agent-lease-lapsed",
   "current_step": "restart",
   "alerts": ["alert_001", "alert_002"]
 }
@@ -598,7 +599,7 @@ report:
   "duration_seconds": 180,
   "root_cause": "Agent process crashed due to OOM",
   "resolution": "auto_resolved",
-  "runbook_used": "agent-offline",
+  "runbook_used": "agent-lease-lapsed",
   "steps_executed": 4,
   "steps_succeeded": 4,
   "timeline_summary": "Detected → verified → dependencies OK → restarted → recovered",
@@ -749,7 +750,7 @@ Step 7 — Load Active Incidents
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9760, runbooks_loaded: N, active_incidents: N}
+  Log: process.ready {port: 9760, runbooks_loaded: N, active_incidents: N}
 ```
 
 ### Shutdown Sequence
@@ -774,37 +775,33 @@ Step 5 — Deregister
   Action:      DELETE /v1/register
 
 Step 6 — Exit
-  Log: lifecycle.stopped {uptime_seconds, active_incidents_preserved}
+  Log: process.stopped {uptime_seconds, active_incidents_preserved}
   agent_state → retired
 ```
 
 ### Health
 
+Readiness, as `GET /readyz` answers it and every lease renewal carries it
+([`patterns/observability`](../patterns/observability.md#health-endpoint)).
+Health is liveness and readiness only, so the counts and timestamps a status
+once carried are metrics:
+
 ```yaml
 health:
-  healthy:
+  ready:
     conditions:
       - alerting subscription active
       - storage writable
       - active_runbooks < 80% of max_concurrent_runbooks
-    response:
-      status: healthy
-      details: {active_incidents, active_runbooks, runbooks_loaded, storage}
-
-  degraded:
-    conditions:
+    checks:
       - alerting subscription lost (operating on direct messages only)
       - storage errors (retrying)
-    response:
-      status: degraded
-      details: {reason, last_error, retry_count}
+    lease: ready true, its checks naming each of these that holds not_ready
 
-  unhealthy:
+  not_ready:
     conditions:
       - storage unreachable after retry exhaustion
-    response:
-      status: unhealthy
-      details: {reason, last_error, since}
+    lease: ready false, its checks naming each subsystem above not_ready
 ```
 
 ### Self-Update
@@ -816,7 +813,7 @@ When `system.blueprint.changed` is received where `blueprint_name = "incident-re
 2. Reload runbook definitions from new blueprint
 3. Validate all active incidents against new state machine
 4. Apply new configuration values
-5. Log: lifecycle.version_updated {from, to}
+5. Log: process.version_updated {from, to}
 ```
 
 ---
@@ -1328,14 +1325,14 @@ tests:
     trigger: alert.fired
     input:
       alert_id: alert_001
-      source: health-monitor
-      type: agent_offline
+      source: telemetry
+      type: agent_lease_lapsed
       severity: critical
       target: seo-analyzer
     expected:
       - "incident created with state: detected"
       - correlation_hash computed
-      - runbook "agent-offline" matched and started
+      - runbook "agent-lease-lapsed" matched and started
     validates:
       - Incident record persisted to storage
       - incident.created event published
@@ -1343,7 +1340,7 @@ tests:
 
   - name: Runbook auto-resolves incident
     action: execute_runbook
-    input: {incident_id: inc_001, runbook_name: agent-offline}
+    input: {incident_id: inc_001, runbook_name: agent-lease-lapsed}
     precondition: All runbook steps succeed
     expected:
       - "state: auto_resolved"
@@ -1435,7 +1432,7 @@ scaling:
     direct_http: forbidden
     routing: by agent name, never by instance address
     reason: >
-      Message bus resolves agent names to healthy instances.
+      Message bus resolves agent names to instances whose lease is `ready`.
       During blue-green deploys, bus handles traffic shifting.
 
   intra_agent:

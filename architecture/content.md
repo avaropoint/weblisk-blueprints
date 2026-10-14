@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 3.0.0
+version: 4.0.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -44,9 +44,17 @@ organisation can open.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.17.2 <2.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
+        # The service serves the two probes and renews its lease
+        # (protocol/types, Health and Presence)
+        - name: Liveness
+          fields_used: [live]
+        - name: Readiness
+          fields_used: [ready]
+        - name: LeaseRenewal
+          fields_used: [ready, checks, timestamp]
         - name: ErrorResponse
           fields_used: [code, error, category, retryable]
         # pass_routes is how the admin gateway learns what a person's request
@@ -68,7 +76,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.14.4 <2.0.0"
+    version: ">=1.14.4 <3.0.0"
     bindings:
       types:
         # identity_id is who a change names; type and aud say a person's
@@ -155,7 +163,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/secrets
-    version: ">=1.1.0 <2.0.0"
+    version: ">=1.1.0 <3.0.0"
     bindings:
       behaviors:
         # How a remote's credential is held (see Declaring a remote)
@@ -194,7 +202,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.15.0 <3.0.0"
+    version: ">=2.15.0 <4.0.0"
     bindings:
       behaviors:
         # What a pass this service accepts rests on. See Who may move an entry
@@ -374,7 +382,8 @@ signed egress record it owes, and holds every remote until then. See
 | GET | /v1/content/repositories/{repository}/log | Log | yes | A repository's change log, its lines exactly as stored, from a sequence number. Whole or refused, never filtered |
 | GET | /v1/content/repositories/{repository}/log/head | LogHead | yes | The log's id, its tip, its latest checkpoint and the key entry that introduced its key, and how many entries are unsealed. Names no path |
 | POST | /v1/content/repositories/{repository}/log/checkpoint | SealLog | yes | Seal the log now, where the tip has moved since the last checkpoint, and return its head |
-| GET | /v1/health | Health | no | Content service health. Served with or without an orchestrator |
+| GET | /livez | Livez | no | Liveness, for the supervisor that restarts the service. Served with or without an orchestrator |
+| GET | /readyz | Readyz | no | Readiness, for the supervisor waiting on its start. Served with or without an orchestrator |
 
 **An entry's bytes travel as base64.** Wherever a JSON body carries an entry's
 bytes — the response of `GET /v1/content/entry`, the request of
@@ -1147,8 +1156,8 @@ in the registration response:
 
 Step 3 is fatal in neither direction: a configured repository that could not be
 established is left `establishing` or recorded as a `DeclinedRepository`, a
-repository whose log fails its check is broken, health reports `degraded`
-naming each, and the service serves everything else. A backend
+repository whose log fails its check is broken, the `checks` its lease carries
+name each `not_ready`, and the service stays ready and serves everything else. A backend
 that is briefly unreachable at boot MUST NOT stop a hub from starting, and MUST
 NOT be reported as though the repository were fine.
 
@@ -1160,13 +1169,19 @@ it refused to start without.
 **An orchestrator is not required in order to start.** Where no orchestrator URL
 is configured:
 
-- The service MUST start and MUST serve `GET /v1/health` unauthenticated.
+- The service MUST start and MUST serve `GET /livez` and `GET /readyz`
+  unauthenticated.
 - Every protected endpoint MUST refuse with `401` and a structured
   `ErrorResponse`. It holds no issuer key, so it can verify no token, and a
   component that cannot verify a token MUST NOT accept one.
-- Health MUST report `degraded`, naming the absent orchestrator. It MUST NOT
-  report `healthy`, because the service cannot serve its purpose, and MUST NOT
-  report `unhealthy`, because nothing about it has failed.
+- `GET /readyz` MUST answer not ready, because the service cannot serve its
+  purpose, and `GET /livez` MUST answer live, because nothing about it has
+  failed. It logs that no orchestrator is configured, the one place it can
+  name the cause, since `/readyz` says nothing but `ready`.
+- It holds no lease, so no `checks` carry a repository left `establishing`,
+  declined or broken, and its protected listing refuses every caller. It
+  MUST log each such repository by `id` with its state when it records it,
+  and the log is where a standalone operator reads them.
 
 Where an orchestrator URL IS configured, registration failure is fatal: a
 service that believes it is part of a mesh and is not would answer requests
@@ -1764,7 +1779,8 @@ A repository in `establishing` is **recorded and not governed**. It reports
 fail-closed values, because nothing has been demonstrated
 about a store that may not exist. It serves no read and accepts no write. It
 appears in `GET /v1/content/repositories` with its `state` and its
-`RepositoryEstablishment`, and health reports `degraded` naming it. It is never
+`RepositoryEstablishment`, and the `checks` the service's lease carries name it
+`not_ready`. It is never
 omitted: a half-made repository that a listing hides is the confident zero of
 Design Principle 5, one operation earlier than the listing that hides declined
 ones.
@@ -3063,8 +3079,8 @@ A repository whose log fails the check is **broken**, and stays so:
   needs. A proposal may still be made or rejected, since neither appends. A
   difference a read finds under shared custody is reported with the read and
   not appended.
-- Health reports `degraded`, naming the repository and that `seq`, and the
-  log's `LogHead` says the same in `chain` and `broken_at`.
+- The `checks` the service's lease carries name the repository `not_ready`,
+  and the log's `LogHead` names that `seq` in `chain` and `broken_at`.
 
 Nothing repairs, truncates or re-chains the log. The log is held under
 exclusive custody, so a failure means its stored lines changed after they were
@@ -4821,8 +4837,8 @@ likely as a client timing out.
 **reconciled, not re-declared**: its claimed attestations are re-verified by the
 ordinary re-verification flow, and nothing is created. Without that rule a
 configured repository would be refused with `CONTENT_REPOSITORY_EXISTS` on every
-start after the first, and would report `degraded` for the rest of its life for
-having worked.
+start after the first, and would be named `not_ready` on its lease for the rest
+of its life for having worked.
 
 This is the one place where configuration and the API deliberately differ, and
 the difference is what the two things *are*. The file is declarative — it states
@@ -4839,7 +4855,8 @@ needing an operator to notice.
 
 **A refused entry is reported, never dropped.** It is recorded as a
 `DeclinedRepository`, `GET /v1/content/repositories` returns it beside the
-repositories that were recorded, and health reports `degraded` naming it. A
+repositories that were recorded, and the `checks` the service's lease carries
+name it `not_ready`. A
 caller must be able to tell a tenant with no repositories from a tenant whose
 repositories were refused — a listing that silently omits them is a confident
 zero, and the caller's next act is to conclude the tenant governs nothing.
@@ -4917,7 +4934,8 @@ security:
       mechanism: The service checks each log from its latest checkpoint at
         start, before settling reservations, and before each checkpoint. A
         broken log refuses every act that would append, with
-        CONTENT_LOG_BROKEN, and still serves reads; health is degraded
+        CONTENT_LOG_BROKEN, and still serves reads; the lease's checks name
+        it not_ready
     - rule: A remote is declared only by a person who has seen what would
         leave, where it would go, and who holds that place
       mechanism: Two-step declaration; the first call returns the census and
@@ -5008,8 +5026,8 @@ security:
     - rule: A create that did not finish is neither reported as success nor as
         nothing having happened
       mechanism: CONTENT_ESTABLISH_INCOMPLETE carrying the repository and its
-        RepositoryEstablishment; state establishing in the listing; health
-        degraded naming it
+        RepositoryEstablishment; state establishing in the listing; the
+        lease's checks name it not_ready
     - rule: A retried establish never creates a second store
       mechanism: The placement is reserved durably before creation. An
         identical retry resumes; one differing in any argument is
@@ -5152,8 +5170,8 @@ security:
 - **`attempts` is a count, not a limit.** Nothing in this contract gives up on a
   reservation after N tries, because there is no verb that retires one and
   abandoning it would strand the id. A backend that fails forever is a
-  `degraded` health report forever, which is the honest reading of the
-  situation.
+  `not_ready` check on the service's lease forever, which is the honest
+  reading of the situation.
 
 - **Compute the census at adoption, not at the first read.** Deferring it
   means the repository is governed before anything is known about what is in
@@ -5295,9 +5313,9 @@ security:
 - [ ] Every content operation appears in the enforcement audit trail with the correlation id recorded on the resulting `ContentChange`
 - [ ] A repository declaration appears in the enforcement audit trail with operation `create` and the declared `scope_path` as the resource scope, including the declaration that was refused
 - [ ] A declaration with `disposition: establish` carrying `if_match` is refused with `CONTENT_PRECONDITION_NOT_APPLICABLE`
-- [ ] With no orchestrator URL configured, the service starts, serves `GET /v1/health`, and does not exit
+- [ ] With no orchestrator URL configured, the service starts, serves `GET /livez` and `GET /readyz`, and does not exit
 - [ ] With no orchestrator URL configured, every protected endpoint refuses with `401` and a structured `ErrorResponse`
-- [ ] With no orchestrator URL configured, health reports `degraded` and names the absent orchestrator — never `healthy`, never `unhealthy`
+- [ ] With no orchestrator URL configured, `GET /readyz` answers not ready and `GET /livez` live, and the service logs that no orchestrator is configured
 - [ ] A declaration with no `disposition` is refused with `CONTENT_DISPOSITION_REQUIRED`, and nothing is recorded
 - [ ] A declaration with `disposition: establish` over a placement holding entries is refused with `CONTENT_NOT_EMPTY`, and the entries are neither adopted nor touched
 - [ ] A first declaration with `disposition: adopt` and no `if_match` is refused with `CONTENT_ADOPTION_UNSEEN`, returns a `ContentAdoption`, and records no repository
@@ -5307,7 +5325,7 @@ security:
 - [ ] Every entry present at adoption is recorded with provenance `unknown`, never `authored` and never `external`
 - [ ] A declaration claiming attestations that are not demonstrated is recorded with the demonstrated set, and its ceiling follows the demonstrated set
 - [ ] A declaration carrying no `custody` is recorded `opaque` with the `internal` ceiling, and the degradation is recorded
-- [ ] A configured repository whose placement is not empty is refused, appears in `GET /v1/content/repositories` as a `DeclinedRepository`, and health reports `degraded` naming it
+- [ ] A configured repository whose placement is not empty is refused, appears in `GET /v1/content/repositories` as a `DeclinedRepository`, and the `checks` the service's lease carries name it `not_ready`
 - [ ] `content:declare` is required to declare a repository, and a caller holding only `content:write` is refused
 - [ ] A declaration whose placement names a backend the service does not hold for that `scope_path` is refused with `CONTENT_BACKEND_UNKNOWN`, and the refusal does not disclose whether that name exists under another scope
 - [ ] A declaration whose placement locator is absolute, carries a scheme or an authority, or contains a `..` segment is refused as written with `CONTENT_PATH_REFUSED`, and nothing is created anywhere
@@ -5315,7 +5333,7 @@ security:
 - [ ] A successful `establish` leaves no entry at all in the store it created, and a census over it returns the digest of the empty set
 - [ ] `establish` against a backend that cannot create is refused with `CONTENT_ESTABLISH_UNSUPPORTED`, no placeholder is written, and `adopt` against that same backend succeeds
 - [ ] The declaration is durable with `state: establishing` before the adapter is asked to create anything, demonstrated by killing the service between the two and finding the record on restart
-- [ ] A repository in `establishing` appears in `GET /v1/content/repositories` reporting `custody: opaque`, every attestation `false`, `ceiling: internal` and no `verified_at`; it serves no read, accepts no write, and health reports `degraded` naming it
+- [ ] A repository in `establishing` appears in `GET /v1/content/repositories` reporting `custody: opaque`, every attestation `false`, `ceiling: internal` and no `verified_at`; it serves no read, accepts no write, and the `checks` the service's lease carries name it `not_ready`
 - [ ] A create that fails after the store exists answers `CONTENT_ESTABLISH_INCOMPLETE` with `store_created: true`, and no repository is reported as declared
 - [ ] A repeated `establish` with identical arguments against a repository in `establishing` completes it, creates no second store, and increments `attempts`
 - [ ] A repeated `establish` differing in `placement`, `custody` or `attestations` is refused with `CONTENT_REPOSITORY_EXISTS`, and the reserved declaration is unchanged
@@ -5323,7 +5341,7 @@ security:
 - [ ] A resumed `establish` whose store has since been written to is refused with `CONTENT_NOT_EMPTY`, and the entries are neither adopted nor touched
 - [ ] A caller holding `content:declare` and not `content:establish` is refused `disposition: establish` and succeeds at `disposition: adopt` of a store whose census does not report `keeps_history`, with a declaration carrying neither `scope_floor` nor `self_decision_ceiling`
 - [ ] A caller holding `content:declare` and not `content:decide`, a registered component's included, cannot adopt a store whose census reports `keeps_history`: confirmed with the census digest and without a `scope_floor` it is refused with `CONTENT_SCOPE_UNDECLARED`, with one it is refused with `FORBIDDEN`, and no repository is recorded either way
-- [ ] A configured repository already `declared` with the same `id`, `scope_path` and `placement` is reconciled on every subsequent start — nothing is created, nothing is refused, and health does not report `degraded` for it
+- [ ] A configured repository already `declared` with the same `id`, `scope_path` and `placement` is reconciled on every subsequent start — nothing is created, nothing is refused, and the lease's `checks` do not name it `not_ready`
 - [ ] A configured repository left `establishing` by a crashed boot is resumed on the next start with no operator action
 - [ ] With an orchestrator URL configured, a failed registration is fatal
 - [ ] A read, write, stat, list or proposal naming `.git`, `.GIT`, `.git.`, `git~1` or `docs/.git/config` is refused with `CONTENT_RESERVED_PATH`, and nothing is written
@@ -5439,5 +5457,5 @@ security:
 - [ ] With the log key unavailable, writes still succeed, their entries are appended, and `LogHead.unsealed` counts them; once a log key can sign, the next checkpoint covers them all
 - [ ] Before the sealed log's statements have test vectors, the service starts without minting a log key, appends no `key` or `checkpoint` entry, answers every `LogHead` with `sealing` `paused`, and refuses a checkpoint request with `CONTENT_SEALING_PAUSED`
 - [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, `POST /v1/content/repositories/{repository}/log/checkpoint` on a log whose tip has moved appends a `checkpoint` entry covering the tip, and on one whose tip has not moved appends nothing
-- [ ] A service started over a change log whose lines after its latest checkpoint were altered settles no reservation in it, refuses writes, removals, decisions to apply, reconciles and checkpoints on that repository with `CONTENT_LOG_BROKEN` naming the `seq`, still serves its entries and its log, reports health `degraded` naming it, and reports `chain` `broken` with that `broken_at` in its `LogHead`
+- [ ] A service started over a change log whose lines after its latest checkpoint were altered settles no reservation in it, refuses writes, removals, decisions to apply, reconciles and checkpoints on that repository with `CONTENT_LOG_BROKEN` naming the `seq`, still serves its entries and its log, names it `not_ready` in its lease's `checks`, and reports `chain` `broken` with that `broken_at` in its `LogHead`
 - [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, rotating the service's registered key appends a succession entry to every change log that has an authority, and a verifier that brings only the key the tenant's service directory now lists verifies checkpoints sealed before the rotation

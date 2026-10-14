@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: command
-version: 1.0.0
+version: 1.0.2
 requires: [protocol/types, architecture/agent, patterns/logging, patterns/secrets]
 platform: any
 tier: free
@@ -48,7 +48,7 @@ commands it's allowed to run.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -60,13 +60,13 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/logging
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: LogEntry
@@ -76,7 +76,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/secrets
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: SecretRef
@@ -408,13 +408,19 @@ and duration are recorded.
 
 ## Audit Trail
 
-Every command execution is logged:
+Every command execution is logged in the one envelope
+[`patterns/logging`](logging.md#log-envelope) defines:
 
 ```json
 {
-  "log_type": "command.executed",
+  "ts": "2026-04-25T10:30:46.123Z",
   "level": "info",
+  "log_type": "command.executed",
+  "msg": "lighthouse exited 0",
   "component": "perf-auditor",
+  "component_type": "agent",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "00f067aa0ba902b7",
   "details": {
     "command_key": "lighthouse",
     "binary": "lighthouse",

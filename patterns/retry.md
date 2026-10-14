@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: retry
-version: 1.0.0
+version: 1.1.0
 requires: [protocol/types, architecture/agent, patterns/rate-limiting]
 platform: any
 tier: free
@@ -38,7 +38,7 @@ periodically allows a probe request to check if the target recovered.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -48,7 +48,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentConfig
@@ -273,7 +273,7 @@ target:
 | Orchestrator | `orchestrator` |
 
 This prevents one failing dependency from blocking communication with
-healthy targets.
+targets that are still answering.
 
 ### Circuit Breaker Events
 
@@ -407,9 +407,10 @@ it overrides the category-based default.
 - Circuit breaker state is in-memory per agent process. It resets on
   agent restart, which is acceptable — if an agent restarts, its view
   of dependency health should be fresh.
-- Domain controllers use circuit breaker state to determine their own
-  health status. If a required agent's circuit is open, the domain
-  reports as degraded.
+- Domain controllers use circuit breaker state to decide their own
+  readiness. While a required agent's circuit is open, the domain
+  renews its lease not ready, its `checks` naming that agent
+  ([`protocol/types`](../protocol/types.md#leasestate) §LeaseState).
 - The retry pattern works with the rate-limiting pattern: when a 429
   is received, the Retry-After header takes precedence over
   calculated backoff.

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 1.18.4
+version: 3.0.0
 requires: []
 platform: any
 tier: free
@@ -22,8 +22,8 @@ JSON using the exact field names shown in the `json` column.
 
 ## Conventions
 
-- All timestamps are Unix epoch seconds (`int64`)
-- All IDs are 32-character hex strings (16 random bytes)
+- All timestamps are Unix epoch seconds (`int64`), except those [LogEntry](#logentry) and [Span](#span) declare
+- All IDs are 32-character hex strings (16 random bytes), except a span id ([TraceContext](#tracecontext))
 - All signatures are base64url-encoded ML-DSA-65 signatures (3309 bytes)
 - All public keys are base64url-encoded ML-DSA-65 public keys (1952 bytes)
 - Optional fields MAY be omitted from JSON when empty/null
@@ -172,6 +172,13 @@ has passed, and those two are registered with their status in
 because the exchange refused the person's token, answers with the code
 `TokenExchangeResponse.code` names and the status this table or Error Handling
 gives it.
+
+**Token request codes** (produced by the orchestrator's judgement of a request
+for an attestation token, `architecture/admin`'s `attestation-token-issuance`):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `TOKEN_REQUEST_REPLAYED` | 401 | permanent | The request's `jti` was already recorded for that operator inside the replay window ([`architecture/admin`](../architecture/admin.md#obtaining-a-token), `attestation-token-issuance`). No token is issued; the client signs a new request with a fresh `jti`, and never registers for it |
 
 **Pass codes** (produced by a component that a person's request reaches,
 [`protocol/identity`](identity.md#the-pass)):
@@ -364,32 +371,53 @@ types:
         description: "Glob patterns scoping the capability"
 ```
 
+**One home, one owner.** This section is the one home of every capability
+name, and each bullet names its one **owner** in brackets: the unit whose
+blueprint says what the capability admits and which judges it. A name with two
+owners or none is a fault. The vocabulary is what a manifest, a role and a
+token's `cap` may name; a capability listing one hub publishes to another
+([`architecture/hub`](../architecture/hub.md)) is named by the hub that
+publishes it and is not part of it, so `architecture/hub`'s federation
+examples, such as `inventory:check`, are listings and are not listed here. An owner is named as a unit: `orchestrator`
+([`architecture/orchestrator`](../architecture/orchestrator.md), with
+[`architecture/admin`](../architecture/admin.md) its administrative surface),
+`content`, `fabric`, `enforcement`, `gateway` and `domain` (each its
+`architecture/` blueprint). Three owners have no blueprint in this corpus yet:
+`programme`, whose blueprint `agents/programme` is drafted but not merged, and
+`integrations` and `telemetry`, whose blueprints are not written. Their names
+guard no route until each blueprint merges. Five names have a nominated owner
+whose blueprint does not yet say what they admit: `file:read`, `file:write` and
+`http:get` (enforcement) and `http:receive` and `realtime:publish` (gateway).
+Those five are judged by no rule until their owner's blueprint states one. All
+of these are listed now because a registration naming an unlisted capability is
+refused ([`protocol/spec`](spec.md#post-v1register)).
+
 **Standard capabilities:**
-- `file:read` — read files (resources: glob patterns)
-- `file:write` — write/modify files
-- `llm:chat` — use a language model. A person's request needs it to ask the tenant's model for a completion at `POST /v1/admin/complete` ([`architecture/orchestrator`](../architecture/orchestrator.md#administrative-endpoints)), and `architecture/admin`'s roles table says which roles carry it. It is the one capability a requester needs to ask a model, and no other is minted for that: the model capabilities below are for recording an agreement (`model:attest`) and for serving the tenant's model route (`model:route`)
-- `agent:message` — communicate with other agents
-- `workflow:execute` — execute multi-agent workflows (domain controllers)
-- `http:get` — make external HTTP requests
-- `http:send` — make outbound HTTP requests
-- `http:receive` — receive inbound HTTP requests
-- `database:read` — read from data store
-- `database:write` — write to data store
-- `event:observe` — observe all events for a topic regardless of scope
-- `realtime:publish` — publish to real-time channels
+- `file:read` (enforcement) — read files (resources: glob patterns)
+- `file:write` (enforcement) — write/modify files
+- `llm:chat` (orchestrator) — use a language model. A person's request needs it to ask the tenant's model for a completion at `POST /v1/admin/complete` ([`architecture/orchestrator`](../architecture/orchestrator.md#administrative-endpoints)), and `architecture/admin`'s roles table says which roles carry it. It is the one capability a requester needs to ask a model, and no other is minted for that: the model capabilities below are for recording an agreement (`model:attest`) and for serving the tenant's model route (`model:route`)
+- `agent:message` (orchestrator) — communicate with other agents
+- `workflow:execute` (domain) — execute multi-agent workflows (domain controllers)
+- `http:get` (enforcement) — make external HTTP requests
+- `http:send` (enforcement) — make outbound HTTP requests
+- `http:receive` (gateway) — receive inbound HTTP requests
+- `database:read` (enforcement) — read from data store
+- `database:write` (enforcement) — write to data store
+- `event:observe` (orchestrator) — observe all events for a topic regardless of scope
+- `realtime:publish` (gateway) — publish to real-time channels
 
 **Content capabilities:**
-- `content:read` — read entries and list a content repository, read the proposals made against it, and read its change log
-- `content:write` — create, modify and remove entries directly. *Person only*
-- `content:propose` — stage a change to one entry for a person to decide. Writes nothing
-- `content:decide` — apply or reject a proposed change, and, beside `content:declare`, declare a repository's `self_decision_ceiling` or `scope_floor`. *Person only*
-- `content:describe` — read a repository's custody class, attestations and derived ceiling, its replicas, and its change log's head, and have that log sealed
-- `content:declare` — bring a store under governance. Adopting one that already holds bytes needs it alone only where the census does not report `keeps_history` and the declaration carries neither `scope_floor` nor `self_decision_ceiling`; adopting a store that keeps history must carry a `scope_floor`, so it also needs `content:decide`. Establishing a new store also needs `content:establish`
-- `content:establish` — create a store and declare it. Required in addition to `content:declare` for `disposition: establish`; adoption does not need it
-- `content:reconcile` — run custody reconciliation on a shared repository
-- `content:replicate` — declare a replica of a repository, and retire one. Declaring one also needs `content:connect`. *Person only*
-- `content:connect` — have the content service create and hold a credential that reaches a destination outside the tenant's store. Required in addition to `content:replicate` to declare a replica. *Person only*
-- `content:declassify` — lower a path's recorded scope. It guards no route yet: [`architecture/content`](../architecture/content.md) refuses every lowering until the tenant's approval queue can route such a request to a second person. *Person only*
+- `content:read` (content) — read entries and list a content repository, read the proposals made against it, and read its change log
+- `content:write` (content) — create, modify and remove entries directly. *Person only*
+- `content:propose` (content) — stage a change to one entry for a person to decide. Writes nothing
+- `content:decide` (content) — apply or reject a proposed change, and, beside `content:declare`, declare a repository's `self_decision_ceiling` or `scope_floor`. *Person only*
+- `content:describe` (content) — read a repository's custody class, attestations and derived ceiling, its remotes, and its change log's head, and have that log sealed
+- `content:declare` (content) — bring a store under governance. Adopting one that already holds bytes needs it alone only where the census does not report `keeps_history` and the declaration carries neither `scope_floor` nor `self_decision_ceiling`; adopting a store that keeps history must carry a `scope_floor`, so it also needs `content:decide`. Establishing a new store also needs `content:establish`
+- `content:establish` (content) — create a store and declare it. Required in addition to `content:declare` for `disposition: establish`; adoption does not need it
+- `content:reconcile` (content) — run custody reconciliation on a shared repository
+- `content:replicate` (content) — declare a remote of a repository, and retire one. Declaring one also needs `content:connect`. *Person only*
+- `content:connect` (content) — bind an integration to a destination outside the tenant's store, a remote's among them. It creates nothing in the content service: the credential is the integration's, and the content service holds none. Required in addition to `content:replicate` to declare a remote. *Person only*
+- `content:declassify` (content) — lower a path's recorded scope. It guards no route yet: [`architecture/content`](../architecture/content.md) refuses every lowering until the tenant's approval queue can route such a request to a second person. *Person only*
 
 *Person only* marks a capability that no service and no agent may hold.
 [`patterns/principal-identity`](../patterns/principal-identity.md) keeps it out
@@ -403,14 +431,14 @@ separate from `content:write` for the reason `fabric:attest` is separate from
 covering both would make that unenforceable at the tenant. What each does to a
 request is [`architecture/content`](../architecture/content.md#proposals).
 `content:replicate` and `content:connect` are two capabilities so that sending
-a repository outside the tenant takes two grants: a replica with no credential
-reaches nothing, and a credential with no replica is sent nothing
+a repository outside the tenant takes two grants: a remote with no integration
+bound reaches nothing, and an integration bound to no remote is sent nothing
 ([`architecture/content`](../architecture/content.md#who-may-declare-a-remote),
 which also says whom the two grants separate today).
 
 **Model capabilities:**
-- `model:attest` — record and withdraw an agreement attestation, which raises what a model provider may be sent ([`patterns/scope`](../patterns/scope.md#model-providers)). *Person only*
-- `model:route` — send to a model provider's endpoint as the tenant's model route ([`patterns/scope`](../patterns/scope.md#the-gate)). Declared by a component that serves `patterns/api-ai`'s endpoints, and by nothing else. `POST /v1/admin/complete` is the orchestrator's own route and is served by no component, so nothing declares it there ([`patterns/scope`](../patterns/scope.md#the-gate), Where the tenant applies it)
+- `model:attest` (orchestrator) — record and withdraw an agreement attestation, which raises what a model provider may be sent ([`patterns/scope`](../patterns/scope.md#model-providers)). *Person only*
+- `model:route` (enforcement) — send to a model provider's endpoint as the tenant's model route ([`patterns/scope`](../patterns/scope.md#the-gate)). Declared by a component that serves `patterns/api-ai`'s endpoints, and by nothing else. `POST /v1/admin/complete` is the orchestrator's own route and is served by no component, so nothing declares it there ([`patterns/scope`](../patterns/scope.md#the-gate), Where the tenant applies it)
 
 `model:route` is how [`architecture/enforcement`](../architecture/enforcement.md#external-proxy)'s
 external boundary tells the model route from a call made around it. It
@@ -435,10 +463,10 @@ nothing else, whichever component serves the route
 `admin-gateway-authorization`).
 
 **Fabric capabilities:**
-- `fabric:read` — read relationships, coverage, impact, lineage and the ledger projection
-- `fabric:produce` — state a producer's full current view for one partition
-- `fabric:observe` — report one relationship incrementally
-- `fabric:attest` — assert, judge or re-anchor a relationship as a person. *Person only*
+- `fabric:read` (fabric) — read relationships, coverage, impact, lineage and the ledger projection
+- `fabric:produce` (fabric) — state a producer's full current view for one partition
+- `fabric:observe` (fabric) — report one relationship incrementally
+- `fabric:attest` (fabric) — assert, judge or re-anchor a relationship as a person. *Person only*
 
 `fabric:attest` is separate from `fabric:observe` for the reason
 `architecture/fabric` is built around: only a person reaches `confirmed`. One
@@ -450,6 +478,63 @@ and `fabric:read`, only through a role that
 for every person-only capability. `fabric:produce` and `fabric:observe` are a
 producer's, which is a registered component.
 
+**Programme capabilities:**
+- `programme:read` (programme) — read a programme's installed operations and what they have produced
+- `programme:install` (programme) — install a programme's operations at a scope
+- `programme:operate` (programme) — pause, resume, run and reschedule an installed operation
+- `programme:switch` (programme) — decide whether an operation's runs reach people: mute, unmute, and who hears them. *Person only*
+
+Which act needs which will be `agents/programme`'s, under Who May Switch What,
+once that draft merges; until then these names guard no route. The programme
+service is to declare the first three, because a grant to a caller is the
+intersection of what it holds and what the serving manifest declares, and to
+check `programme:switch` without ever holding it, as `content` does its own
+person-only capabilities.
+
+**Integration capabilities:**
+- `integration:read` (integrations) — read the tenant's integrations: provider, account, method, scopes, owner, purposes, expiry and status, and never a secret
+- `integration:manage` (integrations) — make, bind to a declared need, re-purpose, rotate and revoke an integration, where the consuming owner declares no capability of its own for the act (`content:connect` is the one for a remote's key). *Person only*
+- `integration:use` (integrations) — have an integration act for a need the holder's blueprint declares: a token, a signature or verdict, or a relayed call, and never the secret
+
+`integration:use` is a component's, declared for a need its blueprint states,
+and no role carries it. Which roles carry the other two, and what a person may
+delegate, is [`architecture/admin`](../architecture/admin.md#operator-roles)'s.
+
+**Telemetry capabilities:**
+- `telemetry:read` (telemetry) — read the tenant's runtime: metrics, logs, traces, events, probe results and rule state
+- `telemetry:push` (telemetry) — push a component's own signals to telemetry over OTLP, under a pass. Reads nothing
+
+`telemetry:read` is not person only: an agent whose blueprint declares a read
+of telemetry holds it within that declaration. A person holds it only through
+a role, and which roles carry it is
+[`architecture/admin`](../architecture/admin.md#operator-roles)'s.
+`telemetry:push` is declared by every component that reports, and no role
+carries it.
+
+**Action and admission capabilities:**
+- `action:invoke` (orchestrator) — invoke an operator action a component's blueprint declares, where the action names no capability of that component's own family. *Person only*
+- `scope:admit` (orchestrator) — admit the operational scope a component declares, the highest classification it may reach. *Person only*
+
+Neither guards a route yet: no blueprint declares an operator action, and
+`AgentManifest` has no operational scope. Both are listed so that each act has
+one name before it is specified.
+
+No capability is listed here for a component recording into the one audit
+ledger. No route for that write exists yet; whether it needs a capability is
+decided where the route is specified, in
+[`architecture/orchestrator`](../architecture/orchestrator.md), which owns the
+audit routes and adds its name here first if it needs one.
+
+**Outside the `admin` family.** `telemetry:read`, `action:invoke` and
+`scope:admit`, like `model:attest`, are not in the `admin` family, so `admin:*`
+does not carry them, and a person holds one only where
+[`architecture/admin`](../architecture/admin.md#operator-roles)'s roles table
+names it. Adding one to the family would change what `admin:*` means to every
+rule that names it. `programme:switch`, `integration:manage`, `action:invoke`
+and `scope:admit` are person only because each is a decision a person makes and
+answers for: what reaches people, which outside account the tenant acts as,
+an operational control, and what data a component may reach.
+
 A capability name is `family:verb`. A component that invents one is refused at
 registration with `INVALID_REQUEST` — which is correct, and is why a component's
 capabilities belong in this list before that component is built. The content
@@ -457,11 +542,11 @@ service was generated asking for `content.read`, with a dot and no declared
 family, and the orchestrator rejected it exactly as it should.
 
 **Administrative capabilities:**
-- `admin:read` — read administrative state: overview, agents, domains, workflows, operators
-- `admin:approve` — act on the approval queue
-- `admin:strategy` — create, amend and retire strategies
-- `admin:audit` — read the full audit log, including export
-- `admin:*` — every capability in the `admin` family
+- `admin:read` (orchestrator) — read administrative state: overview, agents, domains, workflows, operators
+- `admin:approve` (orchestrator) — act on the approval queue
+- `admin:strategy` (orchestrator) — create, amend and retire strategies
+- `admin:audit` (orchestrator) — read the full audit log, including export
+- `admin:*` (orchestrator) — every capability in the `admin` family
 
 Administration is expressed in capabilities like everything else, and an
 operator's **role is a bundle of them** — `architecture/admin` defines each
@@ -493,7 +578,7 @@ glob — resource scoping stays in `resources`, as for every other capability.
 > means.
 
 **Exchange capability:**
-- `token:exchange` — have the orchestrator exchange the operator token a person has just presented for a pass addressed to one component ([`protocol/identity`](identity.md#the-pass); `architecture/orchestrator`, `token-exchange`). The admin gateway declares it, and no other blueprint does. No role carries it
+- `token:exchange` (orchestrator) — have the orchestrator exchange the operator token a person has just presented for a pass addressed to one component ([`protocol/identity`](identity.md#the-pass); `architecture/orchestrator`, `token-exchange`). The admin gateway declares it, and no other blueprint does. No role carries it
 
 `token:exchange` is what the admin gateway's registration declares, and the
 only capability it declares: the gateway reads the service directory, which
@@ -1180,8 +1265,13 @@ types:
       trace_id:
         name: TraceID
         type: string
-        required: false
-        description: "Correlation ID for distributed tracing (propagated through all downstream calls)"
+        required: true
+        description: "The trace this task belongs to ([TraceContext](#tracecontext))"
+      span_id:
+        name: SpanID
+        type: string
+        required: true
+        description: "The sender's span for this call ([TraceContext](#tracecontext))"
 ```
 
 ### TaskResult
@@ -1751,8 +1841,13 @@ types:
       trace_id:
         name: TraceID
         type: string
-        required: false
-        description: "Correlation ID (propagated from TaskContext)"
+        required: true
+        description: "The trace this message belongs to ([TraceContext](#tracecontext))"
+      span_id:
+        name: SpanID
+        type: string
+        required: true
+        description: "The sender's span for this message ([TraceContext](#tracecontext))"
 ```
 
 **Signature covers:** `canonicalize({from, to, action, payload})` per
@@ -1788,11 +1883,16 @@ types:
         type: "[]string"
         required: true
         description: "Capability names"
-      status:
-        name: Status
+      lease_state:
+        name: LeaseState
         type: string
         required: true
-        description: "`online`, `offline`, `degraded`"
+        description: "What this component's lease says now: `ready`, `not_ready` or `unknown`. See [LeaseState](#leasestate)"
+      lease_expires_at:
+        name: LeaseExpiresAt
+        type: int64
+        required: true
+        description: "Unix epoch seconds at which the lease lapses unless the component renews it. From then on `lease_state` is `unknown`"
       address_provenance:
         name: AddressProvenance
         type: string
@@ -1907,6 +2007,11 @@ types:
         type: ServiceDirectory
         required: true
         description: "Current service directory"
+      lease:
+        name: Lease
+        type: Lease
+        required: true
+        description: "The lease this registration grants, which the component renews at `POST /v1/lease`. See [Lease](#lease)"
       orchestrator:
         name: Orchestrator
         type: OrchestratorInfo
@@ -2088,42 +2193,144 @@ types:
 
 ## Health
 
-### HealthStatus
+"Health" means **liveness and readiness, and nothing else**. They answer two
+questions, and each has one owner, with the semantics of Kubernetes probes and
+leases:
+
+| Question | Answered by | Read by |
+|----------|-------------|---------|
+| Is the process live, or must it be restarted? | `GET /livez`, served by the component ([Liveness](#liveness)) | the supervisor on its host that restarts it, and nothing else |
+| Is it present, and ready to serve? | the lease the component renews with the orchestrator, carrying its readiness ([Lease](#lease), [LeaseRenewal](#leaserenewal)) | every other party, through the service directory ([LeaseState](#leasestate)) |
+
+Neither carries a version, an uptime, metrics or the state of another
+component. What a component was built from is its manifest; how it is serving
+its users is telemetry's to judge
+([`architecture/observability`](../architecture/observability.md)). **Nothing
+polls an internal component to learn whether it is present**: the lease
+already says, and a second answer reached by polling would be a second
+presence fact that can disagree with the first.
+
+### Liveness
 
 ```yaml
 types:
-  HealthStatus:
+  Liveness:
     fields:
-      name:
-        name: Name
+      live:
+        name: Live
+        type: bool
+        required: true
+        description: "`true` with status 200; `false` with status 503"
+```
+
+`GET /livez` is served by every component, the orchestrator included, without
+authentication and outside the `/v1` prefix, like a Kubernetes probe. It
+answers 200 with `{"live": true}` while the process can still make progress,
+and 503 with `{"live": false}` once it knows it cannot recover without a
+restart. A component that does not answer is not live. It says nothing else:
+no name, version, reason or dependency, because anyone who can reach the
+listener can read it.
+
+A liveness answer MUST NOT depend on another component, a store or a network
+peer. Its reader restarts what fails it, so a dependency's outage that failed
+liveness would restart every dependant and turn one fault into many.
+
+### Readiness
+
+```yaml
+types:
+  Readiness:
+    fields:
+      ready:
+        name: Ready
+        type: bool
+        required: true
+        description: "`true` with status 200; `false` with status 503"
+```
+
+A component is **ready** when it has finished starting, holds what it needs to
+serve its endpoints (its keys, its store, and the orchestrator's key it verifies
+tokens with) and is not draining for a shutdown. A component that cannot verify
+a token is therefore **not ready**: one started with no orchestrator, or before
+its registration returns that key, can serve nothing a token protects, however
+long it runs ([`architecture/testing`](../architecture/testing.md) L4-04). It
+says so in two places, and they are one fact:
+
+- **On its lease.** Every renewal carries `ready` ([LeaseRenewal](#leaserenewal)),
+  and that is where every other party reads it.
+- **At `GET /readyz`**, served like `/livez`: without authentication, outside
+  `/v1`, 200 with `{"ready": true}` or 503 with `{"ready": false}`, and nothing
+  else. Its reader is the supervisor on the component's host while it waits for
+  a start to complete ([`architecture/cli`](../architecture/cli.md)), and the
+  probe of the orchestrator, which holds no lease of its own. No one reads it to
+  learn whether a registered component is present.
+
+---
+
+## Presence
+
+### LeaseState
+
+| Value | Means |
+|-------|-------|
+| `ready` | The lease is current and its last renewal said `ready: true` |
+| `not_ready` | The lease is current and its last renewal said `ready: false`: the component is starting, draining, or missing something it needs |
+| `unknown` | The lease has lapsed, or the registration predates the orchestrator's last restart and no renewal has arrived since. The orchestrator does not know, and says so |
+
+`unknown` is never read as `ready`, and never as failed: a lapsed lease means
+the orchestrator has not heard, not that the component is down. There is no
+`online`, `offline` or `degraded`.
+
+### Lease
+
+```yaml
+types:
+  Lease:
+    fields:
+      agent_id:
+        name: AgentID
         type: string
         required: true
-        description: "Component name"
-      status:
-        name: Status
-        type: string
-        required: true
-        description: "`healthy`, `degraded`, `unhealthy`"
-      version:
-        name: Version
-        type: string
-        required: true
-        description: "Component version"
-      uptime:
-        name: Uptime
+        description: "The registration the lease belongs to"
+      duration:
+        name: Duration
         type: int64
         required: true
-        description: "Seconds since start"
+        description: "Seconds the lease lasts from each renewal (`orchestrator.lease_duration`)"
+      renewed_at:
+        name: RenewedAt
+        type: int64
+        required: true
+        description: "Unix epoch seconds of the registration or renewal that set it"
+      expires_at:
+        name: ExpiresAt
+        type: int64
+        required: true
+        description: "Unix epoch seconds at which it lapses unless renewed"
+```
+
+A first registration grants the first lease (`RegisterResponse.lease`), with
+the component's readiness taken as `ready: false` until its first renewal says
+otherwise. What a re-registration does to a lease, and why it never carries a
+readiness over a lapse or an orchestrator restart, is
+[`protocol/spec`](spec.md#post-v1register)'s (§POST /v1/register, step 8).
+
+### LeaseRenewal
+
+```yaml
+types:
+  LeaseRenewal:
+    fields:
+      ready:
+        name: Ready
+        type: bool
+        required: true
+        description: "The component's readiness now, as `GET /readyz` would answer it"
       checks:
         name: Checks
         type: map
         required: false
-        description: "Per-subsystem health: subsystem name → `ok`, `degraded` or `failed`. A component that names a failing subsystem says WHERE it is unwell; one that reports only `status` says that it is"
-      metrics:
-        name: Metrics
-        type: map
-        required: false
-        description: "Component-specific metrics"
+        description: "Subsystem name → `ready` or `not_ready`: each subsystem's readiness, saying where the component is short, whether or not that makes it not ready. It never changes the lease state, which `ready` alone sets. Carried on the lease only, never served at `/readyz`"
       timestamp:
         name: Timestamp
         type: int64
@@ -2131,13 +2338,16 @@ types:
         description: "Unix epoch seconds"
 ```
 
-The component's own name is `name` and its age is `uptime`. Neither is
-`component` nor `uptime_seconds`: those were bound by
-[`architecture/observability`](../architecture/observability.md) from this type
-for a while, and since this type never had them, a generated orchestrator
-emitted the observability names, satisfied observability's assertion, and failed
-`L1-01` against this definition. **This table is the authority and every other
-blueprint binds the names in it.**
+A component renews at `POST /v1/lease` ([`protocol/spec`](spec.md#post-v1lease))
+as soon as its registration is answered, and from then on
+at intervals no longer than a third of `duration`, so that two lost renewals
+still leave the lease current. What the orchestrator does with a renewal,
+one after a lapse included, is [`protocol/spec`](spec.md#post-v1lease)'s. A component that is draining renews with
+`ready: false` until it deregisters.
+
+What the directory and its leases are the authority for, and who may probe
+whom, is [`architecture/orchestrator`](../architecture/orchestrator.md#presence)
+§Presence's.
 
 ---
 
@@ -2455,7 +2665,12 @@ types:
         name: TraceID
         type: string
         required: true
-        description: "Distributed trace context (propagated through all downstream operations)"
+        description: "The trace this event belongs to ([TraceContext](#tracecontext))"
+      span_id:
+        name: SpanID
+        type: string
+        required: true
+        description: "The publisher's span for this publish ([TraceContext](#tracecontext))"
       version:
         name: Version
         type: string
@@ -2584,13 +2799,14 @@ types:
 
 ## Protocol Paths
 
-All paths are prefixed with `/v1`.
+All paths are prefixed with `/v1` but the two probes, `/livez` and `/readyz`,
+which every component serves outside the protocol version, as Kubernetes
+probes are, and which say nothing a version could change ([Health](#health)).
 
 | Path | Method | Auth | Component | Purpose |
 |------|--------|------|-----------|---------|
 | `/v1/describe` | POST | no | agent | Return manifest |
 | `/v1/execute` | POST | yes | agent | Execute task |
-| `/v1/health` | POST | no | agent | Health check |
 | `/v1/message` | POST | yes | agent | Synchronous request/response |
 | `/v1/services` | POST | yes | agent | Receive service directory updates |
 | `/v1/event` | POST | yes | agent | Receive event delivery (pub/sub) |
@@ -2598,7 +2814,9 @@ All paths are prefixed with `/v1`.
 | `/v1/register` | DELETE | yes | orchestrator | Agent deregistration |
 | `/v1/services` | GET | yes | orchestrator | Service directory + routing table |
 | `/v1/channel` | POST | yes | orchestrator | Broker channel |
-| `/v1/health` | GET | no | orchestrator | Orchestrator health |
+| `/v1/lease` | POST | yes | orchestrator | Renew the caller's lease, carrying its readiness ([LeaseRenewal](#leaserenewal)) |
+| `/livez` | GET | no | every component | Liveness, for the supervisor that restarts it ([Liveness](#liveness)) |
+| `/readyz` | GET | no | every component | Readiness, for the supervisor waiting on a start and the probe of the orchestrator ([Readiness](#readiness)) |
 | `/v1/audit` | GET | yes | orchestrator | Audit log |
 | `/v1/rotate-key` | POST | yes | orchestrator | Key rotation (see identity.md) |
 | `/v1/token/exchange` | POST | yes | orchestrator | Exchange the operator token a person has just presented to the admin gateway for a pass addressed to one component (`TokenExchangeResponse`). The admin gateway's alone |
@@ -2631,6 +2849,11 @@ error_codes:
     category: transient
     retryable: true
     description: Token past expiry — re-register to get a new one
+  - code: TOKEN_REQUEST_REPLAYED
+    status: 401
+    category: permanent
+    retryable: false
+    description: An attestation-token request whose jti the hub already recorded for that operator inside the replay window (architecture/admin, attestation-token-issuance). Nothing is issued. The client signs a new request with a fresh jti; the refusal is never a reason to register
   - code: FORBIDDEN
     status: 403
     category: permanent
@@ -3009,8 +3232,8 @@ it from `protocol/identity`.
 
 ### LogEntry
 
-Structured log entry emitted by agents. See [patterns/logging](../patterns/logging.md)
-for the full logging specification.
+The one log envelope's fields. Everything else about a log record is
+[`patterns/logging`](../patterns/logging.md)'s.
 
 ```yaml
 types:
@@ -3018,54 +3241,100 @@ types:
     fields:
       ts:
         name: Timestamp
-        type: int64
+        type: string
         required: true
-        description: "Unix epoch seconds (consistent with all protocol timestamps)"
+        description: "RFC 3339 UTC time with milliseconds, e.g. `2026-04-25T10:30:01.123Z`: the one timestamp format for log lines"
       level:
         name: Level
         type: string
         required: true
-        description: "`debug`, `info`, `warn`, `error`, `fatal`"
+        description: "`debug`, `info`, `warn` or `error`"
       log_type:
         name: LogType
         type: string
         required: true
-        description: "`app`, `access`, `audit`, `security`"
+        description: "A type from `patterns/logging`'s Log Types, or a custom type a blueprint declares"
       msg:
         name: Message
         type: string
         required: true
-        description: "Human-readable log message"
+        description: "Human-readable summary (max 256 characters)"
       component:
         name: Component
         type: string
         required: true
-        description: "Agent or subsystem name"
+        description: "The component's name, as the service directory names it"
       component_type:
         name: ComponentType
         type: string
         required: true
-        description: "`agent`, `orchestrator`, `gateway`"
+        description: "`agent`, `domain`, or the architecture blueprint the component is built from"
       trace_id:
         name: TraceID
         type: string
         required: false
-        description: "Distributed trace correlation"
+        description: "The trace being served when the line was written ([TraceContext](#tracecontext))"
       span_id:
         name: SpanID
         type: string
         required: false
-        description: "Span within trace"
+        description: "The span open when the line was written"
+      task_id:
+        name: TaskID
+        type: string
+        required: false
+        description: "The task being processed"
+      domain:
+        name: Domain
+        type: string
+        required: false
+        description: "The domain being operated within"
+      workflow:
+        name: Workflow
+        type: string
+        required: false
+        description: "The workflow being executed"
+      action:
+        name: Action
+        type: string
+        required: false
+        description: "The action being processed"
+      duration_ms:
+        name: DurationMS
+        type: int64
+        required: false
+        description: "On completion of an operation"
+      status:
+        name: Status
+        type: string
+        required: false
+        description: "On completion of an operation: `success`, `failed` or `timeout`"
       error:
         name: Error
         type: string
         required: false
-        description: "Error message (when level is error/fatal)"
+        description: "Error message (when level is error)"
+      error_code:
+        name: ErrorCode
+        type: string
+        required: false
+        description: "Structured error code"
+      details:
+        name: Details
+        type: map
+        required: false
+        description: "Data typed by `log_type`, as `patterns/logging` declares for each"
 ```
 
 ### TraceContext
 
-Distributed trace propagation context (W3C Trace Context compatible).
+The trace a request belongs to, and the span within it that sent the request:
+W3C Trace Context's. On an HTTP request it is the `traceparent` header,
+`00-<trace_id>-<span_id>-<trace_flags>`, where `<trace_flags>` is `01` when the
+trace is sampled and `00` when it is not. In a `TaskContext`, `AgentMessage` or
+`EventEnvelope` it is that envelope's `trace_id` and `span_id`. Which requests
+carry it, and what a receiver does with what arrives, are
+[`protocol/spec`](spec.md#trace-propagation)'s, stated there once.
 
 ```yaml
 types:
@@ -3075,22 +3344,87 @@ types:
         name: TraceID
         type: string
         required: true
-        description: "32-char hex trace identifier"
+        description: "32 lowercase hex characters (16 random bytes), never all zeros"
       span_id:
         name: SpanID
         type: string
         required: true
-        description: "16-char hex span identifier"
+        description: "16 lowercase hex characters (8 random bytes), never all zeros"
       parent_span_id:
         name: ParentSpanID
         type: string
         required: false
-        description: "Parent span for nesting"
+        description: "The span that sent the request this span serves. Absent on a trace's first span"
       sampled:
         name: Sampled
         type: bool
         required: false
-        description: "Whether this trace is sampled (default: true)"
+        description: "Whether this trace's spans are recorded: `traceparent` flags `01` is true and `00` is false (default: true)"
+```
+
+### Span
+
+One operation a component performed within a trace, shaped as an
+OpenTelemetry span: each field is the OpenTelemetry field of the same name,
+`component` is the resource's `service.name`, and `start` and `end` become
+`start_time_unix_nano` and `end_time_unix_nano` when pushed as OTLP. When a
+span opens and closes, and what it is named, are
+[`architecture/observability`](../architecture/observability.md#distributed-tracing)'s.
+
+```yaml
+types:
+  Span:
+    fields:
+      trace_id:
+        name: TraceID
+        type: string
+        required: true
+        description: "The trace this span belongs to ([TraceContext](#tracecontext))"
+      span_id:
+        name: SpanID
+        type: string
+        required: true
+        description: "This span's id ([TraceContext](#tracecontext))"
+      parent_span_id:
+        name: ParentSpanID
+        type: string
+        required: false
+        description: "The span that sent the request this span serves"
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "A span name `architecture/observability` declares"
+      kind:
+        name: Kind
+        type: string
+        required: true
+        description: "`server`, `client`, `producer`, `consumer` or `internal`, as OpenTelemetry's SpanKind"
+      component:
+        name: Component
+        type: string
+        required: true
+        description: "The component that performed it, as the service directory names it"
+      start:
+        name: Start
+        type: string
+        required: true
+        description: "RFC 3339 UTC time with milliseconds"
+      end:
+        name: End
+        type: string
+        required: true
+        description: "RFC 3339 UTC time with milliseconds"
+      status:
+        name: Status
+        type: string
+        required: true
+        description: "`unset`, `ok` or `error`, as OpenTelemetry's status code"
+      attributes:
+        name: Attributes
+        type: map
+        required: false
+        description: "The attributes its name declares, under OpenTelemetry semantic conventions where one exists"
 ```
 
 ---
@@ -3138,7 +3472,7 @@ types:
         description: Arguments for the action, shaped by the target's declared inputs
       trace_id:
         type: string
-        description: Correlation identifier propagated across every hop of this task
+        description: "The trace this task ran under, kept as a record and never a carrier ([TraceContext](#tracecontext))"
 
   FileRecord:
     description: A stored file and the addresses it can be retrieved from
@@ -3232,24 +3566,29 @@ security:
 
 ## Verification Checklist
 
-- [ ] All IDs are 32-character hex strings (16 random bytes) and all timestamps are Unix epoch seconds (int64)
+- [ ] All IDs are 32-character hex strings (16 random bytes) and a span id 16 (8 random bytes); all timestamps are Unix epoch seconds (int64) except those LogEntry and Span declare
 - [ ] ML-DSA-65 signatures serialize as base64url-encoded 3309 bytes; public keys serialize as base64url-encoded 1952 bytes
 - [ ] ErrorResponse includes `error` (required), `code`, `category`, `retryable`, and `detail` fields with exact JSON keys
 - [ ] Error categories are constrained to `transient`, `permanent`, or `partial` and each standard error code maps to the correct HTTP status
 - [ ] Unknown JSON fields are silently ignored on deserialization (forward compatibility); optional fields are omitted when empty/null
 - [ ] AgentManifest requires `name`, `version`, `description`, `url`, `public_key`, and `capabilities`; includes `publishes` and `subscriptions` for event system
-- [ ] EventEnvelope requires `event_id`, `topic`, `source`, `scope`, `timestamp`, `trace_id`, `version`, and `payload`
+- [ ] EventEnvelope requires `event_id`, `topic`, `source`, `scope`, `timestamp`, `trace_id`, `span_id`, `version`, and `payload`
 - [ ] Subscription requires `pattern`; `scope` defaults to `"self"`; `group` defaults to agent name
 - [ ] RouteEntry requires `agent`, `url`, and `scope`
 - [ ] ServiceDirectory includes `services`, `routing_table`, and `namespaces`
 - [ ] WorkflowPhase `on_error` supports `fail`, `skip`, and `retry`; `max_retries` applies only when `on_error` = `"retry"`
 - [ ] WorkflowExecution `status` transitions follow `pending` → `running` → `completed` | `failed`; PhaseResult adds `skipped`
 - [ ] TaskRequest requires `id`, `from`, `action`, `payload`, `context`, `token`, and `timestamp`; TaskResult status is `success`, `failed`, or `pending_approval`
-- [ ] AgentMessage `signature` covers `canonicalize({from, to, action, payload})` per RFC 8785 and `trace_id` propagates through downstream calls
+- [ ] AgentMessage `signature` covers `canonicalize({from, to, action, payload})` per RFC 8785
 - [ ] Finding includes all required fields: `rule_id`, `severity`, `element`, `current`, `expected`, `message`, and `fixable`
-- [ ] RegisterResponse includes `agent_id`, `token`, `expires_at`, `services`, `orchestrator`, and negotiated `protocol_version`
+- [ ] RegisterResponse includes `agent_id`, `token`, `expires_at`, `services`, `lease`, `orchestrator`, and negotiated `protocol_version`
+- [ ] ServiceEntry carries `lease_state` and `lease_expires_at`, and `lease_state` is one of `ready`, `not_ready` and `unknown`
+- [ ] A lease past its `expires_at` reads `unknown`, never `ready`
+- [ ] Lease includes `agent_id`, `duration`, `renewed_at` and `expires_at`; LeaseRenewal includes `ready` and `timestamp`, and its `checks` are never served at `/readyz`
+- [ ] `GET /livez` answers `{"live": true}` with 200 or `{"live": false}` with 503 and no other member, without authentication, and its answer depends on no other component
+- [ ] `GET /readyz` answers `{"ready": true}` with 200 or `{"ready": false}` with 503 and no other member, without authentication
 - [ ] ChannelGrant includes `channel_id`, scoped `channel_token`, `target_url`, `target_pub_key`, and `expires_at`
-- [ ] Protocol paths are all prefixed with `/v1` and method/auth requirements match the Protocol Paths table
+- [ ] Protocol paths are all prefixed with `/v1` but `/livez` and `/readyz`, and method/auth requirements match the Protocol Paths table
 - [ ] DeadLetterEntry includes `original_event`, `failure_reason`, `last_error`, `attempts`, and `subscriber`
 - [ ] PolicyDecision requires `policy_name`, `decision`, and `timestamp`; decision uses DecisionResult enum
 - [ ] OperationIntent requires `id`, `agent`, `operation`, `resource`, `resource_class`, `scope`, `environment`, and `timestamp`; operation includes `list` and `query`
@@ -3264,3 +3603,7 @@ security:
 - [ ] `ADDRESS_CONFLICT` is registered with status 409, beside `NAMESPACE_CONFLICT`
 - [ ] `content:declassify` is in the Content capabilities and marked *person only*, so a registration whose manifest declares it is refused with `CAPABILITY_PERSON_ONLY`
 - [ ] Administrative authority is expressed as `admin:` capabilities in the standard list — not as a separate role model — and `admin:*` denotes the whole family
+- [ ] Every capability bullet in Capability names exactly one owner in brackets, and no capability name is listed twice
+- [ ] `programme:switch`, `integration:manage`, `action:invoke` and `scope:admit` are marked *person only*; `programme:read`, `programme:install`, `programme:operate`, `integration:read`, `integration:use`, `telemetry:read` and `telemetry:push` are not
+- [ ] `telemetry:read`, `action:invoke` and `scope:admit` are outside the `admin` family, so `admin:*` carries none of them
+- [ ] `content:connect` binds an integration to an outside destination and creates no credential

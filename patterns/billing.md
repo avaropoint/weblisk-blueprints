@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: billing
-version: 1.0.1
+version: 1.0.3
 requires: [protocol/types, patterns/scope, patterns/governance]
 platform: any
 tier: free
@@ -45,7 +45,7 @@ bounding what any of them may consume, before they consume it.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: ErrorResponse

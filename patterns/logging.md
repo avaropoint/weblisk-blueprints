@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: logging
-version: 1.0.0
+version: 2.0.0
 requires: [protocol/types, architecture/agent]
 platform: any
 tier: free
@@ -9,30 +9,17 @@ tier: free
 
 # Logging Pattern
 
-Standard structured logging contract for all Weblisk agents. Defines
-the log envelope, required fields per event category, correlation
-strategy, log levels, rotation, and retention. Agents that extend
-this pattern emit consistent, machine-parseable logs that support
-automated analysis, debugging, and audit compliance.
-
 ## Overview
 
-Every component emits structured JSON log records to its platform's log sink.
-This pattern standardizes what fields appear in every record, defines specific
-log event types with required fields, and establishes the rules for retention
-and forwarding.
+Every component writes each log record as one JSON line on standard output,
+always, and pushes the same record as an OpenTelemetry log record (OTLP) where
+telemetry is deployed; a runtime with no process standard output writes to the
+console stream its platform blueprint names. Collection, indexing and search
+are the deployment's. This pattern is the one home for what a record looks
+like, which log types exist, how a record maps to the OpenTelemetry log data
+model, what must never be written, and where a record is redacted.
 
-**The envelope is the requirement; the sink is the platform's answer.** Where a
-component runs as a resident process the sink is its standard output, and the
-`output` configuration below names it. Where it does not — a runtime with no
-standard output, whose records are collected by the platform — the platform
-blueprint names what carries them. A component emits the same records either way,
-which is what makes them comparable across deployments.
-
-This pattern builds on the structured logging section of
-architecture/observability.md. Observability defines the system-wide
-telemetry strategy; this pattern defines the enforceable per-agent
-logging contract that agents extend.
+The fields are [`LogEntry`](../protocol/types.md#logentry)'s.
 
 ---
 
@@ -41,24 +28,28 @@ logging contract that agents extend.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentManifest
           fields_used: [name, type, version]
         - name: EventEnvelope
-          fields_used: [trace_id, event_id, source]
+          fields_used: [trace_id, span_id, event_id, source]
         - name: LogEntry
-          fields_used: [ts, level, log_type, msg, component, component_type]
+          fields_used: [ts, level, log_type, msg, component, component_type, trace_id, span_id, task_id, domain, workflow, action, duration_ms, status, error, error_code, details]
         - name: TraceContext
-          fields_used: [trace_id, span_id]
+          fields_used: [trace_id, span_id, sampled]
+        - name: Span
+          fields_used: [trace_id, span_id, parent_span_id, name, kind, component, start, end, status, attributes]
+        - name: AuditEntry
+          fields_used: [id, timestamp, actor, action, target, detail, status]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -69,17 +60,13 @@ requires:
 
 ## Design Principles
 
-1. **Structured always** — Every log line is valid JSON. No free-text
-   logging. Human-readable messages go in the `msg` field.
-2. **Correlation by default** — Every log line carries `trace_id` and
-   `component` for cross-system tracing without post-processing.
-3. **Event-typed** — Logs have a `log_type` field that categorizes
-   the event, enabling automated filtering and alerting.
+1. **Structured always** — Every log line is valid JSON; the human message
+   is `msg`.
+2. **Correlation by default** — see [Correlation](#correlation).
+3. **Event-typed** — `log_type` categorizes every record for filtering.
 4. **Minimal overhead** — Logging MUST NOT degrade agent performance.
-   Debug-level logging is disabled by default.
-5. **No vendor lock-in** — A component emits records and nothing more.
-   Collection, indexing and search are deployment concerns, and the sink a
-   record is written to is the platform's, not the component's.
+5. **No vendor lock-in** — The envelope maps onto the OpenTelemetry log data
+   model, and standard output works with no collector at all.
 
 ---
 
@@ -89,7 +76,7 @@ requires:
 contracts:
   behaviors:
     - name: structured-logging
-      description: Emit structured JSON log records to the platform's log sink, conforming to the standard envelope
+      description: Write each log record as one JSON line on standard output in the one envelope, and push it as an OpenTelemetry log record where telemetry is deployed
       parameters:
         - name: level
           type: string
@@ -104,21 +91,29 @@ contracts:
       override_constraints: Must preserve required fields (ts, level, log_type, msg, component, component_type)
 
     - name: trace-correlation
-      description: Propagate trace_id through all log lines during request processing
+      description: Carry the trace_id and span_id being served on every log line written while a request is served
       parameters:
         - name: trace_id
           type: string
           required: true
-          description: Distributed trace identifier from request context or generated
-      inherits: Trace ID propagation rules, correlation field strategy
+          description: The trace being served, as protocol/spec's Trace Propagation gives it or starts it
+      inherits: Trace correlation rules, correlation field strategy
       overridable: false
+
+    - name: redaction-at-emission
+      description: Redact a record where it is emitted, before it is written or pushed
+      required: true
+      rules:
+        - A log line, span or metric label MUST NOT carry what Sensitive Data forbids
+        - A record carrying data above its scope is redacted where it is emitted, using the scope read from the payload, because a record once written cannot be un-leaked
+        - Redaction is the emitting component's act, and nothing downstream is trusted to remove what was written
 
   types:
     - name: LogEntry
-      description: Standard log envelope with required and contextual fields
+      description: The log envelope, as protocol/types declares it, provided to extenders
       inherited_by: Log Envelope section
     - name: LogType
-      description: Categorized event types for lifecycle, action, task, collaboration, storage, security, and error events
+      description: The one log_type vocabulary — process, action, execute, collaboration, storage, security, audit, error and trace events
       inherited_by: Log Types section
 
   events:
@@ -131,7 +126,7 @@ contracts:
 
 ## Log Envelope
 
-Every log line emitted by an agent MUST conform to this structure:
+Every log line a component writes is one `LogEntry`:
 
 ```json
 {
@@ -141,8 +136,8 @@ Every log line emitted by an agent MUST conform to this structure:
   "msg": "Task registered successfully",
   "component": "cron",
   "component_type": "agent",
-  "trace_id": "abc123def456789012345678",
-  "span_id": "span-789",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "span_id": "00f067aa0ba902b7",
   "task_id": "task-a1b2c3",
   "domain": "infrastructure",
   "duration_ms": 45,
@@ -150,52 +145,68 @@ Every log line emitted by an agent MUST conform to this structure:
 }
 ```
 
-### Required Fields (every log line)
+### Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| ts | string | ISO 8601 timestamp with millisecond precision |
-| level | string | `debug`, `info`, `warn`, `error` |
-| log_type | string | Dot-separated event category (see Log Types) |
-| msg | string | Human-readable summary (max 256 chars) |
-| component | string | Agent name from blueprint metadata |
-| component_type | string | `agent`, `domain`, `orchestrator` |
+Each field, its type and whether it is required are
+[`LogEntry`](../protocol/types.md#logentry)'s, `ts`'s format among them. This
+pattern adds when each optional field is present:
 
-### Contextual Fields (when available)
+| Field | When Present |
+|-------|-------------|
+| trace_id, span_id | While a request is being served, always |
+| task_id | During task or action processing |
+| domain | When operating within a domain context |
+| workflow | During workflow execution |
+| action | During action processing |
+| duration_ms, status | On operation completion |
+| error, error_code | On error |
+| details | When the log type declares details |
 
-| Field | Type | When Present |
-|-------|------|-------------|
-| trace_id | string | Always (from request context or generated) |
-| span_id | string | When distributed tracing is enabled |
-| task_id | string | During task or action processing |
-| domain | string | When operating within a domain context |
-| workflow | string | During workflow execution |
-| action | string | During action processing |
-| duration_ms | int | On operation completion |
-| status | string | On operation completion (`success`, `failed`, `timeout`) |
-| error | string | On error — error message |
-| error_code | string | On error — structured error code |
-| details | object | Event-specific data (typed per log_type) |
+### OpenTelemetry Log Data Model
+
+A record pushed as OTLP is the same record, field for field:
+
+| LogEntry | OpenTelemetry log record |
+|----------|--------------------------|
+| `ts` | `Timestamp` |
+| `level` | `SeverityText`, and `SeverityNumber` 5, 9, 13 or 17 for `debug`, `info`, `warn` or `error` |
+| `log_type` | `EventName` |
+| `msg` | `Body` |
+| `component` | the resource attribute `service.name` |
+| `component_type` | the resource attribute `weblisk.component_type` |
+| `trace_id`, `span_id` | `TraceId`, `SpanId`; `TraceFlags` is the trace's sampled flag |
+| `error` | the attribute `exception.message` |
+| `error_code` | the attribute `error.type` |
+| `task_id`, `domain`, `workflow`, `action`, `duration_ms`, `status` | attributes of the same name under `weblisk.` |
+| `details` | attributes under `weblisk.details.` |
 
 ---
 
 ## Log Types
 
-Log types categorize events for automated processing. Agents MUST
-use standard log types for framework events and MAY define custom
-types for agent-specific events.
+Agents MUST use the standard types for framework events and MAY define
+custom ones.
 
 ### Standard Log Types
 
-#### Lifecycle Events
+A standard type's first segment is never an event namespace a component owns
+([`protocol/spec`](../protocol/spec.md#namespace-control)): every component
+writes these, and a reader filtering on a namespace must get that namespace's
+owner alone.
+
+#### Process Events
 
 | Log Type | Level | When | Required Details |
 |----------|-------|------|-----------------|
-| `lifecycle.startup` | info | Agent process starts | `{port, version, blueprint}` |
-| `lifecycle.ready` | info | Agent is registered and ready | `{agent_id, orchestrator}` |
-| `lifecycle.shutdown` | info | Agent begins graceful shutdown | `{reason, in_flight_count}` |
-| `lifecycle.stopped` | info | Agent has fully stopped | `{uptime_seconds}` |
-| `lifecycle.health_change` | warn | Health state transitions | `{from, to, reason}` |
+| `process.startup` | info | Process starts | `{port, version, blueprint}` |
+| `process.ready` | info | Registered and ready | `{agent_id, orchestrator}` |
+| `process.shutdown` | info | Graceful shutdown begins | `{reason, in_flight_count}` |
+| `process.stopped` | info | Fully stopped | `{uptime_seconds}` |
+| `process.health_change` | warn | Health state transitions | `{from, to, reason}` |
+| `process.version_updated` | info | Moved to a new blueprint version | `{from, to}` |
+| `process.version_rollback` | warn | Rolled back to a previous blueprint version | `{from, to, reason}` |
+| `process.version_retired` | info | An old version retired after a validated cutover | `{retired_version, active_version, uptime}` |
+| `process.restored` | info | State restored from a backup | `{backup_file}` |
 
 #### Action Events
 
@@ -206,13 +217,13 @@ types for agent-specific events.
 | `action.failed` | error | Action failed | `{action, error, error_code, duration_ms}` |
 | `action.rejected` | warn | Action rejected (validation, auth) | `{action, reason}` |
 
-#### Task Events
+#### Execute Events
 
 | Log Type | Level | When | Required Details |
 |----------|-------|------|-----------------|
-| `task.received` | info | Execute handler invoked | `{task_id, action}` |
-| `task.completed` | info | Task succeeded | `{task_id, duration_ms, changes_count}` |
-| `task.failed` | error | Task failed | `{task_id, error, error_code}` |
+| `execute.received` | info | Execute handler invoked | `{task_id, action}` |
+| `execute.completed` | info | Task succeeded | `{task_id, duration_ms, changes_count}` |
+| `execute.failed` | error | Task failed | `{task_id, error, error_code}` |
 
 #### Collaboration Events
 
@@ -233,14 +244,23 @@ types for agent-specific events.
 | `storage.write` | debug | Storage write operation | `{table, duration_ms, rows_affected}` |
 | `storage.error` | error | Storage operation failed | `{table, operation, error}` |
 
-#### Security Events
+#### Auth Events
 
 | Log Type | Level | When | Required Details |
 |----------|-------|------|-----------------|
-| `security.auth_success` | debug | Request authenticated | `{method, identity}` |
-| `security.auth_failure` | warn | Authentication failed | `{method, reason, source_ip}` |
-| `security.permission_denied` | warn | Authorization failed | `{action, required, actual}` |
-| `security.override` | info | Manual override applied | `{operator, action, reason}` |
+| `auth.success` | debug | Request authenticated | `{method, identity}` |
+| `auth.failure` | warn | Authentication failed | `{method, reason, source_ip}` |
+| `auth.denied` | warn | Authorization failed | `{action, required, actual}` |
+| `auth.override` | info | Manual override applied | `{operator, action, reason}` |
+
+#### Audit Events
+
+| Log Type | Level | When | Required Details |
+|----------|-------|------|-----------------|
+| `audit` | info | An entry was appended to the orchestrator's audit log | The `AuditEntry` ([`protocol/types`](../protocol/types.md#auditentry)) |
+
+The audit log itself is the orchestrator's chained record; this line is only
+its echo.
 
 #### Error Events
 
@@ -249,18 +269,33 @@ types for agent-specific events.
 | `error.unhandled` | error | Unexpected error caught | `{error, stack_trace}` |
 | `error.panic` | error | Process panic/crash | `{error, stack_trace}` |
 
+#### Trace Events
+
+| Log Type | Level | When | Required Details |
+|----------|-------|------|-----------------|
+| `span` | info | A sampled span closed ([`architecture/observability`](../architecture/observability.md#distributed-tracing)) | The `Span` ([`protocol/types`](../protocol/types.md#span)) |
+
+A span line's own `trace_id` and `span_id` are the span's.
+
 ### Custom Log Types
 
-Agents MAY define custom log types using the pattern:
+A component MAY define custom log types using the pattern:
 
 ```
-<agent_name>.<entity>.<action>
+<component>.<entity>.<action>
 ```
 
 Example: `cron.task.fired`, `alerting.notification.sent`
 
-Custom log types MUST be documented in the agent's blueprint under
-the Observability section.
+`<component>` is the component's own name, which for an agent is its own
+event namespace. A blueprint that is not a component's MAY declare a family
+its implementers write, under a first segment it names (as
+[`patterns/command`](command.md) does). No custom type's first segment is a
+standard type's, another declarer's, or a namespace another component owns.
+
+An agent declares its custom log types in its blueprint's Observability
+section, as [`schemas/agent`](../schemas/agent.md)'s `custom_log_types`.
+Standard types are inherited and are not declared.
 
 ---
 
@@ -275,85 +310,26 @@ the Observability section.
 
 ### Level Configuration
 
-```yaml
-logging:
-  level: info                    # Global minimum level
-  level_overrides:               # Per-component overrides
-    seo-analyzer: debug
-    orchestrator: warn
-```
-
-### Configuration Parameters
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| Log level | `info` | Minimum log level |
-| Log level overrides | `""` | Per-component level overrides (component=level pairs) |
-| Log format | `json` | Output format: `json` or `text` (dev only) |
-| Log output | `stdout` | Output target where the platform has one: `stdout`, `stderr`, or file path. A platform without a standard output names its sink in its own blueprint |
-
-### Text Format (Development Only)
-
-When log format is set to `text`, the output is human-readable:
-
-```
-2026-04-25 10:30:01.123 INFO  [cron] action.completed — Task registered successfully (45ms)
-```
-
-Text format MUST NOT be used in production. Automated log consumers
-expect JSON.
+The minimum level is [`schemas/config`](../schemas/config.md)'s
+`observability.log_level`. There is no output setting and no text format: a person reads the JSON lines
+through a tool that renders them.
 
 ---
 
 ## Correlation
 
-### Trace ID Propagation
+### Trace Correlation
 
-Every log line MUST include `trace_id` when processing a request that
-carries trace context. Trace IDs propagate via HTTP headers (see
-architecture/observability) and event envelopes (see patterns/messaging).
-
-```
-Incoming request (X-Trace-Id: abc123)
-  → All log lines during processing include trace_id: "abc123"
-  → All events published include trace_id: "abc123"
-  → Downstream agents inherit trace_id: "abc123"
-```
-
-When no trace context exists (e.g., timer-triggered actions), the
-agent MUST generate a new trace_id.
-
-### Correlation Fields
-
-For debugging a specific flow across multiple agents:
-
-```
-grep trace_id=abc123 *.log
-```
-
-Returns every log line from every component involved in that request.
+Every log line written while a request is served MUST include its `trace_id`
+and the `span_id` open when it was written. The trace itself is
+[`protocol/spec`](../protocol/spec.md#trace-propagation)'s.
 
 ---
 
 ## Log Rotation
 
-### File-Based Rotation
-
-When the log output is configured as a file path:
-
-```yaml
-rotation:
-  max_size: 100MB              # Rotate when file exceeds size
-  max_age: 7                   # Days to retain rotated files
-  max_backups: 5               # Max rotated files to keep
-  compress: true               # Gzip rotated files
-```
-
-### Stdout (Default)
-
-When logging to stdout (default), rotation is the responsibility of
-the container runtime or process manager. The agent does not manage
-rotation for stdout output.
+Rotation belongs to whatever captures standard output. A component writes no
+log file of its own.
 
 ---
 
@@ -369,40 +345,17 @@ Logs MUST NOT contain:
 | PII (email, phone, address) | Hash or redact: `email: "a***@example.com"` |
 | Full request/response bodies | Log size only: `input_size_bytes: 1024` |
 
-Agents SHOULD implement a log sanitizer that strips or redacts
-sensitive fields before emission.
-
----
-
-## Blueprint Declaration
-
-Agents extending this pattern declare their custom log types:
-
-```markdown
-extends: [patterns/logging]
-
-## Observability
-
-### Custom Log Types
-| Log Type | Level | When | Details |
-|----------|-------|------|---------|
-| cron.task.fired | info | Scheduled task dispatched | {task_id, target_agent} |
-| cron.task.retry | warn | Task retry scheduled | {task_id, attempt, next_retry} |
-```
-
-All standard log types are inherited automatically. Only
-agent-specific custom types need to be declared.
+A record, a span's attributes and a metric's labels are redacted where they
+are emitted (`redaction-at-emission`, [Contracts](#contracts)). A blueprint
+whose records must be redacted points here.
 
 ---
 
 ## Implementation Notes
 
-- Log emission MUST be non-blocking. If stdout is backed up, logs
-  MAY be dropped rather than blocking the agent's event loop. Dropped
-  logs SHOULD increment a dropped logs counter.
-- Timestamp precision matters. Use the highest precision available
-  (milliseconds minimum, microseconds if supported) for accurate
-  duration calculations.
+- Log emission MUST be non-blocking. If stdout is backed up, or a push to
+  telemetry cannot be sent, logs MAY be dropped rather than blocking the
+  agent's event loop. Dropped logs SHOULD increment a dropped logs counter.
 - The `details` field is typed per `log_type`. Implementations SHOULD
   validate that details match the expected schema in debug builds.
 - Stack traces in error logs SHOULD be truncated to 20 frames maximum.
@@ -411,16 +364,14 @@ agent-specific custom types need to be declared.
 
 ## Verification Checklist
 
-- [ ] All log lines are valid JSON with required fields (ts, level, log_type, msg, component, component_type)
-- [ ] Trace ID is present in all log lines during request processing
-- [ ] Trace ID is generated for timer-triggered operations
-- [ ] Standard lifecycle log types emit at correct points (startup, ready, shutdown, stopped)
+- [ ] Every log line is one JSON object on standard output with the required `LogEntry` fields (`ts`, `level`, `log_type`, `msg`, `component`, `component_type`)
+- [ ] Where telemetry is deployed, every record is also pushed as an OpenTelemetry log record mapped as the OpenTelemetry Log Data Model table says
+- [ ] Every log line written while a request is served carries its `trace_id` and the `span_id` open at the time
+- [ ] Standard `process.*` log types emit at correct points (`process.startup`, `process.ready`, `process.shutdown`, `process.stopped`)
 - [ ] Standard action log types emit for every action (received, completed, failed)
+- [ ] No standard log type's first segment is an event namespace a component owns
 - [ ] Error logs include error code and message
 - [ ] Log level filtering works (debug disabled by default)
-- [ ] Per-component level overrides work
-- [ ] Sensitive data (tokens, keys, PII) is never logged
+- [ ] Sensitive data (tokens, keys, PII) is never logged, and a record is redacted where it is emitted (`redaction-at-emission`)
 - [ ] Custom log types follow the naming convention
-- [ ] Log rotation works when file output is configured
-- [ ] Text format works for development
 - [ ] Log lines do not exceed 8 KB

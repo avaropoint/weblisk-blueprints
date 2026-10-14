@@ -159,7 +159,7 @@
         {
           "id": "WLF-AGENT-08",
           "name": "Endpoints",
-          "description": "HTTP surface beyond the six protocol endpoints. Required if the agent serves any — same shape and rules as schemas/architecture.md",
+          "description": "HTTP surface beyond the seven protocol endpoints. Required if the agent serves any — same shape and rules as schemas/architecture.md",
           "family": "WLF-AGENT",
           "framework": "weblisk_framework",
           "domains": [

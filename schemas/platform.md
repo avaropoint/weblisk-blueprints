@@ -380,7 +380,7 @@ maps to Weblisk's architecture.>
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentManifest

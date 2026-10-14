@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: versioning
-version: 1.0.0
+version: 2.0.0
 requires: [protocol/types, architecture/agent]
 platform: any
 tier: free
@@ -32,7 +32,7 @@ migration validation, and rollback capabilities.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -45,7 +45,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentContext
@@ -329,7 +329,7 @@ How a running agent transitions to a new blueprint version:
 5. Reload agent configuration from new blueprint
 6. Agent exits "transitioning" state → returns to "active"
 7. Emit event: system.blueprint.updated
-8. Log: lifecycle.version_updated with {from, to, duration_ms}
+8. Log: process.version_updated with {from, to, duration_ms}
 ```
 
 ### Zero-downtime transition is not blue/green
@@ -371,9 +371,10 @@ than the first.
 
 ### What must be true
 
-- **Both versions MUST be registered and healthy.** Neither is a standby; both
-  are serving, and both report their own version from their own health
-  endpoint.
+- **Both versions MUST be registered and ready.** Neither is a standby; both
+  are serving, each holds a lease whose state is `ready`
+  ([LeaseState](../protocol/types.md#leasestate)), and each reports its own
+  version in the manifest it registered with.
 - **Neither version MAY assume it is the only one.** A version that migrates
   shared state into a shape the other cannot read has ended concurrency
   without announcing it.
@@ -420,7 +421,7 @@ the rollback_steps in reverse order:
 2. Execute rollback_step 2 (reverse of step 2)
 3. Execute rollback_step 1 (reverse of step 1)
 4. Agent reverts to previous blueprint version
-5. Log: lifecycle.version_rollback with {from, to, reason}
+5. Log: process.version_rollback with {from, to, reason}
 6. Emit alert: high severity
 ```
 

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: platform
 name: node
-version: 1.0.0
+version: 2.0.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: node
 tier: free
@@ -97,17 +97,21 @@ weblisk-app/
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
-        - name: HealthStatus
-          fields_used: [status, name, version, uptime]
+        - name: Liveness
+          fields_used: [live]
+        - name: Readiness
+          fields_used: [ready]
+        - name: LeaseRenewal
+          fields_used: [ready, checks, timestamp]
         - name: AgentManifest
           fields_used: [name, version, capabilities, actions]
         - name: TaskRequest
@@ -325,7 +329,6 @@ npm start
 | `WL_AI_PROVIDER` | yes | — | LLM provider |
 | `WL_AI_MODEL` | yes | — | Model name |
 | `WL_LOG_LEVEL` | no | `info` | Log level (`debug`, `info`, `warn`, `error`) |
-| `WL_LOG_FORMAT` | no | `json` | Log format (`json`, `text`) |
 | `WL_COMPONENT` | no | `unknown` | Component name for logging |
 
 ---
@@ -342,11 +345,17 @@ export interface AgentManifest {
   actions: string[];
 }
 
+export interface TaskContext {
+  trace_id: string; // required: protocol/types TaskContext
+  span_id: string;
+  [field: string]: unknown;
+}
+
 export interface TaskRequest {
   task_id: string;
   action: string;
   payload: Record<string, unknown>;
-  trace_id?: string;
+  context: TaskContext;
 }
 
 export interface TaskResult {
@@ -356,11 +365,19 @@ export interface TaskResult {
   error?: string;
 }
 
-export interface HealthStatus {
-  status: "healthy" | "degraded" | "unhealthy";
-  component: string;
-  version: string;
-  uptime_seconds: number;
+export interface Liveness {
+  live: boolean;
+}
+
+export interface Readiness {
+  ready: boolean;
+}
+
+// Sent to POST /v1/lease on the cadence protocol/types (LeaseRenewal) sets
+export interface LeaseRenewal {
+  ready: boolean;
+  checks?: Record<string, "ready" | "not_ready">;
+  timestamp: number;
 }
 
 export interface Observation {
@@ -448,11 +465,11 @@ export function verify(
 
 ```typescript
 import type { FastifyInstance } from "fastify";
-import type { AgentManifest, HealthStatus, TaskRequest } from "./types.js";
+import type { AgentManifest, Liveness, Readiness, TaskRequest } from "./types.js";
 
 interface EndpointConfig {
   manifest: AgentManifest;
-  startTime: number;
+  isReady: () => boolean;
   onTask: (req: TaskRequest) => Promise<Record<string, unknown>>;
   onMessage?: (msg: Record<string, unknown>) => Promise<void>;
   onEvent?: (event: Record<string, unknown>) => Promise<void>;
@@ -462,18 +479,16 @@ export function registerEndpoints(
   app: FastifyInstance,
   config: EndpointConfig
 ) {
-  const { manifest, startTime, onTask, onMessage, onEvent } = config;
+  const { manifest, isReady, onTask, onMessage, onEvent } = config;
 
-  // Health
-  app.post("/v1/health", async () => {
-    const uptime = Math.floor((Date.now() - startTime) / 1000);
-    const response: HealthStatus = {
-      status: "healthy",
-      component: manifest.name,
-      version: manifest.version,
-      uptime_seconds: uptime,
-    };
+  // Probes: live or ready, and nothing else (protocol/spec)
+  app.get("/livez", async () => {
+    const response: Liveness = { live: true };
     return response;
+  });
+  app.get("/readyz", async (_req, reply) => {
+    const response: Readiness = { ready: isReady() };
+    return reply.code(response.ready ? 200 : 503).send(response);
   });
 
   // Describe
@@ -563,11 +578,11 @@ async function start() {
   });
 
   await app.listen({ port: PORT, host: "0.0.0.0" });
-  logger.info({ port: PORT, agent: "<component>" }, "Agent started");
+  logger.info({ log_type: "process.startup", details: { port: PORT } }, "Agent started");
 }
 
 start().catch((err) => {
-  logger.error(err, "Failed to start agent");
+  logger.error({ log_type: "error.unhandled", error: err.message }, "Failed to start agent");
   process.exit(1);
 });
 ```
@@ -601,12 +616,13 @@ export async function handleTask(
 ```typescript
 import pino from "pino";
 
+// One LogEntry per line on standard output (patterns/logging):
+// `ts` in RFC 3339, `level` as a string, `msg` for the message.
 export const logger = pino({
   level: process.env.WL_LOG_LEVEL || "info",
-  transport:
-    process.env.WL_LOG_FORMAT === "text"
-      ? { target: "pino-pretty" }
-      : undefined,
+  timestamp: () => `,"ts":"${new Date().toISOString()}"`,
+  messageKey: "msg",
+  formatters: { level: (label) => ({ level: label }) },
   base: {
     component: process.env.WL_COMPONENT || "unknown",
     component_type: process.env.WL_COMPONENT_TYPE || "agent",
@@ -617,16 +633,19 @@ export const logger = pino({
 ### Usage
 
 ```typescript
-// Info with context
-logger.info({ task_id: task.task_id, action: task.action }, "Task started");
-
-// Error with error object
-logger.error({ err, task_id: task.task_id }, "Task failed");
-
-// Trace context
+// Every line names its log_type, and carries the trace in scope
+// (the task's TaskContext, or the span this request opened from traceparent)
 logger.info(
-  { trace_id: req.headers["x-trace-id"], span_id: newSpanId },
-  "Processing request"
+  { log_type: "execute.received", task_id: task.task_id, action: task.action,
+    trace_id: ctx.trace_id, span_id: ctx.span_id },
+  "Task started"
+);
+
+logger.error(
+  { log_type: "execute.failed", task_id: task.task_id,
+    error: err.message, error_code: err.code,
+    trace_id: ctx.trace_id, span_id: ctx.span_id },
+  "Task failed"
 );
 ```
 
@@ -703,7 +722,7 @@ export function createStorage(dbPath: string) {
 ### The HTTP Surface
 
 **Every symbol is spelled from the endpoint's `Operation`.** The architecture
-blueprint's `## Endpoints` table declares the operation — `Register`, `Health`,
+blueprint's `## Endpoints` table declares the operation — `Register`, `Livez`,
 `AdminOverview` — and this is how that one name becomes TypeScript:
 
 | Symbol | Spelling | Example |
@@ -736,9 +755,8 @@ whose method is unregistered.
 
 ### Logging
 
-- Structured JSON logging via pino with `component` and `component_type` base fields
-- Use pino-pretty for development (`WL_LOG_FORMAT=text`)
-- Include `trace_id` in all log entries for request correlation
+- Write the `LogEntry` envelope [`patterns/logging`](../patterns/logging.md) defines, on standard output, through pino configured as in [Structured Logging](#structured-logging)
+- Every call passes `log_type`, and `trace_id` and `span_id` where a trace is in scope
 
 See [Node.js-Specific Considerations](#nodejs-specific-considerations)
 for process management, performance, and security details.
@@ -832,13 +850,13 @@ describe("agent endpoints", () => {
     await app.close();
   });
 
-  it("should respond to health check", async () => {
+  it("should answer the liveness probe", async () => {
     const res = await app.inject({
-      method: "POST",
-      url: "/health",
+      method: "GET",
+      url: "/livez",
     });
     expect(res.statusCode).toBe(200);
-    expect(res.json().status).toBe("healthy");
+    expect(res.json()).toEqual({ live: true });
   });
 
   it("should process a task", async () => {
@@ -869,7 +887,7 @@ describe("agent endpoints", () => {
 
 ```typescript
 process.on("SIGTERM", async () => {
-  logger.info("Shutting down gracefully");
+  logger.info({ log_type: "process.shutdown" }, "Shutting down gracefully");
   await app.close();
   storage.close();
   process.exit(0);
@@ -933,11 +951,11 @@ the npm ecosystem.
 - [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` with a registered error code
 - [ ] ML-DSA-65 keys are generated and verified via `@noble/post-quantum` (FIPS 204); private keys stored with mode 0o600
 - [ ] SQLite is configured with `pragma journal_mode = WAL` and `pragma foreign_keys = ON`
-- [ ] Structured logging uses pino with JSON output in production; log entries include `component` and `component_type` base fields
+- [ ] Every log line is a `LogEntry` on standard output, as [`patterns/logging`](../patterns/logging.md) defines it
 - [ ] SIGTERM triggers graceful shutdown: Fastify server closes, storage closes, then process exits
 - [ ] All request payloads are validated with zod schemas — raw `request.body` is never trusted directly
 - [ ] Dependency versions are pinned in `package-lock.json` (committed to repo); production Docker uses `npm ci --omit=dev`
 - [ ] Node is started with `--disable-proto=delete` to prevent prototype pollution
-- [ ] Agent entry point registers all 6 protocol endpoints (health, describe, execute, message, services, event) via `registerEndpoints`
+- [ ] Agent entry point registers all 7 protocol endpoints (`/livez`, `/readyz`, describe, execute, message, services, event) via `registerEndpoints`, and renews its lease at `POST /v1/lease`
 - [ ] Task handler dispatches by `action` field and returns structured `{ task_id, status, output }` or `{ task_id, status, error }`
-- [ ] Integration tests verify health returns 200 with `status: "healthy"` and task endpoint returns `status: "completed"` for valid actions
+- [ ] Integration tests verify `GET /livez` returns 200 with `{"live": true}` and task endpoint returns `status: "completed"` for valid actions

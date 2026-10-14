@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: federation
-version: 1.0.1
+version: 1.0.3
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/hub]
 platform: any
 tier: free
@@ -42,7 +42,7 @@ cross a boundary.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -54,7 +54,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -66,7 +66,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -485,7 +485,7 @@ Orchestrator A (requester)            Orchestrator B (provider)
    - task payload (data-contract-filtered)
    - contract_name: "seo-audit-v1"
    - requester: A's identity
-   - trace_id: propagated from workflow
+   - trace_id: see spec Trace Propagation
    - signed by A's key
 
 3. POST /v1/federation/task ──────►
@@ -543,7 +543,7 @@ types:
         name: TraceID
         type: string
         required: false
-        description: "Correlation ID"
+        description: "[Trace Propagation](spec.md#trace-propagation)"
       signature:
         name: Signature
         type: string

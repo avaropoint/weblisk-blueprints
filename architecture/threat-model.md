@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: threat-model
-version: 1.3.12
+version: 1.4.0
 requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/content, architecture/data-security, architecture/admin, architecture/observability, architecture/enforcement, patterns/contract]
 platform: any
 tier: free
@@ -63,7 +63,7 @@ the residual risk.
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -75,7 +75,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: EnforcementDecision
@@ -107,7 +107,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/gateway
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: SessionToken
@@ -139,7 +139,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/admin
-    version: ">=2.2.0 <3.0.0"
+    version: ">=2.2.0 <4.0.0"
     bindings:
       types:
         - name: OperatorAuth
@@ -149,7 +149,11 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/observability
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
+    bindings:
+      behaviors:
+        # Threat 2.10 correlates a replayed request by its traceparent
+        - name: trace-propagation
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -179,7 +183,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/content
-    version: ">=2.0.0 <4.0.0"
+    version: ">=2.0.0 <5.0.0"
     bindings:
       types:
         - name: ContentRepository
@@ -393,13 +397,13 @@ identity on every request.
 | 2.1 | **Rogue gateway** | Attacker deploys fake gateway that claims to be legitimate | Agents verify `Authorization` header contains valid WLT signed by registered gateway's ML-DSA-65 key; orchestrator validates gateway registration | Protocol identity |
 | 2.2 | **Header spoofing** | Attacker injects `X-Gateway-*` headers from non-gateway source | Agents ONLY accept `X-Gateway-*` headers from the registered gateway IP/identity; orchestrator strips these headers from non-gateway requests | Agent validation |
 | 2.3 | **Privilege escalation via header** | Gateway sends `X-Gateway-Roles: admin` for non-admin user | Gateway's role injection is validated against session state (server-side, not from browser); agents can verify via orchestrator callback for critical operations | Defense in depth |
-| 2.4 | **Agent impersonation** | Attacker poses as a legitimate agent | Every agent has unique ML-DSA-65 key pair; orchestrator verifies agent identity on registration and health checks; behavioral fingerprinting detects drift | Protocol identity + lifecycle |
+| 2.4 | **Agent impersonation** | Attacker poses as a legitimate agent | Every agent has unique ML-DSA-65 key pair; orchestrator verifies agent identity on registration and on every lease renewal; behavioral fingerprinting detects drift | Protocol identity + lifecycle |
 | 2.5 | **Man-in-the-middle (internal)** | Intercept gateway-to-agent traffic | mTLS between gateway and agents (zero-trust mode); or TLS + trusted network isolation; ML-DSA-65-signed messages provide additional integrity | Network + protocol |
 | 2.6 | **SSRF via gateway** | Trick gateway into making requests to internal services | Route table uses allowlisted agent targets only; no user-controlled URLs in forwarding; gateway resolves targets from orchestrator registry, not from request input | Gateway route table |
-| 2.7 | **Agent overload** | Route excessive traffic to a single agent | Per-agent rate limiting at gateway; circuit breaker (3 failures → open for 30s); orchestrator redistributes if agent reports degraded | Gateway + orchestrator |
+| 2.7 | **Agent overload** | Route excessive traffic to a single agent | Per-agent rate limiting at gateway; circuit breaker (3 failures → open for 30s); orchestrator routes elsewhere while the agent's lease is not ready | Gateway + orchestrator |
 | 2.8 | **Data exfiltration via agent** | Compromised agent sends data to external endpoint | Enforcement external boundary intercepts all outbound calls; agents can only reach declared external endpoints; scope-based leakage prevention blocks restricted data from crossing boundaries; agent behavioral monitoring detects anomalous external call patterns | Enforcement external boundary + monitoring |
 | 2.9 | **Deserialization attack** | Malicious payload in agent request/response | JSON-only protocol (no binary serialization); strict schema validation on all messages; no arbitrary object deserialization | Protocol spec |
-| 2.10 | **Replay attack (internal)** | Replay a valid gateway-to-agent request | Request includes `X-Request-Id` (UUID) + `X-Trace-Id`; agents track recent request IDs; duplicate requests rejected within replay window (300 seconds) | Protocol spec |
+| 2.10 | **Replay attack (internal)** | Replay a valid gateway-to-agent request | Request includes `X-Request-Id` (UUID) + `traceparent`; agents track recent request IDs; duplicate requests rejected within replay window (300 seconds) | Protocol spec |
 | 2.11 | **Directory address poisoning** | A registrant claims a `url` on a host the attacker controls. The orchestrator publishes the entry, so it is authentic; a caller follows the address carrying a live credential | `manifest.url` is a claim, and `ServiceEntry.address_provenance` says so. A caller presents a credential only at its anchor host or at an address a grant names, and an address the tenant never declared is `self-asserted` and refused. A registered `url` contradicting the declaration is `409 ADDRESS_CONFLICT` at registration, not a published contradiction | Orchestrator address provenance + reach rule |
 | 2.12 | **Content substitution via a foreign component** | The poisoned address answers as the tenant's content service and returns documents of its own | As 2.11. A response is attributable to the key the registry holds for that component, never to the address it arrived from. This is worse than an empty answer because it is plausible: a governance surface reports the attacker's documents as the tenant's policy, and an auditor reads a corpus nobody in the tenant wrote | Orchestrator address provenance + protocol identity |
 | 2.13 | **Silent write absorption** | As 2.12 with a write capability. The attacker cannot write the tenant's real store, but it can return success, so the tenant believes an edit landed | As 2.11. Detection afterwards rests on content identity and reconciliation — a later read of the real repository does not carry the identity the write was acknowledged with. That is a poor second to not having sent the write, and is why the address rule is preventive rather than detective | Orchestrator address provenance + content identity |
@@ -671,7 +675,7 @@ Layers:    3 independent controls (integrity checksums, audit cross-reference,
 | OWASP baseline scan | Weekly | External scanner or security-scanner agent |
 | Penetration test | Quarterly | External engagement |
 | Audit log integrity (hash chain) | Daily | Observability system |
-| Key rotation compliance | Daily | Admin API health check |
+| Key rotation compliance | Daily | Scheduled check against the Admin API |
 | Rate limiter effectiveness | On deploy | Load test suite |
 
 ---

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: safety
-version: 1.0.1
+version: 1.0.3
 requires: [protocol/types, patterns/scope, patterns/policy]
 platform: any
 tier: free
@@ -56,7 +56,7 @@ concerns — it combines them into an operation-level protection model.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: ErrorResponse

@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: sync
-version: 1.0.1
+version: 2.0.0
 port: 9751
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/offline, patterns/observability, patterns/storage, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/privacy, patterns/security, patterns/governance]
@@ -32,7 +32,7 @@ connected clients via real-time channels.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <3.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -43,15 +43,16 @@ requires:
           methods: [POST]
           request_type: AgentMessage
           response_fields: [status, response]
-        - path: /v1/health
+        - path: /v1/lease
           methods: [POST]
-          response_fields: [status, details]
+          request_type: LeaseRenewal
+          response_fields: [expires_at]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=3.0.0 <4.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -61,13 +62,13 @@ requires:
         - name: AgentManifest
           fields_used: [name, version, port, capabilities, public_key, url]
         - name: EventEnvelope
-          fields_used: [from, to, action, payload, trace_id]
+          fields_used: [from, to, action, payload, trace_id, span_id]
     on_change:
       compatible: validate
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -83,7 +84,7 @@ requires:
 
 extends:
   - pattern: patterns/observability
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: metrics
@@ -510,7 +511,7 @@ Step 7 — Initialize Realtime Channel
 
 Final:
   agent_state → active
-  Log: lifecycle.ready {port: 9751, conflict_resolution: config.conflict_resolution}
+  Log: process.ready {port: 9751, conflict_resolution: config.conflict_resolution}
 ```
 
 ### Shutdown Sequence
@@ -541,36 +542,32 @@ Step 6 — Close Storage
   Action:      Close database connection
 
 Step 7 — Exit
-  Log: lifecycle.stopped {uptime_seconds, syncs_processed, conflicts_resolved}
+  Log: process.stopped {uptime_seconds, syncs_processed, conflicts_resolved}
   agent_state → retired
 ```
 
 ### Health
 
+Readiness, as `GET /readyz` answers it and every lease renewal carries it
+([`patterns/observability`](../patterns/observability.md#health-endpoint)).
+Health is liveness and readiness only, so the counts and timestamps a status
+once carried are metrics:
+
 ```yaml
 health:
-  healthy:
+  ready:
     conditions:
       - storage = connected
       - realtime_channel = available
-    response:
-      status: healthy
-      details: {connected_clients, pending_conflicts, storage_status}
-
-  degraded:
-    conditions:
+    checks:
       - storage errors (but retrying)
       - realtime channel unavailable (sync still works via pull)
-    response:
-      status: degraded
-      details: {reason, last_error}
+    lease: ready true, its checks naming each of these that holds not_ready
 
-  unhealthy:
+  not_ready:
     conditions:
       - storage unreachable after retries
-    response:
-      status: unhealthy
-      details: {reason, since}
+    lease: ready false, its checks naming each subsystem above not_ready
 ```
 
 ### Self-Update
@@ -580,7 +577,7 @@ Step 1 — Validate new blueprint
 Step 2 — Check migration requirements
 Step 3 — Execute migration (drain syncs, migrate, resume)
 Step 4 — Reload configuration
-Final:  Log lifecycle.version_updated {from, to}
+Final:  Log process.version_updated {from, to}
 ```
 
 ---
@@ -1022,7 +1019,7 @@ scaling:
     protocol: message-bus-only
     direct_http: forbidden
     routing: by agent name
-    reason: Message bus routes to healthy instances
+    reason: Message bus routes to instances whose lease is `ready`
 
   intra_agent:
     coordination: shared-storage
@@ -1130,6 +1127,6 @@ client can correct the batch rather than bisect it.
 - [ ] Manual conflicts include both versions for resolution
 - [ ] Atomic transaction rolls back on partial failure
 - [ ] Metrics emit for all sync operations
-- [ ] Health endpoint returns agent status and connected client count
+- [ ] `GET /livez` answers live or not live and nothing else; every lease renewal carries the readiness declared under Health, with `checks` naming each subsystem `not_ready`; the connected client count is the `sync_connected_clients` metric, never on the lease or `/readyz`
 
 Port: 9751

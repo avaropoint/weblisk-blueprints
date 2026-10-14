@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: interop
-version: 1.0.1
+version: 2.0.0
 requires: [protocol/types, architecture/agent]
 platform: any
 tier: free
@@ -16,7 +16,7 @@ protocol translation — the external framework runs unmodified inside.
 ## Overview
 
 Weblisk is framework-agnostic. Any process that implements the
-6-endpoint agent protocol can participate in a hub. But existing
+7-endpoint agent protocol can participate in a hub. But existing
 agent code built with LangChain, CrewAI, Google ADK, or plain HTTP
 services shouldn't need rewriting. An interop adapter bridges the gap:
 
@@ -48,7 +48,7 @@ the framework's native interface.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -64,11 +64,11 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: AgentState
-          fields_used: [state, health, uptime]
+          fields_used: [state]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -80,7 +80,7 @@ requires:
 ## Design Principles
 
 1. **Thin wrapper** — the adapter translates protocol calls only; it never re-implements or modifies the external framework's logic.
-2. **Framework-agnostic** — any process that implements the 6-endpoint protocol can participate in a hub, regardless of internal implementation language or framework.
+2. **Framework-agnostic** — any process that implements the 7-endpoint protocol can participate in a hub, regardless of internal implementation language or framework.
 3. **Security parity** — adapted agents sign all outbound messages with ML-DSA-65 and authenticate identically to native agents; no convenience bypasses are permitted.
 
 ---
@@ -103,18 +103,18 @@ contracts:
           description: External framework name (langchain, crewai, adk, http, custom)
       inherits: TaskRequest-to-framework and framework-to-TaskResult translation maps
       overridable: true
-      override_constraints: Must preserve all 6 protocol endpoints and ML-DSA-65 signing
+      override_constraints: Must preserve all 7 protocol endpoints and ML-DSA-65 signing
 
     - name: health-mapping
-      description: Combine adapter health with wrapped framework health into standard response
+      description: Answer liveness and readiness for the adapter and the framework it wraps
       parameters:
-        - name: framework_healthy
+        - name: framework_ready
           type: boolean
           required: true
-          description: Whether the external framework reports healthy
-      inherits: Standard health response format with adapter metadata
+          description: Whether the wrapped framework can take work now
+      inherits: The two probes and the lease renewal of patterns/observability
       overridable: true
-      override_constraints: Must report degraded when framework is unhealthy
+      override_constraints: Must answer not ready whenever the framework cannot take work
 
   types:
     - name: AdapterManifest
@@ -131,9 +131,12 @@ contracts:
     - path: /v1/execute
       description: Translate TaskRequest and invoke framework
       inherited_by: Adapter Contract section
-    - path: /v1/health
-      description: Combined adapter and framework health status
-      inherited_by: Adapter Contract section
+    - path: /livez
+      description: The adapter process's liveness
+      inherited_by: Health Mapping section
+    - path: /readyz
+      description: Ready only while the adapter and the framework it wraps can take work
+      inherited_by: Health Mapping section
     - path: /v1/message
       description: Forward messages to framework if supported
       inherited_by: Adapter Contract section
@@ -151,15 +154,16 @@ contracts:
 
 Every adapter MUST:
 
-1. **Expose all 6 protocol endpoints** — `/v1/describe`, `/v1/execute`,
-   `/v1/health`, `/v1/message`, `/v1/services`, `/v1/event`
+1. **Expose all 7 protocol endpoints** — `/v1/describe`, `/v1/execute`,
+   `/v1/message`, `/v1/services`, `/v1/event`, and the probes `/livez` and
+   `/readyz`
 2. **Register with the orchestrator** — providing a valid manifest
    with ML-DSA-65 keys
 3. **Sign all outbound messages** — using the agent's ML-DSA-65 keypair
 4. **Translate TaskRequest → framework input** and
    **framework output → TaskResult**
-5. **Report health** — the adapter wraps the framework's health status
-   into the standard health response format
+5. **Report health** — liveness and readiness, the framework's readiness
+   included (Health Mapping), and renew its lease
 
 Adapters MUST NOT:
 
@@ -244,7 +248,7 @@ already expose an HTTP API.
 The sidecar adapter requires the following configuration parameters:
 - Adapter type: `sidecar`
 - Target URL (e.g., `http://localhost:8080`)
-- Health check path (e.g., `/health`)
+- Readiness path of the wrapped service (e.g., `/readyz`), read only to answer the adapter's own `/readyz`
 - Execute path (e.g., `/invoke`)
 - Timeout in seconds (e.g., `60`)
 
@@ -279,25 +283,18 @@ drops inbound events (after acknowledging with 202) and never publishes.
 
 ## Health Mapping
 
-The adapter combines its own health with the framework's health:
+Health is liveness and readiness only
+([`protocol/types`](../protocol/types.md#health)). The adapter answers both for
+itself and the framework it wraps:
 
-```json
-{
-  "status": "healthy",
-  "adapter": {
-    "framework": "langchain",
-    "framework_version": "0.3.1",
-    "adapter_type": "in-process",
-    "framework_healthy": true,
-    "translation_errors": 0
-  },
-  "uptime_seconds": 3600,
-  "last_task_at": 1713264000
-}
-```
+- `/livez` answers from the adapter's own process. A framework that has
+  crashed and that the adapter can restart leaves the adapter live.
+- `/readyz`, and the `ready` each lease renewal carries, are true only while
+  the framework can take work. When it cannot, the renewal's `checks` name it,
+  as `{"framework": "not_ready"}`.
 
-If the framework is unhealthy, the adapter MUST report `"degraded"`.
-If the framework process has crashed, report `"unhealthy"`.
+Framework name, version and translation error counts are the adapter's
+manifest and metrics, never a health answer.
 
 ## Error Handling
 
@@ -307,7 +304,7 @@ If the framework process has crashed, report `"unhealthy"`.
 | Timeout | TaskResult with `status: "failed"`, `error: "framework_timeout"` |
 | Invalid input | 400 with `INVALID_REQUEST` error code |
 | Rate limited by framework | 429 with `Retry-After` |
-| Framework not ready | Health returns `"degraded"` until ready |
+| Framework not ready | `/readyz` answers not ready, and the lease carries `ready: false`, until it is |
 
 The adapter MUST NOT leak framework-internal stack traces in error
 responses. Log them internally; return sanitized error messages.
@@ -349,15 +346,15 @@ The adapter requires the following configuration parameters:
 
 ## Verification Checklist
 
-- [ ] Adapter exposes all 6 protocol endpoints
+- [ ] Adapter exposes all 7 protocol endpoints
 - [ ] Registration with orchestrator succeeds
 - [ ] ML-DSA-65 signing works on all outbound messages
 - [ ] TaskRequest is correctly translated to framework input
 - [ ] Framework output is correctly translated to TaskResult
-- [ ] Health endpoint reflects both adapter and framework health
+- [ ] `/readyz` and the lease answer ready only while both the adapter and the framework can take work
 - [ ] Framework errors produce valid Weblisk error responses
 - [ ] No framework stack traces leak in error responses
 - [ ] Event delivery works (if framework supports events)
-- [ ] Adapter handles framework crash gracefully (health → unhealthy)
+- [ ] Adapter handles framework crash gracefully: `/readyz` answers not ready, and `/livez` stays live while the adapter itself can recover the framework
 - [ ] Sidecar mode correctly proxies to target URL
 - [ ] Subprocess mode correctly manages child process lifecycle
