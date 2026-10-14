@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 3.0.0
+version: 3.1.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -779,6 +779,90 @@ ready is reported as started and not ready, with its `/readyz` answer, since
 a component may be not ready by design: the content service started with no
 orchestrator is ([`architecture/content`](content.md)).
 
+#### A component starts with a clean environment
+
+This rule has one home, here, and covers every path by which the CLI starts a
+tenant component: this command,
+[`weblisk server start`](#weblisk-server-start), the orchestrator that
+[`weblisk tenant create`](#weblisk-tenant-create-name) starts and starts
+again over code it has just regenerated,
+[`weblisk agent start`](#weblisk-agent-start),
+[`weblisk domain start`](#weblisk-domain-start),
+[`weblisk gateway start`](#weblisk-gateway-start), and
+[`weblisk dev`](#weblisk-dev) running a hub, on each restart it makes. It covers the starts a
+build makes of a component it has just generated as well: the run that
+conformance-tests a tree
+([`architecture/generation`](generation.md#what-a-repair-round-reads-and-in-what-order))
+and the run beside a real orchestrator
+([`architecture/testing`](testing.md#level-4-interoperability)). A tested start
+is therefore made as a real one is, and a component that works only because it
+inherited something fails its tests instead of passing them.
+
+**Nothing is inherited.** The environment is built from nothing, never by
+removing names from the starter's. Who started the CLI — a person's shell,
+Studio, a service manager — and what they hold reach no component. A component
+starts with exactly:
+
+1. **The allow-list below**, each name copied from the CLI's environment where
+   it is set there, and no other name copied.
+2. **The values the CLI sets for that run**, computed and never copied:
+   `WL_PORT`, the port it passes; and, on a build's own runs only, `WL_DEV=1`,
+   which starts a fresh component with no persistent store and has it say so
+   ([`languages/go`](../languages/go.md#environment-variables)). That one
+   value is the only difference between a tested start and a real one.
+3. **What is declared for that component**: its entry's `env` in
+   `.weblisk/config.yaml`, which today only an agent has
+   ([`schemas/config`](../schemas/config.md#agents)) and which may hold no
+   secret. A variable a blueprint documents for its component, such as a
+   language blueprint's environment table, gets a value only from that
+   declaration, never from whoever started it.
+
+| Name | Why its value carries no secret | Why a component needs it |
+|---|---|---|
+| `PATH` | a list of directories | a run command such as `npm start` ([`platforms/node`](../platforms/node.md)) is found through it |
+| `LANG`, `LC_ALL`, `LC_COLLATE`, `LC_CTYPE`, `LC_MESSAGES`, `LC_MONETARY`, `LC_NUMERIC`, `LC_TIME` | a locale name, such as `en_CA.UTF-8` | text encoding and formatting; without them a runtime falls back to the `C` locale. Each is named, never `LC_*`, so a variable that only begins with `LC_` is not passed |
+| `TZ` | a time-zone name | the zone the host's clock is read in |
+| `TMPDIR` | a directory path | where a runtime writes temporary files |
+| `SystemRoot`, `TEMP`, `TMP`, `PATHEXT` (Windows only, matched without regard to case, as Windows matches them) | directory paths, and a list of file extensions | Go's runtime and network stack need `SystemRoot` on Windows; the others are `TMPDIR` and `PATH`'s counterparts there |
+
+The list is closed: a name joins it by a change to this table that says why
+its value can carry no secret, never by a setting. A name a component does not
+need stays off it, secret or not. Some are off it on purpose:
+
+- **Every vendor key variable, for every component, the orchestrator
+  included**: `WL_AI_KEY` and each variable a model backend names for its key
+  (`needs_key`, [`weblisk providers`](#weblisk-providers)). No tenant component
+  starts holding one, so a backend that needs a key does not run in a tenant
+  the CLI starts, which the model gateway already says of itself
+  ([`architecture/orchestrator`](orchestrator.md#the-tenants-model)). A
+  declaration that names one is refused (below).
+- **`WL_AI_PROVIDER`, `WL_AI_MODEL` and `WL_AI_COMMAND`.** They choose the
+  CLI's own model ([`weblisk providers`](#weblisk-providers)). A tenant's
+  model is the tenant's configuration
+  ([`architecture/orchestrator`](orchestrator.md#the-tenants-model)), never
+  the environment of whoever started it.
+- **`HOME`, `XDG_CONFIG_HOME` and every other name for the starter's own
+  directories.** They lead to where that person's identities, logins and
+  cloud credentials are kept. A component's state lives under its tenant's
+  root.
+- **`SSH_AUTH_SOCK` and every other agent socket.** The value is a path, but
+  what answers there signs as the person.
+- **`HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY` and `NO_PROXY`, in either case.**
+  A proxy address may carry a user and password. A component that must reach
+  out through a proxy has it declared.
+
+A declared `env` that holds a secret is refused, with every entry that does,
+before anything is generated or started: by the commands that generate a
+component from the declaration, and by every start above
+([`schemas/config`](../schemas/config.md#validation-rules) rule 16). A component
+that needs a secret reads it through its secret client from the tenant's store
+([`patterns/secrets`](../patterns/secrets.md#secret-access-api)), never from an
+environment the CLI gives it, which every process it starts inherits and which
+crash dumps and `/proc` expose ([`protocol/identity`](../protocol/identity.md)
+rule 9). A platform that starts a component itself, on a hosted deployment, is
+not a start by this CLI, and what it may inject is stated in
+[`patterns/secrets`](../patterns/secrets.md#deployment-secret-delivery).
+
 ---
 
 ### `weblisk server init`
@@ -925,11 +1009,16 @@ alone: the file is an operator's declaration, never a precondition.
   Then the content service, domains, agents, and the gateway last.
 - **Refused whole.** A declaration this command cannot carry out — two
   components on one port or one name, `replicas` above 1, an agent with no
-  `type` — is refused with every reason before anything starts. Starting part
+  `type`, an agent `env` that holds a secret — is refused with every reason
+  before anything starts. Starting part
   of a declaration leaves a tenant in a state nobody declared.
 - **Named, not skipped.** A declared component that has not been generated is
   reported with the command that generates it, the rest start, and the command
   exits non-zero. A tenant running less than it declares is not started.
+- **Clean.** Each component, the orchestrator first among them, starts with
+  the environment [A component starts with a clean
+  environment](#a-component-starts-with-a-clean-environment) gives it and
+  nothing of whoever ran this command, attached or detached alike.
 - **Foreground** stays attached to what it started, each component's output
   prefixed with its name. Interrupting it stops them in reverse order; a
   component that exits ends the session and stops the rest.
@@ -3126,6 +3215,18 @@ security:
         tests a component, which acts as that component, and the first
         operator's registration at provision, which presents the bootstrap
         secret. Neither sends a person's token
+    - boundary: CLI → Tenant component. The CLI runs with the person's
+        authority and a component it starts receives none of it. Every start,
+        a build's own runs of a generated component included, gives the
+        component a closed allow-list of non-secret names, the values the CLI
+        sets for that run, and what the tenant declares for it, which holds no
+        secret; nothing else of the person or program that started the CLI
+        reaches it, and no vendor key variable reaches any component, the
+        orchestrator included (A component starts with a clean environment)
+    - boundary: CLI → Provider CLI. A key the CLI reads from a holder or from
+        standard input stays in the CLI's own process, which makes the call
+        it is for. It is never exported into a provider CLI's environment, or
+        any other child's, so a provider CLI the CLI runs uses its own login
     - boundary: CLI → Local filesystem. Confined to the project and the
         operator's own configuration directory
   enforcement:
@@ -3144,6 +3245,19 @@ security:
       mechanism: Kept by the platform keychain source, apart from the
         identity's holder; where no keychain exists, in the weblisk-key-v1
         envelope or by a secret source, opened as the identity's own key is
+    - rule: A tenant component inherits nothing from whoever started the CLI
+      mechanism: Its environment is built from nothing on every start path,
+        a build's own runs included, out of the closed allow-list, the run's
+        own values and its declaration (A component starts with a clean
+        environment); no vendor key variable is on the list
+    - rule: A declaration never puts a secret into a component's environment
+      mechanism: An agents[].env entry that holds a secret is refused, the
+        whole declaration with it, when a component is generated and when one
+        is started (schemas/config Validation Rules, rule 16)
+    - rule: A key the CLI reads from a holder or from standard input never
+        leaves the CLI's process
+      mechanism: Held in memory and handed only to the call that uses it;
+        never set in a child process's environment, a provider CLI's included
     - rule: A destructive operation requires explicit confirmation
       mechanism: Confirmation is a distinct argument, never a default, and never
         satisfied by a non-interactive invocation unless declared
@@ -3208,6 +3322,11 @@ security:
 - [ ] `weblisk server start` starts the orchestrator alone when `.weblisk/config.yaml` is absent, and refuses a declaration it cannot carry out before starting anything
 - [ ] `weblisk server stop` with no `--component` stops every recorded component, the orchestrator last
 - [ ] `weblisk component <name> start|stop|status|logs` runs any component the tenant has generated, and a detached start reports started only once the component's `GET /livez` answers live, then waits on its `GET /readyz` and reports a component that never becomes ready as not ready
+- [ ] Every start of a tenant component — `weblisk server start` attached or detached, `weblisk component <name> start`, the orchestrator `weblisk tenant create` starts and restarts, `weblisk agent start`, `weblisk domain start`, `weblisk gateway start` and each restart `weblisk dev` makes of a hub — gives it an environment built from nothing: the names in the allow-list of [A component starts with a clean environment](#a-component-starts-with-a-clean-environment) that are set in the CLI's own, `WL_PORT`, and its declared `env`, and no other name of the CLI's environment
+- [ ] No vendor key variable — `WL_AI_KEY`, or any variable a model backend names for its key — is in any started component's environment, the orchestrator's included, even when the CLI's own environment holds it
+- [ ] A build's own runs of a generated component, its conformance run and its interoperability run, give it the same environment a real start does, with `WL_DEV=1` the only addition
+- [ ] An `agents[].env` entry that holds a secret ([`schemas/config`](../schemas/config.md#validation-rules) rule 16) is refused, naming every such entry, by the commands that generate a component and by every start, before anything is generated or started
+- [ ] A key the CLI reads from a holder or from standard input is used in the CLI's own process and is in no child process's environment, a provider CLI's included
 - [ ] `weblisk tenant create` writes its `.gitignore` before generation, amends one already present, and does not `git init`
 - [ ] `weblisk server verify` passes or fails on the orchestrator's `GET /livez` and `GET /readyz` alone, reads every registered component's lease state from `GET /v1/admin/agents` on the operator's token, says the lease states were not read when it holds no token the admin API accepts, probes no other component, and reports a lease reading `not_ready` as not ready and one reading `unknown` as unknown, neither failing the verify
 - [ ] `weblisk agent create` generates agent code from agent.yaml spec via LLM dispatch
