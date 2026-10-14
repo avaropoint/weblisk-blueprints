@@ -808,12 +808,16 @@ starts with exactly:
 1. **The allow-list below**, each name copied from the CLI's environment where
    it is set there, and no other name copied.
 2. **The values the CLI sets for that run**, computed and never copied:
-   `WL_PORT`, the port it passes; for every component but the orchestrator,
-   `WL_ORCH_URL`, the orchestrator's own address the agent, domain or gateway
-   registers with — the one `--orch` names, or the address the tenant's run
-   state records for its running orchestrator — passed as well as `--orch`
+   `WL_PORT`, the port it passes; for a component other than the
+   orchestrator, where an orchestrator is named by `--orch` or recorded in
+   the tenant's run state as running, `WL_ORCH_URL`, that orchestrator's own
+   address, which the component registers with, passed as well as `--orch`
    in its arguments, so a component reading either finds it
-   ([`languages/go`](../languages/go.md#environment-variables)); and, on a
+   ([`languages/go`](../languages/go.md#environment-variables)). Where none
+   is named or running, neither `WL_ORCH_URL` nor `--orch` is set, on a real
+   start and on a build's own runs alike: the component starts without one,
+   as [`weblisk component <name> start`](#weblisk-component-name-start--stop--status--logs)
+   says, and a conformance run of a tree alone is such a start. And, on a
    build's own runs only, `WL_DEV=1`, which starts a fresh component with no
    persistent store and has it say so. That one value is the only difference
    between a tested start and a real one. An address is not a secret: it
@@ -828,21 +832,54 @@ starts with exactly:
 
 **No file puts back what the start left out.** A generated component may load
 a `.env` file from its working directory
-([`languages/go`](../languages/go.md#configuration)), and a component the CLI
-starts works in its tenant's root, where a `.env` is expected to sit (the
-`.gitignore` [`weblisk tenant create`](#weblisk-tenant-create-name) writes excludes one). So every
-start above, and each of a build's own runs, is refused, naming the file,
-while the directory the component would start in holds a file named `.env`;
-otherwise a vendor key written there reaches the orchestrator after all. Move
-what it holds into a declaration, or into the tenant's secret store.
+([`languages/go`](../languages/go.md#configuration),
+[`languages/rust`](../languages/rust.md#configuration)), common loaders on
+the node platform also read `.env.local`, `.env.development` and their
+like, and `wrangler dev`, which a cloudflare start runs
+([`platforms/cloudflare`](../platforms/cloudflare.md)), gives the Worker the
+variables in `.dev.vars` and the `[vars]` of its wrangler configuration,
+never the process environment. A component the CLI starts works in its
+tenant's root, where such a file is expected to sit (the `.gitignore`
+[`weblisk tenant create`](#weblisk-tenant-create-name) writes excludes
+`.env` and `.env.*`). So every start above, and each of a build's own runs,
+is refused, naming the file, while the directory the component would start
+in holds `.env`, any `.env.*` but `.env.example` (which holds names and no
+values, as [`architecture/data-security`](data-security.md) exempts it), or,
+on the cloudflare platform, `.dev.vars` or any `.dev.vars.*`; and a
+cloudflare start is refused, naming each entry, where its wrangler
+configuration's `[vars]` holds one that rule 16 of
+[`schemas/config`](../schemas/config.md#validation-rules) recognises as a
+secret, judged as an `agents[].env` entry is. Otherwise a vendor key written
+there reaches the orchestrator after all. Move what such a file holds into a
+declaration, or into the tenant's secret store. A cloudflare component
+started by this CLI therefore has no Workers Secret, which `wrangler dev`
+supplies only from `.dev.vars`; one it needs reaches it on a hosted
+deployment, below. The language blueprints' guidance to load a `.env` file
+describes a component run by hand; under this CLI the file cannot be present.
 
-**`HOME` is absent, and nothing replaces it.** A runtime that needs a home of
-its own — `npm`'s cache, a toolchain's configuration — finds the account's
-own through the operating system's user database, as it does under a service
-manager. That lookup reads the account the component runs as, not the
-starter's environment, so it is not inheritance; and setting `HOME` to make a
-run command work puts it back on the list, which only a change to the table
-below may do.
+**`HOME` is absent, and nothing replaces it.** Neither it, nor `USERPROFILE`,
+`APPDATA` or `LOCALAPPDATA`, its Windows counterparts, is on the list. A
+generated component must not depend on finding a home directory: Go's
+`os.UserHomeDir`, `os.UserConfigDir` and `os.UserCacheDir` read only those
+variables and return an error without them, and a runtime that falls back to
+the operating system's user database, as Node's `os.homedir()` does, reads
+the account the component runs as, which is not inheritance but is not the
+component's state either. A component's state lives under its tenant's root.
+Setting `HOME` to make a run command work puts it back on the list, which
+only a change to the table below may do.
+
+**Building is not starting, and gets the same environment.** `weblisk agent
+start`, `domain start` and `gateway start`, and `server start` on a compiled
+language, build the component before running it. Generated output is
+untrusted ([Generated output is untrusted](#generated-output-is-untrusted)),
+and a build runs some of it (a `build.rs`, an install script), so the build
+step gets the allow-list below and the run's values too, never the CLI's
+environment, plus the toolchain's own directories, each copied from the
+CLI's environment where set there, and computed under the tenant's root
+otherwise: `GOCACHE`, `GOMODCACHE` and `GOPATH` for Go, which refuses to
+build with neither `GOCACHE` nor a home; `CARGO_HOME` and `RUSTUP_HOME` for
+Rust; `npm_config_cache` for npm. Each is a directory path and carries no
+secret. They reach the build step and never the component it builds.
 
 | Name | Why its value carries no secret | Why a component needs it |
 |---|---|---|
@@ -866,8 +903,17 @@ need stays off it, secret or not. Some are off it on purpose:
 - **`WL_AI_PROVIDER`, `WL_AI_MODEL` and `WL_AI_COMMAND`.** They choose the
   CLI's own model ([`weblisk providers`](#weblisk-providers)). A tenant's
   model is the tenant's configuration
-  ([`architecture/orchestrator`](orchestrator.md#the-tenants-model)), never
-  the environment of whoever started it.
+  ([`architecture/orchestrator`](orchestrator.md#the-tenants-model)), kept in
+  the hub's `.weblisk/model.json` and never in the environment of whoever
+  started it. The environment tables of
+  [`languages/go`](../languages/go.md#environment-variables),
+  [`languages/rust`](../languages/rust.md) and
+  [`platforms/node`](../platforms/node.md) still mark `WL_AI_PROVIDER` and
+  `WL_AI_MODEL` required, and [`platforms/cloudflare`](../platforms/cloudflare.md)
+  marks `WL_AI_KEY` required; those rows predate the tenant's model and this
+  rule, and a component the CLI starts gets none of the three. A component
+  generated to require them fails to start under this CLI, as it should,
+  until those rows are removed.
 - **`HOME`, `XDG_CONFIG_HOME` and every other name for the starter's own
   directories.** They lead to where that person's identities, logins and
   cloud credentials are kept. A component's state lives under its tenant's
@@ -1039,7 +1085,8 @@ alone: the file is an operator's declaration, never a precondition.
   components on one port or one name, `replicas` above 1, an agent with no
   `type`, an agent `env` entry that rule 16 of
   [`schemas/config`](../schemas/config.md#validation-rules) recognises as a
-  secret, a `.env` file where a component would start — is refused with every reason
+  secret, a variables file where a component would start ([A component starts
+  with a clean environment](#a-component-starts-with-a-clean-environment)) — is refused with every reason
   before anything starts. Starting part
   of a declaration leaves a tenant in a state nobody declared.
 - **Named, not skipped.** A declared component that has not been generated is
@@ -3250,8 +3297,10 @@ security:
         a build's own runs of a generated component included, gives the
         component a closed allow-list of non-secret names, the values the CLI
         sets for that run, and what the tenant declares for it, in which a
-        secret the CLI recognises is refused; no .env file in the directory
-        it starts in is tolerated; nothing else of the person or program that started the CLI
+        secret the CLI recognises is refused; no .env, .env.* (but
+        .env.example) or, on cloudflare, .dev.vars file in the directory it
+        starts in is tolerated; the build step before it gets the same
+        environment and its toolchain's directories; nothing else of the person or program that started the CLI
         reaches it, and no vendor key variable reaches any component, the
         orchestrator included (A component starts with a clean environment)
     - boundary: CLI → Provider CLI. A key the CLI reads from a holder or from
@@ -3260,7 +3309,11 @@ security:
         any other child's, so such a key never substitutes for a provider
         CLI's own login. A vendor key variable already in the CLI's own
         environment when it was started is the starter's, and what a provider
-        CLI inherits of it is not decided here
+        CLI inherits of it is not decided here; so is one the CLI loads into
+        its own environment from a .env file it reads as its own
+        configuration, which is neither from a holder nor from standard
+        input. Such a file cannot sit where a component starts (A component
+        starts with a clean environment)
     - boundary: CLI → Local filesystem. Confined to the project and the
         operator's own configuration directory
   enforcement:
@@ -3293,7 +3346,15 @@ security:
     - rule: No file in a component's working directory puts back what its
         start left out
       mechanism: Every start, and each of a build's own runs, is refused
-        while the directory the component starts in holds a .env file
+        while the directory the component starts in holds .env, any .env.*
+        but .env.example, or on cloudflare .dev.vars or any .dev.vars.*; a
+        cloudflare start is refused while its wrangler configuration's [vars]
+        holds an entry rule 16 recognises as a secret
+    - rule: Generated code a build runs inherits nothing from whoever started
+        the CLI
+      mechanism: The build step a start makes gets the component's clean
+        environment plus its toolchain's own directories, and never the
+        CLI's environment
     - rule: A key the CLI reads from a holder or from standard input never
         leaves the CLI's process
       mechanism: Held in memory and handed only to the call that uses it;
@@ -3362,11 +3423,14 @@ security:
 - [ ] `weblisk server start` starts the orchestrator alone when `.weblisk/config.yaml` is absent, and refuses a declaration it cannot carry out before starting anything
 - [ ] `weblisk server stop` with no `--component` stops every recorded component, the orchestrator last
 - [ ] `weblisk component <name> start|stop|status|logs` runs any component the tenant has generated, and a detached start reports started only once the component's `GET /livez` answers live, then waits on its `GET /readyz` and reports a component that never becomes ready as not ready
-- [ ] Every start of a tenant component — `weblisk server start` attached or detached, `weblisk component <name> start`, the orchestrator `weblisk tenant create` starts and restarts, `weblisk agent start`, `weblisk domain start`, `weblisk gateway start` and each restart `weblisk dev` makes of a hub — gives it an environment built from nothing: the names in the allow-list of [A component starts with a clean environment](#a-component-starts-with-a-clean-environment) that are set in the CLI's own, `WL_PORT`, `WL_ORCH_URL` for every component but the orchestrator, and its declared `env`, and no other name of the CLI's environment
+- [ ] Every start of a tenant component — `weblisk server start` attached or detached, `weblisk component <name> start`, the orchestrator `weblisk tenant create` starts and restarts, `weblisk agent start`, `weblisk domain start`, `weblisk gateway start` and each restart `weblisk dev` makes of a hub — gives it an environment built from nothing: the names in the allow-list of [A component starts with a clean environment](#a-component-starts-with-a-clean-environment) that are set in the CLI's own, `WL_PORT`, `WL_ORCH_URL` where an orchestrator is named or running and the component is not it, and its declared `env`, and no other name of the CLI's environment
 - [ ] No vendor key variable — `WL_AI_KEY`, or any variable a model backend names for its key — is in any started component's environment, the orchestrator's included, even when the CLI's own environment holds it
 - [ ] A build's own runs of a generated component, its conformance run and its interoperability run, give it the same environment a real start does, with `WL_DEV=1` the only addition
-- [ ] Every component but the orchestrator starts with `WL_ORCH_URL` set to the orchestrator's own address and the same address in `--orch` among its arguments, on a real start and on a build's own runs alike
-- [ ] Every start, and each of a build's own runs, is refused, naming the file, while the directory the component would start in holds a file named `.env`
+- [ ] A component other than the orchestrator, started while an orchestrator is named by `--orch` or recorded as running for the tenant, has `WL_ORCH_URL` set to that orchestrator's own address and the same address in `--orch` among its arguments; started with none named or running, it has neither, on a real start and on a build's own runs alike
+- [ ] Every start, and each of a build's own runs, is refused, naming the file, while the directory the component would start in holds `.env`, any `.env.*` other than `.env.example`, or, on the cloudflare platform, `.dev.vars` or any `.dev.vars.*`
+- [ ] A cloudflare start is refused, naming each entry, while its wrangler configuration's `[vars]` holds an entry rule 16 of [`schemas/config`](../schemas/config.md#validation-rules) recognises as a secret
+- [ ] The build step of `weblisk agent start`, `domain start`, `gateway start` and `server start` gets the component's clean environment plus only `GOCACHE`, `GOMODCACHE` and `GOPATH`, `CARGO_HOME` and `RUSTUP_HOME`, or `npm_config_cache`, as its toolchain uses, and no vendor key variable
+- [ ] No started component's environment holds `HOME`, `USERPROFILE`, `APPDATA` or `LOCALAPPDATA`
 - [ ] An `agents[].env` entry that [`schemas/config`](../schemas/config.md#validation-rules) rule 16 recognises as a secret — by its name, by a published vendor key prefix, or by a PEM block or a URL with a user or password — is refused, naming every such entry, by the commands that generate a component and by every start, before anything is generated or started
 - [ ] A key the CLI reads from a holder or from standard input is used in the CLI's own process and is in no child process's environment, a provider CLI's included
 - [ ] `weblisk tenant create` writes its `.gitignore` before generation, amends one already present, and does not `git init`
