@@ -93,6 +93,7 @@ and six folders were absent altogether.
 | [`policy-domains/`](policy-domains/README.md) | What a subject area of governance covers, and what a programme claiming it must provide |
 | [`intl/`](intl/README.md) | Reserved for locale and spoken-language constructs |
 | [`skills/`](skills/README.md) | Guides for a coding agent — not specifications |
+| [`vectors/`](vectors/fixed-form-statements.json) | Test vectors: the exact bytes, keys and signatures every implementation of a [fixed-form statement](protocol/identity.md#fixed-form-statements) tests against. Data no blueprint requires, so no build's prompt carries it |
 
 Why the corpus is divided this way is [`CORPUS_SHAPE.md`](CORPUS_SHAPE.md).
 The names it has stopped using, and what replaced each, are listed once, in

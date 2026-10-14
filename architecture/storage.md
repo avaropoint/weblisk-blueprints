@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: storage
-version: 1.5.0
+version: 1.5.1
 requires: [protocol/types, protocol/identity, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 tier: free
@@ -319,7 +319,7 @@ contracts:
         - Every entry MUST be stored as its RFC 8785 canonical bytes and one line feed, and MUST NOT be re-serialised
         - seq MUST start at 1 and rise by one. previous_digest MUST be the SHA-256 of the previous stored line without its line feed, and 64 zeros on the first entry
         - Checkpoints MUST be signed by a log key, an ML-DSA-65 key held in memory only, whose key entry, signed by the log's authority, is in the log before the log key signs
-        - Once weblisk/log-key/v1, weblisk/log-checkpoint/v1 and weblisk/log-succession/v1 have test vectors (protocol/identity, Fixed-Form Statements), the owner MUST mint a log key when its process starts, and MUST mint the next and append its key entry to each log before the current log key's not_after passes. Sealing then pauses only while the long-lived key cannot sign that key entry. Until those vectors are published the owner mints no log key, so no log key is available and nothing is sealed (Sealing a Chained Log, the gap under The log key)
+        - Once weblisk/log-key/v1, weblisk/log-checkpoint/v1 and weblisk/log-succession/v1 have test vectors (protocol/identity, Fixed-Form Statements), the owner MUST mint a log key when its process starts, and MUST mint the next and append its key entry to each log before the current log key's not_after passes. Sealing then pauses only while the long-lived key cannot sign that key entry. Until those vectors are published the owner mints no log key, so no log key is available and nothing is sealed (Sealing a Chained Log, The log key)
         - While a log key is available, and whenever the tip has moved since the last checkpoint, a checkpoint MUST be issued at each checkpoint_interval, at clean shutdown, and on request. A checkpoint entry does not move the tip
         - A change of the owner's long-lived key MUST be recorded in each log that has an authority by a succession entry both keys sign, before the incoming key signs anything in that log, wherever the owner still holds the outgoing key. A log with no key entry has no authority and takes no succession entry, and until weblisk/log-key/v1, weblisk/log-checkpoint/v1 and weblisk/log-succession/v1 have test vectors no log has a key entry
         - An unavailable log key MUST stop sealing and MUST NOT stop appending. Unsealed entries MUST be counted wherever the log is reported
@@ -1101,9 +1101,8 @@ public key that signed it as a key entry, before the log key signs anything in
 that log. A key entry is never removed and never replaced. A new log key gets a
 new key entry.
 
-**A log key is replaced before it expires, not only at start.** Once the log's
-statements have test vectors (the gap below), the owner mints its first log key
-when its process starts. Before that key's `not_after` passes, it mints the
+**A log key is replaced before it expires, not only at start.** The owner
+mints its first log key when its process starts. Before that key's `not_after` passes, it mints the
 next, in memory as it minted the first, and appends the next key entry to each
 log it seals. A process that outlives a log key goes on sealing under the next
 one, and a log key whose `not_after` has passed signs nothing more. From then,
@@ -1111,20 +1110,15 @@ sealing pauses only while the long-lived key cannot sign a new key entry, as
 when the secret source that holds it is locked or out of reach, and resumes
 with the first key entry it can sign.
 
-> **Gap — nothing is sealed before a sealed log's statements have test
-> vectors.** The key entry, the checkpoint and the succession entry are
-> fixed-form statements, and no implementation signs one before this corpus
-> publishes its test vectors
-> ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)).
-> None are published. Until `weblisk/log-key/v1`,
-> `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` all have them,
-> an owner mints no log key, appends no key, succession or checkpoint entry,
-> and seals nothing, so its log key is unavailable from the start
-> (`sealed-log`). Its logs are chained as
-> [Hash Chain Integrity](#hash-chain-integrity) requires, appends go on, and
-> every entry is counted unsealed wherever the log is reported. Such a log
-> shows that no entry was changed after a later one was written. It does not
-> show who wrote it, which is what sealing is for.
+**The log's statements have test vectors.** The key entry, the checkpoint and
+the succession entry are fixed-form statements, and this corpus publishes
+vectors for all three, `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and
+`weblisk/log-succession/v1`
+([`protocol/identity`](../protocol/identity.md#fixed-form-statements)). In
+them `key id`, `outgoing` and `incoming` are fingerprints of published vector
+keys, so an owner and a verifier test each statement against the very keys it
+names. Every owner of a sealed log, and every verifier of one, tests against
+them.
 
 A long-lived key whose `key_protection` is `development-only` is a key under
 `kdf = none`. `protocol/identity` rule 6 requires such a key to be reported as
@@ -1529,5 +1523,5 @@ security:
 - [ ] An owner whose log fails its check from the latest checkpoint appends nothing and seals nothing, still serves reads of the log, and reports where it fails
 - [ ] Every checkpoint is reported `uncountersigned`
 - [ ] With the log key unavailable, appends continue, no checkpoint is written, and the reported count of unsealed entries rises
-- [ ] Before `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` all have test vectors, an owner that starts mints no log key, its logs hold no key, succession or checkpoint entry, and every entry appended is counted unsealed
+- [ ] For every vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) under `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` or `weblisk/log-succession/v1`, the owner's builder makes the vector's message byte for byte from its field values, a signature it makes with the vector's seed verifies under the vector's public key, and a verifier accepts the published signature and refuses it over the message with one byte changed
 - [ ] Changing one byte of an entry a checkpoint covers fails verification — the chain is `broken` at the next entry's `seq`, or, for the entry the checkpoint names, its `tip` no longer matches — and the failure is reported rather than repaired
