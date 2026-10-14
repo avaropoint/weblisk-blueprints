@@ -432,7 +432,7 @@ programmes at once.
 | `version` | string | no | `MAJOR.MINOR.PATCH`, as on a map. Withdrawing a `satisfies` entry and changing anything under `declares.obligation` are both MAJOR — see [Versioning](#versioning) |
 | `kind` | string | no | the artifact's own noun — what the created document declares about itself. The vocabulary is [`kinds.md`](kinds.md) |
 | `title` | string | no | display name. Defaults to `id` |
-| `structure` | string | no | the document structure it is **checked** against — `policy`, `procedure`, `standard`, `guideline` are seeded, and a tenant may add or remove them |
+| `structure` | string | no | the document structure it is **checked** against — the `id` of a [structure](#the-structures-a-document-is-checked-against). `policy`, `procedure`, `standard` and `guideline` are seeded, one file each in [`structures/`](structures/), and a tenant may add or remove them |
 | `path` | string | no | a **suggestion** for where the document goes. Required only for a standing register |
 | `satisfies` | string[] | no | the controls this artifact answers, as `framework:control` |
 | `requires` | string[] | no | artifact `id`s this one depends on — the DAG that orders generation |
@@ -452,6 +452,64 @@ not be claimed**, as on a map.
 A plan and a procedure share a shape. An organisation that has no "plan"
 structure would otherwise see the checklist report a plan as having no expected
 sections — **which reads as "this document is fine"**.
+
+### The structures a document is checked against
+
+A structure is the set of headings a kind of document is expected to have, and
+what belongs under each. It drives the structure checklist and the brief a
+model is handed when somebody asks it to fill a missing section. The seeded
+ones are corpus content, **one file per structure** in
+[`structures/`](structures/), named `<id>.md`:
+
+    schemas/structures/policy.md
+    schemas/structures/procedure.md
+    schemas/structures/standard.md
+    schemas/structures/guideline.md
+
+Markdown with YAML frontmatter, as every programme file is. The frontmatter is
+the structure; the body says, for a person, what the structure is for, and no
+tool reads it.
+
+| field | type | required | means |
+|---|---|---|---|
+| `id` | string | **yes** | what a spec's `structure` names. Lowercase, singular, and the file's own name |
+| `version` | string | no | `MAJOR.MINOR.PATCH`, as on a map. Adding a required section, making one required, or removing one is MAJOR: each changes which documents the checklist reports complete |
+| `label` | string | no | display name. Defaults to `id` |
+| `order` | integer | no | where the structure sits in a list of them. Lowest first |
+| `sections` | list | **yes** | the expected headings, in the order a document should carry them. At least one |
+| `sections[].title` | string | **yes** | the heading. Unique within the structure, ignoring case |
+| `sections[].required` | boolean | no | `true` when a document without this section is incomplete. Default `false`: most documents of the kind have one, and missing it is not a gap |
+| `sections[].aliases` | string[] | no | other headings that satisfy this one, so an organisation that writes "Statements" is not told it lacks "Policy Statements" |
+| `sections[].guidance` | string | no | what belongs here, in a sentence. Shown beside a gap, and the brief a model is given to fill it |
+| `sections[].authority` | string | no | a control of a standard the **tenant has adopted** that requires this section, as `framework:control` — the form `satisfies` takes |
+
+A heading satisfies a section when it equals the title or an alias, ignoring
+case. A structure with no sections is refused, because it would report every
+document as complete; so is a section title given twice, because the checklist
+could satisfy only one of them.
+
+**The seeded structures cite no standard.** They are conventions of document
+writing, not obligations, and a framework clause written into them would be
+standards content resident in a file no adoption chose — the same text held
+twice, cited by a tenant that never adopted it. `authority` is how a tenant
+says a section is required by something it *has* adopted, and it is empty in
+every seeded file.
+
+**Which structure a document is checked against** is the `structure` of the
+spec that created it, and, for a document no spec created, the structure whose
+`id` is the document's kind as [`kinds.md`](kinds.md) classifies it. A structure
+declares no path of its own: a second list of folder names beside the
+classification stems in `kinds.md` would drift from them. A document whose kind
+names no structure has **no check**, and says so; it is never reported as
+complete.
+
+**Whose copy is checked.** The seeded files are published content: delivered
+into a tenant, where an organisation may edit, add or remove structures, and
+the tenant's set is the one its documents are checked against. A client holds
+no copy of either. No route of [`architecture/content`](../architecture/content.md)
+yet names where a tenant's structures live, so a client that cannot read them
+reports that the check did not run rather than checking against a list of its
+own.
 
 ### `path` is a suggestion
 
@@ -2157,6 +2215,7 @@ than naming a statute that does not exist.
 - [ ] Every operation says `why:`, in terms that answer somebody who finds it running at three in the morning
 - [ ] No operation declares `start: running` unless adopting the programme is genuinely meant to change behaviour that day
 - [ ] Every artifact's body is a brief for **this organisation** — not the document itself, and not a recital of the standard
+- [ ] Every `structure` a shipped spec names is the `id` of a file in [`structures/`](structures/), and every file there parses, has at least one section, repeats no title and carries no `authority`
 
 ---
 
