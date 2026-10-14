@@ -99,8 +99,8 @@ one.** This is also why the container is not a namespace, and so why it never
 needed a noun of its own. Two programmes producing one path means one document,
 and whichever is drafted second
 overwrites the first. The generic name belongs to the document that is generic:
-`document-control` is on every installation and holds the unqualified names; a
-programme that is one industry's qualifies against it.
+`document-control` holds the unqualified names; a programme that is one
+industry's qualifies against it.
 
 Markdown with YAML frontmatter, because the most valuable field in an artifact
 spec is its brief and the most valuable field in a tier is its rationale — and a
@@ -131,12 +131,23 @@ occupational health and safety programme compiled into a binary means a finance
 function, a software team and a design studio all carry a hazard programme they
 never asked for and cannot remove.
 
-So an industry programme is listed to somebody deciding, and becomes real when
-they install it into a source their organisation owns. The one exception is the
-management-system floor — controlling your own documents — which is not a claim
-about anybody's industry.
+So a programme is listed to somebody deciding, and becomes real when they adopt
+it into a source their organisation owns. There is no exception:
+`document-control`, which makes no claim about anybody's industry, is offered and
+adopted the same way, because a programme present in every catalogue has no
+revision to pin and cannot be declined.
 
 ## What is here
+
+**[`document-control/`](document-control/)** — controlling the organisation's
+own documents: the management-system spine every other programme assumes. **4
+artifacts** across three tiers — a policy and its procedure (`essential`), the
+register of controlled documents (`conformant`) and an internal audit
+(`certifiable`) — and the five generic **templates** a document of any kind can
+start from: blank, policy, procedure, standard and control matrix. The control
+matrix holds no control; its rows are generated from the standards the scope has
+adopted. It was authored in Weblisk Studio's source tree and moved here so that
+it is offered, pinned and adopted like the rest.
 
 **[`construction-ohs-ca/`](construction-ohs-ca/)** — occupational health and
 safety for construction work in Ontario. One programme map, **52 artifact
@@ -331,17 +342,10 @@ gets exempted rather than met.
 
 An obligation's `responsible`, an `escalate.to`, a register's `approvers` and an
 artifact's `approved_by` all name **positions**, never people. Across this
-directory that is twenty-one positions named 475 times, and everything those
+directory that is twenty-one positions named 494 times, and everything those
 namings imply about a job is derived rather than written down a second time.
 
 [`../positions/`](../positions/README.md) holds only what derivation cannot
 reach — the judgement — and [`../schemas/position.md`](../schemas/position.md)
 governs it. Nothing there declares that a position exists: this directory does
 that, by naming one.
-
-## What is deliberately not here
-
-**`document-control` is still in the product.** It is the management-system floor
-named above — controlling your own documents — and it is the one that ships
-rather than being offered, because it makes no claim about anybody's industry.
-Moving it here would make the floor an option.
