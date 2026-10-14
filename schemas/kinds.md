@@ -369,6 +369,7 @@ relation.
 | `requires`, `extends`, `depends_on`, `supersedes` | blueprint | blueprint | declared |
 | `implemented_by` | specification | `code` | implementation |
 | `generated_from` | `code` | blueprint | generation |
+| `generated_from` | standard, policy, procedure, document, obligation, register | `control` | adoption |
 | `applies_to` | `code` | `provider` | provider configuration |
 | `reached_through` | `provider` | `integration` | integration |
 | `exchanges_with` | `integration` | `partner` | data flow |
@@ -380,6 +381,14 @@ relation.
 
 `implements` accepting `control` as a target is what allows an author to state
 which control a document answers, instead of leaving it to keyword inference.
+
+`generated_from` onto a `control` says something else: what an output was
+**made from**. It cites the digest of that control's text at the edition the
+output was made against — a per-control digest
+([`standard.md`](standard.md#outputs-cite-the-control-text-they-were-made-from))
+— so a revision that changes the control's text makes the claim stale. A
+`control` still has no version of its own and gains no capability; the digest
+is the claim's cited version, not the kind's.
 
 ### Naming a target's kind
 
@@ -464,7 +473,7 @@ table above, not a spelling.
 - [ ] A kind without `counts-as-coverage` never raises a coverage figure
 - [ ] A kind without `opens-gap` never produces a finding by its absence
 - [ ] An undeclared kind is reported as undeclared and is granted no capability
-- [ ] `control` declares only `is-criterion`, and nothing attempts to version or hash it
+- [ ] `control` declares only `is-criterion`, and nothing versions a control as a kind; the one digest of a control is the per-control digest of its text that a `generated_from` claim cites
 - [ ] No implementation switches on a kind name; capability is the only question asked
 - [ ] A relation asserted between kinds this file does not pair is reported as a producer fault
 - [ ] Two references to one artifact from different subsystems resolve to the same kind

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 2.0.0
+version: 2.1.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
@@ -891,7 +891,11 @@ replacing it: `current` and `stale` are that verdict, `unreachable` is its
 single-reference verdict has no way to express. `unversioned` is the honest
 answer for a kind that declares no version — a published criterion cannot be
 hashed and cannot go stale, and treating it as current would be a claim nobody
-made.
+made. The one exception is a claim that cites a criterion's text by the
+per-control digest [`schemas/standard.md`](../schemas/standard.md#outputs-cite-the-control-text-they-were-made-from)
+defines: it is compared on that digest like any cited version, and reads
+`stale` when a revision changes the control's text. A claim about a criterion
+that cites none is `unversioned`.
 
 ### Where relationships do not live
 

@@ -275,10 +275,10 @@ citation and a programme's `conforms_to` resolve to it unchanged.
     "revision": "4883cfa88c55769560f8287d4a2fb4c94c5a6c98"
   },
   "adjustments": [
-    {"control": "A.7.5", "applies": false,
+    {"control": "A.7.5", "text_digest": "sha256:…", "applies": false,
      "reason": "No premises of its own; every site is a client's",
      "basis": {"scope": "organisation", "characteristic": "premises"}},
-    {"control": "A.8.24", "priority": "critical",
+    {"control": "A.8.24", "text_digest": "sha256:…", "priority": "critical",
      "reason": "Holds payment card data",
      "basis": {"scope": "organisation", "characteristic": "data held"}},
     {"add": {"id": "local-1", "family": "TECH", "name": "…", "description": "…",
@@ -321,8 +321,9 @@ that restated them would be the copy this section refuses, and is refused.
 
 ### Adjustments, and the characteristics they answer
 
-Each adjustment names one published control, or adds one, and carries a
-`reason` in words and a `basis`:
+Each adjustment names one published control, with the `text_digest` of that
+control at the pinned edition ([Outputs cite the control text](#outputs-cite-the-control-text-they-were-made-from)),
+or adds one, and carries a `reason` in words and a `basis`:
 
 | adjustment | means |
 |---|---|
@@ -330,7 +331,7 @@ Each adjustment names one published control, or adds one, and carries a
 | `priority` | a different priority, from the closed set |
 | `requires_policy` · `requires_procedure` · `requires_technical` · `requires_evidence` | a different answer to what kind of thing satisfies the control |
 | `note` | the organisation's reading of the control, in its own words, beside the authority's — never replacing it |
-| `add` | a control of the organisation's own, as a [control](#controls) whose `id` no published control of the standard carries, in a family the standard declares. It requires `id`, `family`, `name`, `description`, `priority` and the four `requires_*` flags; `framework` is the standard's `id` and may be left out; the rest are optional |
+| `add` | a control of the organisation's own, as a [control](#controls) whose `id` no published control of the standard carries, in a family the standard declares. It requires `id`, `family`, `name`, `description`, `priority` and the four `requires_*` flags; `framework` is the standard's `id` and may be left out; `derived_from`, `{control, text_digest}`, names the published control it was derived from, where it was; the rest are optional |
 
 `basis` says where the adjustment came from: the **scope** whose
 characteristic it answers — `tenant`, `organisation` or `project` — and the
@@ -366,6 +367,53 @@ programme's is.
 cannot be reached at its pinned digest is **unscoreable** at that scope, naming
 the link. It is never scored against nothing, and never against whatever the
 source holds now.
+
+### Outputs cite the control text they were made from
+
+**The tenant holds no control text, only outputs.** What an organisation makes
+from a standard — an adjusted control, a control of its own derived from a
+published one, and every document, obligation and register a programme
+generates against a control — keeps a reference to the **exact text** of the
+control it was made from, and never a copy of that text. The reference is what
+lets a later revision say which of the organisation's outputs it affects,
+before anybody adopts it.
+
+**A per-control digest.** The standard's `extends.digest` says *that* the
+published file moved; it cannot say which controls did. So each control has a
+digest of its own:
+
+- the **text** of a control is the object holding its `framework`, `id`,
+  `name`, `description` and its four `requires_*` flags, as the pinned edition
+  publishes them;
+- its digest is `sha256:` and the hex digest of that object's
+  [RFC 8785](https://www.rfc-editor.org/rfc/rfc8785) canonical bytes — the
+  canonical form [`architecture/storage`](../architecture/storage.md) already
+  uses — so anybody can recompute it with no Weblisk code.
+
+`keywords`, `mapped_controls`, `domains` and `priority` are left out. They are
+how a control is found and ranked, not what it requires, and a re-tuned keyword
+that marked every output built on the control as needing review would teach
+people to ignore the signal.
+
+**Every output records the control and that digest.** Each adjustment carries
+`text_digest`, the digest of the control it adjusts at the pinned edition; an
+`add` that was derived from a published control names it in `derived_from`
+with that control's `text_digest`. Each document, obligation and register made
+against a control records the same pair. The record is a **fabric claim**, not
+a field in the output's bytes: `generated_from`, from the output to the
+`control`, citing the per-control digest as the version the claim was about
+([`kinds.md`](kinds.md#relations) declares the relation;
+[`architecture/fabric`](../architecture/fabric.md#health) owns what a claim's
+cited version means). A document that also states which control it answers says
+so with `implements`, as it always has; `generated_from` records what it was
+made from, which is a different claim.
+
+**So a changed control makes its outputs stale.** The fabric's staleness rule
+applies unchanged: when a revision changes a control's text, every claim citing
+the old digest reads `stale`, and every output behind those claims is listed as
+needing a person to review it. Nothing is regenerated by it — staleness asks for
+a review, and a rebuild is a separate decision
+([Staleness and rebuild](../architecture/fabric.md#staleness-and-rebuild-are-different-questions)).
 
 ### Linking without adopting
 
@@ -406,9 +454,23 @@ The published file moving is found by comparing its bytes and edition now with
 - **The same edition with a moved digest** is **revised** — the corpus changed
   its reading of an edition its publisher did not change. Offered as an update.
 
+**The offer is reported per control, before anybody adopts it.** The
+per-control digests of the pinned edition and of the new file are compared, and
+each control is reported as:
+
+| state | means | the outputs listed |
+|---|---|---|
+| `changed` | the control is in both, and its text digest differs | every output whose `generated_from` cites the old digest — each to be reviewed |
+| `removed` | the pinned edition has it and the new file does not | every output citing it — each left without the text it was made from |
+| `added` | the new file has it and the pinned edition does not | none yet: a control the organisation has not adjusted or answered |
+| *unchanged* | the same digest in both | not listed |
+
+A control whose `id` changed between editions is reported `removed` and
+`added`, never matched by guessing.
+
 Either is offered as a regenerated standard: the new link and pin, with every
-adjustment re-applied, and every adjustment naming a control the new file no
-longer has reported by name rather than dropped. It is a proposal a person
+adjustment re-applied with its new `text_digest`, and every adjustment naming a
+control the new file no longer has reported by name rather than dropped. It is a proposal a person
 applies, exactly as a programme's update is
 ([Updates arrive as proposals](programme.md#updates-arrive-as-proposals)).
 Taking it replaces the generated standard in place; a scope never holds two
@@ -419,6 +481,12 @@ A change to an organisation's generated standard reaches each project's in the
 same way: the project's link reads `behind`, and the project takes it.
 
 ### Known gaps
+
+- **No reader computes a per-control digest yet**, and no producer asserts
+  `generated_from` onto a control, so no output's staleness against a revision
+  can be shown today. Programmes' specs cite controls by `satisfies` with no
+  digest, and documents generated before this rule carry none: a claim citing no
+  digest reads `unversioned`, which says honestly that nothing can be compared.
 
 - **Nothing reads a generated standard yet.** Readers of a tenant's
   `standards/*.json` expect the [required fields](#required-fields) and do not
@@ -461,3 +529,7 @@ same way: the project's link reads `behind`, and the project takes it.
 - [ ] Every `add` carries `id`, `family`, `name`, `description`, `priority` and the four `requires_*` flags
 - [ ] An export or audit package against a generated standard includes the linked standard's bytes, verified against the pinned digest
 - [ ] A new edition is offered as a choice and a revised one as an update, each as a regenerated standard a person applies, with every adjustment naming a missing control reported, never dropped
+- [ ] A per-control digest is `sha256:` over the RFC 8785 bytes of the control's `framework`, `id`, `name`, `description` and four `requires_*` flags, as the pinned edition publishes them, and over nothing else
+- [ ] Every adjustment carries the `text_digest` of the control it adjusts, and every `add` derived from a published control names it in `derived_from` with that control's `text_digest`
+- [ ] Every output made against a control — an adjusted or derived control, a document, an obligation, a register — is the source of a `generated_from` claim onto the `control` citing its per-control digest, and no output holds the control's text
+- [ ] An update is reported per control as `changed`, `removed` or `added`, each with the outputs it affects, before a person adopts it; a renamed control is `removed` and `added`, never matched by guess

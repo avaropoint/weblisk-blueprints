@@ -1821,7 +1821,11 @@ organisation, the pin's per-file entry, adopting twice, updates arriving as
 proposals, un-adopting — hold for a standard as written here, and
 [`standard.md`](standard.md#adopting-a-standard) states only what differs: a
 standard is never copied but generated for the organisation, as a link to the
-published standard and the organisation's own adjustments.
+published standard and the organisation's own adjustments. Every document,
+obligation and register a programme's adoption creates against a control
+records the control text it was made from, by the per-control digest
+[`standard.md`](standard.md#outputs-cite-the-control-text-they-were-made-from)
+defines.
 
 ### One act, by a person, at the organisation
 
