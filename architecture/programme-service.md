@@ -568,8 +568,8 @@ security:
         on a pass addressed here. An operator token is refused
     - boundary: Programme Service → Content. Reads the adopted map. Writes
         nothing as a person
-    - boundary: Execution → Programme Service. get_workflow and does:
-        actions, from execution alone
+    - boundary: Execution → Programme Service. get_workflow, and the
+        actions an operation or a phase names in does, from execution alone
     - boundary: Programme Service → Notification. Positions and a message.
         Never a person or a channel
 
