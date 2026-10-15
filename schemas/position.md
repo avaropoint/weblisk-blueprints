@@ -21,8 +21,9 @@ Measured across `programmes/`, the corpus already knows, for every position:
 which obligations name it `responsible`, how often each one recurs, where each
 occurrence is recorded, what authority requires it, which registers it approves
 submissions to, which documents it puts in force, what escalates to it and from
-whom, and what it escalates away and how fast. Twenty-one positions, named 475
-times between them.
+whom, and what it escalates away and how fast. How many positions, named how
+often, is measured once, in
+[`../programmes/README.md`](../programmes/README.md#the-positions-a-programme-names).
 
 Writing any of that down a second time — in a role guide, in a skill, in a
 handbook — produces a copy that is wrong the first time a programme changes,

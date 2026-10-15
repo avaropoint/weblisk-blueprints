@@ -132,8 +132,11 @@ is what makes it drafted, reviewable and countable; the loader reports an
 unproduced `for.records:` the way it already reported an unproduced `records:`.
 
 One control is deliberately left to another programme: `iso_45001:7.5`,
-documented information, is answered by the document-control pack. Citing it here
-as well would double-count a gap that one document closes.
+documented information, is answered by the [`document-control`](../document-control/map.md)
+programme, which has to be adopted alongside this one. It is not present
+anywhere by default: a scope that adopts `ohs` without it sees 7.5 uncovered,
+and this is where that gap points. Citing it here as well would double-count a
+gap that one document closes.
 
 Three frameworks are cited because they overlap heavily rather than because
 three programmes are needed. Adopting the second and third should mostly add

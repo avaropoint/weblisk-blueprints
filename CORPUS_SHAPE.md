@@ -348,9 +348,12 @@ is indistinguishable from one that declared none.
 **5b — the packs themselves. DONE.** `packs/ohs` is now
 [`programmes/ohs/`](programmes/ohs/) — 29 artifacts and one map. `packs/` in
 Studio still resolves and is now what it should always have been: where an
-*installation* may drop a pack, not where we keep one. `document-control` stays
-embedded in the product; it is the management-system floor and moving it here
-would make the floor an option.
+*installation* may drop a pack, not where we keep one. `document-control` stayed
+embedded in the product at the time, as a management-system floor; it has since
+moved to [`programmes/document-control/`](programmes/document-control/), with
+the product's five document templates, because a programme with no corpus
+revision cannot be pinned by an adoption and one present in every catalogue
+cannot be declined.
 
 Four things the move surfaced, all of which were invisible while the pack sat in
 the product tree beside nothing it could collide with.
@@ -358,8 +361,8 @@ the product tree beside nothing it could collide with.
 **A path is only unique within the pack that wrote it.** Merged into one
 catalogue, `ohs` and `construction-ohs-ca` both wanted
 `procedures/return-to-work.md` and `registers/emergency-drills.md`, and `ohs`
-wanted `procedures/internal-audit.md` — which `document-control`, present on
-every installation, already produces. Seven collisions in all. The loader reports
+wanted `procedures/internal-audit.md` — which `document-control` already
+produces. Seven collisions in all. The loader reports
 a derived register colliding with anything; it says nothing about two AUTHORED
 artifacts at one path, which is the commoner case and the one a person browsing
 either pack cannot see.
@@ -441,9 +444,11 @@ Every skill in [`skills/`](skills/README.md) is a **builder's** skill —
 doing a job *inside* a tenant, which is the audience every programme in
 [`programmes/`](programmes/README.md) is written for.
 
-The programmes already name those people, as data, with weight: measured across
-the corpus, **twenty-one positions named 475 times** through `responsible`,
-`escalate.to`, `approvers` and `approved_by`. So a role brief is **derived**,
+The programmes already name those people, as data, with weight, through
+`responsible`, `escalate.to`, `approvers` and `approved_by` — the count is
+measured once, in
+[`programmes/README.md`](programmes/README.md#the-positions-a-programme-names).
+So a role brief is **derived**,
 and [`positions/`](positions/README.md) holds only the half derivation cannot
 reach — what to do first, what good looks like, how it goes wrong.
 
