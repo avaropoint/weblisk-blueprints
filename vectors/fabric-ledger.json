@@ -1,5 +1,5 @@
 {
- "format": "A fabric ledger of four entries, as architecture/fabric.md's LedgerEntry. Each entry's stored line is its RFC 8785 canonical bytes, with no line feed; line_sha256[i] is the SHA-256 of entry i's stored line, written sha256:<hex>, as a checkpoint would record it. Verify with an RFC 8785 canonicaliser and SHA-256 alone: canonicalise entry i, take its SHA-256, compare it with line_sha256[i]; seq is i+1; entry 1's previous_digest is the sha256 prefix and 64 zeros, and entry i+1's is line_sha256[i]. A fault is reported at the entry whose bytes do not hold. Every name is in the example namespace; an actor is an identity id, the key fingerprint protocol/identity defines, here the SHA-256 of a label; every digest a NodeRef cites is the SHA-256 of a label, standing in for content this vector does not carry.",
+ "format": "A fabric ledger of four entries, as architecture/fabric.md's LedgerEntry. Each entry is stored as its RFC 8785 canonical bytes and one line feed; line_sha256[i] is the SHA-256 of entry i's line without its line feed, written sha256:<hex>, as a checkpoint would record it. Verify with an RFC 8785 canonicaliser and SHA-256 alone: canonicalise entry i, take its SHA-256, compare it with line_sha256[i]; seq is i+1; entry 1's previous_digest is the sha256 prefix and 64 zeros, and entry i+1's is line_sha256[i]. A fault is reported at the entry whose bytes do not hold. Every tenant name is in the example namespace, and every published name (a requirement, a mapping rule, source weblisk) is this corpus's own; a cited_version with `projection` is a projection digest (patterns/content-identity, projection-digest): `part` stands for the projection the requirement's or mapping rule's family declares, and `configuration` for the provider's reported settings; an actor is an identity id, the key fingerprint protocol/identity defines, here the SHA-256 of a label; every digest a NodeRef cites is the SHA-256 of a label, standing in for content this vector does not carry.",
  "entries": [
   {
    "seq": 1,
@@ -31,7 +31,8 @@
       "kind": "requirement",
       "cited_version": {
        "algorithm": "sha256",
-       "digest": "199c7e4a0eee8f10de897ae503f34ed5c99a75ad30d6abc27f7ba0dbe94be5d4"
+       "digest": "199c7e4a0eee8f10de897ae503f34ed5c99a75ad30d6abc27f7ba0dbe94be5d4",
+       "projection": "part"
       }
      },
      "relation": "implements",
@@ -81,7 +82,8 @@
       "kind": "mapping",
       "cited_version": {
        "algorithm": "sha256",
-       "digest": "df67c13112986514270b7597c86897ddd403a0a4adf28bb6e5d02c5bd54e7c1f"
+       "digest": "df67c13112986514270b7597c86897ddd403a0a4adf28bb6e5d02c5bd54e7c1f",
+       "projection": "part"
       }
      },
      "relation": "generated_from",
@@ -103,7 +105,7 @@
     "signed": false
    },
    "on_behalf_of": "d3f2e3d63f21b02ff510447d262db365e250c29b7393a2527117973ab2130a9f",
-   "previous_digest": "sha256:8aaea4a2ab0ca096d8711f6d247c902636696f6793100191ec094b9b46057cb4"
+   "previous_digest": "sha256:789dd01e5c3361ad5a5d5e4e1b2e33316ba4920ae2c57c53405cda440b864367"
   },
   {
    "seq": 3,
@@ -134,7 +136,8 @@
       "kind": "provider",
       "cited_version": {
        "algorithm": "sha256",
-       "digest": "34079dc440f8122f6690a7c5efe6afc30729896987cbcb47e5a72b72c5522e3d"
+       "digest": "34079dc440f8122f6690a7c5efe6afc30729896987cbcb47e5a72b72c5522e3d",
+       "projection": "configuration"
       }
      },
      "relation": "enforced_by",
@@ -150,7 +153,7 @@
    "actor": "3cc1c0dac442d9a58d6e6ba7fce2dbde9cfcb2af157e22792f2223e2c15d3249",
    "recorded_at": 1767229200,
    "partition": "provider/example-idp",
-   "previous_digest": "sha256:32452636a3cd268e243a9e726a8052cce8c2e88e34a0a62f4609ed8e2458701a"
+   "previous_digest": "sha256:d8db39f44440a8859e67bc759771a360f7c8a600b7d800608952eb006d9d85d7"
   },
   {
    "seq": 4,
@@ -181,7 +184,8 @@
       "kind": "provider",
       "cited_version": {
        "algorithm": "sha256",
-       "digest": "34079dc440f8122f6690a7c5efe6afc30729896987cbcb47e5a72b72c5522e3d"
+       "digest": "34079dc440f8122f6690a7c5efe6afc30729896987cbcb47e5a72b72c5522e3d",
+       "projection": "configuration"
       }
      },
      "relation": "enforced_by",
@@ -196,13 +200,13 @@
    "status": "confirmed",
    "actor": "d3f2e3d63f21b02ff510447d262db365e250c29b7393a2527117973ab2130a9f",
    "recorded_at": 1767232800,
-   "previous_digest": "sha256:e14089d65c315e342930907c866570eea07102c49ceabc8d223c5b6b111f9d02"
+   "previous_digest": "sha256:c60e233b1f2e4e9c48518d0681ca325c8776d34fc05e880a9f6116a428b77991"
   }
  ],
  "line_sha256": [
-  "sha256:8aaea4a2ab0ca096d8711f6d247c902636696f6793100191ec094b9b46057cb4",
-  "sha256:32452636a3cd268e243a9e726a8052cce8c2e88e34a0a62f4609ed8e2458701a",
-  "sha256:e14089d65c315e342930907c866570eea07102c49ceabc8d223c5b6b111f9d02",
-  "sha256:383020109f6b89e03db31b2e9aeae0138e9abf66d997683b0c85dfcd0c1c3975"
+  "sha256:789dd01e5c3361ad5a5d5e4e1b2e33316ba4920ae2c57c53405cda440b864367",
+  "sha256:d8db39f44440a8859e67bc759771a360f7c8a600b7d800608952eb006d9d85d7",
+  "sha256:c60e233b1f2e4e9c48518d0681ca325c8776d34fc05e880a9f6116a428b77991",
+  "sha256:6565197c7230740296660078b6b26c20f66391828429b2f8df4f912139eb26c1"
  ]
 }

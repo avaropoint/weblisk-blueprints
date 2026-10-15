@@ -414,7 +414,7 @@ relation.
 | `implements` | `code` | `requirement` | generation |
 | `verifies` | `check` | `requirement` | declared |
 | `verifies` | `code` | `check` | generation |
-| `generated_from` | `code` | `requirement`, `mapping` | generation |
+| `generated_from` | `code` | `requirement`, `mapping`, `control` | generation |
 | `produced_by` | `code` | `run` | generation |
 | `deployed_as` | blueprint | `agent` | composition |
 | `hosted_by` | `component`, `agent` | `provider` | registry |
@@ -428,8 +428,8 @@ which control a document answers, instead of leaving it to keyword inference.
 
 **A generated output is related as it is written.** The run that wrote a file
 declares, in its run statement ([`run-statement.md`](run-statement.md)), the
-requirements the file `implements`, the requirements and mapping rules it was
-`generated_from`, and that it was `produced_by` that run; the fabric's
+requirements the file `implements`, the requirements, mapping rules and
+controls it was `generated_from`, and that it was `produced_by` that run; the fabric's
 `generation-statements` producer records them
 ([`architecture/fabric`](../architecture/fabric.md#declared-at-write-time)).
 `verifies` from `code` names a generated test by the check id it is named for.

@@ -1007,7 +1007,7 @@ person's identity key never signs one in its place.
 | `moved` | an endpoint is gone from its address, and content matching the cited version is elsewhere | correct the address |
 | `broken` | an endpoint no longer exists anywhere in scope | investigate |
 | `unreachable` | the endpoint could not be read from here at all | connect the source, grant access, or accept it is unverifiable |
-| `unversioned` | there is nothing to compare — the kind is not versioned | nothing |
+| `unversioned` | there is nothing to compare — the end cites no version: its kind declares none and it cites no projection digest | nothing |
 
 `moved` is not a sixth coverage state and MUST NOT disturb the status. The
 content matches what was confirmed byte for byte, so the confirmation still means
@@ -1018,14 +1018,21 @@ control comes to be ignored.
 These map onto the staleness verdict the corpus already defines rather than
 replacing it: `current` and `stale` are that verdict, `unreachable` is its
 `unknown`, and `moved` and `broken` are facts about an address that a
-single-reference verdict has no way to express. `unversioned` is the honest
-answer for a kind that declares no version — a published criterion declares
-no version of its own, and treating it as current would be a claim nobody
-made. The one exception is a claim that cites a criterion's text by the
-per-control digest [`schemas/standard.md`](../schemas/standard.md#outputs-cite-the-control-text-they-were-made-from)
-defines: it is compared on that digest like any cited version, and reads
-`stale` when a revision changes the control's text. A claim about a criterion
-that cites none is `unversioned`.
+single-reference verdict has no way to express.
+
+**What an end is compared on is what it cites, not what its kind is.** An end
+whose `cited_version` names a projection
+([`patterns/content-identity`](../patterns/content-identity.md), projection-digest)
+is compared on that projection's digest, recomputed from the end as it is now,
+whatever its kind declares: a control on its text digest
+([`schemas/standard.md`](../schemas/standard.md#outputs-cite-the-control-text-they-were-made-from)),
+a requirement or mapping rule on its part's projection digest, a provider on the
+projection of its reported configuration. Each reads `stale` when that
+projection changes and `current` when only formatting around it did. An end
+that cites the whole artifact is compared on its stored bytes. `unversioned` is
+the honest answer for an end that cites nothing to compare — a kind that
+declares no version, cited with no projection digest. Treating it as current
+would be a claim nobody made.
 
 ### Where relationships do not live
 
@@ -1056,10 +1063,12 @@ relationship is the fold of its entries, and its history is all of them.
 cannot be altered or removed without every later entry failing to follow. The
 mechanism is the one [`architecture/storage`](storage.md) already specifies for
 its own chained log — each entry stored as its RFC 8785 bytes and one line feed,
-`seq` from 1, each `previous_digest` the SHA-256 of the line before — and what
-differs is the chain, not how it is computed, with one exception of spelling:
-every digest here is written `sha256:<hex>`
-([`patterns/content-identity`](../patterns/content-identity.md), digest-spelling).
+`seq` from 1, each `previous_digest` the SHA-256 of the line before without
+its line feed — and what differs is the chain, not how it is computed, with one
+difference of spelling: every digest here is written `sha256:<hex>`
+([`patterns/content-identity`](../patterns/content-identity.md), digest-spelling),
+the first entry's `previous_digest` included, where storage's own logs still
+write bare hex.
 [`vectors/fabric-ledger.json`](../vectors/fabric-ledger.json) is a worked chain
 that a verifier checks with nothing but SHA-256 and an RFC 8785 canonicaliser.
 
@@ -1233,10 +1242,12 @@ types:
       cited_version:
         type: ContentIdentity
         required: false
-        description: What this end was when the claim was made — or, on a
-          control end, the per-control text digest schemas/standard.md defines,
-          which is a digest of a declared projection rather than of stored
-          bytes. Absent only for a kind that declares no version
+        description: What this end was when the claim was made — the digest
+          of its stored bytes, or, where `projection` is set, of the declared
+          projection that names (a control's text, a requirement's or mapping
+          rule's part, a provider's reported configuration). Staleness is
+          evaluated on whichever it is. Absent only for an end that has
+          neither, which reads `unversioned`
       cited_size:
         type: integer
         required: false

@@ -126,7 +126,8 @@ contracts:
       required: true
       rules:
         - A digest written as one string, without an algorithm field beside it, MUST be written as the algorithm, a colon and the lowercase hex digest — `sha256:<hex>`
-        - A bare 64-character lowercase hex string MUST be read as SHA-256 and MUST NOT be written
+        - A bare 64-character lowercase hex string MUST be read as SHA-256 and MUST NOT be written by any new field or format
+        - architecture/storage's chained and sealed logs write `previous_digest` as bare hex, and keep doing so until storage adopts this spelling in a version of its own; until then that field is the one place bare hex is written, and it is a gap, not a second spelling rule
         - A structured ContentIdentity, which declares its algorithm in its own field, is unchanged
         - A key fingerprint is protocol/identity's identity id, not a content digest, and keeps the form protocol/identity gives it
 
@@ -139,6 +140,7 @@ contracts:
         - A change of formatting alone (indentation, key order, quoting) MUST leave a projection digest unchanged, while the artifact's own digest changes
         - A control's text digest, as schemas/standard.md "Outputs cite the control text they were made from" defines, is a projection digest
         - A reference to a part MUST cite the part's projection digest, and its staleness is evaluated on that digest
+        - Carried as a structured ContentIdentity, a projection digest MUST name its projection in `projection`, so a reader never compares it with the artifact's bytes
 
     - name: reference-with-version
       description: Record a reference that names what it saw
@@ -189,7 +191,15 @@ types:
       digest:
         type: string
         required: true
-        description: Lowercase hex digest of the exact stored bytes
+        description: Lowercase hex digest of the exact stored bytes, or, where
+          `projection` is set, of the RFC 8785 bytes of that projection
+      projection:
+        type: string
+        required: false
+        description: The name of the declared projection the digest is taken
+          over (projection-digest), as the artifact's family declares it.
+          Absent means the stored bytes. A reader compares on the same
+          projection, never on the bytes
       size:
         type: integer
         required: false

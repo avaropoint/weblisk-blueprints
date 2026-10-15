@@ -106,5 +106,23 @@ else
 	fails=$((fails + 1))
 fi
 
+# Each claim in the vector is a relation schemas/kinds.md declares, and an
+# end whose kind is not versioned cites a projection. A copy whose provider
+# end cites a bare version, and a copy relating code to a mapping rule by a
+# relation kinds.md does not declare, must each fail at that entry.
+python3 - "$tmp" <<'PY'
+import json, sys
+v = json.load(open("vectors/fabric-ledger.json", encoding="utf-8"))
+del v["entries"][2]["claim"]["identity"]["to"]["cited_version"]["projection"]
+json.dump(v, open(sys.argv[1] + "/bare.json", "w", encoding="utf-8"))
+v = json.load(open("vectors/fabric-ledger.json", encoding="utf-8"))
+v["entries"][1]["claim"]["identity"]["relation"] = "verifies"
+json.dump(v, open(sys.argv[1] + "/undeclared.json", "w", encoding="utf-8"))
+PY
+expect 1 "fabric-ledger control: a provider end citing a bare version fails" python3 checks/fabric-ledger.py --file "$tmp/bare.json"
+grep -q '^seq 3: .*provider end cites a version its kind does not have' "$tmp/out" || { echo "FAIL fabric-ledger control: the bare provider version was not what was reported"; fails=$((fails + 1)); }
+expect 1 "fabric-ledger control: an undeclared relation fails" python3 checks/fabric-ledger.py --file "$tmp/undeclared.json"
+grep -q '^seq 2: .*verifies from code to mapping is not a relation' "$tmp/out" || { echo "FAIL fabric-ledger control: the undeclared relation was not what was reported"; fails=$((fails + 1)); }
+
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]
