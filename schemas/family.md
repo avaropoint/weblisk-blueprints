@@ -210,7 +210,10 @@ stays where it is, as the reason for what its blocks say.
 
 The keywords are closed and implemented in code; adding one is a change to
 this file and to every walker. Their shapes are this file's definitions, and
-what each means is below.
+what each means is below. A `region` keyword, once proposed beside `slot`,
+`heading` and `aliases`, is not one of them: nothing defined a region as
+anything a slot's heading does not already bound, and no file needs one, so a
+grammar that adds it does so as a new major of this file.
 
 | Keyword | Where | Meaning |
 |---|---|---|
