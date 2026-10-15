@@ -115,11 +115,11 @@ Hub (self-sovereign deployment)
   └── Admin Gateway (operator edge — separate domain/network)
        ├── Operator ML-DSA-65 Auth + MFA (always required)
        ├── IP Allowlist / VPN / mTLS
-       └── 4-Eyes Destructive Action Approval
+       └── Token Exchange, never relayed (the component that serves a destructive act judges its step-up: the person re-confirms; no second person)
   └── Orchestrator (trust anchor)
        ├── Registration + Namespace Control
        ├── Service Directory + Routing Table
-       ├── Admin API (operator management, dashboard)
+       ├── Admin API (operator management, overview)
        ├── CLI Operations (terminal interrogation)
        ├── Observability (logging, tracing, metrics)
        └── Domain Controllers (directors)
@@ -127,9 +127,9 @@ Hub (self-sovereign deployment)
        └── Infrastructure Agents (system utilities)
             ├── Workflow Agent (DAG execution engine)
             ├── Task Agent (dispatch + priority queue)
-            ├── Lifecycle Agent (strategies, observations, approvals)
+            ├── Lifecycle Agent (retiring: strategies are programme objectives, approvals the decision inbox)
             ├── Alerting Agent (notification routing)
-            ├── Incident Response Agent (runbooks, remediation)
+            ├── Incident Response Agent (remediation; a runbook runs as an execution)
             ├── Health Monitor Agent (internal hub health)
             └── Hub Agent (registry — indexing, search, metrics, verification, alerting)
   └── Marketplace (buy, sell, share capabilities, blueprints, templates)
@@ -155,8 +155,8 @@ Hub (self-sovereign deployment)
 ### Component Descriptions
 
 - **Hub** — A complete Weblisk deployment: orchestrator, domains, agents, data, and policies under one owner's control
-- **Orchestrator** — Trust anchor: manages registration, namespace ownership, service directory distribution, channel brokering. Does NOT execute tasks or manage strategies
-- **Admin** — Separate admin gateway (different domain, different network, different auth model), operator ML-DSA-65 identity, mandatory MFA, IP allowlisting, 4-eyes approval for destructive actions
+- **Orchestrator** — Trust anchor: manages registration, namespace ownership, service directory distribution, channel brokering. Does NOT execute tasks or hold programme objectives
+- **Admin** — Separate admin gateway (different domain, different network, different auth model), operator ML-DSA-65 identity, mandatory MFA, IP allowlisting, a step-up the person makes themselves for every destructive action, and a second person only where a tenant declares one
 - **CLI** — Terminal commands for system interrogation and management
 - **Observability** — Structured JSON logs, distributed trace propagation, structured metrics
 - **Gateway** — Application edge security agent: end-user authentication, ABAC authorization, rate limiting, route protection, request mediation, response sanitization. Separate from admin gateway
@@ -179,7 +179,7 @@ agents (alerting, incident response, health monitoring, hub registry,
 sync, cron, email, webhooks), API patterns (including user management,
 file upload, rate limiting, retry, and deployment), enterprise security
 (gateway, browser sessions, data security), operational tooling (admin
-dashboard, CLI, observability), and schema governance.
+API, CLI, observability), and schema governance.
 These match the
 [Blueprint Catalog](https://weblisk.dev/blueprints/catalog.html) and
 [Agent Catalog](https://weblisk.dev/agents/catalog.html). Everything here

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.8.9
+version: 1.9.0
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -268,8 +268,12 @@ contracts:
         - The hub MUST store the credential public key and MUST NOT require the
           identity key again
         - A subject MAY hold several credentials at one hub, one per device
-        - A passkey credential MUST be registered with the hub as the relying
-          party, so the authenticator itself confines it to that hub
+        # <!-- wl:id passkey-relying-party -->
+        - A passkey credential that authenticates MUST be registered with the
+          hub as the relying party, so the authenticator itself confines it to
+          that hub. A step-up passkey is registered with its person's console,
+          and its attestation names that relying party for the hub to check
+          (architecture/admin, Re-confirming for a destructive act)
         - A passkey's public key MUST be attested by the identity key like any
           other credential — WebAuthn registration alone does not bind it to a
           subject, it only proves an authenticator was present
@@ -451,7 +455,7 @@ contracts:
       required: false
       rules:
         - An attestation's purpose is authenticate, the default when the field
-          is absent, or sign-records. An authenticate credential proves a live
+          is absent, sign-records, or step-up, which architecture/admin defines. An authenticate credential proves a live
           session at the hub it names. A sign-records credential signs records
           for that hub
         - A sign-records credential MUST be an ML-DSA-65 key file. Design
@@ -464,8 +468,9 @@ contracts:
           challenge for one or mints a token with one, and refuses a request
           that tries with credential_purpose_mismatch. It never counts as a
           credential able to administer the hub (last_administrator)
+        # <!-- wl:id one-key-one-purpose -->
         - One key serves one purpose. A hub MUST refuse to record a key under
-          one purpose while it holds that key, or ever held it, under the
+          one purpose while it holds that key, or ever held it, under any
           other, with credential_purpose_mismatch
         - A hub MUST name, in every token it mints through one of a subject's
           authenticate credentials (protocol/identity, record_keys - at
@@ -588,11 +593,25 @@ types:
           same hub, and a hub regenerated without its records is a different one
       purpose:
         type: enum
-        values: [authenticate, sign-records]
+        values: [authenticate, sign-records, step-up]
         required: false
         description: What the credential is for. Absent means authenticate. A
           sign-records credential never authenticates, and an authenticate
-          credential never signs a record (record-signing)
+          credential never signs a record (record-signing). A step-up credential
+          is a passkey that only re-confirms a person already signed in, for a
+          destructive act (architecture/admin, destructive-action-step-up)
+      rp_id:
+        type: string
+        required: false
+        description: On a step-up attestation alone, the WebAuthn relying party
+          the passkey was registered with, which is the console its person
+          uses and never the hub (architecture/admin, Re-confirming for a
+          destructive act)
+      origin:
+        type: string
+        required: false
+        description: On a step-up attestation alone, the origin a step-up
+          assertion's client data must name
       device_label:
         type: string
         required: false
@@ -1064,3 +1083,9 @@ credential revocation, which costs nothing else.
     same identifier as before it, and an attestation by the new identity key
     names that identifier; the old key is refused as an identity key and as a
     credential.
+59. A passkey that authenticates is offered by the browser only at the hub it
+    was registered with; a step-up passkey's attestation names the `rp_id` and
+    `origin` of its person's console, and one naming neither is refused. <!-- wl:check step-up-passkey-relying-party covers passkey-relying-party -->
+60. A key the hub holds, or held, under one purpose, `authenticate`,
+    `sign-records` or `step-up`, is refused under any other with
+    `credential_purpose_mismatch`. <!-- wl:check key-purpose-single covers one-key-one-purpose -->
