@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: go
-version: 1.1.0
+version: 2.0.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: go
 tier: free
@@ -332,9 +332,12 @@ runtime:
 - Service broadcast failures are logged and ignored
 
 ### Configuration
-- Use environment variables (WL_AI_*, WL_ORCH_*) via os.Getenv
+- Read the environment variables [listed below](#environment-variables) and
+  those the component's own blueprint declares, via os.Getenv, and nothing
+  else; a component the CLI starts holds only those ([A component starts with a clean environment](../architecture/cli.md#a-component-starts-with-a-clean-environment))
 - Support command-line flags (--port, --orch) via manual arg parsing
-- Load .env file from working directory if present
+- Read no model provider, model name or key from the component's own
+  environment; a component reaches a model only through the tenant's model gateway ([the tenant's model](../architecture/orchestrator.md#the-tenants-model))
 
 ---
 
@@ -363,9 +366,7 @@ which ones a deployment has is decided by adopting their blueprints.
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `WL_PORT` | no | `9800` | Listen port |
-| `WL_AI_PROVIDER` | yes | — | LLM provider (`ollama`, `openai`, `anthropic`) |
-| `WL_AI_MODEL` | yes | — | Model name for LLM provider |
-| `WL_ORCH_URL` | yes (agents) | — | Orchestrator URL for agent registration |
+| `WL_ORCH_URL` | for an agent, where an orchestrator is named or running | — | Orchestrator URL for agent registration; the CLI sets it, with `--orch`, only where an orchestrator is named or running ([A component starts with a clean environment](../architecture/cli.md#a-component-starts-with-a-clean-environment)) |
 | `WL_DEV` | no | `0` | Set to `1` for in-memory storage mode |
 
 See [Build Commands](#build-commands) for additional build examples.
@@ -812,7 +813,7 @@ component. See `schemas/common.md` for what a group heading means.
 - [ ] IF SQLite was chosen: WAL journal mode, `user_version` pragma for migrations, tables created with `CREATE TABLE IF NOT EXISTS`
 - [ ] When `WL_DEV=1`, storage falls back to in-memory maps and prints warning: `"[dev] using in-memory storage — data will not survive restart"`
 - [ ] Functions return errors — HTTP handlers write error JSON responses and do not panic; registration failures are fatal
-- [ ] Configuration loads from environment variables (`WL_*`), command-line flags (`--port`, `--orch`), and `.env` file from working directory
+- [ ] Configuration loads from the environment variables this document lists and the component's blueprint declares, and from command-line flags (`--port`, `--orch`); nothing reads a `.env` file, and no model provider, model name or key is read from the environment
 - [ ] Every routed path is an exported `Path<Operation>` constant in `internal/protocol`; no path literal appears at a registration site, in a client, or in a test
 - [ ] Each component declares its routes as one table and registers them in one `Routes()` function; no registration happens in the file that defines a handler
 - [ ] Routes are registered with Go's method-and-pattern syntax, and path parameters are read with `r.PathValue`; no handler switches on `r.Method` to choose its behaviour
