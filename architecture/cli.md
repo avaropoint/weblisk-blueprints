@@ -830,12 +830,12 @@ starts with exactly:
    language blueprint's environment table, gets a value only from that
    declaration, never from whoever started it.
 
-**No file puts back what the start left out.** A generated component may load
-a `.env` file from its working directory
-([`languages/go`](../languages/go.md#configuration),
-[`languages/rust`](../languages/rust.md#configuration)), common loaders on
-the node platform also read `.env.local`, `.env.development` and their
-like, and `wrangler dev`, which a cloudflare start runs
+**No file puts back what the start left out.** A component generated
+before [`languages/go`](../languages/go.md#configuration) and
+[`languages/rust`](../languages/rust.md#configuration) 2.0.0 may load a
+`.env` file from its working directory, which neither now asks of it;
+common loaders on the node platform read `.env` and also `.env.local`,
+`.env.development` and their like; and `wrangler dev`, which a cloudflare start runs
 ([`platforms/cloudflare`](../platforms/cloudflare.md)), gives the Worker the
 variables in `.dev.vars` and the `[vars]` of its wrangler configuration,
 never the process environment. A component the CLI starts works in its
@@ -854,8 +854,7 @@ there reaches the orchestrator after all. Move what such a file holds into a
 declaration, or into the tenant's secret store. A cloudflare component
 started by this CLI therefore has no Workers Secret, which `wrangler dev`
 supplies only from `.dev.vars`; one it needs reaches it on a hosted
-deployment, below. The language blueprints' guidance to load a `.env` file
-describes a component run by hand; under this CLI the file cannot be present.
+deployment, below.
 
 **`HOME` is absent, and nothing replaces it.** Neither it, nor `USERPROFILE`,
 `APPDATA` or `LOCALAPPDATA`, its Windows counterparts, is on the list. A
@@ -905,15 +904,9 @@ need stays off it, secret or not. Some are off it on purpose:
   model is the tenant's configuration
   ([`architecture/orchestrator`](orchestrator.md#the-tenants-model)), kept in
   the hub's `.weblisk/model.json` and never in the environment of whoever
-  started it. The environment tables of
-  [`languages/go`](../languages/go.md#environment-variables),
-  [`languages/rust`](../languages/rust.md) and
-  [`platforms/node`](../platforms/node.md) still mark `WL_AI_PROVIDER` and
-  `WL_AI_MODEL` required, and [`platforms/cloudflare`](../platforms/cloudflare.md)
-  marks `WL_AI_KEY` required; those rows predate the tenant's model and this
-  rule, and a component the CLI starts gets none of the three. A component
-  generated to require them fails to start under this CLI, as it should,
-  until those rows are removed.
+  started it. A component reaches that model only through the model
+  surface there, and no language or platform file has it read a provider,
+  a model name or a key from its own environment.
 - **`HOME`, `XDG_CONFIG_HOME` and every other name for the starter's own
   directories.** They lead to where that person's identities, logins and
   cloud credentials are kept. A component's state lives under its tenant's

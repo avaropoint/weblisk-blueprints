@@ -1,7 +1,7 @@
 <!-- blueprint
 type: platform
 name: node
-version: 2.0.0
+version: 3.0.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: node
 tier: free
@@ -326,10 +326,12 @@ npm start
 |----------|----------|---------|-------------|
 | `WL_PORT` | no | `9800` | Listen port |
 | `WL_AGENT_PORT` | no | `9710` | Agent listen port |
-| `WL_AI_PROVIDER` | yes | — | LLM provider |
-| `WL_AI_MODEL` | yes | — | Model name |
 | `WL_LOG_LEVEL` | no | `info` | Log level (`debug`, `info`, `warn`, `error`) |
 | `WL_COMPONENT` | no | `unknown` | Component name for logging |
+
+A component the CLI starts holds only what [A component starts with a clean environment](../architecture/cli.md#a-component-starts-with-a-clean-environment) gives it. It reaches a
+model only through [the tenant's model](../architecture/orchestrator.md#the-tenants-model), never through a provider, model name or key read
+from its own environment.
 
 ---
 

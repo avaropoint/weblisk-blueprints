@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: rust
-version: 1.1.0
+version: 2.0.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: rust
 tier: free
@@ -125,7 +125,7 @@ weblisk-app/
       identity.rs             # ML-DSA-65 key management, signing, tokens
       storage.rs              # Storage trait + SQLite implementation
       error.rs                # Error types (thiserror)
-      config.rs               # Configuration loader (env vars, CLI flags, .env)
+      config.rs               # Configuration loader (env vars, CLI flags)
   server/
     Cargo.toml                # Binary crate — depends on weblisk-core
     src/
@@ -295,8 +295,7 @@ cargo build --release -p weblisk-agent-<component>
 ./target/release/server --port 9800
 
 # Run agent (connects to orchestrator)
-WL_AI_PROVIDER=ollama WL_AI_MODEL=<a model the ollama server lists> \
-  ./target/release/weblisk-agent-<component> --orch http://localhost:9800
+./target/release/weblisk-agent-<component> --orch http://localhost:9800
 
 # Run directly via cargo (development)
 cargo run -p server -- --port 9800
@@ -308,8 +307,6 @@ cargo run -p weblisk-agent-<component> -- --orch http://localhost:9800
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `WL_PORT` | no | `9800` | Listen port |
-| `WL_AI_PROVIDER` | yes | — | LLM provider (`ollama`, `openai`, `anthropic`) |
-| `WL_AI_MODEL` | yes | — | Model name for LLM provider |
 | `WL_ORCH_URL` | yes (agents) | — | Orchestrator URL for agent registration |
 | `WL_DEV` | no | `0` | Set to `1` for in-memory storage mode |
 | `RUST_LOG` | no | `info` | Log level filter (`tracing_subscriber`) |
@@ -443,9 +440,9 @@ tracing::info!(component = "orchestrator", log_type = "process.startup", port, "
 
 ### Configuration
 
-- Use environment variables (`WL_AI_*`, `WL_ORCH_*`) via `std::env::var`
+- Read the environment variables [listed above](#environment-variables) and those the component's own blueprint declares, via `std::env::var`, and nothing else; a component the CLI starts holds only those ([A component starts with a clean environment](../architecture/cli.md#a-component-starts-with-a-clean-environment))
 - Support command-line flags (`--port`, `--orch`) via manual `std::env::args` parsing
-- Load `.env` file from working directory if present (manual parser or `dotenvy` crate)
+- Reach a model only through [the tenant's model](../architecture/orchestrator.md#the-tenants-model), never through a provider, model name or key read from the component's own environment
 
 ---
 
@@ -907,6 +904,6 @@ opt-level = 3
 - [ ] When `WL_DEV=1`, storage falls back to in-memory `HashMap` and prints warning: `"[dev] using in-memory storage — data will not survive restart"`
 - [ ] All fallible functions return `Result<T, E>` — no `unwrap()` or `expect()` in production code paths; HTTP handlers convert errors to JSON `ErrorResponse`
 - [ ] No `unsafe` blocks in any application code — all memory safety enforced by the borrow checker
-- [ ] Configuration loads from environment variables (`WL_*`), command-line flags (`--port`, `--orch`), and `.env` file from working directory
+- [ ] Configuration loads from the environment variables this document lists and the component's blueprint declares, and from command-line flags (`--port`, `--orch`); nothing reads a `.env` file, and no model provider, model name or key is read from the environment
 - [ ] Domain controllers use `tokio::task::JoinSet` for parallel phase execution and a per-agent `Semaphore` respecting `max_concurrent`
 - [ ] `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo audit` pass in CI
