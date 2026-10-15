@@ -52,7 +52,7 @@ agents:
     domain: string                 # Parent domain (required for work agents)
     port: integer                  # Listen port (9710–9749 for work, 9750–9799 for infra)
     replicas: integer              # Instance count (default: 1)
-    env: map[string, string]       # Additional environment variables
+    env: map[string, string]       # Added to the CLI's clean start environment; never a secret (rule 16)
 
 # Optional — the content service and its repositories
 content:
@@ -161,7 +161,7 @@ observability:
 | `domain` | string | cond | — | Required for work agents. References a domain name. |
 | `port` | integer | no | auto | Listen port (auto-assigned from range by type) |
 | `replicas` | integer | no | `1` | Number of instances to start |
-| `env` | map | no | `{}` | Extra env vars passed to the agent process |
+| `env` | map | no | `{}` | Variables the agent's process starts with, beside the allow-list the CLI gives every component ([`architecture/cli`](../architecture/cli.md#a-component-starts-with-a-clean-environment)). Nothing else reaches it from whoever started it, so a variable an agent needs is declared here. Never a secret: rule 16 refuses one, and the whole declaration with it, when the agent is generated and when it is started. An agent reads a secret through its secret client ([`patterns/secrets`](../patterns/secrets.md#secret-access-api)) |
 
 ### content
 
@@ -399,3 +399,12 @@ observability:
 13. `content.repositories[].placement.locator` must be relative — no leading separator, no scheme, no authority, no `..` segment
 14. `content.repositories[].id` must be unique within its `scope_path`
 15. No two `content.repositories[]` may name placements where one equals, contains or sits inside another
+16. No `agents[].env` entry may hold a secret. It is judged from the entry alone, without asking any source, and refused where:
+    - its name is a vendor key variable: `WL_AI_KEY`, or one a model backend names for its key (`needs_key`, [`weblisk providers`](../architecture/cli.md#weblisk-providers));
+    - a word of its name, split at `_` and compared without regard to case, is or ends in `KEY`, `KEYS`, `TOKEN`, `TOKENS`, `SECRET`, `SECRETS`, `PASSWORD`, `PASSWORDS`, `PASSWD`, `PASSPHRASE`, `PASS`, `PW`, `PWD`, `CREDENTIAL`, `CREDENTIALS`, `CREDS`, `AUTH`, `COOKIE` or `PRIVATE` (`OPENAI_API_KEY`, `APIKEY`, `GH_TOKEN`, `DB_PASSWORD`, `DB_PASS`, `MYSQL_PW`);
+    - its value begins with a prefix a vendor publishes for its keys, compared with case: `sk-` (which `sk-ant-` and `sk-proj-` begin with), `ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`, `github_pat_`, `glpat-`, `xoxb-`, `xoxp-`, `xoxa-`, `xapp-`, `AIza`, `hf_`, `xai-`, `sk_live_`, `sk_test_`, `rk_live_`, `rk_test_`, `eyJ` (a JSON Web Token's header), or `AKIA` or `ASIA` followed by 16 upper-case letters and digits;
+    - its value holds a PEM block (`-----BEGIN`), or is a URL with a user or a password before its host (`scheme://user:password@host`), or with a query parameter whose name the name test above recognises (`https://host/?token=...`, `mongodb://host/?password=...`).
+
+    These recognise a secret; they cannot prove a value is not one. A credential under a neutral name in a form none of them knows passes, and is the declarer's fault rather than a check's: the list grows by a change to this rule, never by a setting.
+
+    The CLI applies it when it generates a component from this file and when it starts one, refusing the whole declaration with every such entry named, before anything is generated or started ([`architecture/cli`](../architecture/cli.md#a-component-starts-with-a-clean-environment)). The name is judged as well as the value because a name is what a person types and a credential's form changes by vendor. A false refusal costs a rename — `COMPASS_HEADING`, `MONKEY_MODE` and `OAUTH_SCOPE` are refused, because `COMPASS` ends in `PASS`, `MONKEY` in `KEY` and `OAUTH` in `AUTH`; a false pass puts a credential in every process the agent starts and in its crash dumps

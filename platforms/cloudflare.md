@@ -1,7 +1,7 @@
 <!-- blueprint
 type: platform
 name: cloudflare
-version: 1.2.0
+version: 2.0.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: cloudflare
 tier: free
@@ -377,9 +377,15 @@ matches, it distinguishes "this path exists under another method" from "no such
 path" by consulting the same table.
 
 ### LLM Integration
-- Use Cloudflare Workers AI binding for built-in models
-- Or use fetch() to external APIs (OpenAI, Anthropic)
-- Configure via environment variables in wrangler.toml [vars]
+- A component reaches a model only through the tenant's model gateway
+  ([the tenant's model](../architecture/orchestrator.md#the-tenants-model)),
+  never through its own environment. On this platform Workers AI's binding,
+  which holds no key, may serve that gateway (the Service Mapping rows above);
+  a component does not call a model through it, or through `fetch()` to a
+  vendor, on its own
+- No provider, model name or key is put in a component's `[vars]`; a
+  component the CLI starts is given no Workers Secret either
+  ([A component starts with a clean environment](../architecture/cli.md#a-component-starts-with-a-clean-environment))
 
 ### wrangler.toml
 ```toml
@@ -404,6 +410,10 @@ WL_VERSION = "1.0.0"
 - Private keys stored in Cloudflare Workers Secrets
 - `wrangler secret put ORCHESTRATOR_PRIVATE_KEY`
 - Or generate on first Durable Object creation and store internally
+- A component the CLI starts has no Workers Secret, so on a CLI start only
+  the second applies
+  ([A component starts with a clean environment](../architecture/cli.md#a-component-starts-with-a-clean-environment));
+  the first serves a hosted deployment
 
 ---
 
@@ -432,11 +442,11 @@ cd agents/<name> && wrangler dev
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `WL_VERSION` | no | `1.0.0` | Protocol version |
-| `WL_AI_KEY` | yes | — | API key for LLM provider |
-| `WL_AI_PROVIDER` | no | `workers-ai` | LLM provider (`workers-ai`, `openai`, `anthropic`) |
 
-See [Deployment](#deployment) for production deployment commands
-and secret management.
+A component the CLI starts holds only what [A component starts with a clean
+environment](../architecture/cli.md#a-component-starts-with-a-clean-environment)
+gives it. See [Deployment](#deployment) for production deployment commands, and
+[Key Storage](#key-storage) for its private key.
 
 ---
 
@@ -451,9 +461,6 @@ cd server && wrangler deploy
 
 # Deploy agent
 cd agents/<component> && wrangler deploy
-
-# Set secrets
-wrangler secret put WL_AI_KEY
 ```
 
 ## Differences from Local Go
@@ -466,7 +473,6 @@ wrangler secret put WL_AI_KEY
 | HTTP | net/http | fetch API |
 | Persistence | Memory (lost on restart) | Durable Objects (persisted) |
 | Deployment | Local process | Edge (200+ locations) |
-| LLM | External API calls | Workers AI or external |
 | Concurrency | Goroutines + RWMutex | Single-threaded per request |
 
 ---
@@ -622,7 +628,7 @@ Domain controllers running as Workers dispatch phases using
 | `object` | `object` | `Record<string, unknown>` |
 | `list` | `Array<T>` | Typed arrays |
 | `uuid` | `string` | Validated with regex |
-| `timestamp` | `number` | Unix epoch milliseconds via `Date.now()` |
+| `timestamp` | `number` | Unix epoch seconds via `Math.floor(Date.now() / 1000)` |
 
 ---
 

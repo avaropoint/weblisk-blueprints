@@ -124,8 +124,8 @@ and does not, or a binding that should not be there.
 
 | Binder | Binds | From |
 |---|---|---|
-| `architecture/generation.md` | `conformance-suite` | `architecture/testing` |
-| `architecture/threat-model.md` | `boundary-enforcement` | `architecture/enforcement` |
+| `architecture/generation.md` | `conformance-suite` | `architecture/testing` (resolved by removing the binding: testing declares nothing, and generation reads it as prose) |
+| `architecture/threat-model.md` | `boundary-enforcement` | `architecture/enforcement` (resolved by binding the `ViolationRecord` that names the four boundaries) |
 
 ---
 

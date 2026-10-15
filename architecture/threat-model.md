@@ -162,9 +162,9 @@ requires:
     version: ">=2.0.0 <3.0.0"
     bindings:
       types:
-      behaviors:
-        - name: boundary-enforcement
-          fields_used: [message, storage, external, response]
+        # Boundary six is enforcement's four boundaries, which a ViolationRecord names
+        - name: ViolationRecord
+          fields_used: [boundary]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

@@ -74,6 +74,7 @@ This applies to:
 | [position.md](position.md) | Positions — the hand-written judgement a role brief cannot derive | `positions/` directory |
 | [policy-domain.md](policy-domain.md) | Policy domains — what a subject area covers, where it stops, and what a programme claiming it must provide | `policy-domains/` directory |
 | [kinds.md](kinds.md) | What sorts of thing the platform can talk about, what each drives, and which relations join them | Every tool that classifies, relates or scores content |
+| [names.md](names.md) | How anything is named: the id grammar, families, namespaces and how a short ref resolves. Its vectors are [`vectors/ids.json`](../vectors/ids.json) | Every ref, in every file and every tool |
 
 ### kinds.md is different from the others
 
@@ -107,7 +108,8 @@ common.md (inherited by all)
 │   └── structures/ (the section structures a document is checked against)
 ├── position.md (positions/ — the hand-written half of a role brief)
 ├── policy-domain.md (policy-domains/ — what a subject area covers and requires)
-└── kinds.md (what sorts of thing exist — read at runtime, not checked against a document)
+├── kinds.md (what sorts of thing exist — read at runtime, not checked against a document)
+└── names.md (how anything is named — the id grammar, bound by vectors/ids.json)
 ```
 
 Every type-specific schema inherits all rules from `common.md`. Type-specific
@@ -143,7 +145,7 @@ The orchestrator uses the validated blueprint as the agent's contract:
 ### 4. Continuous Compliance
 Running agents are periodically audited against their blueprint:
 - Lease renewals must carry the readiness and checks declared in the blueprint
-- Event publishing must stay within declared namespaces
+- Event publishing must stay within declared event namespaces
 - Resource usage must stay within declared constraints
 - Violations are logged, flagged, and escalated per compliance rules
 

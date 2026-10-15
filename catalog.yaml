@@ -1,0 +1,6 @@
+# This repository's namespace, declared once. A file here never states its
+# own id: its id is its path under this namespace (schemas/names.md).
+namespace: weblisk
+# Namespaces whose content this repository's refs may resolve into, after its
+# own (schemas/names.md, "How a short ref resolves"). None.
+imports: []

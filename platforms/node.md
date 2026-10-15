@@ -1,7 +1,7 @@
 <!-- blueprint
 type: platform
 name: node
-version: 2.0.0
+version: 3.0.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: node
 tier: free
@@ -211,6 +211,10 @@ The `--` is part of the run command, not decoration: npm keeps flags for
 itself unless they sit past a separator, so without it the port never reaches
 the server.
 
+npm reads configuration files of its own and passes what they hold to the
+component; what the CLI gives a start through npm, and what npm still adds,
+is stated once, in [A component starts with a clean environment](../architecture/cli.md#a-component-starts-with-a-clean-environment).
+
 The port on the Run line is an EXAMPLE. Whoever starts the component supplies
 the port, so a plan records the run command without it — and without any
 `--orch` flag, for the same reason. The run command must be a plain command,
@@ -325,11 +329,16 @@ npm start
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `WL_PORT` | no | `9800` | Listen port |
-| `WL_AGENT_PORT` | no | `9710` | Agent listen port |
-| `WL_AI_PROVIDER` | yes | — | LLM provider |
-| `WL_AI_MODEL` | yes | — | Model name |
+| `WL_AGENT_PORT` | no | `9710` | Agent listen port, read only where `WL_PORT` is unset; the CLI sets `WL_PORT` on every start |
 | `WL_LOG_LEVEL` | no | `info` | Log level (`debug`, `info`, `warn`, `error`) |
 | `WL_COMPONENT` | no | `unknown` | Component name for logging |
+| `WL_COMPONENT_TYPE` | no | `agent` | Component type for logging |
+
+The CLI sets none of `WL_LOG_LEVEL`, `WL_COMPONENT` and `WL_COMPONENT_TYPE`: each takes its default unless the component's declaration sets it.
+
+A component the CLI starts holds only what [A component starts with a clean environment](../architecture/cli.md#a-component-starts-with-a-clean-environment) gives it. It reads no
+model provider, model name or key from its own environment, and reaches a
+model only through the tenant's model gateway ([the tenant's model](../architecture/orchestrator.md#the-tenants-model)).
 
 ---
 
@@ -559,7 +568,7 @@ import { loadIdentity } from "../../protocol/identity.js";
 import { handleTask } from "./handler.js";
 import { logger } from "../../lib/logger.js";
 
-const PORT = parseInt(process.env.WL_AGENT_PORT || "9710", 10);
+const PORT = parseInt(process.env.WL_PORT || process.env.WL_AGENT_PORT || "9710", 10);
 
 async function start() {
   const app = Fastify({ logger });
@@ -775,7 +784,7 @@ for process management, performance, and security details.
 | `object` | `Record<string, unknown>` | Or typed interface |
 | `list` | `T[]` | Typed array |
 | `uuid` | `string` | Validated with zod or regex |
-| `timestamp` | `number` | Unix epoch milliseconds via `Date.now()` |
+| `timestamp` | `number` | Unix epoch seconds via `Math.floor(Date.now() / 1000)` |
 
 ---
 
