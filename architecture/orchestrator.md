@@ -466,6 +466,11 @@ weblisk tenant create "Acme Corp"      # the orchestrator and the admin gateway,
 weblisk component content init         # the content service, into the same module
 ```
 
+One act is the exception: an admin gateway that `weblisk component admin init`
+adds to a tenant made before it is admitted once the orchestrator restarts,
+because the orchestrator reads `orchestrator.admin_gateway_identity` when it
+starts ([`architecture/admin`](admin.md#registration-lease-and-identity)).
+
 `architecture/cli.md` specifies the verbs. `architecture/generation.md`
 specifies how a second component is generated into a tenant that already holds
 code — which is the part with the interesting failures, because the planner
