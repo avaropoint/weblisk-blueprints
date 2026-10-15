@@ -876,12 +876,18 @@ Generated output is
 untrusted ([Generated output is untrusted](#generated-output-is-untrusted)),
 and a build runs some of it (a `build.rs`, an install script), so every such
 build gets the allow-list below and the run's values too, never the CLI's
-environment, plus the toolchain's own directories, each copied from the
-CLI's environment where set there, and computed under the tenant's root
-otherwise: `GOCACHE`, `GOMODCACHE` and `GOPATH` for Go, which refuses to
-build with neither `GOCACHE` nor a home; `CARGO_HOME` and `RUSTUP_HOME` for
-Rust; `npm_config_cache` for npm. Each is a directory path and carries no
-secret. They reach the build step and never the component it builds.
+environment, plus the toolchain's own directories. Go refuses to build with
+neither `GOCACHE` nor a home. `CARGO_HOME` is always computed under the
+tenant's root and never copied, because it is where cargo keeps
+`credentials.toml`, a registry's tokens, which is the reason `HOME` is off
+the list. `GOCACHE`, `GOMODCACHE` and `GOPATH` for Go, `RUSTUP_HOME` for Rust
+and `npm_config_cache` for npm are each copied from the CLI's environment
+where set there, and computed under the tenant's root otherwise. Each of
+those holds build output, downloaded modules or installed toolchains and no
+credential: Go reads a module host's credentials from `.netrc` under `HOME`
+or from `GOAUTH`, rustup keeps no token, and npm reads its tokens from
+`.npmrc` under `HOME` or `npm_config_userconfig`, and none of those is
+passed. They reach the build step and never the component it builds.
 
 | Name | Why its value carries no secret | Why a component needs it |
 |---|---|---|
@@ -918,6 +924,13 @@ need stays off it, secret or not. Some are off it on purpose:
 - **`HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY` and `NO_PROXY`, in either case.**
   A proxy address may carry a user and password. A component that must reach
   out through a proxy has it declared.
+- **`SSL_CERT_FILE`, `SSL_CERT_DIR` and `NODE_EXTRA_CA_CERTS`.** Their values
+  are paths and carry no secret, but they replace or extend what a component
+  trusts, and that is not the starter's to choose: whoever started the CLI
+  could have every component accept a certificate they issued. A host with a
+  private certificate authority installs it in the host's trust store, which
+  every runtime reads with no variable set; a component that must use another
+  bundle has it declared.
 
 A declared `env` entry that rule 16 recognises as a secret — by its name, by
 a published vendor key prefix, or by a value shaped as a credential — is
@@ -3299,11 +3312,7 @@ security:
         any other child's, so such a key never substitutes for a provider
         CLI's own login. A vendor key variable already in the CLI's own
         environment when it was started is the starter's, and what a provider
-        CLI inherits of it is not decided here; so is one the CLI loads into
-        its own environment from a .env file it reads as its own
-        configuration, which is neither from a holder nor from standard
-        input. Such a file cannot sit where a component starts (A component
-        starts with a clean environment)
+        CLI inherits of it is not decided here
     - boundary: CLI → Local filesystem. Confined to the project and the
         operator's own configuration directory
   enforcement:
@@ -3421,8 +3430,9 @@ security:
 - [ ] A component other than the orchestrator, started while an orchestrator is named by `--orch` or recorded as running for the tenant, has `WL_ORCH_URL` set to that orchestrator's own address and the same address in `--orch` among its arguments; started with none named or running, it has neither, on a real start and on a build's own runs alike
 - [ ] Every start, and each of a build's own runs, is refused, naming the file, while the directory the component would start in holds `.env`, any `.env.*` other than `.env.example`, or, on the cloudflare platform, `.dev.vars` or any `.dev.vars.*`
 - [ ] A cloudflare start is refused, naming each entry, while its wrangler configuration's `[vars]` holds an entry rule 16 of [`schemas/config`](../schemas/config.md#validation-rules) recognises as a secret
-- [ ] Every build the CLI makes of a tenant component's code — before `weblisk agent start`, `domain start`, `gateway start`, `server start` or `component <name> start` runs it, the orchestrator's in `weblisk tenant create`, each `weblisk dev` makes, and generation's in Layer 2 and in every repair round — gets the component's clean environment plus only `GOCACHE`, `GOMODCACHE` and `GOPATH`, `CARGO_HOME` and `RUSTUP_HOME`, or `npm_config_cache`, as its toolchain uses, and no vendor key variable
+- [ ] Every build the CLI makes of a tenant component's code — before `weblisk agent start`, `domain start`, `gateway start`, `server start` or `component <name> start` runs it, the orchestrator's in `weblisk tenant create`, each `weblisk dev` makes, and generation's in Layer 2 and in every repair round — gets the component's clean environment plus only `GOCACHE`, `GOMODCACHE` and `GOPATH`, `CARGO_HOME` and `RUSTUP_HOME`, or `npm_config_cache`, as its toolchain uses, with `CARGO_HOME` always under the tenant's root and never the CLI's, and no vendor key variable
 - [ ] No started component's environment holds `HOME`, `USERPROFILE`, `APPDATA` or `LOCALAPPDATA`
+- [ ] No started component's environment holds `SSL_CERT_FILE`, `SSL_CERT_DIR`, `NODE_EXTRA_CA_CERTS` or a proxy variable, in either case, that the CLI's environment holds, unless that component's own declaration names it
 - [ ] An `agents[].env` entry that [`schemas/config`](../schemas/config.md#validation-rules) rule 16 recognises as a secret — by its name, by a published vendor key prefix, or by a PEM block or a URL with a user or password — is refused, naming every such entry, by the commands that generate a component and by every start, before anything is generated or started
 - [ ] A key the CLI reads from a holder or from standard input is used in the CLI's own process and is in no child process's environment, a provider CLI's included
 - [ ] `weblisk tenant create` writes its `.gitignore` before generation, amends one already present, and does not `git init`

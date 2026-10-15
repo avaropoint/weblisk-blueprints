@@ -337,9 +337,7 @@ runtime:
   else; a component the CLI starts holds only those ([A component starts with a clean environment](../architecture/cli.md#a-component-starts-with-a-clean-environment))
 - Support command-line flags (--port, --orch) via manual arg parsing
 - Read no model provider, model name or key from the component's own
-  environment; the component's blueprint says how it reaches a model, through
-  [the tenant's model](../architecture/orchestrator.md#the-tenants-model) or a
-  provider [`patterns/api-ai`](../patterns/api-ai.md) configures
+  environment; a component reaches a model only through the tenant's model gateway ([the tenant's model](../architecture/orchestrator.md#the-tenants-model))
 
 ---
 

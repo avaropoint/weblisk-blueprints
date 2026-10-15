@@ -377,10 +377,12 @@ matches, it distinguishes "this path exists under another method" from "no such
 path" by consulting the same table.
 
 ### LLM Integration
-- The component's blueprint says how it reaches a model: through
-  [the tenant's model](../architecture/orchestrator.md#the-tenants-model), or
-  through a provider [`patterns/api-ai`](../patterns/api-ai.md) configures,
-  Workers AI's binding among them (the Service Mapping row above)
+- A component reaches a model only through the tenant's model gateway
+  ([the tenant's model](../architecture/orchestrator.md#the-tenants-model)),
+  never through its own environment. On this platform Workers AI's binding,
+  which holds no key, may serve that gateway (the Service Mapping rows above);
+  a component does not call a model through it, or through `fetch()` to a
+  vendor, on its own
 - No provider, model name or key is put in a component's `[vars]`; a
   component the CLI starts is given no Workers Secret either
   ([A component starts with a clean environment](../architecture/cli.md#a-component-starts-with-a-clean-environment))

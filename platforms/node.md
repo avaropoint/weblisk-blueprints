@@ -325,14 +325,13 @@ npm start
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `WL_PORT` | no | `9800` | Listen port |
-| `WL_AGENT_PORT` | no | `9710` | Agent listen port |
+| `WL_AGENT_PORT` | no | `9710` | Agent listen port, read only where `WL_PORT` is unset; the CLI sets `WL_PORT` on every start |
 | `WL_LOG_LEVEL` | no | `info` | Log level (`debug`, `info`, `warn`, `error`) |
 | `WL_COMPONENT` | no | `unknown` | Component name for logging |
 
 A component the CLI starts holds only what [A component starts with a clean environment](../architecture/cli.md#a-component-starts-with-a-clean-environment) gives it. It reads no
-model provider, model name or key from its own environment; its blueprint says
-how it reaches a model, through [the tenant's model](../architecture/orchestrator.md#the-tenants-model) or a provider
-[`patterns/api-ai`](../patterns/api-ai.md) configures.
+model provider, model name or key from its own environment, and reaches a
+model only through the tenant's model gateway ([the tenant's model](../architecture/orchestrator.md#the-tenants-model)).
 
 ---
 
@@ -562,7 +561,7 @@ import { loadIdentity } from "../../protocol/identity.js";
 import { handleTask } from "./handler.js";
 import { logger } from "../../lib/logger.js";
 
-const PORT = parseInt(process.env.WL_AGENT_PORT || "9710", 10);
+const PORT = parseInt(process.env.WL_PORT || process.env.WL_AGENT_PORT || "9710", 10);
 
 async function start() {
   const app = Fastify({ logger });
