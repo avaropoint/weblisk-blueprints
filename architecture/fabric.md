@@ -95,7 +95,7 @@ requires:
     bindings:
       types:
         - name: ContentIdentity
-          fields_used: [algorithm, digest, size]
+          fields_used: [algorithm, digest, size, projection]
         - name: VersionedReference
           fields_used: [target_id, target_version, recorded_at, recorded_by]
         - name: StalenessVerdict

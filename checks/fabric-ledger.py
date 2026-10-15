@@ -5,17 +5,34 @@ line feed (the first is the sha256 prefix and 64 zeros), and each line's
 SHA-256 is the one the vector records. Each claim's relation is one
 schemas/kinds.md declares between its two kinds, and an end whose kind is not
 versioned cites a projection or nothing (architecture/fabric.md, Health). A
-fault is reported once, at the entry that does not hold.
+fault is reported once, at the entry that does not hold. Every field a
+cited_version carries is one architecture/fabric.md binds ContentIdentity
+with, so a fabric generated from that binding reads the projection it compares
+on; a field the binding lacks is reported once, as seq 0.
 
 Nothing here but SHA-256 and a canonicaliser: the canonicaliser below is RFC
 8785 for the values the vector holds (objects, arrays, strings, integers,
 booleans, null), and refuses anything else rather than guessing.
 
-  fabric-ledger.py [--file PATH]
+  fabric-ledger.py [--file PATH] [--fabric PATH]
 """
 import hashlib, json, os, sys
 
 path = sys.argv[sys.argv.index("--file") + 1] if "--file" in sys.argv else os.path.join(os.path.dirname(__file__), "..", "vectors", "fabric-ledger.json")
+fabric = sys.argv[sys.argv.index("--fabric") + 1] if "--fabric" in sys.argv else os.path.join(os.path.dirname(__file__), "..", "architecture", "fabric.md")
+
+
+def bound_fields():
+    """The fields architecture/fabric.md binds patterns/content-identity's ContentIdentity with."""
+    import yaml
+    text = open(fabric, encoding="utf-8").read()
+    block = text.split("## Dependencies", 1)[1].split("```yaml\n", 1)[1].split("```", 1)[0]
+    for dep in yaml.safe_load(block).get("requires", []):
+        if dep.get("blueprint") == "patterns/content-identity":
+            for ty in dep.get("bindings", {}).get("types", []):
+                if ty.get("name") == "ContentIdentity":
+                    return set(ty.get("fields_used", []))
+    return set()
 
 
 def canon(v):
@@ -102,6 +119,15 @@ for k, e in enumerate(entries):
     why += claim_faults(e)
     if why:
         faults[seq] = f"seq {seq}: " + "; ".join(why)
+cited = {}
+for k, e in enumerate(entries):
+    ident = e.get("claim", {}).get("identity", {})
+    for end in (ident.get("from", {}), ident.get("to", {})):
+        for f in (end.get("cited_version") or {}):
+            cited.setdefault(f, []).append(k + 1)
+unbound = sorted(set(cited) - bound_fields())
+if unbound:
+    faults[0] = "; ".join(f"cited_version field {f} (seq {', '.join(str(s) for s in sorted(set(cited[f])))}) is not in architecture/fabric.md's ContentIdentity fields_used" for f in unbound)
 for seq in sorted(faults):
     print(faults[seq])
 if not faults:

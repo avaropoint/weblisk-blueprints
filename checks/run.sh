@@ -134,5 +134,33 @@ grep -q '^seq 3: .*provider end cites a version its kind does not have' "$tmp/ou
 expect 1 "fabric-ledger control: an undeclared relation fails" python3 checks/fabric-ledger.py --file "$tmp/undeclared.json"
 grep -q '^seq 2: .*verifies from code to mapping is not a relation' "$tmp/out" || { echo "FAIL fabric-ledger control: the undeclared relation was not what was reported"; fails=$((fails + 1)); }
 
+# A cited_version field the fabric's ContentIdentity binding lacks is one a
+# generated fabric would never read; a copy of fabric.md bound without
+# projection must report exactly that field.
+mkdir -p "$tmp/fb" && sed 's/fields_used: \[algorithm, digest, size, projection\]/fields_used: [algorithm, digest, size]/' architecture/fabric.md >"$tmp/fb/fabric.md"
+expect 1 "fabric-ledger control: a ContentIdentity binding without projection fails" python3 checks/fabric-ledger.py --fabric "$tmp/fb/fabric.md"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^cited_version field projection .* is not in' "$tmp/out"; then
+	echo "ok   fabric-ledger control: exactly one fault, the unbound projection"
+else
+	echo "FAIL fabric-ledger control: want exactly one fault, the unbound projection"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# Every place bare hex is still written is named as a gap by
+# content-identity's digest-spelling rule, and nothing else; a copy whose rule
+# forgets protocol/types must report exactly protocol/types.
+expect 0 "digest-spelling: every bare-hex digest is a named gap" python3 checks/digest-spelling.py
+mkdir -p "$tmp/ds" && cp -R architecture protocol patterns schemas "$tmp/ds/"
+sed "s/; and protocol\/types AuditEntry's \`previous_hash\`//" patterns/content-identity.md >"$tmp/ds/patterns/content-identity.md"
+expect 1 "digest-spelling control: a gap the rule forgets fails" python3 checks/digest-spelling.py --root "$tmp/ds"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^protocol/types.md: writes a bare-hex SHA-256' "$tmp/out"; then
+	echo "ok   digest-spelling control: exactly one finding, protocol/types"
+else
+	echo "FAIL digest-spelling control: want exactly one finding, protocol/types"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]
