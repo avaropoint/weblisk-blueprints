@@ -478,7 +478,8 @@ defs:
 
 A finding's policy is fixed by its code, in `finding` above, for every code
 but three, which the declaration decides: `legacy-key` takes the policy
-`header.legacy` gives its key, `undeclared-slot` the `undeclared` policy, and
+`header.legacy` gives its key, `undeclared-slot` the `undeclared` policy
+(under `allow` no finding is recorded, and the part is simply undeclared), and
 `missing-slot` is `refuse` for a slot that is `required: true` or whose `when`
 holds and `report` for one that is `required: report`.
 [`checks/findings.py`](../checks/findings.py) confirms that every code has
