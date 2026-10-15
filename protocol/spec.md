@@ -335,9 +335,8 @@ signs is a [fixed-form statement](identity.md#fixed-form-statements):
   directory whose `updated_at` is lower than that of the directory it holds,
   or equal to it with a different digest. An equal `updated_at` with the same
   digest is the directory it holds, answered 200.
-<!-- wl:id directory-push-refusal-recovers -->
 - A refusal is never the end of the agent's directory: an agent that refused
-  a push MAY read [`GET /v1/services`](#get-v1services) on its own token, as
+  a push may read [`GET /v1/services`](#get-v1services) on its own token, as
   it may on any push. An agent that reads the directory that way takes
   nothing from the body, and need not verify it.
 
@@ -1289,7 +1288,6 @@ security:
 - [ ] An unsigned push is refused: `POST /v1/services` with a body carrying no `signature` answers 401 `INVALID_SIGNATURE` and leaves the agent's directory as it was <!-- wl:check unsigned-push-refused covers directory-push-refuse-unsigned -->
 - [ ] A push whose body differs by one byte from the directory the orchestrator signed answers 401 `INVALID_SIGNATURE` and changes nothing, and so does a push signed by any key but the orchestrator's <!-- wl:check wrongly-signed-push-refused covers directory-push-refuse-unsigned -->
 - [ ] A verified push older than the directory the agent holds answers 409 `DIRECTORY_STALE` and changes nothing; the same directory again answers 200 <!-- wl:check stale-push-refused covers directory-push-refuse-stale -->
-- [ ] After a refused push the agent's directory still follows the orchestrator's, read by `GET /v1/services` <!-- wl:check refused-push-recovers covers directory-push-refusal-recovers -->
 - [ ] Agent handles `POST /v1/message` with signature verification
 - [ ] Agent returns signed `TaskResult` from `POST /v1/execute`
 - [ ] Agent accepts `POST /v1/event` and dispatches to matching handlers
