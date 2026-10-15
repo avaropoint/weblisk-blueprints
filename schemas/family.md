@@ -55,9 +55,9 @@ requirements:
     text: >-
       Parts begin at offset 0 and at these points only: the end of the header's
       closing line; the start of a level-1 or level-2 heading line outside a
-      fence or comment; the start of a block's opening line or first table row; the end of
-      a block's closing line or last table row. Each part ends where the next
-      begins.
+      fence or comment; the start of a block's opening line or first table
+      row; the end of a block's closing line or last table row. Each part ends
+      where the next begins.
   - id: bytes-as-written
     level: must
     text: >-
