@@ -159,6 +159,9 @@
             "accountability",
             "demonstrate-compliance",
             "documentation"
+          ],
+          "mapped_controls": [
+            "pipeda:PIPEDA-1"
           ]
         },
         {
@@ -182,6 +185,9 @@
             "legitimate-interests",
             "contract",
             "legal-obligation"
+          ],
+          "mapped_controls": [
+            "pipeda:PIPEDA-3"
           ]
         },
         {
@@ -203,6 +209,9 @@
             "consent-management",
             "withdraw-consent",
             "opt-in"
+          ],
+          "mapped_controls": [
+            "pipeda:PIPEDA-3"
           ]
         },
         {
@@ -312,6 +321,9 @@
             "subject-access-request",
             "right-of-access",
             "DSAR"
+          ],
+          "mapped_controls": [
+            "pipeda:PIPEDA-9"
           ]
         },
         {
@@ -569,6 +581,9 @@
             "pseudonymization",
             "encryption",
             "resilience"
+          ],
+          "mapped_controls": [
+            "pipeda:PIPEDA-7"
           ]
         },
         {

@@ -39,7 +39,7 @@
             "responsibility"
           ],
           "mapped_controls": [
-            "GDPR-ACC-1"
+            "gdpr:Art.5(2)"
           ]
         },
         {
@@ -82,7 +82,8 @@
             "withdrawal of consent"
           ],
           "mapped_controls": [
-            "GDPR-LB-1"
+            "gdpr:Art.6",
+            "gdpr:Art.7"
           ]
         },
         {
@@ -169,7 +170,7 @@
             "security"
           ],
           "mapped_controls": [
-            "GDPR-SEC-1"
+            "gdpr:Art.32"
           ]
         },
         {
@@ -213,7 +214,7 @@
             "DSAR"
           ],
           "mapped_controls": [
-            "GDPR-DSR-1"
+            "gdpr:Art.15"
           ]
         },
         {
