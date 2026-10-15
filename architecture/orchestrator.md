@@ -2078,7 +2078,7 @@ security:
         through the gateway and nothing more. What such a request escapes is
         what the gateway checks before it forwards anything, its operator IP
         allowlist and its per-operator rate limits (architecture/admin, Admin
-        Gateway Request Lifecycle), and nothing more: never the judgement of
+        Gateway Request Lifecycle), and nothing more, never the judgement of
         the token, and never the step-up a destructive act needs, which the
         orchestrator judges from the token's step_up_at itself, as the
         component that serves the act (architecture/admin,
