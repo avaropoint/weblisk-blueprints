@@ -6,6 +6,7 @@ requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-
 platform: any
 tier: free
 -->
+<!-- wl:ids complete -->
 
 # Weblisk Platform Admin
 
@@ -529,7 +530,7 @@ different threat profiles:
 #### Separate access points, shared services
 
 The table above is about **attack surface**, and only about attack surface. It
-is not two authentication systems, and it MUST NOT become two.
+is not two authentication systems, and it MUST NOT become two. <!-- wl:id auth-not-duplicated -->
 
 This blueprint requires [`architecture/gateway`](gateway.md), which requires
 `patterns/auth-session`, `patterns/auth-token` and
@@ -537,7 +538,7 @@ This blueprint requires [`architecture/gateway`](gateway.md), which requires
 and token minting are specified once and used by both. An
 implementation MUST NOT write a second one of any of them for the admin path.
 The admin path issues no session: it serves no console of its own, and a
-person's client presents an operator token ([Admin Session Model](#admin-session-model)).
+person's client presents an operator token ([Admin Session Model](#admin-session-model)). <!-- wl:id auth-stack-shared -->
 
 What is separate is the **exposure**: a distinct listener, a distinct domain and
 a distinct certificate. That
@@ -559,7 +560,7 @@ resources. This gateway evaluates operator capabilities over the platform.
 Different subjects, different resources, deliberately non-overlapping: a grant
 held in a tenant MUST NOT project onto platform administration. Two models
 because there are two authorization domains, not because there are two
-implementations of one.
+implementations of one. <!-- wl:id tenant-grant-not-platform -->
 
 ### Architecture
 
@@ -865,69 +866,113 @@ contracts:
       description: Establish an operator record from a signed request
       required: true
       rules:
+        # <!-- wl:id registration-fields -->
         - The request MUST carry name, public_key, role, timestamp and signature
+        # <!-- wl:id registration-verifies-submitted-key -->
         - The signature MUST be verified against the SUBMITTED public key before any record is written
+        # <!-- wl:id registration-identity-id -->
         - The record MUST carry identity_id, the fingerprint (protocol/identity) of the submitted public_key, which no later change alters (Operator Identity)
+        # <!-- wl:id registration-repeat -->
         - A request whose name is an operator's and whose public_key is that operator's current identity key is a repeat of its registration. Once its signature verifies it MUST be answered 200 with hub_id and identity_id alone, carrying no record, role, status or token, whatever the operator's status, revoked included, and changing nothing. It is how a client that registered from another device records this hub's hub_id (attestation-token-issuance), and the operator's status is told only to a request signed for this hub. A registration names no hub, so another hub can relay one here, and a repeat tells it that this name and key are an operator's here, as a 409 to the same request always did, with those two identifiers and nothing else (The identity signs only to attest, the gap there)
+        # <!-- wl:id registration-name-held -->
         - Any other request whose name is already held MUST be refused with 409 and the existing record left untouched
+        # <!-- wl:id registration-key-reused -->
         - Any other request whose public_key this hub records, or recorded, as any operator's identity key, current or retired, or as any credential MUST be refused with OPERATOR_KEY_REUSED, so no two operators share an identity id
+        # <!-- wl:id registration-answer -->
         - Every other answer that is not a refusal MUST carry the operator's record, its status, hub_id and its identity_id, a pending registration's included, and a token only where registration also approved the operator (first-operator-claim)
+        # <!-- wl:id registration-replay -->
         - The timestamp MUST be inside the replay window, and the message MUST be refused on replay
+        # <!-- wl:id registration-audited -->
         - Registration MUST be audited whether it succeeds or is refused
 
     - name: registration-signing-input
       description: What an operator signs when registering
       required: true
       rules:
+        # <!-- wl:id registration-signed-payload -->
         - The signed payload MUST be canonicalize({name, public_key, role, timestamp}) per RFC 8785
+        # <!-- wl:id registration-payload-distinct -->
         - It MUST NOT be the {hub_id, jti, name, timestamp} payload the attestation-token request signs (attestation-token-issuance). Their key sets differ - only a registration's carries public_key and role, only a token request's hub_id and jti, and each side refuses a request missing its own - so a signature over one is never accepted as the other
+        # <!-- wl:id registration-signs-key -->
         - The public key MUST be inside the signature, so a key cannot be substituted in flight
+        # <!-- wl:id registration-signs-role -->
         - The role MUST be inside the signature, because it is a privilege claim
+        # <!-- wl:id registration-timestamp-signed -->
         - The timestamp sent MUST be the timestamp signed — a second clock read produces a signature over a payload the server never sees
 
     - name: first-operator-claim
       description: How the first operator of a hub is admitted — by a secret, never by arriving first
       required: true
       rules:
+        # <!-- wl:id bootstrap-secret-generated -->
         - An orchestrator whose operator store is empty MUST generate a bootstrap secret of at least 256 bits from a cryptographically secure random source, and emit it once, where only whoever started the orchestrator can read it
+        # <!-- wl:id bootstrap-secret-written -->
         - It MUST write the secret to .weblisk/bootstrap, readable only by the user the orchestrator runs as, and MAY show it on a terminal only when its standard error is one. It MUST NOT write the secret to a log file, a system journal, or any output stream that is not a terminal, because an orchestrator started detached or by a boot unit has its output captured where others can read it, and kept after the secret is claimed
+        # <!-- wl:id bootstrap-secret-never-shown -->
         - The bootstrap secret MUST NOT appear in an audit entry or in any response
+        # <!-- wl:id bootstrap-secret-presented -->
         - A registration at a hub whose operator store is empty MUST carry the bootstrap secret as bootstrap_secret, and the orchestrator MUST compare it in constant time
+        # <!-- wl:id bootstrap-refused -->
         - A registration there with no bootstrap secret, or a wrong one, MUST be refused with OPERATOR_BOOTSTRAP_REFUSED, write no record, and be audited
+        # <!-- wl:id bootstrap-claims-admin -->
         - The registration that presents the secret MUST be approved with the admin role, whatever role it asked for
+        # <!-- wl:id bootstrap-answer -->
         - Its response MUST carry an attestation token, hub_id and the operator's identity_id, and never an operator token. The first operator obtains operator tokens the way every operator does, with a credential
+        # <!-- wl:id bootstrap-secret-destroyed -->
         - The secret MUST be destroyed when it is claimed, and MUST NOT be issued again while the operator store holds any record. The bootstrap reset in protocol/identity is the one way back
+        # <!-- wl:id bootstrap-claim-atomic -->
         - The claim MUST be atomic. Of registrations that present the secret concurrently, exactly one is approved, and every other is refused with OPERATOR_BOOTSTRAP_REFUSED
+        # <!-- wl:id bootstrap-secret-replaced -->
         - An orchestrator that restarts while its operator store is still empty MUST generate a new secret and emit it in place of the last, so a secret read from an earlier start admits nothing
+        # <!-- wl:id later-registration-needs-admin -->
         - Every later registration MUST require an existing admin and MUST NOT return a token
+        # <!-- wl:id bootstrap-refusals-distinct -->
         - A refusal for want of an admin MUST be distinguishable from a refusal for a bad signature, and from a refusal for a missing or wrong bootstrap secret
+        # <!-- wl:id bootstrap-refusal-named -->
         - The response MUST state which case occurred, so a caller does not wait for an approval nobody needs to give
 
     - name: operator-approval
       description: How an operator after the first is admitted
       required: true
       rules:
+        # <!-- wl:id approve-route -->
         - The route `POST /v1/admin/operators/{name}/approve` MUST exist — without it a registration that is not the first can never be completed by anybody
+        # <!-- wl:id approve-admin-only -->
         - It MUST require the `admin` role, because it grants authority
+        # <!-- wl:id operators-list-pending-rule -->
         - The list at `GET /v1/admin/operators` MUST report every operator including `pending` ones, so an admin can see who is waiting
+        # <!-- wl:id approve-idempotent-rule -->
         - Approving an operator already `approved` MUST succeed and change nothing, so a retried approval is not an error
+        # <!-- wl:id approve-no-token -->
         - Approval MUST NOT return a token — the approved operator attests a credential of their own and mints tokens with it
+        # <!-- wl:id approve-audited -->
         - Approval MUST be audited with the name of the operator who granted it
+        # <!-- wl:id operator-is-person -->
         - An operator is a person (protocol/types, Operator). An admin approving a registration vouches that its subject is one, and a service MUST NOT be approved as an operator; a service reaches a hub as a registered component (protocol/spec, POST /v1/register)
 
     - name: attestation-token-issuance
       description: What an operator's identity signature obtains — the right to attest, and nothing else
       required: true
       rules:
+        # <!-- wl:id attestation-route-no-token -->
         - The route `POST /v1/admin/operators/token` MUST require no bearer token
+        # <!-- wl:id attestation-request-signed -->
         - The request MUST carry hub_id, jti, name, timestamp and signature, and the signed payload MUST be canonicalize({hub_id, jti, name, timestamp}), verified against the STORED public key for that operator, with the timestamp inside the 300-second replay window. hub_id is the one the client recorded for this hub from a registration answer (operator-registration). A request without jti MUST be refused with INVALID_REQUEST before any signature is checked
+        # <!-- wl:id attestation-jti-form -->
         - jti MUST be base64url text without padding (RFC 4648 section 5) that decodes to between 16 and 64 bytes. A client MUST draw it from a cryptographically secure random source, at least 128 bits, for each request alone, and MUST NOT send a jti it has sent before, a retry of an unanswered request included - a retry is a new request. A hub MUST refuse a request whose jti is present and is not that form with INVALID_REQUEST before any signature is checked, as it refuses one with no jti. So two requests from one identity never sign the same bytes, however close together, even where the identity signs deterministically, which a secret source may (protocol/secret-source)
+        # <!-- wl:id attestation-replay -->
         - The request MUST be refused on replay. Once its signature has verified, the hub MUST record the operator's identity_id with the jti until the request's timestamp is outside the replay window, and a request whose jti is recorded for that operator MUST be refused with TOKEN_REQUEST_REPLAYED, issue no token and be logged as a security event. The check and the record MUST be one atomic step, so of concurrent requests carrying one jti exactly one proceeds. The record MUST survive a restart of the orchestrator and be shared by every instance that answers for this hub, so a replay inside the window is refused wherever and whenever it arrives at this hub. Where the record cannot be read or written, the request MUST be refused with STORAGE_ERROR, which protocol/types registers as transient, and no token issued, so a hub that cannot check a jti never answers as though it had. A record is written only for a request whose signature verifies under a stored operator key, and every such request is held to auth-route-rate-limit, so one source can make the hub hold at most the jtis of 5 requests a minute for as long as each record lives - at most 600 seconds, a timestamp 300 seconds ahead of the hub's clock plus the window - which is 50 records per source; an operator's records are bounded by the sources that operator's key signs from, and an orchestrator MAY further limit token requests per operator. Replay is keyed on the jti, never on the signature's bytes, so a signature that differs over the same payload is refused as well. A record is written for every request whose signature verifies, whatever it is then answered, and only for those, so a request nobody signed cannot use up an operator's jti. The jti is checked and recorded once the signature verifies and before hub_id and the operator's status are judged, so a replay of a request this hub has recorded is answered TOKEN_REQUEST_REPLAYED by this hub, whatever it first answered, CREDENTIAL_FOREIGN_HUB, OPERATOR_NOT_APPROVED and OPERATOR_REVOKED included. The record is this hub's alone. A request refused here with CREDENTIAL_FOREIGN_HUB names another hub's hub_id, and that hub has no record of it, so the jti does not protect against relaying it there inside the window - that relay is the case the hub_id rule and hub-proof answer, not this one. A TOKEN_REQUEST_REPLAYED answer is never a reason for a client to register, since another request from the same identity was answered first
+        # <!-- wl:id attestation-foreign-hub -->
         - A request whose signature verifies over a hub_id other than this hub's MUST be refused with CREDENTIAL_FOREIGN_HUB and logged as a security event - the identity signed it for another hub, and it was relayed here
+        # <!-- wl:id attestation-client-hub-id -->
         - A client MUST send this request only to a hub whose hub_id it has recorded, signing that hub_id, and MUST NOT sign a payload that names no hub for any hub, so neither an attestation token nor the deprecated operator token below is obtained with a signature good at every hub. That hub_id is the one a registration answer named, and which hub gave that answer only hub-proof settles, so until hub-proof has test vectors a hub that relays a first registration can have a client record another hub's hub_id at its address (The identity signs only to attest, the gap there). Where a client has recorded none for a hub, the person registers there first, by their own act (`weblisk operator register`), which a hub that already knows the operator answers as a repeat; a client never registers on its own initiative (architecture/cli, One approval vouches for every hub)
+        # <!-- wl:id attestation-status-after-signature -->
         - An operator with no record MUST be refused with OPERATOR_UNKNOWN, since there is no stored key to verify against. Only once the signature has verified may the hub disclose the operator's status - a signature that does not verify MUST be refused with INVALID_SIGNATURE whatever that status is, and then a pending operator with OPERATOR_NOT_APPROVED and a revoked one with OPERATOR_REVOKED. Each refusal MUST be audited
+        # <!-- wl:id attestation-token-form -->
         - The token it issues MUST have type attestation, carry no capability and no cid, and expire within 300 seconds
+        # <!-- wl:id attestation-token-scope -->
         - An attestation token MUST be accepted by `POST /v1/admin/operators/{name}/credentials` for its own subject, refused there for any other operator with OPERATOR_SUBJECT_MISMATCH, and refused by every other route with CREDENTIAL_REQUIRED
+        # <!-- wl:id attestation-answer-ids -->
         - The response MUST carry hub_id and the operator's identity_id at this hub, so the client can name this hub and this operator in the attestation it is about to have signed. The attestation a client submits MUST name the identity_id this answer carries, and a client MUST never compute it from the identity key - a hub keeps it across a change of identity key, so after one it is not the current key's fingerprint. A client that built the attestation beforehand, from the identity_id its registration answer named, submits it only where the two agree
         - It is the way to a first credential, and is deprecated as a way to an operator token. A hub built before the credential routes issues an operator token here, and a client MAY use one only from a hub that answers the credential routes with 404 or 405
 
@@ -935,50 +980,80 @@ contracts:
       description: How a hub shows that it holds the key its hub_id names, at an address a client reached it at
       required: true
       rules:
+        # <!-- wl:id hub-proof-route -->
         - The route `POST /v1/admin/hub/proof` MUST require no bearer token. Once weblisk/hub-proof/v1 has test vectors (the last rule), it MUST take address and challenge, and answer 200 with hub_id, public_key, address and signature
+        # <!-- wl:id hub-proof-address-form -->
         - The address MUST be an origin in the ASCII serialisation of RFC 6454 section 6.2 - the scheme, "://", the host in lowercase, and ":" and the port only where the port is not the scheme's default, with no path, query, fragment or trailing "/" - and the challenge MUST be base64url text without padding (RFC 4648 section 5) that decodes to between 16 and 64 bytes. Once those vectors are published, any other request MUST be refused with 400 INVALID_REQUEST, signing nothing
+        # <!-- wl:id hub-proof-admin-addresses -->
         - The orchestrator MUST sign only an address that is, byte for byte, one of its admin addresses, the origins its admin gateway is reached at, which the hub's configuration lists (schemas/config, orchestrator.admin_addresses). It MUST NOT take an address from the request's Host header, from a forwarding header or from the connection, all of which a hub that relays the request controls. Once those vectors are published, any other address MUST be refused with HUB_ADDRESS_FOREIGN, signing nothing, and logged as a security event
+        # <!-- wl:id hub-proof-statement -->
         - The signature MUST be the fixed-form statement weblisk/hub-proof/v1 (protocol/identity, Fixed-Form Statements) whose fields are this hub's hub_id as 64 lowercase hexadecimal characters, the address, and the challenge as the text it arrived, built by the orchestrator itself and never from bytes a caller supplies, and made by the private key whose fingerprint is hub_id. public_key MUST be that key's public half
+        # <!-- wl:id hub-proof-key-kept -->
         - The orchestrator MUST keep the private key its hub_id names for as long as it keeps that hub_id, protected as a service key (protocol/identity, Key Categories). Once it signs tokens with another key, the first key, whose fingerprint is hub_id, MUST sign this statement and nothing else, so the proof survives a rotation as hub_id does
+        # <!-- wl:id hub-proof-vectors-first -->
         - No implementation may sign it before this corpus publishes its test vectors (protocol/identity, Test vectors come before a signer). Until they are published, the route MUST answer every request 501 HUB_PROOF_UNAVAILABLE, signing nothing, so a client tells a hub that cannot prove yet from one that refused the address. Once they are published, a hub MUST answer this route, and a client MUST hold a hub_id at an address no registration names only where a proof it asked for there, on a challenge it made, verifies for the address it reached (architecture/cli, A credential for each hub)
 
     - name: operator-credential-attestation
       description: Bind a client's credential to an operator's identity at this hub
       required: true
       rules:
+        # <!-- wl:id credentials-route-tokens -->
         - The route `POST /v1/admin/operators/{name}/credentials` MUST accept an attestation token or an operator token whose subject is the operator named in the path, and nothing else. A token for another operator is refused with OPERATOR_SUBJECT_MISMATCH, and any other kind of token with CREDENTIAL_REQUIRED. An operator token MUST also be able to use admin:read (token-status-on-use), or it is refused with FORBIDDEN
+        # <!-- wl:id attestation-verifies-own-key -->
         - The attestation MUST verify under ML-DSA-65 against the public key in that operator's OWN record, and its identity_public_key MUST equal that key, or it is refused with CREDENTIAL_ATTESTATION_INVALID. Registration is how this surface records the key principal-identity takes from an invitation
+        # <!-- wl:id attestation-names-identity -->
         - Its identity_id MUST be that operator's identity id at this hub (Operator Identity), which is the fingerprint of that key until the operator's first change of identity key and is kept across it, or it is refused with CREDENTIAL_ATTESTATION_INVALID. Its hub_id MUST be this hub's hub_id. A different hub_id MUST be refused with CREDENTIAL_FOREIGN_HUB and logged as a security event
         # <!-- wl:id attestation-key-form -->
         - Its credential_public_key MUST be an ML-DSA-65 public key, or, under purpose step-up alone, a passkey's COSE key, or it is refused with CREDENTIAL_FORM_UNSUPPORTED. These routes carry an ML-DSA-65 key-file credential, and a step-up passkey, and no other form. Any other form principal-identity permits beside them has its own registration and challenge, and a hub admits it only through a route that declares them
+        # <!-- wl:id credential-not-identity-key -->
         - Its credential_public_key MUST NOT be the operator's identity public key, current or retired, or it is refused with CREDENTIAL_IS_IDENTITY_KEY and logged as a security event
         # <!-- wl:id attestation-purposes -->
         - Its purpose is authenticate, when it is absent, sign-records or step-up. A sign-records credential is recorded, capped, revoked and listed as any credential is, and never obtains a challenge or a token (operator-token-issuance). Its key signs records for this hub and signs nobody in (patterns/principal-identity, record-signing). A step-up credential is recorded, capped, revoked and listed the same way, never obtains a challenge or a token, is never counted by OPERATOR_LAST_ADMINISTRATOR, and does nothing but answer a step-up (operator-token-issuance). Its attestation MUST name rp_id and origin, the relying party and the origin of the console where the passkey was registered with user verification required, and an attestation naming them under any other purpose, or a step-up attestation naming neither, is refused with CREDENTIAL_ATTESTATION_INVALID
+        # <!-- wl:id credential-one-purpose -->
         - A key this hub holds, or ever held, under one purpose MUST be refused under any other with CREDENTIAL_PURPOSE_REFUSED, and logged as a security event. One key serves one purpose, so the key a client signs in with is never one that signs a record
+        # <!-- wl:id credential-lifetime -->
         - Its not_after MUST be in the future and no more than 90 days after the hub receives it, or it is refused with CREDENTIAL_LIFETIME_INVALID
+        # <!-- wl:id credential-previously-revoked -->
         - A key that was ever revoked at this hub MUST be refused with CREDENTIAL_PREVIOUSLY_REVOKED
+        # <!-- wl:id credential-key-bound -->
         - A credential_public_key this hub holds, or ever held, as a credential of another operator, or that is another operator's identity key, current or retired, MUST be refused with CREDENTIAL_KEY_BOUND and logged as a security event. A credential's id is its key's fingerprint, so accepting it would rebind that credential, and every token minted with it, to the operator who attested it. A key is bound to the first operator this hub recorded it for, and to no other, ever
+        # <!-- wl:id credential-reattest -->
         - An attestation for a key the same operator already holds as an active credential MUST replace that credential's attestation and keep its id. That is re-attestation
+        # <!-- wl:id credential-stored-form -->
         - The hub MUST store the credential with algorithm ml-dsa-65, form key-file, device_bound false (a key file can be copied, and no authenticator says otherwise) and status active, or, for a step-up passkey, with the algorithm its COSE key names (es256 for -7, eddsa for -8, and any other refused with CREDENTIAL_FORM_UNSUPPORTED), form passkey and device_bound false, since the hub saw no registration ceremony, and return it with its id, the fingerprint of its public key
+        # <!-- wl:id credential-attestation-audited -->
         - Every attestation MUST be audited with the operator, the credential id, its purpose and the device_label
 
     - name: operator-token-issuance
       description: Issue an operator token to a live credential — the ordinary way, and the only way to one
       required: true
       rules:
+        # <!-- wl:id credential-routes-no-token -->
         - The routes `POST /v1/admin/credentials/challenge` and `POST /v1/admin/credentials/token` MUST require no bearer token — they are what issue them
+        # <!-- wl:id challenge-refusals -->
         - A challenge for a cid this hub holds no credential for MUST be refused with CREDENTIAL_UNKNOWN, and one for a sign-records credential with CREDENTIAL_PURPOSE_REFUSED, before any nonce is issued. Its purpose is not a secret its key protects, and a key that signs records never signs a proof of a session. For any authenticate credential it does hold, whatever its status, it MUST answer with a nonce of at least 128 bits from a cryptographically secure random source, single-use, bound to that cid, expiring within 300 seconds, and this hub's hub_id
+        # <!-- wl:id credential-answer-bytes -->
         - The token request MUST carry cid, nonce and signature, and the signature MUST verify under the credential's STORED algorithm and public key over exactly these bytes, and never over the nonce alone. The UTF-8 bytes of weblisk/credential-auth/v1, one 0x00 byte, the 64 lowercase hexadecimal characters of hub_id as ASCII, one 0x00 byte, and the nonce's base64url text exactly as the challenge returned it, as ASCII. The nonce is signed as text, never as the bytes it decodes to
+        # <!-- wl:id nonce-spent -->
         - The nonce MUST be one this hub issued for that cid, unexpired and unused, and the attempt MUST spend it whether or not the signature verifies. Otherwise CREDENTIAL_CHALLENGE_INVALID
+        # <!-- wl:id token-request-unknown-cid -->
         - A token request naming a cid this hub holds no credential for MUST be refused with CREDENTIAL_UNKNOWN, and one naming a sign-records credential with CREDENTIAL_PURPOSE_REFUSED
+        # <!-- wl:id credential-status-after-signature -->
         - Only once the signature has verified may the hub disclose the credential's status or its operator's. The credential MUST be active (else CREDENTIAL_REVOKED) and its attestation's not_after in the future (else CREDENTIAL_EXPIRED), and its operator MUST be approved (else OPERATOR_NOT_APPROVED, or OPERATOR_REVOKED for a removed one)
         - The token request MAY carry cap, a list of capability names. The token then carries each capability the operator's role carries that cap names, and no other. A name the role does not carry is left out, never refused, so cap only ever narrows a token, and a cap that names nothing the role carries gives a token whose cap is empty. With no cap in the request, the token carries every capability the role carries
+        # <!-- wl:id admin-wildcard-by-name -->
         - admin:* MUST be read as each capability in the admin family by name, both in a role and in cap. A role carrying admin:* carries admin:read, admin:approve, admin:strategy and admin:audit, so cap [admin:read] gives an admin a token carrying admin:read; and cap [admin:*] names each of them, so a role carrying only some capabilities of the admin family keeps those. A token carries admin:* itself only where the role carries it and the request's cap names it or the request carries none
+        # <!-- wl:id operator-token-claims -->
         - The token MUST have type operator, carry cid, the identity_id of the credential cid names, the operator's role and the capabilities that role carries, narrowed by cap where the request carries one, and record_keys naming every sign-records credential the operator holds here that is active and whose attestation's not_after is in the future, and expire one hour after issue and never after the attestation's not_after
+        # <!-- wl:id operator-token-cap-always -->
         - An operator token MUST carry its cap claim always, an empty list included. Its cap is the most it may use, so a verifier MUST read an operator token whose cap is absent or empty as naming no capability, never as carrying its role's full set. A serialiser that leaves an empty list out therefore narrows nothing away - the token it sends reaches no route that requires a capability (protocol/identity)
+        # <!-- wl:id role-from-record -->
         - Role and capabilities MUST come from the stored record, never from the request
+        # <!-- wl:id token-answer-not-after -->
         - The response MUST carry the attestation's not_after, so the client can warn before it passes
+        # <!-- wl:id credential-last-used -->
         - The credential's last_used_at MUST be updated
+        # <!-- wl:id client-signs-credential-hub-id -->
         - A client MUST sign with the hub_id its credential was attested for, and MUST treat a challenge that answers a different hub_id as a hub it holds no credential for
         # <!-- wl:id step-up-request -->
         - The token request MAY carry step_up, the person's re-confirmation for a destructive act - control, the act that asked as a STEP_UP_REQUIRED refusal's detail.control names it, non-empty ASCII with no 0x00 byte; form, identity or passkey; and that form's proof - over these bytes. The UTF-8 bytes of weblisk/step-up/v1, one 0x00 byte, the 64 lowercase hexadecimal characters of hub_id as ASCII, one 0x00 byte, the nonce's base64url text exactly as the challenge returned it, one 0x00 byte, and control (protocol/identity, Fixed-Form Statements). The nonce is the one the same request's credential signature spends, so a step-up is never made without a live credential and is never presented twice
@@ -995,12 +1070,18 @@ contracts:
       description: Every request re-checks what its token rests on
       required: true
       rules:
+        # <!-- wl:id status-checked-on-use -->
         - On every request bearing an operator token, the orchestrator MUST look up the operator named by sub and the credential named by cid in its OWN records before the handler runs
+        # <!-- wl:id cid-required -->
         - An operator token without a cid MUST be refused with CREDENTIAL_REQUIRED
+        # <!-- wl:id status-refusals -->
         - The request MUST be refused when the operator has no record (OPERATOR_UNKNOWN), is pending (OPERATOR_NOT_APPROVED) or is revoked (OPERATOR_REVOKED), and when the credential is not that operator's (CREDENTIAL_OPERATOR_MISMATCH), is revoked (CREDENTIAL_REVOKED) or its attestation has expired (CREDENTIAL_EXPIRED)
+        # <!-- wl:id role-now-narrowed-by-cap -->
         - The request MUST be authorised against the capabilities the operator's role carries now, and never beyond the token's cap - what it may use is the capabilities of both. A role changed since the token was issued takes effect on the next request
+        # <!-- wl:id route-capability-forbidden -->
         - An administrative route MUST refuse with FORBIDDEN a request that cannot use the capability its minimum stands for (Auth Middleware), whatever role the operator holds. A route only a named operator may use, alone or beside an admin, needs admin:read from that operator. So a token whose cap leaves out a route's capability reaches no such route, an admin's included, whichever component provides it - the orchestrator refuses it on its own routes, and for any other provider the exchange mints a pass naming only what the token may use, which that provider refuses with FORBIDDEN, or mints none and answers FORBIDDEN where nothing the request needs is left (admin-gateway-authorization; architecture/orchestrator, token-exchange)
         - Removing an operator, revoking a credential or rotating an operator's identity key therefore ends every token resting on it at its next request, not when the token expires - at the orchestrator when that request arrives, and for every other component at the exchange, which mints no pass on it (architecture/orchestrator, token-exchange). A pass minted before lives at most 30 seconds (protocol/identity, The pass)
+        # <!-- wl:id gateway-no-stand-in -->
         - An admin gateway in front of the orchestrator MUST NOT stand in for this check. The orchestrator holds the records, and a signature check alone proves only that a token was once issued
 
     - name: admin-gateway-authorization
@@ -1008,21 +1089,33 @@ contracts:
       required: true
       rules:
         - The admin gateway is the tenant's one door for people. A client presents a person's operator token there and nowhere else, and the gateway presents it to the orchestrator and to nothing else (protocol/identity, The pass)
+        # <!-- wl:id gateway-judged-by-orchestrator -->
         - Every request it carries on a person's token MUST be authorised by the orchestrator's judgement of that token against every capability the request requires (Auth Middleware), as token-status-on-use authorises a request - what the operator's role carries now, never beyond the token's cap, admin:* read as each capability of the admin family by its own name - whichever component provides the route. The gateway MUST NOT authorise by the token's role claim, which is the role at mint and ignores cap, and judges nothing itself
+        # <!-- wl:id gateway-forwards-orchestrator-groups -->
         - A request for a group the orchestrator provides MUST be forwarded to the orchestrator with the operator token as it arrived, in the Authorization header, and is judged by its Auth Middleware when it arrives. So is a request to a route that issues tokens, which carries none, a request for a hub proof (hub-proof), which carries none either, and one carrying an attestation token to the attestation route. The orchestrator's routes are those architecture/orchestrator's Administrative endpoints lists, every one under /v1/admin/ and none outside it, which this document's dependency contract binds - Operator management, Agent management, Audit, the Model routes and its overview (The admin API is an aggregate) - but POST /v1/admin/model/audit. The orchestrator serves that route for the model gateway inside its own process alone (architecture/orchestrator, Recording what the model routes do), so the gateway MUST answer a request for it 404 NOT_FOUND, forwarding nothing and exchanging nothing, whatever the service directory declares, as the model gateway answers one that reaches it from outside the process. The gateway forwards no other path to the orchestrator
+        # <!-- wl:id gateway-carries-on-pass -->
         - A request for a route any other component provides - an administrative group's (The admin API is an aggregate), or a route of a service whose blueprint admits a person's request on a pass, as architecture/content's and architecture/fabric's do - MUST be sent on a pass, and never on the operator token. The gateway learns such a route, which component provides it and what it requires from the service directory alone, never from a blueprint it was not generated from - it is a route that is not one of the orchestrator's and that exactly one directory entry declares among its pass_routes (protocol/types, PassRoute), matched by method and by path. For each such request the gateway MUST have the orchestrator exchange the token presented with it (architecture/orchestrator, token-exchange), naming as audience the identity id of that entry's component, the fingerprint of the public key the entry carries, and as scope what the next rule names, and MUST send the request on the pass it is answered with, in the Authorization header, with its body as it arrived, at that entry's url and nowhere else
+        # <!-- wl:id gateway-pass-address-bound -->
         - The gateway MUST send a pass only where architecture/orchestrator's Presenting a credential to a component allows one - at an address on the orchestrator's host, or at one whose address_provenance is declared or verified. A request whose provider's directory address is on another host and only self-asserted MUST be answered ADMIN_GROUP_UNAVAILABLE, naming that address in the ErrorResponse's detail.address, and nothing is exchanged or sent
+        # <!-- wl:id gateway-exchange-scope -->
         - The scope of that exchange MUST name every capability the provider's blueprint requires for the request being carried, and nothing more, as the entry's pass route declares it - every capability in its capabilities, and those of each of its body requirements the request's body meets, which the gateway reads from the body for this alone - architecture/content's pass route for POST /v1/content/repositories, for one, declares content:establish beside content:declare for disposition establish, and content:decide beside it for a declaration carrying scope_floor or self_decision_ceiling, and its route for remotes declares content:replicate with content:connect. The provider judges the pass's cap against the body as it reads it, so a body the gateway read otherwise is refused there with FORBIDDEN, and nothing is carried beyond what the pass names
+        # <!-- wl:id gateway-exchange-refusals -->
         - An exchange answered issued false MUST be answered with the code it names, at the status protocol/types registers for it, FORBIDDEN included, whatever the role. An exchange answered 404 NOT_FOUND, because the provider is not registered now, MUST be answered ADMIN_GROUP_UNAVAILABLE. Where the orchestrator cannot be asked, or answers anything else, the request MUST be refused with ADMIN_TOKEN_UNCHECKED, never with the code that answer carried, which judged the gateway's own request. None of these refusals forwards anything
         # <!-- wl:id gateway-relays-step-up -->
         - A provider's 401 refusal of the pass the gateway sent it - PASS_AUDIENCE_MISMATCH, as after the provider's key changed, TOKEN_EXPIRED, as for a pass that arrived after it expired, INVALID_SIGNATURE or PASS_REQUIRED - judged that pass and not the person's token, and MUST be answered ADMIN_TOKEN_UNCHECKED, never with that code or with 401, so a client does not refresh a token nothing refused. STEP_UP_REQUIRED judged the person's re-confirmation, which the pass carries unchanged, and MUST be relayed as it is, its WWW-Authenticate header included (destructive-action-step-up). A provider's answer that judged the request, FORBIDDEN for a cap that does not name what the body requires included, MUST be relayed as it is
+        # <!-- wl:id gateway-own-registration -->
         - The gateway MUST hold a registration of its own (protocol/spec, POST /v1/register) whose manifest declares token:exchange and no other capability (protocol/types). It reads the service directory with it, and exchanges a token a person has just presented, and does nothing else with it. It MUST NOT call a provider on its registration token, exchange a token presented with any request but the one it is carrying, or keep a person's token or a pass once that request is answered. It holds no standing access to data
+        # <!-- wl:id gateway-manifest-and-listener -->
         - Its manifest (protocol/types, AgentManifest) MUST have type infrastructure, no subscriptions, no publishes and no pass_routes, so it owns no namespace and no person's request is ever carried to it, and a url naming a listener of its own that the orchestrator can reach, never the admin listener, which the operator IP allowlist guards (Admin Gateway Request Lifecycle, step 1). On that listener it MUST serve protocol/spec's seven agent endpoints - POST /v1/describe, GET /livez and GET /readyz as every registrant does, POST /v1/services, answered 200 and taken only as a prompt to read the directory as the next rule says, and POST /v1/execute, POST /v1/message and POST /v1/event, each answered FORBIDDEN, doing nothing, because it takes no task, message or event. It serves nothing else there, and none of the admin routes
+        # <!-- wl:id gateway-reads-directory -->
         - The gateway MUST read the service directory only by GET /v1/services, on its registration token, at the orchestrator address it was configured with to register, which is its anchor (architecture/orchestrator, Presenting a credential to a component), over a connection it opened - when it starts, again after each POST /v1/services it receives, again whenever the exchange answers 404 for an audience its directory names, and at least once every 60 seconds besides, with no more than one such read in flight. That bound is this gateway's own - protocol/spec's Implementation Notes require every agent to refresh periodically and only recommend 60 seconds. The orchestrator's pushes are best effort, so without the periodic read a failed push could leave the gateway sending a pass to an address a component has left, until the next push. It MUST NOT take a pushed body as the directory, signed or not, and MUST NOT let anything in one choose a provider, an audience, a url, an address_provenance or a pass route. Nothing authenticates a push (protocol/spec, the gap under POST /v1/services), and any party that reaches this listener could otherwise choose where a person's pass is sent, and replay it at its real audience within its lifetime. So everything that decides where a pass goes arrives from the orchestrator
+        # <!-- wl:id provider-accepts-pass -->
         - A provider other than the orchestrator MUST, on every request for an administrative route, accept a person's request only on a pass addressed to it, as protocol/identity's The pass requires, and refuse with FORBIDDEN a pass whose cap does not name every capability the request requires and any token that is neither a pass nor an operator token. It MUST record who acted as The pass requires, by the pass's identity_id with the gateway's act.identity_id beside it, never by sub or by a header
         - Work a request starts at a provider runs while that request is answered, on the pass that carried it. Work that outlives the request, executing an approved decision included, needs an authority on the approver's behalf that no blueprint specifies yet (architecture/programme-service, Known Gaps, how execution proves it is firing an owner's definition), so no provider performs any on a person's behalf after the request the gateway carried on a pass is answered. Work a provider performs as its own, on no approver's authority, rests on no pass and on no approval the gateway carried, which is that gap
+        # <!-- wl:id overview-composed -->
         - The System overview is composed by the gateway, from the orchestrator's GET /v1/admin/overview, forwarded as any request for its groups is, and from each group another component holds, asked of that component on a pass addressed to it as the rules above carry any request, once a pass route can name the overview group it answers. None can yet (protocol/types, PassRoute, which has no such field), so the gateway asks no component for one and MUST report every such group unavailable, never zero. The orchestrator asks no component for any
         - The decision inbox, GET /v1/admin/approvals, is composed by the gateway from each owner's own open decisions, each asked of its owner on a pass addressed to it as the rules above carry any request, once a pass route can name the inbox group it answers. None can yet (protocol/types, PassRoute, which has no such field), so the gateway asks no owner, hard-codes no owner's route, and MUST answer the inbox ADMIN_GROUP_UNAVAILABLE, never an empty list. It serves no route that decides <!-- wl:id inbox-composed-by-pass-route -->
+        # <!-- wl:id gateway-unknown-route-unavailable -->
         - The gateway MUST answer with ADMIN_GROUP_UNAVAILABLE, and forward nothing, a request for a route that is not one of the orchestrator's, is not the decision inbox the rule above governs, and that no directory entry declares among its pass_routes, or that more than one declares, since the directory then names no one provider. A component declares a pass route only where its blueprint specifies both the route and that it accepts a pass for it (protocol/types, PassRoute), so a route whose provider is not deployed, or whose provider's blueprint specifies no pass for it, is answered so. It MUST NOT carry such a request as a POST /v1/message action, which checks no operator token (protocol/spec)
 
     - name: destructive-action-step-up
@@ -1050,39 +1143,60 @@ contracts:
       description: Withdraw one credential, or every credential an operator holds
       required: true
       rules:
+        # <!-- wl:id credential-revocation-route -->
         - The route `DELETE /v1/admin/operators/{name}/credentials/{cid}` MUST be permitted to the operator named in the path on a request that can use admin:read, and to an admin on one that can use admin:*, and to nobody else. Another operator is refused with OPERATOR_SUBJECT_MISMATCH, and a request that can use neither with FORBIDDEN
+        # <!-- wl:id revoked-credential-kept -->
         - A revoked credential MUST keep its record with status revoked, and its key MUST never be accepted again
+        # <!-- wl:id operator-removal-revokes -->
         - Removing an operator MUST set its status to revoked and keep its record, and MUST revoke every credential it holds
+        # <!-- wl:id key-change-revokes-credentials -->
         - A change of an operator's identity public key (operator-key-change) MUST revoke every credential the old key attested
         - A sign-records credential is revoked by the same route, and drops out of the record_keys of every token minted afterwards
+        # <!-- wl:id last-admin-credential -->
         - A request to revoke the last active authenticate credential of the last active admin MUST be refused with OPERATOR_LAST_ADMINISTRATOR. A sign-records credential is not counted, because it signs nobody in, and neither is a step-up credential, which only re-confirms
+        # <!-- wl:id last-admin-key-change -->
         - A change of that admin's identity key MUST NOT be refused on that ground, and revokes the credential all the same (patterns/principal-identity, revocation)
+        # <!-- wl:id revocation-audited -->
         - Every revocation MUST be audited with the actor, the credential id and the reason
 
     - name: operator-key-change
       description: Replace an operator's identity key, keeping the operator, its grant and its identity id
       required: true
       rules:
+        # <!-- wl:id key-change-route -->
         - The route `POST /v1/admin/operators/{name}/key` MUST require no bearer token. The two signatures in the request authenticate it, and an operator changing a key may hold no live credential
+        # <!-- wl:id key-change-request -->
         - The request MUST carry new_public_key, hub_id, timestamp, current_signature and new_signature. Both signatures MUST be over canonicalize({hub_id, name, new_public_key, timestamp}) per RFC 8785, name being the operator the path names
+        # <!-- wl:id key-change-unknown -->
         - The operator MUST have a record here (else OPERATOR_UNKNOWN)
+        # <!-- wl:id key-change-foreign-hub -->
         - hub_id MUST be this hub's (else CREDENTIAL_FOREIGN_HUB, logged as a security event), so a request signed for one hub is refused at every other
+        # <!-- wl:id key-change-invalid -->
         - The timestamp MUST be inside the 300-second replay window and the request MUST NOT have been seen before, current_signature MUST verify under the public key in the operator's OWN record, new_signature under new_public_key, and new_public_key MUST be an ML-DSA-65 public key. Otherwise OPERATOR_KEY_CHANGE_INVALID, logged as a security event
+        # <!-- wl:id key-change-repeat -->
         - A repeat of the change the hub last accepted for the operator MUST be answered as that change was. Where new_public_key is already the operator's public_key, current_signature verifies under the key that change moved to retired_keys, new_signature verifies under new_public_key, and the timestamp is inside the replay window and unseen, the hub MUST answer 200, unless the operator is revoked (OPERATOR_REVOKED, as below), with the operator record, its identity_id and hub_id, change nothing, revoke nothing, and audit it as a repeat of that change. This is the one request current_signature may verify under a retired key for, and it hands nothing on - both keys signed it, and the operator already holds the new one. It is checked before OPERATOR_KEY_REUSED, which would otherwise refuse the operator's own current key, so a client whose answer to an accepted change was lost learns that the change stands
         - Only once both signatures have verified may the hub disclose the operator's status - a revoked operator is then refused with OPERATOR_REVOKED. A pending operator may change its key and stays pending
+        # <!-- wl:id key-change-key-reused -->
         - new_public_key MUST NOT be a key this hub records, or recorded, as any operator's identity key, current or retired, or as any credential (else OPERATOR_KEY_REUSED)
+        # <!-- wl:id key-change-write -->
         - On success, in one durable write, the new key MUST become the operator's public_key, the old key MUST be added to its retired_keys with the time of the change as its retired_at, and name, role, status and identity_id MUST be kept. Every credential the operator holds, sign-records ones included, MUST be revoked with the reason that the identity key changed, so every token resting on one is refused at its next request
+        # <!-- wl:id key-change-not-last-admin -->
         - It MUST NOT be refused with OPERATOR_LAST_ADMINISTRATOR, although it revokes the last admin's credentials - the new key attests a new one (patterns/principal-identity, revocation and identity-rotation)
+        # <!-- wl:id key-change-answer -->
         - The response MUST carry the operator record, its identity_id and hub_id, and MUST NOT carry a token. The operator obtains an attestation token with the new key and attests a credential
+        # <!-- wl:id key-change-audited -->
         - The change MUST be audited with the operator's identity id and the fingerprints of the old and new keys
 
     - name: auth-route-rate-limit
       description: How the routes served without a token are limited, at the admin gateway and at the orchestrator, and by whose address
       required: true
       rules:
+        # <!-- wl:id auth-routes-limited -->
         - The routes Auth Middleware lists as served without a token, the four that issue tokens, POST /v1/admin/operators/{name}/key and POST /v1/admin/hub/proof, MUST each be limited to 5 requests a minute per source, each route counted on its own, before any signature is verified or made
         - A source is the client's IP address as patterns/rate-limiting derives the IP key, the connection's address or, only where the connection comes from a proxy the component is configured to trust, the address that proxy names in X-Forwarded-For. It is never a name, cid or key in the request, which whoever sends it chooses
+        # <!-- wl:id gateway-limits-and-forwards-source -->
         - The admin gateway MUST apply the limit before it forwards anything, and MUST send each request it forwards to the orchestrator with X-Forwarded-For naming the source it counted, in place of any value the request arrived with
+        # <!-- wl:id orchestrator-trusts-declared-gateway -->
         - The orchestrator MUST apply the limit to every request for those routes, trusting X-Forwarded-For from the addresses its configuration names as the admin gateway's (schemas/config, orchestrator.admin_gateway_from) and from no other address. So it counts a request the gateway forwarded by its client, never by the gateway's address, which every client of the gateway shares, and a request from any other address by that address, whatever X-Forwarded-For it carries
         - An orchestrator whose configuration names no such address counts every request by its connection's address, so the clients of an admin gateway it was not told of share one count there, and one of them reaching the limit refuses the rest until the minute passes
         - Where the admin gateway's address is one other callers share, as on one host, the orchestrator trusts every caller there to name its own source, so each of them chooses the count it is held to. That is the same-host position architecture/threat-model records as residual, and no wider
@@ -1091,21 +1205,34 @@ contracts:
       description: How a console that acts for signed-in people holds and uses their credentials
       required: true
       rules:
+        # <!-- wl:id console-credential-per-account -->
         - A console MUST hold a separate credential for each account at each hub, generate its key pair itself, and have it attested by that account's operator identity through the CLI, never by holding the identity itself
+        # <!-- wl:id console-credential-lifetime -->
         - It MUST ask for not_after 30 days ahead unless the person chooses another value within the 90-day cap, and MUST warn the person when fewer than 7 days remain
+        # <!-- wl:id console-credential-live-session -->
         - It MUST use a person's credential only while that person holds a live session with the console at AAL2, and MUST NOT mint a token with it at any other time
+        # <!-- wl:id console-no-unattended-work -->
         - Work no signed-in person is present for, such as a schedule or a background job, MUST NOT use a person's credential. It needs the console's own service identity at the hub, and this contract specifies no route that admits a console as one (A console holds a credential, never a token), so until one is specified a console does no such work at a hub
+        # <!-- wl:id console-not-a-component -->
         - A console MUST NOT register itself, or any key it holds, as a component through POST /v1/register. That route admits any component on its signed manifest alone (protocol/spec, the enrolment gap), so a console could obtain a registration token there with content read, propose and model capabilities and run the unattended work the rule above withholds. A hub cannot tell a console's registration from a component's, so this rule binds the console, and a console that registered is in breach of it
+        # <!-- wl:id console-no-agent-token -->
         - It MUST NOT give an agent a token minted with a person's credential, narrowed by cap or not. The console holds the token and sends every request itself. A token's cap names what it keeps, and however little it names the token is still the person's - the hub records what it is used for as the person's own act, cannot tell the agent's requests from the person's, and could end the run only by revoking the person's credential. A cap naming every capability but the person-only ones keeps the rest of the role, admin:* for an admin, which admits operators and sets their roles
         - While the person who started a run holds a live AAL2 session with it, a console MAY send, for that run, reads of the tenant's content and completions through the tenant's model route, and nothing else. Each is the person's request, sent to the tenant's admin gateway on that person's token, which the gateway carries to the content service on a pass naming content:read or content:describe, and to the orchestrator's model route as it arrived (admin-gateway-authorization), where a completion is admitted only for a person whose role carries llm:chat (operator-roles). Neither changes anything at a hub beyond the audit entries recording it, a completion's two model_complete entries among them (architecture/orchestrator, Recording what the model routes do), which is why they are admitted before agent-delegation has a route and nothing that changes more is. They stop when the person's session ends
         - No write, removal, proposal, decision, declaration, act on a remote or other administrative request that an agent chose is sent for it. What an agent prepares reaches a hub only in a request the person submits, under their own token, as their own act, naming the agent and the run on a proposal
         - An agent acts at a hub in its own right only under patterns/principal-identity's agent-delegation, as the intersection of the person's grant, the agent's declared capabilities and an authorisation of that agent the hub holds, or under the console's own service identity. This contract specifies a route for neither, so until one is specified no agent a console runs acts at a hub in its own right, and none continues once its person's session ends
+        # <!-- wl:id console-token-at-gateway -->
         - It MUST present a person's token at the tenant's admin gateway and nowhere else, as protocol/identity requires of every holder of an operator token (The pass)
+        # <!-- wl:id console-no-sign-records -->
         - It MUST NOT generate, hold or ask an identity to attest a sign-records credential, for anyone. A signature on a record means the person signed it, and a key a console holds signs whenever the console does (patterns/principal-identity, record-signing)
+        # <!-- wl:id console-token-in-memory -->
         - It MUST hold an operator token in memory only and never write one anywhere, encrypted or not. What it keeps at rest is the credential key, as an installation secret
+        # <!-- wl:id console-discards-tokens -->
         - It MUST discard a person's tokens when that person's session ends, by sign-out, idle or absolute expiry, or the account's revocation, even where exp is later
+        # <!-- wl:id console-removal-deletes-keys -->
         - Removing an account from the console MUST delete that account's credential keys. Before it does, it MUST revoke each credential at its hub where it can, with a token minted for a person signed in to the console at AAL2 whom that hub permits to revoke it — the account's own person, or one holding the admin role there
+        # <!-- wl:id console-removal-reports -->
         - Where no such person is signed in, it MUST still delete the key, and MUST report for each hub that the credential stays live there until its not_after unless an admin of that hub revokes it
+        # <!-- wl:id console-no-store -->
         - When it drives the CLI to connect, register or mint, it MUST pass --no-store and MUST NOT pass --store, so the CLI writes no token file whether or not its mint asks the identity's holder (architecture/cli, Where a token is kept)
 
     - name: operator-roles
@@ -1113,12 +1240,19 @@ contracts:
       required: true
       rules:
         - The role names are exactly `viewer`, `auditor`, `operator` and `admin`
+        # <!-- wl:id capabilities-from-role -->
         - Capabilities MUST be derived from the role, never stored per operator
+        # <!-- wl:id operator-role-admin-family -->
         - The `operator` role MUST carry `admin:read`, `admin:approve` and `admin:strategy` — it is the role every `operator+` endpoint in this document is gated on
+        # <!-- wl:id capability-roles-table -->
         - Each `content:` and `programme:` capability, `integration:read`, `integration:manage`, `llm:chat`, `model:attest`, `fabric:read`, `fabric:attest`, `telemetry:read`, `action:invoke` and `scope:admit` MUST be carried by the roles the Operator Roles table gives it, and by no other. Roles are held by operators, who are people, and by nothing else, so a role may carry a capability `protocol/types` marks person only
+        # <!-- wl:id admin-wildcard-excludes -->
         - The wildcard `admin:*` MUST NOT be read as carrying `model:attest`, `telemetry:read`, `action:invoke` or `scope:admit`, which are outside the `admin` family
+        # <!-- wl:id every-capability-held -->
         - Every capability this document names for a person's token to carry MUST be carried by some role; a capability no role holds is a constant, not a permission. token:exchange, which this document names as what the admin gateway's registration declares, is a component's and not a person's, and no role carries it (protocol/types, Exchange capability); nor does any role carry integration:use or telemetry:push
+        # <!-- wl:id last-admin-kept -->
         - The last active admin MUST NOT be removable or demotable
+        # <!-- wl:id role-change-audited -->
         - A role change MUST be audited with the previous and new role
 ```
 
@@ -1157,7 +1291,7 @@ defined:
 - **A directory never authenticates.** Where an external directory or control
   plane lists operators, an orchestrator MUST still verify signatures against the
   public key in its OWN records. Consulting a directory at authentication time
-  would make that directory a skeleton key for every deployment trusting it.
+  would make that directory a skeleton key for every deployment trusting it. <!-- wl:id directory-never-authenticates -->
 
 ### Operator Registration
 
@@ -1197,7 +1331,7 @@ This MUST be stated exactly, and it was not: this step read
 read `"<sign(canonicalize({name, timestamp}))>"`. A generated orchestrator
 signed and verified the four-field form; a client signed the two-field form;
 the registration was refused with `operator signature verification failed` and
-neither side was wrong about anything it had been told.
+neither side was wrong about anything it had been told. <!-- wl:id registration-input-stated-exactly -->
 
 The four-field form is the correct one and the reason is not symmetry. The
 signature must **bind the public key to the name**. Over `{name, timestamp}`
@@ -1210,13 +1344,13 @@ privilege claim and it must not be substitutable in flight.
 The timestamp MUST be the one sent in the payload. A client that reads the clock
 once to sign and again to build the request produces a signature over a payload
 the orchestrator never sees, and it verifies only when both reads land in the
-same second — which is a fault that passes locally and fails under load.
+same second — which is a fault that passes locally and fails under load. <!-- wl:id timestamp-sent-is-signed -->
 
 ### Obtaining a token
 
 Registration establishes an operator. It does not keep them signed in: tokens
 expire in an hour, so there MUST be a way to obtain a new one that does not
-require registering again, and that way MUST NOT be the operator's identity.
+require registering again, and that way MUST NOT be the operator's identity. <!-- wl:id renewal-without-identity -->
 
 A client reaches a hub with a **credential**: an ML-DSA-65 key pair the client
 generates for that hub alone, bound to the operator's identity by an
@@ -1365,7 +1499,7 @@ only from a hub that answers `POST /v1/admin/credentials/challenge` with `404`
 or `405`. No hub built from this corpus issues one here: it issues operator
 tokens only through its credential routes
 ([Minting a token with the credential](#minting-a-token-with-the-credential)),
-whose statement has test vectors.
+whose statement has test vectors. <!-- wl:id client-uses-credential-routes -->
 
 `hub_id` names this hub as an [`Attestation`](../patterns/principal-identity.md#types)
 does: the fingerprint ([`protocol/identity`](../protocol/identity.md#key-fingerprint))
@@ -1630,12 +1764,12 @@ on it:
   key is protected by the machine login, not by the identity's holder, so
   while the session is unlocked any program running as the person can mint
   with it. A key in the clear, under `kdf` `none`, or behind a source nobody
-  unlocks, such as `file:`, is not a person's credential.
+  unlocks, such as `file:`, is not a person's credential. <!-- wl:id credential-key-behind-act -->
 - **Not per request.** A token proves that a live credential minted it within
   the hour, and every request re-checks that credential (below). A token
   carries no claim that a factor was presented, and a gateway MUST NOT look for
   one. The hub could not verify such a claim, so it would be set true on every
-  token and would prove nothing.
+  token and would prove nothing. <!-- wl:id no-factor-claim -->
 - **Re-confirming.** A destructive act asks for more than a live credential: a
   proof, made within the last 300 seconds, that the person was asked and
   answered. The hub verifies that proof itself when it mints, and records
@@ -1836,7 +1970,7 @@ and every `/v1/admin/*` call answered `401`. Each component behaved correctly
 against what it had been told, and the deployment could not be administered.
 
 **A client MUST NOT infer a token from a successful registration.** It reads
-`status`, and asks for an attestation token when none was issued.
+`status`, and asks for an attestation token when none was issued. <!-- wl:id client-reads-status -->
 
 ### Admitting the operators after the first
 
@@ -1854,14 +1988,14 @@ POST /v1/admin/operators/alice/approve
 Authorization: Bearer <admin token>
 ```
 
-The orchestrator MUST:
+The orchestrator MUST: <!-- wl:id approve-orchestrator-steps -->
 
 1. Require the `admin` role. Approval grants authority, so it is not an
    `operator` action, and `admin:approve` is not the capability that carries it
    — that one is an `operator`'s.
 2. Look up the operator by name and refuse an unknown one with `404`.
 3. If the operator is already `approved`, succeed and change nothing. Approval
-   is a state, not an event, and a retried call MUST NOT fail.
+   is a state, not an event, and a retried call MUST NOT fail. <!-- wl:id approve-idempotent -->
 4. Otherwise set status to `approved` and record who approved it.
 5. Return the operator record, **and no token**:
 
@@ -1882,7 +2016,7 @@ drift.
 `GET /v1/admin/operators` MUST list `pending` operators alongside approved
 ones. An admin who cannot see who is waiting cannot approve them, and a list
 that quietly filters to approved operators makes a waiting colleague look like
-a failed registration.
+a failed registration. <!-- wl:id operators-list-pending -->
 
 ### Operator Roles
 
@@ -2033,7 +2167,7 @@ it may replay it. So a console keeps the thing that can **ask**, and never the
   that could tell a console from a component, so a console MUST NOT register
   itself there (`console-credential-use`). Until a route is specified, a
   console does no unattended work at a hub, and work that runs whether or
-  not anybody is present belongs to the tenant's own services.
+  not anybody is present belongs to the tenant's own services. <!-- wl:id console-not-registered -->
 - **An agent a console runs never holds a person's token.** This binds a
   console. A token a person's own CLI stores on their machine is outside it,
   and any program that person runs can read that file, an agent among them,
@@ -2145,7 +2279,7 @@ presents a token it received
 **An endpoint whose provider is not deployed MUST report itself unavailable, and
 MUST NOT return an empty result.** An empty decision inbox and an owner that
 could not be asked are different facts, and a console that renders them identically tells an
-operator the system is quiet when it is simply not there.
+operator the system is quiet when it is simply not there. <!-- wl:id provider-absent-unavailable -->
 
 > **Gap — no provider but the orchestrator serves its group on a pass yet.**
 > No blueprint specifies the administrative routes of the Domains,
@@ -2499,7 +2633,7 @@ The orchestrator stores operator records alongside agent records:
 ### Store: Operators
 
 **Owner:** Orchestrator
-**Durability:** MUST survive restarts
+**Durability:** MUST survive restarts <!-- wl:id store-operators-durable -->
 
 | Operation | Signature | Description |
 |-----------|-----------|-------------|
@@ -2512,7 +2646,7 @@ The orchestrator stores operator records alongside agent records:
 
 **Owner:** Orchestrator
 **Durability:** MUST survive restarts. A revoked credential is kept, so its key
-is never accepted again
+is never accepted again <!-- wl:id store-credentials-durable -->
 
 | Operation | Signature | Description |
 |-----------|-----------|-------------|
@@ -2529,7 +2663,7 @@ type.
 **Owner:** Orchestrator
 **Durability:** MUST survive restarts and be shared by every instance that
 answers for this hub. A record lives until its request's `timestamp` leaves
-the 300-second replay window, at most 600 seconds, and is then deleted
+the 300-second replay window, at most 600 seconds, and is then deleted <!-- wl:id store-jti-durable -->
 
 | Operation | Signature | Description |
 |-----------|-----------|-------------|
@@ -2601,7 +2735,7 @@ ADDRESS and an operator identity, and nothing else — no workspace selected, no
 project directory on the caller's machine, no run state some tool happened to
 record. A hub on another host, in a container, or started by something other
 than the tool now connecting to it MUST be reachable on exactly the same terms
-as one in the next directory.
+as one in the next directory. <!-- wl:id connect-address-only -->
 
 A console that required a local project directory in order to connect made
 "connect" mean "connect to a hub I built here". That inverts the relationship
@@ -2615,13 +2749,13 @@ issue a token yet leaves the operator **pending approval**, which is not a
 failure — the first operator of a hub is admitted by the bootstrap secret,
 every later one requires an existing admin, and the report MUST name who can
 act — and a hub that does not serve the token endpoint is **unreachable**,
-never pending.
+never pending. <!-- wl:id connect-outcomes-distinct -->
 
 The second matters most. A hub that predates
 `POST /v1/admin/operators/token` answers `404` or `405`, and reporting that as
 "pending approval" tells somebody to wait for an approval that is never coming.
 An implementation MUST NOT collapse a missing endpoint into an authorisation
-state.
+state. <!-- wl:id missing-endpoint-not-pending -->
 
 **Asking for a token before attempting registration is required, not an
 optimisation.** A client that holds a credential at the hub mints with it; one
@@ -2655,14 +2789,14 @@ Four rules govern it, and each exists because its absence is a disclosure:
    every process on the machine — `ps` shows it, `/proc/<pid>/cmdline` shows it,
    and a shell usually records it. It arrives on a channel that does not echo,
    persist or log it; a password field over TLS is such a channel, and stdin is
-   how it reaches the process.
+   how it reaches the process. <!-- wl:id passphrase-not-argv -->
 
 2. **The operator key location MUST be parameterisable, and MUST be derived
    from the subject by ONE mechanism.** One machine may serve several operator
    identities, and a console with more than one signed-in account cannot share a
    single key file: the second account would use the first account's identity or
    overwrite it. An identity belongs to a subject, not to a machine and not to a
-   tenant.
+   tenant. <!-- wl:id key-location-parameterised -->
 
    Parameterising it is not enough on its own. A location is a path, and if
    every caller works out its own path then the rule exists in as many places as
@@ -2671,7 +2805,7 @@ Four rules govern it, and each exists because its absence is a disclosure:
    by label and resolve the location itself, and MUST be able to report where a
    given identity lives, so a caller can ask instead of deriving. An explicit
    path remains accepted and outranks the label, because an operator who gives
-   one means it.
+   one means it. <!-- wl:id identity-by-label -->
 
    That label is NOT the operator's name, and the two MUST NOT be collapsed
    into one argument. The name is hub-facing — recorded in the orchestrator's
@@ -2679,23 +2813,23 @@ Four rules govern it, and each exists because its absence is a disclosure:
    this machine signs. A console signs in an account whose id may be an email
    and registers it on a hub under a chosen display name; merging them forces
    one to become the other. `architecture/cli` names the first `--name` and the
-   explicit path `--keys-dir`.
+   explicit path `--keys-dir`. <!-- wl:id label-not-name -->
 
    The label MUST NOT appear verbatim in the path: an account id may be an
    email, and an email in a directory name is a disclosure to anything that can
-   list the parent.
+   list the parent. <!-- wl:id label-not-in-path -->
 
 3. **Provisioning MUST reuse an existing identity rather than replace one.** A
    subject holds one identity and a separate credential at each hub, attested by
    that identity, so minting a new key while provisioning a second tenant would
    silently orphan
    the grant every earlier tenant recorded. A passphrase that does not open an
-   existing identity is an error, not a reason to generate another.
+   existing identity is an error, not a reason to generate another. <!-- wl:id provision-reuses-identity -->
 
 4. **Provisioning MUST be re-runnable.** A console retrying after a network
    error must not be told the tenant is broken by the step that already
    succeeded. Already-registered is reported as already-registered, and the
-   action proceeds to obtain a token.
+   action proceeds to obtain a token. <!-- wl:id provision-rerunnable -->
 
 Nothing it obtains persists except a credential's key. The passphrase is
 discarded with the process, per [`protocol/identity`](../protocol/identity.md)
@@ -2895,7 +3029,7 @@ cost anybody can impose. Each route is counted on its own, so a person
 minting a token is never refused for having changed a key. A **source** is the
 client's IP address, as
 [`patterns/rate-limiting`](../patterns/rate-limiting.md#identification-keys)
-derives the IP key, never a name, `cid` or key in the request.
+derives the IP key, never a name, `cid` or key in the request. <!-- wl:id auth-endpoints-limited -->
 
 The admin gateway applies the limit at step 3 of the
 [Admin Gateway Request Lifecycle](#admin-gateway-request-lifecycle), before
@@ -2931,9 +3065,9 @@ The rest SHOULD be:
 - All admin API responses include `Cache-Control: no-store` to prevent
   caching of sensitive operational data
 - The admin interface MUST work over HTTPS in production. HTTP is
-  NEVER permitted, even in development (use self-signed certs).
+  NEVER permitted, even in development (use self-signed certs). <!-- wl:id admin-https-only -->
 - The admin gateway and application gateway MUST NOT share a TLS
-  certificate, a domain or a network listener.
+  certificate, a domain or a network listener. <!-- wl:id no-shared-tls -->
 - Admin gateway logs are classified as Confidential (level 2) and
   are stored separately from application gateway logs.
 - No header a gateway adds authorises anything or names who acted.
@@ -2944,87 +3078,87 @@ The rest SHOULD be:
   is never read as either, and the admin gateway sends neither.
 
 ## Verification Checklist
-- [ ] Authentication services — OIDC, password verification, credential storage, token minting — are used from `patterns/auth-*` and `patterns/user-management` and are not reimplemented for the admin path
-- [ ] The admin listener, domain and certificate are all distinct from the application gateway's; nothing is shared between them
-- [ ] A grant held within a tenant confers no platform administrative capability
-- [ ] Connecting to a hub requires only its address and an operator identity — no local project directory and no recorded run state
+- [ ] Authentication services — OIDC, password verification, credential storage, token minting — are used from `patterns/auth-*` and `patterns/user-management` and are not reimplemented for the admin path <!-- wl:check auth-services-reused covers auth-not-duplicated auth-stack-shared -->
+- [ ] The admin listener, domain and certificate are all distinct from the application gateway's; nothing is shared between them <!-- wl:check listeners-separate covers no-shared-tls -->
+- [ ] A grant held within a tenant confers no platform administrative capability <!-- wl:check tenant-grant-confers-nothing covers tenant-grant-not-platform -->
+- [ ] Connecting to a hub requires only its address and an operator identity — no local project directory and no recorded run state <!-- wl:check connect-needs-address covers connect-address-only -->
 - [ ] A token is requested BEFORE any registration is attempted, and connecting never sends a registration: registering is its own act (`architecture/cli`, `weblisk operator register`)
-- [ ] A hub that refuses to register a new operator unauthenticated is reported as pending approval, naming who can act, and not as a failure
-- [ ] A hub that does not serve the token endpoint is reported as such, never as pending approval
+- [ ] A hub that refuses to register a new operator unauthenticated is reported as pending approval, naming who can act, and not as a failure <!-- wl:check connect-pending-reported covers connect-outcomes-distinct -->
+- [ ] A hub that does not serve the token endpoint is reported as such, never as pending approval <!-- wl:check connect-missing-endpoint covers connect-outcomes-distinct missing-endpoint-not-pending -->
 - [ ] Connecting is idempotent: where this device has recorded a registration for that address, running it against a hub that already knows the operator issues a token and changes nothing else
-- [ ] A passphrase supplied as a command-line argument is REFUSED, and the refusal names stdin as the alternative
-- [ ] The operator key location is parameterisable, so two signed-in accounts on one machine hold separate identities
-- [ ] Provisioning against an existing identity reuses it; a passphrase that does not open it is an error and no new key is generated
-- [ ] Provisioning is re-runnable: an already-registered operator proceeds to obtain a token rather than failing
-- [ ] The passphrase is never written to disk, and a console never writes an operator token anywhere
-- [ ] A console that drives the CLI to connect, register or mint passes `--no-store` and never `--store`, and no token file is written, including where the CLI's mint asks the identity's holder
-- [ ] `POST /v1/admin/operators/token` issues an attestation token (`type` `attestation`, no `cap`, no `cid`, at most 300 seconds, with `hub_id` and the operator's `identity_id`) to an approved operator who signs `{hub_id, jti, name, timestamp}` with their identity key, and every route but `POST /v1/admin/operators/{name}/credentials` refuses that token with `CREDENTIAL_REQUIRED`
-- [ ] The signature is verified against the public key in the orchestrator's OWN operator record, never a directory
-- [ ] A token request outside the 300-second replay window is refused
-- [ ] A token request with no `jti`, or one that does not decode to between 16 and 64 bytes, is refused with `400` `INVALID_REQUEST` before its signature is checked; the same signed request sent twice is answered once and then refused with `TOKEN_REQUEST_REPLAYED`, issuing no token, and logged as a security event; of two concurrent requests carrying one `jti` exactly one is answered; a request whose signature does not verify records no `jti`, so the operator's own request with that `jti` is still answered
-- [ ] A token request whose signature verifies, at a hub whose `jti` record cannot be read or written, is refused with `500` `STORAGE_ERROR` and issues no token; the record survives a restart of the orchestrator, and a request answered by one instance is refused as a replay by another instance answering for the same hub
-- [ ] Two token requests from one identity in the same second carry different `jti`s and so different signed bytes, and both are answered
-- [ ] A signed token request first refused with `CREDENTIAL_FOREIGN_HUB`, `OPERATOR_NOT_APPROVED` or `OPERATOR_REVOKED`, sent again to the same hub inside the replay window, is refused with `TOKEN_REQUEST_REPLAYED`
-- [ ] A token request for a pending operator is refused with 403 `OPERATOR_NOT_APPROVED`, distinctly from an unknown operator (`OPERATOR_UNKNOWN`)
-- [ ] Registration that also approves returns an attestation token, `hub_id`, `identity_id` and `status: approved`; registration that does not returns `status: pending`, `hub_id` and `identity_id`, and no token
-- [ ] A registration repeating an operator's name and current identity key, with a fresh timestamp, is answered `200` with `hub_id` and `identity_id` alone, carrying no record, role, status or token and changing nothing, for a pending, an approved and a revoked operator alike; the same name with another key is refused with 409
-- [ ] `POST /v1/admin/operators/token` signed by an approved operator over another hub's `hub_id` is refused with `CREDENTIAL_FOREIGN_HUB`, issues no token and is logged as a security event, and one that carries a `jti` but whose signature is over `{name, timestamp}` or `{hub_id, name, timestamp}` is refused with `INVALID_SIGNATURE`
-- [ ] Until `weblisk/hub-proof/v1` has test vectors, every request to `POST /v1/admin/hub/proof` is answered `501` `HUB_PROOF_UNAVAILABLE`, and none with a signature. Once it has them, `POST /v1/admin/hub/proof` with no token, for an address `orchestrator.admin_addresses` lists and a challenge decoding to between 16 and 64 bytes, answers `200` with `hub_id`, a `public_key` whose fingerprint is `hub_id`, the address, and a signature by that key that verifies over `weblisk/hub-proof/v1`, `0x00`, `hub_id`, `0x00`, the address, `0x00` and the challenge
-- [ ] Once `weblisk/hub-proof/v1` has test vectors, `POST /v1/admin/hub/proof` for an address `orchestrator.admin_addresses` does not list is refused with `HUB_ADDRESS_FOREIGN`, signs nothing and is logged as a security event, also where the request's `Host` or `X-Forwarded-Host` header names a listed address; an address with a path or a trailing `/`, and a challenge that is padded, not base64url, or decodes to fewer than 16 or more than 64 bytes, are refused with `400` `INVALID_REQUEST` and sign nothing
-- [ ] Once `weblisk/hub-proof/v1` has test vectors, and after the orchestrator signs tokens with a key other than its first, `POST /v1/admin/hub/proof` still answers under the key whose fingerprint is its `hub_id`, and that key signs no token
-- [ ] A registered operator's `identity_id` is the fingerprint of the `public_key` its registration carried, and stays that value through every later change of identity key
-- [ ] After a change of identity key, `POST /v1/admin/operators/token` signed with the new key answers the operator's kept `identity_id`; an attestation naming that `identity_id` is accepted, and one naming the new key's fingerprint instead is refused with `CREDENTIAL_ATTESTATION_INVALID`
-- [ ] Once `weblisk/credential-auth/v1` has test vectors, an expired operator token is replaced by a new challenge answered with the credential, without re-registering and without the identity
-- [ ] Once `weblisk/credential-auth/v1` has test vectors, `POST /v1/admin/credentials/token` issues an operator token carrying `cid`, expiring one hour after issue and never after the attestation's `not_after`, only for a signature by the stored credential key over `weblisk/credential-auth/v1`, 0x00, `hub_id` as its 64 hex characters, 0x00 and the base64url text of a nonce this hub issued for that credential
-- [ ] For every vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) under `weblisk/credential-auth/v1`, the hub, which verifies a credential's answer and does not sign one, passes the test [`architecture/generation`](generation.md#published-test-vectors) gives for a component that verifies
-- [ ] `POST /v1/admin/operators/token` never issues an operator token, whatever its request carries
+- [ ] A passphrase supplied as a command-line argument is REFUSED, and the refusal names stdin as the alternative <!-- wl:check passphrase-refused-in-argv covers passphrase-not-argv -->
+- [ ] The operator key location is parameterisable, so two signed-in accounts on one machine hold separate identities <!-- wl:check key-location-separate covers key-location-parameterised -->
+- [ ] Provisioning against an existing identity reuses it; a passphrase that does not open it is an error and no new key is generated <!-- wl:check provision-reuses covers provision-reuses-identity -->
+- [ ] Provisioning is re-runnable: an already-registered operator proceeds to obtain a token rather than failing <!-- wl:check provision-reruns covers provision-rerunnable -->
+- [ ] The passphrase is never written to disk, and a console never writes an operator token anywhere <!-- wl:check passphrase-and-token-unwritten covers console-token-in-memory -->
+- [ ] A console that drives the CLI to connect, register or mint passes `--no-store` and never `--store`, and no token file is written, including where the CLI's mint asks the identity's holder <!-- wl:check console-passes-no-store covers console-no-store -->
+- [ ] `POST /v1/admin/operators/token` issues an attestation token (`type` `attestation`, no `cap`, no `cid`, at most 300 seconds, with `hub_id` and the operator's `identity_id`) to an approved operator who signs `{hub_id, jti, name, timestamp}` with their identity key, and every route but `POST /v1/admin/operators/{name}/credentials` refuses that token with `CREDENTIAL_REQUIRED` <!-- wl:check attestation-token-issued covers attestation-route-no-token attestation-request-signed attestation-token-form attestation-token-scope attestation-answer-ids -->
+- [ ] The signature is verified against the public key in the orchestrator's OWN operator record, never a directory <!-- wl:check signature-against-own-record covers directory-never-authenticates -->
+- [ ] A token request outside the 300-second replay window is refused <!-- wl:check token-request-window covers attestation-request-signed -->
+- [ ] A token request with no `jti`, or one that does not decode to between 16 and 64 bytes, is refused with `400` `INVALID_REQUEST` before its signature is checked; the same signed request sent twice is answered once and then refused with `TOKEN_REQUEST_REPLAYED`, issuing no token, and logged as a security event; of two concurrent requests carrying one `jti` exactly one is answered; a request whose signature does not verify records no `jti`, so the operator's own request with that `jti` is still answered <!-- wl:check token-request-jti covers attestation-jti-form attestation-replay -->
+- [ ] A token request whose signature verifies, at a hub whose `jti` record cannot be read or written, is refused with `500` `STORAGE_ERROR` and issues no token; the record survives a restart of the orchestrator, and a request answered by one instance is refused as a replay by another instance answering for the same hub <!-- wl:check jti-record-durable covers attestation-replay store-jti-durable -->
+- [ ] Two token requests from one identity in the same second carry different `jti`s and so different signed bytes, and both are answered <!-- wl:check jti-per-request covers attestation-jti-form -->
+- [ ] A signed token request first refused with `CREDENTIAL_FOREIGN_HUB`, `OPERATOR_NOT_APPROVED` or `OPERATOR_REVOKED`, sent again to the same hub inside the replay window, is refused with `TOKEN_REQUEST_REPLAYED` <!-- wl:check refused-request-replayed covers attestation-replay -->
+- [ ] A token request for a pending operator is refused with 403 `OPERATOR_NOT_APPROVED`, distinctly from an unknown operator (`OPERATOR_UNKNOWN`) <!-- wl:check pending-distinct-from-unknown covers attestation-status-after-signature -->
+- [ ] Registration that also approves returns an attestation token, `hub_id`, `identity_id` and `status: approved`; registration that does not returns `status: pending`, `hub_id` and `identity_id`, and no token <!-- wl:check registration-answers covers registration-answer bootstrap-answer later-registration-needs-admin -->
+- [ ] A registration repeating an operator's name and current identity key, with a fresh timestamp, is answered `200` with `hub_id` and `identity_id` alone, carrying no record, role, status or token and changing nothing, for a pending, an approved and a revoked operator alike; the same name with another key is refused with 409 <!-- wl:check registration-repeats covers registration-repeat registration-name-held -->
+- [ ] `POST /v1/admin/operators/token` signed by an approved operator over another hub's `hub_id` is refused with `CREDENTIAL_FOREIGN_HUB`, issues no token and is logged as a security event, and one that carries a `jti` but whose signature is over `{name, timestamp}` or `{hub_id, name, timestamp}` is refused with `INVALID_SIGNATURE` <!-- wl:check token-request-foreign-hub covers attestation-request-signed attestation-foreign-hub registration-input-stated-exactly -->
+- [ ] Until `weblisk/hub-proof/v1` has test vectors, every request to `POST /v1/admin/hub/proof` is answered `501` `HUB_PROOF_UNAVAILABLE`, and none with a signature. Once it has them, `POST /v1/admin/hub/proof` with no token, for an address `orchestrator.admin_addresses` lists and a challenge decoding to between 16 and 64 bytes, answers `200` with `hub_id`, a `public_key` whose fingerprint is `hub_id`, the address, and a signature by that key that verifies over `weblisk/hub-proof/v1`, `0x00`, `hub_id`, `0x00`, the address, `0x00` and the challenge <!-- wl:check hub-proof-answers covers hub-proof-route hub-proof-statement hub-proof-vectors-first -->
+- [ ] Once `weblisk/hub-proof/v1` has test vectors, `POST /v1/admin/hub/proof` for an address `orchestrator.admin_addresses` does not list is refused with `HUB_ADDRESS_FOREIGN`, signs nothing and is logged as a security event, also where the request's `Host` or `X-Forwarded-Host` header names a listed address; an address with a path or a trailing `/`, and a challenge that is padded, not base64url, or decodes to fewer than 16 or more than 64 bytes, are refused with `400` `INVALID_REQUEST` and sign nothing <!-- wl:check hub-proof-foreign-address covers hub-proof-address-form hub-proof-admin-addresses -->
+- [ ] Once `weblisk/hub-proof/v1` has test vectors, and after the orchestrator signs tokens with a key other than its first, `POST /v1/admin/hub/proof` still answers under the key whose fingerprint is its `hub_id`, and that key signs no token <!-- wl:check hub-proof-first-key covers hub-proof-key-kept -->
+- [ ] A registered operator's `identity_id` is the fingerprint of the `public_key` its registration carried, and stays that value through every later change of identity key <!-- wl:check identity-id-is-first-key covers registration-identity-id -->
+- [ ] After a change of identity key, `POST /v1/admin/operators/token` signed with the new key answers the operator's kept `identity_id`; an attestation naming that `identity_id` is accepted, and one naming the new key's fingerprint instead is refused with `CREDENTIAL_ATTESTATION_INVALID` <!-- wl:check identity-id-kept covers attestation-answer-ids attestation-names-identity -->
+- [ ] Once `weblisk/credential-auth/v1` has test vectors, an expired operator token is replaced by a new challenge answered with the credential, without re-registering and without the identity <!-- wl:check token-renewed-by-credential covers renewal-without-identity client-uses-credential-routes -->
+- [ ] Once `weblisk/credential-auth/v1` has test vectors, `POST /v1/admin/credentials/token` issues an operator token carrying `cid`, expiring one hour after issue and never after the attestation's `not_after`, only for a signature by the stored credential key over `weblisk/credential-auth/v1`, 0x00, `hub_id` as its 64 hex characters, 0x00 and the base64url text of a nonce this hub issued for that credential <!-- wl:check operator-token-from-credential covers credential-routes-no-token credential-answer-bytes operator-token-claims -->
+- [ ] For every vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) under `weblisk/credential-auth/v1`, the hub, which verifies a credential's answer and does not sign one, passes the test [`architecture/generation`](generation.md#published-test-vectors) gives for a component that verifies <!-- wl:check credential-auth-vectors covers credential-answer-bytes -->
+- [ ] `POST /v1/admin/operators/token` never issues an operator token, whatever its request carries <!-- wl:check no-operator-token-from-identity covers client-uses-credential-routes -->
 - [ ] A hub that rotates its orchestrator key answers every challenge with the `hub_id` it had before, and, once `weblisk/credential-auth/v1` has test vectors, every credential attested for that `hub_id` still mints
-- [ ] A nonce from `POST /v1/admin/credentials/challenge` is spent by the first token request that presents it, whether or not the signature verifies, and a revoked or expired credential's status is disclosed only after its signature verifies
-- [ ] An attestation whose `hub_id` is not this hub's, whose credential key is not an ML-DSA-65 key, whose credential key is the identity key, whose `not_after` has passed or is more than 90 days away, or whose key was revoked here before is refused with `CREDENTIAL_FOREIGN_HUB`, `CREDENTIAL_FORM_UNSUPPORTED`, `CREDENTIAL_IS_IDENTITY_KEY`, `CREDENTIAL_LIFETIME_INVALID` or `CREDENTIAL_PREVIOUSLY_REVOKED`
-- [ ] An attestation with `purpose` `sign-records` is recorded under the same checks and 90-day cap as any other, appears in the operator's credential list, and can be revoked; a challenge or token request for its key is refused with `CREDENTIAL_PURPOSE_REFUSED` and no nonce is issued
-- [ ] An attestation naming one purpose for a key this hub holds, or held and revoked, under the other is refused with `CREDENTIAL_PURPOSE_REFUSED`
-- [ ] An operator attesting a key that is another operator's active, expired or revoked credential, or another operator's identity key, is refused with `CREDENTIAL_KEY_BOUND`; the other operator's credential keeps its operator and its attestation, and, once `weblisk/credential-auth/v1` has test vectors, their next token is minted for them
-- [ ] Every operator token names in `record_keys` each active, unexpired sign-records credential its operator holds here, and a token minted after one is revoked does not name it
-- [ ] Revoking the last authenticate credential of the last active admin is refused with `OPERATOR_LAST_ADMINISTRATOR` whatever sign-records credentials that admin holds
-- [ ] A console holds no key attested with `purpose` `sign-records`, for any account
-- [ ] Removing an operator, or revoking one of its credentials, refuses its next request with `OPERATOR_REVOKED` or `CREDENTIAL_REVOKED` without waiting for its token to expire
-- [ ] A removed operator keeps its record with status `revoked`, and a request naming it is refused with `OPERATOR_REVOKED`, never `OPERATOR_UNKNOWN`
-- [ ] The sole admin's change of identity key revokes their credentials and is not refused with `OPERATOR_LAST_ADMINISTRATOR`; the new identity then attests a credential and, once `weblisk/credential-auth/v1` has test vectors, mints
-- [ ] `POST /v1/admin/operators/{name}/key` signed by the recorded key and the new key over `canonicalize({hub_id, name, new_public_key, timestamp})` keeps the operator's name, role, status and `identity_id`, moves the old key to `retired_keys` with the time of the change as its `retired_at`, and revokes every credential; one whose `current_signature` is by any other key, apart from the repeat below, or that is replayed, is refused with `OPERATOR_KEY_CHANGE_INVALID` and changes nothing; one naming another hub's `hub_id` is refused with `CREDENTIAL_FOREIGN_HUB`
-- [ ] After a key change the hub accepted, the same change sent again with a fresh timestamp, signed by the key it retired and by the new key, is answered `200` with the same operator record, `identity_id` and `hub_id`, revokes nothing, leaves `retired_keys` as it was, and is audited as a repeat; with a `new_signature` that does not verify, or signed by a key retired before that change, it is refused with `OPERATOR_KEY_CHANGE_INVALID`
-- [ ] A registration or a change of identity key offering a key this hub records or recorded as any identity key or credential is refused with `OPERATOR_KEY_REUSED`
-- [ ] An attestation whose credential key is one of the operator's own retired identity keys is refused with `CREDENTIAL_IS_IDENTITY_KEY`
-- [ ] A change of identity key for a revoked operator whose signatures do not verify is refused with `OPERATOR_KEY_CHANGE_INVALID`, never `OPERATOR_REVOKED`; one whose signatures verify is refused with `OPERATOR_REVOKED`
-- [ ] More than five requests a minute from one source to `POST /v1/admin/operators/{name}/key`, to `POST /v1/admin/hub/proof`, or to any of the four routes that issue tokens, are refused before any signature is verified or made
+- [ ] A nonce from `POST /v1/admin/credentials/challenge` is spent by the first token request that presents it, whether or not the signature verifies, and a revoked or expired credential's status is disclosed only after its signature verifies <!-- wl:check nonce-spent-once covers nonce-spent credential-status-after-signature -->
+- [ ] An attestation whose `hub_id` is not this hub's, whose credential key is not an ML-DSA-65 key, whose credential key is the identity key, whose `not_after` has passed or is more than 90 days away, or whose key was revoked here before is refused with `CREDENTIAL_FOREIGN_HUB`, `CREDENTIAL_FORM_UNSUPPORTED`, `CREDENTIAL_IS_IDENTITY_KEY`, `CREDENTIAL_LIFETIME_INVALID` or `CREDENTIAL_PREVIOUSLY_REVOKED` <!-- wl:check attestation-refusals covers credential-not-identity-key credential-lifetime credential-previously-revoked revoked-credential-kept -->
+- [ ] An attestation with `purpose` `sign-records` is recorded under the same checks and 90-day cap as any other, appears in the operator's credential list, and can be revoked; a challenge or token request for its key is refused with `CREDENTIAL_PURPOSE_REFUSED` and no nonce is issued <!-- wl:check sign-records-attested covers challenge-refusals token-request-unknown-cid -->
+- [ ] An attestation naming one purpose for a key this hub holds, or held and revoked, under the other is refused with `CREDENTIAL_PURPOSE_REFUSED` <!-- wl:check purpose-refused covers credential-one-purpose -->
+- [ ] An operator attesting a key that is another operator's active, expired or revoked credential, or another operator's identity key, is refused with `CREDENTIAL_KEY_BOUND`; the other operator's credential keeps its operator and its attestation, and, once `weblisk/credential-auth/v1` has test vectors, their next token is minted for them <!-- wl:check key-bound-refused covers credential-key-bound -->
+- [ ] Every operator token names in `record_keys` each active, unexpired sign-records credential its operator holds here, and a token minted after one is revoked does not name it <!-- wl:check record-keys-named covers operator-token-claims -->
+- [ ] Revoking the last authenticate credential of the last active admin is refused with `OPERATOR_LAST_ADMINISTRATOR` whatever sign-records credentials that admin holds <!-- wl:check last-admin-credential-refused covers last-admin-credential -->
+- [ ] A console holds no key attested with `purpose` `sign-records`, for any account <!-- wl:check console-holds-no-sign-records covers console-no-sign-records -->
+- [ ] Removing an operator, or revoking one of its credentials, refuses its next request with `OPERATOR_REVOKED` or `CREDENTIAL_REVOKED` without waiting for its token to expire <!-- wl:check revocation-ends-tokens covers status-checked-on-use status-refusals revoked-credential-kept operator-removal-revokes -->
+- [ ] A removed operator keeps its record with status `revoked`, and a request naming it is refused with `OPERATOR_REVOKED`, never `OPERATOR_UNKNOWN` <!-- wl:check removed-operator-kept covers status-refusals operator-removal-revokes -->
+- [ ] The sole admin's change of identity key revokes their credentials and is not refused with `OPERATOR_LAST_ADMINISTRATOR`; the new identity then attests a credential and, once `weblisk/credential-auth/v1` has test vectors, mints <!-- wl:check sole-admin-key-change covers last-admin-key-change key-change-not-last-admin -->
+- [ ] `POST /v1/admin/operators/{name}/key` signed by the recorded key and the new key over `canonicalize({hub_id, name, new_public_key, timestamp})` keeps the operator's name, role, status and `identity_id`, moves the old key to `retired_keys` with the time of the change as its `retired_at`, and revokes every credential; one whose `current_signature` is by any other key, apart from the repeat below, or that is replayed, is refused with `OPERATOR_KEY_CHANGE_INVALID` and changes nothing; one naming another hub's `hub_id` is refused with `CREDENTIAL_FOREIGN_HUB` <!-- wl:check key-change-applied covers key-change-revokes-credentials key-change-route key-change-request key-change-invalid key-change-write -->
+- [ ] After a key change the hub accepted, the same change sent again with a fresh timestamp, signed by the key it retired and by the new key, is answered `200` with the same operator record, `identity_id` and `hub_id`, revokes nothing, leaves `retired_keys` as it was, and is audited as a repeat; with a `new_signature` that does not verify, or signed by a key retired before that change, it is refused with `OPERATOR_KEY_CHANGE_INVALID` <!-- wl:check key-change-repeated covers key-change-repeat -->
+- [ ] A registration or a change of identity key offering a key this hub records or recorded as any identity key or credential is refused with `OPERATOR_KEY_REUSED` <!-- wl:check key-reuse-refused covers registration-key-reused key-change-key-reused -->
+- [ ] An attestation whose credential key is one of the operator's own retired identity keys is refused with `CREDENTIAL_IS_IDENTITY_KEY` <!-- wl:check retired-key-not-credential covers credential-not-identity-key -->
+- [ ] A change of identity key for a revoked operator whose signatures do not verify is refused with `OPERATOR_KEY_CHANGE_INVALID`, never `OPERATOR_REVOKED`; one whose signatures verify is refused with `OPERATOR_REVOKED` <!-- wl:check revoked-key-change covers key-change-invalid -->
+- [ ] More than five requests a minute from one source to `POST /v1/admin/operators/{name}/key`, to `POST /v1/admin/hub/proof`, or to any of the four routes that issue tokens, are refused before any signature is verified or made <!-- wl:check auth-routes-five-a-minute covers auth-routes-limited auth-endpoints-limited -->
 - [ ] `POST /v1/admin/hub/proof` with no bearer token passes the admin gateway's step 4 and the orchestrator's Auth Middleware to its handler, and is never refused for carrying no token
 - [ ] A token minted after a change of identity key carries the same `identity_id` as one minted before it
-- [ ] A role lowered after a token was issued limits that token from its next request
-- [ ] An operator token without `cid` is refused with `CREDENTIAL_REQUIRED`
-- [ ] An admin's token minted with `cap` naming only `content:read`, `content:write` and `content:decide` is refused with `FORBIDDEN` at `POST /v1/admin/operators/{name}/approve`, `PUT /v1/admin/operators/{name}/role`, `DELETE /v1/admin/operators/{name}/credentials/{cid}` for another operator's credential and for the admin's own, `POST /v1/admin/operators/{name}/credentials` for the admin, and, at a provider that serves one, every `operator+` route, although the admin's role reaches each
-- [ ] Every administrative route authorises against the capabilities the operator's role carries now narrowed to the token's `cap`, never against the role alone
+- [ ] A role lowered after a token was issued limits that token from its next request <!-- wl:check lowered-role-limits-token covers role-now-narrowed-by-cap capabilities-from-role role-from-record -->
+- [ ] An operator token without `cid` is refused with `CREDENTIAL_REQUIRED` <!-- wl:check cid-required-refused covers cid-required -->
+- [ ] An admin's token minted with `cap` naming only `content:read`, `content:write` and `content:decide` is refused with `FORBIDDEN` at `POST /v1/admin/operators/{name}/approve`, `PUT /v1/admin/operators/{name}/role`, `DELETE /v1/admin/operators/{name}/credentials/{cid}` for another operator's credential and for the admin's own, `POST /v1/admin/operators/{name}/credentials` for the admin, and, at a provider that serves one, every `operator+` route, although the admin's role reaches each <!-- wl:check cap-narrows-admin covers route-capability-forbidden -->
+- [ ] Every administrative route authorises against the capabilities the operator's role carries now narrowed to the token's `cap`, never against the role alone <!-- wl:check role-now-and-cap covers role-now-narrowed-by-cap -->
 - [ ] `POST /v1/admin/operators/token` with a signature that does not verify is refused with `INVALID_SIGNATURE` for a pending or a revoked operator, and only a request whose signature verifies is told `OPERATOR_NOT_APPROVED` or `OPERATOR_REVOKED`
-- [ ] The bootstrap secret is written to `.weblisk/bootstrap` readable only by the user the orchestrator runs as; an orchestrator whose standard error is not a terminal, such as one started detached or by a boot unit, writes it to no log, journal or output stream
-- [ ] A console uses a person's credential only while that person has a live AAL2 session with it, never for work nobody is present for, and discards a person's tokens when their session ends
-- [ ] A console gives no agent a token minted with a person's credential, with or without `cap`. For a run whose person holds a live AAL2 session it sends only reads of the tenant's content and completions through the model route, each to the tenant's admin gateway on that person's token; it sends nothing for the run once that session ends; and a write, proposal or decision an agent prepared reaches a hub only in a request the person submits
-- [ ] A console presents a person's token to the tenant's admin gateway alone. The content service receives a console's read on a pass whose `aud` is the content service and whose `cap` names only `content:read` or `content:describe`, never on the person's token, and never carrying an `admin:` capability
-- [ ] A token request carrying `cap` receives a token carrying exactly the named capabilities its operator's role carries; a name the role does not carry is left out, and a request with no `cap` receives the role's full set
-- [ ] A token request whose `cap` names nothing the operator's role carries, such as a `viewer`'s or an `auditor`'s with `cap` `[fabric:attest]`, receives a token whose `cap` is the empty list. That token, and an operator token that carries no `cap` claim at all, is refused with `FORBIDDEN` at every route that requires a capability, and the token exchange answers it `issued: false` with `FORBIDDEN` for any `scope`, never minting a pass that carries the role's full set
-- [ ] An operator token carries `identity_id`, the `identity_id` of the credential its `cid` names
-- [ ] A `viewer` token carries `content:read` and `content:describe` and no other `content:` capability, and an `operator` token carries `content:write` and `content:decide`
-- [ ] Every capability this document names for a person's token is carried by at least one role in the Operator Roles table, and no role carries `token:exchange`, so no operator token's `cap` reaches it whatever it names
-- [ ] An `operator` or `admin` token carries `fabric:read` and `fabric:attest`, a `viewer` or `auditor` token carries `fabric:read` and not `fabric:attest`
-- [ ] An `admin` token carries `content:replicate` and `content:connect`, an `operator` token carries neither, and no token minted for a service subject carries either
-- [ ] An `admin` token carries `content:declassify`, and an `operator`, `auditor` or `viewer` token, and every token minted for a service subject, does not
-- [ ] Removing an account from a console deletes its credential keys, revokes each credential first with the token of a signed-in person that hub permits to revoke it where there is one, and otherwise reports each credential live at its hub until its `not_after`
+- [ ] The bootstrap secret is written to `.weblisk/bootstrap` readable only by the user the orchestrator runs as; an orchestrator whose standard error is not a terminal, such as one started detached or by a boot unit, writes it to no log, journal or output stream <!-- wl:check bootstrap-written-privately covers bootstrap-secret-written -->
+- [ ] A console uses a person's credential only while that person has a live AAL2 session with it, never for work nobody is present for, and discards a person's tokens when their session ends <!-- wl:check console-session-bound covers console-credential-live-session console-no-unattended-work console-discards-tokens -->
+- [ ] A console gives no agent a token minted with a person's credential, with or without `cap`. For a run whose person holds a live AAL2 session it sends only reads of the tenant's content and completions through the model route, each to the tenant's admin gateway on that person's token; it sends nothing for the run once that session ends; and a write, proposal or decision an agent prepared reaches a hub only in a request the person submits <!-- wl:check console-no-agent-token covers console-no-agent-token -->
+- [ ] A console presents a person's token to the tenant's admin gateway alone. The content service receives a console's read on a pass whose `aud` is the content service and whose `cap` names only `content:read` or `content:describe`, never on the person's token, and never carrying an `admin:` capability <!-- wl:check console-token-to-gateway covers console-token-at-gateway -->
+- [ ] A token request carrying `cap` receives a token carrying exactly the named capabilities its operator's role carries; a name the role does not carry is left out, and a request with no `cap` receives the role's full set <!-- wl:check cap-narrows-token covers role-from-record -->
+- [ ] A token request whose `cap` names nothing the operator's role carries, such as a `viewer`'s or an `auditor`'s with `cap` `[fabric:attest]`, receives a token whose `cap` is the empty list. That token, and an operator token that carries no `cap` claim at all, is refused with `FORBIDDEN` at every route that requires a capability, and the token exchange answers it `issued: false` with `FORBIDDEN` for any `scope`, never minting a pass that carries the role's full set <!-- wl:check empty-cap-reaches-nothing covers operator-token-cap-always route-capability-forbidden -->
+- [ ] An operator token carries `identity_id`, the `identity_id` of the credential its `cid` names <!-- wl:check token-identity-id covers operator-token-claims -->
+- [ ] A `viewer` token carries `content:read` and `content:describe` and no other `content:` capability, and an `operator` token carries `content:write` and `content:decide` <!-- wl:check viewer-operator-content covers capability-roles-table -->
+- [ ] Every capability this document names for a person's token is carried by at least one role in the Operator Roles table, and no role carries `token:exchange`, so no operator token's `cap` reaches it whatever it names <!-- wl:check every-capability-in-a-role covers every-capability-held -->
+- [ ] An `operator` or `admin` token carries `fabric:read` and `fabric:attest`, a `viewer` or `auditor` token carries `fabric:read` and not `fabric:attest` <!-- wl:check fabric-by-role covers capability-roles-table -->
+- [ ] An `admin` token carries `content:replicate` and `content:connect`, an `operator` token carries neither, and no token minted for a service subject carries either <!-- wl:check replicate-by-role covers capability-roles-table -->
+- [ ] An `admin` token carries `content:declassify`, and an `operator`, `auditor` or `viewer` token, and every token minted for a service subject, does not <!-- wl:check declassify-by-role covers capability-roles-table -->
+- [ ] Removing an account from a console deletes its credential keys, revokes each credential first with the token of a signed-in person that hub permits to revoke it where there is one, and otherwise reports each credential live at its hub until its `not_after` <!-- wl:check console-removal covers console-removal-deletes-keys console-removal-reports -->
 
-- [ ] Admin gateway is a separate process/listener from the application gateway with its own TLS certificate and domain
-- [ ] Admin gateway rejects requests from IPs not in the operator allowlist before any processing (403, no body)
-- [ ] The first operator is approved as admin only on presenting the bootstrap secret; a registration at an empty hub without it, or with a wrong one, is refused with `OPERATOR_BOOTSTRAP_REFUSED` and writes nothing; subsequent operators require existing admin approval
-- [ ] The bootstrap secret is destroyed when claimed, never appears in a response or an audit entry, and is not issued again while any operator record exists
-- [ ] Two registrations presenting the bootstrap secret at once admit exactly one admin, and a restart before the claim replaces the emitted secret
-- [ ] Admin tokens are WLTs with a one-hour TTL, and a console ends a person's tokens when that person's session with it goes idle
-- [ ] Two factors are required with no exception, where each key is opened: an identity key signs only once its passphrase or its secret source opens it, and a client keeps a credential key only in the `weblisk-key-v1` envelope, in a secret source, in the platform keychain source released only while the person's machine session is unlocked, or behind a console session at AAL2, never in the clear. No gateway checks a factor claim in a token
-- [ ] Role hierarchy admin > operator > auditor > viewer is enforced server-side on every /v1/admin/* endpoint
+- [ ] Admin gateway is a separate process/listener from the application gateway with its own TLS certificate and domain <!-- wl:check gateway-separate-process covers no-shared-tls -->
+- [ ] Admin gateway rejects requests from IPs not in the operator allowlist before any processing (403, no body) <!-- wl:check allowlist-first covers admin-listener-guarded -->
+- [ ] The first operator is approved as admin only on presenting the bootstrap secret; a registration at an empty hub without it, or with a wrong one, is refused with `OPERATOR_BOOTSTRAP_REFUSED` and writes nothing; subsequent operators require existing admin approval <!-- wl:check bootstrap-claims-first covers bootstrap-secret-presented bootstrap-refused bootstrap-claims-admin later-registration-needs-admin -->
+- [ ] The bootstrap secret is destroyed when claimed, never appears in a response or an audit entry, and is not issued again while any operator record exists <!-- wl:check bootstrap-destroyed covers bootstrap-secret-never-shown bootstrap-secret-destroyed -->
+- [ ] Two registrations presenting the bootstrap secret at once admit exactly one admin, and a restart before the claim replaces the emitted secret <!-- wl:check bootstrap-claimed-once covers bootstrap-claim-atomic bootstrap-secret-replaced -->
+- [ ] Admin tokens are WLTs with a one-hour TTL, and a console ends a person's tokens when that person's session with it goes idle <!-- wl:check tokens-one-hour covers console-discards-tokens -->
+- [ ] Two factors are required with no exception, where each key is opened: an identity key signs only once its passphrase or its secret source opens it, and a client keeps a credential key only in the `weblisk-key-v1` envelope, in a secret source, in the platform keychain source released only while the person's machine session is unlocked, or behind a console session at AAL2, never in the clear. No gateway checks a factor claim in a token <!-- wl:check two-factors covers credential-key-behind-act no-factor-claim -->
+- [ ] Role hierarchy admin > operator > auditor > viewer is enforced server-side on every /v1/admin/* endpoint <!-- wl:check role-hierarchy covers approve-admin-only -->
 - [ ] Each act `destructive-action-step-up` names is refused `401` `STEP_UP_REQUIRED`, changing nothing, on a token whose `step_up_at` is absent or more than 300 seconds old, with `detail.control` naming the act and a `WWW-Authenticate` header carrying `insufficient_user_authentication` and `max_age=300`; on a token whose `step_up_at` is 300 seconds old or less it is admitted, and no other person is asked <!-- wl:check step-up-refuses-stale covers destructive-acts step-up-required step-up-challenge no-second-person -->
 - [ ] A token minted without `step_up`, however recent, carries no `step_up_at`; one minted with a `step_up` of form `identity` whose signature verifies over `weblisk/step-up/v1`, the `hub_id`, the request's nonce and its control carries `step_up_at` equal to its `iat`; and a `step_up` whose signature does not verify, or was made over another nonce, `hub_id` or control, is refused `INVALID_SIGNATURE`, issues no token and spends the nonce <!-- wl:check step-up-minted-only-on-proof covers step-up-request step-up-identity-form step-up-refused step-up-sets-claim step-up-is-the-claim -->
 - [ ] For every vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) under `weblisk/step-up/v1`, the hub, which verifies a step-up and does not sign one, passes the test [`architecture/generation`](generation.md#published-test-vectors) gives for a verifier <!-- wl:check step-up-vectors covers step-up-identity-form -->
@@ -3032,46 +3166,72 @@ The rest SHOULD be:
 - [ ] An attestation with `purpose` `step-up`, an ES256 or EdDSA COSE key, `rp_id` and `origin` is recorded with `form` `passkey`, listed and revocable; a challenge or token request naming it is refused `CREDENTIAL_PURPOSE_REFUSED`, it is not counted by `OPERATOR_LAST_ADMINISTRATOR`, and a step-up attestation naming neither `rp_id` nor `origin`, or any other attestation naming them, is refused `CREDENTIAL_ATTESTATION_INVALID` <!-- wl:check step-up-passkey-attested covers attestation-key-form attestation-purposes -->
 - [ ] A provider's `401` `STEP_UP_REQUIRED` is returned to the client by the admin gateway with its status, code, `detail` and `WWW-Authenticate` header unchanged, never as `ADMIN_TOKEN_UNCHECKED` <!-- wl:check gateway-returns-step-up covers gateway-relays-step-up -->
 - [ ] Every destructive act, and every refusal of one, is in the audit log with the operator's `identity_id`, the target and the `step_up_at` it was judged on, written before the act takes effect <!-- wl:check destructive-act-in-audit covers destructive-act-audited -->
-- [ ] An admin revokes another operator's credential, and an operator its own, on a token carrying no `step_up_at`, and the revocation is served and audited <!-- wl:check revocation-without-step-up covers credential-revocation-not-destructive -->
+- [ ] An admin revokes another operator's credential, and an operator its own, on a token carrying no `step_up_at`, and the revocation is served and audited <!-- wl:check revocation-without-step-up covers credential-revocation-not-destructive credential-revocation-route revocation-audited -->
 - [ ] No other blueprint states when a destructive act needs a step-up, or asks a second person for one; each points to `destructive-action-step-up` <!-- wl:check step-up-stated-once covers step-up-one-home no-second-person -->
 - [ ] Application gateway returns 404 for any request to /v1/admin/* paths
-- [ ] The System overview the admin gateway composes shows the orchestrator's figures from its `GET /v1/admin/overview`, agent counts, namespaces and audit depth, and no health score, and, while no `PassRoute` can name the overview group a route answers, every other group carried as an object whose one member, `unavailable`, holds the code the gateway would answer that group's route with, and never as a number
+- [ ] The System overview the admin gateway composes shows the orchestrator's figures from its `GET /v1/admin/overview`, agent counts, namespaces and audit depth, and no health score, and, while no `PassRoute` can name the overview group a route answers, every other group carried as an object whose one member, `unavailable`, holds the code the gateway would answer that group's route with, and never as a number <!-- wl:check overview-composed-check covers overview-composed -->
 - [ ] `GET /v1/admin/agents/{name}` shows no `token` member: an agent's registration token is never answered to an operator, a `viewer` included, whatever the orchestrator's `AgentEntry` holds
 - [ ] Each admin endpoint group is served by the component that owns its state; the admin service composes them and owns none of them
-- [ ] An admin endpoint whose provider is not deployed reports itself unavailable and never returns an empty result
-- [ ] Through the admin gateway, an admin's token minted with `cap` `[admin:*]` reaches `PUT /v1/admin/operators/{name}/role` and changes the role, and the same request on the same admin's token minted with `cap` `[content:read, content:describe]` is refused there with `FORBIDDEN`, by the orchestrator's Auth Middleware
-- [ ] An admin's token minted with `cap` `[admin:read, admin:approve, admin:strategy, admin:audit]` reaches `PUT /v1/admin/operators/{name}/role` as one minted with `cap` `[admin:*]` does, and one naming only three of the four is refused there with `FORBIDDEN`
-- [ ] The admin gateway holds a registration whose manifest declares `token:exchange` and no other capability, calls no provider on its registration token, and adds no `X-Operator` header; the orchestrator receives the operator token the client sent, and every other provider receives a pass addressed to it, never that operator token
-- [ ] The admin gateway's manifest has `type` `infrastructure`, no `subscriptions` and no `publishes`, and a `url` on a listener other than its admin listener; on that listener `POST /v1/describe`, `GET /livez`, `GET /readyz` and `POST /v1/services` are answered as protocol/spec says, `POST /v1/execute`, `POST /v1/message` and `POST /v1/event` are answered `FORBIDDEN` and do nothing, and no `/v1/admin/*` route is served
-- [ ] A `ServiceDirectory` pushed to the admin gateway's `POST /v1/services`, signed or unsigned, by the orchestrator or by any other party, changes nothing the gateway sends: an entry, a pass route, a `url` or an `address_provenance` in it that the orchestrator's `GET /v1/services` does not answer is never used, no pass is sent to a `url` only it names, and the push prompts one read of `GET /v1/services` at the gateway's configured orchestrator address
-- [ ] With every push to the admin gateway lost, a component that registers again at a new address on the orchestrator's host is sent passes at the new address within 60 seconds, and an exchange answered `404` for an audience the gateway's directory names prompts one read of `GET /v1/services`
-- [ ] For a request to a route another component provides, the admin gateway sends `POST /v1/token/exchange` on its registration token with the person's token as `subject_token`, the provider's identity id as `audience` and as `scope` every capability the provider's blueprint requires for that request and no other, sends the request on the pass it is answered with, and keeps neither the person's token nor the pass once the request is answered
-- [ ] A provider that refuses the pass the admin gateway sent it with `401` `PASS_AUDIENCE_MISMATCH`, because its key changed after the gateway read the directory, or with `401` `TOKEN_EXPIRED`, because the pass arrived late, is answered to the client with `503` `ADMIN_TOKEN_UNCHECKED` and never with `401`, so the CLI does not refresh its token; the same provider's `403` `FORBIDDEN` for a pass whose `cap` lacks what the body requires is relayed as `403` `FORBIDDEN`
-- [ ] A request for a route whose provider's directory entry names an address on another host than the orchestrator's, with `address_provenance` `self-asserted`, is answered `503` `ADMIN_GROUP_UNAVAILABLE` naming that address in `detail.address`, and the gateway exchanges nothing and sends nothing there; once the tenant declares that address, the same request is carried on a pass to it
-- [ ] Through the admin gateway, an admin's `POST /v1/content/repositories` carrying neither `scope_floor` nor `self_decision_ceiling`, and no `disposition: establish`, is exchanged with `scope` `[content:declare]` alone, and the content service records the repository
-- [ ] Through the admin gateway, an admin's `POST /v1/content/repositories` with `disposition: establish` is exchanged with `scope` `[content:declare, content:establish]`, reaches the content service on a pass whose `cap` names both, and the store is established
-- [ ] Through the admin gateway, an admin's `POST /v1/content/repositories` carrying `scope_floor`, as every adoption of a git store does, or `self_decision_ceiling` is exchanged with `scope` `[content:declare, content:decide]`, reaches the content service on a pass whose `cap` names both, and the declaration is recorded with that floor or ceiling
-- [ ] Through the admin gateway, an admin's `POST /v1/content/repositories/{repository}/remotes` is exchanged with `scope` `[content:replicate, content:connect]`, reaches the content service on a pass whose `cap` names both, and the remote is declared
-- [ ] Through the admin gateway, an `operator`'s `POST /v1/content/repositories` carrying `scope_floor` reaches the content service on a pass whose `cap` names `content:decide` alone, the one capability of the two that role carries, and is refused there with `FORBIDDEN`, recording no repository
-- [ ] With the content service and the fabric registered, a gateway built from this document alone exchanges an operator's `GET /v1/content/entry` with `scope` `[content:read]`, `POST /v1/content/proposals/{id}/decision` with `[content:decide]` and `POST /v1/fabric/attestations` with `[fabric:attest]`, each read from the `pass_routes` of the provider's directory entry, and sends each to that entry's `url`
-- [ ] A request for a route no directory entry declares among its `pass_routes`, or two entries declare, is answered 503 `ADMIN_GROUP_UNAVAILABLE` and nothing is exchanged or sent; a pass route an entry declares for a route of the orchestrator's own is never used, and that request is forwarded to the orchestrator on the operator token
-- [ ] Every route `architecture/orchestrator`'s Administrative endpoints lists but `POST /v1/admin/model/audit` is forwarded to the orchestrator on the operator token as it arrived, `GET /v1/admin/model`, `POST /v1/admin/complete`, `GET /v1/admin/model/ceiling`, the agreement routes and `GET /v1/admin/audit` and `GET /v1/admin/audit/export` included, and never answered `ADMIN_GROUP_UNAVAILABLE`; a request for `POST /v1/admin/model/audit` is answered 404 `NOT_FOUND`, whatever the service directory declares, and nothing is forwarded or exchanged; a request for a path outside `/v1/admin/`, such as `GET /v1/audit`, is never forwarded to the orchestrator
-- [ ] An exchange answered `issued: false` is answered to the client with the code it names, at the status `protocol/types` registers for it, and one answered 404 because the provider is not registered now is answered `ADMIN_GROUP_UNAVAILABLE`; neither forwards anything
-- [ ] While no deployed component's blueprint specifies the route, a request for `/v1/admin/domains`, `/v1/admin/workflows`, `/v1/admin/federation/peers`, `/v1/admin/metrics` or `/v1/admin/agents/{name}/metrics` is answered 503 `ADMIN_GROUP_UNAVAILABLE`, never with an empty result, and nothing is forwarded or sent as a `POST /v1/message` action
-- [ ] While their blueprints do not say that they accept a pass, a request for `/v1/admin/alerts`, `/v1/admin/runbooks` or `/v1/admin/rate-limits`, or any route under them, is answered 503 `ADMIN_GROUP_UNAVAILABLE` even where the alerting agent, the incident-response agent or the component applying `patterns/rate-limiting` is deployed, and nothing is forwarded, on a pass or on the operator token
-- [ ] A request for a route whose minimum is `admin` and whose provider is not the orchestrator, such as `POST /v1/admin/federation/peers/:name/revoke`, is answered `ADMIN_GROUP_UNAVAILABLE` while that provider's blueprint specifies no such route, and once one does reaches that provider only on a pass addressed to it carrying `admin:*`, never on an operator token
-- [ ] A component other than the orchestrator that serves an administrative route acts only on a pass addressed to it whose `cap` names every capability the request requires: an `operator`'s approval carried on a pass naming `admin:approve` is recorded under the pass's `identity_id`, with the gateway's `act.identity_id` beside it, while an operator token is refused with `PASS_REQUIRED`, a pass addressed to another component with `PASS_AUDIENCE_MISMATCH`, and an agent's or a channel's token with `FORBIDDEN`, none of these refusals performing anything
-- [ ] Through the admin gateway, a request for a route another component provides is refused by the exchange with `OPERATOR_REVOKED` on the token of an operator removed since it was minted, and with `FORBIDDEN` on the token of an operator since lowered to `viewer`; while the orchestrator cannot be asked it is refused with 503 `ADMIN_TOKEN_UNCHECKED` carrying `retry_after`; where the exchange answers `404` `NOT_FOUND` because the provider is not registered now it is refused with 503 `ADMIN_GROUP_UNAVAILABLE`, never `ADMIN_TOKEN_UNCHECKED`; in none of these is anything forwarded
+- [ ] An admin endpoint whose provider is not deployed reports itself unavailable and never returns an empty result <!-- wl:check absent-provider-unavailable covers provider-absent-unavailable -->
+- [ ] Through the admin gateway, an admin's token minted with `cap` `[admin:*]` reaches `PUT /v1/admin/operators/{name}/role` and changes the role, and the same request on the same admin's token minted with `cap` `[content:read, content:describe]` is refused there with `FORBIDDEN`, by the orchestrator's Auth Middleware <!-- wl:check orchestrator-judges-carried covers gateway-judged-by-orchestrator gateway-no-stand-in -->
+- [ ] An admin's token minted with `cap` `[admin:read, admin:approve, admin:strategy, admin:audit]` reaches `PUT /v1/admin/operators/{name}/role` as one minted with `cap` `[admin:*]` does, and one naming only three of the four is refused there with `FORBIDDEN` <!-- wl:check admin-family-by-name covers admin-wildcard-by-name -->
+- [ ] The admin gateway holds a registration whose manifest declares `token:exchange` and no other capability, calls no provider on its registration token, and adds no `X-Operator` header; the orchestrator receives the operator token the client sent, and every other provider receives a pass addressed to it, never that operator token <!-- wl:check gateway-registration-only-exchanges covers gateway-forwards-orchestrator-groups gateway-own-registration -->
+- [ ] The admin gateway's manifest has `type` `infrastructure`, no `subscriptions` and no `publishes`, and a `url` on a listener other than its admin listener; on that listener `POST /v1/describe`, `GET /livez`, `GET /readyz` and `POST /v1/services` are answered as protocol/spec says, `POST /v1/execute`, `POST /v1/message` and `POST /v1/event` are answered `FORBIDDEN` and do nothing, and no `/v1/admin/*` route is served <!-- wl:check gateway-manifest covers gateway-manifest-and-listener -->
+- [ ] A `ServiceDirectory` pushed to the admin gateway's `POST /v1/services`, signed or unsigned, by the orchestrator or by any other party, changes nothing the gateway sends: an entry, a pass route, a `url` or an `address_provenance` in it that the orchestrator's `GET /v1/services` does not answer is never used, no pass is sent to a `url` only it names, and the push prompts one read of `GET /v1/services` at the gateway's configured orchestrator address <!-- wl:check push-changes-nothing covers gateway-reads-directory -->
+- [ ] With every push to the admin gateway lost, a component that registers again at a new address on the orchestrator's host is sent passes at the new address within 60 seconds, and an exchange answered `404` for an audience the gateway's directory names prompts one read of `GET /v1/services` <!-- wl:check directory-read-periodically covers gateway-reads-directory -->
+- [ ] For a request to a route another component provides, the admin gateway sends `POST /v1/token/exchange` on its registration token with the person's token as `subject_token`, the provider's identity id as `audience` and as `scope` every capability the provider's blueprint requires for that request and no other, sends the request on the pass it is answered with, and keeps neither the person's token nor the pass once the request is answered <!-- wl:check exchange-scope-per-request covers gateway-carries-on-pass gateway-exchange-scope -->
+- [ ] A provider that refuses the pass the admin gateway sent it with `401` `PASS_AUDIENCE_MISMATCH`, because its key changed after the gateway read the directory, or with `401` `TOKEN_EXPIRED`, because the pass arrived late, is answered to the client with `503` `ADMIN_TOKEN_UNCHECKED` and never with `401`, so the CLI does not refresh its token; the same provider's `403` `FORBIDDEN` for a pass whose `cap` lacks what the body requires is relayed as `403` `FORBIDDEN` <!-- wl:check pass-refusal-unchecked covers gateway-exchange-refusals -->
+- [ ] A request for a route whose provider's directory entry names an address on another host than the orchestrator's, with `address_provenance` `self-asserted`, is answered `503` `ADMIN_GROUP_UNAVAILABLE` naming that address in `detail.address`, and the gateway exchanges nothing and sends nothing there; once the tenant declares that address, the same request is carried on a pass to it <!-- wl:check self-asserted-elsewhere-unavailable covers gateway-pass-address-bound -->
+- [ ] Through the admin gateway, an admin's `POST /v1/content/repositories` carrying neither `scope_floor` nor `self_decision_ceiling`, and no `disposition: establish`, is exchanged with `scope` `[content:declare]` alone, and the content service records the repository <!-- wl:check exchange-declare covers gateway-exchange-scope -->
+- [ ] Through the admin gateway, an admin's `POST /v1/content/repositories` with `disposition: establish` is exchanged with `scope` `[content:declare, content:establish]`, reaches the content service on a pass whose `cap` names both, and the store is established <!-- wl:check exchange-establish covers gateway-exchange-scope -->
+- [ ] Through the admin gateway, an admin's `POST /v1/content/repositories` carrying `scope_floor`, as every adoption of a git store does, or `self_decision_ceiling` is exchanged with `scope` `[content:declare, content:decide]`, reaches the content service on a pass whose `cap` names both, and the declaration is recorded with that floor or ceiling <!-- wl:check exchange-decide covers gateway-exchange-scope -->
+- [ ] Through the admin gateway, an admin's `POST /v1/content/repositories/{repository}/remotes` is exchanged with `scope` `[content:replicate, content:connect]`, reaches the content service on a pass whose `cap` names both, and the remote is declared <!-- wl:check exchange-remote covers gateway-exchange-scope -->
+- [ ] Through the admin gateway, an `operator`'s `POST /v1/content/repositories` carrying `scope_floor` reaches the content service on a pass whose `cap` names `content:decide` alone, the one capability of the two that role carries, and is refused there with `FORBIDDEN`, recording no repository <!-- wl:check exchange-operator-decide covers gateway-exchange-scope -->
+- [ ] With the content service and the fabric registered, a gateway built from this document alone exchanges an operator's `GET /v1/content/entry` with `scope` `[content:read]`, `POST /v1/content/proposals/{id}/decision` with `[content:decide]` and `POST /v1/fabric/attestations` with `[fabric:attest]`, each read from the `pass_routes` of the provider's directory entry, and sends each to that entry's `url` <!-- wl:check pass-routes-from-directory covers gateway-carries-on-pass -->
+- [ ] A request for a route no directory entry declares among its `pass_routes`, or two entries declare, is answered 503 `ADMIN_GROUP_UNAVAILABLE` and nothing is exchanged or sent; a pass route an entry declares for a route of the orchestrator's own is never used, and that request is forwarded to the orchestrator on the operator token <!-- wl:check undeclared-route-unavailable covers gateway-carries-on-pass gateway-unknown-route-unavailable -->
+- [ ] Every route `architecture/orchestrator`'s Administrative endpoints lists but `POST /v1/admin/model/audit` is forwarded to the orchestrator on the operator token as it arrived, `GET /v1/admin/model`, `POST /v1/admin/complete`, `GET /v1/admin/model/ceiling`, the agreement routes and `GET /v1/admin/audit` and `GET /v1/admin/audit/export` included, and never answered `ADMIN_GROUP_UNAVAILABLE`; a request for `POST /v1/admin/model/audit` is answered 404 `NOT_FOUND`, whatever the service directory declares, and nothing is forwarded or exchanged; a request for a path outside `/v1/admin/`, such as `GET /v1/audit`, is never forwarded to the orchestrator <!-- wl:check orchestrator-routes-forwarded covers gateway-forwards-orchestrator-groups -->
+- [ ] An exchange answered `issued: false` is answered to the client with the code it names, at the status `protocol/types` registers for it, and one answered 404 because the provider is not registered now is answered `ADMIN_GROUP_UNAVAILABLE`; neither forwards anything <!-- wl:check exchange-code-relayed covers gateway-exchange-refusals -->
+- [ ] While no deployed component's blueprint specifies the route, a request for `/v1/admin/domains`, `/v1/admin/workflows`, `/v1/admin/federation/peers`, `/v1/admin/metrics` or `/v1/admin/agents/{name}/metrics` is answered 503 `ADMIN_GROUP_UNAVAILABLE`, never with an empty result, and nothing is forwarded or sent as a `POST /v1/message` action <!-- wl:check unspecified-groups-unavailable covers gateway-unknown-route-unavailable -->
+- [ ] While their blueprints do not say that they accept a pass, a request for `/v1/admin/alerts`, `/v1/admin/runbooks` or `/v1/admin/rate-limits`, or any route under them, is answered 503 `ADMIN_GROUP_UNAVAILABLE` even where the alerting agent, the incident-response agent or the component applying `patterns/rate-limiting` is deployed, and nothing is forwarded, on a pass or on the operator token <!-- wl:check passless-groups-unavailable covers gateway-unknown-route-unavailable -->
+- [ ] A request for a route whose minimum is `admin` and whose provider is not the orchestrator, such as `POST /v1/admin/federation/peers/:name/revoke`, is answered `ADMIN_GROUP_UNAVAILABLE` while that provider's blueprint specifies no such route, and once one does reaches that provider only on a pass addressed to it carrying `admin:*`, never on an operator token <!-- wl:check admin-route-elsewhere covers provider-accepts-pass -->
+- [ ] A component other than the orchestrator that serves an administrative route acts only on a pass addressed to it whose `cap` names every capability the request requires: an `operator`'s approval carried on a pass naming `admin:approve` is recorded under the pass's `identity_id`, with the gateway's `act.identity_id` beside it, while an operator token is refused with `PASS_REQUIRED`, a pass addressed to another component with `PASS_AUDIENCE_MISMATCH`, and an agent's or a channel's token with `FORBIDDEN`, none of these refusals performing anything <!-- wl:check provider-acts-on-pass covers provider-accepts-pass -->
+- [ ] Through the admin gateway, a request for a route another component provides is refused by the exchange with `OPERATOR_REVOKED` on the token of an operator removed since it was minted, and with `FORBIDDEN` on the token of an operator since lowered to `viewer`; while the orchestrator cannot be asked it is refused with 503 `ADMIN_TOKEN_UNCHECKED` carrying `retry_after`; where the exchange answers `404` `NOT_FOUND` because the provider is not registered now it is refused with 503 `ADMIN_GROUP_UNAVAILABLE`, never `ADMIN_TOKEN_UNCHECKED`; in none of these is anything forwarded <!-- wl:check exchange-refuses-revoked covers gateway-judged-by-orchestrator gateway-exchange-refusals -->
 - [ ] All admin API responses include Cache-Control: no-store header
-- [ ] Admin auth middleware verifies `type` is `operator`, checks that the operator and credential the token names are live, and checks that the request can use the capability the endpoint's minimum stands for, from the role the operator holds now narrowed to the token's `cap`
-- [ ] An admin's token minted with `cap` `[admin:read]` carries `admin:read`, reaches a `viewer+` route, and is refused with `FORBIDDEN` at `POST /v1/admin/complete`, which needs `llm:chat`, and on an `admin` route such as `PUT /v1/admin/operators/{name}/role`
+- [ ] Admin auth middleware verifies `type` is `operator`, checks that the operator and credential the token names are live, and checks that the request can use the capability the endpoint's minimum stands for, from the role the operator holds now narrowed to the token's `cap` <!-- wl:check auth-middleware-checks covers status-checked-on-use -->
+- [ ] An admin's token minted with `cap` `[admin:read]` carries `admin:read`, reaches a `viewer+` route, and is refused with `FORBIDDEN` at `POST /v1/admin/complete`, which needs `llm:chat`, and on an `admin` route such as `PUT /v1/admin/operators/{name}/role` <!-- wl:check admin-read-reach covers route-capability-forbidden -->
 - [ ] Only the `admin` role carries `llm:chat`: an `operator`, a `viewer` or an `auditor` is refused with `FORBIDDEN` at `POST /v1/admin/complete`, and an admin's token whose `cap` names `llm:chat` reaches it
-- [ ] An operator-role token minted with `cap` `[admin:*]` carries `admin:read`, `admin:approve` and `admin:strategy`, and not `admin:*` or `admin:audit`
+- [ ] An operator-role token minted with `cap` `[admin:*]` carries `admin:read`, `admin:approve` and `admin:strategy`, and not `admin:*` or `admin:audit` <!-- wl:check operator-role-admin-names covers admin-wildcard-by-name operator-role-admin-family -->
 - [ ] A token presented in the request body rather than the `Authorization` header is refused on every `/v1/admin/*` route
-- [ ] A console holds no registration at any hub: it never sends `POST /v1/register` with its own key or any key it holds, and does no work at a hub while no signed-in person is present
-- [ ] A sixth `POST /v1/admin/credentials/token` within a minute from one client address is refused before its signature is verified, whatever `cid` each names, while requests from another address, and to `POST /v1/admin/operators/{name}/key` from the same one, are not
-- [ ] The admin gateway forwards each request for a route served without a token with `X-Forwarded-For` naming the client address it counted, replacing any the request carried; the orchestrator counts such a request by that header only where it arrives from an address `orchestrator.admin_gateway_from` names, and a request from any other address by that address, so a sixth from one client through the gateway is refused at both and a first from another client is not
+- [ ] A console holds no registration at any hub: it never sends `POST /v1/register` with its own key or any key it holds, and does no work at a hub while no signed-in person is present <!-- wl:check console-not-registered-check covers console-not-a-component console-no-unattended-work console-not-registered -->
+- [ ] A sixth `POST /v1/admin/credentials/token` within a minute from one client address is refused before its signature is verified, whatever `cid` each names, while requests from another address, and to `POST /v1/admin/operators/{name}/key` from the same one, are not <!-- wl:check credential-token-limited covers auth-routes-limited -->
+- [ ] The admin gateway forwards each request for a route served without a token with `X-Forwarded-For` naming the client address it counted, replacing any the request carried; the orchestrator counts such a request by that header only where it arrives from an address `orchestrator.admin_gateway_from` names, and a request from any other address by that address, so a sixth from one client through the gateway is refused at both and a first from another client is not <!-- wl:check forwarded-source-trusted covers gateway-limits-and-forwards-source orchestrator-trusts-declared-gateway -->
 - [ ] Bootstrap event (first operator registration) is permanently recorded in the audit log
 - [ ] While no provider's blueprint specifies `/v1/admin/ws`, a request for it is answered 503 `ADMIN_GROUP_UNAVAILABLE`, and the gateway opens no subscription and holds no connection to serve it
 - [ ] The admin gateway serves no page, script or static file of its own, and keeps no session or cookie: a person reaches it through the CLI or a console holding their credential
 - [ ] While no `PassRoute` can name the inbox group a route answers, `GET /v1/admin/approvals` at the admin gateway is answered 503 `ADMIN_GROUP_UNAVAILABLE` with content registered or not, the gateway asks no owner and sends nothing, and it is never answered as an empty list; the gateway serves no route that decides, and a decision reaches its owner only at the owner's own route <!-- wl:check inbox-composed covers inbox-composed-by-pass-route inbox-never-quietly-empty inbox-decides-nothing -->
+- [ ] A registration missing `name`, `public_key`, `role`, `timestamp` or `signature`, or whose signature does not verify under the `public_key` it submits, is refused and writes no record; one outside the replay window, or seen before, is refused; and every registration, admitted or refused, is audited <!-- wl:check registration-checked covers registration-fields registration-verifies-submitted-key registration-replay registration-audited -->
+- [ ] A registration verifies only over `canonicalize({name, public_key, role, timestamp})` with the timestamp it sent; one whose signature is over the token request's payload, or that leaves out its key or role, is refused <!-- wl:check registration-input-exact covers registration-signed-payload registration-payload-distinct registration-signs-key registration-signs-role registration-timestamp-signed registration-input-stated-exactly timestamp-sent-is-signed -->
+- [ ] An orchestrator with an empty operator store emits one bootstrap secret of at least 256 random bits, and compares a presented secret in constant time <!-- wl:check bootstrap-secret-strong covers bootstrap-secret-generated bootstrap-secret-presented -->
+- [ ] A registration refused for want of an admin, for a signature that does not verify, and for a missing or wrong bootstrap secret is answered with three different codes, each naming its case <!-- wl:check bootstrap-refusals-told-apart covers bootstrap-refusals-distinct bootstrap-refusal-named -->
+- [ ] `POST /v1/admin/operators/{name}/approve` by an admin approves a pending operator, answers success and changes nothing for one already approved, returns no token, and is audited with the approver's name; `GET /v1/admin/operators` lists pending operators beside approved ones <!-- wl:check approval-served covers approve-route operators-list-pending-rule approve-idempotent-rule approve-no-token approve-audited approve-orchestrator-steps approve-idempotent operators-list-pending -->
+- [ ] No component, and no console, registers or is approved as an operator: a service reaches a hub only through `POST /v1/register` <!-- wl:check operators-are-people covers operator-is-person -->
+- [ ] A client signs a token request, or a credential's answer, only for a `hub_id` it recorded from a registration answer or attested its credential for, never a payload naming no hub, and treats a challenge naming another `hub_id` as a hub it holds no credential for <!-- wl:check client-signs-recorded-hub covers attestation-client-hub-id client-signs-credential-hub-id -->
+- [ ] `POST /v1/admin/operators/{name}/credentials` accepts an attestation token or an operator token for the operator the path names, refuses another operator's with `OPERATOR_SUBJECT_MISMATCH` and any other token with `CREDENTIAL_REQUIRED`, and refuses with `CREDENTIAL_ATTESTATION_INVALID` an attestation that does not verify under the operator's own recorded key or names another `identity_id` <!-- wl:check credentials-route-subject covers credentials-route-tokens attestation-verifies-own-key attestation-names-identity -->
+- [ ] An attestation for a key the operator already holds as an active credential replaces its attestation and keeps its id; a stored credential has the algorithm, form, `device_bound` and status its form is given; every attestation is audited with the operator, the credential id, its purpose and the device label <!-- wl:check credential-reattested covers credential-reattest credential-stored-form credential-attestation-audited -->
+- [ ] A challenge or a token request naming a `cid` this hub holds no credential for is refused with `CREDENTIAL_UNKNOWN`, and no nonce is issued <!-- wl:check unknown-cid-refused covers challenge-refusals token-request-unknown-cid -->
+- [ ] The answer to a credential's token request carries the attestation's `not_after`, and the credential's `last_used_at` is updated <!-- wl:check token-answer-and-use covers token-answer-not-after credential-last-used -->
+- [ ] A change of identity key for an operator with no record is refused with `OPERATOR_UNKNOWN`, and one over another hub's `hub_id` with `CREDENTIAL_FOREIGN_HUB`, logged as a security event <!-- wl:check key-change-unknown-or-foreign covers key-change-unknown key-change-foreign-hub -->
+- [ ] The answer to a change of identity key carries the operator record, its `identity_id` and `hub_id` and no token, and the change is audited with the operator's identity id and both keys' fingerprints <!-- wl:check key-change-answered covers key-change-answer key-change-audited -->
+- [ ] A console holds one credential per account per hub, whose key it generated and had attested through the CLI, asks for a `not_after` 30 days ahead unless the person chooses another within 90, and warns when fewer than 7 days remain <!-- wl:check console-credential-made covers console-credential-per-account console-credential-lifetime -->
+- [ ] A role carrying `admin:*` does not thereby carry `model:attest`, `telemetry:read`, `action:invoke` or `scope:admit` <!-- wl:check admin-wildcard-bounded covers admin-wildcard-excludes -->
+- [ ] Removing or demoting the last active admin is refused, and every role change is audited with the previous and new role <!-- wl:check last-admin-protected covers last-admin-kept role-change-audited -->
+- [ ] A client that registers reads the answer's `status`, asks for an attestation token only for an approved operator, and reports a pending registration as pending, never as connected <!-- wl:check registration-status-read covers client-reads-status -->
+- [ ] Operator records, credentials and token-request `jti` records survive a restart of the orchestrator, and the `jti` records are shared by every instance answering for the hub <!-- wl:check operator-stores-durable covers store-operators-durable store-credentials-durable store-jti-durable -->
+- [ ] The CLI accepts an identity by a label and resolves and reports its location itself; the label is never the operator's name and never appears verbatim in the path <!-- wl:check identity-label covers identity-by-label label-not-name label-not-in-path -->
+- [ ] A client holding a pin for the admin gateway's address refuses a certificate with another key and never falls back to the system's roots, to unverified TLS or to HTTP, at a loopback address too; one holding no pin refuses a certificate its roots do not verify and names the pin it needs <!-- wl:check gateway-pin-held covers client-pins-gateway-key -->
+
+### Admin gateway
+
+- [ ] Each of the admin gateway's listeners serves exactly the rows [Endpoints](#endpoints) gives it: the internal listener answers no admin route, and the admin listener none of the agent endpoints <!-- wl:check listeners-serve-their-rows covers listeners-disjoint gateway-manifest-and-listener -->
+- [ ] The admin listener answers no plain-HTTP request, negotiates TLS 1.3 alone and offers X25519MLKEM768, preferring it, and a TLS 1.2 client is refused the handshake <!-- wl:check admin-listener-tls covers admin-listener-guarded admin-listener-tls13 admin-https-only -->
+- [ ] The admin gateway registers with the key whose fingerprint is `orchestrator.admin_gateway_identity`; started with any other key, its registration is refused `CAPABILITY_GATEWAY_ONLY` and it exchanges nothing <!-- wl:check gateway-declared-key covers gateway-registers-declared-key -->
