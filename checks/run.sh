@@ -3,6 +3,8 @@
 # it claims to. Exits 0 only when every check passes and every control fails.
 # Needs python3 with PyYAML.
 cd "$(dirname "$0")/.." || exit 2
+# retired.py imports ids.py; leave no bytecode in the corpus.
+export PYTHONDONTWRITEBYTECODE=1
 fails=0
 tmp=$(mktemp -d) || exit 2
 trap 'rm -rf "$tmp"' EXIT
@@ -50,6 +52,22 @@ else
 	sed 's/^/     /' "$tmp/out"
 	fails=$((fails + 1))
 fi
+
+# RETIRED.md's entries, read as a tool reads them; a copy missing its last
+# entry, and a copy whose allowance has already ended, must each be reported.
+expect 0 "retired: one well-formed entry per row" python3 checks/retired.py
+python3 - "$tmp" <<'PY'
+import re, sys
+text = open("RETIRED.md", encoding="utf-8").read()
+head, block = text.split("```yaml\n", 1)
+entries = block.split("\n- retired:")
+open(sys.argv[1] + "/short.md", "w").write(head + "```yaml\n" + "\n- retired:".join(entries[:-1]) + "\n```\n")
+open(sys.argv[1] + "/ended.md", "w").write(text.replace("until: architecture/admin@4.0.0", "until: architecture/admin@1.0.0", 1))
+PY
+expect 1 "retired control: a row without its entry fails" python3 checks/retired.py --file "$tmp/short.md"
+grep -q "table rows and" "$tmp/out" || { echo "FAIL retired control: the missing entry was not what was reported"; fails=$((fails + 1)); }
+expect 1 "retired control: an allowance its file has passed fails" python3 checks/retired.py --file "$tmp/ended.md"
+grep -q "has reached it" "$tmp/out" || { echo "FAIL retired control: the ended allowance was not what was reported"; fails=$((fails + 1)); }
 
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]

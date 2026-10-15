@@ -17,6 +17,7 @@ passes for want of something to read.
 |---|---|---|
 | [`ids.py`](ids.py) | Every ref in [`vectors/ids.json`](../vectors/ids.json) parses as [`schemas/names.md`](../schemas/names.md#the-grammar) says, and reads back from YAML unchanged | A parser that accepts everything is reported on every invalid vector |
 | [`names.py`](names.py) | No file names a namespace that is neither reserved nor this repository's own ([`schemas/names.md`](../schemas/names.md#where-a-namespace-may-appear)), and the vectors' families are the declared ones | A fixture naming an unreserved namespace is reported, once |
+| [`retired.py`](retired.py) | [`RETIRED.md`](../RETIRED.md)'s entries: one per table row, in order, naming only spellings the row names, with a closed `match` vocabulary, paths that exist, patterns that compile, and no allowance whose `until` its file has reached. `--scan` also lists every place a retired spelling remains where its entry does not allow it; it reports and does not gate | A copy missing its last entry, and a copy whose allowance has ended, are each reported |
 
 A check here is temporary by design: when a tool implements the rule, the
 check moves there and leaves this directory.
