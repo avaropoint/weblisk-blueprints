@@ -23,5 +23,6 @@ for base in sorted(vectors & projections):
         at = max(at, e)
     if at != len(data): faults.append(f"{name}: parts end at {at}, file at {len(data)}")
     faults += [f"{name}: finding {f['code']} outside the file" for f in p["findings"] if not 0 <= f["span"][0] <= f["span"][1] <= len(data)]
+if not vectors: faults.append(f"no grammar vectors in {d}")
 print("\n".join(faults) or f"spans: {len(vectors)} vectors, each partitioned by its projection")
-sys.exit(1 if faults or not vectors else 0)
+sys.exit(1 if faults else 0)

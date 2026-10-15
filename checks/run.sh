@@ -97,6 +97,9 @@ fi
 cp vectors/grammar/minimal.md vectors/grammar/minimal.projection.json vectors/grammar/crlf.md "$tmp/lone/"
 expect 1 "spans control: a vector without a projection fails" python3 checks/spans.py --dir "$tmp/lone"
 grep -q '^crlf.md: no expected projection$' "$tmp/out" || { echo "FAIL spans control: the missing projection was not what was reported"; fails=$((fails + 1)); }
+mkdir "$tmp/none"
+expect 1 "spans control: a directory with no vectors fails" python3 checks/spans.py --dir "$tmp/none"
+grep -q '^no grammar vectors in ' "$tmp/out" || { echo "FAIL spans control: the empty directory was not what was reported"; fails=$((fails + 1)); }
 
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]
