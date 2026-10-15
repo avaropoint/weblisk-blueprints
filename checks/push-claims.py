@@ -9,12 +9,14 @@ authenticates a push, or that a pushed body is whatever its sender sent, is a
 false statement about the spec, and its pointer to "the gap there" names a gap
 that is now about a task's context.services. Whitespace, line breaks and
 markdown backticks are ignored, so a sentence wrapped across lines is found.
-With no FILE, every .md file in the corpus is read.
+With no FILE, every .md file in the corpus outside checks/ is read.
 """
 import glob, os, re, sys
 
 root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-files = sys.argv[1:] or sorted(p for p in glob.glob(os.path.join(root, "**/*.md"), recursive=True) if "/node_modules/" not in p)
+# checks/ is left out: its README names the claims this check refuses.
+files = sys.argv[1:] or sorted(p for p in glob.glob(os.path.join(root, "**/*.md"), recursive=True)
+                               if "/node_modules/" not in p and os.path.relpath(p, root).split(os.sep)[0] != "checks")
 
 CLAIMS = [
     r"has no signing input",
