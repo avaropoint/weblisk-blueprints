@@ -409,14 +409,14 @@ relation.
 | `exchanges_with` | `integration` | `partner` | data flow |
 | `carries` | `integration` | `data-subject` | data flow |
 | `enforced_by` | policy, standard, procedure | `provider`, `component` | provider |
-| `deployed_as` | blueprint | `component` | composition |
+| `deployed_as` | blueprint | `component` | registry |
 | `discharges` | `evidence` | `obligation` | programme |
 | `implements` | `code` | `requirement` | generation |
 | `verifies` | `check` | `requirement` | declared |
 | `verifies` | `code` | `check` | generation |
 | `generated_from` | `code` | `requirement`, `mapping`, `control` | generation |
 | `produced_by` | `code` | `run` | generation |
-| `deployed_as` | blueprint | `agent` | composition |
+| `deployed_as` | blueprint | `agent` | registry |
 | `hosted_by` | `component`, `agent` | `provider` | registry |
 | `consumes` | `component`, `agent` | `integration` | integration |
 | `executes` | `agent` | `skill`, `workflow` | declared |
@@ -433,6 +433,15 @@ controls it was `generated_from`, and that it was `produced_by` that run; the fa
 `generation-statements` producer records them
 ([`architecture/fabric`](../architecture/fabric.md#declared-at-write-time)).
 `verifies` from `code` names a generated test by the check id it is named for.
+
+**`satisfies` and `conforms_to` are not declared here yet.** The corpus cites
+both, and decision D18 makes each its own relation, separate from `implements`:
+`satisfies` from a programme's artifact specification to a control it must
+answer (a claim about what an artifact must be, where `implements` is a claim
+about what one is), and `conforms_to` from a programme to a standard. They arrive in the corpus-v2 conventions change
+(`v2-conventions`), which declares both rows and withdraws the spelling below
+that reads `satisfies` as `implements`; until it lands, a claim under either
+name is an undeclared relation, and the fabric records none.
 
 `generated_from` onto a `control` records what an output was made from, citing the control's text digest ([`standard.md`](standard.md#outputs-cite-the-control-text-they-were-made-from)).
 

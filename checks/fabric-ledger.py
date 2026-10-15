@@ -15,6 +15,7 @@ Nothing here but SHA-256 and a canonicaliser: the canonicaliser below is RFC
 booleans, null), and refuses anything else rather than guessing.
 
   fabric-ledger.py [--file PATH] [--fabric PATH]
+  fabric-ledger.py --relation RELATION FROM-KIND TO-KIND
 """
 import hashlib, json, os, sys
 
@@ -70,8 +71,10 @@ def kinds_table():
                 versioned.add(cells[0].strip("`"))
         if section == "Relations" and len(cells) == 4:
             for f in words(cells[1]):
+                f = "any" if f.startswith("any") else f    # "any content kind" is the any fallback
                 for t in words(cells[2]):
-                    rel.add((cells[0].strip("`"), f, t))
+                    for r in words(cells[0]):
+                        rel.add((r, f, f if t == "the same kind" else t))
     for k in parent:                                   # a specialisation inherits
         p = parent[k]
         while p in parent and k not in versioned:
@@ -84,11 +87,21 @@ def kinds_table():
 RELATIONS, VERSIONED = kinds_table()
 
 
+def declared(r, f, t):
+    return (r, f, t) in RELATIONS or (r, "any", t) in RELATIONS
+
+
+if "--relation" in sys.argv:                           # is one relation declared?
+    r, f, t = sys.argv[sys.argv.index("--relation") + 1:][:3]
+    print(f"{r} from {f} to {t}: {'declared' if declared(r, f, t) else 'not declared'}")
+    sys.exit(0 if declared(r, f, t) else 1)
+
+
 def claim_faults(e):
     ident = e.get("claim", {}).get("identity", {})
     fr, to, r = ident.get("from", {}), ident.get("to", {}), ident.get("relation")
     why = []
-    if (r, fr.get("kind"), to.get("kind")) not in RELATIONS and (r, "any", to.get("kind")) not in RELATIONS:
+    if not declared(r, fr.get("kind"), to.get("kind")):
         why.append(f"{r} from {fr.get('kind')} to {to.get('kind')} is not a relation schemas/kinds.md declares")
     for end in (fr, to):
         cv = end.get("cited_version")

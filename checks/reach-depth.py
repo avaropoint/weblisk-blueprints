@@ -5,7 +5,8 @@ integer value, where that key or a key enclosing it names a walk (reach,
 traversal, dependency, transitive, cascade, impact, propagation), and a
 requirement whose id contains `depth` with a `value`. A depth that bounds no
 walk, such as a queue's or a nesting limit, is not this number.
-Every citation of the requirement must name one that exists.
+Every citation of a fabric requirement, fabric.md's own included, must name
+one that exists.
 
   reach-depth.py [--root DIR]
 """
@@ -18,6 +19,7 @@ key = re.compile(r"^(\s*)(?:-\s*)?((?=[A-Za-z_])[\w-]*depth[\w-]*)\s*:\s*(\d+)\s
 anykey = re.compile(r"^(\s*)(?:-\s*)?([A-Za-z_][\w-]*)\s*:")
 WALK = re.compile(r"reach|travers|dependen|transitive|cascade|impact|propagat|walk", re.I)
 rid = re.compile(r"^(\s*)-\s*id:\s*([\w.-]*depth[\w.-]*)\s*$")
+anyid = re.compile(r"^\s*-\s*id:\s*([\w.-]+)\s*$")
 places, cites, ids = [], [], set()
 for d, subdirs, files in os.walk(root):
     subdirs[:] = sorted(s for s in subdirs if s != ".git")
@@ -39,9 +41,11 @@ for d, subdirs, files in os.walk(root):
                 places.append((rel, n, m.group(2), m.group(3)))
             if a:
                 stack.append((len(a.group(1)), a.group(2)))
+            m = anyid.match(line)
+            if m:
+                ids.add((rel, m.group(1)))       # every id a citation may name
             m = rid.match(line)
             if m:
-                ids.add((rel, m.group(2)))
                 indent = len(m.group(1)) + 2
                 for k in range(n, len(lines)):          # the item's own keys
                     nxt = lines[k]
@@ -51,10 +55,10 @@ for d, subdirs, files in os.walk(root):
                     if v:
                         places.append((rel, n, "requirement " + m.group(2), v.group(1)))
             for c in re.findall(re.escape(CITE) + r"([\w.-]+)", line):
-                cites.append((rel, n, c))
+                cites.append((rel, n, c.rstrip(".")))   # a sentence's full stop is not the id's
 faults = []
 for rel, n, c in cites:
-    if (HOME, c) not in ids and not (rel == HOME):
+    if (HOME, c) not in ids:
         faults.append(f"{rel}:{n}: cites {CITE}{c}, which {HOME} does not declare")
 if not any(rel == "architecture/change-management.md" and c == REQ for rel, n, c in cites):
     faults.append(f"architecture/change-management.md does not cite {CITE}{REQ}")

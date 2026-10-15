@@ -98,6 +98,21 @@ printf '```yaml\nfabric:\n  traversal:\n    max_depth: 6\n```\n' >"$tmp/rq/archi
 expect 1 "reach-depth control: a traversal max_depth is a second home" python3 checks/reach-depth.py --root "$tmp/rq"
 grep -q '^architecture/queue-fixture.md:4: max_depth = 6$' "$tmp/out" || { echo "FAIL reach-depth control: the traversal max_depth was not what was reported"; fails=$((fails + 1)); }
 
+# fabric.md's own citations resolve too: a copy citing a misspelt fabric
+# requirement from inside fabric.md must report exactly that citation.
+mkdir -p "$tmp/rf" && cp -R architecture "$tmp/rf/"
+printf '\nSee requirement://weblisk/architecture/fabric:reach-max-dept.\n' >>"$tmp/rf/architecture/fabric.md"
+expect 1 "reach-depth control: a misspelt citation inside fabric.md fails" python3 checks/reach-depth.py --root "$tmp/rf"
+grep -q '^architecture/fabric.md:[0-9]*: cites requirement://weblisk/architecture/fabric:reach-max-dept,' "$tmp/out" || { echo "FAIL reach-depth control: the misspelt citation was not what was reported"; fails=$((fails + 1)); }
+
+# The relation table is read as kinds.md writes it: a row naming several
+# relations declares each, "any content kind" is the any fallback, and
+# "the same kind" relates a kind only to itself.
+expect 0 "fabric-ledger relations: supersedes from blueprint to blueprint is declared" python3 checks/fabric-ledger.py --relation supersedes blueprint blueprint
+expect 0 "fabric-ledger relations: mentions from policy to control is declared" python3 checks/fabric-ledger.py --relation mentions policy control
+expect 0 "fabric-ledger relations: copied_from from policy to policy is declared" python3 checks/fabric-ledger.py --relation copied_from policy policy
+expect 1 "fabric-ledger relations control: copied_from from policy to procedure is not" python3 checks/fabric-ledger.py --relation copied_from policy procedure
+
 # The fabric ledger vector chains; a copy with one entry altered must fail at
 # exactly that entry and nowhere else.
 expect 0 "fabric-ledger: the vector's chain verifies" python3 checks/fabric-ledger.py

@@ -974,10 +974,18 @@ one.
 
 | Producer | Runs in | Operation | Partition | Relations | What each end cites |
 |---|---|---|---|---|---|
-| `generation-statements` | the tenant's generation service | `Sync` | one run statement, by run id; its input digest is the statement's | `implements` and `generated_from` (output to requirement, mapping rule or control), `produced_by` (output to run), `verifies` (generated test to check) | the output's digest as the statement records it; the requirement's, rule's or control's projection digest |
-| `integrations` | the tenant's integrations service | `Observe` | — | `consumes` (component or agent to integration), `reached_through` (provider to integration) | the integration's connection record digest |
+| `generation-statements` | the tenant's generation service † | `Sync` | one run statement, by run id; its input digest is the statement's | `implements` (output to requirement), `generated_from` (output to requirement, mapping rule or control), `produced_by` (output to run), `verifies` (generated test to check) | the output's digest as the statement records it; the requirement's, rule's or control's projection digest |
+| `integrations` | the tenant's integrations service † | `Observe` | — | `consumes` (component or agent to integration), `reached_through` (provider to integration) | the integration's connection record digest |
 | `registry` | the orchestrator's service registry | `Sync` | one component | `deployed_as` (blueprint to component or agent), `hosted_by` (component or agent to provider) | the blueprint's digest at its resolved version; the component's manifest digest |
-| `provider-configuration` | the tenant's integrations service | `Sync` | one provider | `enforced_by` (policy, standard or procedure to provider) | on the provider end, the projection digest of its configuration as the provider reports it |
+| `provider-configuration` | the tenant's integrations service † | `Sync` | one provider | `enforced_by` (policy, standard or procedure to provider) | on the provider end, the projection digest of its configuration as the provider reports it |
+
+† **A precondition, not a service that exists.** No blueprint in this corpus
+defines a tenant generation service or a tenant integrations service yet. A
+producer marked † runs only in a tenant that runs that service, and is not built
+in one that does not; until a blueprint defines the service, these rows say what
+the producer asserts once it has somewhere to run, and nothing is observed or
+synced in the meantime. The run statement's `builder` names the generation
+service by ref for the same reason ([`schemas/run-statement`](../schemas/run-statement.md)).
 
 Each is an ordinary producer: it registers its partitions, is skipped where its
 input digests are unchanged, and asserts at `inferred` only. Ingesting the same
