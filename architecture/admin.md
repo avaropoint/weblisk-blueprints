@@ -115,7 +115,10 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=3.0.0 <4.0.0"
+    # 3.1.0 is where STEP_UP_REQUIRED, which Error Handling refuses a
+    # destructive act with and whose HTTP status it takes from the
+    # registry, exists
+    version: ">=3.1.0 <4.0.0"
     bindings:
       types:
         # The admin gateway serves the two probes and renews its lease
@@ -433,7 +436,7 @@ which does not ask the identity.
 
 ## Admin Gateway Separation
 
-The admin portal is a **completely separate entry point** from the
+The admin gateway is a **completely separate entry point** from the
 application gateway. It is NOT an extension of the application
 gateway. It is NOT served under the same domain. It does NOT share
 session state, authentication flows, or network paths with the
@@ -672,7 +675,7 @@ acceptable for single-host deployments.
    person's own re-confirmation within the last 300 seconds, never a
    second person, and is logged in the audit trail before it takes
    effect (`destructive-action-step-up`).
-4. **Complete isolation** — The platform admin portal shares no
+4. **Complete isolation** — The platform admin gateway shares no
    network path, no session state, and no authentication flow with
    the application gateway. Application-specific admin features
    built by customers are unrelated — they use the application
@@ -861,6 +864,8 @@ contracts:
       rules:
         # <!-- wl:id destructive-acts -->
         - These acts are destructive. Removing an operator (DELETE /v1/admin/operators/{name}), admitting one (POST /v1/admin/operators/{name}/approve), changing one's role (PUT /v1/admin/operators/{name}/role), force-deregistering an agent (POST /v1/admin/agents/{name}/deregister) and revoking a federation peer (POST /v1/admin/federation/peers/{name}/revoke), and each act another blueprint marks destructive by naming this behaviour. Rotating the orchestrator's own key and force-revoking an agent's key (protocol/identity, Key Compromise Recovery, POST /v1/admin/agents/:name/revoke-key) are destructive too, from the moment architecture/orchestrator specifies a route for either; it specifies neither yet, so nothing serves them
+        # <!-- wl:id credential-revocation-not-destructive -->
+        - Revoking a credential (DELETE /v1/admin/operators/{name}/credentials/{cid}, one or each of an operator's, operator-credential-revocation) is NOT destructive and MUST be served without a step-up, by an admin on another operator as by an operator on its own. It is how a compromised key is cut off, and incident response must not wait on a re-confirmation the compromised person may be unable to give; it takes nothing the operator cannot regain by attesting a new credential, and it is audited as every revocation is. Removing the operator, which ends their access, is the destructive act above
         # <!-- wl:id step-up-required -->
         - The component that serves a destructive act MUST refuse it with STEP_UP_REQUIRED, and change nothing, unless the operator token or pass it arrived on carries step_up_at (protocol/identity) no more than 300 seconds before the request. It judges this after token-status-on-use and the capability check have passed
         # <!-- wl:id step-up-challenge -->
@@ -1077,7 +1082,11 @@ The behaviours that bind all of this are `attestation-token-issuance`,
 
 #### The identity signs only to attest
 
-`POST /v1/admin/operators/token` is unauthenticated by token because it is how
+Of the requests by which an operator obtains a token, the identity's
+signature authenticates only this one: it also signs a registration, a change
+of its own key and a step-up ([Re-confirming for a destructive
+act](#re-confirming-for-a-destructive-act)), and none of those signs anybody
+in. `POST /v1/admin/operators/token` is unauthenticated by token because it is how
 an operator with no credential here starts. The identity signs the request:
 
 ```
@@ -2856,6 +2865,7 @@ The rest SHOULD be:
 - [ ] An attestation with `purpose` `step-up`, an ES256 or EdDSA COSE key, `rp_id` and `origin` is recorded with `form` `passkey`, listed and revocable; a challenge or token request naming it is refused `CREDENTIAL_PURPOSE_REFUSED`, it is not counted by `OPERATOR_LAST_ADMINISTRATOR`, and a step-up attestation naming neither `rp_id` nor `origin`, or any other attestation naming them, is refused `CREDENTIAL_ATTESTATION_INVALID` <!-- wl:check step-up-passkey-attested covers attestation-key-form attestation-purposes -->
 - [ ] A provider's `401` `STEP_UP_REQUIRED` is returned to the client by the admin gateway with its status, code, `detail` and `WWW-Authenticate` header unchanged, never as `ADMIN_TOKEN_UNCHECKED` <!-- wl:check gateway-returns-step-up covers gateway-relays-step-up -->
 - [ ] Every destructive act, and every refusal of one, is in the audit log with the operator's `identity_id`, the target and the `step_up_at` it was judged on, written before the act takes effect <!-- wl:check destructive-act-in-audit covers destructive-act-audited -->
+- [ ] An admin revokes another operator's credential, and an operator its own, on a token carrying no `step_up_at`, and the revocation is served and audited <!-- wl:check revocation-without-step-up covers credential-revocation-not-destructive -->
 - [ ] No other blueprint states when a destructive act needs a step-up, or asks a second person for one; each points to `destructive-action-step-up` <!-- wl:check step-up-stated-once covers step-up-one-home no-second-person -->
 - [ ] Application gateway returns 404 for any request to /v1/admin/* paths
 - [ ] The System overview the admin gateway composes shows the orchestrator's figures from its `GET /v1/admin/overview`, agent counts, namespaces and audit depth, and no health score, and, while no `PassRoute` can name the overview group a route answers, every other group carried as an object whose one member, `unavailable`, holds the code the gateway would answer that group's route with, and never as a number

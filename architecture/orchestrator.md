@@ -14,7 +14,8 @@ agent registration, identity verification, namespace ownership, service
 directory distribution, and channel brokering.
 
 The orchestrator does NOT execute agent logic, route tasks, hold a
-programme's objectives, or decide anything a person decides. Work is
+programme's objectives, or hold a decision queue: it records a person's
+decision it is handed (an operator's approval or role), and never makes one. Work is
 execution's, objectives are the programme service's, and each decision is
 its owner's, composed into one inbox by the admin gateway
 ([`architecture/admin`](admin.md#decision-inbox)). Each registers like any
@@ -2076,9 +2077,12 @@ security:
         the gateway forwarded, and can use there what it could have used
         through the gateway and nothing more. What such a request escapes is
         what the gateway checks before it forwards anything, its operator IP
-        allowlist and the confirmation it asks before a destructive action
-        among them (architecture/admin, Admin Gateway Request Lifecycle),
-        never the judgement of the token. architecture/threat-model records
+        allowlist and its per-operator rate limits (architecture/admin, Admin
+        Gateway Request Lifecycle), and nothing more: never the judgement of
+        the token, and never the step-up a destructive act needs, which the
+        orchestrator judges from the token's step_up_at itself, as the
+        component that serves the act (architecture/admin,
+        destructive-action-step-up). architecture/threat-model records
         it as residual. Serving the administrative routes on a listener only
         the admin gateway reaches is what would enforce the boundary
     - boundary: Orchestrator → Agent. Events reach the URL a verified manifest
@@ -2188,7 +2192,7 @@ agents hold, which is theirs.
 - [ ] system.agent.deregistered event published after deregistration
 - [ ] Every operation creates an `AuditEntry`, persisted to JSONL and echoed to stdout as an `audit` log line
 - [ ] The orchestrator keeps no domain status of its own: a domain's readiness is its lease
-- [ ] Orchestrator does NOT handle tasks, programme objectives or context, and decides nothing a person decides; it serves neither the decision inbox nor any route for objectives
+- [ ] Orchestrator does NOT handle tasks, programme objectives or context, and holds no decision queue (it records, never makes, a person's decision); it serves neither the decision inbox nor any route for objectives
 - [ ] `DELETE /v1/admin/operators/{name}`, `POST /v1/admin/operators/{name}/approve`, `PUT /v1/admin/operators/{name}/role` and `POST /v1/admin/agents/{name}/deregister` are refused `STEP_UP_REQUIRED` on a token without a `step_up_at` recent enough for `destructive-action-step-up`, and a token request whose `step_up` verifies mints a token carrying `step_up_at` <!-- wl:check orchestrator-serves-step-up covers orchestrator-step-up -->
 - [ ] Administrative endpoints are gated on the capability each declares — an `admin:` capability, `llm:chat` or `model:attest` — carried in the caller's token, not on a separate role model
 - [ ] `POST /v1/admin/complete` refuses with `FORBIDDEN` a token that cannot use `llm:chat`, one carrying `admin:read` or `admin:*` without it included, and sends nothing to a backend

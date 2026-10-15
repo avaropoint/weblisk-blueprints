@@ -137,7 +137,11 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=2.1.0 <3.0.0"
+    # 2.2.0 is where weblisk/step-up/v1, the statement a destructive
+    # command's re-confirmation signs, is registered and step_up_at is set
+    # only through one (Authentication Flow). The CLI never reads step_up_at:
+    # it obtains a token carrying it and presents it
+    version: ">=2.2.0 <3.0.0"
     bindings:
       types:
         - name: WLToken
@@ -167,11 +171,13 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    # the lower bound is where TOKEN_REQUEST_REPLAYED, the code a replayed
-    # token request is refused with, exists. No command reads a directory
+    # the lower bound is where STEP_UP_REQUIRED, the code a destructive
+    # command re-confirms and retries on (Authentication Flow), exists;
+    # TOKEN_REQUEST_REPLAYED, the code a replayed token request is refused
+    # with, exists there too. No command reads a directory
     # entry's lease state: server verify and status read lease states from
     # the admin API (architecture/admin below)
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.1.0 <4.0.0"
     bindings:
       types:
         - name: Operator
@@ -1549,8 +1555,9 @@ either way, because keeping it is what spares the identity.
 
 ### One approval vouches for every hub
 
-The identity signs only to attest, and the CLI asks it to as seldom as that
-allows: **once on this device for every hub the identity is registered at**,
+Of what the identity signs at a hub (it signs to register, to attest, to
+change its own key and to step up), only attestation is repeated for every
+hub, and the CLI asks it to attest as seldom as that allows: **once on this device for every hub the identity is registered at**,
 never once for each hub.
 
 - **A separate attestation for each hub.** Each hub is sent an
@@ -3052,9 +3059,16 @@ passphrase does, and the CLI makes the re-confirmation before it sends the act,
 so the first request already carries a fresh `step_up_at`. The control it signs
 is built from the command's own method and route template, the one the act's
 provider would name in `detail.control`, never from an argument, so a script
-cannot sign a control for any act but the one its command makes. Handing a script
-the passphrase for that run is the person's own act, which the flag records;
-without it a script that meets `STEP_UP_REQUIRED` fails as above. A holder
+cannot sign a control for any act but the one its command makes. The CLI
+cannot tell a passphrase a person handed over for this run from one a script
+read from storage, a CI secret included, and the hub cannot either: under form
+`identity` what is proved is possession of the opened identity key, which
+stands in for the person. A stored passphrase is therefore a standing step-up
+for whoever holds it, as `architecture/threat-model` concedes for a thief of
+the key and its passphrase, and storing one is the operator's own choice to
+accept that. The flag records that the command was told to re-confirm, and
+the audit records the act and the control; without the flag a script that
+meets `STEP_UP_REQUIRED` fails as above. A holder
 that releases the identity without asking anybody never re-confirms, with
 `--step-up` or without. A test harness re-confirms this way, with a throwaway
 identity held in a file and its passphrase written to stdin. <!-- wl:id cli-step-up-scripted -->

@@ -1082,7 +1082,7 @@ Its routes are guarded by the `content:` family that document declares:
 | `content:reconcile` | `POST /v1/content/reconcile` |
 | `content:replicate` | `POST /v1/content/repositories/{repository}/remotes`, with `content:connect`; `DELETE /v1/content/repositories/{repository}/remotes/{remote}`. Person only |
 | `content:connect` | `POST /v1/content/repositories/{repository}/remotes` — required **in addition to** `content:replicate`, because it gives the tenant a credential that reaches outside its store. Person only |
-| `content:declassify` | No route yet: every lowering of a recorded scope is refused until the tenant's approval queue exists ([A scope only rises](#a-scope-only-rises)). Person only |
+| `content:declassify` | No route yet: every lowering of a recorded scope is refused until one is specified, a person's own decision made with a step-up and a second person's only where the tenant declares one ([A scope only rises](#a-scope-only-rises)). Person only |
 
 A capability name is `family:verb`. An invented name is refused at registration,
 so these MUST be the names `protocol/types` declares and no others. *Person
