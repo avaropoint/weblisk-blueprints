@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: tenancy
-version: 1.0.4
+version: 1.0.5
 requires: [protocol/types, protocol/identity, architecture/orchestrator, architecture/storage, patterns/principal-identity, patterns/versioning]
 platform: any
 tier: free
@@ -158,7 +158,9 @@ so compromising it exposes billing metadata rather than any tenant's records.
 
 **Owns**
 
-- The tenant, org and project registry, and the lifecycle state of each
+- The host's provisioning registry of tenants, orgs and projects, and the lifecycle
+  state of each. It records what the host provisioned, not the tenant's own structure
+  (the gap under [Endpoints](#endpoints))
 - Admission control — whether a new tenant may be created now
 - The artifact registry: which component versions exist, and their provenance
 - Fleet deployment: rolling a version across tenants, and pinning individual tenants
@@ -194,6 +196,25 @@ so compromising it exposes billing metadata rather than any tenant's records.
 | POST | /v1/fleet/deployments | StartDeployment | yes | Roll an artifact version across tenants in batches |
 | GET | /v1/fleet/deployments/{id} | DeploymentStatus | yes | Progress, batch state, halt reason |
 | POST | /v1/tenants/{tenant}/pin | PinVersion | yes | Hold a tenant on a named artifact version |
+
+> **Gap — nothing inside a tenant declares its organisations and projects.** The
+> registry this blueprint owns is the host's: `ListOrgs` and `CreateOrg` answer,
+> under the host's authority, which orgs a host provisioned, and exist only where
+> a deployment is hosted at all. No route lists a tenant's projects, at either
+> plane. Inside the tenant an organisation or a project appears only as a segment
+> of a content repository's `scope_path` ([`architecture/content`](content.md)):
+> a name, which can move, never an identity a record can join on. So a tenant
+> cannot answer which organisations and projects it has, what durable id each
+> carries, or which organisation a project belongs to, which
+> [adoption at the organisation](../schemas/programme.md#one-act-by-a-person-at-the-organisation)
+> needs in order to refuse a project's adoption by naming it. The structure is
+> the customer's, so the answer belongs to the tenant's own hub, not to the
+> control plane and not to a client. Which component holds it, the routes and
+> capabilities that read and change it, and how the control plane's registry
+> relates to it are not specified. Until they are, a client that holds an
+> organisation or project the tenant does not declare says so, held by that
+> client and not by the tenant, rather than presenting it as the tenant's
+> record.
 
 ---
 

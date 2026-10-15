@@ -2114,8 +2114,9 @@ no clock at all, correctly reported as undeclarable three layers from the cause.
 are declared here, each with its owning service. No loader reads them, no
 validator checks them, and no tenant runs the programme service, execution or
 notification that would receive them, so no shipped map declares one yet. **Who
-holds a position** stays configured by hand: it is tenant data, and belongs to
-the customer rather than to a programme.
+holds a position** belongs to the customer rather than to a programme: a
+`pii` register in the scope's records repository, which no spec declares yet
+([`position.md`, Known gaps](position.md#known-gaps)).
 
 **No content entry records the run that wrote it**, so the chain
 [`for`](#for--one-run-per-record) relies on to stop a loop is not carried by any
