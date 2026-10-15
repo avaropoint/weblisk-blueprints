@@ -1491,7 +1491,9 @@ After any registration or deregistration, the orchestrator
 asynchronously pushes the current `ServiceDirectory` to every other
 registered agent via `POST /v1/services`, signed as
 [`protocol/spec`](../protocol/spec.md#post-v1services) states, each with an
-`updated_at` greater than the last it signed. Failures are logged but
+`updated_at` greater than the last it signed. It keeps that last `updated_at`
+in its storage, so a restart, or a clock that steps back, never makes it sign
+a lower one, which every agent would refuse as stale. Failures are logged but
 never block.
 
 ---

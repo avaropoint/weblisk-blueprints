@@ -445,7 +445,8 @@ for signature verification details.
 3. Verify the push as protocol/spec POST /v1/services states:
    unsigned or not verifying → 401 INVALID_SIGNATURE;
    older than the directory held → 409 DIRECTORY_STALE;
-   either way change nothing
+   either way change nothing. Holding no directory yet → take
+   nothing from the body; read GET /v1/services at the anchor
 4. Update internal service list (thread-safe)
 5. Update local routing table cache (thread-safe)
 6. Update local namespace map cache (thread-safe)

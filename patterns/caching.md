@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: caching
-version: 2.0.0
+version: 2.0.1
 requires: [protocol/types]
 platform: any
 tier: free
@@ -189,7 +189,9 @@ All caches use **LRU (Least Recently Used)** eviction with TTL expiry:
 2. **Capacity eviction** — when the cache reaches `max_size`, the
    least recently accessed entry is evicted to make room.
 3. **Explicit invalidation** — agents MUST clear cached service
-   directory entries when they receive a POST /v1/services push.
+   directory entries when they accept a POST /v1/services push. A push
+   refused as protocol/spec states (unsigned, not verifying, or stale)
+   changes nothing, the cache included.
 
 **Priority order:** TTL expiry > explicit invalidation > LRU eviction.
 
@@ -207,9 +209,10 @@ of truth — it sits alongside the primary data source.
 ```
 
 The agent MUST NOT serve stale data after an explicit invalidation.
-When the service directory is updated (POST /v1/services), the agent
-MUST clear the `service` and `route` namespaces before processing
-the new directory.
+When the service directory is updated by an accepted push
+(POST /v1/services), the agent MUST clear the `service` and `route`
+namespaces before processing the new directory, and only once the push
+has been verified.
 
 ## Event-Driven Invalidation
 
@@ -218,7 +221,7 @@ on receipt:
 
 | Event | Invalidation Action |
 |-------|-------------------|
-| Service directory push (POST /v1/services) | Clear `service:*` and `route:*` |
+| Service directory push (POST /v1/services), once accepted | Clear `service:*` and `route:*` |
 | system.agent.registered | Clear `service:<agent_name>` |
 | system.agent.deregistered | Clear `service:<agent_name>` |
 | Configuration reload | Clear `config:*` |

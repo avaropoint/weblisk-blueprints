@@ -317,10 +317,21 @@ signs is a [fixed-form statement](identity.md#fixed-form-statements):
               (identity.md, Sign JSON), with its signature member left out
 ```
 
+The layout carries `updated_at` as `protocol/types` gives it today, a count of
+seconds. A change to how `updated_at` is carried changes this layout, and so
+takes a new prefix (a prefix names one layout for good,
+[`protocol/identity`](identity.md#fixed-form-statements)).
+
 <!-- wl:id directory-push-signed -->
-- The orchestrator MUST sign every directory it pushes, and MUST give each
-  one an `updated_at` greater than that of every directory it signed before
-  it, so no two directories it signs carry the same `updated_at`.
+- The orchestrator MUST sign every directory it pushes and every directory it
+  answers [`GET /v1/services`](#get-v1services) with. It MUST give a directory
+  that differs from the last it signed an `updated_at` greater than that of
+  every directory it signed before, so no two different directories it signs
+  carry the same `updated_at`: the time of the change, or one more than the
+  last `updated_at` it signed, whichever is greater. It MUST keep that last
+  value in its storage, so neither a restart nor a clock that steps back makes
+  it sign a lower one; without it, every agent would refuse its pushes as
+  stale until the clock caught up.
 <!-- wl:id directory-push-refuse-unsigned -->
 - An agent that takes a pushed body as its directory MUST first rebuild the
   statement from that body, the `updated_at` it carries and the digest of its
@@ -335,6 +346,12 @@ signs is a [fixed-form statement](identity.md#fixed-form-statements):
   directory whose `updated_at` is lower than that of the directory it holds,
   or equal to it with a different digest. An equal `updated_at` with the same
   digest is the directory it holds, answered 200.
+<!-- wl:id directory-push-seeded -->
+- An agent that holds no directory yet, as when it has just started, MUST NOT
+  take one from a push: it reads [`GET /v1/services`](#get-v1services) at its
+  anchor first, and judges later pushes against what that read answered.
+  Otherwise any directory the orchestrator ever signed, however old, would be
+  newer than the nothing it holds.
 - A refusal is never the end of the agent's directory: an agent that refused
   a push may read [`GET /v1/services`](#get-v1services) on its own token, as
   it may on any push. An agent that reads the directory that way takes
@@ -347,6 +364,22 @@ says no more than one read from the orchestrator says
 ([`architecture/orchestrator`](../architecture/orchestrator.md#what-the-directory-attests-and-what-it-does-not)):
 the signature proves that the orchestrator published it, not that the
 addresses in it are the tenant's.
+
+What the order does not stop is a replay of a directory newer than the one an
+agent holds and older than the current one. An agent that missed the pushes
+after the directory it holds takes any of them that a party who recorded it
+sends, a directory naming an address a component has since given up
+included, until the next push or its periodic read of `GET /v1/services`
+(Implementation Notes) brings it the current one. That window is the
+residual, and the periodic read is what bounds it.
+
+**Compatibility.** An agent built to this version refuses every push from an
+orchestrator that does not sign one, and an orchestrator built to it signs
+pushes that an earlier agent ignores. Neither pairing loses the directory:
+every agent already reads `GET /v1/services` periodically (Implementation
+Notes), so a refused push costs the time until that read and nothing else.
+That is why signing the push is a minor version of this protocol and not a
+major one.
 
 > **Gap — a task's `context.services` is not signed.** A task's
 > `context.services`, from which [`POST /v1/execute`](#post-v1execute) step 2
@@ -542,7 +575,9 @@ The response includes:
 - `services` — all registered agents with URL, public key, capabilities, `lease_state` and `lease_expires_at`
 - `routing_table` — topic pattern → subscriber list (URL, group, scope)
 - `namespaces` — namespace → owning agent name
-- `updated_at` — timestamp of last change
+- `updated_at` — the time of the last change, in seconds, or one more than
+  the previous directory's when that is greater, so it only ever rises
+  ([`POST /v1/services`](#post-v1services))
 - `signature` — the orchestrator's signature over the directory, the
   statement [`POST /v1/services`](#post-v1services) states
 
@@ -1285,9 +1320,10 @@ security:
 - [ ] Every component serves `GET /livez` and `GET /readyz` without authentication, each answering 200 or 503 with `live` or `ready` alone
 - [ ] A registered component renews its lease at `POST /v1/lease` within a third of its `duration`, carrying `ready`
 - [ ] Agent accepts `POST /v1/services` and updates internal directory and routing table
-- [ ] An unsigned push is refused: `POST /v1/services` with a body carrying no `signature` answers 401 `INVALID_SIGNATURE` and leaves the agent's directory as it was <!-- wl:check unsigned-push-refused covers directory-push-refuse-unsigned -->
-- [ ] A push whose body differs by one byte from the directory the orchestrator signed answers 401 `INVALID_SIGNATURE` and changes nothing, and so does a push signed by any key but the orchestrator's <!-- wl:check wrongly-signed-push-refused covers directory-push-refuse-unsigned -->
-- [ ] A verified push older than the directory the agent holds answers 409 `DIRECTORY_STALE` and changes nothing; the same directory again answers 200 <!-- wl:check stale-push-refused covers directory-push-refuse-stale -->
+- [ ] An agent that takes a pushed body as its directory refuses an unsigned push: `POST /v1/services` with a body carrying no `signature` answers 401 `INVALID_SIGNATURE` and leaves the agent's directory as it was <!-- wl:check unsigned-push-refused covers directory-push-refuse-unsigned -->
+- [ ] At an agent that takes a pushed body as its directory, a push whose body differs by one byte from the directory the orchestrator signed answers 401 `INVALID_SIGNATURE` and changes nothing, and so does a push signed by any key but the orchestrator's <!-- wl:check wrongly-signed-push-refused covers directory-push-refuse-unsigned -->
+- [ ] At an agent that takes a pushed body as its directory, a verified push older than the directory the agent holds answers 409 `DIRECTORY_STALE` and changes nothing; the same directory again answers 200 <!-- wl:check stale-push-refused covers directory-push-refuse-stale -->
+- [ ] An agent that takes a pushed body as its directory and holds none yet takes nothing from a signed push, reads `GET /v1/services` at its anchor, and holds what that read answered <!-- wl:check unseeded-push-reads-anchor covers directory-push-seeded -->
 - [ ] Agent handles `POST /v1/message` with signature verification
 - [ ] Agent returns signed `TaskResult` from `POST /v1/execute`
 - [ ] Agent accepts `POST /v1/event` and dispatches to matching handlers
@@ -1321,7 +1357,7 @@ security:
 - [ ] Orchestrator `GET /v1/audit` returns audit entries with pagination
 - [ ] Orchestrator `GET /v1/audit` and `DELETE /v1/register` refuse a person's operator token and a channel token, so neither reads the audit log or deregisters an agent
 - [ ] Orchestrator broadcasts updated service directory on registration changes
-- [ ] Every directory the orchestrator pushes or answers `GET /v1/services` with carries a `signature` that verifies, under `orchestrator.public_key`, over `weblisk/directory/v1`, its `updated_at` and its digest, and each carries an `updated_at` greater than the last <!-- wl:check orchestrator-signs-directory covers directory-push-signed -->
+- [ ] Every directory the orchestrator pushes or answers `GET /v1/services` with carries a `signature` that verifies, under `orchestrator.public_key`, over `weblisk/directory/v1`, its `updated_at` and its digest; each directory that differs from the last carries a greater `updated_at`, and so does the first it signs after a restart with its clock set back <!-- wl:check orchestrator-signs-directory covers directory-push-signed -->
 - [ ] Orchestrator rejects unsupported protocol_version with `UNSUPPORTED_VERSION`
 - [ ] RegisterResponse includes negotiated `protocol_version`, routing table and `lease`
 

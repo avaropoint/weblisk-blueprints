@@ -1949,7 +1949,7 @@ types:
         name: UpdatedAt
         type: int64
         required: true
-        description: "Unix epoch seconds"
+        description: "Unix epoch seconds: the time of the last change, or one more than the previous directory's when that is greater, so it only ever rises (protocol/spec, POST /v1/services)"
       signature:
         name: Signature
         type: string
