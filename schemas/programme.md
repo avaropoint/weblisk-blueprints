@@ -222,8 +222,10 @@ A file that declares no `version:` is **unversioned**. It is not `1.0.0`, not
 `0.0.0` and not "assume compatible". Nothing may be pinned against it, and an
 adoption of it is describable only by content hashes.
 
-This is the state of **every** programme file in this corpus today, and it is
-reported rather than defaulted. Studio's loader (`internal/program/version.go`) reads the field, and
+This is the state of every programme file in this corpus except
+`document-control`'s map and four specs, which arrived from Studio's source tree
+already carrying versions; its five templates declare none, like every other
+form. It is reported rather than defaulted. Studio's loader (`internal/program/version.go`) reads the field, and
 `Catalogue.Versions()` names every file that declares none — because a reader
 that filled the gap with a number would be inventing the one fact an adoption
 most depends on.
@@ -432,7 +434,7 @@ programmes at once.
 | `version` | string | no | `MAJOR.MINOR.PATCH`, as on a map. Withdrawing a `satisfies` entry and changing anything under `declares.obligation` are both MAJOR — see [Versioning](#versioning) |
 | `kind` | string | no | the artifact's own noun — what the created document declares about itself. The vocabulary is [`kinds.md`](kinds.md) |
 | `title` | string | no | display name. Defaults to `id` |
-| `structure` | string | no | the document structure it is **checked** against — `policy`, `procedure`, `standard`, `guideline` are seeded, and a tenant may add or remove them |
+| `structure` | string | no | the document structure it is **checked** against — the `id` of a [structure](#the-structures-a-document-is-checked-against). `policy`, `procedure`, `standard` and `guideline` are seeded, one file each in [`structures/`](structures/), and a tenant may add or remove them |
 | `path` | string | no | a **suggestion** for where the document goes. Required only for a standing register |
 | `satisfies` | string[] | no | the controls this artifact answers, as `framework:control` |
 | `requires` | string[] | no | artifact `id`s this one depends on — the DAG that orders generation |
@@ -452,6 +454,94 @@ not be claimed**, as on a map.
 A plan and a procedure share a shape. An organisation that has no "plan"
 structure would otherwise see the checklist report a plan as having no expected
 sections — **which reads as "this document is fine"**.
+
+### The structures a document is checked against
+
+A structure is the set of headings a kind of document is expected to have, and
+what belongs under each. It drives the structure checklist and the brief a
+model is handed when somebody asks it to fill a missing section. The seeded
+ones are corpus content, **one file per structure** in
+[`structures/`](structures/), named `<id>.md`:
+
+    schemas/structures/policy.md
+    schemas/structures/procedure.md
+    schemas/structures/standard.md
+    schemas/structures/guideline.md
+
+Markdown with YAML frontmatter, as every programme file is. The frontmatter is
+the structure; the body says, for a person, what the structure is for, and no
+tool reads it.
+
+| field | type | required | means |
+|---|---|---|---|
+| `id` | string | **yes** | what a spec's `structure` names. Lowercase, singular, and the file's own name |
+| `version` | string | no | `MAJOR.MINOR.PATCH`, as on a map. Adding a required section, making one required, or removing one is MAJOR: each changes which documents the checklist reports complete |
+| `label` | string | no | display name. Defaults to `id` |
+| `order` | integer | no | where the structure sits in a list of them. Lowest first |
+| `sections` | list | **yes** | the expected headings, in the order a document should carry them. At least one |
+| `sections[].title` | string | **yes** | the heading. Unique within the structure, ignoring case |
+| `sections[].required` | boolean | no | `true` when a document without this section is incomplete. Default `false`: most documents of the kind have one, and missing it is not a gap |
+| `sections[].aliases` | string[] | no | other headings that satisfy this one, so an organisation that writes "Statements" is not told it lacks "Policy Statements" |
+| `sections[].guidance` | string | no | what belongs here, in a sentence. Shown beside a gap, and the brief a model is given to fill it |
+| `sections[].authority` | string | no | a control of a standard the **tenant has adopted** that requires this section, as `framework:control` — the form `satisfies` takes |
+
+A heading satisfies a section when it equals the title or an alias, ignoring
+case. A structure with no sections is refused, because it would report every
+document as complete. So is one in which a title or an alias equals another
+title or alias of the same structure, ignoring case — two sections' titles, a
+title and another section's alias, or two aliases — because one heading would
+then satisfy two sections and the checklist could not say which.
+
+**The seeded structures cite no standard.** They are conventions of document
+writing, not obligations, and a framework clause written into them would be
+standards content resident in a file no adoption chose — the same text held
+twice, cited by a tenant that never adopted it. `authority` is how a tenant
+says a section is required by something it *has* adopted, and it is empty in
+every seeded file.
+
+**Which structure a document is checked against**, first match wins:
+
+1. the `structure` in the document's own frontmatter, which a form's
+   `frontmatter:` block writes ([A form's `frontmatter:`](#a-forms-frontmatter));
+2. the `structure` of the spec that created it;
+3. for a document no form or spec created, its kind as [`kinds.md`](kinds.md)
+   classifies it, resolved through `specializes`: the structure whose `id` is
+   the kind, else the one whose `id` is the kind it specializes, and so on up
+   the chain. `document` is never reached this way — it means unclassified,
+   and an unclassified document is not checked as anything. So an `sop`,
+   runbook or playbook with no structure of its own is checked as a
+   `procedure`, while a `reference` has no check.
+
+A structure declares no path of its own: a second list of folder names beside
+the classification stems in `kinds.md` would drift from them. A document whose
+resolution ends without a structure has **no check**, and says so; it is never
+reported as complete.
+
+**Only an organisation's own documents fall back by kind.** Step 3 applies to
+what a tenant authors. Published content has no structure check: an industry
+standard delivered and adopted as [`standard.md`](standard.md) declares, and
+any file of this corpus read as a source. `kinds.md` classifies the `standards`
+and `schemas` segments as `standard`, so without this rule every adopted
+standard and every schema file — the files in [`structures/`](structures/)
+among them — would be reported as an organisation standard lacking Overview
+and Requirements: a gap in a document nobody in the organisation writes. A
+published file is reported as not checked, never as incomplete.
+
+**Whose copy is checked.** The seeded files are published content: delivered
+into a tenant, where an organisation may edit, add or remove structures, and
+the tenant's set is the one its documents are checked against. A client holds
+no copy of either. No route of [`architecture/content`](../architecture/content.md)
+yet names where a tenant's structures live, so a client that cannot read them
+reports that the check did not run rather than checking against a list of its
+own.
+
+**What tests this.** The corpus has no test harness of its own, and no test yet
+reads these files. The Verification Checklist row below is a person's check
+until Studio lane S19 (which reads these structures live and removes its own
+copies) adds a test against the pinned corpus that fails when a file in
+[`structures/`](structures/) does not parse, has no section, repeats a title or
+alias, or carries an `authority`; when a shipped spec's or form's `structure`
+names no file there; or when this section stops linking the directory.
 
 ### `path` is a suggestion
 
@@ -1521,10 +1611,15 @@ block, not chosen per entry:
 | `agent:`, in an operation or a workflow step | the programme service records it | the prompt worker runs it through the model service, under the step's ceiling | nothing more: it is an instruction, never a component |
 | `domain_services` | the domain controller, once built | it registers with the orchestrator like any other component; execution runs its workflows | nothing: adoption reports each as requested, and a person starts its build |
 
-These are the tenant services of the tenant service architecture the owner approved on 2026-10-05, recorded in Weblisk Studio's `TENANT_RUNTIME_MAP.md`; no document in this corpus states it yet. **None of the programme service,
-execution, notification, the model service, the prompt worker or the admin
-gateway's decision inbox is specified in this corpus yet**, and a tenant today runs none of them, so adopting can create documents
-and nothing else. An adoption reports every block it could not hand to its
+These are the tenant services of the tenant service architecture the owner approved on 2026-10-05, recorded in Weblisk Studio's `TENANT_RUNTIME_MAP.md`.
+[`architecture/programme-service`](../architecture/programme-service.md)
+specifies the part these blocks reach: the programme service's routes and
+capabilities, who may do what and on which token, what it hands execution,
+notification and the prompt worker, and how a decision reaches the admin
+gateway's one inbox. **No component blueprint implements any of them, and
+the model service is not specified**
+([Known Gaps](../architecture/programme-service.md#known-gaps)). A tenant today
+runs none of them, so adopting can create documents and nothing else. An adoption reports every block it could not hand to its
 owner, by name, with the service that is missing — never a smaller programme
 presented as a whole one.
 
@@ -2023,9 +2118,12 @@ no clock at all, correctly reported as undeclarable three layers from the cause.
 [`workflows`, `notices`, `skills` and `domain_services`](#the-package--what-a-programme-brings-besides-its-documents)
 are declared here, each with its owning service. No loader reads them, no
 validator checks them, and no tenant runs the programme service, execution or
-notification that would receive them, so no shipped map declares one yet. **Who
-holds a position** stays configured by hand: it is tenant data, and belongs to
-the customer rather than to a programme.
+notification that would receive them
+([`architecture/programme-service`](../architecture/programme-service.md#known-gaps)),
+so no shipped map declares one yet. **Who
+holds a position** belongs to the customer rather than to a programme: a
+`pii` register in the scope's records repository, which no spec declares yet
+([`position.md`, Known gaps](position.md#known-gaps)).
 
 **No content entry records the run that wrote it**, so the chain
 [`for`](#for--one-run-per-record) relies on to stop a loop is not carried by any
@@ -2157,6 +2255,7 @@ than naming a statute that does not exist.
 - [ ] Every operation says `why:`, in terms that answer somebody who finds it running at three in the morning
 - [ ] No operation declares `start: running` unless adopting the programme is genuinely meant to change behaviour that day
 - [ ] Every artifact's body is a brief for **this organisation** — not the document itself, and not a recital of the standard
+- [ ] Every `structure` a shipped spec or form names is the `id` of a file in [`structures/`](structures/), and every file there parses, has at least one section, repeats no title or alias and carries no `authority`
 
 ---
 

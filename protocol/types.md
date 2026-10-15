@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 3.0.0
+version: 3.0.1
 requires: []
 platform: any
 tier: free
@@ -382,10 +382,11 @@ examples, such as `inventory:check`, are listings and are not listed here. An ow
 ([`architecture/orchestrator`](../architecture/orchestrator.md), with
 [`architecture/admin`](../architecture/admin.md) its administrative surface),
 `content`, `fabric`, `enforcement`, `gateway` and `domain` (each its
-`architecture/` blueprint). Three owners have no blueprint in this corpus yet:
-`programme`, whose blueprint `agents/programme` is drafted but not merged, and
-`integrations` and `telemetry`, whose blueprints are not written. Their names
-guard no route until each blueprint merges. Five names have a nominated owner
+`architecture/` blueprint). `programme` is
+[`architecture/programme-service`](../architecture/programme-service.md), which
+no component blueprint implements yet. Two owners have no blueprint in this
+corpus yet: `integrations` and `telemetry`. The names of these three guard no
+running route until a component implements their owner's blueprint. Five names have a nominated owner
 whose blueprint does not yet say what they admit: `file:read`, `file:write` and
 `http:get` (enforcement) and `http:receive` and `realtime:publish` (gateway).
 Those five are judged by no rule until their owner's blueprint states one. All
@@ -484,8 +485,10 @@ producer's, which is a registered component.
 - `programme:operate` (programme) — pause, resume, run and reschedule an installed operation
 - `programme:switch` (programme) — decide whether an operation's runs reach people: mute, unmute, and who hears them. *Person only*
 
-Which act needs which will be `agents/programme`'s, under Who May Switch What,
-once that draft merges; until then these names guard no route. The programme
+Which route needs which is
+[`architecture/programme-service`](../architecture/programme-service.md#endpoints)'s.
+No component implements that document yet, so these names guard no running
+route. The programme
 service is to declare the first three, because a grant to a caller is the
 intersection of what it holds and what the serving manifest declares, and to
 check `programme:switch` without ever holding it, as `content` does its own
