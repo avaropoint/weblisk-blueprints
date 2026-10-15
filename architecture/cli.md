@@ -877,17 +877,42 @@ untrusted ([Generated output is untrusted](#generated-output-is-untrusted)),
 and a build runs some of it (a `build.rs`, an install script), so every such
 build gets the allow-list below and the run's values too, never the CLI's
 environment, plus the toolchain's own directories. Go refuses to build with
-neither `GOCACHE` nor a home. `CARGO_HOME` is always computed under the
-tenant's root and never copied, because it is where cargo keeps
-`credentials.toml`, a registry's tokens, which is the reason `HOME` is off
-the list. `GOCACHE`, `GOMODCACHE` and `GOPATH` for Go, `RUSTUP_HOME` for Rust
-and `npm_config_cache` for npm are each copied from the CLI's environment
-where set there, and computed under the tenant's root otherwise. Each of
-those holds build output, downloaded modules or installed toolchains and no
+neither `GOCACHE` nor a home. Two of those directories are always computed
+under the tenant's root and never copied, because each is where a toolchain
+reads a registry's tokens through the account's home even with `HOME`
+absent: `CARGO_HOME`, where cargo keeps `credentials.toml`, and
+`npm_config_userconfig`, the `.npmrc` npm otherwise finds through Node's
+`os.homedir()`, which falls back to the account's entry in the user
+database. Each names a directory or file the tenant owns and nothing has
+written to, so cargo and npm start a build with no registry token. The rest
+are a default install's: `GOCACHE`, `GOMODCACHE` and `GOPATH` for Go,
+`RUSTUP_HOME` for Rust and `npm_config_cache` for npm are each copied from
+the CLI's environment where set there, and otherwise computed where that
+toolchain computes its own default, from the home directory of the account
+the CLI runs as (its `HOME`, `USERPROFILE` on Windows, else the user
+database): `GOPATH` is `<home>/go`, `GOMODCACHE` is `<GOPATH>/pkg/mod`,
+`GOCACHE` is `go-build` under the user cache directory Go's
+`os.UserCacheDir` names, `RUSTUP_HOME` is `<home>/.rustup`, and
+`npm_config_cache` is `<home>/.npm` (`npm-cache` under `LOCALAPPDATA` on
+Windows). The home itself is never passed. `RUSTUP_HOME` in particular is
+not a cache: it holds the installed toolchains and the default one, so an
+empty one stops every Rust build on a default rustup install. Each of those
+holds build output, downloaded modules or installed toolchains and no
 credential: Go reads a module host's credentials from `.netrc` under `HOME`
-or from `GOAUTH`, rustup keeps no token, and npm reads its tokens from
-`.npmrc` under `HOME` or `npm_config_userconfig`, and none of those is
-passed. They reach the build step and never the component it builds.
+or from `GOAUTH` and `NETRC`, none of which is passed, and rustup keeps no
+token. They reach the build step and never the component it builds.
+
+What this does not prevent, said plainly: it governs the environment, not
+the filesystem. A build runs as the account that started the CLI and reads
+and writes what that account can — `~/.npmrc`, `~/.cargo/credentials.toml`
+and the shared toolchain directories above among them — if code it runs
+opens them by path. Cargo also reads `.cargo/config.toml` from every
+directory above the one it builds in, so a tenant root under a home
+directory reads that home's `.cargo/config.toml`; a token belongs in
+`credentials.toml`, which only `CARGO_HOME` locates. npm still reads the
+global `npmrc` under Node's install prefix. Keeping a build away from the
+account's files is a matter of the account it runs as, which this section
+does not change.
 
 | Name | Why its value carries no secret | Why a component needs it |
 |---|---|---|
@@ -3303,7 +3328,8 @@ security:
         .env.example) or, on cloudflare, .dev.vars file in the directory it
         starts in is tolerated; every build the CLI makes of a component's
         code, generation's included, gets the same environment and its
-        toolchain's directories; nothing else of the person or program that started the CLI
+        toolchain's directories, with CARGO_HOME and npm_config_userconfig
+        always under the tenant's root; nothing else of the person or program that started the CLI
         reaches it, and no vendor key variable reaches any component, the
         orchestrator included (A component starts with a clean environment)
     - boundary: CLI → Provider CLI. A key the CLI reads from a holder or from
@@ -3355,7 +3381,10 @@ security:
         start's, tenant create's, weblisk dev's and generation's in Layer 2
         and its repair rounds alike, gets the component's clean environment
         plus its toolchain's own directories, and never the CLI's
-        environment
+        environment. CARGO_HOME and npm_config_userconfig are always computed
+        under the tenant's root, so cargo and npm read no registry token
+        through the account's home; the environment is all this governs, and
+        a build still reads the account's files by path
     - rule: A key the CLI reads from a holder or from standard input never
         leaves the CLI's process
       mechanism: Held in memory and handed only to the call that uses it;
@@ -3430,7 +3459,7 @@ security:
 - [ ] A component other than the orchestrator, started while an orchestrator is named by `--orch` or recorded as running for the tenant, has `WL_ORCH_URL` set to that orchestrator's own address and the same address in `--orch` among its arguments; started with none named or running, it has neither, on a real start and on a build's own runs alike
 - [ ] Every start, and each of a build's own runs, is refused, naming the file, while the directory the component would start in holds `.env`, any `.env.*` other than `.env.example`, or, on the cloudflare platform, `.dev.vars` or any `.dev.vars.*`
 - [ ] A cloudflare start is refused, naming each entry, while its wrangler configuration's `[vars]` holds an entry rule 16 of [`schemas/config`](../schemas/config.md#validation-rules) recognises as a secret
-- [ ] Every build the CLI makes of a tenant component's code — before `weblisk agent start`, `domain start`, `gateway start`, `server start` or `component <name> start` runs it, the orchestrator's in `weblisk tenant create`, each `weblisk dev` makes, and generation's in Layer 2 and in every repair round — gets the component's clean environment plus only `GOCACHE`, `GOMODCACHE` and `GOPATH`, `CARGO_HOME` and `RUSTUP_HOME`, or `npm_config_cache`, as its toolchain uses, with `CARGO_HOME` always under the tenant's root and never the CLI's, and no vendor key variable
+- [ ] Every build the CLI makes of a tenant component's code — before `weblisk agent start`, `domain start`, `gateway start`, `server start` or `component <name> start` runs it, the orchestrator's in `weblisk tenant create`, each `weblisk dev` makes, and generation's in Layer 2 and in every repair round — gets the component's clean environment plus only `GOCACHE`, `GOMODCACHE` and `GOPATH`, `CARGO_HOME` and `RUSTUP_HOME`, or `npm_config_cache` and `npm_config_userconfig`, as its toolchain uses, and no vendor key variable; `CARGO_HOME` and `npm_config_userconfig` are always under the tenant's root and never the CLI's, and every other one the CLI's environment does not set is the toolchain's own default under the home of the account the CLI runs as (so `RUSTUP_HOME` is `<home>/.rustup`), which a build on a default toolchain install finds, while the home itself is never passed
 - [ ] No started component's environment holds `HOME`, `USERPROFILE`, `APPDATA` or `LOCALAPPDATA`
 - [ ] No started component's environment holds `SSL_CERT_FILE`, `SSL_CERT_DIR`, `NODE_EXTRA_CA_CERTS` or a proxy variable, in either case, that the CLI's environment holds, unless that component's own declaration names it
 - [ ] An `agents[].env` entry that [`schemas/config`](../schemas/config.md#validation-rules) rule 16 recognises as a secret — by its name, by a published vendor key prefix, or by a PEM block or a URL with a user or password — is refused, naming every such entry, by the commands that generate a component and by every start, before anything is generated or started
