@@ -122,6 +122,10 @@ Not capabilities — values a kind declares.
 | `obligation` | — | source + path + clause | authored | procedure | versioned, has-custody, chain-member, opens-gap, agent-executable |
 | `register` | — | declared register id | authored | runtime | versioned, has-custody, chain-member, proves |
 | `run` | — | run id | observed | runtime | chain-member |
+| `requirement` | — | **namespace + artifact + part id** | authored | — | **is-criterion** |
+| `check` | — | **namespace + artifact + part id** | authored | — | **is-criterion** |
+| `namespace` | — | namespace name | observed | — | *(none)* |
+| `listing` | — | namespace + listing name | published | — | *(none)* |
 
 ### What the table says, in words
 
@@ -149,6 +153,19 @@ the code implementing it; a blueprint also generates and participates in a chain
 change — and it does not `prove`: an execution record is corroboration that
 something happened, and durable evidence is an `evidence` artifact or an
 attestation. See the audit join in the fabric design for the same distinction.
+
+**`requirement` and `check` are parts of a file, not files.** A requirement is
+one MUST a blueprint states; a check is one verification item, and says which
+requirements it covers. Each is named by the file it is declared in and its
+own part id ([`names.md`](names.md#three-separators-three-meanings)), so its
+kind is part of its identity, as a control's is: two files may both declare a
+part called `register`. Like a control, each is what something is measured
+against, and has no version of its own; the file that declares it has one.
+
+**`namespace` and `listing` are named in a registry, not in a file.** A
+namespace is observed in the signed log of the registry that granted it; a
+listing is what a namespace's holder publishes under it. Neither governs
+anything by being declared, so neither has a capability.
 
 **`integration` has no capabilities**, and that is correct rather than an
 omission. It is a boundary, not a subject: a service consumed to do a task
@@ -412,6 +429,12 @@ the example shows the one that cannot be read two ways. See
 
 A prefix is only a qualifier when it is a **declared kind**, so a colon in a URL
 or a path is left alone.
+
+**A target in another namespace names it after `//`**: `//example/ohs/policy`,
+or with its kind, `requirement://weblisk/architecture/orchestrator:register-claims-namespace`.
+An unqualified target is in the namespace of the file that names it. The
+grammar, the families beyond these kinds, and how a short target resolves are
+[`names.md`](names.md)'s, and are not restated here.
 
 A pairing this table does not permit is **skipped**, not recorded: a claim
 nothing can justify is worse than an absent one, and the corpus validator is
