@@ -408,6 +408,16 @@ section using YAML format. Types are the single source of truth — storage
 tables, action inputs, event payloads, and API responses all reference
 these definitions.
 
+> **Grammar 1.** In a file walked against a family declaration
+> ([`schemas/family`](family.md)), a field's type and properties, and a type's
+> constraints, are [`schemas/blocks`](blocks.md)'s. Its `scalar` definition
+> and type-expr grammar replace the Scalar Types table below, and its "Older
+> spellings" say how each spelling here is read until the migration rewrites
+> it. The property table and constraint types below are carried whole, except
+> `optional` (read as `required: false`) and `enum` (read as `values`).
+> Validation rule 2 becomes blocks.md's `type-vocabulary-closed`; rule 3, a
+> description on every field, is kept.
+
 ### What is a type, and what is not
 
 A `types:` block declares a TYPE — something a `fields_used` binding may
@@ -533,6 +543,10 @@ types:
 
 Blueprints that accept runtime configuration MUST declare all parameters
 in a `## Configuration` section using YAML format.
+
+> **Grammar 1.** In a file walked against a family declaration, a parameter is
+> [`schemas/blocks`](blocks.md)' `field`, exactly as a type's field is (see
+> the Types Section).
 
 ### Structure
 

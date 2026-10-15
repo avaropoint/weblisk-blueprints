@@ -1,0 +1,130 @@
+{
+  "file": "vectors/grammar/table-as-yaml.md",
+  "family": "vectors/grammar/test-blueprint@1",
+  "length": 760,
+  "version_hash": "sha256:cfcd1f352d40ee63344ba5949ef86aa79ad8a58d93768c7b26a5734a81b5c71d",
+  "parts": [
+    {
+      "span": [0, 64],
+      "part": "header",
+      "slot": null,
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:090a20476b335f38ff2f2efd7e75d7e8d3b3fa4bf57ab2a91b372661e8b9c2c3",
+      "entries": [
+        {
+          "id": "family",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:0a4926df20a363d3527906c15468ed0c3c23ae782ce282a1b7b55ec720717562"
+        },
+        {
+          "id": "version",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:39fe4a40977d0585fd5704359e3685b0ada5cf5ee061e5d97385601d120cd0ec"
+        }
+      ]
+    },
+    {
+      "span": [64, 217],
+      "part": "text",
+      "slot": "title",
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:610f627544757bdf8e53a92bb5e26de31eb496fa72136dba24162e2aff1b08fe"
+    },
+    {
+      "span": [217, 234],
+      "part": "text",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:9847786846315cd9627e8e8f8a391f46a055780253236daa667d267bb82b4365"
+    },
+    {
+      "span": [234, 356],
+      "part": "block",
+      "slot": "requirements",
+      "block": "requirements",
+      "family": "requirement",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:3089e4f3fb5735ab5ba9275eed069ac7600e1e99b419bcb7109e09228c8f5c52",
+      "entries": [
+        {
+          "id": "errors-are-coded",
+          "digest": "sha256:dac58d4a0872eac4a397cc3b2b7903d9cd1151f4f56d6be6bcfb536e1caefb30"
+        }
+      ]
+    },
+    {
+      "span": [356, 357],
+      "part": "text",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [357, 368],
+      "part": "text",
+      "slot": "errors",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:6c460bdc9f271a9afae28045af6fc57577cef6cebe53c18715a71a6f57dcfaa0"
+    },
+    {
+      "span": [368, 589],
+      "part": "block",
+      "slot": "errors",
+      "block": "errors",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:49485e314638703d67b0580b98f258b94a6becb6858ecd662c617fe913abfb18",
+      "entries": [
+        {
+          "id": "LEASE_EXPIRED",
+          "digest": "sha256:b1fe824f5a587ff24039ae160fc616b1562d9c51b58d5d8d6fc02592e85741d4"
+        },
+        {
+          "id": "HOLDER_BUSY",
+          "digest": "sha256:5dd35f2dfcf58866eb6f205c4412770fd9421ad0f6929395ba65df342a645e5d"
+        }
+      ]
+    },
+    {
+      "span": [589, 590],
+      "part": "text",
+      "slot": "errors",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [590, 607],
+      "part": "text",
+      "slot": "verifies",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:817b1fa3eae2537bd10a8a271ca4c40b799f05f71d6b855f9e40446f21ab62fa"
+    },
+    {
+      "span": [607, 760],
+      "part": "block",
+      "slot": "verifies",
+      "block": "verifies",
+      "family": "check",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:c60a565f685083062dcdc50c5b60b27c9a83161c6940783ddfd6188fa31f115d",
+      "entries": [
+        {
+          "id": "refusal-codes-declared",
+          "digest": "sha256:ba30fe903d27dbe695716102505a3f00679fe67e8e1d9ad7796a6bafaf48f669"
+        }
+      ]
+    }
+  ],
+  "findings": []
+}

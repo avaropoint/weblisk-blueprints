@@ -80,5 +80,86 @@ grep -q "has reached it" "$tmp/out" || { echo "FAIL retired control: the ended a
 expect 0 "timestamp-wire: every mapping agrees with the vector" python3 checks/timestamp-wire.py
 expect 0 "timestamp-wire control: a mapping in milliseconds is reported" python3 checks/timestamp-wire.py --control
 
+# Every grammar vector against its expected projection; a copy whose
+# projection leaves a one-byte gap, and a copy missing a projection, must each
+# be reported, once.
+expect 0 "spans: every grammar vector is partitioned by its projection" python3 checks/spans.py
+mkdir "$tmp/gap" "$tmp/lone"
+cp vectors/grammar/minimal.md vectors/grammar/minimal.projection.json "$tmp/gap/"
+python3 - "$tmp/gap/minimal.projection.json" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1]))
+p["parts"][1]["span"][0] += 1
+json.dump(p, open(sys.argv[1], "w"))
+PY
+expect 1 "spans control: a projection with a one-byte gap fails" python3 checks/spans.py --dir "$tmp/gap"
+if [ "$(grep -c '^minimal: gap at byte' "$tmp/out")" -eq 1 ] && [ "$(wc -l <"$tmp/out")" -eq 1 ]; then
+	echo "ok   spans control: exactly one finding, the gap"
+else
+	echo "FAIL spans control: want exactly one finding, the gap"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+cp vectors/grammar/minimal.md vectors/grammar/minimal.projection.json vectors/grammar/crlf.md "$tmp/lone/"
+expect 1 "spans control: a vector without a projection fails" python3 checks/spans.py --dir "$tmp/lone"
+grep -q '^crlf.md: no expected projection$' "$tmp/out" || { echo "FAIL spans control: the missing projection was not what was reported"; fails=$((fails + 1)); }
+mkdir "$tmp/none"
+expect 1 "spans control: a directory with no vectors fails" python3 checks/spans.py --dir "$tmp/none"
+grep -q '^no grammar vectors in ' "$tmp/out" || { echo "FAIL spans control: the empty directory was not what was reported"; fails=$((fails + 1)); }
+
+# Every finding code's policy, and the policy each vector's findings carry; a
+# vector whose multi-root finding is only reported, and a family.md that gives
+# multi-root no policy, must each be reported, once.
+expect 0 "findings: every code has one policy, and every vector carries it" python3 checks/findings.py
+mkdir "$tmp/lax"
+cp vectors/grammar/multi-root.md vectors/grammar/multi-root.projection.json "$tmp/lax/"
+python3 - "$tmp/lax/multi-root.projection.json" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1]))
+next(f for f in p["findings"] if f["code"] == "multi-root")["policy"] = "report"
+json.dump(p, open(sys.argv[1], "w"))
+PY
+expect 1 "findings control: a multi-root finding that is only reported fails" python3 checks/findings.py --dir "$tmp/lax"
+if [ "$(grep -c '^multi-root: multi-root is report, its policy is refuse$' "$tmp/out")" -eq 1 ] && [ "$(wc -l <"$tmp/out")" -eq 1 ]; then
+	echo "ok   findings control: exactly one finding, the policy"
+else
+	echo "FAIL findings control: want exactly one finding, the policy"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+sed 's/ block-missing, multi-root,/ block-missing,/' schemas/family.md >"$tmp/family.md"
+expect 1 "findings control: a code with no policy fails" python3 checks/findings.py --family "$tmp/family.md" --dir "$tmp/none"
+grep -q '^multi-root: no policy$' "$tmp/out" || { echo "FAIL findings control: the code with no policy was not what was reported"; fails=$((fails + 1)); }
+# A missing key header.required names is only ever reported; a migration
+# vector that refuses it must be reported, once. A declaration with CRLF line
+# ends reads as the same declaration.
+mkdir "$tmp/strict"
+cp vectors/grammar/migration.md vectors/grammar/migration.projection.json "$tmp/strict/"
+python3 - "$tmp/strict/migration.projection.json" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1]))
+next(f for f in p["findings"] if f["code"] == "missing-key")["policy"] = "refuse"
+json.dump(p, open(sys.argv[1], "w"))
+PY
+expect 1 "findings control: a missing-key finding that is refused fails" python3 checks/findings.py --dir "$tmp/strict"
+grep -q '^migration: missing-key is refuse, its policy is report$' "$tmp/out" && [ "$(wc -l <"$tmp/out")" -eq 1 ] || { echo "FAIL findings control: the refused missing-key was not the one finding"; fails=$((fails + 1)); }
+python3 -c 'import sys; d = open(sys.argv[1], "rb").read(); open(sys.argv[2], "wb").write(d.replace(b"\n", b"\r\n"))' schemas/family.md "$tmp/family-crlf.md"
+expect 0 "findings: a CRLF copy of family.md reads as the same declaration" python3 checks/findings.py --family "$tmp/family-crlf.md"
+
+# Every $ref in a family declaration resolves to a definition; a copy of the
+# test declaration citing the short form, which names no file, must be
+# reported, once for each of its four refs and for nothing else.
+expect 0 "refs: every \$ref in a declaration resolves" python3 checks/refs.py
+mkdir "$tmp/short"
+sed 's|"schemas/blocks#/|"blocks#/|' vectors/grammar/test-blueprint.md >"$tmp/short/test-blueprint.md"
+expect 1 "refs control: a declaration citing blocks#/\$defs/ fails" python3 checks/refs.py --scan "$tmp/short"
+if [ "$(grep -c 'names blocks, which is no file of this repository$' "$tmp/out")" -eq 4 ] && [ "$(wc -l <"$tmp/out")" -eq 4 ]; then
+	echo "ok   refs control: exactly the four short refs"
+else
+	echo "FAIL refs control: want exactly the four short refs"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]

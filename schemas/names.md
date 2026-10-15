@@ -49,15 +49,29 @@ Three further rules a grammar line cannot carry:
 - **`/` crosses files.** The local id is a path inside its namespace's root.
 - **`:` enters a file.** It names a part with an identity of its own: a
   requirement, a check, a type, an operation, a control, an obligation or a
-  block uid. Our own part ids are kebab-case; an issuer's clause number is kept
-  as the issuer writes it (`A.5.15`, `9(33)`).
+  block uid. Our own part ids are kebab-case, except a declared type's name,
+  which is PascalCase as [`schemas/common`](common.md#validation-rules-3) has
+  always required ([`schemas/blocks`](blocks.md#blocks)); an issuer's clause
+  number is kept as the issuer writes it (`A.5.15`, `9(33)`).
 - **`#` is a coordinate, never an identity.** It marks a heading anchor or a
   section slot, which move when a heading is reworded (six anchors already
   retired that way are in [`RETIRED.md`](../RETIRED.md)). Nothing joins on one,
   and the fabric never records one as a node's identity.
 
+A JSON Schema `$ref` in a family declaration is the one place a ref is
+followed by `#` and a JSON Pointer rather than an anchor:
+`schemas/blocks#/$defs/version`. The ref before `#` is written in full and
+names a declaration; the pointer is a coordinate into that declaration's
+`defs` block, resolved when a schema is applied and never recorded as an
+identity. [`schemas/family`](family.md) (`schema-refs-resolve`) states the
+rule and [`checks/refs.py`](../checks/refs.py) holds every declaration to it.
+
 **A version is never part of an id.** A citation is a ref and a version
 (`ohs/policy@1.1.0`), or, in a data field, the pair of a ref and a digest.
+A file's `family:` is the one place a ref is cited by a major alone,
+`<ref>@<major>` (`schemas/architecture@2`): the declaration of the family the
+file is written to, and the major it is written to
+([`schemas/family`](family.md)).
 
 ## Three written forms
 
@@ -74,6 +88,11 @@ A family says what sort of thing a ref names. Every kind
 kind adds a family and nothing here changes. The block below declares the
 families that name something which is not a kind of node: a part of a file, or
 a file's own sort. A tool reads the two together and keeps no list of its own.
+
+A ref family is not a **file family**, which says how a file of one sort is
+written and is declared in [`schemas/family`](family.md); a file family's
+`kind` names the ref family its files are named in, and a file family is
+itself named by its declaration's ref, in the ref family `specification`.
 
 ## Namespaces
 

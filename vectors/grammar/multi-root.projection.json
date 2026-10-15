@@ -1,0 +1,84 @@
+{
+  "file": "vectors/grammar/multi-root.md",
+  "family": "vectors/grammar/test-blueprint@1",
+  "length": 484,
+  "version_hash": "sha256:04f9dd1a633e3395ef28d582814ae58b1cbb2b7939ce04e2dca1a83e10c93af2",
+  "parts": [
+    {
+      "span": [0, 64],
+      "part": "header",
+      "slot": null,
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:090a20476b335f38ff2f2efd7e75d7e8d3b3fa4bf57ab2a91b372661e8b9c2c3",
+      "entries": [
+        {
+          "id": "family",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:0a4926df20a363d3527906c15468ed0c3c23ae782ce282a1b7b55ec720717562"
+        },
+        {
+          "id": "version",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:39fe4a40977d0585fd5704359e3685b0ada5cf5ee061e5d97385601d120cd0ec"
+        }
+      ]
+    },
+    {
+      "span": [64, 144],
+      "part": "text",
+      "slot": "title",
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:7fbac046153c4cea0887d4adde4e4640816157279b48e2ce5ada04b335146ae0"
+    },
+    {
+      "span": [144, 327],
+      "part": "text",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:e9e613419e5e68f8c3781da3254d5a948da06ed6804ccadd3354fab3a283fb24"
+    },
+    {
+      "span": [327, 344],
+      "part": "text",
+      "slot": "verifies",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:817b1fa3eae2537bd10a8a271ca4c40b799f05f71d6b855f9e40446f21ab62fa"
+    },
+    {
+      "span": [344, 484],
+      "part": "block",
+      "slot": "verifies",
+      "block": "verifies",
+      "family": "check",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:378a9d3972301b4d9bf4bb9d3d265937eeee8e5bdf5007431b10241c61bc8006",
+      "entries": [
+        {
+          "id": "second-root-refused",
+          "digest": "sha256:e3966a478bd84478329ebf5ca66eb805e5e5d2614695fa8d115e4c6a85d20bcf"
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "code": "block-missing",
+      "policy": "refuse",
+      "span": [144, 327],
+      "subject": "requirements"
+    },
+    {
+      "code": "multi-root",
+      "policy": "refuse",
+      "span": [144, 327],
+      "subject": "requirements"
+    }
+  ]
+}

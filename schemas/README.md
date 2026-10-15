@@ -75,6 +75,8 @@ This applies to:
 | [policy-domain.md](policy-domain.md) | Policy domains — what a subject area covers, where it stops, and what a programme claiming it must provide | `policy-domains/` directory |
 | [kinds.md](kinds.md) | What sorts of thing the platform can talk about, what each drives, and which relations join them | Every tool that classifies, relates or scores content |
 | [names.md](names.md) | How anything is named: the id grammar, families, namespaces and how a short ref resolves. Its vectors are [`vectors/ids.json`](../vectors/ids.json) | Every ref, in every file and every tool |
+| [family.md](family.md) | Grammar 1: how a family declaration says a file is written — header, slots, blocks, what each part is for — and the projection a walk of a file produces. It is itself a declaration, and validates against itself. Its vectors are [`vectors/grammar/`](../vectors/grammar/README.md) | Every family declaration, and every file walked against one |
+| [blocks.md](blocks.md) | The block catalogue: every typed block a slot may hold, by root key, and the closed vocabulary a declared type's fields are written in | Every typed block in a file walked by grammar 1 |
 
 ### kinds.md is different from the others
 
@@ -109,7 +111,9 @@ common.md (inherited by all)
 ├── position.md (positions/ — the hand-written half of a role brief)
 ├── policy-domain.md (policy-domains/ — what a subject area covers and requires)
 ├── kinds.md (what sorts of thing exist — read at runtime, not checked against a document)
-└── names.md (how anything is named — the id grammar, bound by vectors/ids.json)
+├── names.md (how anything is named — the id grammar, bound by vectors/ids.json)
+├── family.md (grammar 1 — how a family declaration says a file is written, bound by vectors/grammar/)
+└── blocks.md (the typed blocks a slot may hold, and the field type vocabulary)
 ```
 
 Every type-specific schema inherits all rules from `common.md`. Type-specific

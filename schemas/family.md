@@ -1,0 +1,606 @@
+---
+family: schemas/family@1
+version: 1.0.0
+kind: specification
+noun: family
+capabilities: [author, versioned]
+---
+# Schema: Families
+
+A family says how a file of one sort is written: its header, its sections, the
+typed blocks each section holds, and what each part of the file is for. A
+**family declaration** is a markdown file of the family `schemas/family`, and this file
+is the declaration of that family, so it validates against itself.
+
+A file family is not a ref family. A ref family ([`schemas/names`](names.md#families))
+says what sort of thing a ref names; a file family says how a file is written.
+A declaration's `kind` names the kind ([`schemas/kinds`](kinds.md#declared-kinds))
+its files are, and so the ref family they are named in. A family is named by
+its declaration's ref: a declaration is a file of this family, whose `kind` is
+`specification`, so the family declared at `schemas/architecture.md` is
+`schemas/architecture`, and one declared anywhere else is named by its own
+path just the same.
+
+The typed blocks a slot may hold, and the closed vocabulary their fields are
+written in, are [`schemas/blocks`](blocks.md)'s. This file says how a file is
+divided into parts; that one says what a block in a part may contain. Test
+vectors for both are in [`vectors/grammar/`](../vectors/grammar/README.md).
+
+## Requirements
+
+```yaml
+requirements:
+  - id: family-names-declaration
+    level: must
+    text: >-
+      A file's header names the family it is written to as `family:
+      <ref>@<major>`, where <ref> is the ref of the family's declaration in
+      the ref family specification, so its local id is the declaration's path
+      without `.md`, and <major> is the major of that declaration's version.
+      A file with no `family:` is read as the family whose `match` covers its
+      path, and a path two families match is a finding.
+  - id: declaration-validates-itself
+    level: must
+    text: >-
+      This file walks as a file of the family it declares, with no finding a
+      policy refuses.
+  - id: spans-partition
+    level: must
+    text: >-
+      A walk divides the file's bytes into parts whose spans are sorted,
+      contiguous and cover [0, length) exactly. A span is a pair of byte
+      offsets, end exclusive. The walker never rewrites a byte.
+  - id: part-boundaries
+    level: must
+    text: >-
+      Parts begin at offset 0 and at these points only: the end of the header's
+      closing line; the start of a level-1 or level-2 heading line outside a
+      fence or comment; the start of a block's opening line or first table
+      row; the end of a block's closing line or last table row. Each part ends
+      where the next begins.
+  - id: bytes-as-written
+    level: must
+    text: >-
+      A UTF-8 byte-order mark at offset 0 belongs to the first part and is not
+      content. A line ends at LF, and a CR before that LF belongs to the line.
+      Headings, fences and the header are recognised identically with either
+      line end.
+  - id: header-delimited
+    level: must
+    text: >-
+      A header opens with a first line that is exactly `---`, at offset 0 or
+      after the byte-order mark, and closes at the next line that is exactly
+      `---`; `...` closes nothing. A file whose first line is anything else
+      has no header. A header with no closing line, or whose lines do not
+      parse as a YAML mapping, is refused as header-unparsed: its part runs to
+      the end of its closing line, or of the file when it has none.
+  - id: headings-are-atx
+    level: must
+    text: >-
+      A level-1 or level-2 heading is a line of `#` or `##`, indented by at
+      most three spaces, then a space and its text. A line indented by four
+      or more, a `#` with no space after it, and a setext heading (text
+      underlined with `=` or `-`) are text.
+  - id: fences-are-opaque
+    level: must
+    text: >-
+      A fence opens with a line of three or more backticks or tildes, indented
+      by at most three spaces, and closes with a line of the same character at
+      least as long and nothing else. Every line inside a fence is content: a
+      heading, a fence of the other character or a shorter one, or a block
+      inside it opens nothing. A line outside a fence that begins, after at
+      most three spaces, with `<!--` opens a comment that closes at the end of
+      the first line from that one on holding `-->`, and every line of a
+      comment is content in the same way; a `wl:explains` marker is a comment
+      on one line. A fence or comment with no closing line runs to the end of
+      the file and is refused as unclosed-fence.
+  - id: slots-by-heading
+    level: must
+    text: >-
+      The level-1 heading opens the slot whose heading is {level: 1}. Each
+      level-2 heading opens the first slot whose heading, alias or starts_with
+      it matches, compared after trimming and collapsing spaces; deeper
+      headings stay inside the slot that holds them. A level-2 heading that
+      matches no slot opens an undeclared part under the `undeclared` policy.
+  - id: blocks-by-root-key
+    level: must
+    text: >-
+      A fence whose info string is `yaml`, outside any other fence, whose value
+      is a mapping with exactly one root key that blocks.md catalogues, is a
+      block of that type. A table in a slot that lists a catalogued block of
+      form table is a block of that type, read by column name. Any other fence
+      or table is text of its slot, with no part of its own. A yaml fence
+      outside any other fence whose mapping has a catalogued root key and any
+      other root key is reported multi-root, with that catalogued key as its
+      subject, and not also prose-forbidden: one fault is one finding. A yaml
+      fence whose first line that is neither blank nor a `#` comment is a
+      catalogued key and `:` at column 0, but which does not parse or uses a
+      YAML feature json-data-model refuses, is a block of that type that is
+      refused (block-unparsed or yaml-feature) and has no value read.
+  - id: json-data-model
+    level: must
+    text: >-
+      A header or block is read as YAML into the JSON data model only. An
+      anchor, alias, tag, merge key or second document is refused as
+      yaml-feature, once for the header or block, with the first such feature
+      in it as subject, and a scalar that is not quoted keeps the type the
+      YAML 1.2 core schema gives it, so an unquoted date is a string. A header
+      or block whose value is not read, because it is refused as
+      header-unparsed, block-unparsed or yaml-feature, has its digest over its
+      bytes, as a text part has, and no entries.
+  - id: legacy-before-schema
+    level: must
+    text: >-
+      Each key header.legacy names is removed before header.schema is applied,
+      and is a finding under its own policy, never a second finding from the
+      schema.
+  - id: header-required-reported
+    level: must
+    text: >-
+      A key header.required names that the header does not hold is reported
+      as missing-key, with the key as subject, and header.schema is applied
+      as if its `required` did not list that key, so one absence is one
+      finding. A key whose absence is refused is listed in header.schema's
+      `required` alone.
+  - id: schema-refs-resolve
+    level: must
+    text: >-
+      A `$ref` in a declaration's blocks is `#/$defs/<name>`, an entry of
+      that declaration's own `defs` block, or `<ref>#/$defs/<name>`, an entry
+      of the `defs` block of the declaration <ref> names. <ref> is written
+      in full, the declaration's path without `.md` as a ref in the family
+      specification, and resolves as schemas/names resolves a short ref, in
+      this file's namespace. A declaration's `defs` block is its `$defs`, and
+      nothing else is a `$ref`: no base URI, no `$id`, no deeper pointer.
+  - id: parts-carry-use
+    level: must
+    text: >-
+      Every part carries its slot, use and send. The header's part, an
+      undeclared part and text before the first slot have slot null; the
+      header's part is navigates and always, and each of its entries takes the
+      use and send header.uses gives its key, or navigates and always when it
+      gives none, in the order the header writes its keys. A block part
+      always carries its entries, an empty list when the catalogue declares
+      none. A slot's `send` defaults by
+      its `use` as the use table states, and a part of a slot whose use is
+      explains is sent `cited` when it carries a `wl:explains` marker and
+      `on-request` otherwise.
+  - id: digests-by-value
+    level: must
+    text: >-
+      A header's or block's digest, and each of its entries' digests, is
+      sha256 over the RFC 8785 serialisation of its projected value: the
+      value as read, once header.legacy's keys are removed and every older
+      spelling blocks.md lists is rewritten to what it names. A block's value
+      is the value under its root key, without the key; a header's is its
+      mapping; an entry's is the mapping's value at its key, or the list item
+      it names. A header or block whose value is not read is digested over
+      its bytes, as json-data-model says. A text part's
+      digest is sha256 over its bytes. Every digest is written sha256:<hex>.
+  - id: findings-closed
+    level: must
+    text: >-
+      A finding's code is one of the codes declared in this file's
+      definitions, and carries the policy that decides it: the one the
+      `finding` definition fixes for its code, or, for the three codes it
+      leaves to the declaration, the one the declaration gives. A file
+      validates when no finding's policy is refuse.
+  - id: repeatable-slot-key
+    level: must
+    text: >-
+      A slot whose count allows more than one takes each occurrence's key from
+      its `key`: the first `wl:explains` marker in it for marker, the heading
+      text after starts_with for heading. Two occurrences with one key, or an
+      occurrence with none, is refused.
+```
+
+## Header
+
+```yaml
+header:
+  schema:
+    type: object
+    required: [family, version]
+    unevaluatedProperties: false
+    properties:
+      family:       {const: schemas/family@1}
+      version:      {$ref: "schemas/blocks#/$defs/version"}
+      kind:         {type: string, description: "A kind schemas/kinds declares: what the family's files are."}
+      match:        {type: array, items: {type: string, format: glob}}
+      extends:      {$ref: "#/$defs/family-ref"}
+      noun:         {type: string, pattern: "^[a-z][a-z-]*$"}
+      capabilities: {type: array, items: {enum: [author, versioned, depends, generates, publishable, adoptable]}}
+      template:     {type: string, description: "A corpus path."}
+      location:     {type: string, format: glob}
+      adopt:
+        type: object
+        unevaluatedProperties: false
+        properties:
+          mode:   {enum: [link, copy]}
+          record: {type: string}
+      generates:    {enum: [code, document, none]}
+  uses:
+    extends: {use: depends, resolves: specification, send: always}
+    template: {use: navigates, send: on-request}
+```
+
+## Sections
+
+```yaml
+sections:
+  undeclared: {policy: allow, use: explains, send: on-request}
+  slots:
+    - {slot: title, heading: {level: 1}, required: true, count: {min: 1, max: 1},
+       prose: required, content: {max_paragraphs: 4}, use: navigates}
+    - {slot: requirements, heading: Requirements, required: false, count: {max: 1},
+       blocks: [{type: requirements, count: {min: 1, max: 1}}], prose: forbidden,
+       use: binds, produces: [code.behaviour]}
+    - {slot: header, heading: Header, required: {when: {header_present: kind}},
+       count: {max: 1}, blocks: [{type: header, count: {min: 1, max: 1}}],
+       use: shapes, produces: [schema.json]}
+    - {slot: sections, heading: Sections, required: {when: {header_present: kind}},
+       count: {max: 1}, blocks: [{type: sections, count: {min: 1, max: 1}}],
+       use: shapes, produces: [schema.json]}
+    - {slot: catalogue, heading: Blocks, required: false, count: {max: 1},
+       blocks: [{type: blocks, count: {min: 1, max: 1}}], use: shapes,
+       produces: [schema.json]}
+    - {slot: definitions, heading: Definitions, required: false, count: {max: 1},
+       blocks: [{type: defs, count: {min: 1, max: 1}}], use: shapes,
+       produces: [schema.json]}
+    - {slot: verifies, heading: Verification, required: {when: {block_present: requirements}},
+       count: {max: 1}, blocks: [{type: verifies, count: {min: 1, max: 1}}],
+       prose: forbidden, use: verifies, produces: [code.test, check]}
+```
+
+A declaration with a `kind` declares files and has a Header and a Sections
+slot. One without is a library of definitions other declarations cite, as
+[`schemas/blocks`](blocks.md) is. Every other heading in a declaration is
+explanation, which is why `undeclared` here is `allow`: a declaration's prose
+stays where it is, as the reason for what its blocks say.
+
+## The grammar keywords
+
+The keywords are closed and implemented in code; adding one is a change to
+this file and to every walker. Their shapes are this file's definitions, and
+what each means is below. A `region` keyword, once proposed beside `slot`,
+`heading` and `aliases`, is not one of them: nothing defined a region as
+anything a slot's heading does not already bound, and no file needs one, so a
+grammar that adds it does so as a new major of this file.
+
+| Keyword | Where | Meaning |
+|---|---|---|
+| `match`, `kind`, `extends` | header | Which paths the family covers when a file names no family, which kind its files are, and the family it inherits slots and header properties from |
+| `noun`, `capabilities`, `template`, `location`, `adopt`, `generates` | header | What the verbs acting on the family need: the word a person reads, which verbs apply (verbs, never [`schemas/kinds`](kinds.md#capabilities)' capabilities, though the key shares the word), the starting file, where new files go, how an adoption is recorded, and what a build makes from one |
+| `header.schema` | header block | JSON Schema 2020-12 for the frontmatter, with unknown keys refused |
+| `header.uses` | header block | Per field: its `use`, the ref family it `resolves` to, and its `send` |
+| `header.legacy` | header block | Keys still found in older files, each `report` or `refuse`. Used only while files are migrated |
+| `header.required` | header block | Keys a file should hold whose absence is reported rather than refused, each `report`. Used only while files are migrated: a key whose absence is refused is in `header.schema`'s `required`, its one home |
+| `slot`, `heading`, `aliases` | slot | The slot's stable key, and the heading text that opens it. Heading text is never identity |
+| `required` | slot | `true`, `false`, `report`, or `{when: {header_present: <key>}}` or `{when: {block_present: <type>}}`. Absent, `false` |
+| `count`, `key` | slot | How many times the slot may occur, and where a repeatable slot's key comes from |
+| `blocks` | slot | Which catalogued block types the slot holds, each with its own count |
+| `prose` | slot | `required`, `allowed` or `forbidden`: whether text other than the heading, blank lines and the slot's blocks may appear. Absent, `allowed` |
+| `content` | slot | Closed predicates on the slot's text: `min_items`, `max_paragraphs`, `no_rfc2119`, `mentions` |
+| `guidance`, `authority` | slot | A judged requirement and the ref whose text the judgement cites. Reported apart by whoever judges it, never a walk finding and never a build failure |
+| `undeclared` | sections block | `report`, `allow` or `refuse` for a level-2 heading no slot matches, with the `use` and `send` its part takes |
+| `use`, `send`, `produces` | slot, header field | What the part is for, when a prompt receives it, and what a build makes from it |
+
+`use` and `send` are closed and live in code; `produces` is open and lives in
+data, the same split [`schemas/kinds`](kinds.md#the-model-open-kinds-closed-capabilities)
+uses. A `produces` value no mapping binds is reported as unproduced, never
+dropped, by the build that reads the mapping: it is not a walk finding, and no
+projection carries it, because a walk reads one file and never a mapping.
+
+| `use` | Binding | Default `send` |
+|---|---|---|
+| `navigates` | no | `always` |
+| `depends` | yes | `always` |
+| `binds` | yes | `cited` |
+| `shapes` | yes | `referenced` |
+| `exposes`, `emits`, `configures` | yes | `cited` |
+| `verifies` | yes | `cited` |
+| `declares` | yes | `always` |
+| `instructs` | no | `always` |
+| `explains` | never | `cited` through `wl:explains`, otherwise `on-request` |
+| `illustrates` | never | `on-request` |
+
+The `capabilities` here are the verbs a person may use on a family's files.
+They are not [`schemas/kinds`](kinds.md#capabilities)' capabilities, which say
+what a kind of node drives.
+
+A schema cites another declaration's definitions as
+`schemas/blocks#/$defs/version` (`schema-refs-resolve`): the declaration by
+its full ref, because a ref resolves as
+[`schemas/names`](names.md#how-a-short-ref-resolves) says and `blocks` alone
+names no file, and the definition by a pointer into its `defs` block, which is
+that declaration's `$defs`. JSON Schema's own reading of a relative reference,
+against a base URI, would make the same text name a different file in every
+directory it is written in, and a header schema that failed to resolve would
+be indistinguishable from one that passed.
+
+## The projection
+
+A walk's output is a **projection**, whose shape is `projection` below. It
+lists every part of the file in order, so a reader that never parses markdown
+still sees that everything exists, and can be sent only the parts its task
+selects.
+
+<!-- wl:explains spans-partition -->
+Spans partition the file so that a byte is never in two parts, which would be
+sent twice and digested twice, and never in none, which would be content no
+reader could be shown. The partition is what makes "the model was sent
+everything this task needs" checkable: every byte has an address.
+
+<!-- wl:explains digests-by-value -->
+A block's digest is over its value, not its bytes, so re-indenting a block or
+reordering a mapping's keys changes the file's `version_hash` and leaves every
+block's digest, and so everything that cites one, unchanged. A text part has
+no value but its bytes.
+
+## Definitions
+
+```yaml
+defs:
+  slot-key: {type: string, pattern: "^[a-z][a-z0-9-]*$"}
+  family-ref:
+    type: string
+    format: weblisk-family-ref
+    description: "<ref>@<major>: the declaration of the family a file is written to, and the major it is written to."
+  use: {enum: [navigates, depends, binds, shapes, exposes, emits, configures, verifies, declares, instructs, explains, illustrates]}
+  send: {enum: [always, cited, referenced, on-request]}
+  policy: {enum: [report, allow, refuse]}
+  count:
+    type: object
+    description: "Absent, a slot occurs at most once and a block any number of times; a count with no max is unbounded."
+    unevaluatedProperties: false
+    properties:
+      min: {type: integer, minimum: 0}
+      max: {type: integer, minimum: 1}
+  required:
+    oneOf:
+      - {type: boolean}
+      - {const: report}
+      - type: object
+        required: [when]
+        unevaluatedProperties: false
+        properties:
+          when:
+            type: object
+            minProperties: 1
+            maxProperties: 1
+            unevaluatedProperties: false
+            properties:
+              header_present: {type: string}
+              block_present: {type: string}
+  heading:
+    oneOf:
+      - {type: string}
+      - type: object
+        unevaluatedProperties: false
+        minProperties: 1
+        maxProperties: 1
+        properties:
+          level: {const: 1}
+          starts_with: {type: string}
+  content:
+    type: object
+    unevaluatedProperties: false
+    properties:
+      min_items: {type: integer, minimum: 1}
+      max_paragraphs: {type: integer, minimum: 1}
+      no_rfc2119: {type: boolean}
+      mentions: {type: array, items: {type: string}}
+  slot:
+    type: object
+    required: [slot, heading, use]
+    unevaluatedProperties: false
+    properties:
+      slot: {$ref: "#/$defs/slot-key"}
+      heading: {$ref: "#/$defs/heading"}
+      aliases: {type: array, items: {type: string}}
+      required: {$ref: "#/$defs/required", default: false}
+      count: {$ref: "#/$defs/count"}
+      key: {enum: [marker, heading]}
+      blocks:
+        type: array
+        items:
+          type: object
+          required: [type]
+          unevaluatedProperties: false
+          properties:
+            type: {type: string}
+            count: {$ref: "#/$defs/count"}
+      prose: {enum: [required, allowed, forbidden], default: allowed}
+      content: {$ref: "#/$defs/content"}
+      use: {$ref: "#/$defs/use"}
+      send: {$ref: "#/$defs/send"}
+      produces: {type: array, items: {type: string}}
+      guidance: {type: string}
+      authority: {$ref: "schemas/blocks#/$defs/ref"}
+  header-block:
+    type: object
+    required: [schema]
+    unevaluatedProperties: false
+    properties:
+      schema: {type: object, description: "JSON Schema 2020-12 for the frontmatter."}
+      uses:
+        type: object
+        additionalProperties:
+          type: object
+          required: [use]
+          unevaluatedProperties: false
+          properties:
+            use: {$ref: "#/$defs/use"}
+            resolves: {type: string, description: "A ref family schemas/names declares."}
+            send: {$ref: "#/$defs/send"}
+      legacy:
+        type: object
+        description: "A key, or a dotted path to one, still found in older files."
+        additionalProperties: {enum: [report, refuse]}
+      required:
+        type: object
+        description: "A top-level key whose absence is reported, never refused."
+        additionalProperties: {const: report}
+  sections-block:
+    type: object
+    required: [slots]
+    unevaluatedProperties: false
+    properties:
+      undeclared:
+        type: object
+        required: [policy]
+        unevaluatedProperties: false
+        properties:
+          policy: {$ref: "#/$defs/policy"}
+          use: {$ref: "#/$defs/use"}
+          send: {$ref: "#/$defs/send"}
+      slots: {type: array, minItems: 1, items: {$ref: "#/$defs/slot"}}
+  finding-code:
+    enum:
+      - missing-header      # no header, and no family matches the path
+      - unknown-family      # family: names no declaration, or a major it does not have
+      - match-ambiguous     # two families' match cover the path
+      - header-unparsed     # a header with no closing line, or that does not parse as a YAML mapping
+      - header-schema       # the header fails header.schema; subject is the JSON pointer of the failing value
+      - legacy-key          # a key header.legacy names; subject is the key or dotted path as header.legacy writes it
+      - missing-key         # a key header.required names is absent; subject is the key
+      - legacy-spelling     # a type or field property blocks.md lists as an older spelling; subject is the spelling
+      - yaml-feature        # an anchor, alias, tag, merge key or second document; subject is the first of these: anchor, alias, tag, merge-key or document
+      - unclosed-fence      # a fence or comment runs to the end of the file
+      - missing-slot        # a required slot does not occur; subject is the slot
+      - slot-count          # a slot occurs more often than its count allows
+      - slot-order          # a slot occurs before one declared ahead of it; subject is the slot, span its first part
+      - undeclared-slot     # a level-2 heading no slot matches; subject is its text
+      - slot-key-missing    # an occurrence of a repeatable slot has no key
+      - duplicate-key       # two occurrences of a repeatable slot share a key
+      - prose-forbidden     # text in a slot whose prose is forbidden
+      - prose-required      # no text in a slot whose prose is required
+      - content             # a content predicate fails; subject is the predicate
+      - block-not-allowed   # a block of a type the slot does not list
+      - block-count         # a block type occurs outside its count in a slot
+      - block-missing       # a block type with count min 1 does not occur
+      - multi-root          # a yaml fence with a catalogued root key and another
+      - block-unparsed      # a block that does not parse
+      - block-schema        # a block fails its type's schema; subject is the JSON pointer
+      - duplicate-entry     # two entries of one block share an id
+      - unknown-column      # a table column the block type does not name
+      - missing-column      # a required column a table does not have
+  digest: {type: string, pattern: "^sha256:[0-9a-f]{64}$"}
+  span:
+    type: array
+    minItems: 2
+    maxItems: 2
+    items: {type: integer, minimum: 0}
+  finding:
+    type: object
+    required: [code, policy, span]
+    unevaluatedProperties: false
+    properties:
+      code: {$ref: "#/$defs/finding-code"}
+      policy: {$ref: "#/$defs/policy"}
+      span: {$ref: "#/$defs/span", description: "The span of the part it was found in; for something absent from the file, the slot's first part, or [length, length] when the slot itself is absent."}
+      subject: {type: string}
+    allOf:
+      - if: {properties: {code: {enum: [missing-header, unknown-family, match-ambiguous, header-unparsed, header-schema,
+              yaml-feature, unclosed-fence, slot-count, slot-key-missing, duplicate-key, prose-forbidden,
+              prose-required, content, block-not-allowed, block-count, block-missing, multi-root,
+              block-unparsed, block-schema, duplicate-entry, missing-column]}}}
+        then: {properties: {policy: {const: refuse}}}
+      - if: {properties: {code: {enum: [slot-order, legacy-spelling, unknown-column, missing-key]}}}
+        then: {properties: {policy: {const: report}}}
+  entry:
+    type: object
+    required: [id, digest]
+    unevaluatedProperties: false
+    properties:
+      id: {type: string, description: "The entry's part id, or a header key."}
+      use: {$ref: "#/$defs/use"}
+      send: {$ref: "#/$defs/send"}
+      digest: {$ref: "#/$defs/digest"}
+  part:
+    type: object
+    required: [span, part, slot, use, send, digest]
+    unevaluatedProperties: false
+    properties:
+      span: {$ref: "#/$defs/span"}
+      part: {enum: [header, text, block]}
+      slot: {oneOf: [{$ref: "#/$defs/slot-key"}, {type: "null"}]}
+      key: {type: string, description: "A repeatable slot's key, on each of its parts."}
+      block: {type: string, description: "A block's catalogued type."}
+      family: {type: string, description: "The ref family the block's entries are named in."}
+      use: {$ref: "#/$defs/use"}
+      send: {$ref: "#/$defs/send"}
+      explains: {type: array, items: {type: string}, description: "The ids its wl:explains markers name."}
+      digest: {$ref: "#/$defs/digest"}
+      entries: {type: array, items: {$ref: "#/$defs/entry"}}
+  projection:
+    type: object
+    required: [file, family, length, version_hash, parts, findings]
+    unevaluatedProperties: false
+    properties:
+      file: {type: string}
+      family: {$ref: "#/$defs/family-ref"}
+      length: {type: integer, minimum: 0}
+      version_hash: {$ref: "#/$defs/digest"}
+      parts: {type: array, items: {$ref: "#/$defs/part"}}
+      findings: {type: array, items: {$ref: "#/$defs/finding"}, description: "In order of span start, then code, then subject."}
+```
+
+A finding's policy is fixed by its code, in `finding` above, for every code
+but three, which the declaration decides: `legacy-key` takes the policy
+`header.legacy` gives its key, `undeclared-slot` the `undeclared` policy
+(under `allow` no finding is recorded, and the part is simply undeclared), and
+`missing-slot` is `refuse` for a slot that is `required: true` or whose `when`
+holds and `report` for one that is `required: report`.
+[`checks/findings.py`](../checks/findings.py) confirms that every code has
+exactly one of these, and that every vector's findings carry it.
+
+Grammar 1 refuses whatever a reader could settle only by guessing, and reports
+what it reads without a guess. A multi-root fence could be either root's
+block, so it is refused, and the files that hold one today are refused until
+their migration splits them. An old type spelling names one type, an order
+loses nothing, and a column the block does not name is not read, so those are
+reported. `slot-order` and `legacy-spelling` become `refuse` in the grammar
+that follows migration, which is a new major of this file, never a mode a walk
+is run in.
+
+A family whose files are still being migrated is declared in **migration
+mode** with this grammar's own keywords, never a mode a walk is run in: the
+keys older files carry are `header.legacy` entries, and a key older files lack
+is a `header.required` entry, so each one is a counted finding (`legacy-key`,
+`missing-key`) and every other key is still refused. The strict family that
+follows is a new major of that declaration, which drops both and lists the
+key in `header.schema`'s `required`. `missing-key` is therefore always
+`report`; a refused absence is `header-schema`, and one home holds each.
+[`vectors/grammar/test-programme.md`](../vectors/grammar/test-programme.md)
+is such a declaration, and `migration.md` a file walked against it.
+
+## Verification
+
+```yaml
+verifies:
+  - id: family-walks-itself
+    covers: [declaration-validates-itself, family-names-declaration]
+    check: walk-validates
+    assertion: Walking schemas/family.md against itself reports no finding whose policy is refuse.
+  - id: family-self-mutation-refused
+    covers: [declaration-validates-itself]
+    check: walk-refuses
+    assertion: A copy of schemas/family.md whose sections block names a slot key `Title` is refused with block-schema.
+  - id: projections-partition
+    covers: [spans-partition, part-boundaries]
+    check: vectors-agree
+    assertion: Every vector's expected projection has sorted, contiguous spans covering its file, and a projection with a one-byte gap is reported.
+  - id: every-code-has-one-policy
+    covers: [findings-closed]
+    check: corpus-check
+    assertion: checks/findings.py finds exactly one policy for every finding code, and every vector's findings carrying it; a vector whose multi-root finding is only reported fails it.
+  - id: every-ref-resolves
+    covers: [schema-refs-resolve]
+    check: corpus-check
+    assertion: checks/refs.py resolves every `$ref` in every declaration to a definition; a copy of test-blueprint.md citing `blocks#/$defs/version`, a short form with no declaration behind it, fails it.
+  - id: walker-matches-vectors
+    covers: [part-boundaries, bytes-as-written, header-delimited, headings-are-atx, fences-are-opaque, slots-by-heading, blocks-by-root-key, json-data-model, legacy-before-schema, header-required-reported, parts-carry-use, digests-by-value, findings-closed, repeatable-slot-key]
+    check: vectors-agree
+    assertion: Walking each file in vectors/grammar/ against the declaration its projection names gives exactly that projection.
+```
