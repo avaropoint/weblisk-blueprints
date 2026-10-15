@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 3.0.1
+version: 3.1.0
 requires: []
 platform: any
 tier: free
@@ -1954,7 +1954,7 @@ types:
         name: Signature
         type: string
         required: false
-        description: "Reserved for the orchestrator's signature over the directory, which has no signing input yet. Nothing verifies it, so no reader takes it for a check (protocol/spec, the gap under POST /v1/services)"
+        description: "The orchestrator's ML-DSA-65 signature (3309 bytes, base64url-encoded) over the fixed-form statement weblisk/directory/v1, which signs updated_at and the digest of the rest of the directory. Required on a push, which an agent refuses without it (protocol/spec, POST /v1/services)"
 ```
 
 ---
@@ -2912,6 +2912,11 @@ error_codes:
     category: permanent
     retryable: false
     description: A registration's `url` contradicts the address the tenant declared for that component. Nothing is recorded (architecture/orchestrator, What the directory attests)
+  - code: DIRECTORY_STALE
+    status: 409
+    category: permanent
+    retryable: false
+    description: A pushed ServiceDirectory whose signature verifies but whose updated_at is lower than that of the directory the agent holds, or equal to it with a different digest. Nothing changes (protocol/spec, POST /v1/services)
   - code: SCOPE_UNAUTHORIZED
     status: 403
     category: permanent

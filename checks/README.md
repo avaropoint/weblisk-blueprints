@@ -10,8 +10,8 @@ checks/run.sh
 ```
 
 runs them all and exits 0 only when every check passes and every control
-fails. They need Python 3 and PyYAML. A check that cannot run fails; it never
-passes for want of something to read.
+fails. They need Python 3 and PyYAML, and OpenSSL 3.5 or later. A check that
+cannot run fails; it never passes for want of something to read.
 
 | Check | What it holds the corpus to | Control |
 |---|---|---|
@@ -19,6 +19,8 @@ passes for want of something to read.
 | [`names.py`](names.py) | No file names a namespace that is neither reserved nor this repository's own ([`schemas/names.md`](../schemas/names.md#where-a-namespace-may-appear)), and the vectors' families are the declared ones | A fixture naming an unreserved namespace is reported, once |
 | [`retired.py`](retired.py) | [`RETIRED.md`](../RETIRED.md)'s entries: one per table row, in order, naming only spellings the row names, with a closed `match` vocabulary, paths that exist, patterns that compile, and no allowance whose `until` its file has reached. `--scan` also lists every place a retired spelling remains where its entry does not allow it; it reports and does not gate | A copy missing its last entry, and a copy whose allowance has ended, are each reported |
 | [`timestamp-wire.py`](timestamp-wire.py) | Each `languages/` and `platforms/` mapping's `timestamp` row, applied to the instant in [`vectors/timestamp-wire.json`](../vectors/timestamp-wire.json), gives the vector's wire value | `--control` rewrites `languages/go.md`'s row to milliseconds in memory and passes only if that one disagreement is reported |
+| [`fixed-form.py`](fixed-form.py) | Every key and vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) verifies with OpenSSL, not the implementation that made them: each public key from its seed, each signature over its message, each prefix registered in [`protocol/identity`](../protocol/identity.md#fixed-form-statements), and a vector's body checked as its receiver checks it, by rebuilding the statement from the body. The [signed directory push](../protocol/spec.md#post-v1services) must have one | A copy whose push body differs by one byte, and one whose push is signed by another vector key, are each reported |
+| [`wl-ids.py`](wl-ids.py) | The requirement and check ids today's files carry as `wl:id` and `wl:check` comments: none marked twice in a file, every check covering ids its file marks, every id covered. The push's refusal of an unsigned body has its check | A copy of `protocol/spec.md` with one check's `covers` moved off its id is reported, once, naming that id |
 
 A check here is temporary by design: when a tool implements the rule, the
 check moves there and leaves this directory.
