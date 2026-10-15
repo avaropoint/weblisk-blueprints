@@ -21,8 +21,9 @@ Measured across `programmes/`, the corpus already knows, for every position:
 which obligations name it `responsible`, how often each one recurs, where each
 occurrence is recorded, what authority requires it, which registers it approves
 submissions to, which documents it puts in force, what escalates to it and from
-whom, and what it escalates away and how fast. Twenty-one positions, named 475
-times between them.
+whom, and what it escalates away and how fast. How many positions, named how
+often, is measured once, in
+[`../programmes/README.md`](../programmes/README.md#the-positions-a-programme-names).
 
 Writing any of that down a second time — in a role guide, in a skill, in a
 handbook — produces a copy that is wrong the first time a programme changes,
@@ -147,6 +148,34 @@ a file the generator only reads.
 
 Both are honest gaps. A brief that read complete while four of its obligations
 recorded into nothing would have told the reader the opposite of the truth.
+
+## Known gaps
+
+**Nothing declares the register of who holds a position.** This schema covers
+what a position is (the programmes that name it) and how the job is done well
+(its guide). Who holds it in one organisation is neither: it is a fact about
+the customer's organisation, so it is the tenant's to hold and never a
+client's. Its home is decided: a register whose rows are
+[about a person](programme.md#records-about-a-person), so `restricted` and
+labelled `pii`, kept in the scope's
+[records repository](programme.md#where-a-record-holding-pii-lives), the one
+repository [`architecture/content`](../architecture/content.md#where-an-entry-labelled-pii-is-kept)
+lets hold it. What is not specified:
+
+- the register's spec: its columns, its key, and how a row names a position
+  and a person;
+- the scope a holding is recorded at, and so which scope's records repository
+  holds it;
+- how a tenant service resolves a position an approval, escalation or
+  obligation names (`approved_by`, a register's `approvers`, `escalate.to`,
+  `responsible`) to a person against it.
+
+Until they are, nothing in the tenant resolves those names to a person, so
+nothing in the tenant can check that whoever acted held the position at the
+time. A client that records holdings is keeping the customer's org chart as
+the only copy, and says so, held by that client and not by the tenant, rather
+than presenting it as the tenant's record. Two clients of one tenant can
+disagree about who holds a position, and neither can settle it.
 
 ---
 

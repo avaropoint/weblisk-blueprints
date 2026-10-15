@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 2.1.0
+version: 2.1.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
@@ -308,6 +308,17 @@ assertion vocabulary, the distinction between them is the whole authority model,
 and renaming one to avoid the echo would give the same act two names in one
 system. The rule exists so a generator has a stable name to derive symbols
 from; these are the most stable names available.
+
+> **Gap — no route serves the kinds declaration this service judges by.** A
+> claim whose relation or pair of kinds [`schemas/kinds.md`](../schemas/kinds.md)
+> does not declare is skipped and reported as a producer fault
+> (`FABRIC_RELATION_UNDECLARED`). Nothing records which revision of that
+> declaration a tenant's fabric holds, and no route, here or at any other
+> component, returns it, so a client classifies with whatever copy it carries.
+> Where the two differ, one file is two nodes depending on which side asked,
+> the fault `schemas/kinds.md` rule 7 forbids, carried across the wire. Which
+> component serves the declaration, at which route, and under what capability
+> are not specified.
 
 ---
 

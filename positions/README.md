@@ -6,9 +6,10 @@ inside an organisation.**
 Governed by [`../schemas/position.md`](../schemas/position.md).
 
 A programme names positions: an obligation's `responsible`, an `escalate.to`, a
-register's `approvers`, an artifact's `approved_by`. Across
-[`../programmes/`](../programmes/) that is **twenty-one positions, named 475
-times**. Everything those namings imply — how often the work recurs, where each
+register's `approvers`, an artifact's `approved_by` — how many, and how often,
+is measured once, in
+[`../programmes/README.md`](../programmes/README.md#the-positions-a-programme-names).
+Everything those namings imply — how often the work recurs, where each
 occurrence is recorded, what authority requires it, what escalates in and from
 whom, what escalates away and how fast, what nobody else can sign — is
 **derived**, on read, and is never written down here.
@@ -84,3 +85,5 @@ reader learns to skip, and then they skip the one that mattered.
 What an organisation calls these jobs, who holds one, and what it adds to the
 description is **the customer's**, in the customer's repositories. Nothing here
 records a person, an organisation or a project.
+No spec declares the register in which a tenant records who holds a position yet
+([`schemas/position.md`, Known gaps](../schemas/position.md#known-gaps)).
