@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 2.1.1
+version: 2.1.2
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
@@ -764,14 +764,16 @@ legitimately be on different hosts. So this is the first place in the corpus
 where one component presents a credential across a host boundary, and it is
 worth working through rather than assuming.
 
-The directory is the orchestrator's only as read from the fabric's anchor by
-[`GET /v1/services`](../protocol/spec.md#get-v1services). Its signature has no
-signing input yet and nothing verifies one, so a body pushed to the fabric's
-`POST /v1/services` is whatever the party that reached that listener sent
-([`protocol/spec`](../protocol/spec.md#post-v1services), the gap there). What
-keeps the fabric's credential in bounds is therefore the table below, which
-never sends it off the anchor's host whoever wrote the address. On that host a
-pushed address can still choose the port, and a listener there is the
+The directory is the orchestrator's as read from the fabric's anchor by
+[`GET /v1/services`](../protocol/spec.md#get-v1services), or as pushed to the
+fabric's `POST /v1/services` with a signature that verifies under the
+orchestrator's key ([`protocol/spec`](../protocol/spec.md#post-v1services),
+the signed push). Either way it says only that the orchestrator published the
+address a registrant claimed, never that the address is the tenant's
+([`architecture/orchestrator`](orchestrator.md#what-the-directory-attests-and-what-it-does-not)).
+What keeps the fabric's credential in bounds is therefore the table below,
+which never sends it off the anchor's host whoever claimed the address. On
+that host a registered address can still choose the port, and a listener there is the
 same-host residual the threat model records
 ([`architecture/threat-model`](threat-model.md#residual-risk-register)).
 

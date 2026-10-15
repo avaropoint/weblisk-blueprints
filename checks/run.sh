@@ -110,5 +110,11 @@ else
 	fails=$((fails + 1))
 fi
 
+# No text says the directory push is unauthenticated, now that it is signed.
+# A copy of client.md that says so again, across a line break, must fail.
+expect 0 "push-claims: no text says the directory push is unauthenticated" python3 checks/push-claims.py
+sed 's/^`POST \/v1\/services` with a signature that verifies under the orchestrator.s key$/`POST \/v1\/services` is unauthenticated/' architecture/client.md >"$tmp/client.md"
+expect 1 "push-claims control: a copy of client.md calling the push unauthenticated fails" python3 checks/push-claims.py "$tmp/client.md"
+
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]
