@@ -1,7 +1,7 @@
 <!-- blueprint
 type: platform
 name: node
-version: 2.0.0
+version: 3.0.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: node
 tier: free
@@ -775,7 +775,7 @@ for process management, performance, and security details.
 | `object` | `Record<string, unknown>` | Or typed interface |
 | `list` | `T[]` | Typed array |
 | `uuid` | `string` | Validated with zod or regex |
-| `timestamp` | `number` | Unix epoch milliseconds via `Date.now()` |
+| `timestamp` | `number` | Unix epoch seconds via `Math.floor(Date.now() / 1000)` |
 
 ---
 

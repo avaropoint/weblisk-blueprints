@@ -1,7 +1,7 @@
 <!-- blueprint
 type: platform
 name: cloudflare
-version: 1.2.0
+version: 2.0.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: cloudflare
 tier: free
@@ -622,7 +622,7 @@ Domain controllers running as Workers dispatch phases using
 | `object` | `object` | `Record<string, unknown>` |
 | `list` | `Array<T>` | Typed arrays |
 | `uuid` | `string` | Validated with regex |
-| `timestamp` | `number` | Unix epoch milliseconds via `Date.now()` |
+| `timestamp` | `number` | Unix epoch seconds via `Math.floor(Date.now() / 1000)` |
 
 ---
 

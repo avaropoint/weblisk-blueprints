@@ -6,6 +6,7 @@ tests against, and no blueprint requires one, so no build's prompt carries it.
 | File | What it holds |
 |---|---|
 | [`fixed-form-statements.json`](fixed-form-statements.json) | For each prefix that has them, the field values, the exact signed bytes, the key and the signature of a [fixed-form statement](../protocol/identity.md#fixed-form-statements). The file's own `format`, `encodings` and `seeds` say how to read it |
+| [`timestamp-wire.json`](timestamp-wire.json) | One instant and the value a protocol timestamp carries on the wire for it, by the convention in [`protocol/types`](../protocol/types.md#conventions). [`checks/timestamp-wire.py`](../checks/timestamp-wire.py) applies every language and platform mapping's `timestamp` row to it |
 
 What a vector key is, and that it is no one's identity, is stated once, in
 [`protocol/identity`](../protocol/identity.md#fixed-form-statements). How a
