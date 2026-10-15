@@ -75,6 +75,7 @@ This applies to:
 | [policy-domain.md](policy-domain.md) | Policy domains — what a subject area covers, where it stops, and what a programme claiming it must provide | `policy-domains/` directory |
 | [kinds.md](kinds.md) | What sorts of thing the platform can talk about, what each drives, and which relations join them | Every tool that classifies, relates or scores content |
 | [names.md](names.md) | How anything is named: the id grammar, families, namespaces and how a short ref resolves. Its vectors are [`vectors/ids.json`](../vectors/ids.json) | Every ref, in every file and every tool |
+| [run-statement.md](run-statement.md) | What one generation run read and wrote, the model the backend reported, and what each output traces to: an in-toto statement with a SLSA Provenance predicate | The CLI writing a run's record; the fabric's `generation-statements` producer reading it |
 
 ### kinds.md is different from the others
 
@@ -109,7 +110,8 @@ common.md (inherited by all)
 ├── position.md (positions/ — the hand-written half of a role brief)
 ├── policy-domain.md (policy-domains/ — what a subject area covers and requires)
 ├── kinds.md (what sorts of thing exist — read at runtime, not checked against a document)
-└── names.md (how anything is named — the id grammar, bound by vectors/ids.json)
+├── names.md (how anything is named — the id grammar, bound by vectors/ids.json)
+└── run-statement.md (what one generation run read, wrote and traced — the fabric's declared source)
 ```
 
 Every type-specific schema inherits all rules from `common.md`. Type-specific

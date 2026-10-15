@@ -88,5 +88,23 @@ else
 	fails=$((fails + 1))
 fi
 
+# The fabric ledger vector chains; a copy with one entry altered must fail at
+# exactly that entry and nowhere else.
+expect 0 "fabric-ledger: the vector's chain verifies" python3 checks/fabric-ledger.py
+python3 - "$tmp/ledger.json" <<'PY'
+import json, sys
+v = json.load(open("vectors/fabric-ledger.json", encoding="utf-8"))
+v["entries"][2]["claim"]["basis"] += "."
+json.dump(v, open(sys.argv[1], "w", encoding="utf-8"))
+PY
+expect 1 "fabric-ledger control: a copy with entry 3 altered fails" python3 checks/fabric-ledger.py --file "$tmp/ledger.json"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^seq 3: ' "$tmp/out"; then
+	echo "ok   fabric-ledger control: exactly one fault, at seq 3"
+else
+	echo "FAIL fabric-ledger control: want exactly one fault, at seq 3"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]

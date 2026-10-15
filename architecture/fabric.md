@@ -91,7 +91,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/content-identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.2.0 <2.0.0"
     bindings:
       types:
         - name: ContentIdentity
@@ -105,6 +105,8 @@ requires:
         - name: reference-with-version
         - name: staleness-evaluation
         - name: read-without-mutation
+        - name: digest-spelling
+        - name: projection-digest
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -785,7 +787,7 @@ a **client** of the content service for every byte-level fact it needs.
 | A difference it did not make | an ordinary recorded observation | an integrity fault |
 | Retention | the content's own | none; a compliance relationship is permanent |
 | Subjects | a confined tree of bytes | also controls, providers, integrations, components and runs, none of which it can read or hash |
-| Adoption | a tenant that governs text has one | opt-in |
+| Adoption | a tenant that governs text has one | opt-in until the credential layer exists, then required (`adoption-follows-credential-layer`) |
 
 Folding the ledger into the content service would put two contradictory trust
 models in one process, and the contradiction would be internal rather than
@@ -813,6 +815,14 @@ it describes is not a client of it.
 > surface reachable, because a generation target resolved from a fixed list is
 > a specification living in the tooling. That is the precondition, and it is
 > named rather than assumed.
+
+**When opt-in ends.** The fabric becomes required in every tenant the CLI
+generates once the credential layer — identity, credential, grant — exists
+there (`adoption-follows-credential-layer`), because the run statements it
+ingests are signed by the tenant's `generation` service credential, and before
+that credential exists there is nothing to sign them with but a person's own
+identity key, which never signs one. Until then the header says `opt-in`, and
+that is the honest value rather than an unfinished one.
 
 ### Where the content service is
 
@@ -937,6 +947,57 @@ accepted rather than hidden: nothing arriving through `Observe` can retract
 itself, so such a relationship is retired by a person or by the connection being
 removed.
 
+### Declared at write time
+
+A generation run knows, when it writes a file, which requirements the file is
+meant to implement, which requirements and mapping rules it was made from, and
+which run made it. That is a declaration, and it is recorded as one
+(`declared-at-write-time`): the run writes it into its **run statement**
+([`schemas/run-statement.md`](../schemas/run-statement.md)), one immutable file
+per run, and the `generation-statements` producer below carries it to the
+ledger. A scanner that inferred the same edges from the generated code
+afterwards would be a second record of one fact, and the weaker of the two.
+
+The statement is the outbox. It is written on the first build, offline, with no
+fabric running; when the fabric starts, the producer ingests every statement it
+has not seen. Run facts — the tool, the model the backend reported, the prompt
+digest — stay in the statement. An entry names the run by id and statement
+digest (`entries-name-their-run`) and never copies them.
+
+**Anchors on generated code.** An output is anchored by `symbol` only where its
+language mapping ships a symbol extractor. Elsewhere the claim is about the
+whole file, and every answer that rests on such a claim counts it in
+`file_level_endpoints`, so a file-level answer is never read as a symbol-level
+one.
+
+### Producers this file declares
+
+| Producer | Runs in | Operation | Partition | Relations | What each end cites |
+|---|---|---|---|---|---|
+| `generation-statements` | the tenant's generation service | `Sync` | one run statement, by run id; its input digest is the statement's | `implements` and `generated_from` (output to requirement, mapping rule or control), `produced_by` (output to run), `verifies` (generated test to check) | the output's digest as the statement records it; the requirement's, rule's or control's projection digest |
+| `integrations` | the tenant's integrations service | `Observe` | — | `consumes` (component or agent to integration), `reached_through` (provider to integration) | the integration's connection record digest |
+| `registry` | the orchestrator's service registry | `Sync` | one component | `deployed_as` (blueprint to component or agent), `hosted_by` (component or agent to provider) | the blueprint's digest at its resolved version; the component's manifest digest |
+| `provider-configuration` | the tenant's integrations service | `Sync` | one provider | `enforced_by` (policy, standard or procedure to provider) | on the provider end, the projection digest of its configuration as the provider reports it |
+
+Each is an ordinary producer: it registers its partitions, is skipped where its
+input digests are unchanged, and asserts at `inferred` only. Ingesting the same
+statements twice appends nothing (`statements-ingest-once`), because a
+partition whose input digest is unchanged is skipped before any claim is
+resolved.
+
+**The provider end cites its configuration.** Because a provider's cited
+version is the digest of its settings, an `enforced_by` edge reads `stale` when
+those settings change: a person re-reads whether the provider still enforces the
+policy, and nothing is rebuilt. A provider that reports no configuration is
+cited with no version, and the edge reads `unversioned`, never `current`.
+
+**What a statement does not prove.** A statement is signed by the tenant's
+`generation` service credential, recording `on_behalf_of` the operator who
+asked for the run, once the credential layer exists
+(`adoption-follows-credential-layer`). Until then statements are unsigned and
+the producer records each entry's run citation with `signed: false`; a
+person's identity key never signs one in its place.
+
 ### Health
 
 | Health | Means | The response it asks for |
@@ -994,7 +1055,13 @@ relationship is the fold of its entries, and its history is all of them.
 **Chained.** Each entry commits to the digest of its predecessor, so an entry
 cannot be altered or removed without every later entry failing to follow. The
 mechanism is the one [`architecture/storage`](storage.md) already specifies for
-its own chained log; what differs is the chain, not how it is computed.
+its own chained log — each entry stored as its RFC 8785 bytes and one line feed,
+`seq` from 1, each `previous_digest` the SHA-256 of the line before — and what
+differs is the chain, not how it is computed, with one exception of spelling:
+every digest here is written `sha256:<hex>`
+([`patterns/content-identity`](../patterns/content-identity.md), digest-spelling).
+[`vectors/fabric-ledger.json`](../vectors/fabric-ledger.json) is a worked chain
+that a verifier checks with nothing but SHA-256 and an RFC 8785 canonicaliser.
 
 **One log per scope, and by no other axis.** A project's growth cannot slow
 another's queries or its first parse, unlinking a project is dropping a
@@ -1104,6 +1171,31 @@ Staleness is the universal signal; a rebuild is one possible response to it and
 is available only where the derivation was recorded. Everything else resolves to
 a review — by a person, or by an agent that proposes and does not apply.
 
+### Reach from a diff
+
+`GET /v1/fabric/reach?diff=<ref>@<a>..<b>` answers *what does this change
+reach* (`reach-by-diff`). The two versions are compared by part: each part
+whose projection digest differs, and each part added or retired, is a starting
+node, and nothing else is. A change to explaining prose that no part owns
+starts nothing. From each starting node the walk follows `implements`,
+`verifies`, `generated_from`, `deployed_as`, `enforced_by` and `consumes`, to
+the depth `reach-max-depth` bounds, and returns one set of paths per starting
+node.
+
+The fabric reads no content, so the part digests of both versions come from the
+content service as identity: the walked projection it returns for a ref at a
+version, which carries each part's id and projection digest and no bytes.
+
+> **Gap — the content service serves no part digests.**
+> [`architecture/content`](content.md) specifies identity lookup for a whole
+> entry, not the per-part projection this needs. Until it does, a reach from a
+> diff answers with `answerable` false and says why, rather than starting from
+> the whole file and presenting that as the change's reach.
+
+A requirement nobody implements reaches nothing, and that is an answer, carried
+with its completeness like any other. Never-scanned partitions are counted, and
+reaching the bound is reported, never read as "nothing further".
+
 ---
 
 ## Types
@@ -1156,14 +1248,18 @@ types:
     fields:
       kind:
         type: enum
-        values: [block, path, lines, cell]
+        values: [block, section, symbol, path, lines, cell]
         required: true
         description: block survives editing best; lines are meaningful only
-          together with a version
+          together with a version. section names a slot of a walked file by
+          its family's slot key, never by heading text, so rewording a heading
+          moves nothing. symbol names a declaration in generated code, and
+          exists only where the language mapping ships a symbol extractor
       value:
         type: string
         required: true
-        description: The identifier, dotted path, range or cell reference
+        description: The block uid, slot key, qualified symbol, dotted path,
+          range or cell reference
 
   RelationshipIdentity:
     description: What makes two claims the same claim. Nothing else belongs here
@@ -1272,12 +1368,55 @@ types:
         type: string
         required: false
         description: On a retirement, where the content went or why it was withdrawn
+      run:
+        type: RunCitation
+        required: false
+        description: Present on an entry appended from a run statement. Names
+          the run; the run's facts stay in its statement
+      on_behalf_of:
+        type: string
+        required: false
+        description: The identity id of the person a service credential acted
+          for, as the run statement records it. Present only with run
       previous_digest:
         type: string
         required: true
-        description: The digest of the preceding entry. The first uses a zero value
+        description: The SHA-256 of the preceding entry's stored line, written
+          as sha256:<hex>; on the first entry, the sha256 prefix and 64 zeros.
+          vectors/fabric-ledger.json is a worked chain
       recorded_at:
         type: timestamp
+        required: true
+
+  RunCitation:
+    description: A run, as an entry cites it
+    fields:
+      id:
+        type: string
+        required: true
+        description: The run's full ref, run://<namespace>/<run id>
+      statement_digest:
+        type: string
+        required: true
+        description: sha256:<hex> of the run statement file's bytes
+      signed:
+        type: boolean
+        required: true
+        description: Whether the statement carried a signature that verified
+          under the tenant's generation service credential. False until the
+          credential layer exists
+
+  DiffStart:
+    description: Where a reach from a diff starts
+    fields:
+      ref:
+        type: string
+        required: true
+      from_version:
+        type: string
+        required: true
+      to_version:
+        type: string
         required: true
 
   EdgeHealth:
@@ -1320,6 +1459,17 @@ types:
       endpoints_unreachable:
         type: integer
         required: true
+      file_level_endpoints:
+        type: integer
+        required: true
+        description: Endpoints in generated code anchored to the whole file
+          because their language mapping ships no symbol extractor. Above
+          zero, the answer is file-level for those, and says so
+      depth_bound_reached:
+        type: boolean
+        required: true
+        description: True when a walk stopped at reach-max-depth with edges
+          still unfollowed. Never read as nothing further
       access_complete:
         type: boolean
         required: true
@@ -1740,6 +1890,50 @@ security:
 
 ---
 
+## Verification
+
+Each check names the requirements it covers. A generated test is named by its
+check id, so verification is keyed by id and never by a line number.
+
+```yaml
+verifies:
+  - id: no-write-path-reaches-content-writer
+    covers: [no-content-writes]
+    assertion: From each write handler — Sync, Observe, Attest, Decide and
+      Relocate — no call path reaches a content write operation. The fabric's
+      content client exposes identity lookup, listing and describe and nothing
+      else, and a test named for this check fails when a write is added to it.
+  - id: ledger-vector-verifies
+    covers: [entries-name-their-run]
+    assertion: vectors/fabric-ledger.json verifies with SHA-256 and an RFC 8785
+      canonicaliser alone, and a copy with one entry altered fails at exactly
+      that entry.
+  - id: second-ingest-appends-nothing
+    covers: [statements-ingest-once, declared-at-write-time]
+    assertion: Ingesting a set of run statements appends their edges, each
+      citing its run; ingesting the same set again appends no entry.
+  - id: reach-stops-at-the-bound
+    covers: [reach-max-depth]
+    assertion: On a chain longer than reach-max-depth hops, a reach returns
+      paths of at most that many steps and its completeness says the bound was
+      reached; a request for a greater depth is answered at the bound.
+  - id: diff-reach-starts-at-changed-parts
+    covers: [reach-by-diff]
+    assertion: Between two versions that differ in one part's value and in
+      prose no part owns, a reach from the diff starts at that one part.
+  - id: provider-settings-go-stale
+    covers: [observed-connections]
+    assertion: When a provider's reported configuration changes, every
+      enforced_by edge to it reads stale and nothing is regenerated.
+  - id: unsigned-until-credential-layer
+    covers: [adoption-follows-credential-layer]
+    assertion: In a tenant without the credential layer, run statements are
+      unsigned, their entries cite the run with signed false, and no statement
+      carries a signature by a person's identity key.
+```
+
+---
+
 ## Verification Checklist
 
 - [ ] Two claims about the same two artifacts, the same anchors, the same relation and the same scope resolve to one relationship, whatever kind each producer assigned
@@ -1781,3 +1975,8 @@ security:
 - [ ] An edit to a governing document marks dependent edges stale and causes nothing to be regenerated
 - [ ] With no orchestrator configured, the service starts, serves `GET /livez` live and `GET /readyz` not ready, logs that no orchestrator is configured, and refuses every protected endpoint
 - [ ] A broken chain leaves the service refusing appends while still answering reads
+- [ ] Every digest the ledger writes as one string reads `sha256:<hex>`, the first entry's `previous_digest` included
+- [ ] An entry appended from a run statement carries `run` with the statement's digest and `signed`, and `on_behalf_of` as the statement records it; the statement's model, tool and prompt digest appear in no entry
+- [ ] An edge to generated code in a language whose mapping ships no symbol extractor is anchored to the whole file, and an answer resting on it counts it in `file_level_endpoints`
+- [ ] A `section` anchor survives a reworded heading unchanged, because its value is the slot key
+- [ ] No setting raises the reach depth above `reach-max-depth`

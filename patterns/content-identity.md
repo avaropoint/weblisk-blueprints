@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: content-identity
-version: 1.1.0
+version: 1.2.0
 requires: [protocol/types, patterns/versioning]
 platform: any
 tier: free
@@ -119,7 +119,26 @@ contracts:
         - The algorithm MUST be declared alongside the digest, never assumed
         - Implementations MUST NOT normalise, reformat or reorder before hashing
         - The same bytes MUST produce the same digest on every platform
-        - The single exception is a control's text digest, taken over a declared projection of the control rather than stored bytes, as schemas/standard.md "Outputs cite the control text they were made from" defines
+        - The one exception is a projection digest (projection-digest below), which identifies a part of an artifact rather than its bytes
+
+    - name: digest-spelling
+      description: Write a digest as one string the same way everywhere
+      required: true
+      rules:
+        - A digest written as one string, without an algorithm field beside it, MUST be written as the algorithm, a colon and the lowercase hex digest — `sha256:<hex>`
+        - A bare 64-character lowercase hex string MUST be read as SHA-256 and MUST NOT be written
+        - A structured ContentIdentity, which declares its algorithm in its own field, is unchanged
+        - A key fingerprint is protocol/identity's identity id, not a content digest, and keeps the form protocol/identity gives it
+
+    - name: projection-digest
+      description: Identify a structured part of an artifact by its value, not its formatting
+      required: true
+      rules:
+        - A projection digest MUST be the SHA-256 of the RFC 8785 canonical bytes of the part's projected value, written `sha256:<hex>`
+        - The projection MUST be the one the artifact's family declares for that part; the party computing the digest MUST NOT choose it
+        - A change of formatting alone (indentation, key order, quoting) MUST leave a projection digest unchanged, while the artifact's own digest changes
+        - A control's text digest, as schemas/standard.md "Outputs cite the control text they were made from" defines, is a projection digest
+        - A reference to a part MUST cite the part's projection digest, and its staleness is evaluated on that digest
 
     - name: reference-with-version
       description: Record a reference that names what it saw
@@ -274,3 +293,7 @@ what a system does when one goes stale belong to the domain that records them.
 9. Reusing a retired identity is rejected with `identity_reused`.
 10. A digest recorded with an unsupported algorithm yields `unknown` rather than
     being verified under an assumed default.
+11. Every digest written as one string reads `sha256:<hex>`; a bare hex digest
+    is accepted on read as SHA-256 and never written.
+12. Re-indenting a structured block changes the artifact's digest and leaves the
+    projection digest of every part in it unchanged.

@@ -126,6 +126,11 @@ Not capabilities — values a kind declares.
 | `check` | — | **namespace + artifact + part id** | authored | — | **is-criterion** |
 | `namespace` | — | namespace name | observed | — | *(none)* |
 | `listing` | — | namespace + listing name | published | — | *(none)* |
+| `agent` | — | tenant + agent name | derived | runtime | versioned, chain-member |
+| `skill` | — | namespace + path | authored | — | versioned, has-custody |
+| `workflow` | — | namespace + path | authored | — | versioned, has-custody |
+| `programme` | — | namespace + path | published | — | versioned |
+| `mapping` | — | **namespace + artifact + part id** | authored | — | versioned |
 
 ### What the table says, in words
 
@@ -166,6 +171,14 @@ against, and has no version of its own; the file that declares it has one.
 namespace is observed in the signed log of the registry that granted it; a
 listing is what a namespace's holder publishes under it. Neither governs
 anything by being declared, so neither has a capability.
+
+**`agent` is a running thing, as `component` is; `skill` and `workflow` are
+what it runs.** An agent is named in its tenant, and its blueprint relates to it
+by `deployed_as`. A skill or a workflow is a file, versioned, which an agent
+`executes`. **`programme` is a published map, not the tenant's operation of it.**
+**`mapping` is one rule of a language, platform or framework mapping**, named
+like a requirement by its file and part id, so an output can cite the rule it
+was made with.
 
 **`integration` has no capabilities**, and that is correct rather than an
 omission. It is a boundary, not a subject: a service consumed to do a task
@@ -398,10 +411,28 @@ relation.
 | `enforced_by` | policy, standard, procedure | `provider`, `component` | provider |
 | `deployed_as` | blueprint | `component` | composition |
 | `discharges` | `evidence` | `obligation` | programme |
+| `implements` | `code` | `requirement` | generation |
+| `verifies` | `check` | `requirement` | declared |
+| `verifies` | `code` | `check` | generation |
+| `generated_from` | `code` | `requirement`, `mapping` | generation |
+| `produced_by` | `code` | `run` | generation |
+| `deployed_as` | blueprint | `agent` | composition |
+| `hosted_by` | `component`, `agent` | `provider` | registry |
+| `consumes` | `component`, `agent` | `integration` | integration |
+| `executes` | `agent` | `skill`, `workflow` | declared |
+| `copied_from` | policy, procedure, sop, standard, guideline, reference, document | the same kind | adoption |
 | `contains` | any | itself, unanchored | **synthesised, never stored** |
 
 `implements` accepting `control` as a target is what allows an author to state
 which control a document answers, instead of leaving it to keyword inference.
+
+**A generated output is related as it is written.** The run that wrote a file
+declares, in its run statement ([`run-statement.md`](run-statement.md)), the
+requirements the file `implements`, the requirements and mapping rules it was
+`generated_from`, and that it was `produced_by` that run; the fabric's
+`generation-statements` producer records them
+([`architecture/fabric`](../architecture/fabric.md#declared-at-write-time)).
+`verifies` from `code` names a generated test by the check id it is named for.
 
 `generated_from` onto a `control` records what an output was made from, citing the control's text digest ([`standard.md`](standard.md#outputs-cite-the-control-text-they-were-made-from)).
 
