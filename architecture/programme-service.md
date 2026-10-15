@@ -497,8 +497,9 @@ phase for a person's task or for approvers named by position
 ([`schemas/programme.md`](../schemas/programme.md#how-a-workflow-maps-onto-patternsworkflow)).
 No capability in [`protocol/types`](../protocol/types.md#capability) names
 deciding one, and no route at execution serves one, so the admin gateway's
-inbox ([`architecture/admin`](admin.md#decision-inbox)) lists content's open
-proposals and no step of execution's.
+inbox ([`architecture/admin`](admin.md#decision-inbox)) would list content's
+open proposals and no step of execution's, and it lists neither until a
+`PassRoute` can name the inbox group a route answers.
 
 **Notification has no route, capability or blueprint.** The notify-by-position
 call above has no declared action name or capability yet. Nothing is

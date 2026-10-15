@@ -850,9 +850,10 @@ contracts:
         - Its manifest (protocol/types, AgentManifest) MUST have type infrastructure, no subscriptions, no publishes and no pass_routes, so it owns no namespace and no person's request is ever carried to it, and a url naming a listener of its own that the orchestrator can reach, never the admin listener, which the operator IP allowlist guards (Admin Gateway Request Lifecycle, step 1). On that listener it MUST serve protocol/spec's seven agent endpoints - POST /v1/describe, GET /livez and GET /readyz as every registrant does, POST /v1/services, answered 200 and taken only as a prompt to read the directory as the next rule says, and POST /v1/execute, POST /v1/message and POST /v1/event, each answered FORBIDDEN, doing nothing, because it takes no task, message or event. It serves nothing else there, and none of the admin routes
         - The gateway MUST read the service directory only by GET /v1/services, on its registration token, at the orchestrator address it was configured with to register, which is its anchor (architecture/orchestrator, Presenting a credential to a component), over a connection it opened - when it starts, again after each POST /v1/services it receives, again whenever the exchange answers 404 for an audience its directory names, and at least once every 60 seconds besides, with no more than one such read in flight. That bound is this gateway's own - protocol/spec's Implementation Notes require every agent to refresh periodically and only recommend 60 seconds. The orchestrator's pushes are best effort, so without the periodic read a failed push could leave the gateway sending a pass to an address a component has left, until the next push. It MUST NOT take a pushed body as the directory, signed or not, and MUST NOT let anything in one choose a provider, an audience, a url, an address_provenance or a pass route. Nothing authenticates a push (protocol/spec, the gap under POST /v1/services), and any party that reaches this listener could otherwise choose where a person's pass is sent, and replay it at its real audience within its lifetime. So everything that decides where a pass goes arrives from the orchestrator
         - A provider other than the orchestrator MUST, on every request for an administrative route, accept a person's request only on a pass addressed to it, as protocol/identity's The pass requires, and refuse with FORBIDDEN a pass whose cap does not name every capability the request requires and any token that is neither a pass nor an operator token. It MUST record who acted as The pass requires, by the pass's identity_id with the gateway's act.identity_id beside it, never by sub or by a header
-        - Work a request starts at a provider runs while that request is answered, on the pass that carried it. Work that outlives the request, executing an approved decision included, needs an authority on the approver's behalf that no blueprint specifies yet (architecture/lifecycle, the gap under its Security), so no provider performs any on a person's behalf after the request the gateway carried on a pass is answered. Work a provider performs as its own, as a domain controller still executes accepted recommendations under no approver's authority, rests on no pass and on no approval the gateway carried, which is that gap
+        - Work a request starts at a provider runs while that request is answered, on the pass that carried it. Work that outlives the request, executing an approved decision included, needs an authority on the approver's behalf that no blueprint specifies yet (architecture/programme-service, Known Gaps, how execution proves it is firing an owner's definition), so no provider performs any on a person's behalf after the request the gateway carried on a pass is answered. Work a provider performs as its own, on no approver's authority, rests on no pass and on no approval the gateway carried, which is that gap
         - The System overview is composed by the gateway, from the orchestrator's GET /v1/admin/overview, forwarded as any request for its groups is, and from each group another component holds, asked of that component on a pass addressed to it as the rules above carry any request, once a pass route can name the overview group it answers. None can yet (protocol/types, PassRoute, which has no such field), so the gateway asks no component for one and MUST report every such group unavailable, never zero. The orchestrator asks no component for any
-        - The gateway MUST answer with ADMIN_GROUP_UNAVAILABLE, and forward nothing, a request for a route that is not one of the orchestrator's and that no directory entry declares among its pass_routes, or that more than one declares, since the directory then names no one provider. A component declares a pass route only where its blueprint specifies both the route and that it accepts a pass for it (protocol/types, PassRoute), so a route whose provider is not deployed, or whose provider's blueprint specifies no pass for it, is answered so. It MUST NOT carry such a request as a POST /v1/message action, which checks no operator token (protocol/spec)
+        - The decision inbox, GET /v1/admin/approvals, is composed by the gateway from each owner's own open decisions, each asked of its owner on a pass addressed to it as the rules above carry any request, once a pass route can name the inbox group it answers. None can yet (protocol/types, PassRoute, which has no such field), so the gateway asks no owner, hard-codes no owner's route, and MUST answer the inbox ADMIN_GROUP_UNAVAILABLE, never an empty list. It serves no route that decides <!-- wl:id inbox-composed-by-pass-route -->
+        - The gateway MUST answer with ADMIN_GROUP_UNAVAILABLE, and forward nothing, a request for a route that is not one of the orchestrator's, is not the decision inbox the rule above governs, and that no directory entry declares among its pass_routes, or that more than one declares, since the directory then names no one provider. A component declares a pass route only where its blueprint specifies both the route and that it accepts a pass for it (protocol/types, PassRoute), so a route whose provider is not deployed, or whose provider's blueprint specifies no pass for it, is answered so. It MUST NOT carry such a request as a POST /v1/message action, which checks no operator token (protocol/spec)
 
     - name: destructive-action-step-up
       description: A destructive act needs the person's own re-confirmation within 300 seconds, and never a second person
@@ -1955,7 +1956,7 @@ presents a token it received
 | Audit | Orchestrator | always |
 | Model | Orchestrator, on the platform-provided routes the CLI installs: `/v1/admin/model` (GET and PUT), `/v1/admin/model/providers` (GET), `/v1/admin/complete` (POST), `/v1/admin/model/agreements` (POST and GET), `/v1/admin/model/agreements/{id}` (DELETE) and `/v1/admin/model/ceiling` (GET) ([`architecture/orchestrator`](orchestrator.md#administrative-endpoints)) | always |
 | System overview | composed by the admin gateway | always, with absent providers reported absent |
-| Decision inbox: `/v1/admin/approvals` | composed by the admin gateway from each owner's own open decisions ([`patterns/approval`](../patterns/approval.md)); each is decided at its owner ([Decision Inbox](#decision-inbox)) | always, with an owner that cannot be asked reported absent |
+| Decision inbox: `/v1/admin/approvals` | composed by the admin gateway from each owner's own open decisions ([`patterns/approval`](../patterns/approval.md)); each is decided at its owner ([Decision Inbox](#decision-inbox)) | once a `PassRoute` can name the inbox group a route answers, with an owner that cannot be asked reported absent. None can yet, so the gateway answers it `ADMIN_GROUP_UNAVAILABLE` |
 | Health | the orchestrator's leases, in the agent list and the overview; and telemetry's SLO status, which no blueprint specifies yet: telemetry's is written in the second step of the tenant service plan | the leases always; SLO status once a telemetry component's blueprint specifies it on a pass |
 | Domains | Domain controllers | a domain controller is deployed |
 | Workflow runs: `/v1/admin/workflows` and `/v1/admin/workflows/:id` | Execution, which holds every run, a programme's and a domain's ([`architecture/programme-service`](programme-service.md#execution)) | an execution component whose blueprint specifies both routes and a pass for them is deployed. No blueprint does yet |
@@ -1977,8 +1978,10 @@ operator the system is quiet when it is simply not there.
 > [`architecture/programme-service`](programme-service.md#execution) names
 > execution as the provider of the two workflow routes, on a pass carrying
 > `admin:read`, and no execution blueprint specifies them yet. Of the owners
-> whose decisions the inbox lists, content alone specifies a list a pass may
-> reach. [`protocol/federation`](../protocol/federation.md) declares no `/v1/admin/`
+> whose decisions the inbox would list, content alone specifies a list a pass
+> may reach, and no `PassRoute` can yet name the inbox group that list answers
+> ([`protocol/types`](../protocol/types.md#passroute)), so the inbox is
+> answered `ADMIN_GROUP_UNAVAILABLE` until one can. [`protocol/federation`](../protocol/federation.md) declares no `/v1/admin/`
 > route. Three blueprints do specify routes under `/v1/admin/` that another
 > component serves: `GET /v1/admin/alerts`, `/v1/admin/alerts/{id}` and
 > `/v1/admin/alerts/stats` in [`agents/alerting`](../agents/alerting.md), the
@@ -2083,16 +2086,27 @@ routes, reached on a pass like any provider's.
 
 **Each owner serves its own decisions, and the gateway composes one inbox from
 them** ([`architecture/programme-service`](programme-service.md#the-decision-inbox)).
-There is no approval service and no recommendation queue. For each owner whose
-blueprint specifies a list of the decisions it holds open and a pass for it,
-the gateway asks on a pass, as it asks for an overview figure: content's open
-proposals today, at `GET /v1/content/proposals`, on a pass naming
-`content:read`; execution's waiting steps once its blueprint specifies them.
-The answer carries `items`, each with its `owner`, the owner's own `id`, a
-`summary` and `decide`, the method and route at which it is decided, and
+There is no approval service and no recommendation queue. The gateway learns
+which route lists an owner's open decisions from the service directory alone,
+as it learns every route it carries (`admin-gateway-authorization`), and asks
+each owner on a pass, as it would ask for an overview figure: content's open
+proposals at `GET /v1/content/proposals` on a pass naming `content:read`, and
+execution's waiting steps once its blueprint specifies them. That needs a
+`PassRoute` that can name the inbox group a route answers, and none can yet
+([`protocol/types`](../protocol/types.md#passroute)), so a conforming gateway
+asks no owner and answers the inbox `ADMIN_GROUP_UNAVAILABLE` (the gap under
+[The admin API is an aggregate](#the-admin-api-is-an-aggregate)). Once one can,
+the answer carries `items`, each with its `owner`, `record`, the record the
+owner returned for that decision, unchanged (for content a `ContentProposal`
+without bytes), and `decide`, the method and route at which it is decided;
+`withheld`, each owner's own count of the decisions it omitted because this
+person may not read them (content's `ProposalPage.withheld`); and
 `unavailable`, naming each owner the gateway could not ask with the code it
-would answer for that owner's route. A list the gateway could not complete
-MUST NOT be reported as empty or complete. <!-- wl:id inbox-never-quietly-empty -->
+would answer for that owner's route. The gateway writes no summary of its own:
+a client renders an item from its owner's record, as the CLI renders a
+content proposal's `change`. A list the gateway could not complete, or from
+which an owner withheld any decision, MUST NOT be reported as empty or
+complete. <!-- wl:id inbox-never-quietly-empty -->
 
 **A decision is made at its owner, never here.** The gateway MUST serve no
 route that decides. <!-- wl:id inbox-decides-nothing --> A person decides on their own
@@ -2883,4 +2897,4 @@ The rest SHOULD be:
 - [ ] Bootstrap event (first operator registration) is permanently recorded in the audit log
 - [ ] While no provider's blueprint specifies `/v1/admin/ws`, a request for it is answered 503 `ADMIN_GROUP_UNAVAILABLE`, and the gateway opens no subscription and holds no connection to serve it
 - [ ] The admin gateway serves no page, script or static file of its own, and keeps no session or cookie: a person reaches it through the CLI or a console holding their credential
-- [ ] Through the admin gateway, `GET /v1/admin/approvals` lists content's open proposals, asked of content on a pass naming `content:read`, each with its `owner`, `id`, `summary` and `decide`; with content not registered it names content under `unavailable` and is never answered as an empty, complete list; and a decision is sent to the route `decide` names, never to a route the gateway serves <!-- wl:check inbox-composed covers inbox-never-quietly-empty inbox-decides-nothing -->
+- [ ] While no `PassRoute` can name the inbox group a route answers, `GET /v1/admin/approvals` at the admin gateway is answered 503 `ADMIN_GROUP_UNAVAILABLE` with content registered or not, the gateway asks no owner and sends nothing, and it is never answered as an empty list; the gateway serves no route that decides, and a decision reaches its owner only at the owner's own route <!-- wl:check inbox-composed covers inbox-composed-by-pass-route inbox-never-quietly-empty inbox-decides-nothing -->

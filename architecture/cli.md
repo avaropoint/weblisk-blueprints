@@ -383,9 +383,10 @@ component's blueprint specifies an administrative route yet
 ([`architecture/admin`](admin.md#the-admin-api-is-an-aggregate), the gap
 there), so the gateway answers each of these commands
 `ADMIN_GROUP_UNAVAILABLE`, and the command reports its group unavailable and
-exits 1. The approval commands are the exception: the gateway composes the
-decision inbox itself, from each owner it may ask
-([`architecture/admin`](admin.md#decision-inbox)).
+exits 1. The approval commands read the decision inbox the gateway composes
+from each owner it may ask, and it may ask none until a `PassRoute` can name
+the inbox group ([`architecture/admin`](admin.md#decision-inbox)), so they
+report the inbox unavailable and exit 1 too.
 
 ---
 
@@ -1495,8 +1496,8 @@ CLI holds one for each identity at each hub:
   without a prompt while the person's session on the machine is unlocked. So
   once the credential answers a challenge
   ([Authentication Flow](#authentication-flow)), minting a token there asks
-  nobody, and the identity's holder is asked only to register, to attest and
-  to change its key. What protects it is the machine session: while it is
+  nobody, and the identity's holder is asked only to register, to attest, to
+  change its key and to re-confirm its person for a destructive act. What protects it is the machine session: while it is
   unlocked, any program running as the person can have the CLI mint with it,
   as it can read a stored token. The identity's holder keeps it, as the next
   two items say, only where no keychain exists: on a platform the CLI carries
@@ -2302,7 +2303,6 @@ Phases:
 Output:
   Files scanned: 3
   Findings: 12 (3 critical, 5 high, 4 medium)
-  Recommendations: 5 (pending approval)
 ```
 
 ---
@@ -2326,10 +2326,16 @@ content   1e7d3a9c5b2f8e4a6d0c3b7f9a1e5d2c   Create policies/remote-work.md
 Unavailable: none
 ```
 
-- Calls `GET /v1/admin/approvals` at the admin gateway
+- Calls `GET /v1/admin/approvals` at the admin gateway. Until a `PassRoute`
+  can name the inbox group, the gateway answers it `ADMIN_GROUP_UNAVAILABLE`,
+  and the command says the inbox is unavailable and exits 1; the listing above
+  is what it shows once owners can be asked
+- SUMMARY is rendered by the CLI from the owner's own record: for content, the
+  proposal's `change`, its action and path. The gateway writes none
 - `--owner <name>` to filter by owner
 - An owner the gateway names under `unavailable` is shown with its code, never
-  as having nothing open, and the command exits 1 when any is
+  as having nothing open, and an owner's `withheld` count is shown when it is
+  not zero; the command exits 1 when any owner is unavailable
 
 ### `weblisk approvals describe <id>`
 
@@ -3076,8 +3082,8 @@ security:
       get wrong. It holds no secret of its own. Beside each identity it keeps
       one credential for each hub that identity attested, never in the clear,
       and mints short-lived tokens with it. The identity, whose private half
-      may never be extractable, signs only to register, to attest and to
-      re-confirm its person for a destructive act.
+      may never be extractable, signs only to register, to attest, to change
+      its own key and to re-confirm its person for a destructive act.
   boundaries:
     - boundary: Operator → CLI. The operator's identity authorises every
         privileged operation; the CLI holds no standing authority
@@ -3269,7 +3275,7 @@ security:
 - [ ] All commands output human-readable tables by default and structured JSON with --json flag
 - [ ] Destructive commands (agents deregister, federations revoke) require --confirm or interactive name-confirmation
 - [ ] `weblisk approvals reject` requires a --reason argument for every rejection
-- [ ] `weblisk approvals list` calls `GET /v1/admin/approvals`, shows each owner the gateway names under `unavailable` with its code and exits 1 when any is; `weblisk approvals accept` and `reject` send one decision to the route the item's `decide` names, never in bulk, and no `weblisk observations` or `weblisk strategies` command exists
+- [ ] `weblisk approvals list` calls `GET /v1/admin/approvals`, reports the inbox unavailable and exits 1 when the gateway answers `ADMIN_GROUP_UNAVAILABLE`, shows each owner the gateway names under `unavailable` with its code and exits 1 when any is, and shows each owner's non-zero `withheld` count; `weblisk approvals accept` and `reject` send one decision to the route the item's `decide` names, never in bulk, and no `weblisk observations` or `weblisk strategies` command exists
 - [ ] `weblisk objectives list`, `weblisk federations peers`, `weblisk federations describe`, `weblisk federations contracts`, `weblisk domains list` and `weblisk workflows list` are sent to the hub's admin gateway, and report their group unavailable and exit 1 when it answers `ADMIN_GROUP_UNAVAILABLE`, as it does while no provider's blueprint specifies the route; the stored token is sent nowhere but the admin gateway
 - [ ] `weblisk status` calls `GET /v1/admin/overview` at the hub's admin gateway and displays agents, domains, workflows, approvals, federation and objectives, showing as unavailable, never as zero, each figure the gateway reports unavailable, and shows no health score
 - [ ] Exit codes are 0=success, 1=general error, 2=auth error, 3=connection error, 4=not found, 5=permission denied
