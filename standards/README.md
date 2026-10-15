@@ -110,6 +110,6 @@ They now name the articles each PIPEDA principle bears on: Accountability
 `gdpr:Art.7`, consent being both a lawful basis and a condition of its own;
 Safeguards (PIPEDA-7) on `gdpr:Art.32`; Individual Access (PIPEDA-9) on
 `gdpr:Art.15`. Each is the equivalence claim described above — evidence for
-one bears on the other — and no more.
+one bears on the other — and no more — and `gdpr.json` states each back.
 
 The other 234 mappings are well-formed `<standard>:<control>` and resolve.
