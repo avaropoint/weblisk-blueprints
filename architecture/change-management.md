@@ -421,6 +421,11 @@ transitive_resolution:
   # The walk's depth bound has one home and is not stated here
   # (architecture/fabric, requirement reach-max-depth). Reaching it is
   # reported as incomplete, never as no further dependents.
+  # Gap: architecture/fabric is not in this file's requires, and a binding
+  # cannot yet name a requirement, so a build of this file does not carry
+  # the value. Until a binding can, a generator MUST resolve this ref from the
+  # corpus revision the build resolved, and MUST refuse the file rather than
+  # read the ref as a number or as no bound.
   depth_limit: requirement://weblisk/architecture/fabric:reach-max-depth
   cycle_detection: required
   cycle_resolution: >

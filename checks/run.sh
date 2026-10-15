@@ -88,6 +88,16 @@ else
 	fails=$((fails + 1))
 fi
 
+# A depth that bounds no walk is not the reach depth: a copy with a queue
+# depth and a nesting depth added still has one home, and a copy that adds a
+# traversal block's max_depth again has two.
+mkdir -p "$tmp/rq" && cp -R architecture "$tmp/rq/"
+printf '```yaml\nlimits:\n  max_queue_depth: 1000\n  max_nesting_depth: 20\n```\n' >"$tmp/rq/architecture/queue-fixture.md"
+expect 0 "reach-depth control: a queue or nesting depth is not a second home" python3 checks/reach-depth.py --root "$tmp/rq"
+printf '```yaml\nfabric:\n  traversal:\n    max_depth: 6\n```\n' >"$tmp/rq/architecture/queue-fixture.md"
+expect 1 "reach-depth control: a traversal max_depth is a second home" python3 checks/reach-depth.py --root "$tmp/rq"
+grep -q '^architecture/queue-fixture.md:4: max_depth = 6$' "$tmp/out" || { echo "FAIL reach-depth control: the traversal max_depth was not what was reported"; fails=$((fails + 1)); }
+
 # The fabric ledger vector chains; a copy with one entry altered must fail at
 # exactly that entry and nowhere else.
 expect 0 "fabric-ledger: the vector's chain verifies" python3 checks/fabric-ledger.py

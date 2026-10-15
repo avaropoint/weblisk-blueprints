@@ -96,6 +96,7 @@ rewrites that place.
 | `WL_AI_MODEL`, as a variable a tenant component reads | the tenant's model gateway, the only way a component reaches a model: [the tenant's model](architecture/orchestrator.md#the-tenants-model) | [`languages/go`](languages/go.md#environment-variables) 2.0.0, [`languages/rust`](languages/rust.md#environment-variables) 2.0.0 and [`platforms/node`](platforms/node.md#environment-variables) 3.0.0, Environment Variables and Configuration |
 | `WL_AI_KEY`, as a variable a tenant component reads | the tenant's model gateway ([the tenant's model](architecture/orchestrator.md#the-tenants-model)), the only way a component reaches a model; no component holds a vendor's key | [`platforms/cloudflare`](platforms/cloudflare.md#environment-variables) 2.0.0, Environment Variables, LLM Integration and Deployment |
 | `WL_AI_*`, as variables a tenant component reads | the tenant's model gateway, the only way a component reaches a model: [the tenant's model](architecture/orchestrator.md#the-tenants-model) | [`languages/go`](languages/go.md#configuration) 2.0.0 and [`languages/rust`](languages/rust.md#configuration) 2.0.0, Configuration |
+| `fabric.traversal.max_depth`, the fabric's configured traversal depth | requirement `reach-max-depth`, `requirement://weblisk/architecture/fabric:reach-max-depth`, which no configuration sets | [`architecture/fabric`](architecture/fabric.md#requirements) 3.0.0, Requirements and Configuration |
 
 ## Entries
 
@@ -401,4 +402,6 @@ itself is always allowed.
   - {spelling: WL_AI_*, match: sense}
   allow:
   - {path: architecture/cli.md, why: "the CLI's own environment: weblisk providers, and A component starts with a clean environment, which keeps it off every component's"}
+- retired:
+  - {spelling: fabric.traversal.max_depth, match: exact}
 ```

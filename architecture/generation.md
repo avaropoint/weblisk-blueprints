@@ -527,7 +527,8 @@ kept. It MUST NOT be described as incremental.
 
 ### The run statement
 
-Every run writes one run statement, the record the previous section requires:
+Every run writes one run statement, which holds the record the previous section
+requires, one subject per file written:
 one immutable file at `provenance/runs/<run id>.json` in the tenant
 repository, whose shape, signing and reading rules are
 [`schemas/run-statement.md`](../schemas/run-statement.md)'s. It is written with
@@ -538,7 +539,8 @@ What the generator puts in it, and why each is its job:
 - **The model is the id the backend reported at run time.** A generator MUST
   record what the backend said served the run, never the name it was configured
   to ask for. A backend that reports none is recorded as `unreported`, and a run
-  whose model is `unreported` MUST NOT create a cache entry.
+  whose model is `unreported` MUST NOT create a cache entry: an output cannot be
+  reused on the strength of a model nobody can name.
 - **Roots per output.** For each file, which of the run's roots it was generated
   for. A run of one root records that root on every file; a run of many records
   each file's own.
@@ -548,9 +550,14 @@ What the generator puts in it, and why each is its job:
   exist and pass. A missing one is a repair, not a pass. Where the language has
   no symbol extractor the confirmation is file-level and says so. No marker is
   written into generated code.
-- **What each output was generated from** — the requirements and mapping rules
-  its prompt cited — and every blueprint and rule the run resolved, each at its
-  digest.
+- **Per output, the rebuild record.** The plan entry that produced it
+  (`path`, `purpose`, `declares`, `serves`), its digest as written, each
+  blueprint it was generated from at the digest the run read, and the bindings
+  and checklist assertions it is answerable for. The rebuild decision above
+  reads these, per file, from the latest statement that wrote the file.
+- **What each output was generated from** — the requirements, mapping rules and
+  controls its prompt cited — and every blueprint and rule the run resolved,
+  each at its digest.
 
 The statement is the outbox for the relationship fabric: its
 `generation-statements` producer turns each statement into ledger edges

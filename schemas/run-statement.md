@@ -27,7 +27,13 @@ The statement is an [in-toto Statement v1](https://github.com/in-toto/attestatio
 whose predicate is [SLSA Provenance v1](https://slsa.dev/spec/v1.0/provenance),
 so a general tool reads it without knowing Weblisk. What Weblisk adds sits in
 the places those specifications leave for a build type's own parameters and for
-annotations on a resource.
+annotations on a resource. The statement's type is `RunStatement`, declared by
+this file, and its build type is that type's full ref.
+
+Each subject carries the record [`architecture/generation`](../architecture/generation.md#deciding-whether-a-file-must-be-rebuilt)
+requires for every file it writes — its plan entry, its digest as written, the
+digest of each blueprint it was generated from, and what it is answerable for —
+so the rebuild decision reads its per-file inputs here and nowhere else.
 
 ```yaml
 run_statement:
@@ -39,11 +45,21 @@ run_statement:
       annotations:
         roots: [<ref>]             # the roots this output traces to: which of the
                                    # run's requested roots it was generated for
+        plan_entry:                # the plan entry that produced it; its path is `name`
+          purpose: <text>
+          declares: [<symbol>]
+          serves: [<operation ref>]
         implements: [<requirement ref>]  # from its plan entry
         generated_from: [<requirement, mapping rule or control ref>]
+        blueprints:                # each blueprint this file was generated from,
+          - uri: <full ref>        # at the digest the run read it
+            digest: {sha256: <hex>}
+        answerable_for:            # what a change must reach to make it a rebuild
+          bindings: [<type or operation ref it binds>]
+          assertions: [<check ref>]
   predicate:
     buildDefinition:
-      buildType: //weblisk/schemas/run-statement
+      buildType: type://weblisk/schemas/run-statement:RunStatement
       externalParameters:
         component: <component kind>
         roots: [<ref>]             # what the run was asked to build from
@@ -71,9 +87,9 @@ run_statement:
 1. **`model` is what the backend reported, never what was configured.** It is
    the model id the backend returned for this run, at run time. A configured
    name is a request, and the backend may have served something else under it.
-   A backend that reports none gives `model: unreported`, and a run whose model
-   is `unreported` creates no cache entry: an output cannot be reused on the
-   strength of a model nobody can name.
+   A backend that reports none gives `model: unreported`, and what that does to
+   caching is [`architecture/generation`](../architecture/generation.md#the-run-statement)'s
+   to say.
 2. **`roots` is per output.** A run of several roots records, on each subject,
    which of them that file was generated for. `change plan --upgrade` takes its
    roots from the latest statement of each component; the lock never holds them.
@@ -88,22 +104,28 @@ run_statement:
    the field.
 5. **Every ref is a full ref** in the grammar of [`names.md`](names.md), because
    a statement is read without the file that named it.
-6. **The file is stored as RFC 8785 canonical bytes** (the envelope below, or
-   the bare statement while it is unsigned), so the statement digest an entry
-   cites is the SHA-256 of the file as stored, recomputable with `sha256sum`.
+6. **The file is always a DSSE envelope, stored as RFC 8785 canonical bytes**
+   (Signing, below), signed or not, so the statement digest an entry cites is
+   the SHA-256 of the file as stored, recomputable with `sha256sum`, and does
+   not change form when signing begins.
+7. **A subject's `blueprints` are a subset of `resolvedDependencies`, at the
+   same digests.** The run's list is everything it read; a subject's is what
+   that file was made from.
 
 ## Signing
 
-A statement is signed with ML-DSA-65, as
-[`protocol/identity`](../protocol/identity.md) signs any JSON, by the tenant's
-`generation` service credential — admitted once by a person — and records
-`on_behalf_of` the operator. It is stored in a
-[DSSE](https://github.com/secure-systems-lab/dsse) envelope: the statement as
-payload, payload type `application/vnd.in-toto+json`, and its signatures.
+Every statement is stored in a [DSSE](https://github.com/secure-systems-lab/dsse)
+envelope: `payloadType` `application/vnd.in-toto+json`, `payload` the base64
+of the statement's RFC 8785 bytes, and `signatures`. A signature is ML-DSA-65
+([`protocol/identity`](../protocol/identity.md)) over DSSE's pre-authentication
+encoding, `PAE(payloadType, payload)` with the payload's decoded bytes — never
+over the envelope or the statement's JSON as serialised — made by the tenant's
+`generation` service credential, admitted once by a person, with `keyid` its
+identity id. The statement records `on_behalf_of` the operator.
 
 That credential is part of the credential layer (identity, credential,
-grant), which does not exist yet. **Until it does, `signatures` is empty**, the
-statement is read as unsigned, and the fabric records each entry's run citation
+grant), which does not exist yet. **Until it does, the envelope's `signatures`
+is empty**, the statement is read as unsigned, and the fabric records each entry's run citation
 with `signed: false`. A person's identity key never signs a statement in the
 credential's place; that would make a person the author of every file a model
 wrote.
