@@ -27,8 +27,9 @@ The statement is an [in-toto Statement v1](https://github.com/in-toto/attestatio
 whose predicate is [SLSA Provenance v1](https://slsa.dev/spec/v1.0/provenance),
 so a general tool reads it without knowing Weblisk. What Weblisk adds sits in
 the places those specifications leave for a build type's own parameters and for
-annotations on a resource. The statement's type is `RunStatement`, declared by
-this file, and its build type is that type's full ref.
+annotations on a resource. The statement's type is `RunStatement`, declared in
+the `types` block below, and its build type is that type's full ref,
+`type://weblisk/schemas/run-statement:RunStatement`.
 
 Each subject carries the record [`architecture/generation`](../architecture/generation.md#deciding-whether-a-file-must-be-rebuilt)
 requires for every file it writes — its plan entry, its digest as written, the
@@ -80,6 +81,30 @@ run_statement:
         invocationId: <run id>
         startedOn: <RFC 3339>
         finishedOn: <RFC 3339>
+```
+
+```yaml
+types:
+  RunStatement:
+    description: One generation run's statement, an in-toto Statement v1 with a
+      SLSA Provenance v1 predicate, in the shape above. Its fields are those
+      specifications' own; this file adds only the subject annotations and the
+      build parameters the shape shows
+    fields:
+      _type:
+        type: string
+        description: https://in-toto.io/Statement/v1
+      predicateType:
+        type: string
+        description: https://slsa.dev/provenance/v1
+      subject:
+        type: list
+        description: One entry per output file the run wrote, each with its
+          name, digest and the annotations the shape shows
+      predicate:
+        type: object
+        description: The SLSA Provenance v1 predicate, whose buildType is this
+          type's full ref
 ```
 
 ## Rules

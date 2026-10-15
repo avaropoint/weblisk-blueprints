@@ -177,5 +177,19 @@ else
 	fails=$((fails + 1))
 fi
 
+# Every type ref in the weblisk namespace names a declared type; a copy that
+# misspells the run statement's build type must report exactly that ref.
+expect 0 "type-refs: every type ref names a declared type" python3 checks/type-refs.py
+mkdir -p "$tmp/tr" && cp -R schemas protocol "$tmp/tr/"
+sed 's|run-statement:RunStatement$|run-statement:RunStatment|' schemas/run-statement.md >"$tmp/tr/schemas/run-statement.md"
+expect 1 "type-refs control: a misspelt type ref fails" python3 checks/type-refs.py --root "$tmp/tr"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^schemas/run-statement.md:[0-9]*: type://weblisk/schemas/run-statement:RunStatment names a type' "$tmp/out"; then
+	echo "ok   type-refs control: exactly one finding, the misspelt build type"
+else
+	echo "FAIL type-refs control: want exactly one finding, the misspelt build type"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]
