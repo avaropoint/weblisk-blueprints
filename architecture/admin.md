@@ -852,9 +852,14 @@ tenant's operator, who reads it from the certificate on the gateway's host
 registration the CLI already records for the address, which
 [`weblisk operator connect`](cli.md#weblisk-operator-connect) and
 [`weblisk operator register`](cli.md#weblisk-operator-register) report as
-`tls_pin` beside the `address`. A console that makes its own requests to the
-gateway, rather than through the CLI, MUST keep the pin with each address it
-keeps, from one of those, and verify every connection against it. <!-- wl:id console-keeps-pin -->
+`tls_pin` beside the `address` where the registration records one. A console
+that makes its own requests to the gateway, rather than through the CLI, is a
+client like any other, and the rule for it is `client-pins-gateway-key` below:
+where the registration it was given records a pin, it MUST keep that pin with
+the address and verify every connection to that address against it; where the
+registration records none, because the gateway's certificate verifies under
+the system's roots, it verifies under those roots and records no pin of its
+own. <!-- wl:id console-keeps-pin -->
 
 The listener MUST negotiate TLS 1.3 alone and offer the hybrid key agreement
 X25519MLKEM768, preferring it. <!-- wl:id admin-listener-tls13 -->
@@ -3300,7 +3305,7 @@ The rest SHOULD be:
 - [ ] Operator records, credentials and token-request `jti` records survive a restart of the orchestrator, and the `jti` records are shared by every instance answering for the hub <!-- wl:check operator-stores-durable covers store-operators-durable store-credentials-durable store-jti-durable -->
 - [ ] The CLI accepts an identity by a label and resolves and reports its location itself; the label is never the operator's name and never appears verbatim in the path <!-- wl:check identity-label covers identity-by-label label-not-name label-not-in-path -->
 - [ ] A client holding a pin for the admin gateway's address refuses a certificate with another key, reports it as a pin that did not match and not as unreachable, and never falls back to the system's roots, to unverified TLS or to HTTP, at a loopback address too; one holding no pin refuses a certificate its roots do not verify, names `create`'s result, the tenant's operator and the certificate on the gateway's host as where a pin comes from, and never prints, offers or records the presented certificate's pin <!-- wl:check gateway-pin-held covers client-pins-gateway-key -->
-- [ ] `weblisk operator connect --json` and `weblisk operator register --json` carry the `tls_pin` the registration records for the address; a console that makes its own requests to the gateway verifies each against the pin it keeps with that address and refuses a gateway for which it keeps none <!-- wl:check console-pin-kept covers console-keeps-pin -->
+- [ ] `weblisk operator connect --json` and `weblisk operator register --json` carry the `tls_pin` the registration records for the address, and no `tls_pin` where it records none; a console that makes its own requests to the gateway and was given a `tls_pin` verifies every connection to that address against it and refuses another key, and one given none verifies under the system's roots, refuses a certificate they do not verify, and records no pin from the connection <!-- wl:check console-pin-kept covers console-keeps-pin -->
 
 ### Admin gateway
 

@@ -2057,13 +2057,12 @@ Registering operator 'alice' with https://hub.example.com...
   against, where the system's roots do not verify it
   ([`architecture/admin`](admin.md#certificate)); `create` reports it. The
   registration records it, and every later request to that address is
-  verified against it. The `--json` result carries the `address` and the
-  `tls_pin` the registration records for it, so a console that makes its own
-  requests keeps the pin with the address (`console-keeps-pin`). Where it holds
-  no pin and the system's roots do not verify the certificate, it refuses,
-  naming where a pin comes from and never offering the presented certificate's
-  pin as one to trust ([`architecture/admin`](admin.md#certificate),
-  `client-pins-gateway-key`)
+  verified against it. The `--json` result carries the `address` and, where
+  the registration records one, the `tls_pin`; without `--tls-pin`, against a
+  gateway whose certificate the system's roots verify, it records none and the
+  result carries none. A console that makes its own requests keeps a pin only
+  where it was given one, as [`architecture/admin`](admin.md#certificate)
+  says (`console-keeps-pin`, `client-pins-gateway-key`)
 
 ### `weblisk operator connect`
 
@@ -2106,9 +2105,10 @@ accepts ([A credential for each hub](#a-credential-for-each-hub)).
 
 Seven outcomes, and they are told apart. The `--json` result carries the
 `address` and, where the registration records one, the `tls_pin` the
-gateway's certificate was verified against, so a console that makes its own
-requests to the gateway keeps the pin with the address it keeps
-([`architecture/admin`](admin.md#certificate), `console-keeps-pin`):
+gateway's certificate was verified against; where it records none, no
+`tls_pin`. A console that makes its own requests to the gateway keeps a pin
+only where it was given one, as
+[`architecture/admin`](admin.md#certificate) says (`console-keeps-pin`):
 
 | State | Meaning |
 |---|---|
@@ -3615,7 +3615,7 @@ security:
 - [ ] `weblisk operator init --json` prints `name`, `keys_dir`, `public_key`, `holder` and `created`, carries no private key and no passphrase, and writes nothing else to stdout; `holder` is the holder reference `holder.json` records, `holds` included, and `null` where there is no `holder.json`
 - [ ] `--keys-dir` outranks `--identity` when both are given
 - [ ] `weblisk operator connect` asks for no passphrase when a secret source holds the identity's passphrase
-- [ ] `weblisk operator connect` reports `connected`, `pending_approval`, `not_registered`, `refused`, `identity_unavailable`, `unreachable` or `pin_mismatch`, and with `--json` an `identity_unavailable` result carries `source` and `code`, and every result carries the `address` and the `tls_pin` its registration records
+- [ ] `weblisk operator connect` reports `connected`, `pending_approval`, `not_registered`, `refused`, `identity_unavailable`, `unreachable` or `pin_mismatch`, and with `--json` an `identity_unavailable` result carries `source` and `code`, and every result carries the `address`, and the `tls_pin` where its registration records one
 - [ ] `weblisk operator connect`, `weblisk operator attest` and `weblisk operator attest --batch` never send a registration: at an address no registration names, or a hub that answers `OPERATOR_UNKNOWN`, each reports `not_registered` naming `weblisk operator register` and the address, and against a test hub with no operators none of them sends a bootstrap secret or claims the hub
 - [ ] `weblisk operator connect` with no identity held reports `identity_unavailable`, names `weblisk operator init` and creates no key; `connect --no-register` is accepted and behaves exactly as `connect`
 - [ ] `weblisk operator init` does not overwrite existing keys without --force flag
