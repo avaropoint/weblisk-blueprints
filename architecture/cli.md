@@ -614,7 +614,11 @@ start does not find it there. With `--port 0` the admin gateway's two listeners
 take free ports too, and those `create` does write, into `admin_gateway`,
 because `orchestrator.admin_addresses` names the admin listener's origin and
 the two must agree. The gateway is started with `--orch` naming the address
-the orchestrator bound. A console that starts the orchestrator again on
+the orchestrator bound, as an IP literal such as `http://127.0.0.1:<port>` and
+never `localhost`: the gateway judges it by rule 19 of
+[`schemas/config`](../schemas/config.md#validation-rules), as it judges
+`admin_gateway.orchestrator`, and refuses a plain `http` address whose host
+is a name. A console that starts the orchestrator again on
 the port the result reported passes it to
 [`weblisk component orchestrator start --port`](#weblisk-component-name-start--stop--status--logs).
 
@@ -1220,7 +1224,8 @@ per [`schemas/config`](../schemas/config.md). A section that is present
 declares its component — `content:` declares the content service — and an
 absent or null one declares none. With no file it starts the orchestrator
 alone: the file is an operator's declaration, never a precondition. That is a
-hub with no door, and start says so: no person's client reaches it until a
+hub with no door, not a tenant, whose minimum set is the orchestrator and the
+admin gateway ([`architecture/tenancy`](tenancy.md#data-flow)), and start says so: no person's client reaches it until a
 configuration declares the admin gateway rule 20 of
 [`schemas/config`](../schemas/config.md#validation-rules) requires, which
 `weblisk component admin init` writes. A file that is present and fails rule
@@ -1231,7 +1236,9 @@ that omits the door means.
 
 - **Order.** The orchestrator first, and each sibling only once the
   orchestrator's `GET /livez` answers live and then its `GET /readyz` answers
-  ready, passed `--orch` with the address it actually bound.
+  ready, passed `--orch` with the address it actually bound, as an IP
+  literal and never `localhost`, which the admin gateway would refuse
+  (rule 19 of [`schemas/config`](../schemas/config.md#validation-rules)).
   The admin gateway next, which `admin_gateway` declares, passed its
   internal listener's port as `--port` and `WL_PORT` and waited on there
   ([`architecture/admin`](admin.md#a-start-and-a-builds-own-run),

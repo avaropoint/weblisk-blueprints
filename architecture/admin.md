@@ -373,6 +373,15 @@ that no other row names, a prefix and not a literal `*`: Go's `ServeMux`
 writes it `/v1/`, and the more specific rows win over it. A listener MUST NOT serve a row of the
 other's. <!-- wl:id listeners-disjoint -->
 
+The internal rows read `no` where [`architecture/agent`](agent.md#endpoints)'s
+rows for the same endpoints read `yes`, and the two agree. An agent acts on a
+request to `/v1/execute`, `/v1/message` or `/v1/event`, so it verifies the
+sender first. The gateway acts on none of them: it refuses the first three
+whoever sends them, and takes a push to `/v1/services` only as a prompt to
+read the directory from its anchor on its own token, never as the directory
+itself. No request to the internal listener changes what the gateway does,
+so it has nothing to verify a sender for.
+
 ---
 
 ## Interfaces
@@ -836,7 +845,7 @@ MUST refuse, naming the missing key, and make neither: a new key is a new pin,
 and a key made in silence would fail every recorded pin as a pin that did not
 match with nothing to say why. The operator who means a new key removes the
 certificate too and gives each person the new pin, as below. <!-- wl:id lone-certificate-refused -->
-
+What it makes:
 
 - **The key** is a new ECDSA P-256 key at `.weblisk/keys/admin-gateway-tls.key`,
   kept as `gateway-keys-kept` says. It is never printed, copied or sent.
@@ -853,6 +862,17 @@ certificate too and gives each person the new pin, as below. <!-- wl:id lone-cer
   always records a pin, whichever the certificate is. A registration records
   none only where `weblisk operator register` made it without `--tls-pin`, at
   an address whose certificate the system's roots verify.
+
+A pin read from the gateway's host is read from a certificate file, which
+holds nothing secret but is what every later connection is verified against,
+so its integrity is guarded as the keys' secrecy is. The command that makes
+the certificate makes `.weblisk/tls/` mode 0755 and the certificate mode 0644.
+A command that reads a pin from a certificate file, `weblisk tenant accept`
+and `weblisk server provision` among them, MUST refuse, naming the file and
+reading no pin, where that file or the directory holding it can be written by
+an account other than its owner: any group or other write bit set.
+<!-- wl:id pin-source-guarded --> A certificate anyone on the host could
+replace is a pin anyone on the host could choose.
 
 A client learns a pin from one of three places, each reached over something
 other than the connection it is about to verify: `create`'s result; the
@@ -880,7 +900,10 @@ verification, or to HTTP, at a loopback address too. It reports that refusal
 as a pin that did not match, never as an address that did not answer: a key
 other than the recorded one at a gateway's address is what an interception
 looks like. A client that holds no pin refuses a certificate its roots do not
-verify, and says where a pin comes from, the three places above. It MUST NOT
+verify, and says where a pin comes from: `create`'s result, or the tenant's
+operator, who reads it from the certificate on the gateway's host. It has no
+recorded registration to name, the third place, because holding none is why
+it holds no pin. It MUST NOT
 print, offer or record the pin of the certificate it was just shown as one to
 trust: that key arrived over the connection it could not verify, and taking
 it is trusting the first key that answers. <!-- wl:id client-pins-gateway-key -->
@@ -918,7 +941,10 @@ The CLI starts the gateway as it starts every component
 passing one port as `--port` and `WL_PORT`. That port is the internal
 listener's, and overrides `admin_gateway.internal_port`: the internal
 listener is where [`protocol/spec`](../protocol/spec.md#agent-endpoints)'s
-probes are, so a start waits on it as it waits on any component's port. The
+probes are, so a start waits on it as it waits on any component's port. Where
+`admin_gateway.internal_address` is absent, its default,
+`http://127.0.0.1:<internal_port>`, follows the overriding `--port`, so the
+`url` the gateway registers and the port it binds never disagree. The
 admin listener's port is `admin_gateway.port` alone. <!-- wl:id gateway-port-is-internal -->
 
 A build's own runs, its conformance and interoperability runs, start the
@@ -3344,7 +3370,7 @@ The rest SHOULD be:
 - [ ] A client that registers reads the answer's `status`, asks for an attestation token only for an approved operator, and reports a pending registration as pending, never as connected <!-- wl:check registration-status-read covers client-reads-status -->
 - [ ] Operator records, credentials and token-request `jti` records survive a restart of the orchestrator, and the `jti` records are shared by every instance answering for the hub <!-- wl:check operator-stores-durable covers store-operators-durable store-credentials-durable store-jti-durable -->
 - [ ] The CLI accepts an identity by a label and resolves and reports its location itself; the label is never the operator's name and never appears verbatim in the path <!-- wl:check identity-label covers identity-by-label label-not-name label-not-in-path -->
-- [ ] A client holding a pin for the admin gateway's address refuses a certificate with another key, reports it as a pin that did not match and not as unreachable, and never falls back to the system's roots, to unverified TLS or to HTTP, at a loopback address too; given an admin gateway address whose scheme is not `https`, a client refuses it before sending anything, at a loopback address too; one holding no pin refuses a certificate its roots do not verify, names `create`'s result, the tenant's operator and the certificate on the gateway's host as where a pin comes from, and never prints, offers or records the presented certificate's pin <!-- wl:check gateway-pin-held covers client-pins-gateway-key -->
+- [ ] A client holding a pin for the admin gateway's address refuses a certificate with another key, reports it as a pin that did not match and not as unreachable, and never falls back to the system's roots, to unverified TLS or to HTTP, at a loopback address too; given an admin gateway address whose scheme is not `https`, a client refuses it before sending anything, at a loopback address too; one holding no pin refuses a certificate its roots do not verify, names `create`'s result, and the tenant's operator reading it from the certificate on the gateway's host, as where a pin comes from, and never prints, offers or records the presented certificate's pin <!-- wl:check gateway-pin-held covers client-pins-gateway-key -->
 - [ ] `weblisk operator connect --json` and `weblisk operator register --json` carry the `tls_pin` the registration records for the address, and no `tls_pin` where it records none; a console that makes its own requests to the gateway and was given a `tls_pin` verifies every connection to that address against it and refuses another key, and one given none verifies under the system's roots, refuses a certificate they do not verify, and records no pin from the connection <!-- wl:check console-pin-kept covers console-keeps-pin -->
 
 ### Admin gateway
@@ -3355,6 +3381,7 @@ The rest SHOULD be:
 - [ ] `weblisk tenant create` and `weblisk component admin init` leave `.weblisk/keys/` mode 0700 and `admin-gateway.key` and `admin-gateway-tls.key` mode 0600, with the tenant's `.gitignore` excluding `.weblisk/keys/`; run in a tenant whose `.gitignore` lacks that entry they add it before writing either key, and given a `tls_key` inside the tenant's tree that no `.gitignore` entry excludes they refuse, writing neither key <!-- wl:check gateway-keys-mode covers gateway-keys-kept -->
 - [ ] With `admin_gateway.tls_cert` and `tls_key` set, the CLI makes, renews and replaces no certificate or key: `weblisk server start` serves the configured certificate with fewer than 30 days left unchanged, and a missing configured file is reported, not made <!-- wl:check given-certificate-kept covers given-certificate-served -->
 - [ ] The admin gateway registers with the key whose fingerprint is `orchestrator.admin_gateway_identity`; started with any other key, its registration is refused `CAPABILITY_GATEWAY_ONLY` and it exchanges nothing <!-- wl:check gateway-declared-key covers gateway-registers-declared-key -->
-- [ ] Started with `--port` and `WL_PORT` naming a port, the admin gateway serves its internal listener, with `/livez` and `/readyz`, on that port, and its admin listener on `admin_gateway.port` <!-- wl:check gateway-port-internal covers gateway-port-is-internal -->
+- [ ] Started with `--port` and `WL_PORT` naming a port, the admin gateway serves its internal listener, with `/livez` and `/readyz`, on that port, and its admin listener on `admin_gateway.port`; with `admin_gateway.internal_address` unset, the `url` it registers names that port and not `admin_gateway.internal_port` <!-- wl:check gateway-port-internal covers gateway-port-is-internal -->
+- [ ] Given a certificate file, or a directory holding it, with a group or other write bit set, `weblisk tenant accept` and `weblisk server provision` refuse, naming the file, and read no pin from it; the certificate the CLI makes is mode 0644 in a `.weblisk/tls/` of mode 0755 <!-- wl:check pin-source-checked covers pin-source-guarded -->
 - [ ] Started with `WL_DEV=1` from its tree alone, with no orchestrator and no certificate files, the admin gateway starts, answers `/readyz` not ready, binds its admin listener to an unused loopback port over TLS, prints `[dev] admin listener https://127.0.0.1:<port> tls_pin sha256:<hex>` before serving, the pin matching the certificate it serves, and writes no key or certificate file <!-- wl:check dev-run-listener covers dev-run-admin-listener -->
 - [ ] With the default certificate absent and `admin-gateway-tls.key` present, the command that stands the gateway up makes the certificate from that key and the pin is unchanged; with the key absent and the certificate present, it refuses, naming the key, and makes neither <!-- wl:check lone-certificate covers lone-certificate-refused -->

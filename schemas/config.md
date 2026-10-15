@@ -335,7 +335,7 @@ orchestrator:
   admin_addresses:
     - https://admin.acme.com:9443
   admin_gateway_from:
-    - 10.0.4.12
+    - 127.0.0.1
   admin_gateway_identity: 9e2b7c4d1a6f3e8b0c5d2a7f4e1b8c3d6a9f2e5b0c7d4a1f8e3b6c9d2a5f7e0b
 
 admin_gateway:
@@ -426,6 +426,20 @@ because this schema gives neither listener a TLS setting of its own and rules
 reached at its own port 9443, so `orchestrator.admin_addresses` names it with
 no proxy in front: a proxy would arrive from its own address and defeat the
 allowlist.
+
+`orchestrator.admin_gateway_from` names `127.0.0.1` and not the gateway
+host's address, because it names the address the gateway's requests reach the
+orchestrator from, and through the terminator every request reaches it from
+loopback. Listing the gateway host's address would name an address no request
+arrives from: the orchestrator would trust no `X-Forwarded-For`, and every
+client of the gateway would share one `auth-route-rate-limit` count, which one
+client could use up for all of them. Listing loopback costs what the field
+says it costs: everything that reaches the orchestrator through the
+terminator, and every process on the orchestrator's host, can name its own
+source. So the example assumes two more things of that host: its terminator
+replaces `X-Forwarded-For` with the connection's address on every request
+except one arriving from the gateway's host, whose value it passes on as the
+gateway set it, and no process runs there that the operator does not trust.
 
 ## Validation Rules
 
