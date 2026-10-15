@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 3.0.1
+version: 3.1.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -13,10 +13,12 @@ The orchestrator is the trust anchor and registry service. It manages
 agent registration, identity verification, namespace ownership, service
 directory distribution, and channel brokering.
 
-The orchestrator does NOT execute agent logic, route tasks, manage
-strategies, store observations, or handle approvals. Those concerns
-belong to infrastructure agents (Workflow, Task, Lifecycle) that
-register like any other agent.
+The orchestrator does NOT execute agent logic, route tasks, hold a
+programme's objectives, or decide anything a person decides. Work is
+execution's, objectives are the programme service's, and each decision is
+its owner's, composed into one inbox by the admin gateway
+([`architecture/admin`](admin.md#decision-inbox)). Each registers like any
+other component.
 
 ---
 
@@ -131,7 +133,8 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/admin
-      version: ">=3.0.0 <4.0.0"
+      # 4.0.0 is where a destructive act needs a step-up, never a second person
+      version: ">=4.0.0 <5.0.0"
       bindings:
         behaviors:
           - name: operator-registration
@@ -143,6 +146,7 @@ declaration:
           - name: operator-credential-attestation
           - name: operator-token-issuance
           - name: token-status-on-use
+          - name: destructive-action-step-up
           - name: operator-credential-revocation
           - name: operator-key-change
           - name: auth-route-rate-limit
@@ -740,7 +744,6 @@ component's data behind the trust anchor's identity.
 See [Protocol Specification](../protocol/spec.md) for the authoritative
 endpoint contracts.
 See [Agent Architecture](agent.md) for the 7-endpoint agent protocol.
-See [Lifecycle](lifecycle.md) for the continuous optimization loop.
 
 ## Endpoints
 
@@ -811,12 +814,12 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 | DELETE | /v1/admin/operators/{name}/credentials/{cid} | CredentialRevoke | the operator, able to use `admin:read`, or `admin:*` | Revoke one credential |
 | GET | /v1/admin/operators | OperatorList | `admin:*` | List operators |
 | GET | /v1/admin/operators/{name} | OperatorGet | `admin:read` | Operator detail |
-| DELETE | /v1/admin/operators/{name} | OperatorDelete | `admin:*` | Remove an operator |
-| POST | /v1/admin/operators/{name}/approve | OperatorApprove | `admin:*` | Admit a registered operator |
-| PUT | /v1/admin/operators/{name}/role | OperatorRole | `admin:*` | Change an operator's role |
+| DELETE | /v1/admin/operators/{name} | OperatorDelete | `admin:*` | Remove an operator, after step-up (`destructive-action-step-up`) |
+| POST | /v1/admin/operators/{name}/approve | OperatorApprove | `admin:*` | Admit a registered operator, after step-up |
+| PUT | /v1/admin/operators/{name}/role | OperatorRole | `admin:*` | Change an operator's role, after step-up |
 | GET | /v1/admin/agents | AdminAgentList | `admin:read` | Agents with what the registry holds of each: name, type, version, `lease_state`, `registered_at` and `last_seen`, and no metrics, which another component holds ([`architecture/admin`](admin.md#get-v1adminagents)) |
 | GET | /v1/admin/agents/{name} | AdminAgentGet | `admin:read` | Agent detail — its [AgentEntry](#agententry) without the token: `manifest`, `agent_id`, `lease`, `last_renewal`, `registered_at` and `last_seen` ([`architecture/admin`](admin.md#get-v1adminagentsname)), and no metrics or recent tasks, which this orchestrator neither holds nor handles. The entry's `token` is never answered |
-| POST | /v1/admin/agents/{name}/deregister | AdminAgentDeregister | `admin:*` | Force-deregister an agent |
+| POST | /v1/admin/agents/{name}/deregister | AdminAgentDeregister | `admin:*` | Force-deregister an agent, after step-up (`destructive-action-step-up`) |
 | GET | /v1/admin/overview | AdminOverview | `admin:read` | Summary of the state this orchestrator holds |
 | GET | /v1/admin/audit | AdminAuditList | `admin:audit` | This orchestrator's audit log, with the query parameters and the answer of `GET /v1/audit` ([`protocol/spec`](../protocol/spec.md#get-v1audit)). The route a person reads it at; `GET /v1/audit` is a registered component's, and refuses a person's token ([Auth Middleware](#auth-middleware), step 6) |
 | GET | /v1/admin/audit/export | AdminAuditExport | `admin:audit` | The entries `AdminAuditList` would answer for the same filters, unpaged. `format=json`, the default where `format` is absent, answers an array of `AuditEntry`. `format=csv` answers `text/csv` as RFC 4180 writes it: a header row naming `AuditEntry`'s fields in the order [`protocol/types`](../protocol/types.md) declares them, then one row for each entry, each field its value as text and an absent field empty. A field whose text begins with `=`, `+`, `-`, `@`, a tab or a carriage return has a single quote (`'`) put before it, before it is quoted as RFC 4180 requires, so a spreadsheet that opens the file evaluates no field as a formula: `AuditEntry`'s `target` and `detail` can carry text a registrant chose. Any other `format` is refused with 400 `INVALID_REQUEST` |
@@ -829,6 +832,12 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 | DELETE | /v1/admin/model/agreements/{id} | AdminModelAgreementWithdraw | `model:attest` | Withdraw an agreement (platform-provided) |
 | GET | /v1/admin/model/ceiling | AdminModelCeiling | `admin:read` | What a model backend may be sent now (platform-provided) |
 | POST | /v1/admin/model/audit | AdminModelAudit | the one its `action` names | Append a model route's entry to this orchestrator's audit log, for the model gateway inside its own process alone ([Recording what the model routes do](#recording-what-the-model-routes-do)). Generated, and not platform-provided |
+
+The four routes marked "after step-up" MUST be served as
+[`architecture/admin`](admin.md#contracts)'s `destructive-action-step-up` says,
+and `CredentialToken` MUST set `step_up_at` only as its
+`operator-token-issuance` says; this document restates neither.
+<!-- wl:id orchestrator-step-up -->
 
 The model routes are marked `provided: platform` in the declaration. They are
 NOT generated: the CLI installs them after generation, and they intercept their
@@ -2179,7 +2188,8 @@ agents hold, which is theirs.
 - [ ] system.agent.deregistered event published after deregistration
 - [ ] Every operation creates an `AuditEntry`, persisted to JSONL and echoed to stdout as an `audit` log line
 - [ ] The orchestrator keeps no domain status of its own: a domain's readiness is its lease
-- [ ] Orchestrator does NOT handle tasks, strategies, context, observations, or approvals
+- [ ] Orchestrator does NOT handle tasks, programme objectives or context, and decides nothing a person decides; it serves neither the decision inbox nor any route for objectives
+- [ ] `DELETE /v1/admin/operators/{name}`, `POST /v1/admin/operators/{name}/approve`, `PUT /v1/admin/operators/{name}/role` and `POST /v1/admin/agents/{name}/deregister` are refused `STEP_UP_REQUIRED` on a token without a `step_up_at` from the last 300 seconds, and a token request whose `step_up` verifies mints a token carrying `step_up_at` <!-- wl:check orchestrator-serves-step-up covers orchestrator-step-up -->
 - [ ] Administrative endpoints are gated on the capability each declares — an `admin:` capability, `llm:chat` or `model:attest` — carried in the caller's token, not on a separate role model
 - [ ] `POST /v1/admin/complete` refuses with `FORBIDDEN` a token that cannot use `llm:chat`, one carrying `admin:read` or `admin:*` without it included, and sends nothing to a backend
 - [ ] `GET /v1/admin/model` answers the hub's `ModelConfig`, and `{}` at a hub that holds none

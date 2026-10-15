@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 3.1.0
+version: 4.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -10,12 +10,14 @@ tier: free
 # Weblisk Platform Admin
 
 The operational management layer for a Weblisk deployment. Defines
-the admin dashboard, operator roles, and the API surface that enables
-humans to monitor, manage, and interact with the orchestrator, agents,
-domains, workflows, and federation peers.
+operator identity, operator roles, and the API surface through which
+people monitor, manage, and interact with the orchestrator, agents,
+domains, workflows, and federation peers. It serves no user interface
+of its own: a person uses a client, the CLI or a console that holds
+their credential.
 
 This is the **platform admin** — it manages the Weblisk infrastructure
-itself (orchestrator, agents, domains, federation, strategies). It is
+itself (orchestrator, agents, domains, federation, programmes). It is
 completely separate from any admin features that applications built
 on Weblisk may define for their own purposes.
 
@@ -31,13 +33,14 @@ that operators can confidently run in production.
 
 ## Overview
 
-The admin interface is a web-based dashboard that consumes the
-administrative groups the admin gateway composes
+The admin surface is the operator API the admin gateway composes from the
+administrative groups
 ([The admin API is an aggregate](#the-admin-api-is-an-aggregate)): the
 orchestrator's own, and each other provider's once its blueprint specifies
-routes a pass may reach. It provides real-time visibility
-into the entire system and is the primary tool for human operators
-interacting with a Weblisk deployment.
+routes a pass may reach. A person reaches it through a client: the CLI
+([`architecture/cli`](cli.md)), or a console that holds their credential
+([A console holds a credential, never a token](#a-console-holds-a-credential-never-a-token)).
+The admin gateway serves no console of its own.
 
 ---
 
@@ -77,11 +80,13 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=2.1.0 <3.0.0"
+    # 2.2.0 is where step_up_at is set through a re-confirmation and
+    # weblisk/step-up/v1 is registered
+    version: ">=2.2.0 <3.0.0"
     bindings:
       types:
         - name: WLToken
-          fields_used: [sub, iss, iat, exp, cap, cid, role, type, identity_id, record_keys, aud, act]
+          fields_used: [sub, iss, iat, exp, cap, cid, role, type, identity_id, record_keys, aud, act, step_up_at]
         - name: SigningKeyPair
           fields_used: [public_key, private_key]
     on_change:
@@ -89,11 +94,13 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/principal-identity
-    version: ">=1.8.0 <2.0.0"
+    # 1.9.0 is where an attestation's purpose may be step-up, naming rp_id
+    # and origin
+    version: ">=1.9.0 <2.0.0"
     bindings:
       types:
         - name: Attestation
-          fields_used: [identity_id, identity_public_key, credential_public_key, hub_id, purpose, device_label, not_after, signature]
+          fields_used: [identity_id, identity_public_key, credential_public_key, hub_id, purpose, rp_id, origin, device_label, not_after, signature]
         - name: Credential
           fields_used: [credential_public_key, algorithm, form, device_bound, identity_id, attestation, status, last_used_at]
       behaviors:
@@ -119,8 +126,6 @@ requires:
           fields_used: [ready]
         - name: LeaseRenewal
           fields_used: [ready, checks, timestamp]
-        - name: Strategy
-          fields_used: [id, name, targets, status, priority]
         # Every refusal Error Handling names, with the category and
         # retryable it gives each code: retry_after on ADMIN_TOKEN_UNCHECKED,
         # and detail.address on ADMIN_GROUP_UNAVAILABLE for a provider whose
@@ -172,8 +177,8 @@ requires:
         # /v1/admin/ that architecture/orchestrator's Administrative
         # endpoints lists but POST /v1/admin/model/audit, its model
         # gateway's alone, which the admin gateway forwards on the person's
-        # own token (admin-gateway-authorization). Strategies, approvals,
-        # workflows and federation would be bound from their own providers,
+        # own token (admin-gateway-authorization). Programme objectives,
+        # decisions, workflows and federation would be bound from their own providers,
         # and none specifies its routes yet — see the gap under "The admin
         # API is an aggregate".
         - path: /v1/admin/operators
@@ -247,16 +252,16 @@ requires:
 ## Architecture
 
 The admin interface is a **separate listener** from the application gateway, with
-its own TLS entry point, its own session store and its own cookie domain.
+its own TLS entry point and its own domain.
 
 ```
-   Operator browser
+   A person's client (the CLI, a console)
          │  separate listener, separate TLS
          ▼
    ┌──────────────────────────┐
    │ ADMIN GATEWAY            │
    │  identity → MFA → role   │
-   │  → change gate → audit   │
+   │  → step-up → audit       │
    └───────────┬──────────────┘
                │ reads the orchestrator's own endpoints
                ▼
@@ -267,8 +272,8 @@ its own TLS entry point, its own session store and its own cookie domain.
 ```
 
 **Responsibilities.** Operator identity lifecycle, multi-factor authentication
-without exception, the role hierarchy, the four-eyes change gate for destructive
-actions, and the audit trail of every operator action.
+without exception, the role hierarchy, the step-up a destructive action needs
+(`destructive-action-step-up`), and the audit trail of every operator action.
 
 **Not responsibilities.** Serving end users — that is `architecture/gateway`, which
 shares nothing with this listener. Executing tasks, which is the agents'. Deciding
@@ -283,11 +288,11 @@ policy, which is `patterns/policy`.
 - Admin gateway process (separate listener, TLS, and domain from application gateway)
 - Operator identity lifecycle (registration, role assignment, suspension)
 - Operator credentials: one per operator, client and hub, attested by the operator's identity, checked on every request
-- Admin dashboard SPA (overview, agents, approvals, workflows, federation, audit)
 - Admin API endpoints under `/v1/admin/*`
 - Operator token model (WLT with a one-hour TTL, minted with a credential, two factors required where each key is opened, behind the admin gateway's IP allowlist)
 - Admin rate limiting and IP allowlist enforcement
-- 4-eyes approval for destructive actions
+- Step-up for destructive actions: the person's own re-confirmation, never a second person (`destructive-action-step-up`)
+- The one decision inbox, composed from each owner's own decisions ([Decision Inbox](#decision-inbox))
 
 ### Does NOT Own
 
@@ -295,6 +300,7 @@ policy, which is `patterns/policy`.
 - Agent logic or agent lifecycle (admin can deregister, but agents self-govern)
 - Application-level admin features (those use the application gateway)
 - Client session management (owned by `architecture/client`)
+- A user interface: a person uses the CLI or a console holding their credential
 - Federation trust establishment (owned by `protocol/federation`; admin only approves/revokes)
 
 ---
@@ -303,8 +309,8 @@ policy, which is `patterns/policy`.
 
 The admin component's public API surface is defined in detail in
 [Admin Endpoints](#admin-endpoints) (operator management, system overview,
-agent management, domain/workflow management, strategy management,
-approval queue, federation management, audit/observability) and
+agent management, domain/workflow management, programme objectives,
+the decision inbox, federation management, audit) and
 [Admin API Response Shapes](#admin-api-response-shapes).
 
 ---
@@ -334,9 +340,10 @@ because the orchestrator answers them on its own routes and the admin gateway
 answers them for every other provider, and the HTTP column here names that
 registry for the eight it lists. `TOKEN_REQUEST_REPLAYED` is registered there
 too, as a code a client of `POST /v1/admin/operators/token` acts on, and the
-HTTP column names that registry for it as well. An orchestrator
+HTTP column names that registry for it as well. So is `STEP_UP_REQUIRED`,
+which every component that serves a destructive act answers. An orchestrator
 enters every code in its central error registry with its HTTP status, from
-there for those twelve and from here for the rest, which is what `architecture/orchestrator`'s
+there for those thirteen and from here for the rest, which is what `architecture/orchestrator`'s
 `error-codes-registered` check looks for. The Category column classes the
 fault, as `architecture/content` and `architecture/fabric` do. It is not
 `ErrorResponse.category`: there, each of these is `permanent` and not
@@ -358,20 +365,21 @@ because nothing was judged.
 | `CREDENTIAL_EXPIRED` | [types](../protocol/types.md#errorresponse) | auth | The attestation's `not_after` has passed | Refuse. The client re-attests, which needs the identity | `attestation_expired` |
 | `CREDENTIAL_CHALLENGE_INVALID` | 401 | auth | The nonce was not issued for this credential, was already used or has expired, or the signature does not verify | Refuse and spend the nonce. Log a signature failure as a security event | `replay_detected` |
 | `CREDENTIAL_ATTESTATION_INVALID` | 400 | validation | The attestation's signature does not verify under ML-DSA-65 against the operator's recorded key, or the attestation names another identity key, or an `identity_id` that is not the operator's at this hub | Refuse. Log as a security event | `attestation_invalid`, `algorithm_not_permitted` |
-| `CREDENTIAL_FORM_UNSUPPORTED` | 400 | validation | The credential key is not an ML-DSA-65 public key, the one form these routes carry | Refuse. A form principal-identity permits beside it is admitted only by a route that declares its own registration and challenge | — |
+| `CREDENTIAL_FORM_UNSUPPORTED` | 400 | validation | The credential key is not an ML-DSA-65 public key, the one form these routes carry, or, under `purpose` `step-up`, a passkey's COSE key ([Re-confirming for a destructive act](#re-confirming-for-a-destructive-act)) | Refuse. A form principal-identity permits beside them is admitted only by a route that declares its own registration and challenge | — |
 | `TOKEN_REQUEST_REPLAYED` | [types](../protocol/types.md#errorresponse) | auth | An attestation-token request whose `jti` this hub has recorded for that operator inside the replay window: the same signed request seen again (`attestation-token-issuance`) | Refuse, issue no token, log as a security event. Not a reason to register and not a key mismatch: the client signs a new request with a fresh `jti` | `replay_detected` |
 | `CREDENTIAL_FOREIGN_HUB` | 400 | validation | The `hub_id` an attestation, an attestation-token request or a key-change request names is not this hub's | Refuse. Log as a security event | `credential_foreign_hub` |
 | `HUB_ADDRESS_FOREIGN` | 400 | validation | A hub proof was asked for an address that is not one of this hub's admin addresses (`hub-proof`) | Refuse and sign nothing. Log as a security event: a hub asked to name another hub's address is being relayed through | — |
 | `HUB_PROOF_UNAVAILABLE` | 501 | io | A hub proof was asked before `weblisk/hub-proof/v1` has test vectors, or of a hub built before they were published (`hub-proof`) | Refuse and sign nothing, whatever the request carries. Not a refusal of the address: before the vectors the client records the registration answer's `hub_id` as it is given, and from then it treats the hub as one that does not answer the proof ([`architecture/cli`](cli.md#a-credential-for-each-hub)) | — |
 | `CREDENTIAL_IS_IDENTITY_KEY` | 400 | validation | The credential's public key is the operator's identity key, current or retired | Refuse. Log as a security event | `identity_key_as_credential` |
-| `CREDENTIAL_PURPOSE_REFUSED` | 400 | validation | The attestation names one purpose for a key this hub holds, or held, under the other; or a challenge or token request names a sign-records credential, which never signs anybody in | Refuse. Log as a security event. The client attests a separate key for each purpose | `credential_purpose_mismatch` |
+| `CREDENTIAL_PURPOSE_REFUSED` | 400 | validation | The attestation names one purpose for a key this hub holds, or held, under another; or a challenge or token request names a sign-records or step-up credential, which never signs anybody in | Refuse. Log as a security event. The client attests a separate key for each purpose | `credential_purpose_mismatch` |
 | `CREDENTIAL_LIFETIME_INVALID` | 400 | validation | `not_after` is not in the future, or is more than 90 days after the hub receives the attestation | Refuse, naming the cap | `attestation_expired`, where `not_after` has passed |
 | `CREDENTIAL_PREVIOUSLY_REVOKED` | 409 | conflict | The key was revoked here before | Refuse permanently. Log as a security event | `credential_previously_revoked` |
 | `CREDENTIAL_KEY_BOUND` | 409 | conflict | The credential key is, or was, a credential of another operator at this hub, or is another operator's identity key, current or retired | Refuse permanently, naming no operator. Log as a security event: an operator attested a key it can see in another's credential list | `credential_key_bound` |
 | `OPERATOR_KEY_CHANGE_INVALID` | 401 | auth | A change of identity key whose `current_signature` does not verify under the operator's recorded key, whose `new_signature` does not verify under `new_public_key`, whose `new_public_key` is not an ML-DSA-65 key, or whose timestamp is outside the 300-second window or was seen before | Refuse and change nothing. Log as a security event | `replay_detected`, where the timestamp is the fault |
 | `OPERATOR_KEY_REUSED` | 409 | conflict | A registration or a change of identity key offers a key this hub records, or recorded, as any operator's identity key, current or retired, or as any credential | Refuse permanently, naming no operator. The client generates a new key | — |
 | `OPERATOR_LAST_ADMINISTRATOR` | 409 | conflict | A request to revoke would end the last active authenticate credential of the last active admin. A sign-records credential signs nobody in and is not counted. A change of that admin's identity key is not refused | Refuse | `last_administrator` |
-| `ADMIN_TOKEN_UNCHECKED` | 503 | io | A request for a route another component provides reached the admin gateway, and the orchestrator could not be asked to exchange its operator token, or answered anything but 200 with a `TokenExchangeResponse` or the `404` `NOT_FOUND` that says the provider is not registered now, which is `ADMIN_GROUP_UNAVAILABLE`; or the provider refused, with a `401`, the pass the gateway sent it | Refuse and forward nothing more, with `retry_after` 5. The request may be repeated once the orchestrator answers. Never forward on the person's token, and never relay the code that answer or that refusal carried, which judged the gateway's own request or its pass, never the person's token | — |
+| `ADMIN_TOKEN_UNCHECKED` | 503 | io | A request for a route another component provides reached the admin gateway, and the orchestrator could not be asked to exchange its operator token, or answered anything but 200 with a `TokenExchangeResponse` or the `404` `NOT_FOUND` that says the provider is not registered now, which is `ADMIN_GROUP_UNAVAILABLE`; or the provider refused, with a `401` other than `STEP_UP_REQUIRED`, the pass the gateway sent it | Refuse and forward nothing more, with `retry_after` 5. The request may be repeated once the orchestrator answers. Never forward on the person's token, and never relay the code that answer or that refusal carried, which judged the gateway's own request or its pass, never the person's token | — |
+| `STEP_UP_REQUIRED` | [types](../protocol/types.md#errorresponse) | auth | A destructive act arrived on an operator token or a pass whose `step_up_at` is absent or more than 300 seconds old (`destructive-action-step-up`) | Refuse, change nothing, audit. The answer carries RFC 9470's challenge and names the act in `detail.control`; the client has its person re-confirm, mints through that re-confirmation and retries once. The admin gateway returns it as the provider gave it | — |
 | `ADMIN_GROUP_UNAVAILABLE` | 503 | io | A request reached the admin gateway for a route no provider here may be sent: none is deployed, the one deployed is not registered now, no directory entry declares the route among its `pass_routes` or more than one does, which is so wherever the provider's blueprint does not specify both the route and that it accepts a pass for it, or its directory address is on another host than the orchestrator's and only `self-asserted`, which the answer names in `detail.address` (`admin-gateway-authorization`) | Refuse and forward nothing. Never answer with an empty result: an absent provider and an empty one are different facts | — |
 
 `TOKEN_EXPIRED` ([`protocol/types`](../protocol/types.md#error-handling)) still
@@ -382,7 +390,8 @@ which does not ask the identity.
 
 ## Data Flow
 
-1. Operator browser sends request to admin gateway (`admin.example.com:9443`)
+1. A person's client, the CLI or a console holding their credential, sends a
+   request to the admin gateway (`admin.example.com:9443`)
 2. Admin gateway runs IP allowlist check — reject if not allowed
 3. TLS termination with admin-specific certificate
 4. Rate limiting applied (per-operator read/write limits)
@@ -413,8 +422,12 @@ which does not ask the identity.
    for any other provider, which acts on the pass's `cap` alone
    ([Admin Gateway Request Lifecycle](#admin-gateway-request-lifecycle), step 6)
 9. The provider processes request and returns response
-10. Admin gateway returns response to operator browser (with `Cache-Control: no-store`)
-11. For destructive actions: additional HMAC confirmation and 4-eyes approval before step 7
+10. Admin gateway returns the response to the client (with `Cache-Control: no-store`)
+11. A destructive act is admitted by the component that serves it only on a
+    token or pass whose `step_up_at` is no more than 300 seconds old, and is
+    otherwise refused `STEP_UP_REQUIRED` with RFC 9470's challenge, which the
+    gateway returns as it came. No second person is asked
+    (`destructive-action-step-up`)
 
 ---
 
@@ -450,12 +463,14 @@ is not two authentication systems, and it MUST NOT become two.
 
 This blueprint requires [`architecture/gateway`](gateway.md), which requires
 `patterns/auth-session`, `patterns/auth-token` and
-`patterns/user-management`. OIDC, password verification, credential storage,
-session issuance and token minting are specified once and used by both. An
+`patterns/user-management`. OIDC, password verification, credential storage
+and token minting are specified once and used by both. An
 implementation MUST NOT write a second one of any of them for the admin path.
+The admin path issues no session: it serves no console of its own, and a
+person's client presents an operator token ([Admin Session Model](#admin-session-model)).
 
-What is separate is the **exposure**: a distinct listener, a distinct domain, a
-distinct certificate, no shared cookie domain and no shared session state. That
+What is separate is the **exposure**: a distinct listener, a distinct domain and
+a distinct certificate. That
 separation exists so that capability reachable by an operator is not reachable
 from a public surface at all — not authorised-and-refused, but absent. A
 compromise of the application gateway reaches user data; it does not reach a
@@ -480,10 +495,10 @@ implementations of one.
 
 ```
 ┌──────────────────────────┐      ┌────────────────────────────┐
-│  End-User Browser        │      │  Operator Browser          │
-│  (app.example.com)       │      │  (admin.example.com)       │
-│                          │      │  VPN / IP allowlist only    │
-│  Islands → HTTP → Cookie │      │  SPA → HTTP → ML-DSA-65 Token│
+│  End-User Browser        │      │  A person's client           │
+│  (app.example.com)       │      │  (CLI, console)              │
+│                          │      │  VPN / IP allowlist only     │
+│  Islands → HTTP → Cookie │      │  HTTPS → operator token (WLT)│
 └────────────┬─────────────┘      └──────────────┬─────────────┘
              │                                    │
              ▼                                    ▼
@@ -508,8 +523,7 @@ Critical rules:
 - They share the same orchestrator and agent network, but enter
   through different doors with different keys.
 - If the application gateway is compromised, the admin gateway is
-  unreachable — different network path, different credentials,
-  different session model.
+  unreachable — different network path, different credentials.
 - If the admin gateway is compromised, the application continues
   serving users — they are operationally independent.
 
@@ -595,21 +609,24 @@ Critical rules:
    ├── POST /v1/admin/model/audit, the orchestrator's route for its model
    │   gateway alone → 404 NOT_FOUND, and nothing is forwarded or exchanged
    ├── Internal header: traceparent
-   └── Response returned to operator browser
+   └── Response returned to the client
 
-8. DESTRUCTIVE ACTION CONFIRMATION (for critical writes)
-   ├── Per-request HMAC confirmation (X-Confirm header)
-   ├── 4-eyes approval for: deregister agent, revoke federation,
-   │   delete operator, orchestrator key rotation. Not for an operator's
-   │   change of its own identity key, which its two signatures authorise
-   │   and a sole admin must be able to make
-   └── All actions logged to immutable audit trail
+8. DESTRUCTIVE ACTION STEP-UP (destructive-action-step-up)
+   ├── Judged by the component that serves the act, on the step_up_at the
+   │   operator token or the pass carries, never by the gateway
+   ├── Absent, or more than 300 seconds old → 401 STEP_UP_REQUIRED, with
+   │   RFC 9470's challenge, which the gateway returns as it came
+   ├── No second person. A tenant that wants one declares it
+   │   (patterns/approval, multi-party). Not asked of an operator's change
+   │   of its own identity key, which its two signatures authorise
+   └── Every act audited, with operator, target and step_up_at, before
+       it takes effect
 ```
 
 ### Admin Session Model
 
-Admin sessions are NOT browser sessions (WLS tokens). They use
-operator tokens (WLT) with stricter controls:
+The admin surface keeps no session. A person's client presents an operator
+token (WLT), with stricter controls than an application session (WLS):
 
 | Property | Application Session (WLS) | Admin Session (WLT) |
 |----------|--------------------------|---------------------|
@@ -619,8 +636,7 @@ operator tokens (WLT) with stricter controls:
 | Idle timeout | 1 hour | None at the hub, where nothing tells use from idle. A console ends a person's tokens when that person's session with it goes idle (`console-credential-use`) |
 | IP binding | /24 subnet (allows roaming) | None in the token: a WLT carries no address, and a hub stores nothing it issues, so there is nothing to bind one to. The IP allowlist (step 1) is the network control |
 | MFA | Optional per policy | Always required, at attestation and at every mint ([Where the second factor is](#where-the-second-factor-is)) |
-| Cookie | HttpOnly, Secure, SameSite=Strict | HttpOnly, Secure, SameSite=Strict |
-| Cookie domain | `app.example.com` | `admin.example.com` |
+| Step-up | The session's `sec` level ([`architecture/client`](client.md)) | `step_up_at`, set only on a token minted through a re-confirmation, and admitting a destructive act for 300 seconds (`destructive-action-step-up`) |
 | Concurrent sessions | Up to 5 per user | One credential per operator per client, each minting its own tokens. Revoking a credential ends every token it minted, at the next request |
 | Renewal | Silent sliding window | A new token minted with the credential; the identity is not asked |
 
@@ -641,23 +657,22 @@ acceptable for single-host deployments.
 
 1. **Read-heavy, write-light** — Most admin interactions are
    observation: viewing agents, reading logs, monitoring workflows.
-   Writes are limited to approvals, strategy management, and
+   Writes are limited to decisions, operator management and
    configuration.
 2. **ML-DSA-65 operator identity, kept cold** — Operators are identified
    by the same ML-DSA-65 identity system as agents. At a hub the identity
    signs to register, to obtain the attestation token that lets it attest,
-   to attest a credential and to change its own key, and nothing else.
+   to attest a credential, to change its own key and to re-confirm for a
+   destructive act, and nothing else.
    Elsewhere it signs only the fixed-form statements
    [`protocol/identity`](../protocol/identity.md#fixed-form-statements)
    registers for an identity. Tokens, with admin-scoped capabilities, are
    minted with the credential.
-3. **Offline-capable** — The dashboard is a static SPA that works
-   even when the orchestrator is degraded. It shows stale data with
-   timestamps rather than failing entirely.
-4. **Non-destructive defaults** — Destructive actions (deregister
-   agent, revoke federation peer, delete strategy) require
-   confirmation, 4-eyes approval, and are logged in the audit trail.
-5. **Complete isolation** — The platform admin portal shares no
+3. **Non-destructive defaults** — A destructive action needs the
+   person's own re-confirmation within the last 300 seconds, never a
+   second person, and is logged in the audit trail before it takes
+   effect (`destructive-action-step-up`).
+4. **Complete isolation** — The platform admin portal shares no
    network path, no session state, and no authentication flow with
    the application gateway. Application-specific admin features
    built by customers are unrelated — they use the application
@@ -764,15 +779,17 @@ contracts:
         - The route `POST /v1/admin/operators/{name}/credentials` MUST accept an attestation token or an operator token whose subject is the operator named in the path, and nothing else. A token for another operator is refused with OPERATOR_SUBJECT_MISMATCH, and any other kind of token with CREDENTIAL_REQUIRED. An operator token MUST also be able to use admin:read (token-status-on-use), or it is refused with FORBIDDEN
         - The attestation MUST verify under ML-DSA-65 against the public key in that operator's OWN record, and its identity_public_key MUST equal that key, or it is refused with CREDENTIAL_ATTESTATION_INVALID. Registration is how this surface records the key principal-identity takes from an invitation
         - Its identity_id MUST be that operator's identity id at this hub (Operator Identity), which is the fingerprint of that key until the operator's first change of identity key and is kept across it, or it is refused with CREDENTIAL_ATTESTATION_INVALID. Its hub_id MUST be this hub's hub_id. A different hub_id MUST be refused with CREDENTIAL_FOREIGN_HUB and logged as a security event
-        - Its credential_public_key MUST be an ML-DSA-65 public key, or it is refused with CREDENTIAL_FORM_UNSUPPORTED. These routes carry an ML-DSA-65 key-file credential and no other form. A form principal-identity permits beside it, such as a passkey, has its own registration and challenge, and a hub admits it only through a route that declares them
+        # <!-- wl:id attestation-key-form -->
+        - Its credential_public_key MUST be an ML-DSA-65 public key, or, under purpose step-up alone, a passkey's COSE key, or it is refused with CREDENTIAL_FORM_UNSUPPORTED. These routes carry an ML-DSA-65 key-file credential, and a step-up passkey, and no other form. Any other form principal-identity permits beside them has its own registration and challenge, and a hub admits it only through a route that declares them
         - Its credential_public_key MUST NOT be the operator's identity public key, current or retired, or it is refused with CREDENTIAL_IS_IDENTITY_KEY and logged as a security event
-        - Its purpose is authenticate, when it is absent, or sign-records. A sign-records credential is recorded, capped, revoked and listed as any credential is, and never obtains a challenge or a token (operator-token-issuance). Its key signs records for this hub and signs nobody in (patterns/principal-identity, record-signing)
-        - A key this hub holds, or ever held, under one purpose MUST be refused under the other with CREDENTIAL_PURPOSE_REFUSED, and logged as a security event. One key serves one purpose, so the key a client signs in with is never one that signs a record
+        # <!-- wl:id attestation-purposes -->
+        - Its purpose is authenticate, when it is absent, sign-records or step-up. A sign-records credential is recorded, capped, revoked and listed as any credential is, and never obtains a challenge or a token (operator-token-issuance). Its key signs records for this hub and signs nobody in (patterns/principal-identity, record-signing). A step-up credential is recorded, capped, revoked and listed the same way, never obtains a challenge or a token, is never counted by OPERATOR_LAST_ADMINISTRATOR, and does nothing but answer a step-up (operator-token-issuance). Its attestation MUST name rp_id and origin, the relying party and the origin of the console where the passkey was registered with user verification required, and an attestation naming them under any other purpose, or a step-up attestation naming neither, is refused with CREDENTIAL_ATTESTATION_INVALID
+        - A key this hub holds, or ever held, under one purpose MUST be refused under any other with CREDENTIAL_PURPOSE_REFUSED, and logged as a security event. One key serves one purpose, so the key a client signs in with is never one that signs a record
         - Its not_after MUST be in the future and no more than 90 days after the hub receives it, or it is refused with CREDENTIAL_LIFETIME_INVALID
         - A key that was ever revoked at this hub MUST be refused with CREDENTIAL_PREVIOUSLY_REVOKED
         - A credential_public_key this hub holds, or ever held, as a credential of another operator, or that is another operator's identity key, current or retired, MUST be refused with CREDENTIAL_KEY_BOUND and logged as a security event. A credential's id is its key's fingerprint, so accepting it would rebind that credential, and every token minted with it, to the operator who attested it. A key is bound to the first operator this hub recorded it for, and to no other, ever
         - An attestation for a key the same operator already holds as an active credential MUST replace that credential's attestation and keep its id. That is re-attestation
-        - The hub MUST store the credential with algorithm ml-dsa-65, form key-file, device_bound false (a key file can be copied, and no authenticator says otherwise) and status active, and return it with its id, the fingerprint of its public key
+        - The hub MUST store the credential with algorithm ml-dsa-65, form key-file, device_bound false (a key file can be copied, and no authenticator says otherwise) and status active, or, for a step-up passkey, with the algorithm its COSE key names (es256 for -7, eddsa for -8, and any other refused with CREDENTIAL_FORM_UNSUPPORTED), form passkey and device_bound false, since the hub saw no registration ceremony, and return it with its id, the fingerprint of its public key
         - Every attestation MUST be audited with the operator, the credential id, its purpose and the device_label
 
     - name: operator-token-issuance
@@ -793,6 +810,16 @@ contracts:
         - The response MUST carry the attestation's not_after, so the client can warn before it passes
         - The credential's last_used_at MUST be updated
         - A client MUST sign with the hub_id its credential was attested for, and MUST treat a challenge that answers a different hub_id as a hub it holds no credential for
+        # <!-- wl:id step-up-request -->
+        - The token request MAY carry step_up, the person's re-confirmation for a destructive act - control, the act that asked as a STEP_UP_REQUIRED refusal's detail.control names it, non-empty ASCII with no 0x00 byte; form, identity or passkey; and that form's proof - over these bytes. The UTF-8 bytes of weblisk/step-up/v1, one 0x00 byte, the 64 lowercase hexadecimal characters of hub_id as ASCII, one 0x00 byte, the nonce's base64url text exactly as the challenge returned it, one 0x00 byte, and control (protocol/identity, Fixed-Form Statements). The nonce is the one the same request's credential signature spends, so a step-up is never made without a live credential and is never presented twice
+        # <!-- wl:id step-up-identity-form -->
+        - Under form identity, step_up carries signature, the operator's identity signature over those bytes, which MUST verify under ML-DSA-65 against the identity public key in the operator's OWN record. It is the form the CLI uses, and always available
+        # <!-- wl:id step-up-passkey-form -->
+        - Under form passkey, step_up carries credential, the id of an active, unexpired step-up credential of the same operator (operator-credential-attestation), and authenticator_data, client_data_json and signature, a WebAuthn assertion, each base64url. The hub MUST check that client_data_json's type is webauthn.get, its challenge is the base64url without padding of those bytes, and its origin is the origin that credential's attestation names; that authenticator_data's rpIdHash is the SHA-256 of the attestation's rp_id and both its user-present and user-verified flags are set; and that signature verifies, under the credential's stored key and algorithm, over authenticator_data followed by the SHA-256 of client_data_json as sent
+        # <!-- wl:id step-up-refused -->
+        - The credential's own answer is judged first, as on any token request. A step_up that then fails any check above, or names another form, MUST be refused with INVALID_SIGNATURE, issue no token and be logged as a security event; the nonce is spent either way
+        # <!-- wl:id step-up-sets-claim -->
+        - A token minted on a request whose step_up verifies MUST carry step_up_at, its time of issue (protocol/identity), and a token minted on any other request MUST NOT. Nothing else sets it: not a token's age, and not a credential's answer alone, however recent, which a keychain gives without asking anybody, so a silent renewal is never a step-up. Such a mint MUST be audited with its control, its form and, under form passkey, the step-up credential's id
 
     - name: token-status-on-use
       description: Every request re-checks what its token rests on
@@ -817,14 +844,34 @@ contracts:
         - The gateway MUST send a pass only where architecture/orchestrator's Presenting a credential to a component allows one - at an address on the orchestrator's host, or at one whose address_provenance is declared or verified. A request whose provider's directory address is on another host and only self-asserted MUST be answered ADMIN_GROUP_UNAVAILABLE, naming that address in the ErrorResponse's detail.address, and nothing is exchanged or sent
         - The scope of that exchange MUST name every capability the provider's blueprint requires for the request being carried, and nothing more, as the entry's pass route declares it - every capability in its capabilities, and those of each of its body requirements the request's body meets, which the gateway reads from the body for this alone - architecture/content's pass route for POST /v1/content/repositories, for one, declares content:establish beside content:declare for disposition establish, and content:decide beside it for a declaration carrying scope_floor or self_decision_ceiling, and its route for remotes declares content:replicate with content:connect. The provider judges the pass's cap against the body as it reads it, so a body the gateway read otherwise is refused there with FORBIDDEN, and nothing is carried beyond what the pass names
         - An exchange answered issued false MUST be answered with the code it names, at the status protocol/types registers for it, FORBIDDEN included, whatever the role. An exchange answered 404 NOT_FOUND, because the provider is not registered now, MUST be answered ADMIN_GROUP_UNAVAILABLE. Where the orchestrator cannot be asked, or answers anything else, the request MUST be refused with ADMIN_TOKEN_UNCHECKED, never with the code that answer carried, which judged the gateway's own request. None of these refusals forwards anything
-        - A provider's 401 refusal of the pass the gateway sent it - PASS_AUDIENCE_MISMATCH, as after the provider's key changed, TOKEN_EXPIRED, as for a pass that arrived after it expired, INVALID_SIGNATURE or PASS_REQUIRED - judged that pass and not the person's token, and MUST be answered ADMIN_TOKEN_UNCHECKED, never with that code or with 401, so a client does not refresh a token nothing refused. A provider's answer that judged the request, FORBIDDEN for a cap that does not name what the body requires included, MUST be relayed as it is
+        # <!-- wl:id gateway-relays-step-up -->
+        - A provider's 401 refusal of the pass the gateway sent it - PASS_AUDIENCE_MISMATCH, as after the provider's key changed, TOKEN_EXPIRED, as for a pass that arrived after it expired, INVALID_SIGNATURE or PASS_REQUIRED - judged that pass and not the person's token, and MUST be answered ADMIN_TOKEN_UNCHECKED, never with that code or with 401, so a client does not refresh a token nothing refused. STEP_UP_REQUIRED judged the person's re-confirmation, which the pass carries unchanged, and MUST be relayed as it is, its WWW-Authenticate header included (destructive-action-step-up). A provider's answer that judged the request, FORBIDDEN for a cap that does not name what the body requires included, MUST be relayed as it is
         - The gateway MUST hold a registration of its own (protocol/spec, POST /v1/register) whose manifest declares token:exchange and no other capability (protocol/types). It reads the service directory with it, and exchanges a token a person has just presented, and does nothing else with it. It MUST NOT call a provider on its registration token, exchange a token presented with any request but the one it is carrying, or keep a person's token or a pass once that request is answered. It holds no standing access to data
         - Its manifest (protocol/types, AgentManifest) MUST have type infrastructure, no subscriptions, no publishes and no pass_routes, so it owns no namespace and no person's request is ever carried to it, and a url naming a listener of its own that the orchestrator can reach, never the admin listener, which the operator IP allowlist guards (Admin Gateway Request Lifecycle, step 1). On that listener it MUST serve protocol/spec's seven agent endpoints - POST /v1/describe, GET /livez and GET /readyz as every registrant does, POST /v1/services, answered 200 and taken only as a prompt to read the directory as the next rule says, and POST /v1/execute, POST /v1/message and POST /v1/event, each answered FORBIDDEN, doing nothing, because it takes no task, message or event. It serves nothing else there, and none of the admin routes
         - The gateway MUST read the service directory only by GET /v1/services, on its registration token, at the orchestrator address it was configured with to register, which is its anchor (architecture/orchestrator, Presenting a credential to a component), over a connection it opened - when it starts, again after each POST /v1/services it receives, again whenever the exchange answers 404 for an audience its directory names, and at least once every 60 seconds besides, with no more than one such read in flight. That bound is this gateway's own - protocol/spec's Implementation Notes require every agent to refresh periodically and only recommend 60 seconds. The orchestrator's pushes are best effort, so without the periodic read a failed push could leave the gateway sending a pass to an address a component has left, until the next push. It MUST NOT take a pushed body as the directory, signed or not, and MUST NOT let anything in one choose a provider, an audience, a url, an address_provenance or a pass route. Nothing authenticates a push (protocol/spec, the gap under POST /v1/services), and any party that reaches this listener could otherwise choose where a person's pass is sent, and replay it at its real audience within its lifetime. So everything that decides where a pass goes arrives from the orchestrator
         - A provider other than the orchestrator MUST, on every request for an administrative route, accept a person's request only on a pass addressed to it, as protocol/identity's The pass requires, and refuse with FORBIDDEN a pass whose cap does not name every capability the request requires and any token that is neither a pass nor an operator token. It MUST record who acted as The pass requires, by the pass's identity_id with the gateway's act.identity_id beside it, never by sub or by a header
-        - Work a request starts at a provider runs while that request is answered, on the pass that carried it. Work that outlives the request, executing an approved recommendation included, needs an authority on the approver's behalf that no blueprint specifies yet (architecture/lifecycle, the gap under its Security), so no provider performs any on a person's behalf after the request the gateway carried on a pass is answered. Work a provider performs as its own, as a domain controller still executes accepted recommendations under no approver's authority, rests on no pass and on no approval the gateway carried, which is that gap
+        - Work a request starts at a provider runs while that request is answered, on the pass that carried it. Work that outlives the request, executing an approved decision included, needs an authority on the approver's behalf that no blueprint specifies yet (architecture/lifecycle, the gap under its Security), so no provider performs any on a person's behalf after the request the gateway carried on a pass is answered. Work a provider performs as its own, as a domain controller still executes accepted recommendations under no approver's authority, rests on no pass and on no approval the gateway carried, which is that gap
         - The System overview is composed by the gateway, from the orchestrator's GET /v1/admin/overview, forwarded as any request for its groups is, and from each group another component holds, asked of that component on a pass addressed to it as the rules above carry any request, once a pass route can name the overview group it answers. None can yet (protocol/types, PassRoute, which has no such field), so the gateway asks no component for one and MUST report every such group unavailable, never zero. The orchestrator asks no component for any
         - The gateway MUST answer with ADMIN_GROUP_UNAVAILABLE, and forward nothing, a request for a route that is not one of the orchestrator's and that no directory entry declares among its pass_routes, or that more than one declares, since the directory then names no one provider. A component declares a pass route only where its blueprint specifies both the route and that it accepts a pass for it (protocol/types, PassRoute), so a route whose provider is not deployed, or whose provider's blueprint specifies no pass for it, is answered so. It MUST NOT carry such a request as a POST /v1/message action, which checks no operator token (protocol/spec)
+
+    - name: destructive-action-step-up
+      description: A destructive act needs the person's own re-confirmation within 300 seconds, and never a second person
+      required: true
+      rules:
+        # <!-- wl:id destructive-acts -->
+        - These acts are destructive. Removing an operator (DELETE /v1/admin/operators/{name}), admitting one (POST /v1/admin/operators/{name}/approve), changing one's role (PUT /v1/admin/operators/{name}/role), force-deregistering an agent (POST /v1/admin/agents/{name}/deregister) and revoking a federation peer (POST /v1/admin/federation/peers/{name}/revoke), and each act another blueprint marks destructive by naming this behaviour
+        # <!-- wl:id step-up-required -->
+        - The component that serves a destructive act MUST refuse it with STEP_UP_REQUIRED, and change nothing, unless the operator token or pass it arrived on carries step_up_at (protocol/identity) no more than 300 seconds before the request. It judges this after token-status-on-use and the capability check have passed
+        # <!-- wl:id step-up-challenge -->
+        - The refusal MUST name the act in detail.control, as its method and route template separated by one space, and carry RFC 9470's challenge, WWW-Authenticate Bearer with error insufficient_user_authentication, an error_description naming the act and max_age 300. A client answers it as architecture/cli's Authentication Flow says
+        # <!-- wl:id step-up-is-the-claim -->
+        - step_up_at is the only evidence of a step-up, and the orchestrator sets it only on a token minted through a re-confirmation it verified (operator-token-issuance). A token's age is never a step-up
+        # <!-- wl:id no-second-person -->
+        - The platform requires no second person for any act. A tenant that wants one declares it, as content's per-repository self_decision_ceiling (architecture/content) or a decision its blueprint routes to patterns/approval's multi-party, and that rule runs beside the step-up, never in its place
+        # <!-- wl:id destructive-act-audited -->
+        - A destructive act MUST be audited with the operator's identity_id, its target and the step_up_at it was admitted on before it takes effect, and a refusal MUST be audited as well
+        # <!-- wl:id step-up-one-home -->
+        - This is the one statement of when a destructive act needs a step-up. Every other blueprint points here and restates none of it
 
     - name: operator-credential-revocation
       description: Withdraw one credential, or every credential an operator holds
@@ -1002,7 +1049,9 @@ A client reaches a hub with a **credential**: an ML-DSA-65 key pair the client
 generates for that hub alone, bound to the operator's identity by an
 attestation the identity signs once
 ([`patterns/principal-identity`](../patterns/principal-identity.md)). The
-identity key is cold. It signs to register, to attest and to change itself,
+identity key is cold. It signs to register, to attest, to change itself and,
+where a person re-confirms for a destructive act, a step-up
+([Re-confirming for a destructive act](#re-confirming-for-a-destructive-act)),
 and nothing it signs is a login. Tokens come from the credential, at a challenge the hub issues, and
 the identity is not asked.
 
@@ -1266,6 +1315,14 @@ attested it second. It may be submitted with that operator's own operator token,
 client whose credential is still live re-attests with one identity signature and
 no attestation token.
 
+**A step-up passkey is attested the same way**, with `purpose` `step-up`,
+its COSE key as `credential_public_key`, and `rp_id` and `origin` naming the
+console where it was registered with user verification required, never this
+hub. The identity attests it through the CLI, since a console never holds the
+identity. It never obtains a challenge or a token, and answers nothing but a
+re-confirmation
+([Re-confirming for a destructive act](#re-confirming-for-a-destructive-act)).
+
 **A key that signs records is attested the same way**, with `purpose`
 `sign-records`, from the device where its person signs
 ([`patterns/principal-identity`](../patterns/principal-identity.md),
@@ -1354,7 +1411,9 @@ which the hub proof closes.
 
 Refresh is the same pair of calls. A separate refresh endpoint would need a
 valid token to obtain a token, which fails exactly when it is needed — after
-expiry.
+expiry. So is a re-confirmation: the same token request, carrying `step_up`
+beside the credential's answer
+([Re-confirming for a destructive act](#re-confirming-for-a-destructive-act)).
 
 **A credential's answer has test vectors.** It is a fixed-form statement, and
 this corpus publishes vectors for `weblisk/credential-auth/v1`
@@ -1400,6 +1459,75 @@ on it:
   carries no claim that a factor was presented, and a gateway MUST NOT look for
   one. The hub could not verify such a claim, so it would be set true on every
   token and would prove nothing.
+- **Re-confirming.** A destructive act asks for more than a live credential: a
+  proof, made within the last 300 seconds, that the person was asked and
+  answered. The hub verifies that proof itself when it mints, and records
+  only the time it did, below.
+
+#### Re-confirming for a destructive act
+
+A destructive act is admitted only on a token, or a pass, whose `step_up_at`
+is no more than 300 seconds old, and never needs a second person
+(`destructive-action-step-up`, which names the acts). `step_up_at`
+([`protocol/identity`](../protocol/identity.md#payload-claims)) is set by the
+orchestrator alone, on a token it mints through a re-confirmation it verified
+itself, and a pass carries it unchanged. A credential's answer alone never
+sets it, however recent: a keychain releases that key without asking anybody,
+so a silent renewal is never a step-up. A component refusing an act answers
+`STEP_UP_REQUIRED` with RFC 9470's challenge and the act's name:
+
+```
+401 WWW-Authenticate: Bearer error="insufficient_user_authentication",
+      error_description="DELETE /v1/admin/operators/{name} needs a step-up",
+      max_age=300
+{ "error": "...", "code": "STEP_UP_REQUIRED",
+  "detail": { "control": "DELETE /v1/admin/operators/{name}" } }
+```
+
+A re-confirmation is a token request carrying `step_up`, over the nonce the
+same request's credential signature spends:
+
+```
+POST /v1/admin/credentials/token
+{
+  "cid": "<credential id>", "nonce": "<the nonce>", "signature": "<as above>",
+  "step_up": {
+    "control": "DELETE /v1/admin/operators/{name}",
+    "form": "identity",
+    "signature": "<identity signature over the bytes below>"
+  }
+}
+
+    "weblisk/step-up/v1" 0x00 <hub_id> 0x00 <nonce> 0x00 <control>
+```
+
+It takes one of two forms (`operator-token-issuance`):
+
+- **`identity`, the identity signs.** One vault approval, or one passphrase,
+  over the bytes above, verified against the identity key in the operator's
+  own record. It is always available, and it is the CLI's form. It signs in
+  nobody: the credential's answer beside it is what authenticates the request,
+  and the identity's signature adds `step_up_at` to the token it obtains.
+- **`passkey`, one touch.** A user-verified passkey the person registered
+  with a console, attested by their identity to this hub with `purpose`
+  `step-up` ([Attesting a credential](#attesting-a-credential)), its
+  attestation naming the console's `rp_id` and `origin`. The console asks
+  the authenticator for an assertion whose challenge is the bytes above, and
+  sends `credential`, `authenticator_data`, `client_data_json` and
+  `signature` in `step_up`. The hub checks the assertion against the attested
+  key, `rp_id` and `origin`, with user verification required, so a console
+  cannot make one without its person. A passkey is ES256 or EdDSA, and it
+  re-confirms a person a post-quantum credential has already authenticated:
+  alone it admits nothing
+  ([`patterns/principal-identity`](../patterns/principal-identity.md) Design
+  Principle 6).
+
+The control names what the person was shown and the audit records; the token
+carries only the time. Any destructive act the person makes in the next 300
+seconds is admitted on it, as RFC 9470's `max_age` reads.
+`weblisk/step-up/v1` has test vectors
+([`protocol/identity`](../protocol/identity.md#fixed-form-statements)): a
+client that signs one and a hub that verifies one each test against them.
 
 #### Every request checks what its token rests on
 
@@ -1553,7 +1681,7 @@ The orchestrator MUST:
 
 1. Require the `admin` role. Approval grants authority, so it is not an
    `operator` action, and `admin:approve` is not the capability that carries it
-   — that one is for the recommendation queue.
+   — that one is an `operator`'s.
 2. Look up the operator by name and refuse an unknown one with `404`.
 3. If the operator is already `approved`, succeed and change nothing. Approval
    is a state, not an event, and a retried call MUST NOT fail.
@@ -1827,37 +1955,30 @@ presents a token it received
 | Audit | Orchestrator | always |
 | Model | Orchestrator, on the platform-provided routes the CLI installs: `/v1/admin/model` (GET and PUT), `/v1/admin/model/providers` (GET), `/v1/admin/complete` (POST), `/v1/admin/model/agreements` (POST and GET), `/v1/admin/model/agreements/{id}` (DELETE) and `/v1/admin/model/ceiling` (GET) ([`architecture/orchestrator`](orchestrator.md#administrative-endpoints)) | always |
 | System overview | composed by the admin gateway | always, with absent providers reported absent |
+| Decision inbox: `/v1/admin/approvals` | composed by the admin gateway from each owner's own open decisions ([`patterns/approval`](../patterns/approval.md)); each is decided at its owner ([Decision Inbox](#decision-inbox)) | always, with an owner that cannot be asked reported absent |
+| Health | the orchestrator's leases, in the agent list and the overview; and telemetry's SLO status, which no blueprint specifies yet: telemetry's is written in the second step of the tenant service plan | the leases always; SLO status once a telemetry component's blueprint specifies it on a pass |
 | Domains | Domain controllers | a domain controller is deployed |
 | Workflow runs: `/v1/admin/workflows` and `/v1/admin/workflows/:id` | Execution, which holds every run, a programme's and a domain's ([`architecture/programme-service`](programme-service.md#execution)) | an execution component whose blueprint specifies both routes and a pass for them is deployed. No blueprint does yet |
-| Strategies, approvals, observations | Lifecycle Agent | the lifecycle agent is deployed |
+| Programme objectives | The programme service ([`architecture/programme-service`](programme-service.md)), whose objectives retire strategies | a programme service whose blueprint specifies its objectives and a pass for them is deployed. None does yet |
 | Federation | Federation layer | the deployment federates |
 | Alerts | Alerting agent ([`agents/alerting`](../agents/alerting.md)) | the alerting agent is deployed |
-| Runbooks | Incident-response agent ([`agents/incident-response`](../agents/incident-response.md)) | the incident-response agent is deployed |
+| Runbooks | Execution, into which incident runbooks merge ([`architecture/programme-service`](programme-service.md#execution)) | an execution component whose blueprint specifies the routes and a pass for them is deployed. None does yet; [`agents/incident-response`](../agents/incident-response.md) specifies them today and accepts no pass for them (the gap below) |
 | Rate limits | The component applying [`patterns/rate-limiting`](../patterns/rate-limiting.md) | that component is deployed |
 
-An earlier version of this section read *"These extend the orchestrator's
-existing endpoint set"*, which cannot be satisfied.
-[`architecture/lifecycle`](lifecycle.md) states that *"Strategies, approvals, and
-feedback are managed entirely by the Lifecycle Agent — not the orchestrator"*,
-and a workflow's runs belong to execution. An orchestrator asked to serve
-`/v1/admin/strategies` would have to own state another component owns.
-
 **An endpoint whose provider is not deployed MUST report itself unavailable, and
-MUST NOT return an empty result.** An empty approval queue and an absent approval
-system are different facts, and a console that renders them identically tells an
+MUST NOT return an empty result.** An empty decision inbox and an owner that
+could not be asked are different facts, and a console that renders them identically tells an
 operator the system is quiet when it is simply not there.
 
 > **Gap — no provider but the orchestrator serves its group on a pass yet.**
 > No blueprint specifies the administrative routes of the Domains,
-> Strategies, approvals, observations, or Federation groups, or
+> Programme objectives or Federation groups, telemetry's SLO status, or
 > `/v1/admin/metrics` and `/v1/admin/agents/:name/metrics`.
 > [`architecture/programme-service`](programme-service.md#execution) names
 > execution as the provider of the two workflow routes, on a pass carrying
-> `admin:read`, and no execution blueprint specifies them yet.
-> [`architecture/lifecycle`](lifecycle.md) offers strategies and approvals only
-> as `POST /v1/message` actions, which check no operator token
-> ([`protocol/spec`](../protocol/spec.md#post-v1message)), and
-> [`protocol/federation`](../protocol/federation.md) declares no `/v1/admin/`
+> `admin:read`, and no execution blueprint specifies them yet. Of the owners
+> whose decisions the inbox lists, content alone specifies a list a pass may
+> reach. [`protocol/federation`](../protocol/federation.md) declares no `/v1/admin/`
 > route. Three blueprints do specify routes under `/v1/admin/` that another
 > component serves: `GET /v1/admin/alerts`, `/v1/admin/alerts/{id}` and
 > `/v1/admin/alerts/stats` in [`agents/alerting`](../agents/alerting.md), the
@@ -1917,9 +2038,9 @@ operator the system is quiet when it is simply not there.
 | `/v1/admin/operators/:name/credentials/:cid` | DELETE | the operator, or admin | Revoke one credential |
 | `/v1/admin/operators` | GET | admin | List all operators |
 | `/v1/admin/operators/:name` | GET | viewer+ | Get operator details |
-| `/v1/admin/operators/:name` | DELETE | admin | Remove an operator: its status becomes `revoked`, its record stays, and its credentials are revoked |
-| `/v1/admin/operators/:name/approve` | POST | admin | Admit a registered operator (see *Admitting the operators after the first*) |
-| `/v1/admin/operators/:name/role` | PUT | admin | Change operator role |
+| `/v1/admin/operators/:name` | DELETE | admin | Remove an operator: its status becomes `revoked`, its record stays, and its credentials are revoked. After step-up (`destructive-action-step-up`) |
+| `/v1/admin/operators/:name/approve` | POST | admin | Admit a registered operator (see *Admitting the operators after the first*). After step-up |
+| `/v1/admin/operators/:name/role` | PUT | admin | Change operator role. After step-up |
 
 ### System Overview
 
@@ -1934,8 +2055,8 @@ operator the system is quiet when it is simply not there.
 |------|--------|------|---------|
 | `/v1/admin/agents` | GET | viewer+ | List all agents with what the orchestrator's registry holds of each: name, type, version, `lease_state`, `registered_at` and `last_seen`. No metrics: they are another component's (below), and the orchestrator reports no figure it does not hold |
 | `/v1/admin/agents/:name` | GET | viewer+ | Agent detail — the orchestrator's registry entry for it without its token: `manifest`, `agent_id`, `lease`, `last_renewal`, `registered_at` and `last_seen` ([below](#get-v1adminagentsname)). No metrics and no recent tasks: the orchestrator holds neither and handles no task |
-| `/v1/admin/agents/:name/deregister` | POST | admin | Force-deregister an agent |
-| `/v1/admin/agents/:name/metrics` | GET | viewer+ | Agent performance metrics history. The Lifecycle Agent holds agent metrics ([`architecture/storage`](storage.md#store-agent-metrics)), not the orchestrator, and no blueprint specifies this route, so the gateway answers it `ADMIN_GROUP_UNAVAILABLE` |
+| `/v1/admin/agents/:name/deregister` | POST | admin | Force-deregister an agent, after step-up (`destructive-action-step-up`) |
+| `/v1/admin/agents/:name/metrics` | GET | viewer+ | Agent performance metrics history. A component's runtime signal is telemetry's, not the orchestrator's, and no blueprint specifies this route, so the gateway answers it `ADMIN_GROUP_UNAVAILABLE` |
 
 ### Domain & Workflow Management
 
@@ -1946,24 +2067,43 @@ operator the system is quiet when it is simply not there.
 | `/v1/admin/workflows` | GET | viewer+ | List all workflow executions (paginated) |
 | `/v1/admin/workflows/:id` | GET | viewer+ | Workflow execution detail — phases, timing, output |
 
-### Strategy Management
+### Programme Objectives
+
+A strategy is retired: what a tenant aims at is a programme's objective, held
+by the programme service with the programme that declares it. No blueprint
+specifies objectives or a route for them yet, so this surface has none, and
+the overview reports them unavailable. They will be the programme service's
+routes, reached on a pass like any provider's.
+
+### Decision Inbox
 
 | Path | Method | Role | Purpose |
 |------|--------|------|---------|
-| `/v1/admin/strategies` | GET | viewer+ | List strategies with progress |
-| `/v1/admin/strategies` | POST | operator+ | Create a new strategy |
-| `/v1/admin/strategies/:id` | GET | viewer+ | Strategy detail with linked observations |
-| `/v1/admin/strategies/:id` | PUT | operator+ | Update strategy targets or priority |
-| `/v1/admin/strategies/:id` | DELETE | admin | Archive a strategy |
+| `/v1/admin/approvals` | GET | viewer+ | The one decision inbox: every decision a person may make, from each owner that holds one open, composed by the admin gateway |
 
-### Approval Queue
+**Each owner serves its own decisions, and the gateway composes one inbox from
+them** ([`architecture/programme-service`](programme-service.md#the-decision-inbox)).
+There is no approval service and no recommendation queue. For each owner whose
+blueprint specifies a list of the decisions it holds open and a pass for it,
+the gateway asks on a pass, as it asks for an overview figure: content's open
+proposals today, at `GET /v1/content/proposals`, on a pass naming
+`content:read`; execution's waiting steps once its blueprint specifies them.
+The answer carries `items`, each with its `owner`, the owner's own `id`, a
+`summary` and `decide`, the method and route at which it is decided, and
+`unavailable`, naming each owner the gateway could not ask with the code it
+would answer for that owner's route. A list the gateway could not complete
+MUST NOT be reported as empty or complete. <!-- wl:id inbox-never-quietly-empty -->
 
-| Path | Method | Role | Purpose |
-|------|--------|------|---------|
-| `/v1/admin/approvals` | GET | viewer+ | List pending recommendations |
-| `/v1/admin/approvals/batch` | POST | operator+ | Approve or reject multiple recommendations |
-| `/v1/admin/approvals/:id` | GET | viewer+ | Recommendation detail with diff preview |
-| `/v1/admin/approvals/:id` | POST | operator+ | Approve or reject single recommendation |
+**A decision is made at its owner, never here.** The gateway MUST serve no
+route that decides. <!-- wl:id inbox-decides-nothing --> A person decides on their own
+pass at the route `decide` names, such as content's
+`POST /v1/content/proposals/{id}/decision` with `content:decide`, and the
+owner records it. The shape of a decision is
+[`patterns/approval`](../patterns/approval.md)'s. Where a tenant declares that a
+decision needs more than one person, by `patterns/approval`'s multi-party or
+content's `self_decision_ceiling`, the owner holds it open until that rule is
+met, and the inbox lists it to each person who may still decide it. The
+platform asks no second person of its own.
 
 ### Federation Management
 
@@ -1971,149 +2111,20 @@ operator the system is quiet when it is simply not there.
 |------|--------|------|---------|
 | `/v1/admin/federation/peers` | GET | viewer+ | List federation peers with trust tier, status |
 | `/v1/admin/federation/peers/:name` | GET | viewer+ | Peer detail — capabilities, data contracts, metrics |
-| `/v1/admin/federation/peers/:name/revoke` | POST | admin | Revoke trust relationship |
+| `/v1/admin/federation/peers/:name/revoke` | POST | admin | Revoke trust relationship, after step-up (`destructive-action-step-up`) |
 | `/v1/admin/federation/pending` | GET | operator+ | List pending peering requests |
 | `/v1/admin/federation/pending/:id` | POST | admin | Accept or reject peering request |
 | `/v1/admin/federation/contracts` | GET | viewer+ | List active data contracts |
 
-### Audit & Observability
+### Audit
 
 | Path | Method | Role | Purpose |
 |------|--------|------|---------|
 | `/v1/admin/audit` | GET | auditor+ | Full audit log with filtering |
 | `/v1/admin/audit/export` | GET | auditor | Export audit log as JSON or CSV |
-| `/v1/admin/observations` | GET | viewer+ | Browse observation history |
-| `/v1/admin/observations/trends` | GET | viewer+ | Trend data for strategy metrics |
 
----
-
-## Admin Dashboard
-
-The dashboard is a static single-page application served by the
-admin gateway at the admin domain root (`/`). It is built with the
-Weblisk client-side framework and communicates exclusively through
-the admin API endpoints. The dashboard is NOT served by the
-orchestrator or the application gateway — it is served by the
-admin gateway process.
-
-Every token the dashboard presents goes to the admin gateway that serves it,
-and no further: the gateway forwards a request for a group the orchestrator
-provides on it, and sends a request for any other provider's on a pass
-(`admin-gateway-authorization`;
-[`protocol/identity`](../protocol/identity.md#the-pass)). It is minted with
-`cap` naming only the capabilities of the routes the dashboard's pages reach,
-so a dashboard left open in a browser holds no more than those pages use, and
-never `content:decide` or `fabric:attest`, which no page here uses.
-
-### Dashboard Pages
-
-#### Overview (`/admin/`)
-
-The landing page shows system health at a glance:
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  Weblisk Admin — acme-corp                              │
-├──────────┬──────────┬──────────┬──────────┬─────────────┤
-│  Agents  │  Domains │ Workflows│ Approval │  Federation │
-│   8 ● ●  │   3 ●    │  12 today│  5 pending│  2 peers   │
-│  online  │  online  │  2 failed│          │  1 pending  │
-├──────────┴──────────┴──────────┴──────────┴─────────────┤
-│                                                         │
-│  System Health: 94/100  ████████████████████░░  ▲ +2    │
-│                                                         │
-│  Active Strategies                                      │
-│  ┌─────────────────────────────────────────────────┐    │
-│  │ Improve organic traffic    ██████████░░  67%    │    │
-│  │ Reduce page load time      ████████████░  82%   │    │
-│  └─────────────────────────────────────────────────┘    │
-│                                                         │
-│  Recent Activity                                        │
-│  10:30  seo-audit completed — 3 recommendations         │
-│  10:25  health-check — all endpoints healthy            │
-│  10:15  content-audit — 5 files analyzed                │
-│  09:45  peering request from partner-corp (pending)     │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
-```
-
-#### Agents (`/admin/agents`)
-
-Table of all registered agents with real-time status:
-
-| Column | Description |
-|--------|-------------|
-| Name | Agent name (linked to detail) |
-| Type | The manifest's `type`: `domain`, `agent` or `infrastructure`, an absent `type` shown as `agent` ([`protocol/types`](../protocol/types.md#agentmanifest)) |
-| Lease | `lease_state`: `ready` ●, `not_ready` ●, `unknown` ● |
-| Version | Agent version |
-| Uptime | Time since `registered_at` |
-| Tasks (24h) | Task count in the last 24 hours, from the agent's metrics, which no provider serves to a person yet ([Agent Management](#agent-management)), so shown unavailable, never zero |
-| Avg Latency | Average task execution time, from the same metrics and shown the same way |
-| Last Seen | `last_seen`, the last request received from the agent |
-
-#### Agent Detail (`/admin/agents/:name`)
-
-- Full manifest display, from [`GET /v1/admin/agents/{name}`](#get-v1adminagentsname)
-- Performance metrics graph (tasks/hour, latency p50/p95/p99), from `GET /v1/admin/agents/:name/metrics`, shown unavailable with the code the gateway answers, never as zero, while no blueprint specifies that route
-- No recent task history: the orchestrator handles no task, and no component serves one to a person
-- Error log and behavioral fingerprint with change history, shown unavailable while no component serves them to a person
-- Deregister button (admin only, with confirmation)
-
-#### Approval Queue (`/admin/approvals`)
-
-List of pending recommendations with inline approve/reject:
-
-| Column | Description |
-|--------|-------------|
-| Priority | `critical` 🔴, `high` 🟠, `medium` 🟡, `low` 🟢 |
-| Agent | Recommending agent |
-| Target | File or resource |
-| Summary | One-line description |
-| Diff | Preview of proposed change |
-| Actions | Approve / Reject buttons |
-
-Supports batch operations: select multiple → approve all / reject all.
-
-#### Workflows (`/admin/workflows`)
-
-Workflow execution history with phase-level detail:
-
-```
-Workflow: seo-audit (execution exec-a1b2c3)
-Status: completed ✓
-Duration: 8.5s
-Started: 2026-04-25 10:30:00
-
-Phases:
-  scan          ████████████████  1.2s  ✓  seo-analyzer
-  analyze       ████████████████  3.8s  ✓  seo-analyzer
-  accessibility ████████████████  1.5s  ✓  a11y-checker
-  report        ████████████████  2.0s  ✓  seo-analyzer
-
-Output: 12 findings, 5 recommendations
-```
-
-#### Federation (`/admin/federation`)
-
-- Peer list with trust tier, jurisdiction, capabilities, expiry
-- Pending peering requests with approve/reject
-- Data contract viewer
-- Cross-boundary audit trail
-- Key rotation history
-
-#### Audit Log (`/admin/audit`)
-
-Filterable, searchable audit log:
-
-| Filter | Options |
-|--------|---------|
-| Actor | Any agent, operator, or `orchestrator` |
-| Action | `register`, `deregister`, `task`, `channel`, `approve`, `strategy`, `federation` |
-| Time range | Last hour, 24h, 7d, 30d, custom |
-| Target | Agent name or resource |
-
-Supports export to JSON and CSV for compliance.
+Observations are retired as a word and as a store: the runtime signal is
+telemetry's, and what a programme measures is its objective.
 
 ---
 
@@ -2137,14 +2148,17 @@ says only that it reports what it holds). A refusal of that request is the
 answer, as on any route of the orchestrator's groups.
 
 Every other member but `timestamp` is a group another component holds:
-`domains`, `workflows`, `approvals`, `federation` and `strategies`. Each is
+`domains`, `workflows`, `approvals`, the decision inbox's count of open
+decisions ([Decision Inbox](#decision-inbox)), `federation`, and `objectives`,
+the programme service's programme objectives. Each is
 either the figures that component's blueprint specifies for it, asked of it on
 a pass, or, where the gateway may not ask or the asking fails, an object
 carrying `unavailable` alone, whose value is the code the gateway would answer
 a request for that group's route with. A figure the gateway cannot report is
 never a number, so a client cannot render it as zero, and an absent provider is
-never shown as a quiet one. No blueprint yet specifies one of those groups on a
-pass (the gap under
+never shown as a quiet one. No blueprint yet specifies a figure for one of
+those groups on a pass, content's open proposals included, which it lists and
+never counts (the gap under
 [The admin API is an aggregate](#the-admin-api-is-an-aggregate)), and no
 `PassRoute` can yet name the group a route answers
 ([`protocol/types`](../protocol/types.md#passroute)), so a conforming gateway
@@ -2170,7 +2184,7 @@ orchestrator's answer carries none:
   "workflows": {"unavailable": "ADMIN_GROUP_UNAVAILABLE"},
   "approvals": {"unavailable": "ADMIN_GROUP_UNAVAILABLE"},
   "federation": {"unavailable": "ADMIN_GROUP_UNAVAILABLE"},
-  "strategies": {"unavailable": "ADMIN_GROUP_UNAVAILABLE"},
+  "objectives": {"unavailable": "ADMIN_GROUP_UNAVAILABLE"},
   "timestamp": 1712160000
 }
 ```
@@ -2531,7 +2545,7 @@ security:
   trust_model:
     description: |
       The admin surface is a separate listener from the application gateway,
-      sharing no session store and no cookie domain, so compromising one does not
+      sharing no listener, domain or certificate, so compromising one does not
       reach the other. Every request is authenticated by a token minted with a
       credential the operator's identity attested, re-checked against the
       orchestrator's records, and authorised against what the operator's role
@@ -2539,10 +2553,11 @@ security:
       authentication is required without exception, where the identity key
       and the credential key are opened, because an operator credential is the
       most valuable one in a deployment. The identity key signs to register, to
-      attest and to change itself, and is never a login.
+      attest, to change itself and to re-confirm for a destructive act, and is
+      never a login.
 
   boundaries:
-    - boundary: Operator browser → Admin gateway. A separate TLS entry point,
+    - boundary: A person's client → Admin gateway. A separate TLS entry point,
         authenticated per request against the orchestrator's key
     - boundary: Admin gateway → Providers. Forwards a request for the
         orchestrator's groups on the person's own token, and sends one for any
@@ -2553,8 +2568,9 @@ security:
         role, which stands for a capability the request must be able to use,
         judged by the orchestrator before any handler runs, whichever
         component serves it
-    - boundary: Destructive action → Effect. Crossed only through the change
-        gate, by approvers who are distinct principals
+    - boundary: Destructive action → Effect. Crossed only on the person's own
+        re-confirmation within 300 seconds, judged by the component that serves
+        the act (destructive-action-step-up)
 
   enforcement:
     - rule: Every admin endpoint requires a verified operator token, whichever
@@ -2587,9 +2603,12 @@ security:
         source opens it (protocol/identity rule 1), and a client keeps a
         credential key only where it signs after the person's own act. No
         configuration removes either
-    - rule: A destructive action requires a second approver
-      mechanism: The change gate holds the action pending, with ordered
-        approvers who must differ from the requester
+    - rule: A destructive action requires the person's own step-up, never a
+        second person
+      mechanism: The component that serves the act refuses it with
+        STEP_UP_REQUIRED unless the token or pass carries a step_up_at no more
+        than 300 seconds old, which the orchestrator sets only on a token
+        minted through a re-confirmation it verified (destructive-action-step-up)
     - rule: Every admin action is attributable
       mechanism: Audit records operator, action, target and time before the
         action takes effect
@@ -2643,7 +2662,7 @@ and a pass carries every capability its request requires and nothing more
 |---|---|
 | `viewer+` | `admin:read` |
 | `auditor+`, `auditor` | `admin:audit` |
-| `operator+` | `admin:strategy` under Strategy Management, and `admin:approve` everywhere else |
+| `operator+` | `admin:strategy` under Programme Objectives, and `admin:approve` everywhere else |
 | `admin` | `admin:*` |
 | the operator | `admin:read`, on a token whose `sub` is the operator the path names. An attestation token, which carries no capability, is admitted only where Operator Management says so |
 | the operator, or admin | `admin:read` on the named operator's own token, or `admin:*` |
@@ -2656,7 +2675,7 @@ admin > operator > auditor > viewer
 
 An admin can do everything an operator can do, and so on. The `auditor`
 role is a special branch — it has viewer permissions plus full audit
-log access, but cannot approve recommendations or manage strategies.
+log access, but cannot decide or manage anything.
 
 ### Audit Trail
 
@@ -2668,9 +2687,9 @@ Every admin action is logged:
   "timestamp": 1712160000,
   "actor": "<the operator's identity_id>",
   "actor_type": "operator",
-  "action": "approve",
-  "target": "rec-001",
-  "detail": "Approved recommendation: update title tag on index.html",
+  "action": "deregister",
+  "target": "seo-analyzer",
+  "detail": "Force-deregistered on a step-up 42 seconds old",
   "ip": "192.168.1.100"
 }
 ```
@@ -2708,15 +2727,11 @@ The rest SHOULD be:
 
 ## Implementation Notes
 
-- The admin SPA is served as static files embedded in the admin
-  gateway binary (or from a KV store on Cloudflare). It is NOT
-  served by the orchestrator or the application gateway.
 - The admin gateway is a separate process from the application
   gateway. In Go deployments, it is a separate binary. In
   Cloudflare deployments, it is a separate Worker.
-- The SPA uses the Weblisk client-side framework for UI components
 - A WebSocket at `/v1/admin/ws` for real-time status updates (agent status
-  changes, new approvals, workflow completions) is a gap. The gateway holds
+  changes, new decisions, workflow completions) is a gap. The gateway holds
   no subscription and no standing access to data
   (`admin-gateway-authorization`), so it has nothing to feed one from, and
   no provider's blueprint specifies the feed or a pass for it. Until one
@@ -2728,7 +2743,7 @@ The rest SHOULD be:
 - The admin interface MUST work over HTTPS in production. HTTP is
   NEVER permitted, even in development (use self-signed certs).
 - The admin gateway and application gateway MUST NOT share a TLS
-  certificate, cookie domain, session store, or network listener.
+  certificate, a domain or a network listener.
 - Admin gateway logs are classified as Confidential (level 2) and
   are stored separately from application gateway logs.
 - No header a gateway adds authorises anything or names who acted.
@@ -2739,8 +2754,8 @@ The rest SHOULD be:
   is never read as either, and the admin gateway sends neither.
 
 ## Verification Checklist
-- [ ] Authentication services — OIDC, password verification, credential storage, session issuance, token minting — are used from `patterns/auth-*` and `patterns/user-management` and are not reimplemented for the admin path
-- [ ] The admin listener, domain, certificate, cookie domain and session store are all distinct from the application gateway's; nothing is shared between them
+- [ ] Authentication services — OIDC, password verification, credential storage, token minting — are used from `patterns/auth-*` and `patterns/user-management` and are not reimplemented for the admin path
+- [ ] The admin listener, domain and certificate are all distinct from the application gateway's; nothing is shared between them
 - [ ] A grant held within a tenant confers no platform administrative capability
 - [ ] Connecting to a hub requires only its address and an operator identity — no local project directory and no recorded run state
 - [ ] A token is requested BEFORE any registration is attempted, and connecting never sends a registration: registering is its own act (`architecture/cli`, `weblisk operator register`)
@@ -2820,10 +2835,17 @@ The rest SHOULD be:
 - [ ] Admin tokens are WLTs with a one-hour TTL, and a console ends a person's tokens when that person's session with it goes idle
 - [ ] Two factors are required with no exception, where each key is opened: an identity key signs only once its passphrase or its secret source opens it, and a client keeps a credential key only in the `weblisk-key-v1` envelope, in a secret source, in the platform keychain source released only while the person's machine session is unlocked, or behind a console session at AAL2, never in the clear. No gateway checks a factor claim in a token
 - [ ] Role hierarchy admin > operator > auditor > viewer is enforced server-side on every /v1/admin/* endpoint
-- [ ] Destructive actions (deregister agent, revoke federation, delete operator) require 4-eyes approval and X-Confirm HMAC
+- [ ] Each act `destructive-action-step-up` names is refused `401` `STEP_UP_REQUIRED`, changing nothing, on a token whose `step_up_at` is absent or more than 300 seconds old, with `detail.control` naming the act and a `WWW-Authenticate` header carrying `insufficient_user_authentication` and `max_age=300`; on a token whose `step_up_at` is 300 seconds old or less it is admitted, and no second approver is asked <!-- wl:check step-up-refuses-stale covers destructive-acts step-up-required step-up-challenge no-second-person -->
+- [ ] A token minted without `step_up`, however recent, carries no `step_up_at`; one minted with a `step_up` of form `identity` whose signature verifies over `weblisk/step-up/v1`, the `hub_id`, the request's nonce and its control carries `step_up_at` equal to its `iat`; and a `step_up` whose signature does not verify, or was made over another nonce, `hub_id` or control, is refused `INVALID_SIGNATURE`, issues no token and spends the nonce <!-- wl:check step-up-minted-only-on-proof covers step-up-request step-up-identity-form step-up-refused step-up-sets-claim step-up-is-the-claim -->
+- [ ] For every vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) under `weblisk/step-up/v1`, the hub, which verifies a step-up and does not sign one, passes the test [`architecture/generation`](generation.md#published-test-vectors) gives for a verifier <!-- wl:check step-up-vectors covers step-up-identity-form -->
+- [ ] A `step_up` of form `passkey` is admitted only for an active, unexpired step-up credential of the same operator, with `client_data_json` of type `webauthn.get` whose challenge is the base64url of the statement's bytes and whose origin is the attestation's `origin`, an `rpIdHash` of its `rp_id`, and both the user-present and user-verified flags set; with the user-verified flag clear, or a challenge over another nonce, it is refused `INVALID_SIGNATURE` <!-- wl:check step-up-passkey-checked covers step-up-passkey-form -->
+- [ ] An attestation with `purpose` `step-up`, an ES256 or EdDSA COSE key, `rp_id` and `origin` is recorded with `form` `passkey`, listed and revocable; a challenge or token request naming it is refused `CREDENTIAL_PURPOSE_REFUSED`, it is not counted by `OPERATOR_LAST_ADMINISTRATOR`, and a step-up attestation naming neither `rp_id` nor `origin`, or any other attestation naming them, is refused `CREDENTIAL_ATTESTATION_INVALID` <!-- wl:check step-up-passkey-attested covers attestation-key-form attestation-purposes -->
+- [ ] A provider's `401` `STEP_UP_REQUIRED` is returned to the client by the admin gateway with its status, code, `detail` and `WWW-Authenticate` header unchanged, never as `ADMIN_TOKEN_UNCHECKED` <!-- wl:check gateway-returns-step-up covers gateway-relays-step-up -->
+- [ ] Every destructive act, and every refusal of one, is in the audit log with the operator's `identity_id`, the target and the `step_up_at` it was judged on, written before the act takes effect <!-- wl:check destructive-act-in-audit covers destructive-act-audited -->
+- [ ] No other blueprint states when a destructive act needs a step-up, or asks a second person for one; each points to `destructive-action-step-up` <!-- wl:check step-up-stated-once covers step-up-one-home no-second-person -->
 - [ ] Application gateway returns 404 for any request to /v1/admin/* paths
 - [ ] The System overview the admin gateway composes shows the orchestrator's figures from its `GET /v1/admin/overview`, agent counts, namespaces and audit depth, and no health score, and, while no `PassRoute` can name the overview group a route answers, every other group carried as an object whose one member, `unavailable`, holds the code the gateway would answer that group's route with, and never as a number
-- [ ] The agent detail page and `GET /v1/admin/agents/{name}` show no `token` member: an agent's registration token is never answered to an operator, a `viewer` included, whatever the orchestrator's `AgentEntry` holds
+- [ ] `GET /v1/admin/agents/{name}` shows no `token` member: an agent's registration token is never answered to an operator, a `viewer` included, whatever the orchestrator's `AgentEntry` holds
 - [ ] Each admin endpoint group is served by the component that owns its state; the admin service composes them and owns none of them
 - [ ] An admin endpoint whose provider is not deployed reports itself unavailable and never returns an empty result
 - [ ] Through the admin gateway, an admin's token minted with `cap` `[admin:*]` reaches `PUT /v1/admin/operators/{name}/role` and changes the role, and the same request on the same admin's token minted with `cap` `[content:read, content:describe]` is refused there with `FORBIDDEN`, by the orchestrator's Auth Middleware
@@ -2844,9 +2866,9 @@ The rest SHOULD be:
 - [ ] A request for a route no directory entry declares among its `pass_routes`, or two entries declare, is answered 503 `ADMIN_GROUP_UNAVAILABLE` and nothing is exchanged or sent; a pass route an entry declares for a route of the orchestrator's own is never used, and that request is forwarded to the orchestrator on the operator token
 - [ ] Every route `architecture/orchestrator`'s Administrative endpoints lists but `POST /v1/admin/model/audit` is forwarded to the orchestrator on the operator token as it arrived, `GET /v1/admin/model`, `POST /v1/admin/complete`, `GET /v1/admin/model/ceiling`, the agreement routes and `GET /v1/admin/audit` and `GET /v1/admin/audit/export` included, and never answered `ADMIN_GROUP_UNAVAILABLE`; a request for `POST /v1/admin/model/audit` is answered 404 `NOT_FOUND`, whatever the service directory declares, and nothing is forwarded or exchanged; a request for a path outside `/v1/admin/`, such as `GET /v1/audit`, is never forwarded to the orchestrator
 - [ ] An exchange answered `issued: false` is answered to the client with the code it names, at the status `protocol/types` registers for it, and one answered 404 because the provider is not registered now is answered `ADMIN_GROUP_UNAVAILABLE`; neither forwards anything
-- [ ] While no deployed component's blueprint specifies the route, a request for `/v1/admin/approvals`, `/v1/admin/strategies`, `/v1/admin/observations`, `/v1/admin/domains`, `/v1/admin/workflows`, `/v1/admin/federation/peers`, `/v1/admin/metrics` or `/v1/admin/agents/{name}/metrics` is answered 503 `ADMIN_GROUP_UNAVAILABLE`, never with an empty result, and nothing is forwarded or sent as a `POST /v1/message` action
+- [ ] While no deployed component's blueprint specifies the route, a request for `/v1/admin/domains`, `/v1/admin/workflows`, `/v1/admin/federation/peers`, `/v1/admin/metrics` or `/v1/admin/agents/{name}/metrics` is answered 503 `ADMIN_GROUP_UNAVAILABLE`, never with an empty result, and nothing is forwarded or sent as a `POST /v1/message` action
 - [ ] While their blueprints do not say that they accept a pass, a request for `/v1/admin/alerts`, `/v1/admin/runbooks` or `/v1/admin/rate-limits`, or any route under them, is answered 503 `ADMIN_GROUP_UNAVAILABLE` even where the alerting agent, the incident-response agent or the component applying `patterns/rate-limiting` is deployed, and nothing is forwarded, on a pass or on the operator token
-- [ ] A request for a route whose minimum is `admin` and whose provider is not the orchestrator, such as `DELETE /v1/admin/strategies/:id`, is answered `ADMIN_GROUP_UNAVAILABLE` while that provider's blueprint specifies no such route, and once one does reaches that provider only on a pass addressed to it carrying `admin:*`, never on an operator token
+- [ ] A request for a route whose minimum is `admin` and whose provider is not the orchestrator, such as `POST /v1/admin/federation/peers/:name/revoke`, is answered `ADMIN_GROUP_UNAVAILABLE` while that provider's blueprint specifies no such route, and once one does reaches that provider only on a pass addressed to it carrying `admin:*`, never on an operator token
 - [ ] A component other than the orchestrator that serves an administrative route acts only on a pass addressed to it whose `cap` names every capability the request requires: an `operator`'s approval carried on a pass naming `admin:approve` is recorded under the pass's `identity_id`, with the gateway's `act.identity_id` beside it, while an operator token is refused with `PASS_REQUIRED`, a pass addressed to another component with `PASS_AUDIENCE_MISMATCH`, and an agent's or a channel's token with `FORBIDDEN`, none of these refusals performing anything
 - [ ] Through the admin gateway, a request for a route another component provides is refused by the exchange with `OPERATOR_REVOKED` on the token of an operator removed since it was minted, and with `FORBIDDEN` on the token of an operator since lowered to `viewer`; while the orchestrator cannot be asked it is refused with 503 `ADMIN_TOKEN_UNCHECKED` carrying `retry_after`; where the exchange answers `404` `NOT_FOUND` because the provider is not registered now it is refused with 503 `ADMIN_GROUP_UNAVAILABLE`, never `ADMIN_TOKEN_UNCHECKED`; in none of these is anything forwarded
 - [ ] All admin API responses include Cache-Control: no-store header
@@ -2860,4 +2882,5 @@ The rest SHOULD be:
 - [ ] The admin gateway forwards each request for a route served without a token with `X-Forwarded-For` naming the client address it counted, replacing any the request carried; the orchestrator counts such a request by that header only where it arrives from an address `orchestrator.admin_gateway_from` names, and a request from any other address by that address, so a sixth from one client through the gateway is refused at both and a first from another client is not
 - [ ] Bootstrap event (first operator registration) is permanently recorded in the audit log
 - [ ] While no provider's blueprint specifies `/v1/admin/ws`, a request for it is answered 503 `ADMIN_GROUP_UNAVAILABLE`, and the gateway opens no subscription and holds no connection to serve it
-- [ ] Admin gateway and application gateway share NO session state, cookie domain, or network listener
+- [ ] The admin gateway serves no page, script or static file of its own, and keeps no session or cookie: a person reaches it through the CLI or a console holding their credential
+- [ ] Through the admin gateway, `GET /v1/admin/approvals` lists content's open proposals, asked of content on a pass naming `content:read`, each with its `owner`, `id`, `summary` and `decide`; with content not registered it names content under `unavailable` and is never answered as an empty, complete list; and a decision is sent to the route `decide` names, never to a route the gateway serves <!-- wl:check inbox-composed covers inbox-never-quietly-empty inbox-decides-nothing -->

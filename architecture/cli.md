@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 3.1.0
+version: 4.0.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -199,10 +199,9 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/admin
-    # 3.0.0 is where a token request carries a jti, the overview counts
-    # agents by lease state and the agent list and detail carry
-    # lease_state, lease and last_renewal
-    version: ">=3.0.0 <4.0.0"
+    # 4.0.0 is where a destructive act needs a step-up, /v1/admin/approvals
+    # is the decision inbox and strategies and observations are gone
+    version: ">=4.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/admin/operators/register
@@ -228,10 +227,19 @@ requires:
         - path: /v1/admin/agents/{name}/metrics
           methods: [GET]
         - path: /v1/admin/approvals
-          methods: [GET, POST]
+          methods: [GET]
       behaviors:
         - name: operator-registration
         - name: registration-signing-input
+        # weblisk operator register reports an approved first registration
+        # and a pending one, and weblisk operators approve and role drive
+        # the admission and the roles
+        - name: first-operator-claim
+        - name: operator-approval
+        - name: operator-roles
+        # A destructive command answers STEP_UP_REQUIRED by re-confirming
+        # its person (Authentication Flow)
+        - name: destructive-action-step-up
         - name: attestation-token-issuance
         - name: hub-proof
         - name: operator-credential-attestation
@@ -310,7 +318,6 @@ Studio's and the orchestrator's own surfaces.
 
 - Admin API endpoints (owned by `architecture/admin`)
 - Orchestrator state or agent lifecycle (CLI reads/writes via API)
-- Admin dashboard SPA (owned by `architecture/admin`)
 - Operator authentication model (owned by `architecture/admin`; CLI consumes it)
 - Workflow or task execution (CLI triggers actions via API)
 - Template contents (owned by `weblisk-templates`)
@@ -333,7 +340,7 @@ the sections below: [Project Commands](#project-commands),
 [Identity Commands](#identity-commands),
 [Status Commands](#status-commands), [Agent Commands](#agent-commands),
 [Domain Commands](#domain-commands), [Workflow Commands](#workflow-commands),
-[Approval Commands](#approval-commands), [Strategy Commands](#strategy-commands),
+[Approval Commands](#approval-commands), [Objective Commands](#objective-commands),
 [Federation Commands](#federation-commands), and
 [Audit Commands](#audit-commands).
 
@@ -360,11 +367,13 @@ the sections below: [Project Commands](#project-commands),
    ([`architecture/admin`](admin.md#contracts), `admin-gateway-authorization`)
 7. The provider returns a JSON response, through the gateway
 8. CLI formats response as human-readable table (or raw JSON with `--json`)
-9. For write operations: CLI prompts for interactive confirmation before sending
+9. For write operations: CLI prompts for interactive confirmation before
+   sending, and a destructive act also needs its person's step-up
+   ([Authentication Flow](#authentication-flow))
 10. Exit code set based on success/failure (0 = success, 1 = error, 2 = auth failure)
 
 **A group another component provides is reached on a pass, never on the
-stored token.** The domain, workflow, approval, strategy, observation and
+stored token.** The domain, workflow, approval, objective and
 federation commands address groups
 [`architecture/admin`](admin.md#the-admin-api-is-an-aggregate) gives to a
 component other than the orchestrator. The CLI sends them to the admin
@@ -374,7 +383,9 @@ component's blueprint specifies an administrative route yet
 ([`architecture/admin`](admin.md#the-admin-api-is-an-aggregate), the gap
 there), so the gateway answers each of these commands
 `ADMIN_GROUP_UNAVAILABLE`, and the command reports its group unavailable and
-exits 1.
+exits 1. The approval commands are the exception: the gateway composes the
+decision inbox itself, from each owner it may ask
+([`architecture/admin`](admin.md#decision-inbox)).
 
 ---
 
@@ -1376,9 +1387,10 @@ identity.
 
 ### A credential for each hub
 
-The identity signs to register, to attest and to change its own key
-([`weblisk operator rotate`](#weblisk-operator-rotate)), and nothing else at a
-hub. Tokens come
+The identity signs to register, to attest, to change its own key
+([`weblisk operator rotate`](#weblisk-operator-rotate)) and to re-confirm its
+person for a destructive act ([Authentication Flow](#authentication-flow)), and
+nothing else at a hub. Tokens come
 from a credential ([`architecture/admin`](admin.md#obtaining-a-token)), and the
 CLI holds one for each identity at each hub:
 
@@ -1865,6 +1877,20 @@ credential mints.
   every later command that needs one asks the identity's holder again.
   `--store` changes nothing there.
 
+**A token carrying `step_up_at` is minted by the command that needs it, and
+only through a re-confirmation.** No mint above sets it, silent or not, and
+`--refresh` never does: a token the CLI renews carries no `step_up_at`,
+whatever its age. A destructive command obtains one when the hub answers it
+`401` `STEP_UP_REQUIRED`: the CLI asks its person to re-confirm the act the
+answer names, at the terminal or through a holder that itself asks the
+person, such as a vault approval, mints a token whose request carries
+`step_up` of form `identity`, and retries once; a command run with
+`--step-up` re-confirms before its first request
+([Authentication Flow](#authentication-flow)). That token is never stored,
+by either rule above: it is held for the command that asked, and
+`weblisk operator token` never reports it.
+<!-- wl:id cli-step-up-token-held -->
+
 A stored token is a bearer credential: whoever holds the file may use it
 until it expires. It carries every capability the operator's role carries,
 `admin:*` and every person-only capability for an admin, and mode 0600 keeps
@@ -2088,7 +2114,7 @@ as for `operator init`.
 
 ### `weblisk status`
 
-System overview — the CLI equivalent of the admin dashboard landing page.
+System overview, as the admin gateway composes it.
 
 ```bash
 $ weblisk status
@@ -2100,7 +2126,7 @@ Domains:    unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABL
 Workflows:  unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
 Approvals:  unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
 Federation: unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
-Strategies: unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
+Objectives: unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
 ```
 
 - Calls `GET /v1/admin/overview` at the hub's admin gateway, which composes
@@ -2190,6 +2216,9 @@ $ weblisk agents deregister email-send
 ```
 
 - Requires `--confirm` or interactive confirmation
+- A destructive act: it needs its person's step-up
+  ([Authentication Flow](#authentication-flow);
+  [`architecture/admin`](admin.md#contracts), `destructive-action-step-up`)
 - Logs the deregistration in the audit trail
 
 ---
@@ -2280,145 +2309,71 @@ Output:
 
 ## Approval Commands
 
-### `weblisk approvals list`
+The decision inbox: every decision a person may make, from each owner that
+holds one open, composed by the admin gateway
+([`architecture/admin`](admin.md#decision-inbox)). Each decision is made at
+its owner, never at the gateway.
 
-List pending recommendations.
+### `weblisk approvals list`
 
 ```bash
 $ weblisk approvals list
-ID        PRIORITY   AGENT           TARGET            SUMMARY
-rec-001   critical   seo-analyzer    index.html        Update title tag
-rec-002   critical   seo-analyzer    index.html        Add meta description
-rec-003   high       a11y-checker    index.html        Add alt text to logo
-rec-004   high       meta-checker    about.html        Add og:site_name
-rec-005   medium     content-analyzer pricing.html     Split long paragraph
+OWNER     ID                                 SUMMARY
+content   9b2f61c0d4e8a7b3c5f1e6d2a8b4c7e0   Modify procedures/access-review.md
+content   1e7d3a9c5b2f8e4a6d0c3b7f9a1e5d2c   Create policies/remote-work.md
 
-5 pending recommendations
+2 open
+Unavailable: none
 ```
 
-- `--priority <critical|high|medium|low>` to filter
-- `--agent <name>` to filter by recommending agent
+- Calls `GET /v1/admin/approvals` at the admin gateway
+- `--owner <name>` to filter by owner
+- An owner the gateway names under `unavailable` is shown with its code, never
+  as having nothing open, and the command exits 1 when any is
 
 ### `weblisk approvals describe <id>`
 
-```bash
-$ weblisk approvals describe rec-001
-Recommendation: rec-001
-Agent:    seo-analyzer
-Priority: critical
-Target:   index.html
-Element:  title
+Reads the decision at its owner, through the gateway: for content, the
+proposal with the bytes it proposes (`GET /v1/content/proposals/{id}`).
 
-Current:  <title>Home</title>
-Proposed: <title>Weblisk — Modern Web Framework</title>
-Reason:   Title too short — include primary keywords for search visibility
-
-Impact estimate: 0.8
-Strategy: strat-001 (Improve organic traffic)
-```
-
-### `weblisk approvals accept <id...>`
+### `weblisk approvals accept <id>` / `weblisk approvals reject <id> --reason <reason>`
 
 ```bash
-$ weblisk approvals accept rec-001 rec-002
-✓ Accepted rec-001: Update title tag (index.html)
-✓ Accepted rec-002: Add meta description (index.html)
+$ weblisk approvals accept 9b2f61c0d4e8a7b3c5f1e6d2a8b4c7e0
+✓ Applied at content: procedures/access-review.md
 ```
 
-- Accepts one or more recommendation IDs
-- `--all` to accept all pending (requires `--confirm`)
-- `--priority critical` to accept all critical (requires `--confirm`)
-
-### `weblisk approvals reject <id> --reason <reason>`
-
-```bash
-$ weblisk approvals reject rec-005 --reason "Paragraph is fine as-is"
-✓ Rejected rec-005: Split long paragraph (pricing.html)
-```
-
+- Sends the person's decision, through the gateway, to the route the item's
+  `decide` names, with the body that owner specifies: for content,
+  `POST /v1/content/proposals/{id}/decision` with `decision` `apply`, and the
+  change statement the person's sign-records credential signs, or `reject`
+  with the reason ([`architecture/content`](content.md#who-may-move-an-entry))
+- One decision at a time. Nothing is accepted in bulk, by filter or by priority
+- Where the tenant declares that a decision needs more than one person, the
+  owner records this person's and holds the item open until its rule is met
 - Reason is required for rejections
 
 ---
 
-## Strategy Commands
+## Objective Commands
 
-### `weblisk strategies list`
+A programme's objective is what a strategy was: what a tenant aims at,
+held by the programme service with the programme that declares it
+([`architecture/admin`](admin.md#programme-objectives)). It changes when the
+adopted programme does, so these commands read and write nothing else.
 
-```bash
-$ weblisk strategies list
-ID         NAME                        PRIORITY  STATUS   PROGRESS
-strat-001  Improve organic traffic     1         active   67%
-strat-002  Reduce page load time       2         active   82%
-strat-003  Fix compliance gaps         3         completed 100%
-```
+### `weblisk objectives list`
 
-### `weblisk strategies create`
+Lists the objectives of the programmes adopted in scope, with their progress.
 
-Interactive strategy creation.
+### `weblisk objectives describe <id>`
 
-```bash
-$ weblisk strategies create
-Name: Improve content quality
-Objective: Increase average content score from 68 to 85
-Target metric: content_score
-Current value: 68
-Goal value: 85
-Deadline (YYYY-MM-DD): 2026-09-30
-Priority (1-5): 2
+One objective, with its targets and what has been measured against them.
 
-✓ Created strategy strat-004: Improve content quality
-```
-
-- `--json` to accept strategy as JSON on stdin (for scripting)
-
-### `weblisk strategies describe <id>`
-
-```bash
-$ weblisk strategies describe strat-001
-Strategy: strat-001
-Name:     Improve organic traffic
-Status:   active
-Priority: 1
-
-Targets:
-  METRIC            CURRENT  GOAL     PROGRESS  DEADLINE
-  organic_sessions  14200    16800    67%       2026-09-30
-
-Linked Observations: 120
-Linked Recommendations: 38 (12 applied, 5 pending, 21 rejected)
-```
-
-### `weblisk strategies update <id>`
-
-Update strategy targets or priority.
-
-```bash
-$ weblisk strategies update strat-001 --priority 2
-✓ Strategy strat-001 updated: priority 1 → 2
-
-$ weblisk strategies update strat-001 --deadline 2026-12-31
-✓ Strategy strat-001 updated: deadline extended to 2026-12-31
-```
-
-| Flag | Description |
-|------|-------------|
-| `--priority <n>` | New priority (1–5) |
-| `--deadline <date>` | New deadline (YYYY-MM-DD) |
-| `--json` | Accept full strategy update as JSON on stdin |
-
-### `weblisk strategies delete <id>`
-
-Archive a strategy (admin only).
-
-```bash
-$ weblisk strategies delete strat-003
-⚠ This will archive strategy 'strat-003' (Fix compliance gaps).
-  Type strategy ID to confirm: strat-003
-✓ Strategy strat-003 archived.
-```
-
-- Archived strategies remain queryable but stop generating workflows
-- Linked observations and recommendations are preserved
+- Both address the programme service through the admin gateway. No blueprint
+  specifies its objectives or a route for them yet, so the gateway answers
+  `ADMIN_GROUP_UNAVAILABLE`, and each command reports objectives unavailable
+  and exits 1
 
 ---
 
@@ -2459,6 +2414,9 @@ $ weblisk federations revoke partner-corp
   Type peer name to confirm: partner-corp
 ✓ Trust revoked for partner-corp.
 ```
+
+- A destructive act: it needs its person's step-up
+  ([Authentication Flow](#authentication-flow))
 
 ### `weblisk federations describe <name>`
 
@@ -2519,6 +2477,28 @@ Type operator name to confirm: bob
   to regain access (pending approval from remaining admin)
 - Cannot revoke yourself (prevents lockout)
 - Cannot revoke the last admin (system requires at least one)
+- A destructive act: it needs its person's step-up
+  ([Authentication Flow](#authentication-flow))
+
+### `weblisk operators approve <name>`
+
+Admit an operator whose registration is pending (admin only).
+
+```bash
+$ weblisk operators approve bob
+✓ Operator 'bob' approved. They attest a credential of their own with: weblisk operator connect
+```
+
+- Calls `POST /v1/admin/operators/{name}/approve` at the admin gateway
+  ([`architecture/admin`](admin.md#admitting-the-operators-after-the-first),
+  `operator-approval`). Approving an operator already approved succeeds and
+  changes nothing
+- Prints no token and writes none: the approval returns none, and the
+  approved person mints their own <!-- wl:id cli-operators-approve-no-token -->
+- A destructive act, because it grants authority: it needs its person's
+  step-up ([Authentication Flow](#authentication-flow))
+- Refusing a registration is `weblisk operators revoke <name>`; there is no
+  separate reject command
 
 ### `weblisk operators list`
 
@@ -2558,6 +2538,8 @@ $ weblisk operators role bob operator
 - Requires admin role
 - Valid roles: `admin`, `operator`, `auditor`, `viewer`
 - Cannot demote yourself (prevents accidental lockout)
+- A destructive act: it needs its person's step-up
+  ([Authentication Flow](#authentication-flow))
 
 ---
 
@@ -2571,7 +2553,7 @@ Stream or query the audit log.
 $ weblisk audit
 TIME        ACTOR           ACTION      TARGET          DETAIL
 10:30:01    orchestrator    task        seo-analyzer    Forwarded seo-audit task
-10:30:00    alice           approve     rec-001         Accepted: Update title tag
+10:30:00    alice           decide      9b2f61c0d4e8    Applied procedures/access-review.md
 10:25:12    orchestrator    task        content-analyzer Forwarded content-audit task
 10:15:00    orchestrator    register    perf-auditor    Agent registered
 ```
@@ -2582,48 +2564,6 @@ TIME        ACTOR           ACTION      TARGET          DETAIL
 - `--since <duration>` to filter by time (e.g., `--since 1h`)
 - `--limit <n>` to control results
 - `--export <json|csv>` to export
-
----
-
-## Observation Commands
-
-### `weblisk observations list`
-
-Browse observation history from the lifecycle loop.
-
-```bash
-$ weblisk observations list
-TIME        AGENT           STRATEGY    TARGET          FINDING
-10:30:01    seo-analyzer    strat-001   /about.html     Missing meta description
-10:25:12    content-analyzer strat-004  /blog/post-1    Readability score 42 (below target 60)
-09:15:00    perf-auditor    strat-002   /products       LCP 4.2s (above 2.5s threshold)
-```
-
-- `--strategy <id>` to filter by strategy
-- `--agent <name>` to filter by source agent
-- `--since <duration>` to filter by time
-- `--limit <n>` to control results
-- `--json` for machine-readable output
-
-### `weblisk observations trends`
-
-View trend data for strategy metrics over time.
-
-```bash
-$ weblisk observations trends --strategy strat-001
-Strategy: strat-001 (Improve organic traffic)
-
-METRIC            7d AGO    CURRENT   TREND     GOAL
-organic_sessions  13800     14200     +2.9%     16800
-bounce_rate       0.45      0.42      -6.7%     0.35
-avg_session_dur   1m 20s    1m 35s    +18.8%    2m 00s
-```
-
-| Flag | Description |
-|------|-------------|
-| `--strategy <id>` | Strategy to show trends for (required) |
-| `--range <7d\|30d\|90d>` | Time range (default: `30d`) |
-| `--json` | Machine-readable output |
 
 ---
 
@@ -3068,10 +3008,47 @@ Every command that calls the hub's admin gateway:
    The identity-signed request names the recorded hub_id whichever path
    answers it, and is never sent to a hub with no registration recorded
 4. Set Authorization: Bearer <token> on request
-5. If 401 response → attempt token refresh → retry once
-6. If the hub refused the credential → print that the identity must attest a
+5. If 401 STEP_UP_REQUIRED → re-confirm the person, below → retry once.
+   Never a refresh: a renewed token carries no step_up_at
+6. If any other 401 response → attempt token refresh → retry once
+7. If the hub refused the credential → print that the identity must attest a
    new one: "Run: weblisk operator connect". Otherwise print the hub's code
 ```
+
+**A destructive act is re-confirmed by its person, and never by a renewal.**
+A hub answers a destructive act on a token without a recent `step_up_at`
+with `401` `STEP_UP_REQUIRED` and RFC 9470's challenge: `WWW-Authenticate`
+carrying `insufficient_user_authentication` and `max_age=300`, and the act in
+`detail.control` ([`architecture/admin`](admin.md#re-confirming-for-a-destructive-act)).
+The CLI then:
+
+1. Asks the person to re-confirm that act, naming it: at a terminal, by the
+   identity's passphrase typed there, or through an identity holder that itself
+   asks the person, such as a vault's approval. A holder that releases the
+   identity without asking anybody, such as one that remembered its passphrase,
+   is not a re-confirmation, and the CLI never uses one for this
+2. Mints a token through that re-confirmation: a challenge answered by the
+   credential, its token request carrying `step_up` of form `identity`, the
+   identity's signature over `weblisk/step-up/v1`, the `hub_id`, that nonce and
+   the control (`operator-token-issuance`)
+3. Holds that token for this command alone. It is never written to a token
+   file, `--store` or not, and never handed to another program
+4. Retries the act once. A second `STEP_UP_REQUIRED` is reported, not retried
+
+Where nothing can ask the person, no terminal and no holder that asks, the
+command fails with exit 2 and the challenge's `error_description`, and mints
+nothing. A token the CLI renews silently never carries `step_up_at`, whatever
+its age. <!-- wl:id cli-step-up-reconfirms -->
+
+**A script re-confirms only when its command says so.** A destructive command
+accepts `--step-up`: the identity's passphrase then arrives on stdin, as every
+passphrase does, and the CLI makes the re-confirmation before it sends the act,
+so the first request already carries a fresh `step_up_at`. Handing a script
+the passphrase for that run is the person's own act, which the flag records;
+without it a script that meets `STEP_UP_REQUIRED` fails as above. A holder
+that releases the identity without asking anybody never re-confirms, with
+`--step-up` or without. A test harness re-confirms this way, with a throwaway
+identity held in a file and its passphrase written to stdin. <!-- wl:id cli-step-up-scripted -->
 
 ---
 
@@ -3083,7 +3060,7 @@ Every command that calls the hub's admin gateway:
 | 1 | General error (invalid arguments, missing config) |
 | 2 | Authentication error (no keys, expired token, rejected) |
 | 3 | Connection error (the hub unreachable at the address the command uses) |
-| 4 | Not found (agent, workflow, strategy not found) |
+| 4 | Not found (agent, workflow, objective not found) |
 | 5 | Permission denied (role insufficient) |
 
 ---
@@ -3099,7 +3076,8 @@ security:
       get wrong. It holds no secret of its own. Beside each identity it keeps
       one credential for each hub that identity attested, never in the clear,
       and mints short-lived tokens with it. The identity, whose private half
-      may never be extractable, signs only to register and to attest.
+      may never be extractable, signs only to register, to attest and to
+      re-confirm its person for a destructive act.
   boundaries:
     - boundary: Operator → CLI. The operator's identity authorises every
         privileged operation; the CLI holds no standing authority
@@ -3150,8 +3128,6 @@ security:
 - `--json` output is one JSON object per line (for piping to `jq`)
 - `--watch` mode uses `GET` polling at 5-second intervals (not
   WebSocket — keeps the CLI simple)
-- Commands that accept multiple IDs (approvals) can also read from
-  stdin for piping: `weblisk approvals list --json | jq -r '.[] | select(.priority == "critical") | .id' | weblisk approvals accept --stdin`
 
 ## Verification Checklist
 - [ ] Provenance is written into the tenant's own state — time, each blueprint source with its revision, and the model the provider reported — not only printed
@@ -3289,15 +3265,19 @@ security:
 - [ ] `weblisk operators list` shows all registered operators with name, role, status, and registration date
 - [ ] `weblisk operators describe` shows full detail for a single operator
 - [ ] `weblisk operators role` changes operator role (admin only, cannot demote self)
+- [ ] `weblisk operators approve <name>` sends `POST /v1/admin/operators/{name}/approve` to the hub's admin gateway, reports success for an operator already approved, and prints and writes no token <!-- wl:check cli-operators-approve covers cli-operators-approve-no-token -->
 - [ ] All commands output human-readable tables by default and structured JSON with --json flag
 - [ ] Destructive commands (agents deregister, federations revoke) require --confirm or interactive name-confirmation
 - [ ] `weblisk approvals reject` requires a --reason argument for every rejection
-- [ ] `weblisk approvals list`, `weblisk strategies list`, `weblisk strategies update`, `weblisk strategies delete`, `weblisk observations list`, `weblisk observations trends`, `weblisk federations peers`, `weblisk federations describe`, `weblisk federations contracts`, `weblisk domains list` and `weblisk workflows list` are sent to the hub's admin gateway, and report their group unavailable and exit 1 when it answers `ADMIN_GROUP_UNAVAILABLE`, as it does while no provider's blueprint specifies the route; the stored token is sent nowhere but the admin gateway
-- [ ] `weblisk status` calls `GET /v1/admin/overview` at the hub's admin gateway and displays agents, domains, workflows, approvals, federation and strategies, showing as unavailable, never as zero, each figure the gateway reports unavailable, and shows no health score
+- [ ] `weblisk approvals list` calls `GET /v1/admin/approvals`, shows each owner the gateway names under `unavailable` with its code and exits 1 when any is; `weblisk approvals accept` and `reject` send one decision to the route the item's `decide` names, never in bulk, and no `weblisk observations` or `weblisk strategies` command exists
+- [ ] `weblisk objectives list`, `weblisk federations peers`, `weblisk federations describe`, `weblisk federations contracts`, `weblisk domains list` and `weblisk workflows list` are sent to the hub's admin gateway, and report their group unavailable and exit 1 when it answers `ADMIN_GROUP_UNAVAILABLE`, as it does while no provider's blueprint specifies the route; the stored token is sent nowhere but the admin gateway
+- [ ] `weblisk status` calls `GET /v1/admin/overview` at the hub's admin gateway and displays agents, domains, workflows, approvals, federation and objectives, showing as unavailable, never as zero, each figure the gateway reports unavailable, and shows no health score
 - [ ] Exit codes are 0=success, 1=general error, 2=auth error, 3=connection error, 4=not found, 5=permission denied
 - [ ] Config resolution order: command-line flags > environment variable > .weblisk/config.json (project) > ~/.weblisk/config.json (user)
 - [ ] Commands fail fast with a clear message and non-zero exit code when the orchestrator is unreachable
 - [ ] Authentication flow retries once on 401 by refreshing the token; prints re-register message if refresh also fails
+- [ ] On `401` `STEP_UP_REQUIRED`, a command asks its person to re-confirm the act `detail.control` names, at the terminal or through a holder that asks, mints a token whose request carries `step_up` of form `identity`, retries once, and stores that token nowhere; a renewed token is never sent as a re-confirmation; with nothing that can ask, it fails with exit 2 and the challenge's `error_description` <!-- wl:check cli-step-up-flow covers cli-step-up-reconfirms -->
+- [ ] A destructive command run with `--step-up` reads the identity's passphrase from stdin and sends its first request on a token carrying `step_up_at`; without `--step-up` and with no terminal, it fails on `STEP_UP_REQUIRED`; and a holder that releases the identity without asking anybody is never used to re-confirm <!-- wl:check cli-step-up-script covers cli-step-up-scripted -->
 
 ### Testing
 - [ ] `weblisk test conformance` runs protocol conformance tests against a running system
@@ -3321,13 +3301,8 @@ security:
 - [ ] `weblisk policy validate` checks gateway policy file for syntax and semantic errors
 - [ ] `weblisk policy test` runs policy assertions from policies_test.yaml
 
-### Strategies
-- [ ] Once the Lifecycle Agent's blueprint specifies the route, `weblisk strategies update` modifies priority, deadline, or targets of an existing strategy
-- [ ] Once the Lifecycle Agent's blueprint specifies the route, `weblisk strategies delete` archives a strategy (admin only, requires confirmation)
-
-### Observations
-- [ ] Once the Lifecycle Agent's blueprint specifies the route, `weblisk observations list` shows observation history with strategy/agent filters
-- [ ] Once the Lifecycle Agent's blueprint specifies the route, `weblisk observations trends` displays metric trend data for a strategy
+### Objectives
+- [ ] Once the programme service's blueprint specifies the route, `weblisk objectives describe` shows one objective with its targets and what has been measured against them
 
 ### Federation
 - [ ] Once the federation layer's blueprint specifies the route, `weblisk federations describe` shows full peer detail including data contract and metrics
