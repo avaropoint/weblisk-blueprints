@@ -1,5 +1,5 @@
 ---
-family: test-blueprint@1
+family: vectors/grammar/test-blueprint@1
 version: 1.0.0
 ---
 # Nested fences

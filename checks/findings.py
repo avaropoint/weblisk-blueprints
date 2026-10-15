@@ -36,7 +36,7 @@ def declared(code, subject, decl):
     return "report" if req == "report" else "refuse" if req else None
 for pj in sorted(glob.glob(os.path.join(d, "*.projection.json"))):
     p, name = json.load(open(pj)), os.path.basename(pj)[:-len(".projection.json")]
-    decl = blocks(os.path.join(root, p.get("declaration") or f"schemas/{p['family'].split('@')[0]}.md"))
+    decl = blocks(os.path.join(root, p["family"].rsplit("@", 1)[0] + ".md"))  # a family is its declaration's ref
     for f in p["findings"]:
         want = declared(f["code"], f.get("subject"), decl) if f["code"] in DECLARED else (fixed.get(f["code"]) or [None])[0]
         if f["code"] not in codes: faults.append(f"{name}: {f['code']} is no declared finding code")

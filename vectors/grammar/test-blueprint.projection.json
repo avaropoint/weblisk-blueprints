@@ -1,22 +1,22 @@
 {
   "file": "vectors/grammar/test-blueprint.md",
-  "family": "family@1",
-  "length": 2060,
-  "version_hash": "sha256:327c750d9f4fdf0e7434a1ad98e8950c8d8aeef5a9dd9931e2092400761c1d39",
+  "family": "schemas/family@1",
+  "length": 2084,
+  "version_hash": "sha256:54ff933d9d9da0e5d704f18f36124cda6c0550908cbc9b3de9fed26eb76a8e08",
   "parts": [
     {
-      "span": [0, 76],
+      "span": [0, 84],
       "part": "header",
       "slot": null,
       "use": "navigates",
       "send": "always",
-      "digest": "sha256:bb4ea2895528eb7d04e85180ef492d73f222e5f533cea78ff6361725d51e37d9",
+      "digest": "sha256:dcdabbe62978ea1356aedb1f734a13213f12f32b903e92280828f4d042d53bce",
       "entries": [
         {
           "id": "family",
           "use": "navigates",
           "send": "always",
-          "digest": "sha256:6c1f82ce3f81cee792fb7cde7768072874c0decf108bca3d1012ee70d9c02373"
+          "digest": "sha256:31fb1eeb859ff9679f796bebfe115f6c568b86f4dbbd4ff8f480efa3adcf124e"
         },
         {
           "id": "version",
@@ -39,7 +39,7 @@
       ]
     },
     {
-      "span": [76, 293],
+      "span": [84, 301],
       "part": "text",
       "slot": "title",
       "use": "navigates",
@@ -47,7 +47,7 @@
       "digest": "sha256:db27b736f5ac02d0da32034d390fb52ff07ecc15a71c88b37c759a9d773e6afe"
     },
     {
-      "span": [293, 304],
+      "span": [301, 312],
       "part": "text",
       "slot": "header",
       "use": "shapes",
@@ -55,17 +55,17 @@
       "digest": "sha256:c7be56ccdadeb892cd79dc3cfec7a19fbba8b0205b8707557510ec369c86b479"
     },
     {
-      "span": [304, 806],
+      "span": [312, 830],
       "part": "block",
       "slot": "header",
       "block": "header",
       "use": "shapes",
       "send": "referenced",
-      "digest": "sha256:5c8ad32049e8a08612c45a77fdd9a539020fd4d300dfd72ca08b332441b8e07c",
+      "digest": "sha256:7d716263374220cf7467e395df1b1fa646ec91cc3507fc3c3209ee2838f46ce6",
       "entries": []
     },
     {
-      "span": [806, 807],
+      "span": [830, 831],
       "part": "text",
       "slot": "header",
       "use": "shapes",
@@ -73,7 +73,7 @@
       "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
     },
     {
-      "span": [807, 820],
+      "span": [831, 844],
       "part": "text",
       "slot": "sections",
       "use": "shapes",
@@ -81,7 +81,7 @@
       "digest": "sha256:6ed5d2c09db626d22406f8c86c54ae5e44c9e22f8a21b00f0f3a8df1f1a1289d"
     },
     {
-      "span": [820, 2060],
+      "span": [844, 2084],
       "part": "block",
       "slot": "sections",
       "block": "sections",

@@ -1,23 +1,22 @@
 {
   "file": "vectors/grammar/minimal.md",
-  "family": "test-blueprint@1",
-  "length": 633,
-  "version_hash": "sha256:ee0383b73c6d4a10547525dbd4eb594c2324a5944e703ffab83bb5caff1282ee",
-  "declaration": "vectors/grammar/test-blueprint.md",
+  "family": "vectors/grammar/test-blueprint@1",
+  "length": 649,
+  "version_hash": "sha256:c6fd20d86b9df8a716294b7e3c8aaa1321d6b79560b443ba86be9dda79d82fe0",
   "parts": [
     {
-      "span": [0, 167],
+      "span": [0, 183],
       "part": "header",
       "slot": null,
       "use": "navigates",
       "send": "always",
-      "digest": "sha256:0c3a2c012b85c398c94a49a06d311df87b5d739d8215f597bdff7c70240cb043",
+      "digest": "sha256:1cdc6b6ecb7a34b85ee515ee21e4ac48434d81a8c1e67186fc143e41bbeebc83",
       "entries": [
         {
           "id": "family",
           "use": "navigates",
           "send": "always",
-          "digest": "sha256:c5d18b2ddb23c95e4d12f5521b2becda26840afbe04e973136bc9611985e1d50"
+          "digest": "sha256:0a4926df20a363d3527906c15468ed0c3c23ae782ce282a1b7b55ec720717562"
         },
         {
           "id": "version",
@@ -40,7 +39,7 @@
       ]
     },
     {
-      "span": [167, 281],
+      "span": [183, 297],
       "part": "text",
       "slot": "title",
       "use": "navigates",
@@ -48,7 +47,7 @@
       "digest": "sha256:329ff157d71aa237e16388b8df578c2cf69642b597e1c34ba522ee0e99ac6cb5"
     },
     {
-      "span": [281, 298],
+      "span": [297, 314],
       "part": "text",
       "slot": "requirements",
       "use": "binds",
@@ -56,7 +55,7 @@
       "digest": "sha256:9847786846315cd9627e8e8f8a391f46a055780253236daa667d267bb82b4365"
     },
     {
-      "span": [298, 443],
+      "span": [314, 459],
       "part": "block",
       "slot": "requirements",
       "block": "requirements",
@@ -72,7 +71,7 @@
       ]
     },
     {
-      "span": [443, 444],
+      "span": [459, 460],
       "part": "text",
       "slot": "requirements",
       "use": "binds",
@@ -80,7 +79,7 @@
       "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
     },
     {
-      "span": [444, 461],
+      "span": [460, 477],
       "part": "text",
       "slot": "verifies",
       "use": "verifies",
@@ -88,7 +87,7 @@
       "digest": "sha256:817b1fa3eae2537bd10a8a271ca4c40b799f05f71d6b855f9e40446f21ab62fa"
     },
     {
-      "span": [461, 633],
+      "span": [477, 649],
       "part": "block",
       "slot": "verifies",
       "block": "verifies",

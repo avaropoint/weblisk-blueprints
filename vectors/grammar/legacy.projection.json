@@ -1,23 +1,22 @@
 {
   "file": "vectors/grammar/legacy.md",
-  "family": "test-blueprint@1",
-  "length": 762,
-  "version_hash": "sha256:19608e3a64b26edf20cd59931189c2d67644e2445311fdf472d76683054be2df",
-  "declaration": "vectors/grammar/test-blueprint.md",
+  "family": "vectors/grammar/test-blueprint@1",
+  "length": 778,
+  "version_hash": "sha256:26f69ae9bc3242c1886f68f4a96103d48e9212dedd523c6222f5dbabc89dc99b",
   "parts": [
     {
-      "span": [0, 66],
+      "span": [0, 82],
       "part": "header",
       "slot": null,
       "use": "navigates",
       "send": "always",
-      "digest": "sha256:d8a545a3192269de0bd51f94d47bc92a540154b8d89c29264ae48b3dc1be567d",
+      "digest": "sha256:090a20476b335f38ff2f2efd7e75d7e8d3b3fa4bf57ab2a91b372661e8b9c2c3",
       "entries": [
         {
           "id": "family",
           "use": "navigates",
           "send": "always",
-          "digest": "sha256:c5d18b2ddb23c95e4d12f5521b2becda26840afbe04e973136bc9611985e1d50"
+          "digest": "sha256:0a4926df20a363d3527906c15468ed0c3c23ae782ce282a1b7b55ec720717562"
         },
         {
           "id": "version",
@@ -28,7 +27,7 @@
       ]
     },
     {
-      "span": [66, 224],
+      "span": [82, 240],
       "part": "text",
       "slot": "title",
       "use": "navigates",
@@ -36,7 +35,7 @@
       "digest": "sha256:5a5c7957196da07215a225a44b833d9c395cfe2a0304097151dadc80ef1685ac"
     },
     {
-      "span": [224, 241],
+      "span": [240, 257],
       "part": "text",
       "slot": "requirements",
       "use": "binds",
@@ -44,7 +43,7 @@
       "digest": "sha256:9847786846315cd9627e8e8f8a391f46a055780253236daa667d267bb82b4365"
     },
     {
-      "span": [241, 381],
+      "span": [257, 397],
       "part": "block",
       "slot": "requirements",
       "block": "requirements",
@@ -60,7 +59,7 @@
       ]
     },
     {
-      "span": [381, 382],
+      "span": [397, 398],
       "part": "text",
       "slot": "requirements",
       "use": "binds",
@@ -68,7 +67,7 @@
       "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
     },
     {
-      "span": [382, 392],
+      "span": [398, 408],
       "part": "text",
       "slot": "types",
       "use": "shapes",
@@ -76,7 +75,7 @@
       "digest": "sha256:8e72c0925c40071cbfe4605a5a88c484fadb5f92e428584eebdfb4a1d9b5108b"
     },
     {
-      "span": [392, 505],
+      "span": [408, 521],
       "part": "block",
       "slot": "types",
       "block": "types",
@@ -92,7 +91,7 @@
       ]
     },
     {
-      "span": [505, 506],
+      "span": [521, 522],
       "part": "text",
       "slot": "types",
       "use": "shapes",
@@ -100,7 +99,7 @@
       "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
     },
     {
-      "span": [506, 585],
+      "span": [522, 601],
       "part": "text",
       "slot": null,
       "use": "explains",
@@ -108,7 +107,7 @@
       "digest": "sha256:a0a0351d1949cd360179442a3b12c3c765e56bda117446c72e43a17c035276fc"
     },
     {
-      "span": [585, 602],
+      "span": [601, 618],
       "part": "text",
       "slot": "verifies",
       "use": "verifies",
@@ -116,7 +115,7 @@
       "digest": "sha256:817b1fa3eae2537bd10a8a271ca4c40b799f05f71d6b855f9e40446f21ab62fa"
     },
     {
-      "span": [602, 762],
+      "span": [618, 778],
       "part": "block",
       "slot": "verifies",
       "block": "verifies",
@@ -136,25 +135,25 @@
     {
       "code": "legacy-key",
       "policy": "report",
-      "span": [0, 66],
+      "span": [0, 82],
       "subject": "id"
     },
     {
       "code": "block-schema",
       "policy": "refuse",
-      "span": [392, 505],
+      "span": [408, 521],
       "subject": "/Counter/fields/wide/type"
     },
     {
       "code": "legacy-spelling",
       "policy": "report",
-      "span": [392, 505],
+      "span": [408, 521],
       "subject": "int64"
     },
     {
       "code": "undeclared-slot",
       "policy": "report",
-      "span": [506, 585],
+      "span": [522, 601],
       "subject": "Background"
     }
   ]

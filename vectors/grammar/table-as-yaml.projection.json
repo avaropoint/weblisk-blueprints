@@ -1,23 +1,22 @@
 {
   "file": "vectors/grammar/table-as-yaml.md",
-  "family": "test-blueprint@1",
-  "length": 744,
-  "version_hash": "sha256:601a554e30142b06d03b7c256bc6342c2afdd6d639d42da7d6d0fc54462fefc5",
-  "declaration": "vectors/grammar/test-blueprint.md",
+  "family": "vectors/grammar/test-blueprint@1",
+  "length": 760,
+  "version_hash": "sha256:cfcd1f352d40ee63344ba5949ef86aa79ad8a58d93768c7b26a5734a81b5c71d",
   "parts": [
     {
-      "span": [0, 48],
+      "span": [0, 64],
       "part": "header",
       "slot": null,
       "use": "navigates",
       "send": "always",
-      "digest": "sha256:d8a545a3192269de0bd51f94d47bc92a540154b8d89c29264ae48b3dc1be567d",
+      "digest": "sha256:090a20476b335f38ff2f2efd7e75d7e8d3b3fa4bf57ab2a91b372661e8b9c2c3",
       "entries": [
         {
           "id": "family",
           "use": "navigates",
           "send": "always",
-          "digest": "sha256:c5d18b2ddb23c95e4d12f5521b2becda26840afbe04e973136bc9611985e1d50"
+          "digest": "sha256:0a4926df20a363d3527906c15468ed0c3c23ae782ce282a1b7b55ec720717562"
         },
         {
           "id": "version",
@@ -28,7 +27,7 @@
       ]
     },
     {
-      "span": [48, 201],
+      "span": [64, 217],
       "part": "text",
       "slot": "title",
       "use": "navigates",
@@ -36,7 +35,7 @@
       "digest": "sha256:610f627544757bdf8e53a92bb5e26de31eb496fa72136dba24162e2aff1b08fe"
     },
     {
-      "span": [201, 218],
+      "span": [217, 234],
       "part": "text",
       "slot": "requirements",
       "use": "binds",
@@ -44,7 +43,7 @@
       "digest": "sha256:9847786846315cd9627e8e8f8a391f46a055780253236daa667d267bb82b4365"
     },
     {
-      "span": [218, 340],
+      "span": [234, 356],
       "part": "block",
       "slot": "requirements",
       "block": "requirements",
@@ -60,7 +59,7 @@
       ]
     },
     {
-      "span": [340, 341],
+      "span": [356, 357],
       "part": "text",
       "slot": "requirements",
       "use": "binds",
@@ -68,7 +67,7 @@
       "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
     },
     {
-      "span": [341, 352],
+      "span": [357, 368],
       "part": "text",
       "slot": "errors",
       "use": "shapes",
@@ -76,7 +75,7 @@
       "digest": "sha256:6c460bdc9f271a9afae28045af6fc57577cef6cebe53c18715a71a6f57dcfaa0"
     },
     {
-      "span": [352, 573],
+      "span": [368, 589],
       "part": "block",
       "slot": "errors",
       "block": "errors",
@@ -95,7 +94,7 @@
       ]
     },
     {
-      "span": [573, 574],
+      "span": [589, 590],
       "part": "text",
       "slot": "errors",
       "use": "shapes",
@@ -103,7 +102,7 @@
       "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
     },
     {
-      "span": [574, 591],
+      "span": [590, 607],
       "part": "text",
       "slot": "verifies",
       "use": "verifies",
@@ -111,7 +110,7 @@
       "digest": "sha256:817b1fa3eae2537bd10a8a271ca4c40b799f05f71d6b855f9e40446f21ab62fa"
     },
     {
-      "span": [591, 744],
+      "span": [607, 760],
       "part": "block",
       "slot": "verifies",
       "block": "verifies",

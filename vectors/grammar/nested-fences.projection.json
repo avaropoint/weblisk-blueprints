@@ -1,23 +1,22 @@
 {
   "file": "vectors/grammar/nested-fences.md",
-  "family": "test-blueprint@1",
-  "length": 756,
-  "version_hash": "sha256:392794cf8249d8ba8416c56510f89ebf377140f302843253636db8c214e7d803",
-  "declaration": "vectors/grammar/test-blueprint.md",
+  "family": "vectors/grammar/test-blueprint@1",
+  "length": 772,
+  "version_hash": "sha256:26af074ea6c0e9f7ac446cd543e94a06e0586dd54293a583ba1c0b19d965a514",
   "parts": [
     {
-      "span": [0, 48],
+      "span": [0, 64],
       "part": "header",
       "slot": null,
       "use": "navigates",
       "send": "always",
-      "digest": "sha256:d8a545a3192269de0bd51f94d47bc92a540154b8d89c29264ae48b3dc1be567d",
+      "digest": "sha256:090a20476b335f38ff2f2efd7e75d7e8d3b3fa4bf57ab2a91b372661e8b9c2c3",
       "entries": [
         {
           "id": "family",
           "use": "navigates",
           "send": "always",
-          "digest": "sha256:c5d18b2ddb23c95e4d12f5521b2becda26840afbe04e973136bc9611985e1d50"
+          "digest": "sha256:0a4926df20a363d3527906c15468ed0c3c23ae782ce282a1b7b55ec720717562"
         },
         {
           "id": "version",
@@ -28,7 +27,7 @@
       ]
     },
     {
-      "span": [48, 132],
+      "span": [64, 148],
       "part": "text",
       "slot": "title",
       "use": "navigates",
@@ -36,7 +35,7 @@
       "digest": "sha256:158bf7429bdc6d57c7628796174e7e913a01ee3c6bf1daacb6ca567373bc6267"
     },
     {
-      "span": [132, 149],
+      "span": [148, 165],
       "part": "text",
       "slot": "requirements",
       "use": "binds",
@@ -44,7 +43,7 @@
       "digest": "sha256:9847786846315cd9627e8e8f8a391f46a055780253236daa667d267bb82b4365"
     },
     {
-      "span": [149, 285],
+      "span": [165, 301],
       "part": "block",
       "slot": "requirements",
       "block": "requirements",
@@ -60,7 +59,7 @@
       ]
     },
     {
-      "span": [285, 286],
+      "span": [301, 302],
       "part": "text",
       "slot": "requirements",
       "use": "binds",
@@ -68,7 +67,7 @@
       "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
     },
     {
-      "span": [286, 303],
+      "span": [302, 319],
       "part": "text",
       "slot": "verifies",
       "use": "verifies",
@@ -76,7 +75,7 @@
       "digest": "sha256:817b1fa3eae2537bd10a8a271ca4c40b799f05f71d6b855f9e40446f21ab62fa"
     },
     {
-      "span": [303, 449],
+      "span": [319, 465],
       "part": "block",
       "slot": "verifies",
       "block": "verifies",
@@ -92,7 +91,7 @@
       ]
     },
     {
-      "span": [449, 450],
+      "span": [465, 466],
       "part": "text",
       "slot": "verifies",
       "use": "verifies",
@@ -100,7 +99,7 @@
       "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
     },
     {
-      "span": [450, 756],
+      "span": [466, 772],
       "part": "text",
       "slot": "notes",
       "use": "explains",

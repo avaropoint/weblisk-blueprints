@@ -1,5 +1,5 @@
 ---
-family: family@1
+family: schemas/family@1
 version: 1.0.0
 noun: block
 ---
@@ -118,6 +118,7 @@ unasserted, and these must not be.
 | `weblisk-ref` | a string [`schemas/names`](names.md#the-grammar)' `ref` accepts |
 | `weblisk-citation` | a string its `citation` accepts |
 | `weblisk-version` | a string its `version` accepts |
+| `weblisk-family-ref` | a string its `ref` accepts, then `@` and a major, as a file's `family:` is written ([`schemas/names`](names.md#three-separators-three-meanings)) |
 | `version-range` | a range as [`schemas/common`](common.md#version-ranges) writes one |
 | `type-expr` | a string the type-expr grammar above accepts |
 | `glob` | a path pattern where `*` matches within one segment and `**` across segments |
@@ -303,7 +304,7 @@ verifies:
   - id: blocks-walks-clean
     covers: [catalogue-closed]
     check: walk-validates
-    assertion: Walking schemas/blocks.md as a file of the family family reports no finding whose policy is refuse.
+    assertion: Walking schemas/blocks.md as a file of the family schemas/family reports no finding whose policy is refuse.
   - id: table-read-by-name
     covers: [tables-by-column-name, entries-by-declaration]
     check: vectors-agree

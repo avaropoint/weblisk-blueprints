@@ -49,8 +49,10 @@ Three further rules a grammar line cannot carry:
 - **`/` crosses files.** The local id is a path inside its namespace's root.
 - **`:` enters a file.** It names a part with an identity of its own: a
   requirement, a check, a type, an operation, a control, an obligation or a
-  block uid. Our own part ids are kebab-case; an issuer's clause number is kept
-  as the issuer writes it (`A.5.15`, `9(33)`).
+  block uid. Our own part ids are kebab-case, except a declared type's name,
+  which is PascalCase as [`schemas/common`](common.md#validation-rules-3) has
+  always required ([`schemas/blocks`](blocks.md#blocks)); an issuer's clause
+  number is kept as the issuer writes it (`A.5.15`, `9(33)`).
 - **`#` is a coordinate, never an identity.** It marks a heading anchor or a
   section slot, which move when a heading is reworded (six anchors already
   retired that way are in [`RETIRED.md`](../RETIRED.md)). Nothing joins on one,
@@ -58,6 +60,10 @@ Three further rules a grammar line cannot carry:
 
 **A version is never part of an id.** A citation is a ref and a version
 (`ohs/policy@1.1.0`), or, in a data field, the pair of a ref and a digest.
+A file's `family:` is the one place a ref is cited by a major alone,
+`<ref>@<major>` (`schemas/architecture@2`): the declaration of the family the
+file is written to, and the major it is written to
+([`schemas/family`](family.md)).
 
 ## Three written forms
 
@@ -77,7 +83,8 @@ a file's own sort. A tool reads the two together and keeps no list of its own.
 
 A ref family is not a **file family**, which says how a file of one sort is
 written and is declared in [`schemas/family`](family.md); a file family's
-`kind` names the ref family its files are named in.
+`kind` names the ref family its files are named in, and a file family is
+itself named by its declaration's ref, in the ref family `specification`.
 
 ## Namespaces
 

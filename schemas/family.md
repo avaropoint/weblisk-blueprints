@@ -1,5 +1,5 @@
 ---
-family: family@1
+family: schemas/family@1
 version: 1.0.0
 kind: specification
 noun: family
@@ -9,13 +9,17 @@ capabilities: [author, versioned]
 
 A family says how a file of one sort is written: its header, its sections, the
 typed blocks each section holds, and what each part of the file is for. A
-**family declaration** is a markdown file of the family `family`, and this file
+**family declaration** is a markdown file of the family `schemas/family`, and this file
 is the declaration of that family, so it validates against itself.
 
 A file family is not a ref family. A ref family ([`schemas/names`](names.md#families))
 says what sort of thing a ref names; a file family says how a file is written.
 A declaration's `kind` names the kind ([`schemas/kinds`](kinds.md#declared-kinds))
-its files are, and so the ref family they are named in.
+its files are, and so the ref family they are named in. A family is named by
+its declaration's ref: a declaration is a file of this family, whose `kind` is
+`specification`, so the family declared at `schemas/architecture.md` is
+`schemas/architecture`, and one declared anywhere else is named by its own
+path just the same.
 
 The typed blocks a slot may hold, and the closed vocabulary their fields are
 written in, are [`schemas/blocks`](blocks.md)'s. This file says how a file is
@@ -30,8 +34,9 @@ requirements:
     level: must
     text: >-
       A file's header names the family it is written to as `family:
-      <name>@<major>`, where <name> is the declaration's file name under
-      schemas/ and <major> is the major of that declaration's version.
+      <ref>@<major>`, where <ref> is the ref of the family's declaration in
+      the ref family specification, so its local id is the declaration's path
+      without `.md`, and <major> is the major of that declaration's version.
       A file with no `family:` is read as the family whose `match` covers its
       path, and a path two families match is a finding.
   - id: declaration-validates-itself
@@ -146,11 +151,11 @@ header:
     required: [family, version]
     unevaluatedProperties: false
     properties:
-      family:       {const: family@1}
+      family:       {const: schemas/family@1}
       version:      {$ref: "blocks#/$defs/version"}
       kind:         {type: string, description: "A kind schemas/kinds declares: what the family's files are."}
       match:        {type: array, items: {type: string, format: glob}}
-      extends:      {$ref: "#/$defs/family-name"}
+      extends:      {$ref: "#/$defs/family-ref"}
       noun:         {type: string, pattern: "^[a-z][a-z-]*$"}
       capabilities: {type: array, items: {enum: [author, versioned, depends, generates, publishable, adoptable]}}
       template:     {type: string, description: "A corpus path."}
@@ -163,7 +168,7 @@ header:
           record: {type: string}
       generates:    {enum: [code, document, none]}
   uses:
-    extends: {use: depends, resolves: family, send: always}
+    extends: {use: depends, resolves: specification, send: always}
     template: {use: navigates, send: on-request}
 ```
 
@@ -269,11 +274,11 @@ no value but its bytes.
 
 ```yaml
 defs:
-  family-name: {type: string, pattern: "^[a-z][a-z0-9-]*$"}
+  slot-key: {type: string, pattern: "^[a-z][a-z0-9-]*$"}
   family-ref:
     type: string
-    pattern: "^[a-z][a-z0-9-]*@[1-9][0-9]*$"
-    description: "<name>@<major>: the family a file is written to."
+    format: weblisk-family-ref
+    description: "<ref>@<major>: the declaration of the family a file is written to, and the major it is written to."
   use: {enum: [navigates, depends, binds, shapes, exposes, emits, configures, verifies, declares, instructs, explains, illustrates]}
   send: {enum: [always, cited, referenced, on-request]}
   policy: {enum: [report, allow, refuse]}
@@ -323,7 +328,7 @@ defs:
     required: [slot, heading, use]
     unevaluatedProperties: false
     properties:
-      slot: {$ref: "#/$defs/family-name"}
+      slot: {$ref: "#/$defs/slot-key"}
       heading: {$ref: "#/$defs/heading"}
       aliases: {type: array, items: {type: string}}
       required: {$ref: "#/$defs/required"}
@@ -446,7 +451,7 @@ defs:
     properties:
       span: {$ref: "#/$defs/span"}
       part: {enum: [header, text, block]}
-      slot: {oneOf: [{$ref: "#/$defs/family-name"}, {type: "null"}]}
+      slot: {oneOf: [{$ref: "#/$defs/slot-key"}, {type: "null"}]}
       key: {type: string, description: "A repeatable slot's key, on each of its parts."}
       block: {type: string, description: "A block's catalogued type."}
       family: {type: string, description: "The ref family the block's entries are named in."}
@@ -462,7 +467,6 @@ defs:
     properties:
       file: {type: string}
       family: {$ref: "#/$defs/family-ref"}
-      declaration: {type: string, description: "The declaration walked against, when it is not schemas/<name>.md."}
       length: {type: integer, minimum: 0}
       version_hash: {$ref: "#/$defs/digest"}
       parts: {type: array, items: {$ref: "#/$defs/part"}}

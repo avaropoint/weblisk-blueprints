@@ -1,23 +1,22 @@
 {
   "file": "vectors/grammar/aliases-and-repeats.md",
-  "family": "test-blueprint@1",
-  "length": 1138,
-  "version_hash": "sha256:4f46c20f29c7764df1265b9c3cf9bb27cd6184510ca9d3bc069dfa595268b13e",
-  "declaration": "vectors/grammar/test-blueprint.md",
+  "family": "vectors/grammar/test-blueprint@1",
+  "length": 1154,
+  "version_hash": "sha256:77f3115819b6ee70447525db8a4b5e3366344d4cecf6b63fbf8937fb7b755d2f",
   "parts": [
     {
-      "span": [0, 48],
+      "span": [0, 64],
       "part": "header",
       "slot": null,
       "use": "navigates",
       "send": "always",
-      "digest": "sha256:d8a545a3192269de0bd51f94d47bc92a540154b8d89c29264ae48b3dc1be567d",
+      "digest": "sha256:090a20476b335f38ff2f2efd7e75d7e8d3b3fa4bf57ab2a91b372661e8b9c2c3",
       "entries": [
         {
           "id": "family",
           "use": "navigates",
           "send": "always",
-          "digest": "sha256:c5d18b2ddb23c95e4d12f5521b2becda26840afbe04e973136bc9611985e1d50"
+          "digest": "sha256:0a4926df20a363d3527906c15468ed0c3c23ae782ce282a1b7b55ec720717562"
         },
         {
           "id": "version",
@@ -28,7 +27,7 @@
       ]
     },
     {
-      "span": [48, 143],
+      "span": [64, 159],
       "part": "text",
       "slot": "title",
       "use": "navigates",
@@ -36,7 +35,7 @@
       "digest": "sha256:57e2895b71003bebb5e12bc343f81918a3c304fd53e686fa760e4e9458703ee8"
     },
     {
-      "span": [143, 160],
+      "span": [159, 176],
       "part": "text",
       "slot": "requirements",
       "use": "binds",
@@ -44,7 +43,7 @@
       "digest": "sha256:9847786846315cd9627e8e8f8a391f46a055780253236daa667d267bb82b4365"
     },
     {
-      "span": [160, 392],
+      "span": [176, 408],
       "part": "block",
       "slot": "requirements",
       "block": "requirements",
@@ -64,7 +63,7 @@
       ]
     },
     {
-      "span": [392, 393],
+      "span": [408, 409],
       "part": "text",
       "slot": "requirements",
       "use": "binds",
@@ -72,7 +71,7 @@
       "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
     },
     {
-      "span": [393, 408],
+      "span": [409, 424],
       "part": "text",
       "slot": "types",
       "use": "shapes",
@@ -80,7 +79,7 @@
       "digest": "sha256:cebe83aa747d05ae1d361268a34fd46b5aa83448d09dab1f6267aab37c081798"
     },
     {
-      "span": [408, 623],
+      "span": [424, 639],
       "part": "block",
       "slot": "types",
       "block": "types",
@@ -96,7 +95,7 @@
       ]
     },
     {
-      "span": [623, 624],
+      "span": [639, 640],
       "part": "text",
       "slot": "types",
       "use": "shapes",
@@ -104,7 +103,7 @@
       "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
     },
     {
-      "span": [624, 641],
+      "span": [640, 657],
       "part": "text",
       "slot": "verifies",
       "use": "verifies",
@@ -112,7 +111,7 @@
       "digest": "sha256:817b1fa3eae2537bd10a8a271ca4c40b799f05f71d6b855f9e40446f21ab62fa"
     },
     {
-      "span": [641, 792],
+      "span": [657, 808],
       "part": "block",
       "slot": "verifies",
       "block": "verifies",
@@ -128,7 +127,7 @@
       ]
     },
     {
-      "span": [792, 793],
+      "span": [808, 809],
       "part": "text",
       "slot": "verifies",
       "use": "verifies",
@@ -136,7 +135,7 @@
       "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
     },
     {
-      "span": [793, 932],
+      "span": [809, 948],
       "part": "text",
       "slot": "operation",
       "use": "explains",
@@ -148,7 +147,7 @@
       "key": "lease-is-renewed"
     },
     {
-      "span": [932, 1063],
+      "span": [948, 1079],
       "part": "text",
       "slot": "operation",
       "use": "explains",
@@ -160,7 +159,7 @@
       "key": "drain-before-stop"
     },
     {
-      "span": [1063, 1138],
+      "span": [1079, 1154],
       "part": "text",
       "slot": "operation",
       "use": "explains",
@@ -172,7 +171,7 @@
     {
       "code": "slot-key-missing",
       "policy": "refuse",
-      "span": [1063, 1138],
+      "span": [1079, 1154],
       "subject": "operation"
     }
   ]

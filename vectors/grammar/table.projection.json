@@ -1,23 +1,22 @@
 {
   "file": "vectors/grammar/table.md",
-  "family": "test-blueprint@1",
-  "length": 759,
-  "version_hash": "sha256:09c8f247c524bf41dfa8f5f613d9971fd50e821991addb4a25cdf207feed9ac9",
-  "declaration": "vectors/grammar/test-blueprint.md",
+  "family": "vectors/grammar/test-blueprint@1",
+  "length": 775,
+  "version_hash": "sha256:83963d5265893340129297c026e95e61809f2e1f69a69f0377569357eb26cb8e",
   "parts": [
     {
-      "span": [0, 48],
+      "span": [0, 64],
       "part": "header",
       "slot": null,
       "use": "navigates",
       "send": "always",
-      "digest": "sha256:d8a545a3192269de0bd51f94d47bc92a540154b8d89c29264ae48b3dc1be567d",
+      "digest": "sha256:090a20476b335f38ff2f2efd7e75d7e8d3b3fa4bf57ab2a91b372661e8b9c2c3",
       "entries": [
         {
           "id": "family",
           "use": "navigates",
           "send": "always",
-          "digest": "sha256:c5d18b2ddb23c95e4d12f5521b2becda26840afbe04e973136bc9611985e1d50"
+          "digest": "sha256:0a4926df20a363d3527906c15468ed0c3c23ae782ce282a1b7b55ec720717562"
         },
         {
           "id": "version",
@@ -28,7 +27,7 @@
       ]
     },
     {
-      "span": [48, 212],
+      "span": [64, 228],
       "part": "text",
       "slot": "title",
       "use": "navigates",
@@ -36,7 +35,7 @@
       "digest": "sha256:4a25cb850d6de34ca5c358d5cc0d1b46b4c075ef2ad871407a82fb92c674c372"
     },
     {
-      "span": [212, 229],
+      "span": [228, 245],
       "part": "text",
       "slot": "requirements",
       "use": "binds",
@@ -44,7 +43,7 @@
       "digest": "sha256:9847786846315cd9627e8e8f8a391f46a055780253236daa667d267bb82b4365"
     },
     {
-      "span": [229, 351],
+      "span": [245, 367],
       "part": "block",
       "slot": "requirements",
       "block": "requirements",
@@ -60,7 +59,7 @@
       ]
     },
     {
-      "span": [351, 352],
+      "span": [367, 368],
       "part": "text",
       "slot": "requirements",
       "use": "binds",
@@ -68,7 +67,7 @@
       "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
     },
     {
-      "span": [352, 363],
+      "span": [368, 379],
       "part": "text",
       "slot": "errors",
       "use": "shapes",
@@ -76,7 +75,7 @@
       "digest": "sha256:6c460bdc9f271a9afae28045af6fc57577cef6cebe53c18715a71a6f57dcfaa0"
     },
     {
-      "span": [363, 588],
+      "span": [379, 604],
       "part": "block",
       "slot": "errors",
       "block": "errors",
@@ -95,7 +94,7 @@
       ]
     },
     {
-      "span": [588, 589],
+      "span": [604, 605],
       "part": "text",
       "slot": "errors",
       "use": "shapes",
@@ -103,7 +102,7 @@
       "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
     },
     {
-      "span": [589, 606],
+      "span": [605, 622],
       "part": "text",
       "slot": "verifies",
       "use": "verifies",
@@ -111,7 +110,7 @@
       "digest": "sha256:817b1fa3eae2537bd10a8a271ca4c40b799f05f71d6b855f9e40446f21ab62fa"
     },
     {
-      "span": [606, 759],
+      "span": [622, 775],
       "part": "block",
       "slot": "verifies",
       "block": "verifies",
@@ -131,7 +130,7 @@
     {
       "code": "unknown-column",
       "policy": "report",
-      "span": [363, 588],
+      "span": [379, 604],
       "subject": "Owner"
     }
   ]

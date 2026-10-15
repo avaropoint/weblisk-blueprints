@@ -1,5 +1,5 @@
 ---
-family: family@1
+family: schemas/family@1
 version: 1.0.0
 kind: specification
 noun: blueprint
@@ -19,7 +19,7 @@ header:
     required: [family, version]
     unevaluatedProperties: false
     properties:
-      family:   {const: test-blueprint@1}
+      family:   {const: vectors/grammar/test-blueprint@1}
       version:  {$ref: "blocks#/$defs/version"}
       requires: {type: array, items: {$ref: "blocks#/$defs/requires-entry"}}
       review:   {$ref: "blocks#/$defs/date"}
