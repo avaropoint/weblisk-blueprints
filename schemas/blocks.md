@@ -146,7 +146,8 @@ blocks:
     entries: {by: id}
     family: check
   types:
-    schema: {type: object, minProperties: 1, additionalProperties: {$ref: "#/$defs/type"}}
+    schema: {type: object, minProperties: 1, propertyNames: {pattern: "^[A-Z][A-Za-z0-9]*$"},
+             additionalProperties: {$ref: "#/$defs/type"}}
     entries: keys
     family: type
   serves:
