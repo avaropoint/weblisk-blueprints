@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.2.1
+version: 1.3.0
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -156,7 +156,9 @@ interfaces:
 7. The gate runs: structure, coherence, properties, behaviour. Inside the
    repair loop, a tree is read in the order [What a repair round reads, and in
    what order](#what-a-repair-round-reads-and-in-what-order) gives.
-8. The plan is recorded with the output as provenance.
+8. The run writes its run statement — what it read and wrote, the model the
+   backend reported, and what each output traces to — beside the output
+   ([The run statement](#the-run-statement)).
 
 ---
 
@@ -194,6 +196,7 @@ plan:
       purpose: <text>
       declares: []          # TOP-LEVEL symbols only — see below
       serves: []            # "METHOD /path" this file will handle
+      implements: []        # requirement refs this file answers for
       depends_on: []        # files that must be generated first
 ```
 
@@ -521,6 +524,46 @@ Until the cascade is implemented, an implementation MAY treat any change to a
 blueprint a file was generated from as reaching it. That is sound and blunt: it
 never keeps a file it should have rebuilt, and it rebuilds many it should have
 kept. It MUST NOT be described as incremental.
+
+### The run statement
+
+Every run writes one run statement, which holds the record the previous section
+requires, one subject per file written:
+one immutable file at `provenance/runs/<run id>.json` in the tenant
+repository, whose shape, signing and reading rules are
+[`schemas/run-statement.md`](../schemas/run-statement.md)'s. It is written with
+the files, so the first build has one and no fabric needs to be running.
+
+What the generator puts in it, and why each is its job:
+
+- **The model is the id the backend reported at run time.** A generator MUST
+  record what the backend said served the run, never the name it was configured
+  to ask for. A backend that reports none is recorded as `unreported`, and a run
+  whose model is `unreported` MUST NOT create a cache entry: an output cannot be
+  reused on the strength of a model nobody can name.
+- **Roots per output.** For each file, which of the run's roots it was generated
+  for. A run of one root records that root on every file; a run of many records
+  each file's own.
+- **`implements` per planned file**, copied from the plan entry. A plan entry's
+  `implements` names requirements by ref; a file that claims one is answerable
+  for it at verification, where a test named by the covering check's id must
+  exist and pass. A missing one is a repair, not a pass. Where the language has
+  no symbol extractor the confirmation is file-level and says so. No marker is
+  written into generated code.
+- **Per output, the rebuild record.** The plan entry that produced it
+  (`path`, `purpose`, `declares`, `serves`), its digest as written, each
+  blueprint it was generated from at the digest the run read, and the bindings
+  and checklist assertions it is answerable for. The rebuild decision above
+  reads these, per file, from the latest statement that wrote the file.
+- **What each output was generated from** — the requirements, mapping rules and
+  controls its prompt cited — and every blueprint and rule the run resolved,
+  each at its digest.
+
+The statement is the outbox for the relationship fabric: its
+`generation-statements` producer turns each statement into ledger edges
+([`architecture/fabric`](fabric.md#declared-at-write-time)). Manifests of what
+was written, build status and adoption views are computed from statements, and
+nothing else records run facts.
 
 ### Generation order comes from the plan
 

@@ -147,7 +147,6 @@ families:
   - type        # a declared type:              type://weblisk/protocol/types:RegisterRequest
   - operation   # an operation a blueprint serves: operation://weblisk/architecture/orchestrator:register
   - spec        # a programme's artifact specification: spec://weblisk/ohs/policy
-  - programme   # a programme map:                programme://weblisk/ohs
   - doc         # a tenant document by its uid:   doc://example/3f9c1e0a2b4d
 reserved:
   - weblisk     # this corpus, and everything Weblisk publishes

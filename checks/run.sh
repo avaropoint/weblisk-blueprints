@@ -161,5 +161,122 @@ else
 	fails=$((fails + 1))
 fi
 
+# The fabric's reach depth has one home (D23); a copy of architecture/ in which
+# change-management states its own depth again must report exactly two places.
+expect 0 "reach-depth: one home, every citation resolves" python3 checks/reach-depth.py
+mkdir -p "$tmp/rd" && cp -R architecture "$tmp/rd/"
+sed 's|^  depth_limit: requirement://weblisk/architecture/fabric:reach-max-depth$|  depth_limit: 10|' architecture/change-management.md >"$tmp/rd/architecture/change-management.md"
+expect 1 "reach-depth control: a second stated depth fails" python3 checks/reach-depth.py --root "$tmp/rd"
+if [ "$(grep -c ' = ' "$tmp/out")" -eq 2 ] && grep -q '^architecture/change-management.md:[0-9]*: depth_limit = 10$' "$tmp/out"; then
+	echo "ok   reach-depth control: exactly two places, the restored one among them"
+else
+	echo "FAIL reach-depth control: want exactly two places, change-management's depth_limit among them"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# A depth that bounds no walk is not the reach depth: a copy with a queue
+# depth and a nesting depth added still has one home, and a copy that adds a
+# traversal block's max_depth again has two.
+mkdir -p "$tmp/rq" && cp -R architecture "$tmp/rq/"
+printf '```yaml\nlimits:\n  max_queue_depth: 1000\n  max_nesting_depth: 20\n```\n' >"$tmp/rq/architecture/queue-fixture.md"
+expect 0 "reach-depth control: a queue or nesting depth is not a second home" python3 checks/reach-depth.py --root "$tmp/rq"
+printf '```yaml\nfabric:\n  traversal:\n    max_depth: 6\n```\n' >"$tmp/rq/architecture/queue-fixture.md"
+expect 1 "reach-depth control: a traversal max_depth is a second home" python3 checks/reach-depth.py --root "$tmp/rq"
+grep -q '^architecture/queue-fixture.md:4: max_depth = 6$' "$tmp/out" || { echo "FAIL reach-depth control: the traversal max_depth was not what was reported"; fails=$((fails + 1)); }
+
+# fabric.md's own citations resolve too: a copy citing a misspelt fabric
+# requirement from inside fabric.md must report exactly that citation.
+mkdir -p "$tmp/rf" && cp -R architecture "$tmp/rf/"
+printf '\nSee requirement://weblisk/architecture/fabric:reach-max-dept.\n' >>"$tmp/rf/architecture/fabric.md"
+expect 1 "reach-depth control: a misspelt citation inside fabric.md fails" python3 checks/reach-depth.py --root "$tmp/rf"
+grep -q '^architecture/fabric.md:[0-9]*: cites requirement://weblisk/architecture/fabric:reach-max-dept,' "$tmp/out" || { echo "FAIL reach-depth control: the misspelt citation was not what was reported"; fails=$((fails + 1)); }
+
+# The relation table is read as kinds.md writes it: a row naming several
+# relations declares each, "any content kind" is the any fallback, and
+# "the same kind" relates a kind only to itself.
+expect 0 "fabric-ledger relations: supersedes from blueprint to blueprint is declared" python3 checks/fabric-ledger.py --relation supersedes blueprint blueprint
+expect 0 "fabric-ledger relations: mentions from policy to control is declared" python3 checks/fabric-ledger.py --relation mentions policy control
+expect 0 "fabric-ledger relations: copied_from from policy to policy is declared" python3 checks/fabric-ledger.py --relation copied_from policy policy
+expect 1 "fabric-ledger relations control: copied_from from policy to procedure is not" python3 checks/fabric-ledger.py --relation copied_from policy procedure
+
+# The fabric ledger vector chains; a copy with one entry altered must fail at
+# exactly that entry and nowhere else.
+expect 0 "fabric-ledger: the vector's chain verifies" python3 checks/fabric-ledger.py
+python3 - "$tmp/ledger.json" <<'PY'
+import json, sys
+v = json.load(open("vectors/fabric-ledger.json", encoding="utf-8"))
+v["entries"][2]["claim"]["basis"] += "."
+json.dump(v, open(sys.argv[1], "w", encoding="utf-8"))
+PY
+expect 1 "fabric-ledger control: a copy with entry 3 altered fails" python3 checks/fabric-ledger.py --file "$tmp/ledger.json"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^seq 3: ' "$tmp/out"; then
+	echo "ok   fabric-ledger control: exactly one fault, at seq 3"
+else
+	echo "FAIL fabric-ledger control: want exactly one fault, at seq 3"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# Each claim in the vector is a relation schemas/kinds.md declares, and an
+# end whose kind is not versioned cites a projection. A copy whose provider
+# end cites a bare version, and a copy relating code to a mapping rule by a
+# relation kinds.md does not declare, must each fail at that entry.
+python3 - "$tmp" <<'PY'
+import json, sys
+v = json.load(open("vectors/fabric-ledger.json", encoding="utf-8"))
+del v["entries"][2]["claim"]["identity"]["to"]["cited_version"]["projection"]
+json.dump(v, open(sys.argv[1] + "/bare.json", "w", encoding="utf-8"))
+v = json.load(open("vectors/fabric-ledger.json", encoding="utf-8"))
+v["entries"][1]["claim"]["identity"]["relation"] = "verifies"
+json.dump(v, open(sys.argv[1] + "/undeclared.json", "w", encoding="utf-8"))
+PY
+expect 1 "fabric-ledger control: a provider end citing a bare version fails" python3 checks/fabric-ledger.py --file "$tmp/bare.json"
+grep -q '^seq 3: .*provider end cites a version its kind does not have' "$tmp/out" || { echo "FAIL fabric-ledger control: the bare provider version was not what was reported"; fails=$((fails + 1)); }
+expect 1 "fabric-ledger control: an undeclared relation fails" python3 checks/fabric-ledger.py --file "$tmp/undeclared.json"
+grep -q '^seq 2: .*verifies from code to mapping is not a relation' "$tmp/out" || { echo "FAIL fabric-ledger control: the undeclared relation was not what was reported"; fails=$((fails + 1)); }
+
+# A cited_version field the fabric's ContentIdentity binding lacks is one a
+# generated fabric would never read; a copy of fabric.md bound without
+# projection must report exactly that field.
+mkdir -p "$tmp/fb" && sed 's/fields_used: \[algorithm, digest, size, projection\]/fields_used: [algorithm, digest, size]/' architecture/fabric.md >"$tmp/fb/fabric.md"
+expect 1 "fabric-ledger control: a ContentIdentity binding without projection fails" python3 checks/fabric-ledger.py --fabric "$tmp/fb/fabric.md"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^cited_version field projection .* is not in' "$tmp/out"; then
+	echo "ok   fabric-ledger control: exactly one fault, the unbound projection"
+else
+	echo "FAIL fabric-ledger control: want exactly one fault, the unbound projection"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# Every place bare hex is still written is named as a gap by
+# content-identity's digest-spelling rule, and nothing else; a copy whose rule
+# forgets protocol/types must report exactly protocol/types.
+expect 0 "digest-spelling: every bare-hex digest is a named gap" python3 checks/digest-spelling.py
+mkdir -p "$tmp/ds" && cp -R architecture protocol patterns schemas "$tmp/ds/"
+sed "s/; and protocol\/types AuditEntry's \`previous_hash\`//" patterns/content-identity.md >"$tmp/ds/patterns/content-identity.md"
+expect 1 "digest-spelling control: a gap the rule forgets fails" python3 checks/digest-spelling.py --root "$tmp/ds"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^protocol/types.md: writes a bare-hex SHA-256' "$tmp/out"; then
+	echo "ok   digest-spelling control: exactly one finding, protocol/types"
+else
+	echo "FAIL digest-spelling control: want exactly one finding, protocol/types"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# Every type ref in the weblisk namespace names a declared type; a copy that
+# misspells the run statement's build type must report exactly that ref.
+expect 0 "type-refs: every type ref names a declared type" python3 checks/type-refs.py
+mkdir -p "$tmp/tr" && cp -R schemas protocol "$tmp/tr/"
+sed 's|run-statement:RunStatement$|run-statement:RunStatment|' schemas/run-statement.md >"$tmp/tr/schemas/run-statement.md"
+expect 1 "type-refs control: a misspelt type ref fails" python3 checks/type-refs.py --root "$tmp/tr"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^schemas/run-statement.md:[0-9]*: type://weblisk/schemas/run-statement:RunStatment names a type' "$tmp/out"; then
+	echo "ok   type-refs control: exactly one finding, the misspelt build type"
+else
+	echo "FAIL type-refs control: want exactly one finding, the misspelt build type"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]
