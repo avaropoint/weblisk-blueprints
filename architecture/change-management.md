@@ -423,9 +423,14 @@ transitive_resolution:
   # reported as incomplete, never as no further dependents.
   # Gap: architecture/fabric is not in this file's requires, and a binding
   # cannot yet name a requirement, so a build of this file does not carry
-  # the value. Until a binding can, a generator MUST resolve this ref from the
-  # corpus revision the build resolved, and MUST refuse the file rather than
-  # read the ref as a number or as no bound.
+  # the value. Today's pipeline builds the prompt from bindings and passes
+  # this ref to the model as text: it neither resolves the ref nor refuses
+  # the file, and a build reads the bound only as well as the model does.
+  # What closes it is part selection (corpus-v2 lane v2-cli-select), which
+  # sends cited requirements by id and digest and refuses a build that
+  # names one it cannot resolve; until then a generated file's depth bound
+  # is unverified, never assumed, and never read as a number or no bound.
+  # max_dependency_depth below cites the same requirement under the same gap.
   depth_limit: requirement://weblisk/architecture/fabric:reach-max-depth
   cycle_detection: required
   cycle_resolution: >
