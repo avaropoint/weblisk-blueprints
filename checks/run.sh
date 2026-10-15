@@ -62,7 +62,13 @@ text = open("RETIRED.md", encoding="utf-8").read()
 head, block = text.split("```yaml\n", 1)
 entries = block.split("\n- retired:")
 open(sys.argv[1] + "/short.md", "w").write(head + "```yaml\n" + "\n- retired:".join(entries[:-1]) + "\n```\n")
-open(sys.argv[1] + "/ended.md", "w").write(text.replace("until: architecture/admin@4.0.0", "until: architecture/admin@1.0.0", 1))
+# The first allowance whose file is at 1.0.0 or above, cut back to end at
+# 1.0.0. Derived, because a named allowance is taken out when its file moves.
+def major(rel):
+    m = re.search(r"^version:\s*['\"]?(\d+)\.", open(rel + ".md", encoding="utf-8").read(2000), re.M)
+    return int(m.group(1)) if m else 0
+end = next(m for m in re.finditer(r"until: ([\w/.-]+)@[\d.]+\}", text) if major(m.group(1)) >= 1)
+open(sys.argv[1] + "/ended.md", "w").write(text[: end.start()] + "until: " + end.group(1) + "@1.0.0}" + text[end.end() :])
 PY
 expect 1 "retired control: a row without its entry fails" python3 checks/retired.py --file "$tmp/short.md"
 grep -q "table rows and" "$tmp/out" || { echo "FAIL retired control: the missing entry was not what was reported"; fails=$((fails + 1)); }

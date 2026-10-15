@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: data-security
-version: 1.3.0
+version: 1.3.1
 requires: [protocol/types, protocol/spec, protocol/identity, protocol/federation, architecture/content, architecture/gateway, architecture/observability, architecture/enforcement, patterns/scope, patterns/policy, patterns/privacy, patterns/contract]
 platform: any
 tier: free
@@ -653,7 +653,7 @@ communication:
 | Task completion / failure | Domain controller | Task ID, status, duration |
 | Gateway route decisions | Gateway | Route, auth decision, user context |
 | Federation message send / receive | Gateway | Peer, contract, field list |
-| Admin operations | Admin gateway | Operator, action, target, 4-eyes approval |
+| Admin operations | The component that serves the act | Operator, action, target, and for a destructive act the `step_up_at` it was admitted on ([`architecture/admin`](admin.md#contracts), `destructive-action-step-up`) |
 
 ### What Does NOT Get Logged by the Framework
 

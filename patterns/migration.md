@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: migration
-version: 1.0.2
+version: 1.1.0
 requires: [protocol/types, patterns/safety, patterns/approval, patterns/storage, patterns/versioning, patterns/state-machine, patterns/logging]
 platform: any
 tier: free
@@ -48,8 +48,9 @@ The migration governance pipeline has seven stages:
    report — rows affected, data transformations previewed, integrity
    checksums computed — without committing any changes.
 4. **Approve** — the migration plan and dry-run report are submitted
-   for approval through `patterns/approval`. Destructive migrations
-   require multi-party approval.
+   for approval through `patterns/approval`. A destructive migration
+   needs its approver's step-up, and more than one approver only where
+   the tenant declares it.
 5. **Execute** — the approved migration runs within a controlled
    execution context with blast radius limits, progress tracking,
    and automatic rollback on failure.
@@ -113,7 +114,7 @@ requires:
         - name: approval-routing
           usage: Migration plans are submitted as approval requests after dry-run validation
         - name: multi-party-approval
-          usage: Destructive migrations require multi-party consensus
+          usage: Applied where a tenant's routing declares more than one approver for a migration; the platform requires none
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -1513,17 +1514,38 @@ environment, and data loss risk.
 | Environment | Operation Class | Data Loss Risk | Approval Required |
 |-------------|----------------|----------------|-------------------|
 | development | read, create, modify | any | Auto-approved |
-| development | delete, destroy | any | Single operator |
+| development | delete, destroy | any | One person |
 | staging | read, create | any | Auto-approved |
-| staging | modify | none, recoverable | Single operator |
-| staging | modify | permanent | Two operators |
-| staging | delete, destroy | any | Two operators |
-| production | read, create | any | Single operator |
-| production | modify | none | Single operator |
-| production | modify | recoverable | Two operators |
-| production | modify | permanent | Two operators + admin |
-| production | delete | any | Two operators + admin |
-| production | destroy | any | Three operators + admin (4-eyes) |
+| staging | modify | none, recoverable | One person |
+| staging | modify | permanent | One person, with a step-up |
+| staging | delete, destroy | any | One person, with a step-up |
+| production | read, create | any | One person |
+| production | modify | none | One person |
+| production | modify | recoverable, permanent | One person, with a step-up |
+| production | delete, destroy | any | One person, with a step-up |
+
+A step-up is the approver's own re-confirmation, recent enough, made through
+whatever authenticates the tenant's operators. This pattern names which
+approvals need one and binds no contract for it: where the tenant's operators
+authenticate as [`architecture/admin`](../architecture/admin.md#contracts)
+specifies, its `destructive-action-step-up` is what a step-up means, and this
+pattern restates none of it. The platform never requires a second
+person. **More than one approver is the tenant's to declare**, as
+`patterns/approval`'s `multi_party_rules`, which then run beside the step-up.
+A tenant that wants the separation this table once imposed declares it, for
+example:
+
+```yaml
+multi_party_rules:
+  - condition: "environment == 'production' AND operation_class == 'destroy'"
+    min_approvers: 3
+    from_pool: [operator_pool, admin_pool]
+  - condition: "environment == 'production' AND (operation_class == 'delete' OR data_loss_risk == 'permanent')"
+    min_approvers: 2
+    from_pool: [operator_pool, admin_pool]
+```
+
+<!-- wl:id migration-second-person-declared -->
 
 ### Approval Request Content
 
@@ -2032,6 +2054,7 @@ All migration errors follow the standard `ErrorResponse` from
 - [ ] Dry run completes successfully before approval is requested
 - [ ] DryRunReport is available to approvers before they make a decision
 - [ ] Approval routing matches the operation class × environment × data loss risk matrix
+- [ ] A destructive migration at a tenant that declares no `multi_party_rules` is approved by one person with a step-up and asks nobody else; at one that declares a rule for it, it waits for that rule's `min_approvers` as well <!-- wl:check migration-approvers-declared covers migration-second-person-declared -->
 - [ ] Approved migrations execute within the approval expiration window
 - [ ] Blast radius limits are enforced during execution — limit breach triggers rollback
 - [ ] Mutation contract is verified at every step — unauthorized operations are rejected
