@@ -771,7 +771,10 @@ installation supports, and `admin`, the admin gateway
 them: `tenant create` builds it, and `weblisk component admin init` builds it
 into a tenant that has none, making `.weblisk/keys/` and the gateway's two
 keys as `gateway-keys-kept` says, the tenant's `.gitignore` written or amended
-first ([`architecture/admin`](admin.md#registration-lease-and-identity)).
+first ([`architecture/admin`](admin.md#registration-lease-and-identity)). Into
+a running tenant, it reports that the orchestrator admits the gateway once
+restarted, because the orchestrator reads the gateway's identity when it
+starts.
 
 The tenant root is the module root, so every component is generated into the
 same tree. Generation therefore reads what the tenant already contains — module
@@ -1212,7 +1215,11 @@ Reads `.weblisk/config.yaml` to determine which components to build and start,
 per [`schemas/config`](../schemas/config.md). A section that is present
 declares its component — `content:` declares the content service — and an
 absent or null one declares none. With no file it starts the orchestrator
-alone: the file is an operator's declaration, never a precondition.
+alone: the file is an operator's declaration, never a precondition. That is a
+hub with no door, and start says so: no person's client reaches it until a
+configuration declares the admin gateway rule 20 of
+[`schemas/config`](../schemas/config.md#validation-rules) requires, which
+`weblisk component admin init` writes.
 
 - **Order.** The orchestrator first, and each sibling only once the
   orchestrator's `GET /livez` answers live and then its `GET /readyz` answers
@@ -1381,8 +1388,11 @@ first registration answers with, because every request that would use one
 goes to the hub's admin gateway, and the address the CLI records for a hub is
 that gateway's, never the orchestrator's (`orchestrator_url`). It then
 registers at the admin gateway, at its origin in
-`orchestrator.admin_addresses`, verifying its certificate against the
-gateway's pin, as [`weblisk operator register`](#weblisk-operator-register)
+`orchestrator.admin_addresses`, verifying its certificate against the pin of
+the certificate the tenant's configuration names (`admin_gateway.tls_cert`, or
+its default), read from this host's disk as
+[`weblisk tenant accept`](#weblisk-tenant-accept) reads it and never from the
+connection, as [`weblisk operator register`](#weblisk-operator-register)
 does: the hub already knows the operator, so it answers the registration as a
 repeat, and the CLI records the registration, with the pin, at the gateway's
 address alone. <!-- wl:id cli-provision-registers-at-gateway --> A
@@ -1711,8 +1721,12 @@ CLI holds one for each identity at each hub:
   when the person confirms at a terminal that the hub has moved there, and,
   once the hub proof below has test vectors, only where that address proves
   the recorded `hub_id`, never with `--json` or `--batch` or with no
-  terminal. It is the only
-  `hub_id` the identity ever signs to ask for an attestation token, so a
+  terminal. A move keeps no pin: a pin trusts one key at one address
+  ([`architecture/admin`](admin.md#certificate)), so the moved registration
+  is verified at its new address against a pin the person gives with
+  `--tls-pin`, learned where that section says one is, or against the system's
+  roots, and never against the pin of the address it left. The recorded
+  `hub_id` is the only `hub_id` the identity ever signs to ask for an attestation token, so a
   signature it makes is refused at every hub but the one whose answer
   recorded it. Which hub gave that answer is proven by the hub proof below
   alone, and until it has test vectors it is not proven where the CLI
@@ -2048,6 +2062,8 @@ Registering operator 'alice' with https://hub.example.com...
   requests keeps the pin with the address (`console-keeps-pin`). Where it holds
   no pin and the system's roots do not verify the certificate, it refuses,
   naming where a pin comes from and never offering the presented certificate's
+  pin as one to trust ([`architecture/admin`](admin.md#certificate),
+  `client-pins-gateway-key`)
 
 ### `weblisk operator connect`
 
@@ -3543,7 +3559,7 @@ security:
 - [ ] `weblisk component <name> init` ends on the best tree it reached and never a worse one — on an error too — names the requirements it left unrepaired, and a re-run starts from that tree
 - [ ] `weblisk server init` reads YAML specs and dispatches to the configured LLM for code generation
 - [ ] `weblisk server start` reads .weblisk/config.yaml and builds+starts all declared components
-- [ ] `weblisk server start` starts the orchestrator alone when `.weblisk/config.yaml` is absent, and refuses a declaration it cannot carry out before starting anything
+- [ ] `weblisk server start` starts the orchestrator alone when `.weblisk/config.yaml` is absent, reporting it as a hub with no admin gateway, and refuses a declaration it cannot carry out before starting anything
 - [ ] `weblisk server stop` with no `--component` stops every recorded component, the orchestrator last
 - [ ] `weblisk component <name> start|stop|status|logs` runs any component the tenant has generated, and a detached start reports started only once the component's `GET /livez` answers live, then waits on its `GET /readyz` and reports a component that never becomes ready as not ready
 - [ ] Every start of a tenant component — `weblisk server start` attached or detached, `weblisk component <name> start`, the orchestrator `weblisk tenant create` starts, `weblisk agent start`, `weblisk domain start`, `weblisk gateway start`, and the first run and each restart `weblisk dev` makes of a hub — gives it an environment built from nothing: the names in the allow-list of [A component starts with a clean environment](#a-component-starts-with-a-clean-environment) that are set in the CLI's own, `WL_PORT`, `WL_ORCH_URL` where an orchestrator is named or running and the component is not it, `npm_config_userconfig` and `npm_config_globalconfig` where its run command is npm's, and its declared `env`, and no other name of the CLI's environment

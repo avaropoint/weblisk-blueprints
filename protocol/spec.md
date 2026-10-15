@@ -403,6 +403,12 @@ The orchestrator MUST:
    component is a service, and a service never holds one
    ([`patterns/principal-identity`](../patterns/principal-identity.md),
    `service-subject-constraints`). The token of step 7 would otherwise carry it.
+   Refuse with 403 `CAPABILITY_GATEWAY_ONLY` if `manifest.capabilities` names
+   a capability `protocol/types` marks *admin gateway only*
+   ([`protocol/types`](types.md#capability)) and the fingerprint of
+   `manifest.public_key` is not the one the tenant declared as its admin
+   gateway's, or the tenant declared none
+   ([`architecture/admin`](../architecture/admin.md#registration-lease-and-identity)).
    Refuse with 400 `INVALID_REQUEST`, before anything is recorded, a manifest
    that names a capability `protocol/types` does not list, in `capabilities`
    or in a pass route (`pass_routes`, its `capabilities` or a body
@@ -458,7 +464,8 @@ The orchestrator MUST:
 > grants (principal-identity's `grant:issue`, which a hub carries as
 > `admin:*`), and to carry an expiry. This endpoint does none of those: it admits a component on
 > its signed manifest alone. Of those constraints it applies only step 1's
-> refusal of a person-only capability. So it would admit a console that
+> refusals of a person-only capability, and of an admin-gateway-only one to a
+> key the tenant did not declare. So it would admit a console that
 > registered its own key as a component, which nothing here can tell from a
 > component; `architecture/admin`'s `console-credential-use` forbids a console
 > to do so, and that rule binds the console, not this endpoint. Closing the
@@ -470,7 +477,9 @@ The orchestrator MUST:
 - 400: Missing required fields, a capability `protocol/types` does not list,
   or two pass routes that can match one request (`INVALID_REQUEST`)
 - 401: Invalid signature or stale timestamp
-- 403: Reserved namespace, unauthorized scope, or a person-only capability
+- 403: Reserved namespace, unauthorized scope, a person-only capability, or
+  an admin-gateway-only capability from a key the tenant did not declare as its
+  admin gateway's (`CAPABILITY_GATEWAY_ONLY`)
 - 409: Namespace already owned by another agent (`NAMESPACE_CONFLICT`), or a
   `url` that contradicts the address the tenant declared for that component
   (`ADDRESS_CONFLICT`)
@@ -1271,6 +1280,7 @@ security:
 - [ ] Orchestrator `POST /v1/register` enforces replay protection (300s window)
 - [ ] Orchestrator `POST /v1/register` rejects `system.*` namespace claims (403)
 - [ ] Orchestrator `POST /v1/register` refuses a manifest whose `capabilities` names any capability [`protocol/types`](types.md#capability) marks person only, whichever it is, read from that list rather than from a copy of it, with 403 `CAPABILITY_PERSON_ONLY`, and issues no token
+- [ ] Orchestrator `POST /v1/register` refuses a manifest whose `capabilities` names a capability [`protocol/types`](types.md#capability) marks admin gateway only, from a key whose fingerprint is not the one the tenant declared as its admin gateway's, with 403 `CAPABILITY_GATEWAY_ONLY`, and records and issues nothing; it admits the same manifest from the declared key
 - [ ] Orchestrator `POST /v1/register` refuses with 400 `INVALID_REQUEST`, recording nothing, a manifest naming a capability `protocol/types` does not list, in `capabilities` or in a pass route, and one two of whose pass routes can match one request
 - [ ] The token `POST /v1/register` issues carries `identity_id`, the fingerprint of `manifest.public_key`
 - [ ] Orchestrator `DELETE /v1/register` releases namespaces and routing entries

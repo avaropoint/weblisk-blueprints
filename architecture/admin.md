@@ -745,7 +745,7 @@ are [`schemas/config`](../schemas/config.md#admin_gateway)'s.
 | Listener | Serves | Reached by | Settings |
 |---|---|---|---|
 | admin | the `admin` rows of [Endpoints](#endpoints) | people's clients: the CLI, a console | `admin_gateway.port` (9443), `tls_cert`, `tls_key`, `allowlist` |
-| internal | the `internal` rows: [`protocol/spec`](../protocol/spec.md#agent-endpoints)'s agent endpoints | the orchestrator | `admin_gateway.internal_port` (9803) |
+| internal | the `internal` rows: [`protocol/spec`](../protocol/spec.md#agent-endpoints)'s agent endpoints | the orchestrator | `admin_gateway.internal_port` (9803), `internal_address` |
 
 The admin listener MUST serve HTTPS alone and MUST refuse a request from an
 address `admin_gateway.allowlist` does not name, as step 1 of the lifecycle
@@ -753,14 +753,16 @@ says. <!-- wl:id admin-listener-guarded --> The allowlist names addresses and
 CIDR ranges. Absent, it names the loopback addresses `127.0.0.1` and `::1`;
 empty, it admits no one. The internal listener is the `url` the gateway's
 manifest names (`admin-gateway-authorization`), and only the orchestrator
-needs to reach it.
+needs to reach it. It binds the loopback address alone; where the orchestrator
+runs on another host, it reaches the listener through a TLS terminator on the
+gateway's host, at `admin_gateway.internal_address`.
 
 ### Addresses
 
 | Address | What it is | Where it is set |
 |---|---|---|
 | Each origin the admin listener is reached at | Where a person's client connects, and the address the CLI records for the hub (`orchestrator_url`, [`architecture/cli`](cli.md#configuration)) | `orchestrator.admin_addresses`, for which the orchestrator signs a hub proof ([Proving the hub at an address](#proving-the-hub-at-an-address)). For a gateway it stands up, the CLI writes `https://localhost:<port>` |
-| The internal listener's address | What the gateway registers as its manifest's `url` | `admin_gateway.internal_port`, on the gateway's host. On the orchestrator's host the host part is loopback. **Gap:** where the gateway runs on another host, no setting names the host part the orchestrator reaches it at, so such a deployment states it outside this schema until [`schemas/config`](../schemas/config.md#admin_gateway) gains one |
+| The internal listener's address | What the gateway registers as its manifest's `url` | `admin_gateway.internal_address`. Absent, `http://127.0.0.1:<internal_port>`, for an orchestrator on the gateway's own host; an orchestrator on another host needs it set ([`schemas/config`](../schemas/config.md#validation-rules), rule 22) |
 | The orchestrator's address | Its anchor: where it registers, renews its lease and reads the directory | `admin_gateway.orchestrator`. Absent, the orchestrator on the gateway's own host at `orchestrator.port` |
 | Where its requests reach the orchestrator from | The address the orchestrator trusts `X-Forwarded-For` from (`auth-route-rate-limit`) | `orchestrator.admin_gateway_from`, which a gateway whose allowlist admits only loopback leaves empty: every client then arrives from loopback, so counting each by its own address gains nothing, and listing loopback would let any process on that host name its own source |
 
@@ -789,7 +791,10 @@ the tenant's declaration, made by a person: a new key, its fingerprint written
 there, and the orchestrator and the gateway restarted. That is the only way it
 changes: the orchestrator refuses the gateway's registration token at
 `POST /v1/rotate-key` ([`architecture/orchestrator`](orchestrator.md#auth-middleware),
-step 6), so the gateway cannot rotate its own key.
+step 6), so the gateway cannot rotate its own key. The orchestrator reads
+`orchestrator.admin_gateway_identity` when it starts, so a gateway that
+`weblisk component admin init` adds to a running tenant is admitted once the
+orchestrator is restarted, as after a change of key.
 
 Whoever holds this key can register as the gateway and exchange a stolen
 person's token for passes outside the gateway's network controls
@@ -806,6 +811,14 @@ repository. That holds for `weblisk component admin init` into
 a tenant made before it as for `create`, and for a key file named elsewhere by
 `admin_gateway.tls_key`: one inside the tenant's tree must be ignored by git
 ([`schemas/config`](../schemas/config.md#validation-rules), rule 21). <!-- wl:id gateway-keys-kept -->
+
+The gateway holds a key the operator supplies to the same mode. At start it
+MUST refuse to run, naming the file, where its registration key, or the TLS
+key `admin_gateway.tls_key` names or defaults to, can be read or written by an
+account other than its owner: any group or other permission bit set.
+<!-- wl:id gateway-refuses-open-key --> A key at
+`/etc/weblisk/keys/admin.key` that any account on the host can read is a key
+anyone on that host can answer as the gateway with.
 
 ### Certificate
 
@@ -855,6 +868,12 @@ verify, and says where a pin comes from, the three places above. It MUST NOT
 print, offer or record the pin of the certificate it was just shown as one to
 trust: that key arrived over the connection it could not verify, and taking
 it is trusting the first key that answers. <!-- wl:id client-pins-gateway-key -->
+A client holding a pin verifies the certificate's key against it, and neither
+the certificate's names nor its dates: a pin already binds one key to one
+address, and a key that must be replaced is replaced by giving a new pin, not
+by waiting for a date. The CLI still renews the certificate it made, so that a
+client that also checks dates, as most TLS libraries do by default, keeps
+working.
 
 A new pin is needed whenever the key behind the certificate changes: the TLS
 key is replaced after a compromise, or an operator-supplied certificate is
@@ -3285,6 +3304,7 @@ The rest SHOULD be:
 
 ### Admin gateway
 
+- [ ] Started with its registration key or its TLS key readable or writable by its group or by other accounts, the admin gateway refuses to run and names the file, for a key the operator supplied as for one the CLI made <!-- wl:check gateway-open-key-refused covers gateway-refuses-open-key -->
 - [ ] Each of the admin gateway's listeners serves exactly the rows [Endpoints](#endpoints) gives it: the internal listener answers no admin route, and the admin listener none of the agent endpoints <!-- wl:check listeners-serve-their-rows covers listeners-disjoint gateway-manifest-and-listener -->
 - [ ] The admin listener answers no plain-HTTP request, negotiates TLS 1.3 alone and offers X25519MLKEM768, preferring it, and a TLS 1.2 client is refused the handshake <!-- wl:check admin-listener-tls covers admin-listener-guarded admin-listener-tls13 admin-https-only -->
 - [ ] `weblisk tenant create` and `weblisk component admin init` leave `.weblisk/keys/` mode 0700 and `admin-gateway.key` and `admin-gateway-tls.key` mode 0600, with the tenant's `.gitignore` excluding `.weblisk/keys/`; run in a tenant whose `.gitignore` lacks that entry they add it before writing either key, and given a `tls_key` inside the tenant's tree that no `.gitignore` entry excludes they refuse, writing neither key <!-- wl:check gateway-keys-mode covers gateway-keys-kept -->
