@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: change-management
-version: 2.0.0
+version: 3.0.0
 requires: [protocol/spec, protocol/types, architecture/orchestrator, architecture/agent, patterns/messaging, patterns/versioning]
 platform: any
 tier: free
@@ -418,7 +418,10 @@ transitive_resolution:
     4: If yes, propagate assessment to B's dependents (A)
     5: Continue until no further propagation is needed
 
-  depth_limit: 10
+  # The walk's depth bound has one home and is not stated here
+  # (architecture/fabric, requirement reach-max-depth). Reaching it is
+  # reported as incomplete, never as no further dependents.
+  depth_limit: requirement://weblisk/architecture/fabric:reach-max-depth
   cycle_detection: required
   cycle_resolution: >
     If a cycle is detected, flag for operator intervention.
@@ -1489,7 +1492,7 @@ constraints:
     max_concurrent_deployments: 3
     reconciliation_deadline: 300  # seconds
     deployment_timeout: 600  # seconds
-    max_dependency_depth: 10
+    max_dependency_depth: requirement://weblisk/architecture/fabric:reach-max-depth
 
   invariants:
     - Every ChangeRecord has at least one ChangeAssessment

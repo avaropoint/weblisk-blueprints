@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 2.1.1
+version: 3.0.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
@@ -184,6 +184,61 @@ requires:
 
 ---
 
+## Requirements
+
+Each requirement is a part of this file, named in the id grammar of
+[`schemas/names.md`](../schemas/names.md):
+`requirement://weblisk/architecture/fabric:<id>`. Every other file that needs
+one of these facts cites it by that name and does not state it again.
+
+```yaml
+requirements:
+  - id: reach-max-depth
+    level: must
+    value: 10
+    text: A reach walks at most 10 hops from each node it starts at, in either
+      direction. Reaching the bound is reported on the answer's completeness,
+      never as nothing further. A caller may ask for less and never for more.
+    refs: [Impact, AnswerCompleteness]
+  - id: adoption-follows-credential-layer
+    level: must
+    text: This component is opt-in until the credential layer (identity,
+      credential, grant) exists in the tenant. From then on it is required in
+      every tenant the CLI generates. Until then no run statement is signed with
+      a person's identity key to make up for the missing service credential.
+  - id: declared-at-write-time
+    level: must
+    text: What a generation run wrote, and what each output was made from and
+      claims to implement, is declared by that run's statement when the files
+      are written, and reaches the ledger through the generation-statements
+      producer. No producer infers afterwards an edge a statement declares.
+  - id: statements-ingest-once
+    level: must
+    text: The generation-statements producer ingests every run statement it has
+      not seen, and ingesting the same statements again appends no entry.
+  - id: entries-name-their-run
+    level: must
+    text: An entry appended from a run statement names that run by id and
+      statement digest, and the identity the run acted on behalf of. Run facts
+      (tool, model, prompt) stay in the statement.
+  - id: observed-connections
+    level: must
+    text: What the tenant connects to is recorded from what its own services
+      observe, through the observer producers this file declares, never from a
+      settings file.
+  - id: no-content-writes
+    level: must
+    text: No fabric write path reaches a content write operation. The fabric is
+      a client of the content service for identity and listing only.
+  - id: reach-by-diff
+    level: must
+    text: A reach may start from a diff between two versions of one ref, and
+      then starts at each changed, added or retired part, and at nothing else.
+    refs: [Impact]
+```
+
+---
+
 ## Architecture
 
 ```
@@ -291,7 +346,7 @@ unattributable zero reads as a finding.
 | POST | /v1/fabric/decisions | Decide | yes | `fabric:attest` | A person judges a relationship already recorded |
 | POST | /v1/fabric/relocations | Relocate | yes | `fabric:attest` | Re-anchor a confirmed relationship whose content moved. No destination is accepted |
 | GET | /v1/fabric/edges | Touching | yes | `fabric:read` | Live relationships with either end at a node, cursor-paginated |
-| GET | /v1/fabric/reach | Impact | yes | `fabric:read` | Everything reachable from a node to a bounded depth, in both directions |
+| GET | /v1/fabric/reach | Impact | yes | `fabric:read` | Everything reachable from a node, or from each changed part of a diff (`?diff=`), to the depth `reach-max-depth` bounds, in both directions |
 | GET | /v1/fabric/answers | Coverage | yes | `fabric:read` | What answers a criterion, what it rests on, and what is unanswered |
 | GET | /v1/fabric/lineage | History | yes | `fabric:read` | Every entry ever recorded for one relationship, in order, with each actor |
 | GET | /v1/fabric/projection | Graph | yes | `fabric:read` | The byte-stable graph of the live ledger |
@@ -363,7 +418,9 @@ interfaces:
 
     - path: /v1/fabric/reach
       methods: [GET]
-      description: Bounded traversal from a node in both directions
+      description: Bounded traversal from a node in both directions, or, with
+        diff=<ref>@<a>..<b>, from each part that differs between two versions
+        of one ref. See Reach from a diff
       served_by: fabric-service
 
     - path: /v1/fabric/answers
@@ -433,9 +490,10 @@ interfaces:
       called_by: [gateway, agents]
 
     - name: Impact
-      signature: (NodeRef, depth) → ([ImpactPath], AnswerCompleteness)
-      description: Bounded, undirected traversal. Transitive relationships are
-        joined here and never stored
+      signature: (NodeRef | DiffStart, depth) → ([ImpactPath], AnswerCompleteness)
+      description: Bounded, undirected traversal, never deeper than
+        reach-max-depth. Transitive relationships are joined here and never
+        stored. Started from a diff, it walks from each changed part only
       called_by: [gateway, agents]
 
     - name: Coverage
@@ -1420,7 +1478,8 @@ fabric:
     unqualified_reference: refuse  # two sources answering is no answer
     prefer_content_identifier: true
   traversal:
-    max_depth: 6
+    # No depth here: the bound is requirement reach-max-depth, and a setting
+    # that could raise it would be a second home for one number.
     max_edges_per_answer: 5000     # exceeded is reported on the answer, never trimmed silently
   producers:
     - name: <producer>

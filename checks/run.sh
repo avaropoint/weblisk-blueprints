@@ -74,5 +74,19 @@ grep -q "has reached it" "$tmp/out" || { echo "FAIL retired control: the ended a
 expect 0 "timestamp-wire: every mapping agrees with the vector" python3 checks/timestamp-wire.py
 expect 0 "timestamp-wire control: a mapping in milliseconds is reported" python3 checks/timestamp-wire.py --control
 
+# The fabric's reach depth has one home (D23); a copy of architecture/ in which
+# change-management states its own depth again must report exactly two places.
+expect 0 "reach-depth: one home, every citation resolves" python3 checks/reach-depth.py
+mkdir -p "$tmp/rd" && cp -R architecture "$tmp/rd/"
+sed 's|^  depth_limit: requirement://weblisk/architecture/fabric:reach-max-depth$|  depth_limit: 10|' architecture/change-management.md >"$tmp/rd/architecture/change-management.md"
+expect 1 "reach-depth control: a second stated depth fails" python3 checks/reach-depth.py --root "$tmp/rd"
+if [ "$(grep -c ' = ' "$tmp/out")" -eq 2 ] && grep -q '^architecture/change-management.md:[0-9]*: depth_limit = 10$' "$tmp/out"; then
+	echo "ok   reach-depth control: exactly two places, the restored one among them"
+else
+	echo "FAIL reach-depth control: want exactly two places, change-management's depth_limit among them"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]
