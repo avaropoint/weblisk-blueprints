@@ -699,8 +699,8 @@ disagree about the method. The first two probes are the orchestrator's
 TLS verified against the pin `create` recorded, or, run in the tenant's
 directory, the pin of the certificate the tenant's configuration names. It
 passes on `401`, the orchestrator's refusal carried back through the gateway,
-and a certificate that does not match the pin fails it, as a refused
-connection does. <!-- wl:id cli-accept-through-gateway --> Accept probes no
+and a certificate that does not match the pin fails it as a pin that did not
+match, sending nothing over that connection, never as a refused connection. <!-- wl:id cli-accept-through-gateway --> Accept probes no
 other component and reads no lease: whether each
 registered component is present is a question for an operator's token, which
 [`weblisk server verify`](#weblisk-server-verify) and
@@ -769,7 +769,9 @@ its bindings IS a buildable component. `weblisk component help` lists what this
 installation supports, and `admin`, the admin gateway
 ([`architecture/admin`](admin.md#the-admin-gateway-as-a-component)), is among
 them: `tenant create` builds it, and `weblisk component admin init` builds it
-into a tenant that has none.
+into a tenant that has none, making `.weblisk/keys/` and the gateway's two
+keys as `gateway-keys-kept` says, the tenant's `.gitignore` written or amended
+first ([`architecture/admin`](admin.md#registration-lease-and-identity)).
 
 The tenant root is the module root, so every component is generated into the
 same tree. Generation therefore reads what the tenant already contains — module
@@ -965,7 +967,8 @@ that: npm's names reach it, and the starter's do not.
 **Building is not starting, and gets the same environment.** Every build
 the CLI makes of a tenant component's code is under this rule, whichever
 command makes it: the build a start above makes before it runs the
-component, the orchestrator's build in `weblisk tenant create`, each build
+component, the orchestrator's and the admin gateway's builds in
+`weblisk tenant create`, each build
 `weblisk dev` makes, and generation's own build of a target, in
 [Layer 2](generation.md#layer-2--coherence) and in every repair round.
 Generated output is
@@ -1217,9 +1220,10 @@ alone: the file is an operator's declaration, never a precondition.
   The admin gateway next, which `admin_gateway` declares. Then the content
   service, domains, agents, and the application gateway last.
 - **Certificate.** Before it starts the admin gateway, it makes a new
-  certificate from the gateway's own TLS key where the one it serves has
-  fewer than 30 days left, so its pin holds
-  ([`architecture/admin`](admin.md#certificate)).
+  certificate from the gateway's own TLS key where the certificate the CLI
+  made has fewer than 30 days left, so its pin holds. A certificate the
+  configuration names it serves as it is, and never renews
+  ([`architecture/admin`](admin.md#certificate), `given-certificate-served`).
 - **Refused whole.** A declaration this command cannot carry out — two
   components on one port or one name, `replicas` above 1, an agent with no
   `type`, an agent `env` entry that rule 16 of
@@ -1381,9 +1385,10 @@ registers at the admin gateway, at its origin in
 gateway's pin, as [`weblisk operator register`](#weblisk-operator-register)
 does: the hub already knows the operator, so it answers the registration as a
 repeat, and the CLI records the registration, with the pin, at the gateway's
-address alone. <!-- wl:id cli-provision-registers-at-gateway --> A hub whose
-configuration declares no admin gateway is reported as having nothing to
-connect to, and nothing is recorded.
+address alone. <!-- wl:id cli-provision-registers-at-gateway --> A
+configuration with no `admin_gateway` section fails rule 20 of
+[`schemas/config`](../schemas/config.md#validation-rules): provision reports
+that the hub has no door to connect at, and records nothing.
 
 Generation is deliberately not folded in. It takes tens of minutes, streams
 progress and is resumable; wrapping it in a call that also handles a credential
@@ -2038,7 +2043,11 @@ Registering operator 'alice' with https://hub.example.com...
   against, where the system's roots do not verify it
   ([`architecture/admin`](admin.md#certificate)); `create` reports it. The
   registration records it, and every later request to that address is
-  verified against it
+  verified against it. The `--json` result carries the `address` and the
+  `tls_pin` the registration records for it, so a console that makes its own
+  requests keeps the pin with the address (`console-keeps-pin`). Where it holds
+  no pin and the system's roots do not verify the certificate, it refuses,
+  naming where a pin comes from and never offering the presented certificate's
 
 ### `weblisk operator connect`
 
@@ -2079,7 +2088,11 @@ keeps working.
 says, and attests a credential first where this identity holds none the hub
 accepts ([A credential for each hub](#a-credential-for-each-hub)).
 
-Six outcomes, and they are told apart:
+Seven outcomes, and they are told apart. The `--json` result carries the
+`address` and, where the registration records one, the `tls_pin` the
+gateway's certificate was verified against, so a console that makes its own
+requests to the gateway keeps the pin with the address it keeps
+([`architecture/admin`](admin.md#certificate), `console-keeps-pin`):
 
 | State | Meaning |
 |---|---|
@@ -2089,6 +2102,7 @@ Six outcomes, and they are told apart:
 | `refused` | the hub answered and said no in a way no approval changes, such as the operator name being registered to a different key |
 | `identity_unavailable` | this machine could not sign: the key file did not open, or the secret source holding the identity did not answer. Nothing is wrong with the hub. Where a source did not answer, `--json` output carries its name as `source` and its code as `code` ([`protocol/secret-source`](../protocol/secret-source.md#reporting-a-source-that-did-not-answer)) |
 | `unreachable` | nothing answered, or the hub does not serve `POST /v1/admin/operators/token` — reported distinctly, because telling somebody to await an approval that is never coming is worse than saying the hub is too old |
+| `pin_mismatch` | something answered at the address with a certificate whose key is not the pin the registration records: what an interception looks like, so nothing is sent over that connection, and the message names the recorded pin and where a new one comes from, never the presented certificate's ([`architecture/admin`](admin.md#certificate)) |
 
 Flags:
 
@@ -2256,8 +2270,8 @@ the steps are [`architecture/admin`](admin.md#obtaining-a-token)'s:
   `not_after` or `code`
 
 Its outcomes are `attested`, and `pending_approval`, `not_registered`,
-`refused`, `identity_unavailable` and `unreachable` as `connect` reports
-them. With
+`refused`, `identity_unavailable`, `unreachable` and `pin_mismatch` as
+`connect` reports them. With
 `--json`, a refusal carries the hub's error code as `code`. `--orch`, `--name`,
 `--identity` and `--keys-dir` mean what they mean for `connect`.
 
@@ -3585,7 +3599,7 @@ security:
 - [ ] `weblisk operator init --json` prints `name`, `keys_dir`, `public_key`, `holder` and `created`, carries no private key and no passphrase, and writes nothing else to stdout; `holder` is the holder reference `holder.json` records, `holds` included, and `null` where there is no `holder.json`
 - [ ] `--keys-dir` outranks `--identity` when both are given
 - [ ] `weblisk operator connect` asks for no passphrase when a secret source holds the identity's passphrase
-- [ ] `weblisk operator connect` reports `connected`, `pending_approval`, `not_registered`, `refused`, `identity_unavailable` or `unreachable`, and with `--json` an `identity_unavailable` result carries `source` and `code`
+- [ ] `weblisk operator connect` reports `connected`, `pending_approval`, `not_registered`, `refused`, `identity_unavailable`, `unreachable` or `pin_mismatch`, and with `--json` an `identity_unavailable` result carries `source` and `code`, and every result carries the `address` and the `tls_pin` its registration records
 - [ ] `weblisk operator connect`, `weblisk operator attest` and `weblisk operator attest --batch` never send a registration: at an address no registration names, or a hub that answers `OPERATOR_UNKNOWN`, each reports `not_registered` naming `weblisk operator register` and the address, and against a test hub with no operators none of them sends a bootstrap secret or claims the hub
 - [ ] `weblisk operator connect` with no identity held reports `identity_unavailable`, names `weblisk operator init` and creates no key; `connect --no-register` is accepted and behaves exactly as `connect`
 - [ ] `weblisk operator init` does not overwrite existing keys without --force flag

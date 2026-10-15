@@ -353,7 +353,7 @@ component declares it as a pass route.
 |--------|------|-----------|----------|------|---------|
 | GET | /v1/admin/overview | Overview | admin | yes | The System overview, composed from the orchestrator's and reporting every other group unavailable |
 | GET | /v1/admin/approvals | DecisionInbox | admin | carried | The decision inbox, answered `ADMIN_GROUP_UNAVAILABLE` while no pass route can name its group |
-| POST | /v1/admin/model/audit | ModelAuditRefused | admin | none | Answered `404 NOT_FOUND`, forwarding and exchanging nothing |
+| POST | /v1/admin/model/audit | ModelAuditRefused | admin | none | Answered as `admin-gateway-authorization` says of this route |
 | GET | /v1/* | CarryGet | admin | carried | Any other route, to its provider: the orchestrator on the operator token, another on a pass, or `ADMIN_GROUP_UNAVAILABLE` |
 | POST | /v1/* | CarryPost | admin | carried | As `CarryGet` |
 | PUT | /v1/* | CarryPut | admin | carried | As `CarryGet` |
@@ -361,14 +361,16 @@ component declares it as a pass route.
 | DELETE | /v1/* | CarryDelete | admin | carried | As `CarryGet` |
 | POST | /v1/describe | Describe | internal | no | The gateway's manifest |
 | GET | /livez | Livez | internal | no | Liveness, for the supervisor that restarts it |
-| GET | /readyz | Readyz | internal | no | Readiness: ready once the admin listener is bound and the directory has been read from the anchor |
-| POST | /v1/services | ServicesPush | internal | no | Answered 200, and taken only as a prompt to read the directory from the anchor |
-| POST | /v1/execute | Execute | internal | no | Refused `FORBIDDEN`: it takes no task |
-| POST | /v1/message | Message | internal | no | Refused `FORBIDDEN`: it takes no message |
-| POST | /v1/event | Event | internal | no | Refused `FORBIDDEN`: it takes no event |
+| GET | /readyz | Readyz | internal | no | Readiness, as [Registration, lease and identity](#registration-lease-and-identity) says |
+| POST | /v1/services | ServicesPush | internal | no | A prompt to read the directory, as `admin-gateway-authorization` says |
+| POST | /v1/execute | Execute | internal | no | Refused, as `admin-gateway-authorization` says |
+| POST | /v1/message | Message | internal | no | As `Execute` |
+| POST | /v1/event | Event | internal | no | As `Execute` |
 
 `carried` is the provider's own requirement, judged by the orchestrator or by
-the provider and never by the gateway. A listener MUST NOT serve a row of the
+the provider and never by the gateway. `/v1/*` names every path under `/v1/`
+that no other row names, a prefix and not a literal `*`: Go's `ServeMux`
+writes it `/v1/`, and the more specific rows win over it. A listener MUST NOT serve a row of the
 other's. <!-- wl:id listeners-disjoint -->
 
 ---
@@ -758,7 +760,7 @@ needs to reach it.
 | Address | What it is | Where it is set |
 |---|---|---|
 | Each origin the admin listener is reached at | Where a person's client connects, and the address the CLI records for the hub (`orchestrator_url`, [`architecture/cli`](cli.md#configuration)) | `orchestrator.admin_addresses`, for which the orchestrator signs a hub proof ([Proving the hub at an address](#proving-the-hub-at-an-address)). For a gateway it stands up, the CLI writes `https://localhost:<port>` |
-| The internal listener's address | What the gateway registers as its manifest's `url` | `admin_gateway.internal_port`, on the gateway's host |
+| The internal listener's address | What the gateway registers as its manifest's `url` | `admin_gateway.internal_port`, on the gateway's host. On the orchestrator's host the host part is loopback. **Gap:** where the gateway runs on another host, no setting names the host part the orchestrator reaches it at, so such a deployment states it outside this schema until [`schemas/config`](../schemas/config.md#admin_gateway) gains one |
 | The orchestrator's address | Its anchor: where it registers, renews its lease and reads the directory | `admin_gateway.orchestrator`. Absent, the orchestrator on the gateway's own host at `orchestrator.port` |
 | Where its requests reach the orchestrator from | The address the orchestrator trusts `X-Forwarded-For` from (`auth-route-rate-limit`) | `orchestrator.admin_gateway_from`, which a gateway whose allowlist admits only loopback leaves empty: every client then arrives from loopback, so counting each by its own address gains nothing, and listing loopback would let any process on that host name its own source |
 
@@ -767,8 +769,8 @@ needs to reach it.
 The gateway registers as `admin-gateway`, with the manifest
 `admin-gateway-authorization` gives it, and renews its lease as every
 registrant does ([`protocol/spec`](../protocol/spec.md#post-v1lease)). It is
-ready once its admin listener is bound and it has read the directory from its
-anchor.
+ready, at `GET /readyz` and in each renewal, once its admin listener is bound
+and it has read the directory from its anchor.
 
 Its registration key is how a tenant says which registration is its admin
 gateway. The command that stands the gateway up makes the key, on the
@@ -784,36 +786,86 @@ orchestrator admits `token:exchange` for that registration alone
 capability). The gateway MUST register with that key and no other.
 <!-- wl:id gateway-registers-declared-key --> Changing the key is a change to
 the tenant's declaration, made by a person: a new key, its fingerprint written
-there, and the orchestrator and the gateway restarted. A gateway that rotates
-its own key with `POST /v1/rotate-key` can exchange nothing afterwards.
+there, and the orchestrator and the gateway restarted. That is the only way it
+changes: the orchestrator refuses the gateway's registration token at
+`POST /v1/rotate-key` ([`architecture/orchestrator`](orchestrator.md#auth-middleware),
+step 6), so the gateway cannot rotate its own key.
+
+Whoever holds this key can register as the gateway and exchange a stolen
+person's token for passes outside the gateway's network controls
+([`architecture/threat-model`](threat-model.md#residual-risk-register)), and
+whoever holds the TLS key below can answer as the gateway at its address. So
+the command that writes either key MUST first make `.weblisk/keys/` mode 0700
+and confirm that the tenant's `.gitignore` excludes it, writing or amending the
+`.gitignore` as [`weblisk tenant create`](cli.md#weblisk-tenant-create-name)
+does where it does not, and MUST write each key mode 0600; it refuses, writing
+neither key, where it cannot set those modes, or where a key's path lies in
+the tenant's tree and no entry of the tenant's `.gitignore` excludes it, which
+it judges from that file and not by asking git, because a tenant need not be a
+repository. That holds for `weblisk component admin init` into
+a tenant made before it as for `create`, and for a key file named elsewhere by
+`admin_gateway.tls_key`: one inside the tenant's tree must be ignored by git
+([`schemas/config`](../schemas/config.md#validation-rules), rule 21). <!-- wl:id gateway-keys-kept -->
 
 ### Certificate
 
-Where `admin_gateway.tls_cert` and `tls_key` are given, the admin listener
-serves that certificate. Where they are not, the command that stands the
-gateway up makes one:
+This section is the one home of when a certificate is made. Where the
+tenant's configuration sets `admin_gateway.tls_cert` and `tls_key`, the admin
+listener serves that certificate as it is, and the CLI MUST NOT make, renew
+or replace it or its key; a file either names that is missing is a fault the
+gateway reports at start, never a prompt to make one. <!-- wl:id given-certificate-served --> Where the configuration
+sets neither, so both take their defaults
+([`schemas/config`](../schemas/config.md#admin_gateway)), the command that
+stands the gateway up makes them, once, where they are absent:
 
 - **The key** is a new ECDSA P-256 key at `.weblisk/keys/admin-gateway-tls.key`,
-  mode 0600, which git ignores as it ignores everything under `.weblisk/keys/`
-  ([`architecture/cli`](cli.md#weblisk-tenant-create-name)). It is never
-  printed, copied or sent.
+  kept as `gateway-keys-kept` says. It is never printed, copied or sent.
 - **The certificate** is self-signed, names `localhost`, `127.0.0.1` and `::1`,
   is valid for a year, and is kept at `.weblisk/tls/admin-gateway.crt`, which
   holds nothing secret. [`weblisk server start`](cli.md#weblisk-server-start)
   makes a new one from the same key once fewer than 30 days remain, so the pin
-  below still holds.
+  below still holds. It renews only this certificate, the one the CLI made.
 - **The pin** is `sha256:` and the lowercase hexadecimal SHA-256 digest of the
   certificate's DER-encoded SubjectPublicKeyInfo. `weblisk tenant create`
   reports it as `tls_pin` beside the hub's `address`, and the CLI records it
-  with that address.
+  with that address. It reports the pin of an operator-supplied certificate
+  too, computed the same way, so a client can hold one whichever the
+  certificate is.
+
+A client learns a pin from one of three places, each reached over something
+other than the connection it is about to verify: `create`'s result; the
+tenant's operator, who reads it from the certificate on the gateway's host
+(`.weblisk/tls/admin-gateway.crt`, or the file `tls_cert` names); or a
+registration the CLI already records for the address, which
+[`weblisk operator connect`](cli.md#weblisk-operator-connect) and
+[`weblisk operator register`](cli.md#weblisk-operator-register) report as
+`tls_pin` beside the `address`. A console that makes its own requests to the
+gateway, rather than through the CLI, MUST keep the pin with each address it
+keeps, from one of those, and verify every connection against it. <!-- wl:id console-keeps-pin -->
 
 The listener MUST negotiate TLS 1.3 alone and offer the hybrid key agreement
 X25519MLKEM768, preferring it. <!-- wl:id admin-listener-tls13 -->
 A client that holds a pin for an address MUST refuse a certificate whose key
 does not match it, and MUST NOT fall back to the system's roots, to skipping
-verification, or to HTTP, at a loopback address too. A client that holds no
-pin refuses a certificate its roots do not verify, and says which pin it
-needs. <!-- wl:id client-pins-gateway-key -->
+verification, or to HTTP, at a loopback address too. It reports that refusal
+as a pin that did not match, never as an address that did not answer: a key
+other than the recorded one at a gateway's address is what an interception
+looks like. A client that holds no pin refuses a certificate its roots do not
+verify, and says where a pin comes from, the three places above. It MUST NOT
+print, offer or record the pin of the certificate it was just shown as one to
+trust: that key arrived over the connection it could not verify, and taking
+it is trusting the first key that answers. <!-- wl:id client-pins-gateway-key -->
+
+A new pin is needed whenever the key behind the certificate changes: the TLS
+key is replaced after a compromise, or an operator-supplied certificate is
+renewed with a new key, as ACME clients do by default. Nothing re-pins on its
+own, because a client that took a new key on the gateway's word would be
+trusting the first key that answers. The operator makes the new key and
+certificate, reads the new pin from the certificate on the gateway's host, and
+gives it to each person, who records it with
+`weblisk operator register --tls-pin`; until then every client refuses the
+gateway as a pin that did not match. An operator who renews a certificate of
+their own keeps its key, where their tooling allows, so the pin holds.
 
 A pin, and not a certificate authority the tenant makes, because an
 authority's key can sign for any name: its loss is every listener's, and a
@@ -3228,10 +3280,13 @@ The rest SHOULD be:
 - [ ] A client that registers reads the answer's `status`, asks for an attestation token only for an approved operator, and reports a pending registration as pending, never as connected <!-- wl:check registration-status-read covers client-reads-status -->
 - [ ] Operator records, credentials and token-request `jti` records survive a restart of the orchestrator, and the `jti` records are shared by every instance answering for the hub <!-- wl:check operator-stores-durable covers store-operators-durable store-credentials-durable store-jti-durable -->
 - [ ] The CLI accepts an identity by a label and resolves and reports its location itself; the label is never the operator's name and never appears verbatim in the path <!-- wl:check identity-label covers identity-by-label label-not-name label-not-in-path -->
-- [ ] A client holding a pin for the admin gateway's address refuses a certificate with another key and never falls back to the system's roots, to unverified TLS or to HTTP, at a loopback address too; one holding no pin refuses a certificate its roots do not verify and names the pin it needs <!-- wl:check gateway-pin-held covers client-pins-gateway-key -->
+- [ ] A client holding a pin for the admin gateway's address refuses a certificate with another key, reports it as a pin that did not match and not as unreachable, and never falls back to the system's roots, to unverified TLS or to HTTP, at a loopback address too; one holding no pin refuses a certificate its roots do not verify, names `create`'s result, the tenant's operator and the certificate on the gateway's host as where a pin comes from, and never prints, offers or records the presented certificate's pin <!-- wl:check gateway-pin-held covers client-pins-gateway-key -->
+- [ ] `weblisk operator connect --json` and `weblisk operator register --json` carry the `tls_pin` the registration records for the address; a console that makes its own requests to the gateway verifies each against the pin it keeps with that address and refuses a gateway for which it keeps none <!-- wl:check console-pin-kept covers console-keeps-pin -->
 
 ### Admin gateway
 
 - [ ] Each of the admin gateway's listeners serves exactly the rows [Endpoints](#endpoints) gives it: the internal listener answers no admin route, and the admin listener none of the agent endpoints <!-- wl:check listeners-serve-their-rows covers listeners-disjoint gateway-manifest-and-listener -->
 - [ ] The admin listener answers no plain-HTTP request, negotiates TLS 1.3 alone and offers X25519MLKEM768, preferring it, and a TLS 1.2 client is refused the handshake <!-- wl:check admin-listener-tls covers admin-listener-guarded admin-listener-tls13 admin-https-only -->
+- [ ] `weblisk tenant create` and `weblisk component admin init` leave `.weblisk/keys/` mode 0700 and `admin-gateway.key` and `admin-gateway-tls.key` mode 0600, with the tenant's `.gitignore` excluding `.weblisk/keys/`; run in a tenant whose `.gitignore` lacks that entry they add it before writing either key, and given a `tls_key` inside the tenant's tree that no `.gitignore` entry excludes they refuse, writing neither key <!-- wl:check gateway-keys-mode covers gateway-keys-kept -->
+- [ ] With `admin_gateway.tls_cert` and `tls_key` set, the CLI makes, renews and replaces no certificate or key: `weblisk server start` serves the configured certificate with fewer than 30 days left unchanged, and a missing configured file is reported, not made <!-- wl:check given-certificate-kept covers given-certificate-served -->
 - [ ] The admin gateway registers with the key whose fingerprint is `orchestrator.admin_gateway_identity`; started with any other key, its registration is refused `CAPABILITY_GATEWAY_ONLY` and it exchanges nothing <!-- wl:check gateway-declared-key covers gateway-registers-declared-key -->

@@ -1582,8 +1582,11 @@ one count ([`architecture/admin`](admin.md#contracts),
    security event that names it by its claims and never by the token
    (protocol/identity, The pass, rule 7). A registration token whose cap names
    token:exchange, or whose sub's registration declares it, as the admin
-   gateway's does, is admitted at GET /v1/services and TokenExchange alone,
-   and refused with FORBIDDEN at every other such route
+   gateway's does, is admitted at GET /v1/services, POST /v1/lease and
+   TokenExchange alone, and refused with FORBIDDEN at every other such route,
+   POST /v1/rotate-key among them: the gateway's key is changed only by
+   the tenant's declaration (architecture/admin, Registration, lease and
+   identity)
 7. For an operator token, check the operator and the credential it names are
    live in this orchestrator's own records (architecture/admin,
    token-status-on-use)
@@ -2249,6 +2252,6 @@ agents hold, which is theirs.
 - [ ] A pass presented at any route of the orchestrator is refused with `PASS_AUDIENCE_MISMATCH` and logged as a security event
 - [ ] An operator token is refused with `FORBIDDEN`, before any handler, at every route outside `/v1/admin/*` that requires a token, and logged as a security event that names it by its claims and records no part of its bytes: a `viewer`'s token gets no entry from `GET /v1/audit`, and `DELETE /v1/register` on an operator token whose `sub` is a registered agent's name leaves that agent registered
 - [ ] A channel token is refused with `FORBIDDEN` at every route outside `/v1/admin/*` that requires a token, and with `CREDENTIAL_REQUIRED` under it
-- [ ] The admin gateway's registration token, whose `cap` names `token:exchange`, is answered at `GET /v1/services` and `POST /v1/token/exchange`, and refused with `FORBIDDEN` at `GET /v1/audit`, `POST /v1/channel`, `GET /v1/model/ceiling`, `DELETE /v1/register` and `POST /v1/rotate-key`
+- [ ] The admin gateway's registration token, whose `cap` names `token:exchange`, is answered at `GET /v1/services`, `POST /v1/lease` and `POST /v1/token/exchange`, and refused with `FORBIDDEN` at `GET /v1/audit`, `POST /v1/channel`, `GET /v1/model/ceiling`, `DELETE /v1/register` and `POST /v1/rotate-key`
 - [ ] The orchestrator presents no token it received to any party: `GET /v1/admin/overview` asks no other component for a figure
 - [ ] A token whose signature does not verify is refused with 401 `INVALID_SIGNATURE`, and one past `exp` with 401 `TOKEN_EXPIRED`, on every route Auth Middleware covers
