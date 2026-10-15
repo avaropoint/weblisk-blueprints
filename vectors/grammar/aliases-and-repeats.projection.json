@@ -1,8 +1,8 @@
 {
   "file": "vectors/grammar/aliases-and-repeats.md",
   "family": "vectors/grammar/test-blueprint@1",
-  "length": 1154,
-  "version_hash": "sha256:77f3115819b6ee70447525db8a4b5e3366344d4cecf6b63fbf8937fb7b755d2f",
+  "length": 1238,
+  "version_hash": "sha256:f450c6ac3d989f91110ec00e9fa3dd59801dd423775c90535dbbbcc86293c032",
   "parts": [
     {
       "span": [0, 64],
@@ -79,23 +79,23 @@
       "digest": "sha256:cebe83aa747d05ae1d361268a34fd46b5aa83448d09dab1f6267aab37c081798"
     },
     {
-      "span": [424, 639],
+      "span": [424, 723],
       "part": "block",
       "slot": "types",
       "block": "types",
       "family": "type",
       "use": "shapes",
       "send": "referenced",
-      "digest": "sha256:fe25f4127581ff8c94a8b1569cbceea5c227a2f85a1b394d1b99a142abdae378",
+      "digest": "sha256:a5fd46c6325d19e861bae8f8bed2cec8a380974e949ebfe3dc859ddfe495f214",
       "entries": [
         {
           "id": "Lease",
-          "digest": "sha256:3b6c5533e788149016d883d5ebceab1990413d6859885a6de083cb222d67711d"
+          "digest": "sha256:7c81e6406f87e7843a18073c3c8521c349fb0d25beb8bbad17452442ddf0d22a"
         }
       ]
     },
     {
-      "span": [639, 640],
+      "span": [723, 724],
       "part": "text",
       "slot": "types",
       "use": "shapes",
@@ -103,7 +103,7 @@
       "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
     },
     {
-      "span": [640, 657],
+      "span": [724, 741],
       "part": "text",
       "slot": "verifies",
       "use": "verifies",
@@ -111,7 +111,7 @@
       "digest": "sha256:817b1fa3eae2537bd10a8a271ca4c40b799f05f71d6b855f9e40446f21ab62fa"
     },
     {
-      "span": [657, 808],
+      "span": [741, 892],
       "part": "block",
       "slot": "verifies",
       "block": "verifies",
@@ -127,7 +127,7 @@
       ]
     },
     {
-      "span": [808, 809],
+      "span": [892, 893],
       "part": "text",
       "slot": "verifies",
       "use": "verifies",
@@ -135,7 +135,7 @@
       "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
     },
     {
-      "span": [809, 948],
+      "span": [893, 1032],
       "part": "text",
       "slot": "operation",
       "use": "explains",
@@ -147,7 +147,7 @@
       "key": "lease-is-renewed"
     },
     {
-      "span": [948, 1079],
+      "span": [1032, 1163],
       "part": "text",
       "slot": "operation",
       "use": "explains",
@@ -159,7 +159,7 @@
       "key": "drain-before-stop"
     },
     {
-      "span": [1079, 1154],
+      "span": [1163, 1238],
       "part": "text",
       "slot": "operation",
       "use": "explains",
@@ -171,7 +171,7 @@
     {
       "code": "slot-key-missing",
       "policy": "refuse",
-      "span": [1079, 1154],
+      "span": [1163, 1238],
       "subject": "operation"
     }
   ]

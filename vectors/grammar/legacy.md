@@ -23,8 +23,8 @@ requirements:
 types:
   Counter:
     fields:
-      value: {type: int64, required: true}
-      wide:  {type: int128}
+      value: {type: int64, required: true, description: The count.}
+      wide:  {type: int128, description: Wider than any type.}
 ```
 
 ## Background

@@ -391,7 +391,7 @@ defs:
       - match-ambiguous     # two families' match cover the path
       - header-schema       # the header fails header.schema; subject is the JSON pointer
       - legacy-key          # a key header.legacy names; subject is the key
-      - legacy-spelling     # a field type blocks.md reads in report mode; subject is the spelling
+      - legacy-spelling     # a type or field property blocks.md lists as an older spelling; subject is the spelling
       - yaml-feature        # an anchor, alias, tag, merge key or second document
       - unclosed-fence      # a fence runs to the end of the file
       - missing-slot        # a required slot does not occur; subject is the slot

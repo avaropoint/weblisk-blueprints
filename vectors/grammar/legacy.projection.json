@@ -1,8 +1,8 @@
 {
   "file": "vectors/grammar/legacy.md",
   "family": "vectors/grammar/test-blueprint@1",
-  "length": 778,
-  "version_hash": "sha256:26f69ae9bc3242c1886f68f4a96103d48e9212dedd523c6222f5dbabc89dc99b",
+  "length": 838,
+  "version_hash": "sha256:462d98c1ee39216ff6ba7db231e062abe223785c759fd8052196f24db29b24da",
   "parts": [
     {
       "span": [0, 82],
@@ -75,23 +75,23 @@
       "digest": "sha256:8e72c0925c40071cbfe4605a5a88c484fadb5f92e428584eebdfb4a1d9b5108b"
     },
     {
-      "span": [408, 521],
+      "span": [408, 581],
       "part": "block",
       "slot": "types",
       "block": "types",
       "family": "type",
       "use": "shapes",
       "send": "referenced",
-      "digest": "sha256:ef1e38356df8293c4b9a2b0867ede82f5babcda6da91e7b4fdafb9acf71682c9",
+      "digest": "sha256:c57a9eb0988135dbc7b008adbb4391698f78b65da5928a05f2d4ad3fc5235386",
       "entries": [
         {
           "id": "Counter",
-          "digest": "sha256:a52ae55711c104e411ae70b7ef0e1d7bcfed95eafb3a1a1a3f1b2d283bdc9543"
+          "digest": "sha256:3d91afc335761d4a1b44e05f1e4cba7f4034363114f6cef0fceea13423596c51"
         }
       ]
     },
     {
-      "span": [521, 522],
+      "span": [581, 582],
       "part": "text",
       "slot": "types",
       "use": "shapes",
@@ -99,7 +99,7 @@
       "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
     },
     {
-      "span": [522, 601],
+      "span": [582, 661],
       "part": "text",
       "slot": null,
       "use": "explains",
@@ -107,7 +107,7 @@
       "digest": "sha256:a0a0351d1949cd360179442a3b12c3c765e56bda117446c72e43a17c035276fc"
     },
     {
-      "span": [601, 618],
+      "span": [661, 678],
       "part": "text",
       "slot": "verifies",
       "use": "verifies",
@@ -115,7 +115,7 @@
       "digest": "sha256:817b1fa3eae2537bd10a8a271ca4c40b799f05f71d6b855f9e40446f21ab62fa"
     },
     {
-      "span": [618, 778],
+      "span": [678, 838],
       "part": "block",
       "slot": "verifies",
       "block": "verifies",
@@ -141,19 +141,19 @@
     {
       "code": "block-schema",
       "policy": "refuse",
-      "span": [408, 521],
+      "span": [408, 581],
       "subject": "/Counter/fields/wide/type"
     },
     {
       "code": "legacy-spelling",
       "policy": "report",
-      "span": [408, 521],
+      "span": [408, 581],
       "subject": "int64"
     },
     {
       "code": "undeclared-slot",
       "policy": "report",
-      "span": [522, 601],
+      "span": [582, 661],
       "subject": "Background"
     }
   ]

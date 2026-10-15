@@ -44,15 +44,16 @@ requirements:
     level: must
     text: >-
       A declared type's field has a `type` the type-expr grammar below
-      accepts, and no other. An enum field lists its values.
+      accepts, and no other, and a description. An enum field lists its
+      values. A field's other properties, and a type's constraints, are the
+      `field` and `type` definitions', and no others.
   - id: legacy-type-spellings
     level: must
     text: >-
-      In grammar 1 a spelling listed under "Spellings read in report mode" is
-      rewritten in the block's projected value to the type it names, before
-      the schema is applied, and reported as legacy-spelling. Any other
-      spelling fails the schema. Once migration is done the listed spellings
-      are refused too.
+      In grammar 1 a spelling listed under "Older spellings" is rewritten in
+      the block's projected value to what it names, before the schema is
+      applied, and reported as legacy-spelling with the spelling as subject.
+      Any other spelling fails the schema.
 ```
 
 ## Types
@@ -61,15 +62,27 @@ A field's `type` is one of these, or built from them:
 
 ```
 type-expr = scalar / "list<" type-expr ">" / "map<" type-expr ">" / "ref:" ref
-scalar    = "string" / "integer" / "number" / "boolean"
-          / "timestamp" / "date" / "duration" / "uuid" / "bytes"
-          / "enum" / "object" / "any"
+scalar    = <a value of the definition `scalar`>
 ```
 
-`ref` is [`schemas/names`](names.md#the-grammar)' ref, naming a declared type.
-A `map` is keyed by string. An `object` is a JSON object whose shape is not
-declared, and `any` is any JSON value; both say that nothing checks the value,
-so a field that has a shape names a type instead.
+The scalars are the definition `scalar` below, their one machine-readable
+home; the grammar composes them, and a walker asserts the whole through the
+format `type-expr`. `ref` is [`schemas/names`](names.md#the-grammar)' ref,
+naming a declared type.
+
+Where this differs from the closed set the analyses proposed (`list<T>`,
+`map<K,V>`, `enum`, `ref:T` over the scalars), it differs for a stated reason:
+
+- **`map<V>` takes one parameter.** A map is written as a JSON object, whose
+  keys are strings, so a key type other than string has no written form.
+- **`object` and `any` exist** because today's types and config blocks hold 55
+  `object` fields and 4 `any` fields (protocol/, architecture/, patterns/ and
+  agents/, measured 2026-10-15) whose shape no type declares yet. Without them
+  a migration would have to invent a shape or drop the field. An `object` is a
+  JSON object whose shape is not declared and `any` is any JSON value; both
+  say that nothing checks the value, so a field that has a shape names a type
+  instead. The older `json` reads as `any` because it meant any JSON value.
+- **`date`** is below.
 
 The wire form of `integer`, `timestamp`, `duration`, `uuid` and `bytes` is
 [`protocol/types`](../protocol/types.md#conventions)' to state. `date` is a
@@ -78,10 +91,14 @@ calendar date with no time or zone, written as RFC 3339's `full-date`
 not an instant, and writing one as a timestamp invents a time of day and a
 zone nobody chose.
 
-### Spellings read in report mode
+### Older spellings
 
-Spellings that files written before grammar 1 use. A walk in report mode reads
-each as the type it names and reports it; the migration rewrites it.
+Spellings that files written before grammar 1 use, of a type or of a field
+property. A walk in grammar 1 reads each as what it names and reports it as
+legacy-spelling. This table is how grammar 1 reads them, not a list of retired
+spellings: when the migration (`v2-migrate`) has rewritten them, it retires
+each in [`RETIRED.md`](../RETIRED.md), their one home from then on, and the
+grammar that follows refuses them.
 
 | Spelling | Reads as |
 |---|---|
@@ -98,11 +115,22 @@ each as the type it names and reports it; the migration rewrites it.
 | `json` | `any` |
 | `list` | `list<any>` |
 | `array` | `list<any>` |
-| `[]T`, `T[]`, `list<T>` | `list<T>` |
+| `[]T`, `T[]` | `list<T>` |
 | `map` | `map<any>` |
 | `map[string]T` | `map<T>` |
 | `enum(a, b)` | `enum` with `values: [a, b]` |
 | a bare type name `T` | `ref:T` |
+| `type: list` or `array`, with `items: T` | `type: list<T>` |
+| `optional: true`, with no `required` | `required: false` |
+| `enum: [a, b]` | `values: [a, b]` |
+| `max_length: n` | `max: n` |
+| a field's `constraints: {...}` mapping | its properties, as properties of the field |
+| `fields` as a list of items each with `name` | `fields` as a mapping by that name |
+
+The properties are [`schemas/common`](common.md#field-constraint-properties)'
+table, which grammar 1 carries whole except for `optional`, which said the
+same as `required: false`, and `enum`, which `values` now names so that the
+word `enum` means one thing, the type.
 
 An `int64` that holds a time is read as `integer` here; whether it becomes a
 `timestamp` is a convention, decided once for every field by the lane that
@@ -177,6 +205,7 @@ defs:
   version: {type: string, format: weblisk-version}
   date: {type: string, format: date}
   part-id: {type: string, pattern: "^[a-z0-9][a-z0-9-]*$"}
+  scalar: {enum: [string, integer, number, boolean, timestamp, date, duration, uuid, bytes, enum, object, any]}
   catalogue:
     type: object
     additionalProperties:
@@ -216,15 +245,22 @@ defs:
       assertion: {type: string, minLength: 1}
   field:
     type: object
-    required: [type]
+    required: [type, description]
     unevaluatedProperties: false
     properties:
       type: {type: string, format: type-expr}
-      required: {type: boolean}
-      description: {type: string}
-      values: {type: array, minItems: 1, items: {type: string}}
+      description: {type: string, minLength: 1}
+      required: {type: boolean, default: true}
+      values: {type: array, minItems: 1, items: {type: [string, integer, number, boolean]}, description: "The values allowed."}
       default: {}
-      unit: {type: string}
+      unit: {type: string, description: "seconds, bytes, milliseconds..."}
+      format: {type: string, description: "A hint to a reader or a generator, such as uuid-v7, base64url or semver. Open, and never asserted by a walk."}
+      min: {type: number, description: "The least value, or the least length of a string or list."}
+      max: {type: number, description: "The greatest value, or the greatest length of a string or list."}
+      auto: {type: boolean, description: "Set by the system, never supplied."}
+      references: {type: string, pattern: "^[A-Z][A-Za-z0-9]*\\.[a-z][a-z0-9_]*$", description: "The Type.field this field's value refers to, in this file or one it requires."}
+      required_when: {type: string, description: "A condition on fields of the same type under which this one is required."}
+      exclusive_with: {type: string, description: "A field of the same type; exactly one of the two is set."}
     if: {properties: {type: {const: enum}}}
     then: {required: [values]}
   type:
@@ -234,6 +270,21 @@ defs:
     properties:
       description: {type: string}
       fields: {type: object, additionalProperties: {$ref: "#/$defs/field"}}
+      constraints:
+        type: array
+        items:
+          type: object
+          required: [name, type]
+          unevaluatedProperties: false
+          properties:
+            name: {type: string, pattern: "^[a-z][a-z0-9_]*$"}
+            type: {enum: [unique, check, foreign_key]}
+            fields: {type: array, minItems: 1, items: {type: string}}
+            expression: {type: string, description: "SQL-style; a check constraint's condition."}
+            description: {type: string}
+          if: {properties: {type: {const: check}}}
+          then: {required: [expression]}
+          else: {required: [fields]}
   operation:
     type: object
     required: [id]
@@ -313,4 +364,8 @@ verifies:
     covers: [legacy-type-spellings, type-vocabulary-closed]
     check: vectors-agree
     assertion: The legacy vector's `int64` field is reported and read as integer, and its `int128` field is refused.
+  - id: scalars-in-one-place
+    covers: [type-vocabulary-closed]
+    check: walk-validates
+    assertion: The type-expr format accepts exactly the values of the definition `scalar` and their compositions, so removing `date` from `scalar` makes a field of type date fail block-schema.
 ```

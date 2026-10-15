@@ -26,9 +26,9 @@ types:
   Lease:
     description: A time-bounded grant.
     fields:
-      holder:  {type: string, required: true}
-      expires: {type: timestamp, required: true}
-      renewed: {type: "list<timestamp>"}
+      holder:  {type: string, required: true, description: Who holds it.}
+      expires: {type: timestamp, required: true, description: When it ends.}
+      renewed: {type: "list<timestamp>", description: Each renewal.}
 ```
 
 ## Verification
