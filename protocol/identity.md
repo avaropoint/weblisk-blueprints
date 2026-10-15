@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 2.0.0
+version: 2.1.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -158,7 +158,8 @@ requires:
 ### Generation
 - Generate a fresh ML-DSA-65 key pair on first run
 - Use cryptographically secure random source (e.g., crypto/rand, Web Crypto API)
-- NEVER hardcode or share private keys
+- NEVER hardcode or share private keys. A published test vector's key is
+  no one's ([Fixed-Form Statements](#fixed-form-statements))
 
 ### Storage
 - Keys MUST be stored in a dedicated directory with restricted access
@@ -553,17 +554,29 @@ prefix names one layout for good. A changed layout gets a new prefix and a new
 row, and a verifier refuses a prefix it does not know.
 
 **Test vectors come before a signer.** An implementation signs under a prefix
-only once this corpus publishes test vectors for it — the exact bytes signed,
-a public key, and a signature over them — made with Cloudflare's circl and
-verified with OpenSSL 3.5 or later and with @noble/post-quantum. Every
-implementation, a hub's, a client's or a verifier's, tests against those same
-vectors. None is published yet. So no implementation may yet sign under
-`weblisk/credential-auth/v1`, `weblisk/log-key/v1`,
-`weblisk/log-checkpoint/v1`, `weblisk/log-succession/v1`,
-`weblisk/content-change/v1`, `weblisk/holder-probe/v1` or
-`weblisk/hub-proof/v1`, and
-`weblisk/auth/v1`, which the CLI already signs and a console already
-verifies, is the one exception, until its vectors are published.
+only once this corpus publishes test vectors for it — the field values, the
+exact bytes signed, a public key with its fingerprint, and a signature over
+them — made with Cloudflare's circl and verified with OpenSSL 3.5 or later and
+with @noble/post-quantum. Every implementation, a hub's, a client's or a
+verifier's, tests against those same vectors. They are published in one place,
+[`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json):
+a data file no blueprint requires, so no build carries it in its prompt, and
+every build receives it as test data
+([`architecture/generation`](../architecture/generation.md#published-test-vectors)).
+It holds vectors for `weblisk/auth/v1`, `weblisk/credential-auth/v1`,
+`weblisk/log-key/v1`, `weblisk/log-checkpoint/v1`,
+`weblisk/log-succession/v1` and `weblisk/content-change/v1`. None is published
+yet for `weblisk/holder-probe/v1` or `weblisk/hub-proof/v1`, so no
+implementation may yet sign under either.
+
+Each vector key is made from a seed the file publishes, and each signature is
+FIPS 204's deterministic variant, so a signer that can sign deterministically
+reproduces every signature byte for byte, and any other signer's signature
+verifies under the same key. **A vector key is no one's identity.** Its seed is
+public, which is the one place a private key is shared
+([Generation](#generation)): anyone can sign with it, so a signature by it
+proves nothing. No implementation accepts a vector key as an identity, a
+credential, a hub's key or a log's, and none ships one outside its tests.
 
 The document that defines a prefix, the last column above, states what a
 conforming implementation does until that prefix has vectors, and never
