@@ -1,0 +1,112 @@
+{
+  "file": "vectors/grammar/nested-fences.md",
+  "family": "test-blueprint@1",
+  "length": 756,
+  "version_hash": "sha256:392794cf8249d8ba8416c56510f89ebf377140f302843253636db8c214e7d803",
+  "declaration": "vectors/grammar/test-blueprint.md",
+  "parts": [
+    {
+      "span": [0, 48],
+      "part": "header",
+      "slot": null,
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:d8a545a3192269de0bd51f94d47bc92a540154b8d89c29264ae48b3dc1be567d",
+      "entries": [
+        {
+          "id": "family",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:c5d18b2ddb23c95e4d12f5521b2becda26840afbe04e973136bc9611985e1d50"
+        },
+        {
+          "id": "version",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:39fe4a40977d0585fd5704359e3685b0ada5cf5ee061e5d97385601d120cd0ec"
+        }
+      ]
+    },
+    {
+      "span": [48, 132],
+      "part": "text",
+      "slot": "title",
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:158bf7429bdc6d57c7628796174e7e913a01ee3c6bf1daacb6ca567373bc6267"
+    },
+    {
+      "span": [132, 149],
+      "part": "text",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:9847786846315cd9627e8e8f8a391f46a055780253236daa667d267bb82b4365"
+    },
+    {
+      "span": [149, 285],
+      "part": "block",
+      "slot": "requirements",
+      "block": "requirements",
+      "family": "requirement",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:e13692f815104c3776e2290ae7fdea8e67f2f31e9b48a16a05e78425ab4da9a1",
+      "entries": [
+        {
+          "id": "keep-examples-inert",
+          "digest": "sha256:492e30121cc41a4a5f41cfc529eb9cbf9623bfec067b6ac1f2721f3ee5a9f80d"
+        }
+      ]
+    },
+    {
+      "span": [285, 286],
+      "part": "text",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [286, 303],
+      "part": "text",
+      "slot": "verifies",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:817b1fa3eae2537bd10a8a271ca4c40b799f05f71d6b855f9e40446f21ab62fa"
+    },
+    {
+      "span": [303, 449],
+      "part": "block",
+      "slot": "verifies",
+      "block": "verifies",
+      "family": "check",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:7f2eade94f985724c26f9ced78e42a24b68e73d7f5dd947062416c423d579c0e",
+      "entries": [
+        {
+          "id": "example-opens-nothing",
+          "digest": "sha256:51bf8f585a9453a2f45d0dd8be490ddf2572a79728ab7d8355ec8ccb21734d39"
+        }
+      ]
+    },
+    {
+      "span": [449, 450],
+      "part": "text",
+      "slot": "verifies",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [450, 756],
+      "part": "text",
+      "slot": "notes",
+      "use": "explains",
+      "send": "on-request",
+      "digest": "sha256:4d1c9619c7937cf8907233577c5ee1055f7ed0bebfe7370b09098fba081c166e"
+    }
+  ],
+  "findings": []
+}

@@ -1,0 +1,179 @@
+{
+  "file": "vectors/grammar/aliases-and-repeats.md",
+  "family": "test-blueprint@1",
+  "length": 1138,
+  "version_hash": "sha256:4f46c20f29c7764df1265b9c3cf9bb27cd6184510ca9d3bc069dfa595268b13e",
+  "declaration": "vectors/grammar/test-blueprint.md",
+  "parts": [
+    {
+      "span": [0, 48],
+      "part": "header",
+      "slot": null,
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:d8a545a3192269de0bd51f94d47bc92a540154b8d89c29264ae48b3dc1be567d",
+      "entries": [
+        {
+          "id": "family",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:c5d18b2ddb23c95e4d12f5521b2becda26840afbe04e973136bc9611985e1d50"
+        },
+        {
+          "id": "version",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:39fe4a40977d0585fd5704359e3685b0ada5cf5ee061e5d97385601d120cd0ec"
+        }
+      ]
+    },
+    {
+      "span": [48, 143],
+      "part": "text",
+      "slot": "title",
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:57e2895b71003bebb5e12bc343f81918a3c304fd53e686fa760e4e9458703ee8"
+    },
+    {
+      "span": [143, 160],
+      "part": "text",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:9847786846315cd9627e8e8f8a391f46a055780253236daa667d267bb82b4365"
+    },
+    {
+      "span": [160, 392],
+      "part": "block",
+      "slot": "requirements",
+      "block": "requirements",
+      "family": "requirement",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:3737322ae9e3ba9ede2b3e25760f2b85ede4c9dad6a6d84fbb17997c680d86a4",
+      "entries": [
+        {
+          "id": "lease-is-renewed",
+          "digest": "sha256:74b6c13c4c415d300995d4a92a785e2273e4f5095f8d67a1f9559b358f335bd9"
+        },
+        {
+          "id": "drain-before-stop",
+          "digest": "sha256:6a5ac89bb94db509c5995bab53326685e797bb44732419a75ad0cc631019604b"
+        }
+      ]
+    },
+    {
+      "span": [392, 393],
+      "part": "text",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [393, 408],
+      "part": "text",
+      "slot": "types",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:cebe83aa747d05ae1d361268a34fd46b5aa83448d09dab1f6267aab37c081798"
+    },
+    {
+      "span": [408, 623],
+      "part": "block",
+      "slot": "types",
+      "block": "types",
+      "family": "type",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:fe25f4127581ff8c94a8b1569cbceea5c227a2f85a1b394d1b99a142abdae378",
+      "entries": [
+        {
+          "id": "Lease",
+          "digest": "sha256:3b6c5533e788149016d883d5ebceab1990413d6859885a6de083cb222d67711d"
+        }
+      ]
+    },
+    {
+      "span": [623, 624],
+      "part": "text",
+      "slot": "types",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [624, 641],
+      "part": "text",
+      "slot": "verifies",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:817b1fa3eae2537bd10a8a271ca4c40b799f05f71d6b855f9e40446f21ab62fa"
+    },
+    {
+      "span": [641, 792],
+      "part": "block",
+      "slot": "verifies",
+      "block": "verifies",
+      "family": "check",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:330dbcbb4e59aeb078293898a3024b2ca2d5c9d8a52229357828ba5a71110f99",
+      "entries": [
+        {
+          "id": "lease-renewal-observed",
+          "digest": "sha256:74a046bafb96a6da8fdd2841c6652d1baf6c386c82731273edcf61470a2d12d0"
+        }
+      ]
+    },
+    {
+      "span": [792, 793],
+      "part": "text",
+      "slot": "verifies",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [793, 932],
+      "part": "text",
+      "slot": "operation",
+      "use": "explains",
+      "send": "cited",
+      "digest": "sha256:a0e37433ef142aec03e430d2213473a9707ba24ed48805659550eec74b915f23",
+      "explains": [
+        "lease-is-renewed"
+      ],
+      "key": "lease-is-renewed"
+    },
+    {
+      "span": [932, 1063],
+      "part": "text",
+      "slot": "operation",
+      "use": "explains",
+      "send": "cited",
+      "digest": "sha256:555a2a1703610610076335f18a1fa078fbff5bb459a0663e7be723435932e1b5",
+      "explains": [
+        "drain-before-stop"
+      ],
+      "key": "drain-before-stop"
+    },
+    {
+      "span": [1063, 1138],
+      "part": "text",
+      "slot": "operation",
+      "use": "explains",
+      "send": "on-request",
+      "digest": "sha256:7bff272422124101e52a8287e1dd91f01d79a13c7520cec3e05e0266fb6ba409"
+    }
+  ],
+  "findings": [
+    {
+      "code": "slot-key-missing",
+      "policy": "refuse",
+      "span": [1063, 1138],
+      "subject": "operation"
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+{
+  "file": "vectors/grammar/bom.md",
+  "family": "test-blueprint@1",
+  "length": 661,
+  "version_hash": "sha256:155ffbefc3766301ba7d24edb094a1f88c34ac7a18649655985685f79140ac0c",
+  "declaration": "vectors/grammar/test-blueprint.md",
+  "parts": [
+    {
+      "span": [0, 170],
+      "part": "header",
+      "slot": null,
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:0c3a2c012b85c398c94a49a06d311df87b5d739d8215f597bdff7c70240cb043",
+      "entries": [
+        {
+          "id": "family",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:c5d18b2ddb23c95e4d12f5521b2becda26840afbe04e973136bc9611985e1d50"
+        },
+        {
+          "id": "version",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:39fe4a40977d0585fd5704359e3685b0ada5cf5ee061e5d97385601d120cd0ec"
+        },
+        {
+          "id": "review",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:9770e6de784e0d441cb9cdf1499c69c839421b3882d2b00132e8b3f899ece9d9"
+        },
+        {
+          "id": "requires",
+          "use": "depends",
+          "send": "always",
+          "digest": "sha256:5337a13891b5cbcc9ef8e0517a190ac06a041835b285298b0cd10a343c4a05c9"
+        }
+      ]
+    },
+    {
+      "span": [170, 309],
+      "part": "text",
+      "slot": "title",
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:e06cdb24c1da9405974002de0e7e3b3543ae096aa5a9c38ad425681fa7b16bbd"
+    },
+    {
+      "span": [309, 326],
+      "part": "text",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:9847786846315cd9627e8e8f8a391f46a055780253236daa667d267bb82b4365"
+    },
+    {
+      "span": [326, 471],
+      "part": "block",
+      "slot": "requirements",
+      "block": "requirements",
+      "family": "requirement",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:7fa7d38870dd3f956f3514feb05433e85a4e5a9fac2374eac55a0fc83a10a7b5",
+      "entries": [
+        {
+          "id": "answer-every-ping",
+          "digest": "sha256:e21d5ee7f1aef658ea4cb91b2aaf6f91556354fc79aad90ced9cc2d92c98dcf7"
+        }
+      ]
+    },
+    {
+      "span": [471, 472],
+      "part": "text",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [472, 489],
+      "part": "text",
+      "slot": "verifies",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:817b1fa3eae2537bd10a8a271ca4c40b799f05f71d6b855f9e40446f21ab62fa"
+    },
+    {
+      "span": [489, 661],
+      "part": "block",
+      "slot": "verifies",
+      "block": "verifies",
+      "family": "check",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:62eb04f7175713f57d72e2b9225d5621a9dc0f3928371b7e79ec8f55b8db252a",
+      "entries": [
+        {
+          "id": "ping-is-answered",
+          "digest": "sha256:e66bff9c5f7d3f2ebfbfdbd925fd346c7e5691a769c6cd936683f44f0a474e43"
+        }
+      ]
+    }
+  ],
+  "findings": []
+}

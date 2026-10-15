@@ -1,0 +1,3 @@
+# Grammar vectors are byte-exact: a CRLF, a byte-order mark and every offset
+# in their projections must survive checkout on any platform.
+vectors/grammar/** -text

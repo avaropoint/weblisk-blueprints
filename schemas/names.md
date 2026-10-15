@@ -75,6 +75,10 @@ kind adds a family and nothing here changes. The block below declares the
 families that name something which is not a kind of node: a part of a file, or
 a file's own sort. A tool reads the two together and keeps no list of its own.
 
+A ref family is not a **file family**, which says how a file of one sort is
+written and is declared in [`schemas/family`](family.md); a file family's
+`kind` names the ref family its files are named in.
+
 ## Namespaces
 
 A namespace is the authority under which a local id is unique. A repository

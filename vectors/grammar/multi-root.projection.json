@@ -1,0 +1,100 @@
+{
+  "file": "vectors/grammar/multi-root.md",
+  "family": "test-blueprint@1",
+  "length": 468,
+  "version_hash": "sha256:768ae80e59b22a7e576dab2e9540337f2b0127d6488a1f42bcebd9c8a70f328f",
+  "declaration": "vectors/grammar/test-blueprint.md",
+  "parts": [
+    {
+      "span": [0, 48],
+      "part": "header",
+      "slot": null,
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:d8a545a3192269de0bd51f94d47bc92a540154b8d89c29264ae48b3dc1be567d",
+      "entries": [
+        {
+          "id": "family",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:c5d18b2ddb23c95e4d12f5521b2becda26840afbe04e973136bc9611985e1d50"
+        },
+        {
+          "id": "version",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:39fe4a40977d0585fd5704359e3685b0ada5cf5ee061e5d97385601d120cd0ec"
+        }
+      ]
+    },
+    {
+      "span": [48, 128],
+      "part": "text",
+      "slot": "title",
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:7fbac046153c4cea0887d4adde4e4640816157279b48e2ce5ada04b335146ae0"
+    },
+    {
+      "span": [128, 145],
+      "part": "text",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:9847786846315cd9627e8e8f8a391f46a055780253236daa667d267bb82b4365"
+    },
+    {
+      "span": [145, 310],
+      "part": "block",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:dc0df0017dfaa8f6e13171851e4c9739fb511e506574e371c82069d92db17e9b"
+    },
+    {
+      "span": [310, 311],
+      "part": "text",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [311, 328],
+      "part": "text",
+      "slot": "verifies",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:817b1fa3eae2537bd10a8a271ca4c40b799f05f71d6b855f9e40446f21ab62fa"
+    },
+    {
+      "span": [328, 468],
+      "part": "block",
+      "slot": "verifies",
+      "block": "verifies",
+      "family": "check",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:378a9d3972301b4d9bf4bb9d3d265937eeee8e5bdf5007431b10241c61bc8006",
+      "entries": [
+        {
+          "id": "second-root-refused",
+          "digest": "sha256:e3966a478bd84478329ebf5ca66eb805e5e5d2614695fa8d115e4c6a85d20bcf"
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "code": "block-missing",
+      "policy": "refuse",
+      "span": [128, 145],
+      "subject": "requirements"
+    },
+    {
+      "code": "multi-root",
+      "policy": "refuse",
+      "span": [145, 310]
+    }
+  ]
+}

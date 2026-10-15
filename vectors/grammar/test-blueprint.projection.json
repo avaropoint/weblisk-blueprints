@@ -1,0 +1,95 @@
+{
+  "file": "vectors/grammar/test-blueprint.md",
+  "family": "family@1",
+  "length": 2060,
+  "version_hash": "sha256:327c750d9f4fdf0e7434a1ad98e8950c8d8aeef5a9dd9931e2092400761c1d39",
+  "parts": [
+    {
+      "span": [0, 76],
+      "part": "header",
+      "slot": null,
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:bb4ea2895528eb7d04e85180ef492d73f222e5f533cea78ff6361725d51e37d9",
+      "entries": [
+        {
+          "id": "family",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:6c1f82ce3f81cee792fb7cde7768072874c0decf108bca3d1012ee70d9c02373"
+        },
+        {
+          "id": "version",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:39fe4a40977d0585fd5704359e3685b0ada5cf5ee061e5d97385601d120cd0ec"
+        },
+        {
+          "id": "kind",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:1bda48a40a6893c3ca20741c81aa6fb0e7d847546f7cb98c924cbdbaa6f68959"
+        },
+        {
+          "id": "noun",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:661272019a005b9a11714a9c70d9d4d153717404e51e35d772c4f827b56727d0"
+        }
+      ]
+    },
+    {
+      "span": [76, 293],
+      "part": "text",
+      "slot": "title",
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:db27b736f5ac02d0da32034d390fb52ff07ecc15a71c88b37c759a9d773e6afe"
+    },
+    {
+      "span": [293, 304],
+      "part": "text",
+      "slot": "header",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:c7be56ccdadeb892cd79dc3cfec7a19fbba8b0205b8707557510ec369c86b479"
+    },
+    {
+      "span": [304, 806],
+      "part": "block",
+      "slot": "header",
+      "block": "header",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:5c8ad32049e8a08612c45a77fdd9a539020fd4d300dfd72ca08b332441b8e07c",
+      "entries": []
+    },
+    {
+      "span": [806, 807],
+      "part": "text",
+      "slot": "header",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [807, 820],
+      "part": "text",
+      "slot": "sections",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:6ed5d2c09db626d22406f8c86c54ae5e44c9e22f8a21b00f0f3a8df1f1a1289d"
+    },
+    {
+      "span": [820, 2060],
+      "part": "block",
+      "slot": "sections",
+      "block": "sections",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:983ef5c3a89c0e114f576775ffcc95fb9e0fc842afd29363b3a8ebc57ec4fa97",
+      "entries": []
+    }
+  ],
+  "findings": []
+}

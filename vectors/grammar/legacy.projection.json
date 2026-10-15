@@ -1,0 +1,161 @@
+{
+  "file": "vectors/grammar/legacy.md",
+  "family": "test-blueprint@1",
+  "length": 762,
+  "version_hash": "sha256:19608e3a64b26edf20cd59931189c2d67644e2445311fdf472d76683054be2df",
+  "declaration": "vectors/grammar/test-blueprint.md",
+  "parts": [
+    {
+      "span": [0, 66],
+      "part": "header",
+      "slot": null,
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:d8a545a3192269de0bd51f94d47bc92a540154b8d89c29264ae48b3dc1be567d",
+      "entries": [
+        {
+          "id": "family",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:c5d18b2ddb23c95e4d12f5521b2becda26840afbe04e973136bc9611985e1d50"
+        },
+        {
+          "id": "version",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:39fe4a40977d0585fd5704359e3685b0ada5cf5ee061e5d97385601d120cd0ec"
+        }
+      ]
+    },
+    {
+      "span": [66, 224],
+      "part": "text",
+      "slot": "title",
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:5a5c7957196da07215a225a44b833d9c395cfe2a0304097151dadc80ef1685ac"
+    },
+    {
+      "span": [224, 241],
+      "part": "text",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:9847786846315cd9627e8e8f8a391f46a055780253236daa667d267bb82b4365"
+    },
+    {
+      "span": [241, 381],
+      "part": "block",
+      "slot": "requirements",
+      "block": "requirements",
+      "family": "requirement",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:a29bcb71c198961da327bc814f39a25a7e603e4ffede6b43244c463882e38ea8",
+      "entries": [
+        {
+          "id": "count-in-sixty-four-bits",
+          "digest": "sha256:30cc21f7f2fc538e573c07ed97ddaef151ffaf8e4f28eaf732aad2dee70cb817"
+        }
+      ]
+    },
+    {
+      "span": [381, 382],
+      "part": "text",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [382, 392],
+      "part": "text",
+      "slot": "types",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:8e72c0925c40071cbfe4605a5a88c484fadb5f92e428584eebdfb4a1d9b5108b"
+    },
+    {
+      "span": [392, 505],
+      "part": "block",
+      "slot": "types",
+      "block": "types",
+      "family": "type",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:ef1e38356df8293c4b9a2b0867ede82f5babcda6da91e7b4fdafb9acf71682c9",
+      "entries": [
+        {
+          "id": "Counter",
+          "digest": "sha256:a52ae55711c104e411ae70b7ef0e1d7bcfed95eafb3a1a1a3f1b2d283bdc9543"
+        }
+      ]
+    },
+    {
+      "span": [505, 506],
+      "part": "text",
+      "slot": "types",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [506, 585],
+      "part": "text",
+      "slot": null,
+      "use": "explains",
+      "send": "on-request",
+      "digest": "sha256:a0a0351d1949cd360179442a3b12c3c765e56bda117446c72e43a17c035276fc"
+    },
+    {
+      "span": [585, 602],
+      "part": "text",
+      "slot": "verifies",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:817b1fa3eae2537bd10a8a271ca4c40b799f05f71d6b855f9e40446f21ab62fa"
+    },
+    {
+      "span": [602, 762],
+      "part": "block",
+      "slot": "verifies",
+      "block": "verifies",
+      "family": "check",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:df1bfec954581655ba4b1fc153e1ac6abc400cff258b058510395652c2b2b299",
+      "entries": [
+        {
+          "id": "counter-range",
+          "digest": "sha256:1b3d938520b731db0b7d654d17020041d515161dc35ffbcee45059fb79f326fb"
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "code": "legacy-key",
+      "policy": "report",
+      "span": [0, 66],
+      "subject": "id"
+    },
+    {
+      "code": "block-schema",
+      "policy": "refuse",
+      "span": [392, 505],
+      "subject": "/Counter/fields/wide/type"
+    },
+    {
+      "code": "legacy-spelling",
+      "policy": "report",
+      "span": [392, 505],
+      "subject": "int64"
+    },
+    {
+      "code": "undeclared-slot",
+      "policy": "report",
+      "span": [506, 585],
+      "subject": "Background"
+    }
+  ]
+}

@@ -74,5 +74,29 @@ grep -q "has reached it" "$tmp/out" || { echo "FAIL retired control: the ended a
 expect 0 "timestamp-wire: every mapping agrees with the vector" python3 checks/timestamp-wire.py
 expect 0 "timestamp-wire control: a mapping in milliseconds is reported" python3 checks/timestamp-wire.py --control
 
+# Every grammar vector against its expected projection; a copy whose
+# projection leaves a one-byte gap, and a copy missing a projection, must each
+# be reported, once.
+expect 0 "spans: every grammar vector is partitioned by its projection" python3 checks/spans.py
+mkdir "$tmp/gap" "$tmp/lone"
+cp vectors/grammar/minimal.md vectors/grammar/minimal.projection.json "$tmp/gap/"
+python3 - "$tmp/gap/minimal.projection.json" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1]))
+p["parts"][1]["span"][0] += 1
+json.dump(p, open(sys.argv[1], "w"))
+PY
+expect 1 "spans control: a projection with a one-byte gap fails" python3 checks/spans.py --dir "$tmp/gap"
+if [ "$(grep -c '^minimal: gap at byte' "$tmp/out")" -eq 1 ] && [ "$(wc -l <"$tmp/out")" -eq 1 ]; then
+	echo "ok   spans control: exactly one finding, the gap"
+else
+	echo "FAIL spans control: want exactly one finding, the gap"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+cp vectors/grammar/minimal.md vectors/grammar/minimal.projection.json vectors/grammar/crlf.md "$tmp/lone/"
+expect 1 "spans control: a vector without a projection fails" python3 checks/spans.py --dir "$tmp/lone"
+grep -q '^crlf.md: no expected projection$' "$tmp/out" || { echo "FAIL spans control: the missing projection was not what was reported"; fails=$((fails + 1)); }
+
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]
