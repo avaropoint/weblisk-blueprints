@@ -29,6 +29,11 @@ against.
 | `table-as-yaml.md` | The same errors as a yaml block, with the same entry digests as `table.md` |
 | `legacy.md` | A legacy header key reported, an old type spelling reported and read as the type it names, an unknown spelling refused, and a section no slot declares reported |
 | `migration.md` | A file of the migration-mode family with its own id, an obligation id and no version: three findings, each reported, and nothing refused |
+| `header-schema.md` | A header key the family does not declare: refused once as header-schema, with the JSON pointer of the key as subject, and still an entry of the header |
+| `slot-order.md` | Verification written before the requirements it covers: both slots read, and slot-order reported on the slot written early |
+| `unclosed-fence.md` | A fence in the last slot never closed: it runs to the end of the file, the `## ` heading inside it opens nothing, and it is refused as unclosed-fence |
+| `yaml-feature.md` | A requirements block using an anchor and an alias: a block whose value is not read, digested over its bytes with no entries, and refused once, with `anchor` as subject |
+| `inert-headings.md` | A setext heading, a heading indented four spaces, a `#` with no space and a heading inside a multi-line comment: all text of the notes slot, with no finding |
 
 A file here is data. Its bytes are its point, so the repository keeps them as
 written (`.gitattributes`); an edit to one is an edit to its projection too,

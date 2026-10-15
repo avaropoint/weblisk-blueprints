@@ -55,7 +55,7 @@ requirements:
     text: >-
       Parts begin at offset 0 and at these points only: the end of the header's
       closing line; the start of a level-1 or level-2 heading line outside a
-      fence; the start of a block's opening line or first table row; the end of
+      fence or comment; the start of a block's opening line or first table row; the end of
       a block's closing line or last table row. Each part ends where the next
       begins.
   - id: bytes-as-written
@@ -65,6 +65,22 @@ requirements:
       content. A line ends at LF, and a CR before that LF belongs to the line.
       Headings, fences and the header are recognised identically with either
       line end.
+  - id: header-delimited
+    level: must
+    text: >-
+      A header opens with a first line that is exactly `---`, at offset 0 or
+      after the byte-order mark, and closes at the next line that is exactly
+      `---`; `...` closes nothing. A file whose first line is anything else
+      has no header. A header with no closing line, or whose lines do not
+      parse as a YAML mapping, is refused as header-unparsed: its part runs to
+      the end of its closing line, or of the file when it has none.
+  - id: headings-are-atx
+    level: must
+    text: >-
+      A level-1 or level-2 heading is a line of `#` or `##`, indented by at
+      most three spaces, then a space and its text. A line indented by four
+      or more, a `#` with no space after it, and a setext heading (text
+      underlined with `=` or `-`) are text.
   - id: fences-are-opaque
     level: must
     text: >-
@@ -72,7 +88,12 @@ requirements:
       by at most three spaces, and closes with a line of the same character at
       least as long and nothing else. Every line inside a fence is content: a
       heading, a fence of the other character or a shorter one, or a block
-      inside it opens nothing.
+      inside it opens nothing. A line outside a fence that begins, after at
+      most three spaces, with `<!--` opens a comment that closes at the end of
+      the first line from that one on holding `-->`, and every line of a
+      comment is content in the same way; a `wl:explains` marker is a comment
+      on one line. A fence or comment with no closing line runs to the end of
+      the file and is refused as unclosed-fence.
   - id: slots-by-heading
     level: must
     text: >-
@@ -91,14 +112,22 @@ requirements:
       or table is text of its slot, with no part of its own. A yaml fence
       outside any other fence whose mapping has a catalogued root key and any
       other root key is reported multi-root, with that catalogued key as its
-      subject, and not also prose-forbidden: one fault is one finding.
+      subject, and not also prose-forbidden: one fault is one finding. A yaml
+      fence whose first line that is neither blank nor a `#` comment is a
+      catalogued key and `:` at column 0, but which does not parse or uses a
+      YAML feature json-data-model refuses, is a block of that type that is
+      refused (block-unparsed or yaml-feature) and has no value read.
   - id: json-data-model
     level: must
     text: >-
       A header or block is read as YAML into the JSON data model only. An
-      anchor, alias, tag, merge key or second document is refused, and a scalar
-      that is not quoted keeps the type the YAML 1.2 core schema gives it, so
-      an unquoted date is a string.
+      anchor, alias, tag, merge key or second document is refused as
+      yaml-feature, once for the header or block, with the first such feature
+      in it as subject, and a scalar that is not quoted keeps the type the
+      YAML 1.2 core schema gives it, so an unquoted date is a string. A header
+      or block whose value is not read, because it is refused as
+      header-unparsed, block-unparsed or yaml-feature, has its digest over its
+      bytes, as a text part has, and no entries.
   - id: legacy-before-schema
     level: must
     text: >-
@@ -145,7 +174,8 @@ requirements:
       spelling blocks.md lists is rewritten to what it names. A block's value
       is the value under its root key, without the key; a header's is its
       mapping; an entry's is the mapping's value at its key, or the list item
-      it names. A text part's
+      it names. A header or block whose value is not read is digested over
+      its bytes, as json-data-model says. A text part's
       digest is sha256 over its bytes. Every digest is written sha256:<hex>.
   - id: findings-closed
     level: must
@@ -430,15 +460,16 @@ defs:
       - missing-header      # no header, and no family matches the path
       - unknown-family      # family: names no declaration, or a major it does not have
       - match-ambiguous     # two families' match cover the path
-      - header-schema       # the header fails header.schema; subject is the JSON pointer
+      - header-unparsed     # a header with no closing line, or that does not parse as a YAML mapping
+      - header-schema       # the header fails header.schema; subject is the JSON pointer of the failing value
       - legacy-key          # a key header.legacy names; subject is the key or dotted path as header.legacy writes it
       - missing-key         # a key header.required names is absent; subject is the key
       - legacy-spelling     # a type or field property blocks.md lists as an older spelling; subject is the spelling
-      - yaml-feature        # an anchor, alias, tag, merge key or second document
-      - unclosed-fence      # a fence runs to the end of the file
+      - yaml-feature        # an anchor, alias, tag, merge key or second document; subject is the first of these: anchor, alias, tag, merge-key or document
+      - unclosed-fence      # a fence or comment runs to the end of the file
       - missing-slot        # a required slot does not occur; subject is the slot
       - slot-count          # a slot occurs more often than its count allows
-      - slot-order          # a slot occurs before one declared ahead of it
+      - slot-order          # a slot occurs before one declared ahead of it; subject is the slot, span its first part
       - undeclared-slot     # a level-2 heading no slot matches; subject is its text
       - slot-key-missing    # an occurrence of a repeatable slot has no key
       - duplicate-key       # two occurrences of a repeatable slot share a key
@@ -470,7 +501,7 @@ defs:
       span: {$ref: "#/$defs/span", description: "The span of the part it was found in; for something absent from the file, the slot's first part, or [length, length] when the slot itself is absent."}
       subject: {type: string}
     allOf:
-      - if: {properties: {code: {enum: [missing-header, unknown-family, match-ambiguous, header-schema,
+      - if: {properties: {code: {enum: [missing-header, unknown-family, match-ambiguous, header-unparsed, header-schema,
               yaml-feature, unclosed-fence, slot-count, slot-key-missing, duplicate-key, prose-forbidden,
               prose-required, content, block-not-allowed, block-count, block-missing, multi-root,
               block-unparsed, block-schema, duplicate-entry, missing-column]}}}
@@ -569,7 +600,7 @@ verifies:
     check: corpus-check
     assertion: checks/refs.py resolves every `$ref` in every declaration to a definition; a copy of test-blueprint.md citing `blocks#/$defs/version`, a short form with no declaration behind it, fails it.
   - id: walker-matches-vectors
-    covers: [part-boundaries, bytes-as-written, fences-are-opaque, slots-by-heading, blocks-by-root-key, json-data-model, legacy-before-schema, header-required-reported, parts-carry-use, digests-by-value, findings-closed, repeatable-slot-key]
+    covers: [part-boundaries, bytes-as-written, header-delimited, headings-are-atx, fences-are-opaque, slots-by-heading, blocks-by-root-key, json-data-model, legacy-before-schema, header-required-reported, parts-carry-use, digests-by-value, findings-closed, repeatable-slot-key]
     check: vectors-agree
     assertion: Walking each file in vectors/grammar/ against the declaration its projection names gives exactly that projection.
 ```

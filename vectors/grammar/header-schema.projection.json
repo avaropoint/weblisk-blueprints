@@ -1,0 +1,108 @@
+{
+  "file": "vectors/grammar/header-schema.md",
+  "family": "vectors/grammar/test-blueprint@1",
+  "length": 504,
+  "version_hash": "sha256:a2752a85de8dab43c2e6da44127e009db7f262a4cfb06de46a04d4a320385113",
+  "parts": [
+    {
+      "span": [0, 85],
+      "part": "header",
+      "slot": null,
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:6863c4c7c87408ae85035875331c7b967daad8dc11600bf29ebcba814924b2db",
+      "entries": [
+        {
+          "id": "family",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:0a4926df20a363d3527906c15468ed0c3c23ae782ce282a1b7b55ec720717562"
+        },
+        {
+          "id": "version",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:39fe4a40977d0585fd5704359e3685b0ada5cf5ee061e5d97385601d120cd0ec"
+        },
+        {
+          "id": "owner",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:6e4048f90795ce21434d377d25b1ed329b3bfeb6bfa93d63619da8ae0831f6b8"
+        }
+      ]
+    },
+    {
+      "span": [85, 177],
+      "part": "text",
+      "slot": "title",
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:dbb60a56f02b4368c69de901f90249dac5b3ffd3ded50e55143b7aa064ce12a5"
+    },
+    {
+      "span": [177, 194],
+      "part": "text",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:9847786846315cd9627e8e8f8a391f46a055780253236daa667d267bb82b4365"
+    },
+    {
+      "span": [194, 329],
+      "part": "block",
+      "slot": "requirements",
+      "block": "requirements",
+      "family": "requirement",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:1f20b44700a12301f45b08d172acd1988753476075f4a206e7b2ccf0074b9eff",
+      "entries": [
+        {
+          "id": "header-keys-are-declared",
+          "digest": "sha256:bb65009304a9a5a76864e12375189f583b38131bb5d6ac10d12249e4cba6f7fe"
+        }
+      ]
+    },
+    {
+      "span": [329, 330],
+      "part": "text",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [330, 347],
+      "part": "text",
+      "slot": "verifies",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:817b1fa3eae2537bd10a8a271ca4c40b799f05f71d6b855f9e40446f21ab62fa"
+    },
+    {
+      "span": [347, 504],
+      "part": "block",
+      "slot": "verifies",
+      "block": "verifies",
+      "family": "check",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:da7fdc14a4ac430dcffb9ab855dae7cb6ca69cdd2168205b014877ea86158fa5",
+      "entries": [
+        {
+          "id": "unknown-key-refused",
+          "digest": "sha256:b4493a6f9dbcaa3c9b9173ebb0524022604f6cb5a47adb43f050681c545085e8"
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "code": "header-schema",
+      "policy": "refuse",
+      "span": [0, 85],
+      "subject": "/owner"
+    }
+  ]
+}
