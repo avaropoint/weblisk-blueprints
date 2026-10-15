@@ -105,6 +105,14 @@ requirements:
       Each key header.legacy names is removed before header.schema is applied,
       and is a finding under its own policy, never a second finding from the
       schema.
+  - id: header-required-reported
+    level: must
+    text: >-
+      A key header.required names that the header does not hold is reported
+      as missing-key, with the key as subject, and header.schema is applied
+      as if its `required` did not list that key, so one absence is one
+      finding. A key whose absence is refused is listed in header.schema's
+      `required` alone.
   - id: schema-refs-resolve
     level: must
     text: >-
@@ -232,6 +240,7 @@ grammar that adds it does so as a new major of this file.
 | `header.schema` | header block | JSON Schema 2020-12 for the frontmatter, with unknown keys refused |
 | `header.uses` | header block | Per field: its `use`, the ref family it `resolves` to, and its `send` |
 | `header.legacy` | header block | Keys still found in older files, each `report` or `refuse`. Used only while files are migrated |
+| `header.required` | header block | Keys a file should hold whose absence is reported rather than refused, each `report`. Used only while files are migrated: a key whose absence is refused is in `header.schema`'s `required`, its one home |
 | `slot`, `heading`, `aliases` | slot | The slot's stable key, and the heading text that opens it. Heading text is never identity |
 | `required` | slot | `true`, `false`, `report`, or `{when: {header_present: <key>}}` or `{when: {block_present: <type>}}` |
 | `count`, `key` | slot | How many times the slot may occur, and where a repeatable slot's key comes from |
@@ -393,6 +402,10 @@ defs:
         type: object
         description: "A key, or a dotted path to one, still found in older files."
         additionalProperties: {enum: [report, refuse]}
+      required:
+        type: object
+        description: "A top-level key whose absence is reported, never refused."
+        additionalProperties: {const: report}
   sections-block:
     type: object
     required: [slots]
@@ -413,7 +426,8 @@ defs:
       - unknown-family      # family: names no declaration, or a major it does not have
       - match-ambiguous     # two families' match cover the path
       - header-schema       # the header fails header.schema; subject is the JSON pointer
-      - legacy-key          # a key header.legacy names; subject is the key
+      - legacy-key          # a key header.legacy names; subject is the key or dotted path as header.legacy writes it
+      - missing-key         # a key header.required names is absent; subject is the key
       - legacy-spelling     # a type or field property blocks.md lists as an older spelling; subject is the spelling
       - yaml-feature        # an anchor, alias, tag, merge key or second document
       - unclosed-fence      # a fence runs to the end of the file
@@ -456,7 +470,7 @@ defs:
               prose-required, content, block-not-allowed, block-count, block-missing, multi-root,
               block-unparsed, block-schema, duplicate-entry, missing-column]}}}
         then: {properties: {policy: {const: refuse}}}
-      - if: {properties: {code: {enum: [slot-order, legacy-spelling, unknown-column]}}}
+      - if: {properties: {code: {enum: [slot-order, legacy-spelling, unknown-column, missing-key]}}}
         then: {properties: {policy: {const: report}}}
   entry:
     type: object
@@ -493,7 +507,7 @@ defs:
       length: {type: integer, minimum: 0}
       version_hash: {$ref: "#/$defs/digest"}
       parts: {type: array, items: {$ref: "#/$defs/part"}}
-      findings: {type: array, items: {$ref: "#/$defs/finding"}, description: "In order of span start, then code."}
+      findings: {type: array, items: {$ref: "#/$defs/finding"}, description: "In order of span start, then code, then subject."}
 ```
 
 A finding's policy is fixed by its code, in `finding` above, for every code
@@ -513,6 +527,17 @@ loses nothing, and a column the block does not name is not read, so those are
 reported. `slot-order` and `legacy-spelling` become `refuse` in the grammar
 that follows migration, which is a new major of this file, never a mode a walk
 is run in.
+
+A family whose files are still being migrated is declared in **migration
+mode** with this grammar's own keywords, never a mode a walk is run in: the
+keys older files carry are `header.legacy` entries, and a key older files lack
+is a `header.required` entry, so each one is a counted finding (`legacy-key`,
+`missing-key`) and every other key is still refused. The strict family that
+follows is a new major of that declaration, which drops both and lists the
+key in `header.schema`'s `required`. `missing-key` is therefore always
+`report`; a refused absence is `header-schema`, and one home holds each.
+[`vectors/grammar/test-programme.md`](../vectors/grammar/test-programme.md)
+is such a declaration, and `migration.md` a file walked against it.
 
 ## Verification
 
@@ -539,7 +564,7 @@ verifies:
     check: corpus-check
     assertion: checks/refs.py resolves every `$ref` in every declaration to a definition; a copy of test-blueprint.md citing `blocks#/$defs/version`, a short form with no declaration behind it, fails it.
   - id: walker-matches-vectors
-    covers: [part-boundaries, bytes-as-written, fences-are-opaque, slots-by-heading, blocks-by-root-key, json-data-model, legacy-before-schema, parts-carry-use, digests-by-value, findings-closed, repeatable-slot-key]
+    covers: [part-boundaries, bytes-as-written, fences-are-opaque, slots-by-heading, blocks-by-root-key, json-data-model, legacy-before-schema, header-required-reported, parts-carry-use, digests-by-value, findings-closed, repeatable-slot-key]
     check: vectors-agree
     assertion: Walking each file in vectors/grammar/ against the declaration its projection names gives exactly that projection.
 ```

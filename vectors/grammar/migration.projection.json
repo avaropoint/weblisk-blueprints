@@ -1,0 +1,66 @@
+{
+  "file": "vectors/grammar/migration.md",
+  "family": "vectors/grammar/test-programme@1",
+  "length": 380,
+  "version_hash": "sha256:a907533e527fe3448854bffd3352a0a12c5745682e81a87c8fe9636ff5071564",
+  "parts": [
+    {
+      "span": [0, 172],
+      "part": "header",
+      "slot": null,
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:422b8a403a756bcc5255e9de1a59565978e69a84ccc751b49b86d0f4a15df2a7",
+      "entries": [
+        {
+          "id": "family",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:f19a6284c837e00b2c5aea2696dda7e36b66b4bb5034667f7fa9544d21a8016f"
+        },
+        {
+          "id": "declares",
+          "use": "declares",
+          "send": "always",
+          "digest": "sha256:1b0a45c94483caf0a726a28e0d17e6e04154e8c9828da119dff5d3a26a7bf8df"
+        }
+      ]
+    },
+    {
+      "span": [172, 295],
+      "part": "text",
+      "slot": "title",
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:5b23efb3938e44ae6d15b6e43c5beb991bbe6172e8600f66d7a68d512c750056"
+    },
+    {
+      "span": [295, 380],
+      "part": "text",
+      "slot": "steps",
+      "use": "instructs",
+      "send": "always",
+      "digest": "sha256:223a8ac79105713c4826b16ccf7e8a1b37aeeea4bf82aa25a6bfb674367eeee4"
+    }
+  ],
+  "findings": [
+    {
+      "code": "legacy-key",
+      "policy": "report",
+      "span": [0, 172],
+      "subject": "declares.obligation.id"
+    },
+    {
+      "code": "legacy-key",
+      "policy": "report",
+      "span": [0, 172],
+      "subject": "id"
+    },
+    {
+      "code": "missing-key",
+      "policy": "report",
+      "span": [0, 172],
+      "subject": "version"
+    }
+  ]
+}

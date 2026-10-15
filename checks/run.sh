@@ -124,6 +124,21 @@ fi
 sed 's/ block-missing, multi-root,/ block-missing,/' schemas/family.md >"$tmp/family.md"
 expect 1 "findings control: a code with no policy fails" python3 checks/findings.py --family "$tmp/family.md" --dir "$tmp/none"
 grep -q '^multi-root: no policy$' "$tmp/out" || { echo "FAIL findings control: the code with no policy was not what was reported"; fails=$((fails + 1)); }
+# A missing key header.required names is only ever reported; a migration
+# vector that refuses it must be reported, once. A declaration with CRLF line
+# ends reads as the same declaration.
+mkdir "$tmp/strict"
+cp vectors/grammar/migration.md vectors/grammar/migration.projection.json "$tmp/strict/"
+python3 - "$tmp/strict/migration.projection.json" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1]))
+next(f for f in p["findings"] if f["code"] == "missing-key")["policy"] = "refuse"
+json.dump(p, open(sys.argv[1], "w"))
+PY
+expect 1 "findings control: a missing-key finding that is refused fails" python3 checks/findings.py --dir "$tmp/strict"
+grep -q '^migration: missing-key is refuse, its policy is report$' "$tmp/out" && [ "$(wc -l <"$tmp/out")" -eq 1 ] || { echo "FAIL findings control: the refused missing-key was not the one finding"; fails=$((fails + 1)); }
+python3 -c 'import sys; d = open(sys.argv[1], "rb").read(); open(sys.argv[2], "wb").write(d.replace(b"\n", b"\r\n"))' schemas/family.md "$tmp/family-crlf.md"
+expect 0 "findings: a CRLF copy of family.md reads as the same declaration" python3 checks/findings.py --family "$tmp/family-crlf.md"
 
 # Every $ref in a family declaration resolves to a definition; a copy of the
 # test declaration citing the short form, which names no file, must be
