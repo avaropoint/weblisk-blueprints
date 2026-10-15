@@ -86,16 +86,19 @@ and six folders were absent altogether.
 | [`languages/`](languages/README.md) | One blueprint per programming language |
 | [`platforms/`](platforms/README.md) | One blueprint per runtime |
 | [`frameworks/`](frameworks/README.md) | What building *with* a framework requires, including the Weblisk client framework's project guidance in `frameworks/weblisk/` |
-| [`schemas/`](schemas/README.md) | The schema each blueprint type conforms to, and `kinds.md` |
+| [`schemas/`](schemas/README.md) | The schema each blueprint type conforms to, `kinds.md`, and `names.md`, how anything is named |
 | [`standards/`](standards/README.md) | Industry standards, as JSON catalogues. The Weblisk project standards it once held are now in [`frameworks/weblisk/`](frameworks/weblisk/README.md) |
 | [`programmes/`](programmes/README.md) | Programmes — what a body of work requires in order to exist and to keep running |
 | [`positions/`](positions/README.md) | The hand-written half of what can be said about a job somebody holds |
 | [`policy-domains/`](policy-domains/README.md) | What a subject area of governance covers, and what a programme claiming it must provide |
 | [`intl/`](intl/README.md) | Reserved for locale and spoken-language constructs |
 | [`skills/`](skills/README.md) | Guides for a coding agent — not specifications |
-| [`vectors/`](vectors/README.md) | Test vectors: the exact bytes, keys and signatures every implementation of a [fixed-form statement](protocol/identity.md#fixed-form-statements) tests against. Data no blueprint requires, so no build's prompt carries it |
+| [`vectors/`](vectors/README.md) | Test vectors: the exact bytes, keys and signatures every implementation of a [fixed-form statement](protocol/identity.md#fixed-form-statements) tests against, the id grammar's vectors, and the wire value of a timestamp. Data no blueprint requires, so no build's prompt carries it |
+| [`checks/`](checks/README.md) | The corpus's own small checks, each with the control that proves it reaches something. Run `checks/run.sh` |
 
 Why the corpus is divided this way is [`CORPUS_SHAPE.md`](CORPUS_SHAPE.md).
+Its namespace, `weblisk`, is declared once, in [`catalog.yaml`](catalog.yaml);
+what a namespace is, is [`schemas/names.md`](schemas/names.md)'s.
 The names it has stopped using, and what replaced each, are listed once, in
 [`RETIRED.md`](RETIRED.md).
 

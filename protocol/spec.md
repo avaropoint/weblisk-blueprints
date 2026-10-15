@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 3.0.0
+version: 3.0.1
 requires: [protocol/types, protocol/identity]
 platform: any
 tier: free
@@ -699,25 +699,31 @@ Every event topic follows a hierarchical naming convention:
 <namespace>.<entity>.<action>
 ```
 
-The top-level segment is the **namespace**. Namespace ownership is
-exclusive — exactly one agent may publish to a given namespace.
+The top-level segment is the **event namespace**. Event namespace
+ownership is exclusive — exactly one agent may publish to a given event
+namespace.
+
+An event namespace is not the namespace an id is named under
+([`schemas/names`](../schemas/names.md#namespaces)): one partitions the
+topics a hub routes, the other says whose a published name is. The two
+never stand for each other. `system` is reserved in both senses.
 
 ### Namespace Rules
 
-1. **Exclusive ownership** — A namespace is owned by exactly one agent.
-   No two agents may publish to the same namespace.
-2. **Reserved namespaces** — `system.*` is owned by the orchestrator.
-   No agent may claim it.
+1. **Exclusive ownership** — An event namespace is owned by exactly one
+   agent. No two agents may publish to the same event namespace.
+2. **Reserved event namespaces** — `system.*` is owned by the
+   orchestrator. No agent may claim it.
 3. **Implicit sub-namespaces** — Owning `workflow` grants publish
    rights to `workflow.*` at all depths (e.g., `workflow.phase.ready`,
    `workflow.approval.required`).
 4. **Registration enforcement** — The orchestrator validates
-   `manifest.publishes` at registration time. Namespace conflicts are
-   rejected before the agent joins the hub.
+   `manifest.publishes` at registration time. Event namespace conflicts
+   are rejected before the agent joins the hub.
 5. **Publishing validation** — When an agent publishes an event, the
-   framework verifies the topic's namespace matches one of the agent's
-   declared `publishes` entries. Events to unowned namespaces are
-   rejected locally (never sent).
+   framework verifies the topic's event namespace matches one of the
+   agent's declared `publishes` entries. Events to unowned event
+   namespaces are rejected locally (never sent).
 
 ### Standard Namespaces
 
@@ -729,7 +735,7 @@ exclusive — exactly one agent may publish to a given namespace.
 | `lifecycle` | lifecycle agent | Strategies, observations, recommendations, approvals |
 | `system.dead_letter` | orchestrator | Undeliverable events after retry exhaustion |
 
-Domain controllers and work agents own their own namespaces
+Domain controllers and work agents own their own event namespaces
 (e.g., `seo.*`, `content.*`, `health.*`).
 
 ### Federation Namespace Qualification
