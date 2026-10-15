@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: threat-model
-version: 1.4.0
+version: 1.4.1
 requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/content, architecture/data-security, architecture/admin, architecture/observability, architecture/enforcement, patterns/contract]
 platform: any
 tier: free
@@ -162,9 +162,9 @@ requires:
     version: ">=2.0.0 <3.0.0"
     bindings:
       types:
-      behaviors:
-        - name: boundary-enforcement
-          fields_used: [message, storage, external, response]
+        # Boundary six is enforcement's four boundaries, which a ViolationRecord names
+        - name: ViolationRecord
+          fields_used: [boundary]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

@@ -99,15 +99,17 @@ Checked mechanically when these moved here. The corpus satisfies every
 structural rule in the schema — 53 standards, 242 families, 1,235 controls, all
 ids unique, every control naming a family that exists — with one exception.
 
-**Four mappings in `pipeda.json` cite GDPR controls that do not exist.**
+**Four mappings in `pipeda.json` cited GDPR controls that did not exist** —
 `GDPR-ACC-1`, `GDPR-LB-1`, `GDPR-SEC-1` and `GDPR-DSR-1`, on controls
-PIPEDA-1, -3, -7 and -9. GDPR's control identifiers are article citations —
-`Art.5(1)(a)`, `Art.6` — so these are not a missing `gdpr:` prefix but a naming
-scheme GDPR never used.
+PIPEDA-1, -3, -7 and -9. GDPR's control identifiers are article citations, so
+these were not a missing `gdpr:` prefix but a naming scheme GDPR never used.
+`weblisk validate` faulted all four.
 
-**Left as they are, deliberately.** Repairing them means deciding which GDPR
-article each PIPEDA control maps to, and that is a compliance judgement, not a
-formatting fix. A mapping invented to make a checklist pass would be worse than
-a dangling one, because a dangling one is visible.
+They now name the articles each PIPEDA principle bears on: Accountability
+(PIPEDA-1) on `gdpr:Art.5(2)`; Consent (PIPEDA-3) on `gdpr:Art.6` and
+`gdpr:Art.7`, consent being both a lawful basis and a condition of its own;
+Safeguards (PIPEDA-7) on `gdpr:Art.32`; Individual Access (PIPEDA-9) on
+`gdpr:Art.15`. Each is the equivalence claim described above — evidence for
+one bears on the other — and no more.
 
 The other 234 mappings are well-formed `<standard>:<control>` and resolve.

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.2.0
+version: 1.2.1
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -55,9 +55,8 @@ requires:
 
   - blueprint: architecture/testing
     version: ">=1.0.0 <3.0.0"
-    bindings:
-      behaviors:
-        - name: conformance-suite
+    # No binding: testing declares no type and no contract. Generation runs the
+    # conformance levels it specifies in prose, as it reads protocol/types below.
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
