@@ -130,7 +130,9 @@ requirements:
       undeclared part and text before the first slot have slot null; the
       header's part is navigates and always, and each of its entries takes the
       use and send header.uses gives its key, or navigates and always when it
-      gives none. A slot's `send` defaults by
+      gives none, in the order the header writes its keys. A block part
+      always carries its entries, an empty list when the catalogue declares
+      none. A slot's `send` defaults by
       its `use` as the use table states, and a part of a slot whose use is
       explains is sent `cited` when it carries a `wl:explains` marker and
       `on-request` otherwise.
@@ -138,10 +140,12 @@ requirements:
     level: must
     text: >-
       A header's or block's digest, and each of its entries' digests, is
-      sha256 over the RFC 8785 serialisation of its value. A block's value is
-      the value under its root key, without the key; a header's is its
-      mapping once header.legacy's keys are removed; an entry's is the
-      mapping's value at its key, or the list item it names. A text part's
+      sha256 over the RFC 8785 serialisation of its projected value: the
+      value as read, once header.legacy's keys are removed and every older
+      spelling blocks.md lists is rewritten to what it names. A block's value
+      is the value under its root key, without the key; a header's is its
+      mapping; an entry's is the mapping's value at its key, or the list item
+      it names. A text part's
       digest is sha256 over its bytes. Every digest is written sha256:<hex>.
   - id: findings-closed
     level: must
@@ -236,25 +240,26 @@ grammar that adds it does so as a new major of this file.
 | Keyword | Where | Meaning |
 |---|---|---|
 | `match`, `kind`, `extends` | header | Which paths the family covers when a file names no family, which kind its files are, and the family it inherits slots and header properties from |
-| `noun`, `capabilities`, `template`, `location`, `adopt`, `generates` | header | What the verbs acting on the family need: the word a person reads, which verbs apply, the starting file, where new files go, how an adoption is recorded, and what a build makes from one |
+| `noun`, `capabilities`, `template`, `location`, `adopt`, `generates` | header | What the verbs acting on the family need: the word a person reads, which verbs apply (verbs, never [`schemas/kinds`](kinds.md#capabilities)' capabilities, though the key shares the word), the starting file, where new files go, how an adoption is recorded, and what a build makes from one |
 | `header.schema` | header block | JSON Schema 2020-12 for the frontmatter, with unknown keys refused |
 | `header.uses` | header block | Per field: its `use`, the ref family it `resolves` to, and its `send` |
 | `header.legacy` | header block | Keys still found in older files, each `report` or `refuse`. Used only while files are migrated |
 | `header.required` | header block | Keys a file should hold whose absence is reported rather than refused, each `report`. Used only while files are migrated: a key whose absence is refused is in `header.schema`'s `required`, its one home |
 | `slot`, `heading`, `aliases` | slot | The slot's stable key, and the heading text that opens it. Heading text is never identity |
-| `required` | slot | `true`, `false`, `report`, or `{when: {header_present: <key>}}` or `{when: {block_present: <type>}}` |
+| `required` | slot | `true`, `false`, `report`, or `{when: {header_present: <key>}}` or `{when: {block_present: <type>}}`. Absent, `false` |
 | `count`, `key` | slot | How many times the slot may occur, and where a repeatable slot's key comes from |
 | `blocks` | slot | Which catalogued block types the slot holds, each with its own count |
 | `prose` | slot | `required`, `allowed` or `forbidden`: whether text other than the heading, blank lines and the slot's blocks may appear. Absent, `allowed` |
 | `content` | slot | Closed predicates on the slot's text: `min_items`, `max_paragraphs`, `no_rfc2119`, `mentions` |
-| `guidance`, `authority` | slot | A judged requirement and the ref whose text the judgement cites. Reported apart, never a build failure |
+| `guidance`, `authority` | slot | A judged requirement and the ref whose text the judgement cites. Reported apart by whoever judges it, never a walk finding and never a build failure |
 | `undeclared` | sections block | `report`, `allow` or `refuse` for a level-2 heading no slot matches, with the `use` and `send` its part takes |
 | `use`, `send`, `produces` | slot, header field | What the part is for, when a prompt receives it, and what a build makes from it |
 
 `use` and `send` are closed and live in code; `produces` is open and lives in
 data, the same split [`schemas/kinds`](kinds.md#the-model-open-kinds-closed-capabilities)
 uses. A `produces` value no mapping binds is reported as unproduced, never
-dropped.
+dropped, by the build that reads the mapping: it is not a walk finding, and no
+projection carries it, because a walk reads one file and never a mapping.
 
 | `use` | Binding | Default `send` |
 |---|---|---|
@@ -363,7 +368,7 @@ defs:
       slot: {$ref: "#/$defs/slot-key"}
       heading: {$ref: "#/$defs/heading"}
       aliases: {type: array, items: {type: string}}
-      required: {$ref: "#/$defs/required"}
+      required: {$ref: "#/$defs/required", default: false}
       count: {$ref: "#/$defs/count"}
       key: {enum: [marker, heading]}
       blocks:

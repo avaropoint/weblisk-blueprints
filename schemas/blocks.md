@@ -28,9 +28,13 @@ requirements:
     text: >-
       A block's entries are its mapping's keys when the catalogue says
       `entries: keys`, and its list items named by the field the catalogue
-      gives in `entries: {by: <field>}` otherwise. Each entry is a part id in
-      the ref family the catalogue names, and two entries of one block with
-      one id are refused.
+      gives in `entries: {by: <field>}` otherwise, in the order the block
+      writes them. Where the catalogue names a ref `family`, each entry is a
+      part id in that family, citable from outside the file. Where it names
+      none (`header`, `sections`, `blocks`, `defs`, `events`, `config`,
+      `errors`), an entry's id is named only within its block, as the
+      block's own schema writes it (an error's code, a config key), and is
+      never a ref. Two entries of one block with one id are refused.
   - id: tables-by-column-name
     level: must
     text: >-
@@ -119,7 +123,7 @@ grammar that follows refuses them.
 | `map` | `map<any>` |
 | `map[string]T` | `map<T>` |
 | `enum(a, b)` | `enum` with `values: [a, b]` |
-| a bare type name `T` | `ref:T` |
+| a bare PascalCase name `T`, as the `types` block's keys are written | `ref:T` |
 | `type: list` or `array`, with `items: T` | `type: list<T>` |
 | `optional: true`, with no `required` | `required: false` |
 | `enum: [a, b]` | `values: [a, b]` |
@@ -287,7 +291,7 @@ defs:
           else: {required: [fields]}
   operation:
     type: object
-    required: [id]
+    required: [id, http]
     unevaluatedProperties: false
     properties:
       id: {$ref: "#/$defs/part-id"}
@@ -295,6 +299,7 @@ defs:
       response: {$ref: "#/$defs/ref"}
       http:
         type: object
+        description: "Required: HTTP is Weblisk's one transport, so every operation a blueprint serves has its HTTP binding."
         required: [method, path]
         unevaluatedProperties: false
         properties:
