@@ -9,8 +9,10 @@ shape is [`schemas/family`](../../schemas/family.md#definitions)' `projection`.
 
 [`checks/spans.py`](../../checks/spans.py) confirms that every vector here has
 a projection and that each partitions its file at the file's own length and
-`version_hash`. That is all a check outside a walker can confirm; everything
-else in a projection is what a walker is tested against.
+`version_hash`, and [`checks/findings.py`](../../checks/findings.py) that
+every finding carries the policy its code has. That is all a check outside a
+walker can confirm; everything else in a projection is what a walker is tested
+against.
 
 | Vector | What it exercises |
 |---|---|
@@ -20,7 +22,7 @@ else in a projection is what a walker is tested against.
 | `bom.md` | `minimal.md` after a UTF-8 byte-order mark, which belongs to the header's part |
 | `nested-fences.md` | A fence inside a fence, a `## ` heading and a yaml block inside an example, and a longer fence holding a shorter one: none of them opens a slot or a block |
 | `aliases-and-repeats.md` | A slot opened by its alias (`Data Types`), and a repeatable slot keyed by its `wl:explains` markers, one occurrence of which has none and is refused |
-| `multi-root.md` | A yaml fence with a catalogued root key and a second one: no block, refused, and the slot's required block reported missing |
+| `multi-root.md` | A yaml fence with a catalogued root key and a second one: no block and no part of its own, but text of its slot, refused as multi-root and not also as prose in a slot that forbids it; the slot's required block is reported missing |
 | `table.md` | An errors block written as a table, its columns in another order and one the catalogue does not name, which is reported |
 | `table-as-yaml.md` | The same errors as a yaml block, with the same entry digests as `table.md` |
 | `legacy.md` | A legacy header key reported, an old type spelling reported and read as the type it names, an unknown spelling refused, and a section no slot declares reported |

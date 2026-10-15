@@ -36,28 +36,12 @@
       "digest": "sha256:7fbac046153c4cea0887d4adde4e4640816157279b48e2ce5ada04b335146ae0"
     },
     {
-      "span": [128, 145],
+      "span": [128, 311],
       "part": "text",
       "slot": "requirements",
       "use": "binds",
       "send": "cited",
-      "digest": "sha256:9847786846315cd9627e8e8f8a391f46a055780253236daa667d267bb82b4365"
-    },
-    {
-      "span": [145, 310],
-      "part": "block",
-      "slot": "requirements",
-      "use": "binds",
-      "send": "cited",
-      "digest": "sha256:dc0df0017dfaa8f6e13171851e4c9739fb511e506574e371c82069d92db17e9b"
-    },
-    {
-      "span": [310, 311],
-      "part": "text",
-      "slot": "requirements",
-      "use": "binds",
-      "send": "cited",
-      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      "digest": "sha256:e9e613419e5e68f8c3781da3254d5a948da06ed6804ccadd3354fab3a283fb24"
     },
     {
       "span": [311, 328],
@@ -88,13 +72,14 @@
     {
       "code": "block-missing",
       "policy": "refuse",
-      "span": [128, 145],
+      "span": [128, 311],
       "subject": "requirements"
     },
     {
       "code": "multi-root",
       "policy": "refuse",
-      "span": [145, 310]
+      "span": [128, 311],
+      "subject": "requirements"
     }
   ]
 }

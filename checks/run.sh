@@ -101,5 +101,29 @@ mkdir "$tmp/none"
 expect 1 "spans control: a directory with no vectors fails" python3 checks/spans.py --dir "$tmp/none"
 grep -q '^no grammar vectors in ' "$tmp/out" || { echo "FAIL spans control: the empty directory was not what was reported"; fails=$((fails + 1)); }
 
+# Every finding code's policy, and the policy each vector's findings carry; a
+# vector whose multi-root finding is only reported, and a family.md that gives
+# multi-root no policy, must each be reported, once.
+expect 0 "findings: every code has one policy, and every vector carries it" python3 checks/findings.py
+mkdir "$tmp/lax"
+cp vectors/grammar/multi-root.md vectors/grammar/multi-root.projection.json "$tmp/lax/"
+python3 - "$tmp/lax/multi-root.projection.json" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1]))
+next(f for f in p["findings"] if f["code"] == "multi-root")["policy"] = "report"
+json.dump(p, open(sys.argv[1], "w"))
+PY
+expect 1 "findings control: a multi-root finding that is only reported fails" python3 checks/findings.py --dir "$tmp/lax"
+if [ "$(grep -c '^multi-root: multi-root is report, its policy is refuse$' "$tmp/out")" -eq 1 ] && [ "$(wc -l <"$tmp/out")" -eq 1 ]; then
+	echo "ok   findings control: exactly one finding, the policy"
+else
+	echo "FAIL findings control: want exactly one finding, the policy"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+sed 's/ block-missing, multi-root,/ block-missing,/' schemas/family.md >"$tmp/family.md"
+expect 1 "findings control: a code with no policy fails" python3 checks/findings.py --family "$tmp/family.md" --dir "$tmp/none"
+grep -q '^multi-root: no policy$' "$tmp/out" || { echo "FAIL findings control: the code with no policy was not what was reported"; fails=$((fails + 1)); }
+
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]

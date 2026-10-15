@@ -83,7 +83,10 @@ requirements:
       is a mapping with exactly one root key that blocks.md catalogues, is a
       block of that type. A table in a slot that lists a catalogued block of
       form table is a block of that type, read by column name. Any other fence
-      or table is text of its slot.
+      or table is text of its slot, with no part of its own. A yaml fence
+      outside any other fence whose mapping has a catalogued root key and any
+      other root key is reported multi-root, with that catalogued key as its
+      subject, and not also prose-forbidden: one fault is one finding.
   - id: json-data-model
     level: must
     text: >-
@@ -112,14 +115,19 @@ requirements:
     level: must
     text: >-
       A header's or block's digest, and each of its entries' digests, is
-      sha256 over the RFC 8785 serialisation of its value. A text part's
+      sha256 over the RFC 8785 serialisation of its value. A block's value is
+      the value under its root key, without the key; a header's is its
+      mapping once header.legacy's keys are removed; an entry's is the
+      mapping's value at its key, or the list item it names. A text part's
       digest is sha256 over its bytes. Every digest is written sha256:<hex>.
   - id: findings-closed
     level: must
     text: >-
       A finding's code is one of the codes declared in this file's
-      definitions, and carries the policy that decides it. A file validates
-      when no finding's policy is refuse.
+      definitions, and carries the policy that decides it: the one the
+      `finding` definition fixes for its code, or, for the three codes it
+      leaves to the declaration, the one the declaration gives. A file
+      validates when no finding's policy is refuse.
   - id: repeatable-slot-key
     level: must
     text: >-
@@ -210,7 +218,7 @@ what each means is below.
 | `required` | slot | `true`, `false`, `report`, or `{when: {header_present: <key>}}` or `{when: {block_present: <type>}}` |
 | `count`, `key` | slot | How many times the slot may occur, and where a repeatable slot's key comes from |
 | `blocks` | slot | Which catalogued block types the slot holds, each with its own count |
-| `prose` | slot | `required`, `allowed` or `forbidden`: whether text other than the heading and blank lines may appear |
+| `prose` | slot | `required`, `allowed` or `forbidden`: whether text other than the heading, blank lines and the slot's blocks may appear. Absent, `allowed` |
 | `content` | slot | Closed predicates on the slot's text: `min_items`, `max_paragraphs`, `no_rfc2119`, `mentions` |
 | `guidance`, `authority` | slot | A judged requirement and the ref whose text the judgement cites. Reported apart, never a build failure |
 | `undeclared` | sections block | `report`, `allow` or `refuse` for a level-2 heading no slot matches, with the `use` and `send` its part takes |
@@ -330,7 +338,7 @@ defs:
           properties:
             type: {type: string}
             count: {$ref: "#/$defs/count"}
-      prose: {enum: [required, allowed, forbidden]}
+      prose: {enum: [required, allowed, forbidden], default: allowed}
       content: {$ref: "#/$defs/content"}
       use: {$ref: "#/$defs/use"}
       send: {$ref: "#/$defs/send"}
@@ -414,6 +422,14 @@ defs:
       policy: {$ref: "#/$defs/policy"}
       span: {$ref: "#/$defs/span", description: "The span of the part it was found in; for something absent from the file, the slot's first part, or [length, length] when the slot itself is absent."}
       subject: {type: string}
+    allOf:
+      - if: {properties: {code: {enum: [missing-header, unknown-family, match-ambiguous, header-schema,
+              yaml-feature, unclosed-fence, slot-count, slot-key-missing, duplicate-key, prose-forbidden,
+              prose-required, content, block-not-allowed, block-count, block-missing, multi-root,
+              block-unparsed, block-schema, duplicate-entry, missing-column]}}}
+        then: {properties: {policy: {const: refuse}}}
+      - if: {properties: {code: {enum: [slot-order, legacy-spelling, unknown-column]}}}
+        then: {properties: {policy: {const: report}}}
   entry:
     type: object
     required: [id, digest]
@@ -453,12 +469,22 @@ defs:
       findings: {type: array, items: {$ref: "#/$defs/finding"}, description: "In order of span start, then code."}
 ```
 
-Every entry of `finding-code` carries the policy that decides it in the
-finding itself: `header-schema`, `yaml-feature`, `block-schema` and the
-cardinality codes are `refuse`; `legacy-key`, `undeclared-slot` and
-`missing-slot` take the policy their declaration gives; `slot-order` and
-`legacy-spelling` are `report` in grammar 1 and become `refuse` once migration
-is done.
+A finding's policy is fixed by its code, in `finding` above, for every code
+but three, which the declaration decides: `legacy-key` takes the policy
+`header.legacy` gives its key, `undeclared-slot` the `undeclared` policy, and
+`missing-slot` is `refuse` for a slot that is `required: true` or whose `when`
+holds and `report` for one that is `required: report`.
+[`checks/findings.py`](../checks/findings.py) confirms that every code has
+exactly one of these, and that every vector's findings carry it.
+
+Grammar 1 refuses whatever a reader could settle only by guessing, and reports
+what it reads without a guess. A multi-root fence could be either root's
+block, so it is refused, and the files that hold one today are refused until
+their migration splits them. An old type spelling names one type, an order
+loses nothing, and a column the block does not name is not read, so those are
+reported. `slot-order` and `legacy-spelling` become `refuse` in the grammar
+that follows migration, which is a new major of this file, never a mode a walk
+is run in.
 
 ## Verification
 
@@ -476,6 +502,10 @@ verifies:
     covers: [spans-partition, part-boundaries]
     check: vectors-agree
     assertion: Every vector's expected projection has sorted, contiguous spans covering its file, and a projection with a one-byte gap is reported.
+  - id: every-code-has-one-policy
+    covers: [findings-closed]
+    check: corpus-check
+    assertion: checks/findings.py finds exactly one policy for every finding code, and every vector's findings carrying it; a vector whose multi-root finding is only reported fails it.
   - id: walker-matches-vectors
     covers: [part-boundaries, bytes-as-written, fences-are-opaque, slots-by-heading, blocks-by-root-key, json-data-model, legacy-before-schema, parts-carry-use, digests-by-value, findings-closed, repeatable-slot-key]
     check: vectors-agree
