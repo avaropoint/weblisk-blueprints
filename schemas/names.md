@@ -58,6 +58,14 @@ Three further rules a grammar line cannot carry:
   retired that way are in [`RETIRED.md`](../RETIRED.md)). Nothing joins on one,
   and the fabric never records one as a node's identity.
 
+A JSON Schema `$ref` in a family declaration is the one place a ref is
+followed by `#` and a JSON Pointer rather than an anchor:
+`schemas/blocks#/$defs/version`. The ref before `#` is written in full and
+names a declaration; the pointer is a coordinate into that declaration's
+`defs` block, resolved when a schema is applied and never recorded as an
+identity. [`schemas/family`](family.md) (`schema-refs-resolve`) states the
+rule and [`checks/refs.py`](../checks/refs.py) holds every declaration to it.
+
 **A version is never part of an id.** A citation is a ref and a version
 (`ohs/policy@1.1.0`), or, in a data field, the pair of a ref and a digest.
 A file's `family:` is the one place a ref is cited by a major alone,

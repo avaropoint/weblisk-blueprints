@@ -20,10 +20,10 @@ header:
     unevaluatedProperties: false
     properties:
       family:   {const: vectors/grammar/test-blueprint@1}
-      version:  {$ref: "blocks#/$defs/version"}
-      requires: {type: array, items: {$ref: "blocks#/$defs/requires-entry"}}
-      review:   {$ref: "blocks#/$defs/date"}
-      retired:  {$ref: "blocks#/$defs/retired"}
+      version:  {$ref: "schemas/blocks#/$defs/version"}
+      requires: {type: array, items: {$ref: "schemas/blocks#/$defs/requires-entry"}}
+      review:   {$ref: "schemas/blocks#/$defs/date"}
+      retired:  {$ref: "schemas/blocks#/$defs/retired"}
   uses:
     requires: {use: depends, resolves: blueprint, send: always}
   legacy:

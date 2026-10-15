@@ -125,5 +125,20 @@ sed 's/ block-missing, multi-root,/ block-missing,/' schemas/family.md >"$tmp/fa
 expect 1 "findings control: a code with no policy fails" python3 checks/findings.py --family "$tmp/family.md" --dir "$tmp/none"
 grep -q '^multi-root: no policy$' "$tmp/out" || { echo "FAIL findings control: the code with no policy was not what was reported"; fails=$((fails + 1)); }
 
+# Every $ref in a family declaration resolves to a definition; a copy of the
+# test declaration citing the short form, which names no file, must be
+# reported, once for each of its four refs and for nothing else.
+expect 0 "refs: every \$ref in a declaration resolves" python3 checks/refs.py
+mkdir "$tmp/short"
+sed 's|"schemas/blocks#/|"blocks#/|' vectors/grammar/test-blueprint.md >"$tmp/short/test-blueprint.md"
+expect 1 "refs control: a declaration citing blocks#/\$defs/ fails" python3 checks/refs.py --scan "$tmp/short"
+if [ "$(grep -c 'names blocks, which is no file of this repository$' "$tmp/out")" -eq 4 ] && [ "$(wc -l <"$tmp/out")" -eq 4 ]; then
+	echo "ok   refs control: exactly the four short refs"
+else
+	echo "FAIL refs control: want exactly the four short refs"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]

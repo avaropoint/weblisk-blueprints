@@ -105,6 +105,16 @@ requirements:
       Each key header.legacy names is removed before header.schema is applied,
       and is a finding under its own policy, never a second finding from the
       schema.
+  - id: schema-refs-resolve
+    level: must
+    text: >-
+      A `$ref` in a declaration's blocks is `#/$defs/<name>`, an entry of
+      that declaration's own `defs` block, or `<ref>#/$defs/<name>`, an entry
+      of the `defs` block of the declaration <ref> names. <ref> is written
+      in full, the declaration's path without `.md` as a ref in the family
+      specification, and resolves as schemas/names resolves a short ref, in
+      this file's namespace. A declaration's `defs` block is its `$defs`, and
+      nothing else is a `$ref`: no base URI, no `$id`, no deeper pointer.
   - id: parts-carry-use
     level: must
     text: >-
@@ -152,7 +162,7 @@ header:
     unevaluatedProperties: false
     properties:
       family:       {const: schemas/family@1}
-      version:      {$ref: "blocks#/$defs/version"}
+      version:      {$ref: "schemas/blocks#/$defs/version"}
       kind:         {type: string, description: "A kind schemas/kinds declares: what the family's files are."}
       match:        {type: array, items: {type: string, format: glob}}
       extends:      {$ref: "#/$defs/family-ref"}
@@ -254,6 +264,16 @@ The `capabilities` here are the verbs a person may use on a family's files.
 They are not [`schemas/kinds`](kinds.md#capabilities)' capabilities, which say
 what a kind of node drives.
 
+A schema cites another declaration's definitions as
+`schemas/blocks#/$defs/version` (`schema-refs-resolve`): the declaration by
+its full ref, because a ref resolves as
+[`schemas/names`](names.md#how-a-short-ref-resolves) says and `blocks` alone
+names no file, and the definition by a pointer into its `defs` block, which is
+that declaration's `$defs`. JSON Schema's own reading of a relative reference,
+against a base URI, would make the same text name a different file in every
+directory it is written in, and a header schema that failed to resolve would
+be indistinguishable from one that passed.
+
 ## The projection
 
 A walk's output is a **projection**, whose shape is `projection` below. It
@@ -352,7 +372,7 @@ defs:
       send: {$ref: "#/$defs/send"}
       produces: {type: array, items: {type: string}}
       guidance: {type: string}
-      authority: {$ref: "blocks#/$defs/ref"}
+      authority: {$ref: "schemas/blocks#/$defs/ref"}
   header-block:
     type: object
     required: [schema]
@@ -514,6 +534,10 @@ verifies:
     covers: [findings-closed]
     check: corpus-check
     assertion: checks/findings.py finds exactly one policy for every finding code, and every vector's findings carrying it; a vector whose multi-root finding is only reported fails it.
+  - id: every-ref-resolves
+    covers: [schema-refs-resolve]
+    check: corpus-check
+    assertion: checks/refs.py resolves every `$ref` in every declaration to a definition; a copy of test-blueprint.md citing `blocks#/$defs/version`, a short form with no declaration behind it, fails it.
   - id: walker-matches-vectors
     covers: [part-boundaries, bytes-as-written, fences-are-opaque, slots-by-heading, blocks-by-root-key, json-data-model, legacy-before-schema, parts-carry-use, digests-by-value, findings-closed, repeatable-slot-key]
     check: vectors-agree

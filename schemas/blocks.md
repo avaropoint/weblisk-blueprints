@@ -11,7 +11,7 @@ identified, and the closed vocabulary a declared type's fields are written in.
 
 A slot names the blocks it holds ([`schemas/family`](family.md#the-grammar-keywords));
 this file says what each one is. It declares no files of its own: it is a
-library of definitions, cited as `blocks#/$defs/<name>`.
+library of definitions, cited as `schemas/blocks#/$defs/<name>`.
 
 ## Requirements
 
@@ -157,9 +157,9 @@ unasserted, and these must not be.
 ```yaml
 blocks:
   header:
-    schema: {$ref: "family#/$defs/header-block"}
+    schema: {$ref: "schemas/family#/$defs/header-block"}
   sections:
-    schema: {$ref: "family#/$defs/sections-block"}
+    schema: {$ref: "schemas/family#/$defs/sections-block"}
   blocks:
     schema: {$ref: "#/$defs/catalogue"}
     entries: keys

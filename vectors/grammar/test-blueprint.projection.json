@@ -1,8 +1,8 @@
 {
   "file": "vectors/grammar/test-blueprint.md",
   "family": "schemas/family@1",
-  "length": 2084,
-  "version_hash": "sha256:54ff933d9d9da0e5d704f18f36124cda6c0550908cbc9b3de9fed26eb76a8e08",
+  "length": 2116,
+  "version_hash": "sha256:623d4452c4cc03b702d2d67a5efafed8910e07563969bc4a70be5dd10993328a",
   "parts": [
     {
       "span": [0, 84],
@@ -55,17 +55,17 @@
       "digest": "sha256:c7be56ccdadeb892cd79dc3cfec7a19fbba8b0205b8707557510ec369c86b479"
     },
     {
-      "span": [312, 830],
+      "span": [312, 862],
       "part": "block",
       "slot": "header",
       "block": "header",
       "use": "shapes",
       "send": "referenced",
-      "digest": "sha256:7d716263374220cf7467e395df1b1fa646ec91cc3507fc3c3209ee2838f46ce6",
+      "digest": "sha256:ee54f53373dd60158ca45c4b85c189573f1b7dca4819768ca34c79c79e5f25bc",
       "entries": []
     },
     {
-      "span": [830, 831],
+      "span": [862, 863],
       "part": "text",
       "slot": "header",
       "use": "shapes",
@@ -73,7 +73,7 @@
       "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
     },
     {
-      "span": [831, 844],
+      "span": [863, 876],
       "part": "text",
       "slot": "sections",
       "use": "shapes",
@@ -81,7 +81,7 @@
       "digest": "sha256:6ed5d2c09db626d22406f8c86c54ae5e44c9e22f8a21b00f0f3a8df1f1a1289d"
     },
     {
-      "span": [844, 2084],
+      "span": [876, 2116],
       "part": "block",
       "slot": "sections",
       "block": "sections",
