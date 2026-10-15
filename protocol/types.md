@@ -187,7 +187,7 @@ pass). Every such component MUST answer it with this status and no other.
 
 | Code | HTTP | Category | Description |
 |------|------|----------|-------------|
-| `STEP_UP_REQUIRED` | 401 | permanent | A destructive act arrived on an operator token or a pass whose `step_up_at` is absent or more than 300 seconds old. Nothing changes. The answer names the act in `detail.control` and carries RFC 9470's challenge, `WWW-Authenticate: Bearer error="insufficient_user_authentication"` with `max_age=300`; the client has its person re-confirm, mints a token through that re-confirmation, and retries once ([`architecture/admin`](../architecture/admin.md#re-confirming-for-a-destructive-act)). The admin gateway returns it as the provider gave it |
+| `STEP_UP_REQUIRED` | 401 | permanent | A destructive act arrived without the step-up it needs. Nothing changes. When it is answered, what it carries and how a client answers it are [`architecture/admin`](../architecture/admin.md#contracts)'s `destructive-action-step-up`, stated nowhere else. The admin gateway returns it as the provider gave it |
 
 **Pass codes** (produced by a component that a person's request reaches,
 [`protocol/identity`](identity.md#the-pass)):
@@ -2870,7 +2870,7 @@ error_codes:
     status: 401
     category: permanent
     retryable: false
-    description: A destructive act on an operator token or a pass whose step_up_at is absent or more than 300 seconds old (architecture/admin, destructive-action-step-up). Nothing changes. It carries RFC 9470's challenge and the act in detail.control; the client re-confirms its person, mints through that re-confirmation and retries once
+    description: A destructive act arrived without the step-up it needs. Nothing changes. When it is answered, what it carries and how a client answers it are architecture/admin's destructive-action-step-up, stated nowhere else
   - code: FORBIDDEN
     status: 403
     category: permanent

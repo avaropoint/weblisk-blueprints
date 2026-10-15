@@ -1524,9 +1524,9 @@ environment, and data loss risk.
 | production | modify | recoverable, permanent | One person, with a step-up |
 | production | delete, destroy | any | One person, with a step-up |
 
-A step-up is the approver's own re-confirmation within the last 300 seconds,
-as [`architecture/admin`](../architecture/admin.md#contracts)'s
-`destructive-action-step-up` states it. The platform never requires a second
+A step-up is the approver's own re-confirmation, as
+[`architecture/admin`](../architecture/admin.md#contracts)'s
+`destructive-action-step-up` states it, and this pattern restates none of it. The platform never requires a second
 person. **More than one approver is the tenant's to declare**, as
 `patterns/approval`'s `multi_party_rules`, which then run beside the step-up.
 A tenant that wants the separation this table once imposed declares it, for

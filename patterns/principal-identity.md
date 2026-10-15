@@ -1083,3 +1083,9 @@ credential revocation, which costs nothing else.
     same identifier as before it, and an attestation by the new identity key
     names that identifier; the old key is refused as an identity key and as a
     credential.
+59. A passkey that authenticates is offered by the browser only at the hub it
+    was registered with; a step-up passkey's attestation names the `rp_id` and
+    `origin` of its person's console, and one naming neither is refused. <!-- wl:check step-up-passkey-relying-party covers passkey-relying-party -->
+60. A key the hub holds, or held, under one purpose, `authenticate`,
+    `sign-records` or `step-up`, is refused under any other with
+    `credential_purpose_mismatch`. <!-- wl:check key-purpose-single covers one-key-one-purpose -->

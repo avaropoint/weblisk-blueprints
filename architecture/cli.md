@@ -3022,10 +3022,10 @@ Every command that calls the hub's admin gateway:
 ```
 
 **A destructive act is re-confirmed by its person, and never by a renewal.**
-A hub answers a destructive act on a token without a recent `step_up_at`
-with `401` `STEP_UP_REQUIRED` and RFC 9470's challenge: `WWW-Authenticate`
-carrying `insufficient_user_authentication` and `max_age=300`, and the act in
-`detail.control` ([`architecture/admin`](admin.md#re-confirming-for-a-destructive-act)).
+A hub answers a destructive act on a token without a recent enough
+`step_up_at` with `401` `STEP_UP_REQUIRED`, the challenge and the act in
+`detail.control`, as [`architecture/admin`](admin.md#contracts)'s
+`destructive-action-step-up` states, which this section does not restate.
 The CLI then:
 
 1. Asks the person to re-confirm that act, naming it: at a terminal, by the
@@ -3049,7 +3049,10 @@ its age. <!-- wl:id cli-step-up-reconfirms -->
 **A script re-confirms only when its command says so.** A destructive command
 accepts `--step-up`: the identity's passphrase then arrives on stdin, as every
 passphrase does, and the CLI makes the re-confirmation before it sends the act,
-so the first request already carries a fresh `step_up_at`. Handing a script
+so the first request already carries a fresh `step_up_at`. The control it signs
+is built from the command's own method and route template, the one the act's
+provider would name in `detail.control`, never from an argument, so a script
+cannot sign a control for any act but the one its command makes. Handing a script
 the passphrase for that run is the person's own act, which the flag records;
 without it a script that meets `STEP_UP_REQUIRED` fails as above. A holder
 that releases the identity without asking anybody never re-confirms, with
@@ -3281,8 +3284,8 @@ security:
 - [ ] Exit codes are 0=success, 1=general error, 2=auth error, 3=connection error, 4=not found, 5=permission denied
 - [ ] Config resolution order: command-line flags > environment variable > .weblisk/config.json (project) > ~/.weblisk/config.json (user)
 - [ ] Commands fail fast with a clear message and non-zero exit code when the orchestrator is unreachable
-- [ ] Authentication flow retries once on 401 by refreshing the token; prints re-register message if refresh also fails
-- [ ] On `401` `STEP_UP_REQUIRED`, a command asks its person to re-confirm the act `detail.control` names, at the terminal or through a holder that asks, mints a token whose request carries `step_up` of form `identity`, retries once, and stores that token nowhere; a renewed token is never sent as a re-confirmation; with nothing that can ask, it fails with exit 2 and the challenge's `error_description` <!-- wl:check cli-step-up-flow covers cli-step-up-reconfirms -->
+- [ ] Authentication flow retries once on 401 by refreshing the token, except on `STEP_UP_REQUIRED`, which it never answers with a refresh; prints re-register message if refresh also fails
+- [ ] On `401` `STEP_UP_REQUIRED`, a command asks its person to re-confirm the act `detail.control` names, at the terminal or through a holder that asks, mints a token whose request carries `step_up` of form `identity`, retries once, and stores that token nowhere; a renewed token is never sent as a re-confirmation; with nothing that can ask, it fails with exit 2 and the challenge's `error_description` <!-- wl:check cli-step-up-flow covers cli-step-up-reconfirms cli-step-up-token-held -->
 - [ ] A destructive command run with `--step-up` reads the identity's passphrase from stdin and sends its first request on a token carrying `step_up_at`; without `--step-up` and with no terminal, it fails on `STEP_UP_REQUIRED`; and a holder that releases the identity without asking anybody is never used to re-confirm <!-- wl:check cli-step-up-script covers cli-step-up-scripted -->
 
 ### Testing

@@ -2189,7 +2189,7 @@ agents hold, which is theirs.
 - [ ] Every operation creates an `AuditEntry`, persisted to JSONL and echoed to stdout as an `audit` log line
 - [ ] The orchestrator keeps no domain status of its own: a domain's readiness is its lease
 - [ ] Orchestrator does NOT handle tasks, programme objectives or context, and decides nothing a person decides; it serves neither the decision inbox nor any route for objectives
-- [ ] `DELETE /v1/admin/operators/{name}`, `POST /v1/admin/operators/{name}/approve`, `PUT /v1/admin/operators/{name}/role` and `POST /v1/admin/agents/{name}/deregister` are refused `STEP_UP_REQUIRED` on a token without a `step_up_at` from the last 300 seconds, and a token request whose `step_up` verifies mints a token carrying `step_up_at` <!-- wl:check orchestrator-serves-step-up covers orchestrator-step-up -->
+- [ ] `DELETE /v1/admin/operators/{name}`, `POST /v1/admin/operators/{name}/approve`, `PUT /v1/admin/operators/{name}/role` and `POST /v1/admin/agents/{name}/deregister` are refused `STEP_UP_REQUIRED` on a token without a `step_up_at` recent enough for `destructive-action-step-up`, and a token request whose `step_up` verifies mints a token carrying `step_up_at` <!-- wl:check orchestrator-serves-step-up covers orchestrator-step-up -->
 - [ ] Administrative endpoints are gated on the capability each declares — an `admin:` capability, `llm:chat` or `model:attest` — carried in the caller's token, not on a separate role model
 - [ ] `POST /v1/admin/complete` refuses with `FORBIDDEN` a token that cannot use `llm:chat`, one carrying `admin:read` or `admin:*` without it included, and sends nothing to a backend
 - [ ] `GET /v1/admin/model` answers the hub's `ModelConfig`, and `{}` at a hub that holds none
