@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 4.0.0
+version: 4.1.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -583,6 +583,17 @@ implementation to get it:
 
     provider · directory · generate · skills · provision · accept · done
 
+The admin gateway is stood up inside those steps, so the contract does not
+change for it. `generate` builds the orchestrator and then the admin gateway
+([`architecture/admin`](admin.md#the-admin-gateway-as-a-component)).
+`provision` makes the gateway's registration key and, where none is
+configured, its certificate and key, writes `.weblisk/config.yaml`'s
+`admin_gateway` section with `orchestrator.admin_addresses` and
+`orchestrator.admin_gateway_identity`, all before it starts the orchestrator,
+then starts the orchestrator and, once it answers ready, the gateway, and
+admits the first operator. <!-- wl:id cli-create-stands-up-gateway -->
+`accept` probes through the gateway ([`weblisk tenant accept`](#weblisk-tenant-accept)).
+
 **Nothing the corpus can refuse waits for a model.** Settling a provider when
 nobody named one asks the backend it would start with to answer once, a real
 model call ([`weblisk providers`](#weblisk-providers)), so everything knowable
@@ -599,7 +610,11 @@ port anybody reserved. The result reports the port it took. A console building a
 tenant beside one that is already running passes `0`, because a fixed default is
 a collision the moment one tenant is up. The port is this run's: as for any
 `--port`, `create` declares it nowhere in the tenant's configuration, so a later
-start does not find it there. A console that starts the orchestrator again on
+start does not find it there. With `--port 0` the admin gateway's two listeners
+take free ports too, and those `create` does write, into `admin_gateway`,
+because `orchestrator.admin_addresses` names the admin listener's origin and
+the two must agree. The gateway is started with `--orch` naming the address
+the orchestrator bound. A console that starts the orchestrator again on
 the port the result reported passes it to
 [`weblisk component orchestrator start --port`](#weblisk-component-name-start--stop--status--logs).
 
@@ -607,22 +622,23 @@ the port the result reported passes it to
 `--json`, the last object carries `result`: `root`, `name`, `port`, `operator`,
 `provider`; `model`, only where `--model` named one, because a model name the
 CLI filled in would read as a choice nobody made; the `skills` the tenant
-carries; what acceptance asked (`checks`); and the hub's `address` for a
-console to connect to, with the first operator's `token` there and
-`token_expires_at` in Unix seconds — none of those three while a tenant
-`create` makes has no address to connect to (below). That object is the only
+carries; what acceptance asked (`checks`); and the hub's `address`, the admin
+gateway's origin, for a console to connect to, with the `tls_pin` its
+certificate is verified against
+([`architecture/admin`](admin.md#certificate)), the first operator's `token`
+there and `token_expires_at` in Unix seconds. That object is the only
 place a token may go: `create` writes no token file, and what it prints
-without `--json` names the address, once there is one, for a person to connect
+without `--json` names the address and the pin for a person to connect
 at with [`weblisk operator connect`](#weblisk-operator-connect), and never a
 token. The stream is addressed to the program that started the command, which
 holds the token in memory as it holds the passphrase it sent; a caller that
 copies the stream to a file has written a bearer credential to disk.
 
-**`create` produces the orchestrator and nothing else.** A tenant is a set of
-components in one module; every other one is added afterwards with `weblisk
-component <name> init` or the matching `create` verb, except the admin
-gateway, which no command builds yet, so a tenant `create` makes has no
-address to connect to (the gap under [`weblisk server start`](#weblisk-server-start)). See
+**`create` produces the orchestrator and the admin gateway, and nothing
+else.** A tenant is a set of components in one module, and those two are the
+set every tenant has: without the gateway no person's request reaches it.
+Every other is added afterwards with `weblisk component <name> init` or the
+matching `create` verb. See
 [`architecture/orchestrator`](orchestrator.md), "What a tenant consists of",
 for the two homes a tenant's components have: what it is running, which the
 orchestrator's registry answers and no file can, and which the CLI reads at
@@ -668,7 +684,7 @@ Ask a running tenant whether it works, over HTTP, the way its clients will.
 
 ```bash
 $ weblisk tenant accept
-$ weblisk tenant accept --url http://localhost:9800 --json
+$ weblisk tenant accept --url http://localhost:9800 --gateway https://localhost:9443 --json
 ```
 
 The same pass `create` ends with, so it can be re-run. Probes are
@@ -677,7 +693,15 @@ tenant serve this*, and the auth middleware answers that first — `401` is a
 pass, `404` means the route is absent, `405` means the client and the tenant
 disagree about the method. The first two probes are the orchestrator's
 `GET /livez` and then its `GET /readyz`, which need no token and pass only on
-`200`. Accept probes no other component and reads no lease: whether each
+`200`. The third is through the admin gateway, at the first origin
+`orchestrator.admin_addresses` lists, or the one `--gateway` names:
+`GET /v1/admin/overview` with no token, over
+TLS verified against the pin `create` recorded, or, run in the tenant's
+directory, the pin of the certificate the tenant's configuration names. It
+passes on `401`, the orchestrator's refusal carried back through the gateway,
+and a certificate that does not match the pin fails it, as a refused
+connection does. <!-- wl:id cli-accept-through-gateway --> Accept probes no
+other component and reads no lease: whether each
 registered component is present is a question for an operator's token, which
 [`weblisk server verify`](#weblisk-server-verify) and
 [`weblisk status`](#weblisk-status) ask.
@@ -742,7 +766,10 @@ $ weblisk component content init
 Which components exist is read from the installation's blueprints, not compiled
 in: an architecture blueprint that states an `## Endpoints` table and declares
 its bindings IS a buildable component. `weblisk component help` lists what this
-installation supports.
+installation supports, and `admin`, the admin gateway
+([`architecture/admin`](admin.md#the-admin-gateway-as-a-component)), is among
+them: `tenant create` builds it, and `weblisk component admin init` builds it
+into a tenant that has none.
 
 The tenant root is the module root, so every component is generated into the
 same tree. Generation therefore reads what the tenant already contains — module
@@ -1187,7 +1214,12 @@ alone: the file is an operator's declaration, never a precondition.
 - **Order.** The orchestrator first, and each sibling only once the
   orchestrator's `GET /livez` answers live and then its `GET /readyz` answers
   ready, passed `--orch` with the address it actually bound.
-  Then the content service, domains, agents, and the gateway last.
+  The admin gateway next, which `admin_gateway` declares. Then the content
+  service, domains, agents, and the application gateway last.
+- **Certificate.** Before it starts the admin gateway, it makes a new
+  certificate from the gateway's own TLS key where the one it serves has
+  fewer than 30 days left, so its pin holds
+  ([`architecture/admin`](admin.md#certificate)).
 - **Refused whole.** A declaration this command cannot carry out — two
   components on one port or one name, `replicas` above 1, an agent with no
   `type`, an agent `env` entry that rule 16 of
@@ -1210,28 +1242,6 @@ alone: the file is an operator's declaration, never a precondition.
 `weblisk server stop` with no `--component` stops every component this CLI has
 a record of, siblings before the orchestrator, so nothing is left registered
 with a registry that has gone.
-
-> **Gap — no hub this CLI stands up has an admin gateway.** A person's
-> operator token goes to the tenant's admin gateway and nowhere else
-> ([`protocol/identity`](../protocol/identity.md#the-pass)), and every
-> operator command sends its requests there. But no command declares, builds
-> or starts one. [`schemas/config`](../schemas/config.md) has no section that
-> declares it, so this command starts none; [`weblisk tenant create`](#weblisk-tenant-create-name)
-> produces the orchestrator alone; and [`weblisk component <name> init`](#weblisk-component-name-init)
-> builds an architecture blueprint only where it states an `## Endpoints`
-> table, which [`architecture/admin`](admin.md#admin-endpoints) does not. So
-> at a hub this CLI stands up a person can establish the first operator
-> ([`weblisk server provision`](#weblisk-server-provision)) and nothing more:
-> no operator command reaches it, because the one door those commands use is
-> not there, and the CLI never sends the token to the orchestrator in its
-> place. Once `weblisk/hub-proof/v1` has test vectors the first operator
-> waits on it too, since provision then needs a hub proof at the address it
-> registers at, and the orchestrator signs one only for an admin address
-> (`orchestrator.admin_addresses`), the origins of an admin gateway.
-> Closing the gap is declaring the admin gateway as a component — its
-> listeners, its operator allowlist and its addresses — and having `tenant
-> create`, `server start` and `server provision` stand it up, write its
-> origins into `orchestrator.admin_addresses`, and connect through it.
 
 ### `weblisk server verify`
 
@@ -1354,8 +1364,7 @@ $ weblisk server provision --operator alice
   orchestrator running at http://127.0.0.1:9800
   operator identity created for alice
   operator registered — bootstrap secret claimed, first operator is admin
-
-  This hub runs no admin gateway: nothing is recorded to connect to
+  registered at the admin gateway https://localhost:9443 (pin sha256:4b1f…)
 ```
 
 This is BOOTSTRAP, not connect. It is local by necessity — it reads the run
@@ -1363,18 +1372,18 @@ state of a hub this CLI started, and the bootstrap secret that hub emitted — a
 it is the one path that establishes a hub's first operator. It registers that
 operator at the orchestrator's own address, the one the run state names,
 presenting the bootstrap secret, which is no token. It keeps no token and
-records no registration and no address: it discards the attestation token the
+records nothing for that address: it discards the attestation token the
 first registration answers with, because every request that would use one
 goes to the hub's admin gateway, and the address the CLI records for a hub is
-that gateway's, never the orchestrator's (`orchestrator_url`). No hub this CLI
-stands up runs an admin gateway yet (the gap under
-[`weblisk server start`](#weblisk-server-start)), so provision ends there.
-To reach a hub through its admin gateway, register there with
-[`weblisk operator register`](#weblisk-operator-register), which needs only
-that address: the hub already knows the operator, so it answers the
-registration as a repeat, and the CLI records the registration at the
-gateway's address. `connect` never registers, and at that address answers
-`not_registered` until `register` has.
+that gateway's, never the orchestrator's (`orchestrator_url`). It then
+registers at the admin gateway, at its origin in
+`orchestrator.admin_addresses`, verifying its certificate against the
+gateway's pin, as [`weblisk operator register`](#weblisk-operator-register)
+does: the hub already knows the operator, so it answers the registration as a
+repeat, and the CLI records the registration, with the pin, at the gateway's
+address alone. <!-- wl:id cli-provision-registers-at-gateway --> A hub whose
+configuration declares no admin gateway is reported as having nothing to
+connect to, and nothing is recorded.
 
 Generation is deliberately not folded in. It takes tens of minutes, streams
 progress and is resumable; wrapping it in a call that also handles a credential
@@ -1681,8 +1690,9 @@ CLI holds one for each identity at each hub:
 - **Each hub it is registered at is remembered.** Beside the identity, the
   CLI keeps one **registration** for each hub the identity registered or
   connected at: that hub's `hub_id`, the operator name the hub recorded, the
-  `identity_id` it answered with, the address it was last reached at, and
-  whether that address has proven the `hub_id` (the hub proof below).
+  `identity_id` it answered with, the address it was last reached at, the
+  pin its certificate is verified against where it has one, and whether
+  that address has proven the `hub_id` (the hub proof below).
   Only a registration answer writes one, approved, pending or a repeat
   ([`architecture/admin`](admin.md#the-registration-response)). `register`
   sends one, and nothing else does: `connect`, `attest` and `attest --batch`
@@ -2024,6 +2034,11 @@ Registering operator 'alice' with https://hub.example.com...
   names no status, so `register` then asks for an attestation token, as
   `connect` does, and reports what that answer says
 - `--role <role>` to request a specific role (admin may override)
+- `--tls-pin <pin>` names the pin the gateway's certificate is verified
+  against, where the system's roots do not verify it
+  ([`architecture/admin`](admin.md#certificate)); `create` reports it. The
+  registration records it, and every later request to that address is
+  verified against it
 
 ### `weblisk operator connect`
 
@@ -3495,12 +3510,14 @@ security:
 - [ ] `weblisk secret rotate` triggers the rotation handler or prompts for new value
 
 ### Server & Code Generation
-- [ ] `weblisk tenant create` ends with a hub running and its first operator registered, and, while no hub this CLI stands up has an admin gateway, says it has no address to connect to and records none, never the orchestrator's own address
-- [ ] `weblisk server provision` registers the first operator with the bootstrap secret and keeps no token, records no registration, and writes no `orchestrator_url`; no operator command afterwards sends a request, a token among it, to the orchestrator's own address
+- [ ] `weblisk tenant create` ends with the orchestrator and the admin gateway running and its first operator registered at the gateway, and its result's `address` is the gateway's origin with its `tls_pin`, never the orchestrator's own address <!-- wl:check cli-create-gateway covers cli-create-stands-up-gateway -->
+- [ ] Before it starts the orchestrator, `weblisk tenant create` has written `admin_gateway`, `orchestrator.admin_addresses` naming the gateway's origin and `orchestrator.admin_gateway_identity` naming the fingerprint of `.weblisk/keys/admin-gateway.key`, and with `--port 0` the gateway's ports are free ones and are the ports those name <!-- wl:check cli-create-declares-gateway covers cli-create-stands-up-gateway -->
+- [ ] `weblisk server provision` registers the first operator with the bootstrap secret at the orchestrator's own address and keeps no token, then registers at the admin gateway's origin and records the registration, with the pin, at that address alone; no operator command afterwards sends a request, a token among it, to the orchestrator's own address <!-- wl:check cli-provision-gateway covers cli-provision-registers-at-gateway -->
 - [ ] `weblisk tenant create` writes a `.gitignore` excluding `.weblisk/keys/`, `.weblisk/secrets/`, `.weblisk/token`, `.env` and `.env.*`, so the directory it just put a private key in is not one `git init` from committing it
 - [ ] `weblisk tenant create` emits the steps `provider · directory · generate · skills · provision · accept · done`, and renaming one breaks both front ends at once
-- [ ] `weblisk tenant create` generates the orchestrator only; every other component is added afterwards, the admin gateway excepted while no command builds it, and the command does not claim otherwise
+- [ ] `weblisk tenant create` generates the orchestrator and the admin gateway only; every other component is added afterwards, and the command does not claim otherwise
 - [ ] `weblisk tenant accept` reports a `404` as an absent route and a `401` as a pass, and a failed non-essential check does not fail the tenant
+- [ ] `weblisk tenant accept` probes `GET /v1/admin/overview` at the admin gateway's origin with no token and passes on `401`; against a gateway whose certificate does not match the pin it fails, sending nothing over that connection <!-- wl:check cli-accept-gateway covers cli-accept-through-gateway -->
 - [ ] `weblisk tenant create` asks no model provider anything until the orchestrator's blueprint resolves, the resolved corpus parses and the platform's toolchain is present
 - [ ] `weblisk tenant create --port 0` starts the orchestrator on a free port chosen when it is started, and the result reports that port
 - [ ] `weblisk tenant create` declares the port it started the orchestrator on nowhere in the tenant's configuration

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 3.0.1
+version: 3.1.0
 requires: [protocol/types, protocol/identity]
 platform: any
 tier: free
@@ -46,7 +46,7 @@ over standard HTTP endpoints.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -1099,6 +1099,10 @@ error_codes:
   - code: CAPABILITY_PERSON_ONLY
     raised_by: POST /v1/register, where the manifest declares a capability
       protocol/types marks person only
+  - code: CAPABILITY_GATEWAY_ONLY
+    raised_by: POST /v1/register, where the manifest declares a capability
+      protocol/types marks admin gateway only and its key is not the one the
+      tenant declared for its admin gateway
   - code: SCOPE_UNAUTHORIZED
     raised_by: subscription, where the scope exceeds the caller's capability
   - code: EVENT_REJECTED

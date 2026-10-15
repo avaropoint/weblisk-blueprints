@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 4.0.0
-requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
+version: 4.1.0
+requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/observability, patterns/logging, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
 -->
@@ -41,6 +41,9 @@ routes a pass may reach. A person reaches it through a client: the CLI
 ([`architecture/cli`](cli.md)), or a console that holds their credential
 ([A console holds a credential, never a token](#a-console-holds-a-credential-never-a-token)).
 The admin gateway serves no console of its own.
+
+The admin gateway is built from this blueprint, as the component kind `admin`,
+with every tenant ([The Admin Gateway as a Component](#the-admin-gateway-as-a-component)).
 
 ---
 
@@ -115,10 +118,11 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    # 3.1.0 is where STEP_UP_REQUIRED, which Error Handling refuses a
-    # destructive act with and whose HTTP status it takes from the
-    # registry, exists
-    version: ">=3.1.0 <4.0.0"
+    # 4.0.0 is where token:exchange, the one capability the gateway's
+    # registration declares, is admitted for the tenant's declared admin
+    # gateway alone; STEP_UP_REQUIRED, which Error Handling refuses a
+    # destructive act with, exists from 3.1.0
+    version: ">=4.0.0 <5.0.0"
     bindings:
       types:
         # The admin gateway serves the two probes and renews its lease
@@ -204,6 +208,29 @@ requires:
           methods: [POST]
           request_type: TokenExchangeRequest
           response_fields: [issued, code, pass, capabilities]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/observability
+    version: ">=2.0.0 <3.0.0"
+    bindings:
+      behaviors:
+        # The gateway carries each request's trace to the provider it
+        # sends it to (Admin Gateway Request Lifecycle, step 7)
+        - name: trace-propagation
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/logging
+    version: ">=2.0.0 <3.0.0"
+    bindings:
+      behaviors:
+        # Its logs, Confidential and kept apart from the application
+        # gateway's (Implementation Notes), never hold a token or a pass
+        - name: structured-logging
+        - name: redaction-at-emission
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -305,6 +332,43 @@ policy, which is `patterns/policy`.
 - Client session management (owned by `architecture/client`)
 - A user interface: a person uses the CLI or a console holding their credential
 - Federation trust establishment (owned by `protocol/federation`; admin only approves/revokes)
+
+---
+
+## Endpoints
+
+What the admin gateway serves, on its two listeners
+([Two listeners](#two-listeners)). The admin listener carries people's
+requests: what it does with each is `admin-gateway-authorization` and the
+[Admin Gateway Request Lifecycle](#admin-gateway-request-lifecycle), and the
+`Carry` rows are that rule for every route it does not answer itself. The
+internal listener serves [`protocol/spec`](../protocol/spec.md#agent-endpoints)'s
+agent endpoints to the orchestrator. The routes the gateway carries are their
+providers' and are specified there: the orchestrator's under
+[Admin Endpoints](#admin-endpoints), and any other in the blueprint whose
+component declares it as a pass route.
+
+| Method | Path | Operation | Listener | Auth | Purpose |
+|--------|------|-----------|----------|------|---------|
+| GET | /v1/admin/overview | Overview | admin | yes | The System overview, composed from the orchestrator's and reporting every other group unavailable |
+| GET | /v1/admin/approvals | DecisionInbox | admin | carried | The decision inbox, answered `ADMIN_GROUP_UNAVAILABLE` while no pass route can name its group |
+| POST | /v1/admin/model/audit | ModelAuditRefused | admin | none | Answered `404 NOT_FOUND`, forwarding and exchanging nothing |
+| GET | /v1/* | CarryGet | admin | carried | Any other route, to its provider: the orchestrator on the operator token, another on a pass, or `ADMIN_GROUP_UNAVAILABLE` |
+| POST | /v1/* | CarryPost | admin | carried | As `CarryGet` |
+| PUT | /v1/* | CarryPut | admin | carried | As `CarryGet` |
+| PATCH | /v1/* | CarryPatch | admin | carried | As `CarryGet` |
+| DELETE | /v1/* | CarryDelete | admin | carried | As `CarryGet` |
+| POST | /v1/describe | Describe | internal | no | The gateway's manifest |
+| GET | /livez | Livez | internal | no | Liveness, for the supervisor that restarts it |
+| GET | /readyz | Readyz | internal | no | Readiness: ready once the admin listener is bound and the directory has been read from the anchor |
+| POST | /v1/services | ServicesPush | internal | no | Answered 200, and taken only as a prompt to read the directory from the anchor |
+| POST | /v1/execute | Execute | internal | no | Refused `FORBIDDEN`: it takes no task |
+| POST | /v1/message | Message | internal | no | Refused `FORBIDDEN`: it takes no message |
+| POST | /v1/event | Event | internal | no | Refused `FORBIDDEN`: it takes no event |
+
+`carried` is the provider's own requirement, judged by the orchestrator or by
+the provider and never by the gateway. A listener MUST NOT serve a row of the
+other's. <!-- wl:id listeners-disjoint -->
 
 ---
 
@@ -436,6 +500,9 @@ which does not ask the identity.
 
 ## Admin Gateway Separation
 
+The gateway as a running component, its listeners, addresses, registration
+and certificate, is [The Admin Gateway as a Component](#the-admin-gateway-as-a-component).
+
 The admin gateway is a **completely separate entry point** from the
 application gateway. It is NOT an extension of the application
 gateway. It is NOT served under the same domain. It does NOT share
@@ -540,7 +607,8 @@ Critical rules:
 
 2. TLS TERMINATION
    ├── Separate TLS certificate from application gateway
-   ├── TLS 1.3 preferred (1.2 minimum)
+   ├── TLS 1.3 alone, hybrid ML-KEM key agreement offered (Certificate,
+   │   under The Admin Gateway as a Component)
    └── Client certificate validation (optional, for mTLS deployments)
 
 3. RATE LIMITING
@@ -655,6 +723,105 @@ token (WLT), with stricter controls than an application session (WLS):
 Production deployments SHOULD use VPN-only or mTLS. IP allowlist is
 acceptable for small teams with stable IPs. Private network is
 acceptable for single-host deployments.
+
+## The Admin Gateway as a Component
+
+Every tenant has an admin gateway, built from this blueprint as the component
+kind `admin`. [`weblisk tenant create`](cli.md#weblisk-tenant-create-name)
+builds and starts it with the orchestrator, and
+[`weblisk component admin init`](cli.md#weblisk-component-name-init) builds it
+into a tenant that has none. What it does is the
+[Admin Gateway Request Lifecycle](#admin-gateway-request-lifecycle),
+`admin-gateway-authorization` and `destructive-action-step-up`, and is not
+restated here. This section says what makes it a running component: its
+listeners, its addresses, its registration and its certificate. Its settings
+are [`schemas/config`](../schemas/config.md#admin_gateway)'s.
+
+### Two listeners
+
+| Listener | Serves | Reached by | Settings |
+|---|---|---|---|
+| admin | the `admin` rows of [Endpoints](#endpoints) | people's clients: the CLI, a console | `admin_gateway.port` (9443), `tls_cert`, `tls_key`, `allowlist` |
+| internal | the `internal` rows: [`protocol/spec`](../protocol/spec.md#agent-endpoints)'s agent endpoints | the orchestrator | `admin_gateway.internal_port` (9803) |
+
+The admin listener MUST serve HTTPS alone and MUST refuse a request from an
+address `admin_gateway.allowlist` does not name, as step 1 of the lifecycle
+says. <!-- wl:id admin-listener-guarded --> The allowlist names addresses and
+CIDR ranges. Absent, it names the loopback addresses `127.0.0.1` and `::1`;
+empty, it admits no one. The internal listener is the `url` the gateway's
+manifest names (`admin-gateway-authorization`), and only the orchestrator
+needs to reach it.
+
+### Addresses
+
+| Address | What it is | Where it is set |
+|---|---|---|
+| Each origin the admin listener is reached at | Where a person's client connects, and the address the CLI records for the hub (`orchestrator_url`, [`architecture/cli`](cli.md#configuration)) | `orchestrator.admin_addresses`, for which the orchestrator signs a hub proof ([Proving the hub at an address](#proving-the-hub-at-an-address)). For a gateway it stands up, the CLI writes `https://localhost:<port>` |
+| The internal listener's address | What the gateway registers as its manifest's `url` | `admin_gateway.internal_port`, on the gateway's host |
+| The orchestrator's address | Its anchor: where it registers, renews its lease and reads the directory | `admin_gateway.orchestrator`. Absent, the orchestrator on the gateway's own host at `orchestrator.port` |
+| Where its requests reach the orchestrator from | The address the orchestrator trusts `X-Forwarded-For` from (`auth-route-rate-limit`) | `orchestrator.admin_gateway_from`, which a gateway whose allowlist admits only loopback leaves empty: every client then arrives from loopback, so counting each by its own address gains nothing, and listing loopback would let any process on that host name its own source |
+
+### Registration, lease and identity
+
+The gateway registers as `admin-gateway`, with the manifest
+`admin-gateway-authorization` gives it, and renews its lease as every
+registrant does ([`protocol/spec`](../protocol/spec.md#post-v1lease)). It is
+ready once its admin listener is bound and it has read the directory from its
+anchor.
+
+Its registration key is how a tenant says which registration is its admin
+gateway. The command that stands the gateway up makes the key, on the
+gateway's host, before the orchestrator first starts, keeps it at
+`.weblisk/keys/admin-gateway.key`, and writes its fingerprint
+([`protocol/identity`](../protocol/identity.md#key-fingerprint)) to
+`orchestrator.admin_gateway_identity`. The key is still the gateway's own, as
+[`protocol/identity`](../protocol/identity.md)'s trust model asks: it is made
+where the gateway runs and leaves nowhere. It is made by the command and not
+the process so that it can be declared before the orchestrator starts. The
+orchestrator admits `token:exchange` for that registration alone
+([`protocol/types`](../protocol/types.md#capability), the exchange
+capability). The gateway MUST register with that key and no other.
+<!-- wl:id gateway-registers-declared-key --> Changing the key is a change to
+the tenant's declaration, made by a person: a new key, its fingerprint written
+there, and the orchestrator and the gateway restarted. A gateway that rotates
+its own key with `POST /v1/rotate-key` can exchange nothing afterwards.
+
+### Certificate
+
+Where `admin_gateway.tls_cert` and `tls_key` are given, the admin listener
+serves that certificate. Where they are not, the command that stands the
+gateway up makes one:
+
+- **The key** is a new ECDSA P-256 key at `.weblisk/keys/admin-gateway-tls.key`,
+  mode 0600, which git ignores as it ignores everything under `.weblisk/keys/`
+  ([`architecture/cli`](cli.md#weblisk-tenant-create-name)). It is never
+  printed, copied or sent.
+- **The certificate** is self-signed, names `localhost`, `127.0.0.1` and `::1`,
+  is valid for a year, and is kept at `.weblisk/tls/admin-gateway.crt`, which
+  holds nothing secret. [`weblisk server start`](cli.md#weblisk-server-start)
+  makes a new one from the same key once fewer than 30 days remain, so the pin
+  below still holds.
+- **The pin** is `sha256:` and the lowercase hexadecimal SHA-256 digest of the
+  certificate's DER-encoded SubjectPublicKeyInfo. `weblisk tenant create`
+  reports it as `tls_pin` beside the hub's `address`, and the CLI records it
+  with that address.
+
+The listener MUST negotiate TLS 1.3 alone and offer the hybrid key agreement
+X25519MLKEM768, preferring it. <!-- wl:id admin-listener-tls13 -->
+A client that holds a pin for an address MUST refuse a certificate whose key
+does not match it, and MUST NOT fall back to the system's roots, to skipping
+verification, or to HTTP, at a loopback address too. A client that holds no
+pin refuses a certificate its roots do not verify, and says which pin it
+needs. <!-- wl:id client-pins-gateway-key -->
+
+A pin, and not a certificate authority the tenant makes, because an
+authority's key can sign for any name: its loss is every listener's, and a
+client that trusts it trusts it for everything it signs. A pin trusts one key
+at one address. The certificate's key is ECDSA and not ML-DSA because no TLS
+implementation the platform blueprints build on accepts an ML-DSA certificate
+yet. It authenticates the handshake as it happens; what a person may do is
+authorised by their ML-DSA-65 token, and the ML-KEM key agreement protects
+what an eavesdropper records today.
 
 ## Design Principles
 

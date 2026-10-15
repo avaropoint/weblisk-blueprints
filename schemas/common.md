@@ -669,8 +669,8 @@ implementation of the blueprint.
 ```
 
 Assertions MAY be grouped under `###` subheadings. A group whose heading BEGINS
-with a component name — `Agent`, `Orchestrator`, `Domain`, `Gateway`, `Content` — addresses
-that component only. Every other group, and every ungrouped assertion, addresses
+with a component name — `Agent`, `Orchestrator`, `Domain`, `Gateway`, `Content`, `Admin` — addresses
+that component only. `Admin` is the admin gateway, built from `architecture/admin`. Every other group, and every ungrouped assertion, addresses
 any implementation of the blueprint.
 
 ```markdown
