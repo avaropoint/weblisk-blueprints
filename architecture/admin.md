@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 3.0.0
+version: 3.1.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -77,7 +77,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.14.4 <3.0.0"
+    version: ">=2.1.0 <3.0.0"
     bindings:
       types:
         - name: WLToken
@@ -1136,10 +1136,10 @@ one thing an identity is for.
 credential routes issues one here. A client MUST use the credential routes
 wherever a hub serves them, and MAY accept an operator token from this endpoint
 only from a hub that answers `POST /v1/admin/credentials/challenge` with `404`
-or `405`. No hub built from this corpus issues one here, so until its
-credential routes can be used, which waits on test vectors, it issues none
-(the gap under
-[Minting a token with the credential](#minting-a-token-with-the-credential)).
+or `405`. No hub built from this corpus issues one here: it issues operator
+tokens only through its credential routes
+([Minting a token with the credential](#minting-a-token-with-the-credential)),
+whose statement has test vectors.
 
 `hub_id` names this hub as an [`Attestation`](../patterns/principal-identity.md#types)
 does: the fingerprint ([`protocol/identity`](../protocol/identity.md#key-fingerprint))
@@ -1356,30 +1356,17 @@ Refresh is the same pair of calls. A separate refresh endpoint would need a
 valid token to obtain a token, which fails exactly when it is needed — after
 expiry.
 
-> **Gap — no operator token before `weblisk/credential-auth/v1` has test
-> vectors.** A credential's answer to a challenge is a fixed-form statement,
-> and no implementation signs one before this corpus publishes its test
-> vectors ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)).
-> None are published. A hub built from this corpus issues an operator token
-> to a credential alone, never on the identity's signature, which
-> [`patterns/principal-identity`](../patterns/principal-identity.md) forbids
-> a hub to accept as authentication. So until those vectors are published no
-> conforming client obtains an operator token from such a hub, and no person
-> using one reaches a route there that needs one, which is every
-> administrative route but those [Auth Middleware](#auth-middleware) lists as
-> served without a token. The hub still serves both credential routes as
-> this section says, because the rule gates signing and the hub only
-> verifies, so a client that signs a credential's answer before then, which
-> no conforming client does, is given a token all the same. A conforming
-> client signs nothing there to obtain a token: it makes no credential, asks
-> for no attestation token, and reports that the hub issues operator tokens
-> only to a credential, which no conforming client signs with before those
-> vectors
-> ([`architecture/cli`](cli.md#a-credential-for-each-hub)). Only a hub built
-> before the credential routes, which answers the challenge with `404` or
-> `405`, issues a conforming client an operator token until then, by the
-> deprecated path under
-> [The identity signs only to attest](#the-identity-signs-only-to-attest).
+**A credential's answer has test vectors.** It is a fixed-form statement, and
+this corpus publishes vectors for `weblisk/credential-auth/v1`
+([`protocol/identity`](../protocol/identity.md#fixed-form-statements)), whose
+`hub_id` is a vector key's fingerprint. A client that signs a credential's
+answer and a hub that verifies it each test against them. A hub built from this
+corpus issues an operator token to a credential alone, never on the identity's
+signature, which [`patterns/principal-identity`](../patterns/principal-identity.md)
+forbids a hub to accept as authentication. Only a hub built before the
+credential routes, which answers the challenge with `404` or `405`, issues one
+by the deprecated path under
+[The identity signs only to attest](#the-identity-signs-only-to-attest).
 
 #### Where the second factor is
 
@@ -2780,6 +2767,7 @@ The rest SHOULD be:
 - [ ] After a change of identity key, `POST /v1/admin/operators/token` signed with the new key answers the operator's kept `identity_id`; an attestation naming that `identity_id` is accepted, and one naming the new key's fingerprint instead is refused with `CREDENTIAL_ATTESTATION_INVALID`
 - [ ] Once `weblisk/credential-auth/v1` has test vectors, an expired operator token is replaced by a new challenge answered with the credential, without re-registering and without the identity
 - [ ] Once `weblisk/credential-auth/v1` has test vectors, `POST /v1/admin/credentials/token` issues an operator token carrying `cid`, expiring one hour after issue and never after the attestation's `not_after`, only for a signature by the stored credential key over `weblisk/credential-auth/v1`, 0x00, `hub_id` as its 64 hex characters, 0x00 and the base64url text of a nonce this hub issued for that credential
+- [ ] For every vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) under `weblisk/credential-auth/v1`, the hub, which verifies a credential's answer and does not sign one, passes the test [`architecture/generation`](generation.md#published-test-vectors) gives for a component that verifies
 - [ ] `POST /v1/admin/operators/token` never issues an operator token, whatever its request carries
 - [ ] A hub that rotates its orchestrator key answers every challenge with the `hub_id` it had before, and, once `weblisk/credential-auth/v1` has test vectors, every credential attested for that `hub_id` still mints
 - [ ] A nonce from `POST /v1/admin/credentials/challenge` is spent by the first token request that presents it, whether or not the signature verifies, and a revoked or expired credential's status is disclosed only after its signature verifies

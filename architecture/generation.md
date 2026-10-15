@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.1.0
+version: 1.2.0
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -1446,6 +1446,33 @@ running component and its conformance tests.
 
 `architecture/testing.md` conformance, at the levels the platform blueprint names.
 
+#### Published test vectors
+
+Every build receives the corpus's published test vectors,
+[`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json),
+as test data, and never as prompt text. No blueprint requires the file, so it
+is in no build graph and costs no prompt a byte. The build writes it, as the
+corpus revision the build was generated from holds it, to
+`testdata/weblisk-vectors/fixed-form-statements.json` under the component's
+directory, and the prompt names that path with the platform constraints
+(element 5) and nothing of its content. The build MUST NOT change the file:
+a test fixture the build can rewrite tests nothing, because the code under
+test and its expected answer would then come from the same place.
+
+So a generated signer tests against the same vectors as every other
+implementation ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)).
+A component that builds or verifies a fixed-form statement under a prefix the
+file has vectors for carries a test that, for each of them, rebuilds the
+message from the vector's field values and compares it with the published
+bytes. Where the component signs that statement, the test also verifies a
+signature it makes itself over those bytes with the vector's seed. Where it
+verifies the statement, the test also verifies the published signature under
+the published key and refuses it over the message with one byte changed. A
+component that does both carries every step. Each blueprint's checklist row
+for its vectors points here rather than restating the steps. The test is
+the only code that reads a vector key, and nothing a component ships loads one
+([a vector key is no one's identity](../protocol/identity.md#fixed-form-statements)).
+
 ---
 
 ## Security
@@ -1560,6 +1587,7 @@ and "nothing contradicted it".
 - [ ] A generation prompt states the tenant's module path and the exported names of packages already present
 - [ ] A component is not shown its own previous output as existing tenant state
 - [ ] A plan is not re-made because an unrelated component gained an exported name
+- [ ] Every build receives `vectors/fixed-form-statements.json` unchanged at `testdata/weblisk-vectors/fixed-form-statements.json`, no prompt carries its content, and a component that builds or verifies a fixed-form statement the file has vectors for tests against every vector for that prefix, with the steps [Published test vectors](#published-test-vectors) gives for what the component does
 
 - [ ] A generator asks the model for a plan and does not impose a file structure
 - [ ] A plan omitting a type the protocol enumerates is rejected, naming the type
