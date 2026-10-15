@@ -211,6 +211,10 @@ The `--` is part of the run command, not decoration: npm keeps flags for
 itself unless they sit past a separator, so without it the port never reaches
 the server.
 
+npm reads configuration files of its own and passes what they hold to the
+component; what the CLI gives a start through npm, and what npm still adds,
+is stated once, in [A component starts with a clean environment](../architecture/cli.md#a-component-starts-with-a-clean-environment).
+
 The port on the Run line is an EXAMPLE. Whoever starts the component supplies
 the port, so a plan records the run command without it — and without any
 `--orch` flag, for the same reason. The run command must be a plain command,
@@ -328,6 +332,9 @@ npm start
 | `WL_AGENT_PORT` | no | `9710` | Agent listen port, read only where `WL_PORT` is unset; the CLI sets `WL_PORT` on every start |
 | `WL_LOG_LEVEL` | no | `info` | Log level (`debug`, `info`, `warn`, `error`) |
 | `WL_COMPONENT` | no | `unknown` | Component name for logging |
+| `WL_COMPONENT_TYPE` | no | `agent` | Component type for logging |
+
+The CLI sets none of `WL_LOG_LEVEL`, `WL_COMPONENT` and `WL_COMPONENT_TYPE`: each takes its default unless the component's declaration sets it.
 
 A component the CLI starts holds only what [A component starts with a clean environment](../architecture/cli.md#a-component-starts-with-a-clean-environment) gives it. It reads no
 model provider, model name or key from its own environment, and reaches a

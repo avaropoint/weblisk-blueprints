@@ -366,7 +366,7 @@ which ones a deployment has is decided by adopting their blueprints.
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `WL_PORT` | no | `9800` | Listen port |
-| `WL_ORCH_URL` | yes (agents) | — | Orchestrator URL for agent registration |
+| `WL_ORCH_URL` | for an agent, where an orchestrator is named or running | — | Orchestrator URL for agent registration; the CLI sets it, with `--orch`, only where an orchestrator is named or running ([A component starts with a clean environment](../architecture/cli.md#a-component-starts-with-a-clean-environment)) |
 | `WL_DEV` | no | `0` | Set to `1` for in-memory storage mode |
 
 See [Build Commands](#build-commands) for additional build examples.

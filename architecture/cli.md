@@ -797,12 +797,18 @@ among them: the run that conformance-tests a tree
 and the run beside a real orchestrator
 ([`architecture/testing`](testing.md#level-4-interoperability)). A tested start
 is therefore made as a real one is, and a component that works only because it
-inherited something fails its tests instead of passing them.
+inherited something fails its tests instead of passing them. What a coding-agent
+provider does inside its own tool loop is not one of these: where a provider
+CLI builds or runs the tree it is writing, it does so with the environment the
+provider CLI has ([Security](#security), CLI → Provider CLI), which this rule
+does not govern. The tested start this rule makes equal to a real one is the
+CLI's own.
 
 **Nothing is inherited.** The environment is built from nothing, never by
 removing names from the starter's. Who started the CLI — a person's shell,
-Studio, a service manager — and what they hold reach no component. A component
-starts with exactly:
+Studio, a service manager — and what they hold reach no component. The CLI
+gives a component exactly the names below; a run command that is itself a
+program, as npm is, may add its own (a start through npm, below):
 
 1. **The allow-list below**, each name copied from the CLI's environment where
    it is set there, and no other name copied.
@@ -821,7 +827,13 @@ starts with exactly:
    persistent store and has it say so. That one value is the only difference
    between a tested start and a real one. An address is not a secret: it
    names where to register, and registering proves identity separately
-   ([`protocol/identity`](../protocol/identity.md)).
+   ([`protocol/identity`](../protocol/identity.md)). It stays one: an
+   `--orch` that carries a user or a password before its host
+   (`http://user:password@host`) is refused before anything is built or
+   started, and the address the run state records is the CLI's own, which
+   carries neither. And, for a component whose run command is npm's,
+   `npm_config_userconfig` and `npm_config_globalconfig`, as a start
+   through npm (below) says.
 3. **What is declared for that component**: its entry's `env` in
    `.weblisk/config.yaml`, which today only an agent has
    ([`schemas/config`](../schemas/config.md#agents)) and which may hold no
@@ -864,7 +876,46 @@ the operating system's user database, as Node's `os.homedir()` does, reads
 the account the component runs as, which is not inheritance but is not the
 component's state either. A component's state lives under its tenant's root.
 Setting `HOME` to make a run command work puts it back on the list, which
-only a change to the table below may do.
+only a change to the table below may do. npm sets it itself for a component
+it runs, as a start through npm (below) says; the CLI does not.
+
+**A start through npm gets npm's configuration from the tenant.** A node
+component's run command is `npm start`
+([`platforms/node`](../platforms/node.md)), so npm runs between the CLI and
+the component, and npm reads configuration from files the environment does
+not name. With `HOME` absent it still finds the starting account's `~/.npmrc`
+through Node's `os.homedir()`, which falls back to the account's entry in the
+user database, and it reads the global `npmrc` under Node's install prefix;
+and it exports what it reads into the component's environment, as
+`npm_config_*` names, among them a proxy with its user and password, and
+turns a `node-options` entry into `NODE_OPTIONS`, which can load any code
+into the component. So a start whose run command is npm's, and each of a
+build's own runs of one, is also given `npm_config_userconfig` and
+`npm_config_globalconfig`, computed and never copied, each naming a file under
+the tenant's root that the tenant owns and nothing has written to — the same
+two a build of it is given (below). Neither the account's `~/.npmrc` nor the
+global `npmrc` then reaches the component.
+
+npm still reads two files those do not name: the `npmrc` inside npm's own
+install, which is the toolchain's and not the starter's, and the `.npmrc` in
+the component's own directory, which is generated output like the rest of
+the tree. And npm adds names of its own that the table below does not list:
+`npm_config_*` for the configuration it holds, `npm_package_*` from the
+package's `package.json`, `npm_lifecycle_event`, `npm_lifecycle_script`,
+`npm_command`, `npm_execpath`, `npm_node_execpath`, `INIT_CWD`, `NODE` and
+`EDITOR` among others, and `node_modules/.bin` at the front of `PATH`. npm computes each from its
+defaults, those files, the package and the directory, some of them paths
+under the account's home that npm finds as it found `~/.npmrc` (its cache
+among them); none is copied from the environment of whoever started the
+CLI. One of them is `HOME`: npm always sets it for the script it runs, to
+the `HOME` it was given or, with none, to Node's `os.homedir()`, so a node
+component started through npm has `HOME` naming the home of the account the
+CLI runs as, though the CLI gave it none. That is the account's directory,
+found as a build finds it (below), not a value of the starter's environment,
+and it is the one name on the "off it on purpose" list below that a
+component can hold; a component's state still lives under its tenant's
+root, not there. For a node component, "nothing is inherited" means exactly
+that: npm's names reach it, and the starter's do not.
 
 **Building is not starting, and gets the same environment.** Every build
 the CLI makes of a tenant component's code is under this rule, whichever
@@ -883,8 +934,10 @@ reads a registry's tokens through the account's home even with `HOME`
 absent: `CARGO_HOME`, where cargo keeps `credentials.toml`, and
 `npm_config_userconfig`, the `.npmrc` npm otherwise finds through Node's
 `os.homedir()`, which falls back to the account's entry in the user
-database. Each names a directory or file the tenant owns and nothing has
-written to, so cargo and npm start a build with no registry token. The rest
+database. `npm_config_globalconfig` is computed there too, for the global
+`npmrc` npm otherwise reads under Node's install prefix. Each names a
+directory or file the tenant owns and nothing has written to, so cargo and
+npm start a build with no registry token. The rest
 are a default install's: `GOCACHE`, `GOMODCACHE` and `GOPATH` for Go,
 `RUSTUP_HOME` for Rust and `npm_config_cache` for npm are each copied from
 the CLI's environment where set there, and otherwise computed where that
@@ -910,7 +963,8 @@ opens them by path. Cargo also reads `.cargo/config.toml` from every
 directory above the one it builds in, so a tenant root under a home
 directory reads that home's `.cargo/config.toml`; a token belongs in
 `credentials.toml`, which only `CARGO_HOME` locates. npm still reads the
-global `npmrc` under Node's install prefix. Keeping a build away from the
+`npmrc` inside its own install and the component's own `.npmrc`, as a
+start through npm (above) says. Keeping a build away from the
 account's files is a matter of the account it runs as, which this section
 does not change.
 
@@ -966,10 +1020,9 @@ that needs a secret reads it through its secret client from the tenant's store
 ([`patterns/secrets`](../patterns/secrets.md#secret-access-api)), never from an
 environment the CLI gives it, which every process it starts inherits and which
 crash dumps and `/proc` expose ([`protocol/identity`](../protocol/identity.md)
-rule 9). For the same reason the `environment` backend of
-[`patterns/secrets`](../patterns/secrets.md) serves only a platform's own
-starts, never a component this CLI starts, which holds no secret in its
-environment to read. A platform that starts a component itself, on a hosted deployment, is
+rule 9). A component this CLI starts therefore has no secret in its
+environment for the `environment` backend of
+[`patterns/secrets`](../patterns/secrets.md) to read. A platform that starts a component itself, on a hosted deployment, is
 not a start by this CLI, and what it may inject is stated in
 [`patterns/secrets`](../patterns/secrets.md#deployment-secret-delivery).
 
@@ -3328,17 +3381,25 @@ security:
         .env.example) or, on cloudflare, .dev.vars file in the directory it
         starts in is tolerated; every build the CLI makes of a component's
         code, generation's included, gets the same environment and its
-        toolchain's directories, with CARGO_HOME and npm_config_userconfig
-        always under the tenant's root; nothing else of the person or program that started the CLI
-        reaches it, and no vendor key variable reaches any component, the
-        orchestrator included (A component starts with a clean environment)
+        toolchain's directories, with CARGO_HOME, npm_config_userconfig and
+        npm_config_globalconfig always under the tenant's root; a start
+        through npm gets those two npm files as well, and what npm itself adds
+        it computes from them, its own install, the package, the directory
+        and the account's home, HOME among them; an --orch carrying a user
+        or password is refused; nothing else of the person or program that
+        started the CLI reaches it, and no vendor key variable reaches any
+        component, the orchestrator included (A component starts with a
+        clean environment)
     - boundary: CLI → Provider CLI. A key the CLI reads from a holder or from
         standard input stays in the CLI's own process, which makes the call
         it is for. It is never exported into a provider CLI's environment, or
         any other child's, so such a key never substitutes for a provider
         CLI's own login. A vendor key variable already in the CLI's own
         environment when it was started is the starter's, and what a provider
-        CLI inherits of it is not decided here
+        CLI inherits of it is not decided here. Nor is the environment of a
+        build or run a coding-agent provider makes of the tree inside its own
+        tool loop, which is the provider CLI's and outside the clean-start
+        rule, which governs the CLI's own builds and starts
     - boundary: CLI → Local filesystem. Confined to the project and the
         operator's own configuration directory
   enforcement:
@@ -3381,8 +3442,10 @@ security:
         start's, tenant create's, weblisk dev's and generation's in Layer 2
         and its repair rounds alike, gets the component's clean environment
         plus its toolchain's own directories, and never the CLI's
-        environment. CARGO_HOME and npm_config_userconfig are always computed
-        under the tenant's root, so cargo and npm read no registry token
+        environment. CARGO_HOME, npm_config_userconfig and
+        npm_config_globalconfig are always computed under the tenant's root,
+        and a start through npm is given the same two npm files, so cargo and
+        npm read no registry token
         through the account's home; the environment is all this governs, and
         a build still reads the account's files by path
     - rule: A key the CLI reads from a holder or from standard input never
@@ -3453,14 +3516,16 @@ security:
 - [ ] `weblisk server start` starts the orchestrator alone when `.weblisk/config.yaml` is absent, and refuses a declaration it cannot carry out before starting anything
 - [ ] `weblisk server stop` with no `--component` stops every recorded component, the orchestrator last
 - [ ] `weblisk component <name> start|stop|status|logs` runs any component the tenant has generated, and a detached start reports started only once the component's `GET /livez` answers live, then waits on its `GET /readyz` and reports a component that never becomes ready as not ready
-- [ ] Every start of a tenant component — `weblisk server start` attached or detached, `weblisk component <name> start`, the orchestrator `weblisk tenant create` starts, `weblisk agent start`, `weblisk domain start`, `weblisk gateway start`, and the first run and each restart `weblisk dev` makes of a hub — gives it an environment built from nothing: the names in the allow-list of [A component starts with a clean environment](#a-component-starts-with-a-clean-environment) that are set in the CLI's own, `WL_PORT`, `WL_ORCH_URL` where an orchestrator is named or running and the component is not it, and its declared `env`, and no other name of the CLI's environment
+- [ ] Every start of a tenant component — `weblisk server start` attached or detached, `weblisk component <name> start`, the orchestrator `weblisk tenant create` starts, `weblisk agent start`, `weblisk domain start`, `weblisk gateway start`, and the first run and each restart `weblisk dev` makes of a hub — gives it an environment built from nothing: the names in the allow-list of [A component starts with a clean environment](#a-component-starts-with-a-clean-environment) that are set in the CLI's own, `WL_PORT`, `WL_ORCH_URL` where an orchestrator is named or running and the component is not it, `npm_config_userconfig` and `npm_config_globalconfig` where its run command is npm's, and its declared `env`, and no other name of the CLI's environment
 - [ ] No vendor key variable — `WL_AI_KEY`, or any variable a model backend names for its key — is in any started component's environment, the orchestrator's included, even when the CLI's own environment holds it
 - [ ] A build's own runs of a generated component, its conformance run and its interoperability run, give it the same environment a real start does, with `WL_DEV=1` the only addition
 - [ ] A component other than the orchestrator, started while an orchestrator is named by `--orch` or recorded as running for the tenant, has `WL_ORCH_URL` set to that orchestrator's own address and the same address in `--orch` among its arguments; started with none named or running, it has neither, on a real start and on a build's own runs alike
 - [ ] Every start, and each of a build's own runs, is refused, naming the file, while the directory the component would start in holds `.env`, any `.env.*` other than `.env.example`, or, on the cloudflare platform, `.dev.vars` or any `.dev.vars.*`
 - [ ] A cloudflare start is refused, naming each entry, while its wrangler configuration's `[vars]` holds an entry rule 16 of [`schemas/config`](../schemas/config.md#validation-rules) recognises as a secret
-- [ ] Every build the CLI makes of a tenant component's code — before `weblisk agent start`, `domain start`, `gateway start`, `server start` or `component <name> start` runs it, the orchestrator's in `weblisk tenant create`, each `weblisk dev` makes, and generation's in Layer 2 and in every repair round — gets the component's clean environment plus only `GOCACHE`, `GOMODCACHE` and `GOPATH`, `CARGO_HOME` and `RUSTUP_HOME`, or `npm_config_cache` and `npm_config_userconfig`, as its toolchain uses, and no vendor key variable; `CARGO_HOME` and `npm_config_userconfig` are always under the tenant's root and never the CLI's, and every other one the CLI's environment does not set is the toolchain's own default under the home of the account the CLI runs as (so `RUSTUP_HOME` is `<home>/.rustup`), which a build on a default toolchain install finds, while the home itself is never passed
-- [ ] No started component's environment holds `HOME`, `USERPROFILE`, `APPDATA` or `LOCALAPPDATA`
+- [ ] Every build the CLI makes of a tenant component's code — before `weblisk agent start`, `domain start`, `gateway start`, `server start` or `component <name> start` runs it, the orchestrator's in `weblisk tenant create`, each `weblisk dev` makes, and generation's in Layer 2 and in every repair round — gets the component's clean environment plus only `GOCACHE`, `GOMODCACHE` and `GOPATH`, `CARGO_HOME` and `RUSTUP_HOME`, or `npm_config_cache`, `npm_config_userconfig` and `npm_config_globalconfig`, as its toolchain uses, and no vendor key variable; `CARGO_HOME`, `npm_config_userconfig` and `npm_config_globalconfig` are always under the tenant's root and never the CLI's, and every other one the CLI's environment does not set is the toolchain's own default under the home of the account the CLI runs as (so `RUSTUP_HOME` is `<home>/.rustup`), which a build on a default toolchain install finds, while the home itself is never passed
+- [ ] A start whose run command is npm's, and each of a build's own runs of one, has `npm_config_userconfig` and `npm_config_globalconfig` each naming an empty file under the tenant's root, so neither the starting account's `~/.npmrc` nor the global `npmrc` under Node's install prefix reaches the component as `npm_config_*` or `NODE_OPTIONS`
+- [ ] An `--orch` that carries a user or a password before its host is refused before anything is built or started
+- [ ] The CLI gives no started component `HOME`, `USERPROFILE`, `APPDATA` or `LOCALAPPDATA`, and none is in any started component's environment except the `HOME` npm itself sets for a component whose run command is npm's
 - [ ] No started component's environment holds `SSL_CERT_FILE`, `SSL_CERT_DIR`, `NODE_EXTRA_CA_CERTS` or a proxy variable, in either case, that the CLI's environment holds, unless that component's own declaration names it
 - [ ] An `agents[].env` entry that [`schemas/config`](../schemas/config.md#validation-rules) rule 16 recognises as a secret — by its name, by a published vendor key prefix, or by a PEM block or a URL with a user or password — is refused, naming every such entry, by the commands that generate a component and by every start, before anything is generated or started
 - [ ] A key the CLI reads from a holder or from standard input is used in the CLI's own process and is in no child process's environment, a provider CLI's included
