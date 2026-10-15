@@ -329,9 +329,10 @@ npm start
 | `WL_LOG_LEVEL` | no | `info` | Log level (`debug`, `info`, `warn`, `error`) |
 | `WL_COMPONENT` | no | `unknown` | Component name for logging |
 
-A component the CLI starts holds only what [A component starts with a clean environment](../architecture/cli.md#a-component-starts-with-a-clean-environment) gives it. It reaches a
-model only through [the tenant's model](../architecture/orchestrator.md#the-tenants-model), never through a provider, model name or key read
-from its own environment.
+A component the CLI starts holds only what [A component starts with a clean environment](../architecture/cli.md#a-component-starts-with-a-clean-environment) gives it. It reads no
+model provider, model name or key from its own environment; its blueprint says
+how it reaches a model, through [the tenant's model](../architecture/orchestrator.md#the-tenants-model) or a provider
+[`patterns/api-ai`](../patterns/api-ai.md) configures.
 
 ---
 

@@ -377,10 +377,13 @@ matches, it distinguishes "this path exists under another method" from "no such
 path" by consulting the same table.
 
 ### LLM Integration
-- Reach a model only through [the tenant's model](../architecture/orchestrator.md#the-tenants-model).
-  Which backend runs a completion, Workers AI among them, is the tenant's
-  configuration there; no provider, model name or key is put in a component's
-  `[vars]` or Workers Secrets
+- The component's blueprint says how it reaches a model: through
+  [the tenant's model](../architecture/orchestrator.md#the-tenants-model), or
+  through a provider [`patterns/api-ai`](../patterns/api-ai.md) configures,
+  Workers AI's binding among them (the Service Mapping row above)
+- No provider, model name or key is put in a component's `[vars]`; a
+  component the CLI starts is given no Workers Secret either
+  ([A component starts with a clean environment](../architecture/cli.md#a-component-starts-with-a-clean-environment))
 
 ### wrangler.toml
 ```toml
@@ -405,6 +408,10 @@ WL_VERSION = "1.0.0"
 - Private keys stored in Cloudflare Workers Secrets
 - `wrangler secret put ORCHESTRATOR_PRIVATE_KEY`
 - Or generate on first Durable Object creation and store internally
+- A component the CLI starts has no Workers Secret, so on a CLI start only
+  the second applies
+  ([A component starts with a clean environment](../architecture/cli.md#a-component-starts-with-a-clean-environment));
+  the first serves a hosted deployment
 
 ---
 

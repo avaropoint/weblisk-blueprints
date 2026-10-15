@@ -784,16 +784,15 @@ orchestrator is ([`architecture/content`](content.md)).
 This rule has one home, here, and covers every path by which the CLI starts a
 tenant component: this command,
 [`weblisk server start`](#weblisk-server-start), the orchestrator that
-[`weblisk tenant create`](#weblisk-tenant-create-name) starts and starts
-again over code it has just regenerated,
+[`weblisk tenant create`](#weblisk-tenant-create-name) starts,
 [`weblisk agent start`](#weblisk-agent-start),
 [`weblisk domain start`](#weblisk-domain-start),
 [`weblisk gateway start`](#weblisk-gateway-start), and
-[`weblisk dev`](#weblisk-dev) running a hub, on each restart it makes. Those
-two restarts are the CLI's only ones: there is no restart command, and one
-added later is a start under this rule. It covers the starts a
-build makes of a component it has just generated as well: the run that
-conformance-tests a tree
+[`weblisk dev`](#weblisk-dev) running a hub, both its first run and each
+restart it makes. That restart is the CLI's only one: there is no restart
+command, and one added later is a start under this rule. It covers the starts a
+build makes of a component it has just generated as well, a repair round's
+among them: the run that conformance-tests a tree
 ([`architecture/generation`](generation.md#what-a-repair-round-reads-and-in-what-order))
 and the run beside a real orchestrator
 ([`architecture/testing`](testing.md#level-4-interoperability)). A tested start
@@ -867,12 +866,16 @@ component's state either. A component's state lives under its tenant's root.
 Setting `HOME` to make a run command work puts it back on the list, which
 only a change to the table below may do.
 
-**Building is not starting, and gets the same environment.** `weblisk agent
-start`, `domain start` and `gateway start`, and `server start` on a compiled
-language, build the component before running it. Generated output is
+**Building is not starting, and gets the same environment.** Every build
+the CLI makes of a tenant component's code is under this rule, whichever
+command makes it: the build a start above makes before it runs the
+component, the orchestrator's build in `weblisk tenant create`, each build
+`weblisk dev` makes, and generation's own build of a target, in
+[Layer 2](generation.md#layer-2--coherence) and in every repair round.
+Generated output is
 untrusted ([Generated output is untrusted](#generated-output-is-untrusted)),
-and a build runs some of it (a `build.rs`, an install script), so the build
-step gets the allow-list below and the run's values too, never the CLI's
+and a build runs some of it (a `build.rs`, an install script), so every such
+build gets the allow-list below and the run's values too, never the CLI's
 environment, plus the toolchain's own directories, each copied from the
 CLI's environment where set there, and computed under the tenant's root
 otherwise: `GOCACHE`, `GOMODCACHE` and `GOPATH` for Go, which refuses to
@@ -904,9 +907,8 @@ need stays off it, secret or not. Some are off it on purpose:
   model is the tenant's configuration
   ([`architecture/orchestrator`](orchestrator.md#the-tenants-model)), kept in
   the hub's `.weblisk/model.json` and never in the environment of whoever
-  started it. A component reaches that model only through the model
-  surface there, and no language or platform file has it read a provider,
-  a model name or a key from its own environment.
+  started it. No language or platform file has a component read a
+  provider, a model name or a key from its own environment.
 - **`HOME`, `XDG_CONFIG_HOME` and every other name for the starter's own
   directories.** They lead to where that person's identities, logins and
   cloud credentials are kept. A component's state lives under its tenant's
@@ -926,7 +928,10 @@ that needs a secret reads it through its secret client from the tenant's store
 ([`patterns/secrets`](../patterns/secrets.md#secret-access-api)), never from an
 environment the CLI gives it, which every process it starts inherits and which
 crash dumps and `/proc` expose ([`protocol/identity`](../protocol/identity.md)
-rule 9). A platform that starts a component itself, on a hosted deployment, is
+rule 9). For the same reason the `environment` backend of
+[`patterns/secrets`](../patterns/secrets.md) serves only a platform's own
+starts, never a component this CLI starts, which holds no secret in its
+environment to read. A platform that starts a component itself, on a hosted deployment, is
 not a start by this CLI, and what it may inject is stated in
 [`patterns/secrets`](../patterns/secrets.md#deployment-secret-delivery).
 
@@ -3283,8 +3288,9 @@ security:
         sets for that run, and what the tenant declares for it, in which a
         secret the CLI recognises is refused; no .env, .env.* (but
         .env.example) or, on cloudflare, .dev.vars file in the directory it
-        starts in is tolerated; the build step before it gets the same
-        environment and its toolchain's directories; nothing else of the person or program that started the CLI
+        starts in is tolerated; every build the CLI makes of a component's
+        code, generation's included, gets the same environment and its
+        toolchain's directories; nothing else of the person or program that started the CLI
         reaches it, and no vendor key variable reaches any component, the
         orchestrator included (A component starts with a clean environment)
     - boundary: CLI → Provider CLI. A key the CLI reads from a holder or from
@@ -3336,9 +3342,11 @@ security:
         holds an entry rule 16 recognises as a secret
     - rule: Generated code a build runs inherits nothing from whoever started
         the CLI
-      mechanism: The build step a start makes gets the component's clean
-        environment plus its toolchain's own directories, and never the
-        CLI's environment
+      mechanism: Every build the CLI makes of a tenant component's code, a
+        start's, tenant create's, weblisk dev's and generation's in Layer 2
+        and its repair rounds alike, gets the component's clean environment
+        plus its toolchain's own directories, and never the CLI's
+        environment
     - rule: A key the CLI reads from a holder or from standard input never
         leaves the CLI's process
       mechanism: Held in memory and handed only to the call that uses it;
@@ -3407,13 +3415,13 @@ security:
 - [ ] `weblisk server start` starts the orchestrator alone when `.weblisk/config.yaml` is absent, and refuses a declaration it cannot carry out before starting anything
 - [ ] `weblisk server stop` with no `--component` stops every recorded component, the orchestrator last
 - [ ] `weblisk component <name> start|stop|status|logs` runs any component the tenant has generated, and a detached start reports started only once the component's `GET /livez` answers live, then waits on its `GET /readyz` and reports a component that never becomes ready as not ready
-- [ ] Every start of a tenant component — `weblisk server start` attached or detached, `weblisk component <name> start`, the orchestrator `weblisk tenant create` starts and restarts, `weblisk agent start`, `weblisk domain start`, `weblisk gateway start` and each restart `weblisk dev` makes of a hub — gives it an environment built from nothing: the names in the allow-list of [A component starts with a clean environment](#a-component-starts-with-a-clean-environment) that are set in the CLI's own, `WL_PORT`, `WL_ORCH_URL` where an orchestrator is named or running and the component is not it, and its declared `env`, and no other name of the CLI's environment
+- [ ] Every start of a tenant component — `weblisk server start` attached or detached, `weblisk component <name> start`, the orchestrator `weblisk tenant create` starts, `weblisk agent start`, `weblisk domain start`, `weblisk gateway start`, and the first run and each restart `weblisk dev` makes of a hub — gives it an environment built from nothing: the names in the allow-list of [A component starts with a clean environment](#a-component-starts-with-a-clean-environment) that are set in the CLI's own, `WL_PORT`, `WL_ORCH_URL` where an orchestrator is named or running and the component is not it, and its declared `env`, and no other name of the CLI's environment
 - [ ] No vendor key variable — `WL_AI_KEY`, or any variable a model backend names for its key — is in any started component's environment, the orchestrator's included, even when the CLI's own environment holds it
 - [ ] A build's own runs of a generated component, its conformance run and its interoperability run, give it the same environment a real start does, with `WL_DEV=1` the only addition
 - [ ] A component other than the orchestrator, started while an orchestrator is named by `--orch` or recorded as running for the tenant, has `WL_ORCH_URL` set to that orchestrator's own address and the same address in `--orch` among its arguments; started with none named or running, it has neither, on a real start and on a build's own runs alike
 - [ ] Every start, and each of a build's own runs, is refused, naming the file, while the directory the component would start in holds `.env`, any `.env.*` other than `.env.example`, or, on the cloudflare platform, `.dev.vars` or any `.dev.vars.*`
 - [ ] A cloudflare start is refused, naming each entry, while its wrangler configuration's `[vars]` holds an entry rule 16 of [`schemas/config`](../schemas/config.md#validation-rules) recognises as a secret
-- [ ] The build step of `weblisk agent start`, `domain start`, `gateway start` and `server start` gets the component's clean environment plus only `GOCACHE`, `GOMODCACHE` and `GOPATH`, `CARGO_HOME` and `RUSTUP_HOME`, or `npm_config_cache`, as its toolchain uses, and no vendor key variable
+- [ ] Every build the CLI makes of a tenant component's code — before `weblisk agent start`, `domain start`, `gateway start`, `server start` or `component <name> start` runs it, the orchestrator's in `weblisk tenant create`, each `weblisk dev` makes, and generation's in Layer 2 and in every repair round — gets the component's clean environment plus only `GOCACHE`, `GOMODCACHE` and `GOPATH`, `CARGO_HOME` and `RUSTUP_HOME`, or `npm_config_cache`, as its toolchain uses, and no vendor key variable
 - [ ] No started component's environment holds `HOME`, `USERPROFILE`, `APPDATA` or `LOCALAPPDATA`
 - [ ] An `agents[].env` entry that [`schemas/config`](../schemas/config.md#validation-rules) rule 16 recognises as a secret — by its name, by a published vendor key prefix, or by a PEM block or a URL with a user or password — is refused, naming every such entry, by the commands that generate a component and by every start, before anything is generated or started
 - [ ] A key the CLI reads from a holder or from standard input is used in the CLI's own process and is in no child process's environment, a provider CLI's included
