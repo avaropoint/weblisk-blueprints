@@ -697,8 +697,12 @@ disagree about the method. The first two probes are the orchestrator's
 `orchestrator.admin_addresses` lists, or the one `--gateway` names:
 `GET /v1/admin/overview` with no token, over
 TLS verified against the pin `create` recorded, or, run in the tenant's
-directory, the pin of the certificate the tenant's configuration names. It
-passes on `401`, the orchestrator's refusal carried back through the gateway,
+directory, the pin of the certificate the tenant's configuration names.
+Where neither is to hand, run elsewhere against a gateway with no recorded
+pin, it verifies under the system's roots and records nothing, as
+`client-pins-gateway-key` in
+[`architecture/admin`](admin.md#certificate) says, and an origin whose scheme
+is not `https` it refuses before sending anything. It passes on `401`, the orchestrator's refusal carried back through the gateway,
 and a certificate that does not match the pin fails it as a pin that did not
 match, sending nothing over that connection, never as a refused connection. <!-- wl:id cli-accept-through-gateway --> Accept probes no
 other component and reads no lease: whether each
@@ -1219,12 +1223,19 @@ alone: the file is an operator's declaration, never a precondition. That is a
 hub with no door, and start says so: no person's client reaches it until a
 configuration declares the admin gateway rule 20 of
 [`schemas/config`](../schemas/config.md#validation-rules) requires, which
-`weblisk component admin init` writes.
+`weblisk component admin init` writes. A file that is present and fails rule
+20, having no `admin_gateway` section, is a declaration start cannot carry
+out, and is refused whole as below, naming `weblisk component admin init`:
+the orchestrator alone is what an absent file means, never what a present one
+that omits the door means.
 
 - **Order.** The orchestrator first, and each sibling only once the
   orchestrator's `GET /livez` answers live and then its `GET /readyz` answers
   ready, passed `--orch` with the address it actually bound.
-  The admin gateway next, which `admin_gateway` declares. Then the content
+  The admin gateway next, which `admin_gateway` declares, passed its
+  internal listener's port as `--port` and `WL_PORT` and waited on there
+  ([`architecture/admin`](admin.md#a-start-and-a-builds-own-run),
+  `gateway-port-is-internal`). Then the content
   service, domains, agents, and the application gateway last.
 - **Certificate.** Before it starts the admin gateway, it makes a new
   certificate from the gateway's own TLS key where the certificate the CLI
@@ -1233,7 +1244,7 @@ configuration declares the admin gateway rule 20 of
   ([`architecture/admin`](admin.md#certificate), `given-certificate-served`).
 - **Refused whole.** A declaration this command cannot carry out — two
   components on one port or one name, `replicas` above 1, an agent with no
-  `type`, an agent `env` entry that rule 16 of
+  `type`, a file with no `admin_gateway` section, an agent `env` entry that rule 16 of
   [`schemas/config`](../schemas/config.md#validation-rules) recognises as a
   secret, a variables file where a component would start ([A component starts
   with a clean environment](#a-component-starts-with-a-clean-environment)) — is refused with every reason
@@ -3540,7 +3551,7 @@ security:
 - [ ] `weblisk secret rotate` triggers the rotation handler or prompts for new value
 
 ### Server & Code Generation
-- [ ] `weblisk tenant create` ends with the orchestrator and the admin gateway running and its first operator registered at the gateway, and its result's `address` is the gateway's origin with its `tls_pin`, never the orchestrator's own address <!-- wl:check cli-create-gateway covers cli-create-stands-up-gateway -->
+- [ ] `weblisk tenant create` ends with the orchestrator and the admin gateway running and its first operator registered at the gateway, and its result's `address` is the gateway's origin with its `tls_pin`, which the registration it records keeps whether the CLI made the certificate or the operator supplied it, never the orchestrator's own address <!-- wl:check cli-create-gateway covers cli-create-stands-up-gateway -->
 - [ ] Before it starts the orchestrator, `weblisk tenant create` has written `admin_gateway`, `orchestrator.admin_addresses` naming the gateway's origin and `orchestrator.admin_gateway_identity` naming the fingerprint of `.weblisk/keys/admin-gateway.key`, and with `--port 0` the gateway's ports are free ones and are the ports those name <!-- wl:check cli-create-declares-gateway covers cli-create-stands-up-gateway -->
 - [ ] `weblisk server provision` registers the first operator with the bootstrap secret at the orchestrator's own address and keeps no token, then registers at the admin gateway's origin and records the registration, with the pin, at that address alone; no operator command afterwards sends a request, a token among it, to the orchestrator's own address <!-- wl:check cli-provision-gateway covers cli-provision-registers-at-gateway -->
 - [ ] `weblisk tenant create` writes a `.gitignore` excluding `.weblisk/keys/`, `.weblisk/secrets/`, `.weblisk/token`, `.env` and `.env.*`, so the directory it just put a private key in is not one `git init` from committing it
@@ -3559,7 +3570,7 @@ security:
 - [ ] `weblisk component <name> init` ends on the best tree it reached and never a worse one — on an error too — names the requirements it left unrepaired, and a re-run starts from that tree
 - [ ] `weblisk server init` reads YAML specs and dispatches to the configured LLM for code generation
 - [ ] `weblisk server start` reads .weblisk/config.yaml and builds+starts all declared components
-- [ ] `weblisk server start` starts the orchestrator alone when `.weblisk/config.yaml` is absent, reporting it as a hub with no admin gateway, and refuses a declaration it cannot carry out before starting anything
+- [ ] `weblisk server start` starts the orchestrator alone when `.weblisk/config.yaml` is absent, reporting it as a hub with no admin gateway, refuses a present file with no `admin_gateway` section before starting anything, naming `weblisk component admin init`, and refuses a declaration it cannot carry out before starting anything
 - [ ] `weblisk server stop` with no `--component` stops every recorded component, the orchestrator last
 - [ ] `weblisk component <name> start|stop|status|logs` runs any component the tenant has generated, and a detached start reports started only once the component's `GET /livez` answers live, then waits on its `GET /readyz` and reports a component that never becomes ready as not ready
 - [ ] Every start of a tenant component — `weblisk server start` attached or detached, `weblisk component <name> start`, the orchestrator `weblisk tenant create` starts, `weblisk agent start`, `weblisk domain start`, `weblisk gateway start`, and the first run and each restart `weblisk dev` makes of a hub — gives it an environment built from nothing: the names in the allow-list of [A component starts with a clean environment](#a-component-starts-with-a-clean-environment) that are set in the CLI's own, `WL_PORT`, `WL_ORCH_URL` where an orchestrator is named or running and the component is not it, `npm_config_userconfig` and `npm_config_globalconfig` where its run command is npm's, and its declared `env`, and no other name of the CLI's environment
