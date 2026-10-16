@@ -278,5 +278,25 @@ else
 	fails=$((fails + 1))
 fi
 
+# Requirement ids in comments, and a copy of the one complete file with its
+# last wl:check removed: each id only that check covered must be reported.
+expect 0 "requirement-ids: every id declared once and every covers resolved" python3 checks/requirement-ids.py
+complete=$(grep -rlx --include='*.md' -- '<!-- wl:ids complete -->' . | head -1)
+lost=$(python3 - "$complete" "$tmp/uncovered.md" <<'PY'
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+checks = list(re.finditer(r" ?<!-- wl:check (\S+) covers ([^>]*?) -->", text))
+last = checks[-1]
+others = {i for c in checks[:-1] for i in c.group(2).split()}
+open(sys.argv[2], "w", encoding="utf-8").write(text[: last.start()] + text[last.end() :])
+print(" ".join(i for i in last.group(2).split() if i not in others))
+PY
+)
+expect 1 "requirement-ids control: a check removed from $complete fails" python3 checks/requirement-ids.py --file "$tmp/uncovered.md"
+for id in $lost; do
+	grep -q "wl:id '$id' is covered by no wl:check" "$tmp/out" || { echo "FAIL requirement-ids control: $id was not reported"; fails=$((fails + 1)); }
+done
+[ -n "$lost" ] || { echo "FAIL requirement-ids control: the removed check covered nothing only it covers"; fails=$((fails + 1)); }
+
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]
