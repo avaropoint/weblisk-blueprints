@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: tenancy
-version: 1.2.0
-requires: [protocol/types, protocol/identity, architecture/orchestrator, architecture/storage, patterns/principal-identity, patterns/versioning]
+version: 2.0.0
+requires: [protocol/types, protocol/identity, architecture/orchestrator, architecture/storage, patterns/principal-identity, patterns/versioning, patterns/namespace]
 platform: any
 tier: free
 adoption: opt-in
@@ -104,6 +104,17 @@ requires:
         # The schema migration a tenant's first request after an upgrade
         # runs (Data Flow)
         - name: version-migration
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/namespace
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      behaviors:
+        # The owner's claim of the tenant's namespace, the first name the
+        # tenant hub's registry accepts (Interfaces)
+        - name: namespace-registry
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -225,16 +236,22 @@ namespace, and an artifact version. It returns when
 every resource the tenant needs exists and its hub answers, or it returns nothing and
 leaves no resource behind.
 
-**The namespace is minted at creation.** Before provisioning returns, the owner
-signs its claim of the namespace ([`patterns/namespace`](../patterns/namespace.md#claim))
-at the tenant hub's own registry. The claim names that registry's log id, so it is
-signed once the registry exists, and it is the first name the registry accepts: the
-namespace is in the tenant's log from its creation, and appears in the tenant's own
-files and no one else's ([`schemas/names`](../schemas/names.md#namespaces)). A name
-the claim rules refuse is refused when provisioning is asked, before any resource
-exists, and a claim that fails later undoes provisioning as any failed step does. The
-host records the namespace as it records the tenant's name; it never signs a claim
-for a tenant.
+**The namespace is minted at creation.** The host records it as it records the
+tenant's name (`Tenant.namespace`), and a name the claim rules
+([`patterns/namespace`](../patterns/namespace.md#deciding-a-statement)) refuse is
+refused when provisioning is asked, before any resource exists. The namespace
+appears in the tenant's own files and no one else's
+([`schemas/names`](../schemas/names.md#namespaces)).
+
+Where the tenant's hub runs a namespace registry, the owner signs its claim of the
+namespace ([`patterns/namespace`](../patterns/namespace.md#claim)) there before
+provisioning returns. The claim names that registry's log id, so it is signed once
+the registry exists, and it is the first name the registry accepts; a claim that
+fails undoes provisioning as any failed step does. No tenant component serves that
+pattern yet ([`patterns/namespace`](../patterns/namespace.md#implementation-notes)),
+so until one does, provisioning records the namespace and signs no claim, and the
+owner's claim is the first statement that registry accepts when it first runs. The
+host never signs a claim for a tenant.
 
 **Export** is the tenant's exit. It MUST produce everything the tenant owns in a form
 that can be read without the host: records, configuration, agent definitions, and the
@@ -325,6 +342,11 @@ types:
         type: string
         required: true
         description: "Public half of the identity that claimed the tenant"
+      namespace:
+        name: Namespace
+        type: string
+        required: true
+        description: "The tenant's namespace, in the grammar of schemas/names, fixed at creation (Interfaces)"
       artifact_version:
         name: ArtifactVersion
         type: string
@@ -571,6 +593,7 @@ security:
 - [ ] A tenant identifier supplied in a request body or a tool argument MUST NOT select tenant state
 - [ ] A provisioned component's bindings MUST reference only its own tenant's resources
 - [ ] Provisioning failure at any step MUST leave no resource attributable to the tenant
+- [ ] Provisioning MUST refuse a namespace the claim rules refuse before any resource exists, and, where the tenant's hub runs a namespace registry, MUST NOT return until the owner's claim is the first name that registry accepted
 - [ ] A suspended tenant MUST serve no request and MUST retain every record
 - [ ] `ExportTenant` MUST produce every record, configuration and agent definition the tenant owns
 - [ ] `DeleteTenant` MUST destroy every resource named in the provisioning record
