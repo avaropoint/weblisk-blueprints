@@ -12,6 +12,8 @@ defines to protocol/identity's registry and to the published vectors.
         broken, which must be reported at exactly the steps that rule decides:
         accept-confusables, accept-one-sided, reclaim-retired,
         rotation-drops-grants
+    checks/namespace-registry.py --pattern FILE      read the pattern's
+        statements and routes from FILE instead of patterns/namespace.md
 """
 import json, os, re, sys
 import yaml
@@ -31,6 +33,7 @@ LAYOUT = {CLAIM: ["registry", "namespace", "holder", "issued_at"],
 HEX64, DEC = re.compile(r"[0-9a-f]{64}"), re.compile(r"0|[1-9][0-9]*")
 DIGEST, NAME = re.compile(r"sha256:[0-9a-f]{64}"), re.compile(r"[a-z][a-z0-9-]{1,38}")
 variant = sys.argv[sys.argv.index("--variant") + 1] if "--variant" in sys.argv else None
+PATTERN = sys.argv[sys.argv.index("--pattern") + 1] if "--pattern" in sys.argv else None
 
 
 def read(rel): return open(os.path.join(CORPUS, rel), encoding="utf-8").read()
@@ -137,12 +140,21 @@ def defined_here():
     protocol/identity and vectored in vectors/fixed-form-statements.json."""
     faults = []
     try:
-        pattern = read("patterns/namespace.md")
+        pattern = open(PATTERN, encoding="utf-8").read() if PATTERN else read("patterns/namespace.md")
     except FileNotFoundError:
         return ["patterns/namespace.md: missing, so no statement is defined"]
     defined = set(re.findall(r'^"(weblisk/[a-z0-9-]+/v\d+)" 0x00', pattern, re.M))
     if defined != {CLAIM, GRANT, TRANSFER, RELEASE}:
         faults.append(f"patterns/namespace.md defines {sorted(defined)}, not the four statements")
+    # A fixed path segment where {namespace} sits is a name someone can claim,
+    # and then two routes answer the same path.
+    routes = re.findall(r"^\| *[A-Z]+ *\| *(/v1/namespaces/[^ |]*) *\|", pattern, re.M)
+    if not routes:
+        faults.append("patterns/namespace.md: no /v1/namespaces/ route in its Endpoints")
+    for path in routes:
+        seg = path.split("/")[3]
+        if not seg.startswith("{") and NAME.fullmatch(seg):
+            faults.append(f"patterns/namespace.md: {path} is also /v1/namespaces/{{namespace}} for the claimable name {seg!r}")
     registered, _, _ = statements.registry()
     vectored = {v["prefix"] for v in json.loads(read("vectors/fixed-form-statements.json"))["vectors"]}
     for p in sorted(defined):

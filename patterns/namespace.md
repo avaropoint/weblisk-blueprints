@@ -374,7 +374,10 @@ name. How it is proven is not specified yet.
 | GET | /v1/namespaces/{namespace} | ShowNamespace | The namespace's state, holder, grants and badge, and the seq of each entry they come from |
 | POST | /v1/namespaces/{namespace}/grants | GrantNamespace | A grant, signed by the holder |
 | POST | /v1/namespaces/{namespace}/transfers | TransferNamespace | A transfer, rotation or retirement, with its signatures |
-| GET | /v1/namespaces/log | RegistryLog | The log's stored lines from a given seq, and its latest checkpoint |
+| GET | /v1/namespace-log | RegistryLog | The log's stored lines from a given seq, and its latest checkpoint |
+
+No fixed path segment sits where `{namespace}` does, since any word the
+grammar accepts can be claimed: the log is read at its own path.
 
 A refusal is an `ErrorResponse` whose `code` is one of the codes below. A
 read needs nothing but a way to reach the registry — the public registry serves

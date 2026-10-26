@@ -389,6 +389,19 @@ for v in accept-confusables:NAMESPACE_CONFUSABLE accept-one-sided:NAMESPACE_TRAN
 	fi
 done
 
+# A fixed route segment where {namespace} sits collides with a claimable name:
+# a copy of the pattern serving its log at /v1/namespaces/log must report
+# exactly that route.
+sed 's|/v1/namespace-log |/v1/namespaces/log |' patterns/namespace.md >"$tmp/namespace.md"
+expect 1 "namespace-registry control: a route that is also a claimable name fails" python3 checks/namespace-registry.py --pattern "$tmp/namespace.md"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^patterns/namespace.md: /v1/namespaces/log is also /v1/namespaces/{namespace} for the claimable name 'log'$" "$tmp/out"; then
+	echo "ok   namespace-registry control: exactly one finding, the log route"
+else
+	echo "FAIL namespace-registry control: want exactly one finding, the log route"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 # Two more of the registry's rules broken, each reported only in the sequence
 # that exercises it: a registry that lets a retired name be claimed again is
 # caught at the first re-claim, and one whose rotation drops the grants at the
