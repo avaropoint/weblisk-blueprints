@@ -108,8 +108,9 @@ repository Weblisk publishes. `example` and `test` exist for that reason: a
 fixture that needs a second namespace uses one of them, so no file names a
 person's or a customer's organisation.
 
-Also never claimable, and enforced where namespaces are claimed rather than
-here:
+Also never claimable, and enforced where namespaces are claimed
+([`patterns/namespace`](../patterns/namespace.md#deciding-a-statement)) rather
+than here:
 
 - every place code, as [`applies_in`](standard.md#applies_in--where-a-standard-has-force)
   writes it, and every issuer code a standard work's id begins with (`iso`,
@@ -160,6 +161,9 @@ reserved:
 # (two and thirty-nine characters) rather than anybody's name.
 names_check_exempt:
   - vectors/ids.json
+  # The registry's vectors claim names a reserved name could not stand in
+  # for (vector-one, vector-two), since no reserved name can be claimed.
+  - vectors/namespace-registry.json
 ```
 
 ## Where a namespace may appear

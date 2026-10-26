@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: tenancy
-version: 1.1.0
+version: 1.2.0
 requires: [protocol/types, protocol/identity, architecture/orchestrator, architecture/storage, patterns/principal-identity, patterns/versioning]
 platform: any
 tier: free
@@ -220,9 +220,21 @@ so compromising it exposes billing metadata rather than any tenant's records.
 
 ## Interfaces
 
-**Provisioning** accepts a tenant name, an owner identity's public key, and an artifact
-version. It returns when every resource the tenant needs exists and its hub answers, or
-it returns nothing and leaves no resource behind.
+**Provisioning** accepts a tenant name, an owner identity's public key, the tenant's
+namespace, and an artifact version. It returns when
+every resource the tenant needs exists and its hub answers, or it returns nothing and
+leaves no resource behind.
+
+**The namespace is minted at creation.** Before provisioning returns, the owner
+signs its claim of the namespace ([`patterns/namespace`](../patterns/namespace.md#claim))
+at the tenant hub's own registry. The claim names that registry's log id, so it is
+signed once the registry exists, and it is the first name the registry accepts: the
+namespace is in the tenant's log from its creation, and appears in the tenant's own
+files and no one else's ([`schemas/names`](../schemas/names.md#namespaces)). A name
+the claim rules refuse is refused when provisioning is asked, before any resource
+exists, and a claim that fails later undoes provisioning as any failed step does. The
+host records the namespace as it records the tenant's name; it never signs a claim
+for a tenant.
 
 **Export** is the tenant's exit. It MUST produce everything the tenant owns in a form
 that can be read without the host: records, configuration, agent definitions, and the

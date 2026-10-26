@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: federation
-version: 1.0.3
+version: 1.0.4
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/hub]
 platform: any
 tier: free
@@ -84,7 +84,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/hub
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: HubManifest
@@ -889,7 +889,7 @@ types:
     fields:
       listing_id:
         type: string
-        description: Identifier assigned by the providing hub
+        description: The listing's id, listing://<namespace>/<name>, as architecture/hub's ListingEntry gives it
       provider:
         type: string
         description: The hub offering the capability

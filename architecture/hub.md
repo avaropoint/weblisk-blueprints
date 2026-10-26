@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: hub
-version: 1.1.0
-requires: [protocol/federation, protocol/identity, protocol/types, architecture/agent, architecture/gateway]
+version: 2.0.0
+requires: [protocol/federation, protocol/identity, protocol/types, architecture/agent, architecture/gateway, patterns/namespace]
 platform: any
 tier: free
 -->
@@ -56,8 +56,7 @@ hub handles:
 
 Hubs are federated by design — there is no single central authority.
 Any orchestrator is a hub. Discovery relies on a combination of
-registry servers (operated by Avaropoint and, in the future, by
-partners) and direct peer discovery between hubs.
+registry servers (weblisk.dev's and, in the future, partners') and direct peer discovery between hubs.
 
 ---
 
@@ -121,6 +120,17 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
+  - blueprint: patterns/namespace
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      behaviors:
+        # The registry weblisk.dev runs, and who may publish under a namespace
+        - name: namespace-registry
+        - name: release-verification
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
 ```
 
 ---
@@ -156,7 +166,7 @@ requires:
 |------|-------------|---------|
 | **Provider** | A hub that publishes agent capabilities for others to consume | A logistics company offering shipment tracking to partners |
 | **Consumer** | A hub that discovers and invokes capabilities from other hubs | A retailer consuming shipment tracking from a logistics partner |
-| **Registry** | A hub that indexes published capabilities and serves discovery queries | Avaropoint's global registry, a regional or vertical registry |
+| **Registry** | A hub that indexes published capabilities and serves discovery queries | The weblisk.dev global registry, a regional or vertical registry |
 
 Every hub can be a provider, consumer, and registry simultaneously.
 A manufacturing hub might provide inventory intelligence to retail
@@ -175,11 +185,11 @@ facts:
 
 ```json
 {
-  "listing_id": "avaropoint:seo-audit",
+  "listing_id": "listing://example/seo-audit",
   "provider": {
-    "hub_name": "avaropoint-prod",
+    "hub_name": "example-prod",
     "public_key": "<ML-DSA-65 public key (base64url)>",
-    "federation_url": "https://agents.avaropoint.com/v1/federation",
+    "federation_url": "https://agents.example.com/v1/federation",
     "jurisdiction": "US",
     "verified": true
   },
@@ -233,7 +243,7 @@ types:
       listing_id:
         type: string
         required: true
-        description: "`{hub}:{capability}` unique identifier"
+        description: "`listing://<namespace>/<name>`: a namespace the provider holds at the public namespace registry, or has been granted publish under, and a name unique within it"
       provider:
         type: ProviderInfo
         required: true
@@ -312,9 +322,9 @@ Both hubs independently track usage for reconciliation:
 ```json
 {
   "period": "2024-04",
-  "consumer_hub": "acme-corp",
-  "provider_hub": "avaropoint-prod",
-  "listing_id": "avaropoint:seo-audit",
+  "consumer_hub": "example-consumer",
+  "provider_hub": "example-prod",
+  "listing_id": "listing://example/seo-audit",
   "invocations": 1247,
   "successful": 1240,
   "failed": 7,
@@ -554,7 +564,7 @@ indexes. This prevents a single point of failure and supports regional
 or vertical-specific registries:
 
 ```
-Global Registry (Avaropoint)
+Global Registry (weblisk.dev)
   ├── EU Registry (regional)
   ├── APAC Registry (regional)
   └── Healthcare Registry (vertical)
@@ -563,6 +573,20 @@ Global Registry (Avaropoint)
 Each registry independently verifies hub signatures. A listing
 appearing in multiple registries carries the same cryptographic proof
 regardless of which registry serves it.
+
+### The public namespace registry
+
+The weblisk.dev directory hub runs the public namespace registry: a
+[`patterns/namespace`](../patterns/namespace.md) registry whose log anyone can
+read and check. Each other hub runs its own, privately, for its own tenant.
+
+A listing is named `listing://<namespace>/<name>`
+([`schemas/kinds`](../schemas/kinds.md), kind `listing`). A registry indexes a
+listing only when the identity that signed it holds that namespace at the
+public registry, or was granted `publish` under it there, and refuses it
+otherwise with `NAMESPACE_NOT_PUBLISHER`. A name held only in a hub's private
+registry names nothing on the network. What makes a name held, and what never
+can be, is the pattern's.
 
 ---
 
@@ -573,7 +597,7 @@ itself — decentralized, resilient, and self-organizing:
 
 ```
                   ┌─────────────────────┐
-                  │  Avaropoint Global  │
+                  │  weblisk.dev Global │
                   │      Registry       │
                   └────────┬────────────┘
                            │
@@ -731,10 +755,10 @@ and discoverability fields:
 
 ```json
 {
-  "marketplace_id": "mkt-avaropoint-seo-blueprint",
+  "marketplace_id": "mkt-example-seo-blueprint",
   "listing_type": "blueprint",
   "seller": {
-    "hub_name": "avaropoint-prod",
+    "hub_name": "example-prod",
     "public_key": "<ML-DSA-65 public key (base64url)>",
     "verified_seller": true,
     "seller_since": 1704067200
@@ -746,7 +770,7 @@ and discoverability fields:
     "tags": ["seo", "accessibility", "content-analysis"],
     "version": "1.2.0",
     "platforms": ["go", "node", "cloudflare"],
-    "preview_url": "https://weblisk.dev/marketplace/avaropoint/seo-domain"
+    "preview_url": "https://weblisk.dev/marketplace/example/seo-domain"
   },
   "pricing": {
     "model": "one_time",
@@ -763,8 +787,8 @@ and discoverability fields:
     "last_updated": 1712160000
   },
   "support": {
-    "documentation_url": "https://docs.avaropoint.com/seo-domain",
-    "support_email": "support@avaropoint.com",
+    "documentation_url": "https://docs.example.com/seo-domain",
+    "support_email": "support@example.com",
     "sla": "business_hours"
   },
   "signature": "<seller's ML-DSA-65 signature over listing>"
@@ -791,10 +815,10 @@ reviewer's hub key to prevent forgery:
 
 ```json
 {
-  "review_id": "rev-acme-001",
-  "marketplace_id": "mkt-avaropoint-seo-blueprint",
+  "review_id": "rev-example-001",
+  "marketplace_id": "mkt-example-seo-blueprint",
   "reviewer": {
-    "hub_name": "acme-corp",
+    "hub_name": "example-consumer",
     "public_key": "<reviewer's ML-DSA-65 key>"
   },
   "rating": 5,
@@ -834,8 +858,8 @@ Sellers access analytics through the admin API:
    Buyer's hub sends purchase request:
      POST /v1/hub/marketplace/purchase
      {
-       "marketplace_id": "mkt-avaropoint-seo-blueprint",
-       "buyer_hub": "acme-corp",
+       "marketplace_id": "mkt-example-seo-blueprint",
+       "buyer_hub": "example-consumer",
        "accepted_terms": true,
        "signature": "<buyer's ML-DSA-65 signature>"
      }

@@ -1,7 +1,7 @@
 #!/bin/sh
 # Runs the corpus's checks, each with the control that proves it reaches what
 # it claims to. Exits 0 only when every check passes and every control fails.
-# Needs python3 with PyYAML.
+# Needs python3 with PyYAML, and OpenSSL 3.5 or later (OPENSSL names it).
 cd "$(dirname "$0")/.." || exit 2
 # retired.py imports ids.py; leave no bytecode in the corpus.
 export PYTHONDONTWRITEBYTECODE=1
@@ -297,6 +297,38 @@ for id in $lost; do
 	grep -q "wl:id '$id' is covered by no wl:check" "$tmp/out" || { echo "FAIL requirement-ids control: $id was not reported"; fails=$((fails + 1)); }
 done
 [ -n "$lost" ] || { echo "FAIL requirement-ids control: the removed check covered nothing only it covers"; fails=$((fails + 1)); }
+
+# Every fixed-form statement vector verifies with OpenSSL, an ML-DSA
+# implementation outside every Weblisk tool, and every registered prefix has
+# vectors or is named as having none yet; one byte changed in one vector's
+# message must fail that vector and nothing else.
+expect 0 "statements: every vector verifies with OpenSSL" python3 checks/statements.py
+expect 1 "statements control: one byte changed in namespace-claim-1 fails" python3 checks/statements.py --flip namespace-claim-1
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^namespace-claim-1: OpenSSL does not verify' "$tmp/out"; then
+	echo "ok   statements control: exactly one finding, namespace-claim-1"
+else
+	echo "FAIL statements control: want exactly one finding, namespace-claim-1"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# The namespace registry's rules over its vectors; a registry that accepts
+# confusable names, and one that accepts a one-sided transfer, must each be
+# reported at exactly the steps the vectors refuse for that reason.
+expect 0 "namespace-registry: every step gets its stated verdict" python3 checks/namespace-registry.py
+for v in accept-confusables:NAMESPACE_CONFUSABLE accept-one-sided:NAMESPACE_TRANSFER_ONE_SIDED; do
+	variant=${v%%:*} code=${v#*:}
+	# expect() sets $want, so the count has a name of its own.
+	steps=$(python3 -c 'import json, sys; print(sum(s["expect"] == sys.argv[1] for q in json.load(open("vectors/namespace-registry.json"))["sequences"] for s in q["steps"]))' "$code")
+	expect 1 "namespace-registry control: a registry that does $variant fails" python3 checks/namespace-registry.py --variant "$variant"
+	got=$(grep -c " step [0-9]*: got .*, want $code\$" "$tmp/out")
+	if [ "$steps" -gt 0 ] && [ "$got" -eq "$steps" ]; then
+		echo "ok   namespace-registry control: all $steps $code steps reported"
+	else
+		echo "FAIL namespace-registry control: $got of $steps $code steps reported"
+		fails=$((fails + 1))
+	fi
+done
 
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]
