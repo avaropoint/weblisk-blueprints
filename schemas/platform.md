@@ -56,7 +56,7 @@ describes itself — `name: node` implies `platform: node`.
 | 8 | Runtime Requirements | `## Runtime Requirements` | yaml:runtime | **Yes** | Language version, dependencies, build tools |
 | 9 | Build and Run | `## Build and Run` | table | **Yes** | Build commands, run commands, environment setup |
 | 10 | Platform-Specific Conventions | `## Platform-Specific Conventions` | table | **Yes** | Language idioms, concurrency model, IO patterns |
-| 11 | Type Mapping | `## Type Mapping` | table | **Yes** | How schema types map to language types |
+| 11 | Type Mapping | `## Type Mapping` | table | **Yes** | Transitional: kept required so today's validation still reads it; the spelling is a language mapping's (see [Type Mapping](#type-mapping-type-mapping)) |
 | 12 | Security | `## Security` | narrative | **Yes** | Platform-specific security practices |
 | 13 | Testing | `## Testing` | narrative | **Yes** | Test framework, test structure, CI guidance |
 | 14 | Implementation Notes | `## Implementation Notes` | narrative | **Yes** | Practical guidance |
@@ -123,12 +123,17 @@ Run: `<run-command>`
 ### Primitive Mapping (`## Primitive Mapping`)
 
 One row per primitive the specification blueprints require, naming what provides it
-here. `schemas/common.md` states the rule this section exists to satisfy and what an
-**UNFILLED** slot means; it is not restated.
+here. [`schemas/common.md`](common.md#platform-blueprints--platforms) requires the
+section; what an **UNFILLED** slot means is
+[`schemas/mapping`](mapping.md#verdicts)' rule `unfilled-is-stated`, and it is
+not restated.
 
 Which primitives there are is [`schemas/concepts`](concepts.md#concepts)' list
 under `identity-primitive/` and `storage/`, and each row is a rule of that class
-in [`schemas/mapping`](mapping.md#classes).
+in [`schemas/mapping`](mapping.md#classes). Both classes are a language's, so a
+platform's row is a rule that `refines` the language's rule for the same
+concept, as [`schemas/mapping`](mapping.md#requirements)' `one-owning-axis`
+requires of every axis that narrows another's answer.
 
 A platform blueprint spells the name its runtime uses. It does not restate what the
 primitive is, which standard defines it, or what parameters it takes — those belong to
@@ -221,10 +226,9 @@ blueprint did not state. See [Declared Names](common.md#declared-names).
 
 #### An UNFILLED slot is a stated gap
 
-A slot a platform cannot fill is a rule with verdict **UNFILLED**, and generation
-for that platform does not proceed as though it were satisfied. The rule, and why
-it is one, is [`schemas/mapping`](mapping.md#verdicts)' (`unfilled-is-stated`),
-stated there once for every axis. A platform blueprint MUST NOT restate it.
+What a slot a platform cannot fill is, and what a build does with it, is
+[`schemas/mapping`](mapping.md#verdicts)' rule `unfilled-is-stated`, stated
+there once for every axis. A platform blueprint MUST NOT restate it.
 
 #### The rules every platform's HTTP surface obeys
 
@@ -279,7 +283,9 @@ How a schema type is spelled is a language's, not a platform's: the types are
 language mapping ([`schemas/mapping`](mapping.md#classes)), checked against
 [`vectors/types.json`](../vectors/types.json). A platform that narrows one, as a
 runtime whose number type cannot hold every integer must, does so with a rule
-that `refines` the language's.
+that `refines` the language's. The section stays required in the table above
+only while existing platform blueprints and their validation still carry it;
+it holds narrowings, never a second spelling.
 
 ### Security (`## Security`)
 

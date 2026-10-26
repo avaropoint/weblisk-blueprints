@@ -1000,9 +1000,9 @@ drift from the first.
 
 Every platform blueprint MUST carry a `## Primitive Mapping` section covering
 every primitive the specification blueprints require, with one row per primitive.
-A primitive the platform cannot provide MUST be marked **UNFILLED** rather than
-omitted or approximated. An unfilled slot is a stated gap; an omitted one is
-indistinguishable from a satisfied one.
+What a primitive the platform cannot provide is marked, and why, is
+[`schemas/mapping`](mapping.md#verdicts)' rule `unfilled-is-stated`, stated
+there once for every axis and not restated here.
 
 ### Why this is a rule and not a preference
 
