@@ -25,8 +25,19 @@ orchestrator:
   storage_path: string             # Path for sqlite (default: .weblisk/data/orchestrator.db)
   token_ttl: duration              # WLT token lifetime (default: 24h)
   lease_duration: duration         # How long a component's lease lasts from each renewal (default: 30s)
-  admin_addresses: list[string]    # Origins the admin gateway is reached at (default: [])
+  admin_addresses: list[string]    # Origins the admin gateway is reached at; at least one (rule 20)
   admin_gateway_from: list[string] # Addresses the admin gateway's requests reach the orchestrator from (default: [])
+  admin_gateway_identity: string   # Fingerprint of the admin gateway's registration key; token:exchange is admitted for it alone
+
+# Required — the admin gateway, the tenant's one door for people
+admin_gateway:
+  port: integer                    # Admin listener port, HTTPS only (default: 9443)
+  internal_port: integer           # Listener the orchestrator reaches, bound to loopback (default: 9803)
+  internal_address: string         # Origin the orchestrator reaches that listener at (default: http://127.0.0.1:<internal_port>)
+  tls_cert: string                 # Certificate path (default: .weblisk/tls/admin-gateway.crt)
+  tls_key: string                  # Its key's path (default: .weblisk/keys/admin-gateway-tls.key)
+  allowlist: list[string]          # Addresses and CIDR ranges people may connect from (default: [127.0.0.1, ::1])
+  orchestrator: string             # The orchestrator address it registers at (default: http://127.0.0.1:<orchestrator.port>)
 
 # Required — gateway configuration
 gateway:
@@ -98,18 +109,6 @@ observability:
   otlp_endpoint: string            # OTLP collector URL (optional)
 ```
 
-> **Gap — no section declares the admin gateway.** The tenant's one door for
-> people ([`architecture/admin`](../architecture/admin.md#admin-gateway-separation))
-> is a component of its own, and nothing above declares it: no section gives
-> it a listener, an operator allowlist or an address, so a hub this file
-> describes has none, and `weblisk server start` starts none
-> ([`architecture/cli`](../architecture/cli.md#weblisk-server-start), the gap
-> there, which says what a person then cannot do). `gateway` is the
-> application gateway, which refuses every administrative route
-> ([`architecture/gateway`](../architecture/gateway.md)), and is not it.
-> `orchestrator.admin_addresses` names the admin gateway's origins, and is
-> written by whoever runs one, since no command does yet.
-
 ## Field Details
 
 ### hub
@@ -128,8 +127,23 @@ observability:
 | `storage_path` | string | no | `.weblisk/data/orchestrator.db` | File path when storage is `sqlite` |
 | `token_ttl` | duration | no | `24h` | WLT token lifetime. Agents must re-register before expiry. |
 | `lease_duration` | duration | no | `30s` | How long a registered component's lease lasts from each renewal; components renew on the cadence [`protocol/types`](../protocol/types.md#leaserenewal) sets. Past it, the component's directory entry reads `unknown` ([`protocol/types`](../protocol/types.md#presence)). The orchestrator probes no component, so nothing here sets an interval, a timeout or a failure count |
-| `admin_addresses` | list | no | `[]` | The origins at which this hub's admin gateway is reached, each in the ASCII serialisation of RFC 6454 section 6.2 (`https://admin.example.org`, with a port only where it is not the scheme's default). The orchestrator signs a hub proof for these and no other ([`architecture/admin`](../architecture/admin.md#proving-the-hub-at-an-address)), so a hub that lists none proves its `hub_id` at no address, and once `weblisk/hub-proof/v1` has test vectors no client records it at a new address. Wherever an admin gateway runs, every origin it is reached at MUST be listed here. No command writes the key yet, because none stands an admin gateway up (the gap above): whoever runs one lists its origins. |
-| `admin_gateway_from` | list | no | `[]` | The IP addresses the admin gateway's requests reach the orchestrator from. The orchestrator trusts `X-Forwarded-For` from these and no other, to count a request the gateway forwards to a route served without a token by the client's address rather than the gateway's ([`architecture/admin`](../architecture/admin.md#contracts), `auth-route-rate-limit`). Empty, it counts every such request by its connection's address, so the clients of a gateway share one count, and one client sending a route the five requests a minute the gateway lets it send uses up that route's count for every other person until the minute passes. Wherever an admin gateway runs, every address its requests reach the orchestrator from MUST be listed here. An address other callers share, such as loopback on one host, lets each of them name its own source. No command writes the key yet, because none stands an admin gateway up (the gap above): whoever runs one lists its addresses |
+| `admin_addresses` | list | yes | — | The origins at which this hub's admin gateway is reached, each in the ASCII serialisation of RFC 6454 section 6.2 (`https://admin.example.org`, with a port only where it is not the scheme's default). The orchestrator signs a hub proof for these and no other ([`architecture/admin`](../architecture/admin.md#proving-the-hub-at-an-address)), and rule 20 requires at least one: a hub that listed none would prove its `hub_id` at no address, and once `weblisk/hub-proof/v1` has test vectors no client would record it at a new address. Wherever an admin gateway runs, every origin it is reached at MUST be listed here. `weblisk tenant create` writes the origin of the gateway it stands up ([`architecture/admin`](../architecture/admin.md#addresses)). |
+| `admin_gateway_from` | list | no | `[]` | The IP addresses the admin gateway's requests reach the orchestrator from. The orchestrator trusts `X-Forwarded-For` from these and no other, to count a request the gateway forwards to a route served without a token by the client's address rather than the gateway's ([`architecture/admin`](../architecture/admin.md#contracts), `auth-route-rate-limit`). Empty, it counts every such request by its connection's address, so the clients of a gateway share one count, and one client sending a route the five requests a minute the gateway lets it send uses up that route's count for every other person until the minute passes. Wherever an admin gateway admits clients from other hosts, every address its requests reach the orchestrator from MUST be listed here. An address other callers share, such as loopback on one host, lets each of them name its own source, so a gateway that admits only its own host's loopback addresses, as one `weblisk tenant create` stands up does, leaves it empty ([`architecture/admin`](../architecture/admin.md#addresses)) |
+| `admin_gateway_identity` | string | yes | — | The fingerprint ([`protocol/identity`](../protocol/identity.md#key-fingerprint)) of the key the admin gateway registers with. The orchestrator admits `token:exchange` for the registration with this identity id alone, and for none where the key is absent ([`protocol/types`](../protocol/types.md#capability)). `weblisk tenant create` makes the key and writes it ([`architecture/admin`](../architecture/admin.md#registration-lease-and-identity)) |
+
+### admin_gateway
+
+The tenant's admin gateway, built from [`architecture/admin`](../architecture/admin.md#the-admin-gateway-as-a-component), which says what each listener serves. Every tenant has one, so a configuration file without this section fails rule 20: `weblisk tenant create` writes it, and `weblisk component admin init` writes it into a tenant made before it, with `orchestrator.admin_gateway_identity` and the gateway's origin in `orchestrator.admin_addresses`. That is how a configuration written before rule 20 meets it. The orchestrator reads those two settings when it starts, so a gateway added to a running tenant is admitted once the orchestrator is restarted ([`architecture/admin`](../architecture/admin.md#registration-lease-and-identity)). What a value means is that blueprint's.
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `port` | integer | no | `9443` | The admin listener's port. It serves HTTPS alone |
+| `internal_port` | integer | no | `9803` | The internal listener's port. The listener binds the loopback address alone, so nothing off the gateway's host reaches it directly |
+| `internal_address` | string | no | `http://127.0.0.1:<internal_port>` | The origin the orchestrator reaches the internal listener at, which the gateway registers as its manifest's `url`. Where the orchestrator runs on another host, it is required (rule 22) and names a TLS terminator on the gateway's host that forwards to the listener's loopback port: the schema gives the internal listener no TLS setting of its own, and the hop carries the orchestrator's requests to the gateway. The orchestrator verifies that terminator's certificate against its own host's system roots |
+| `tls_cert` | string | no | `.weblisk/tls/admin-gateway.crt` | The admin listener's certificate. Set, it is served as it is; when the CLI makes one and when it never does is [`architecture/admin`](../architecture/admin.md#certificate)'s |
+| `tls_key` | string | no | `.weblisk/keys/admin-gateway-tls.key` | That certificate's private key. The default is under `.weblisk/keys/`, which git ignores; a path set here is held to rule 21 |
+| `allowlist` | list | no | `[127.0.0.1, ::1]` | The operator IP allowlist: the addresses and CIDR ranges a request to the admin listener may come from. Empty admits no one |
+| `orchestrator` | string | no | `http://127.0.0.1:<orchestrator.port>` | The orchestrator address the gateway registers at, which is its anchor. An `https` address is verified against the gateway's host's system roots, so an operator whose terminator presents a certificate from a private authority installs that authority there; the schema holds no pin for this hop |
 
 ### gateway
 
@@ -257,6 +271,8 @@ service's API after reading a census of what would leave
 | 9800 | Orchestrator |
 | 9801 | Federation |
 | 9802 | Content service |
+| 9803 | Admin gateway, internal listener |
+| 9443 | Admin gateway, admin listener |
 | 9700–9709 | Domain controllers |
 | 9710–9749 | Work agents |
 | 9750–9799 | Infrastructure agents |
@@ -278,6 +294,12 @@ hub:
 orchestrator:
   port: 9800
   storage: memory
+  admin_addresses:
+    - https://localhost:9443
+  admin_gateway_identity: 3f1c9a0e5b7d2e4f6a8c0b1d3e5f7a9c2b4d6e8f0a1c3e5b7d9f1a3c5e7b9d0f
+
+admin_gateway:
+  port: 9443
 
 gateway:
   port: 8080
@@ -311,7 +333,20 @@ orchestrator:
   token_ttl: 12h
   lease_duration: 20s
   admin_addresses:
-    - https://admin.acme.com
+    - https://admin.acme.com:9443
+  admin_gateway_from:
+    - 127.0.0.1
+  admin_gateway_identity: 9e2b7c4d1a6f3e8b0c5d2a7f4e1b8c3d6a9f2e5b0c7d4a1f8e3b6c9d2a5f7e0b
+
+admin_gateway:
+  port: 9443
+  internal_port: 9803
+  tls_cert: /etc/weblisk/tls/admin.crt
+  tls_key: /etc/weblisk/keys/admin.key
+  allowlist:
+    - 10.20.0.0/16
+  internal_address: https://admin-gateway.internal:8443
+  orchestrator: https://orchestrator.internal:8443
 
 gateway:
   port: 8080
@@ -382,6 +417,30 @@ observability:
   otlp_endpoint: http://otel-collector:4317
 ```
 
+The example puts the admin gateway and the orchestrator on separate hosts, and
+assumes two things this file does not configure. Each host runs a TLS
+terminator on port 8443: the orchestrator's forwards to the orchestrator at
+port 9800 and the gateway's to its internal listener at port 9803 on loopback,
+because this schema gives neither listener a TLS setting of its own and rules
+19 and 22 refuse a plain `http` address on another host. And the gateway is
+reached at its own port 9443, so `orchestrator.admin_addresses` names it with
+no proxy in front: a proxy would arrive from its own address and defeat the
+allowlist.
+
+`orchestrator.admin_gateway_from` names `127.0.0.1` and not the gateway
+host's address, because it names the address the gateway's requests reach the
+orchestrator from, and through the terminator every request reaches it from
+loopback. Listing the gateway host's address would name an address no request
+arrives from: the orchestrator would trust no `X-Forwarded-For`, and every
+client of the gateway would share one `auth-route-rate-limit` count, which one
+client could use up for all of them. Listing loopback costs what the field
+says it costs: everything that reaches the orchestrator through the
+terminator, and every process on the orchestrator's host, can name its own
+source. So the example assumes two more things of that host: its terminator
+replaces `X-Forwarded-For` with the connection's address on every request
+except one arriving from the gateway's host, whose value it passes on as the
+gateway set it, and no process runs there that the operator does not trust.
+
 ## Validation Rules
 
 1. `hub.name` must be lowercase alphanumeric with hyphens, 1–63 characters
@@ -408,3 +467,9 @@ observability:
     These recognise a secret; they cannot prove a value is not one. A credential under a neutral name in a form none of them knows passes, and is the declarer's fault rather than a check's: the list grows by a change to this rule, never by a setting.
 
     The CLI applies it when it generates a component from this file and when it starts one, refusing the whole declaration with every such entry named, before anything is generated or started ([`architecture/cli`](../architecture/cli.md#a-component-starts-with-a-clean-environment)). The name is judged as well as the value because a name is what a person types and a credential's form changes by vendor. A false refusal costs a rename — `COMPASS_HEADING`, `MONKEY_MODE` and `OAUTH_SCOPE` are refused, because `COMPASS` ends in `PASS`, `MONKEY` in `KEY` and `OAUTH` in `AUTH`; a false pass puts a credential in every process the agent starts and in its crash dumps
+17. `admin_gateway.tls_cert` and `admin_gateway.tls_key` are both given or both absent
+18. Every `admin_gateway.allowlist` entry is an IP address or a CIDR range
+19. `admin_gateway.orchestrator` is an absolute URL with no path, query or fragment, and is `https` unless its host is a loopback IP literal (an address in `127.0.0.0/8`, or `::1`): the gateway carries people's operator tokens over that hop, so a plain `http` anchor on another host would show them to anyone on that network. A name, `localhost` among them, is not a loopback address here: it resolves through a hosts file or DNS, and an IP literal does not
+20. `admin_gateway` is present, `orchestrator.admin_addresses` names at least one origin, every one of them `https`, at a loopback address too (a client sends people's registrations, attestations and tokens there, and refuses any other scheme: [`architecture/admin`](../architecture/admin.md#certificate), `client-pins-gateway-key`), and `orchestrator.admin_gateway_identity` is a fingerprint: 64 lowercase hexadecimal characters
+21. A set `admin_gateway.tls_key` names a path outside the tenant's tree, or one inside it that an entry of the tenant's `.gitignore` excludes, such as any under `.weblisk/keys/`. Judged from the file, without asking git ([`architecture/admin`](../architecture/admin.md#registration-lease-and-identity), `gateway-keys-kept`)
+22. `admin_gateway.internal_address` is an absolute URL with no path, query or fragment, and is `https` unless its host is a loopback IP literal, as rule 19 says. Where `admin_gateway.orchestrator` names a host that is not a loopback address, `internal_address` is set and its host is not a loopback address: an orchestrator on another host cannot reach the gateway at the gateway's loopback

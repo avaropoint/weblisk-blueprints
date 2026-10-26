@@ -65,7 +65,7 @@ requires:
 
   - blueprint: protocol/types
     # 3.0.0 is where LeaseRenewal, the request this agent's lease renewal sends, exists
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       types:
         - name: AgentManifest

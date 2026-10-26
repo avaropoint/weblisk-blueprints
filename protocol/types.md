@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 3.1.0
+version: 4.1.0
 requires: []
 platform: any
 tier: free
@@ -179,6 +179,15 @@ for an attestation token, `architecture/admin`'s `attestation-token-issuance`):
 | Code | HTTP | Category | Description |
 |------|------|----------|-------------|
 | `TOKEN_REQUEST_REPLAYED` | 401 | permanent | The request's `jti` was already recorded for that operator inside the replay window ([`architecture/admin`](../architecture/admin.md#obtaining-a-token), `attestation-token-issuance`). No token is issued; the client signs a new request with a fresh `jti`, and never registers for it |
+
+**Step-up code** (produced by the component that serves a destructive act,
+`architecture/admin`'s `destructive-action-step-up`, on an operator token or a
+pass). Every such component MUST answer it with this status and no other.
+<!-- wl:id step-up-required-registered -->
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `STEP_UP_REQUIRED` | 401 | permanent | A destructive act arrived without the step-up it needs. Nothing changes. When it is answered, what it carries and how a client answers it are [`architecture/admin`](../architecture/admin.md#contracts)'s `destructive-action-step-up`, stated nowhere else. The admin gateway returns it as the provider gave it |
 
 **Pass codes** (produced by a component that a person's request reaches,
 [`protocol/identity`](identity.md#the-pass)):
@@ -418,7 +427,7 @@ refused ([`protocol/spec`](spec.md#post-v1register)).
 - `content:reconcile` (content) — run custody reconciliation on a shared repository
 - `content:replicate` (content) — declare a remote of a repository, and retire one. Declaring one also needs `content:connect`. *Person only*
 - `content:connect` (content) — bind an integration to a destination outside the tenant's store, a remote's among them. It creates nothing in the content service: the credential is the integration's, and the content service holds none. Required in addition to `content:replicate` to declare a remote. *Person only*
-- `content:declassify` (content) — lower a path's recorded scope. It guards no route yet: [`architecture/content`](../architecture/content.md) refuses every lowering until the tenant's approval queue can route such a request to a second person. *Person only*
+- `content:declassify` (content) — lower a path's recorded scope. It guards no route yet: [`architecture/content`](../architecture/content.md) refuses every lowering until a route for it is specified: one person's decision made with a step-up, and a second person's too only where the tenant declares one. *Person only*
 
 *Person only* marks a capability that no service and no agent may hold.
 [`patterns/principal-identity`](../patterns/principal-identity.md) keeps it out
@@ -581,28 +590,25 @@ glob — resource scoping stays in `resources`, as for every other capability.
 > means.
 
 **Exchange capability:**
-- `token:exchange` (orchestrator) — have the orchestrator exchange the operator token a person has just presented for a pass addressed to one component ([`protocol/identity`](identity.md#the-pass); `architecture/orchestrator`, `token-exchange`). The admin gateway declares it, and no other blueprint does. No role carries it
+- `token:exchange` (orchestrator) — have the orchestrator exchange the operator token a person has just presented for a pass addressed to one component ([`protocol/identity`](identity.md#the-pass); `architecture/orchestrator`, `token-exchange`). The admin gateway declares it, and no other blueprint does. No role carries it. *Admin gateway only*
 
 `token:exchange` is what the admin gateway's registration declares, and the
 only capability it declares: the gateway reads the service directory, which
 any registration may, and exchanges, and holds no standing access to data
 ([`architecture/admin`](../architecture/admin.md#contracts),
-`admin-gateway-authorization`). Nothing stops another component declaring it
-on its signed manifest today, as it may declare any service capability,
-because a registration is not yet an enrolment
-([`protocol/spec`](spec.md#post-v1register)). That is a gap, and what it
-admits is this. The exchange takes a live operator token and nothing else, and
-no component but the admin gateway, and from it the orchestrator, is presented
-one, so such a holder needs a person's token it has stolen. With one, it can have the token exchanged for a
-pass to any component, carrying everything that person may use there:
-`content:write`, `content:decide` and `fabric:attest` included, which no route
-of the orchestrator's gives, and without the admin gateway's network controls,
-its operator IP allowlist among them. So a stolen operator token reaches
-further through a rogue `token:exchange` holder than at the orchestrator.
-Admitting `token:exchange` only for the registration the tenant declares as
-its admin gateway closes it, and waits on the tenant being able to declare
-that component ([`architecture/orchestrator`](../architecture/orchestrator.md#what-the-directory-attests-and-what-it-does-not),
-the gap that the declaration has nowhere to live).
+`admin-gateway-authorization`). *Admin gateway only* marks a capability the
+orchestrator admits for one registration alone: the one whose identity id is
+the fingerprint the tenant declared as its admin gateway's key
+(`orchestrator.admin_gateway_identity`,
+[`schemas/config`](../schemas/config.md#orchestrator)). A registration whose
+manifest declares it, by any other key or where the tenant declared none, is
+refused with `CAPABILITY_GATEWAY_ONLY` ([Error Handling](#error-handling)),
+and the exchange refuses any other caller
+([`architecture/orchestrator`](../architecture/orchestrator.md#registration-flow-post-v1register),
+step 1, and `token-exchange`). <!-- wl:id gateway-only-capability --> Without that refusal any registrant could
+declare it, and with a person's stolen token have it exchanged for a pass to
+any component, carrying everything that person may use there and passing none
+of the admin gateway's network controls.
 
 ### PassRoute
 
@@ -2857,6 +2863,11 @@ error_codes:
     category: permanent
     retryable: false
     description: An attestation-token request whose jti the hub already recorded for that operator inside the replay window (architecture/admin, attestation-token-issuance). Nothing is issued. The client signs a new request with a fresh jti; the refusal is never a reason to register
+  - code: STEP_UP_REQUIRED
+    status: 401
+    category: permanent
+    retryable: false
+    description: A destructive act arrived without the step-up it needs. Nothing changes. When it is answered, what it carries and how a client answers it are architecture/admin's destructive-action-step-up, stated nowhere else
   - code: FORBIDDEN
     status: 403
     category: permanent
@@ -2867,6 +2878,11 @@ error_codes:
     category: permanent
     retryable: false
     description: A registration manifest, a grant to a service subject, a token minted for one, or an agent's authorisation names a capability this document marks person only (see Capability). Nothing is issued. The wire form of patterns/principal-identity's capability_person_only
+  - code: CAPABILITY_GATEWAY_ONLY
+    status: 403
+    category: permanent
+    retryable: false
+    description: A registration manifest declares a capability this document marks admin gateway only (see Capability), and its key is not the one the tenant declared as its admin gateway's, or the tenant declared none. Nothing is recorded or issued
   - code: NOT_FOUND
     status: 404
     category: permanent
@@ -3608,7 +3624,9 @@ security:
 - [ ] All protocol-level error codes (standard, enforcement, contract, federation, safety, policy, operator token, destination, identity, common) are registered centrally; agent-local codes use domain-descriptive names and do not collide with registered codes
 - [ ] Every code a `TokenExchangeResponse` may carry in `code` is registered here with its HTTP status, so the admin gateway, refusing a request whose token the exchange refused, answers with that status and never a guessed one
 - [ ] `PASS_REQUIRED` and `PASS_AUDIENCE_MISMATCH` are registered with status 401, and `token:exchange` is in the Capability list
+- [ ] `STEP_UP_REQUIRED` is registered with status 401 in the error table and in Error Handling, and every component that serves a destructive act answers it <!-- wl:check step-up-code-registered covers step-up-required-registered -->
 - [ ] `ADDRESS_CONFLICT` is registered with status 409, beside `NAMESPACE_CONFLICT`
+- [ ] `token:exchange` is marked *admin gateway only*, and `CAPABILITY_GATEWAY_ONLY` is registered with status 403 in Error Handling <!-- wl:check gateway-only-registered covers gateway-only-capability -->
 - [ ] `content:declassify` is in the Content capabilities and marked *person only*, so a registration whose manifest declares it is refused with `CAPABILITY_PERSON_ONLY`
 - [ ] Administrative authority is expressed as `admin:` capabilities in the standard list — not as a separate role model — and `admin:*` denotes the whole family
 - [ ] Every capability bullet in Capability names exactly one owner in brackets, and no capability name is listed twice

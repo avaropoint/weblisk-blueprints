@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 4.1.0
+version: 4.1.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -44,7 +44,7 @@ organisation can open.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       types:
         # The service serves the two probes and renews its lease
@@ -1082,7 +1082,7 @@ Its routes are guarded by the `content:` family that document declares:
 | `content:reconcile` | `POST /v1/content/reconcile` |
 | `content:replicate` | `POST /v1/content/repositories/{repository}/remotes`, with `content:connect`; `DELETE /v1/content/repositories/{repository}/remotes/{remote}`. Person only |
 | `content:connect` | `POST /v1/content/repositories/{repository}/remotes` — required **in addition to** `content:replicate`, because it gives the tenant a credential that reaches outside its store. Person only |
-| `content:declassify` | No route yet: every lowering of a recorded scope is refused until the tenant's approval queue exists ([A scope only rises](#a-scope-only-rises)). Person only |
+| `content:declassify` | No route yet: every lowering of a recorded scope is refused until one is specified, a person's own decision made with a step-up and a second person's only where the tenant declares one ([A scope only rises](#a-scope-only-rises)). Person only |
 
 A capability name is `family:verb`. An invented name is refused at registration,
 so these MUST be the names `protocol/types` declares and no others. *Person
@@ -1538,14 +1538,18 @@ request that would lower one is refused by the rules above. A level set too
 high stays on the path it was set on, and on every version recorded under it.
 
 > **Gap — declassification has no route yet.** The act it needs is person
-> only and takes two people: a request by one, approved by another through the
-> tenant's approval queue, recorded and signed with ML-DSA-65, and never
-> lowering the scope the repository holds. Its capability, `content:declassify`,
-> is in [`protocol/types`](../protocol/types.md#capability)' list, and the
-> `admin` role carries it and no other role does
-> ([`architecture/admin`](admin.md#operator-roles)). The tenant has no approval
-> queue that routes such a request to an owner position, so no route admits
-> it, and until one exists the refusal above is the whole answer.
+> only: one person's decision, made with a step-up
+> ([`architecture/admin`](admin.md#contracts), `destructive-action-step-up`),
+> recorded and signed with ML-DSA-65, and never lowering the scope the
+> repository holds. A second person decides it too only where the tenant
+> declares one, routing the decision to
+> [`patterns/approval`](../patterns/approval.md)'s multi-party. Its
+> capability, `content:declassify`, is in
+> [`protocol/types`](../protocol/types.md#capability)' list, and the `admin`
+> role carries it and no other role does
+> ([`architecture/admin`](admin.md#operator-roles)). No route is specified for
+> it, so none admits it, and until one is the refusal above is the whole
+> answer.
 
 **A copy is a new entry.** Bytes written to another path carry the level they
 declare in themselves, and nothing else of the entry they were copied from. An

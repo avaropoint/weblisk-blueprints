@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 3.2.0
+version: 4.1.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -137,7 +137,11 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=2.1.0 <3.0.0"
+    # 2.2.0 is where weblisk/step-up/v1, the statement a destructive
+    # command's re-confirmation signs, is registered and step_up_at is set
+    # only through one (Authentication Flow). The CLI never reads step_up_at:
+    # it obtains a token carrying it and presents it
+    version: ">=2.2.0 <3.0.0"
     bindings:
       types:
         - name: WLToken
@@ -167,11 +171,13 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    # the lower bound is where TOKEN_REQUEST_REPLAYED, the code a replayed
-    # token request is refused with, exists. No command reads a directory
+    # the lower bound is where STEP_UP_REQUIRED, the code a destructive
+    # command re-confirms and retries on (Authentication Flow), exists;
+    # TOKEN_REQUEST_REPLAYED, the code a replayed token request is refused
+    # with, exists there too. No command reads a directory
     # entry's lease state: server verify and status read lease states from
     # the admin API (architecture/admin below)
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.1.0 <4.0.0"
     bindings:
       types:
         - name: Operator
@@ -199,10 +205,9 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/admin
-    # 3.0.0 is where a token request carries a jti, the overview counts
-    # agents by lease state and the agent list and detail carry
-    # lease_state, lease and last_renewal
-    version: ">=3.0.0 <4.0.0"
+    # 4.0.0 is where a destructive act needs a step-up, /v1/admin/approvals
+    # is the decision inbox and strategies and observations are gone
+    version: ">=4.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/admin/operators/register
@@ -228,10 +233,19 @@ requires:
         - path: /v1/admin/agents/{name}/metrics
           methods: [GET]
         - path: /v1/admin/approvals
-          methods: [GET, POST]
+          methods: [GET]
       behaviors:
         - name: operator-registration
         - name: registration-signing-input
+        # weblisk operator register reports an approved first registration
+        # and a pending one, and weblisk operators approve and role drive
+        # the admission and the roles
+        - name: first-operator-claim
+        - name: operator-approval
+        - name: operator-roles
+        # A destructive command answers STEP_UP_REQUIRED by re-confirming
+        # its person (Authentication Flow)
+        - name: destructive-action-step-up
         - name: attestation-token-issuance
         - name: hub-proof
         - name: operator-credential-attestation
@@ -310,7 +324,6 @@ Studio's and the orchestrator's own surfaces.
 
 - Admin API endpoints (owned by `architecture/admin`)
 - Orchestrator state or agent lifecycle (CLI reads/writes via API)
-- Admin dashboard SPA (owned by `architecture/admin`)
 - Operator authentication model (owned by `architecture/admin`; CLI consumes it)
 - Workflow or task execution (CLI triggers actions via API)
 - Template contents (owned by `weblisk-templates`)
@@ -333,7 +346,7 @@ the sections below: [Project Commands](#project-commands),
 [Identity Commands](#identity-commands),
 [Status Commands](#status-commands), [Agent Commands](#agent-commands),
 [Domain Commands](#domain-commands), [Workflow Commands](#workflow-commands),
-[Approval Commands](#approval-commands), [Strategy Commands](#strategy-commands),
+[Approval Commands](#approval-commands), [Objective Commands](#objective-commands),
 [Federation Commands](#federation-commands), and
 [Audit Commands](#audit-commands).
 
@@ -360,11 +373,13 @@ the sections below: [Project Commands](#project-commands),
    ([`architecture/admin`](admin.md#contracts), `admin-gateway-authorization`)
 7. The provider returns a JSON response, through the gateway
 8. CLI formats response as human-readable table (or raw JSON with `--json`)
-9. For write operations: CLI prompts for interactive confirmation before sending
+9. For write operations: CLI prompts for interactive confirmation before
+   sending, and a destructive act also needs its person's step-up
+   ([Authentication Flow](#authentication-flow))
 10. Exit code set based on success/failure (0 = success, 1 = error, 2 = auth failure)
 
 **A group another component provides is reached on a pass, never on the
-stored token.** The domain, workflow, approval, strategy, observation and
+stored token.** The domain, workflow, approval, objective and
 federation commands address groups
 [`architecture/admin`](admin.md#the-admin-api-is-an-aggregate) gives to a
 component other than the orchestrator. The CLI sends them to the admin
@@ -374,7 +389,10 @@ component's blueprint specifies an administrative route yet
 ([`architecture/admin`](admin.md#the-admin-api-is-an-aggregate), the gap
 there), so the gateway answers each of these commands
 `ADMIN_GROUP_UNAVAILABLE`, and the command reports its group unavailable and
-exits 1.
+exits 1. The approval commands read the decision inbox the gateway composes
+from each owner it may ask, and it may ask none until a `PassRoute` can name
+the inbox group ([`architecture/admin`](admin.md#decision-inbox)), so they
+report the inbox unavailable and exit 1 too.
 
 ---
 
@@ -565,6 +583,17 @@ implementation to get it:
 
     provider · directory · generate · skills · provision · accept · done
 
+The admin gateway is stood up inside those steps, so the contract does not
+change for it. `generate` builds the orchestrator and then the admin gateway
+([`architecture/admin`](admin.md#the-admin-gateway-as-a-component)).
+`provision` makes the gateway's registration key and, where none is
+configured, its certificate and key, writes `.weblisk/config.yaml`'s
+`admin_gateway` section with `orchestrator.admin_addresses` and
+`orchestrator.admin_gateway_identity`, all before it starts the orchestrator,
+then starts the orchestrator and, once it answers ready, the gateway, and
+admits the first operator. <!-- wl:id cli-create-stands-up-gateway -->
+`accept` probes through the gateway ([`weblisk tenant accept`](#weblisk-tenant-accept)).
+
 **Nothing the corpus can refuse waits for a model.** Settling a provider when
 nobody named one asks the backend it would start with to answer once, a real
 model call ([`weblisk providers`](#weblisk-providers)), so everything knowable
@@ -581,7 +610,15 @@ port anybody reserved. The result reports the port it took. A console building a
 tenant beside one that is already running passes `0`, because a fixed default is
 a collision the moment one tenant is up. The port is this run's: as for any
 `--port`, `create` declares it nowhere in the tenant's configuration, so a later
-start does not find it there. A console that starts the orchestrator again on
+start does not find it there. With `--port 0` the admin gateway's two listeners
+take free ports too, and those `create` does write, into `admin_gateway`,
+because `orchestrator.admin_addresses` names the admin listener's origin and
+the two must agree. The gateway is started with `--orch` naming the address
+the orchestrator bound, as an IP literal such as `http://127.0.0.1:<port>` and
+never `localhost`: the gateway judges it by rule 19 of
+[`schemas/config`](../schemas/config.md#validation-rules), as it judges
+`admin_gateway.orchestrator`, and refuses a plain `http` address whose host
+is a name. A console that starts the orchestrator again on
 the port the result reported passes it to
 [`weblisk component orchestrator start --port`](#weblisk-component-name-start--stop--status--logs).
 
@@ -589,22 +626,23 @@ the port the result reported passes it to
 `--json`, the last object carries `result`: `root`, `name`, `port`, `operator`,
 `provider`; `model`, only where `--model` named one, because a model name the
 CLI filled in would read as a choice nobody made; the `skills` the tenant
-carries; what acceptance asked (`checks`); and the hub's `address` for a
-console to connect to, with the first operator's `token` there and
-`token_expires_at` in Unix seconds — none of those three while a tenant
-`create` makes has no address to connect to (below). That object is the only
+carries; what acceptance asked (`checks`); and the hub's `address`, the admin
+gateway's origin, for a console to connect to, with the `tls_pin` its
+certificate is verified against
+([`architecture/admin`](admin.md#certificate)), the first operator's `token`
+there and `token_expires_at` in Unix seconds. That object is the only
 place a token may go: `create` writes no token file, and what it prints
-without `--json` names the address, once there is one, for a person to connect
+without `--json` names the address and the pin for a person to connect
 at with [`weblisk operator connect`](#weblisk-operator-connect), and never a
 token. The stream is addressed to the program that started the command, which
 holds the token in memory as it holds the passphrase it sent; a caller that
 copies the stream to a file has written a bearer credential to disk.
 
-**`create` produces the orchestrator and nothing else.** A tenant is a set of
-components in one module; every other one is added afterwards with `weblisk
-component <name> init` or the matching `create` verb, except the admin
-gateway, which no command builds yet, so a tenant `create` makes has no
-address to connect to (the gap under [`weblisk server start`](#weblisk-server-start)). See
+**`create` produces the orchestrator and the admin gateway, and nothing
+else.** A tenant is a set of components in one module, and those two are the
+set every tenant has: without the gateway no person's request reaches it.
+Every other is added afterwards with `weblisk component <name> init` or the
+matching `create` verb. See
 [`architecture/orchestrator`](orchestrator.md), "What a tenant consists of",
 for the two homes a tenant's components have: what it is running, which the
 orchestrator's registry answers and no file can, and which the CLI reads at
@@ -650,7 +688,7 @@ Ask a running tenant whether it works, over HTTP, the way its clients will.
 
 ```bash
 $ weblisk tenant accept
-$ weblisk tenant accept --url http://localhost:9800 --json
+$ weblisk tenant accept --url http://localhost:9800 --gateway https://localhost:9443 --json
 ```
 
 The same pass `create` ends with, so it can be re-run. Probes are
@@ -659,7 +697,19 @@ tenant serve this*, and the auth middleware answers that first — `401` is a
 pass, `404` means the route is absent, `405` means the client and the tenant
 disagree about the method. The first two probes are the orchestrator's
 `GET /livez` and then its `GET /readyz`, which need no token and pass only on
-`200`. Accept probes no other component and reads no lease: whether each
+`200`. The third is through the admin gateway, at the first origin
+`orchestrator.admin_addresses` lists, or the one `--gateway` names:
+`GET /v1/admin/overview` with no token, over
+TLS verified against the pin `create` recorded, or, run in the tenant's
+directory, the pin of the certificate the tenant's configuration names.
+Where neither is to hand, run elsewhere against a gateway with no recorded
+pin, it verifies under the system's roots and records nothing, as
+`client-pins-gateway-key` in
+[`architecture/admin`](admin.md#certificate) says, and an origin whose scheme
+is not `https` it refuses before sending anything. It passes on `401`, the orchestrator's refusal carried back through the gateway,
+and a certificate that does not match the pin fails it as a pin that did not
+match, sending nothing over that connection, never as a refused connection. <!-- wl:id cli-accept-through-gateway --> Accept probes no
+other component and reads no lease: whether each
 registered component is present is a question for an operator's token, which
 [`weblisk server verify`](#weblisk-server-verify) and
 [`weblisk status`](#weblisk-status) ask.
@@ -724,7 +774,15 @@ $ weblisk component content init
 Which components exist is read from the installation's blueprints, not compiled
 in: an architecture blueprint that states an `## Endpoints` table and declares
 its bindings IS a buildable component. `weblisk component help` lists what this
-installation supports.
+installation supports, and `admin`, the admin gateway
+([`architecture/admin`](admin.md#the-admin-gateway-as-a-component)), is among
+them: `tenant create` builds it, and `weblisk component admin init` builds it
+into a tenant that has none, making `.weblisk/keys/` and the gateway's two
+keys as `gateway-keys-kept` says, the tenant's `.gitignore` written or amended
+first ([`architecture/admin`](admin.md#registration-lease-and-identity)). Into
+a running tenant, it reports that the orchestrator admits the gateway once
+restarted, because the orchestrator reads the gateway's identity when it
+starts.
 
 The tenant root is the module root, so every component is generated into the
 same tree. Generation therefore reads what the tenant already contains — module
@@ -920,7 +978,8 @@ that: npm's names reach it, and the starter's do not.
 **Building is not starting, and gets the same environment.** Every build
 the CLI makes of a tenant component's code is under this rule, whichever
 command makes it: the build a start above makes before it runs the
-component, the orchestrator's build in `weblisk tenant create`, each build
+component, the orchestrator's and the admin gateway's builds in
+`weblisk tenant create`, each build
 `weblisk dev` makes, and generation's own build of a target, in
 [Layer 2](generation.md#layer-2--coherence) and in every repair round.
 Generated output is
@@ -1164,15 +1223,35 @@ Reads `.weblisk/config.yaml` to determine which components to build and start,
 per [`schemas/config`](../schemas/config.md). A section that is present
 declares its component — `content:` declares the content service — and an
 absent or null one declares none. With no file it starts the orchestrator
-alone: the file is an operator's declaration, never a precondition.
+alone: the file is an operator's declaration, never a precondition. That is a
+hub with no door, not a tenant, whose minimum set is the orchestrator and the
+admin gateway ([`architecture/tenancy`](tenancy.md#data-flow)), and start says so: no person's client reaches it until a
+configuration declares the admin gateway rule 20 of
+[`schemas/config`](../schemas/config.md#validation-rules) requires, which
+`weblisk component admin init` writes. A file that is present and fails rule
+20, having no `admin_gateway` section, is a declaration start cannot carry
+out, and is refused whole as below, naming `weblisk component admin init`:
+the orchestrator alone is what an absent file means, never what a present one
+that omits the door means.
 
 - **Order.** The orchestrator first, and each sibling only once the
   orchestrator's `GET /livez` answers live and then its `GET /readyz` answers
-  ready, passed `--orch` with the address it actually bound.
-  Then the content service, domains, agents, and the gateway last.
+  ready, passed `--orch` with the address it actually bound, as an IP
+  literal and never `localhost`, which the admin gateway would refuse
+  (rule 19 of [`schemas/config`](../schemas/config.md#validation-rules)).
+  The admin gateway next, which `admin_gateway` declares, passed its
+  internal listener's port as `--port` and `WL_PORT` and waited on there
+  ([`architecture/admin`](admin.md#a-start-and-a-builds-own-run),
+  `gateway-port-is-internal`). Then the content
+  service, domains, agents, and the application gateway last.
+- **Certificate.** Before it starts the admin gateway, it makes a new
+  certificate from the gateway's own TLS key where the certificate the CLI
+  made has fewer than 30 days left, so its pin holds. A certificate the
+  configuration names it serves as it is, and never renews
+  ([`architecture/admin`](admin.md#certificate), `given-certificate-served`).
 - **Refused whole.** A declaration this command cannot carry out — two
   components on one port or one name, `replicas` above 1, an agent with no
-  `type`, an agent `env` entry that rule 16 of
+  `type`, a file with no `admin_gateway` section, an agent `env` entry that rule 16 of
   [`schemas/config`](../schemas/config.md#validation-rules) recognises as a
   secret, a variables file where a component would start ([A component starts
   with a clean environment](#a-component-starts-with-a-clean-environment)) — is refused with every reason
@@ -1192,28 +1271,6 @@ alone: the file is an operator's declaration, never a precondition.
 `weblisk server stop` with no `--component` stops every component this CLI has
 a record of, siblings before the orchestrator, so nothing is left registered
 with a registry that has gone.
-
-> **Gap — no hub this CLI stands up has an admin gateway.** A person's
-> operator token goes to the tenant's admin gateway and nowhere else
-> ([`protocol/identity`](../protocol/identity.md#the-pass)), and every
-> operator command sends its requests there. But no command declares, builds
-> or starts one. [`schemas/config`](../schemas/config.md) has no section that
-> declares it, so this command starts none; [`weblisk tenant create`](#weblisk-tenant-create-name)
-> produces the orchestrator alone; and [`weblisk component <name> init`](#weblisk-component-name-init)
-> builds an architecture blueprint only where it states an `## Endpoints`
-> table, which [`architecture/admin`](admin.md#admin-endpoints) does not. So
-> at a hub this CLI stands up a person can establish the first operator
-> ([`weblisk server provision`](#weblisk-server-provision)) and nothing more:
-> no operator command reaches it, because the one door those commands use is
-> not there, and the CLI never sends the token to the orchestrator in its
-> place. Once `weblisk/hub-proof/v1` has test vectors the first operator
-> waits on it too, since provision then needs a hub proof at the address it
-> registers at, and the orchestrator signs one only for an admin address
-> (`orchestrator.admin_addresses`), the origins of an admin gateway.
-> Closing the gap is declaring the admin gateway as a component — its
-> listeners, its operator allowlist and its addresses — and having `tenant
-> create`, `server start` and `server provision` stand it up, write its
-> origins into `orchestrator.admin_addresses`, and connect through it.
 
 ### `weblisk server verify`
 
@@ -1336,8 +1393,7 @@ $ weblisk server provision --operator alice
   orchestrator running at http://127.0.0.1:9800
   operator identity created for alice
   operator registered — bootstrap secret claimed, first operator is admin
-
-  This hub runs no admin gateway: nothing is recorded to connect to
+  registered at the admin gateway https://localhost:9443 (pin sha256:4b1f…)
 ```
 
 This is BOOTSTRAP, not connect. It is local by necessity — it reads the run
@@ -1345,18 +1401,22 @@ state of a hub this CLI started, and the bootstrap secret that hub emitted — a
 it is the one path that establishes a hub's first operator. It registers that
 operator at the orchestrator's own address, the one the run state names,
 presenting the bootstrap secret, which is no token. It keeps no token and
-records no registration and no address: it discards the attestation token the
+records nothing for that address: it discards the attestation token the
 first registration answers with, because every request that would use one
 goes to the hub's admin gateway, and the address the CLI records for a hub is
-that gateway's, never the orchestrator's (`orchestrator_url`). No hub this CLI
-stands up runs an admin gateway yet (the gap under
-[`weblisk server start`](#weblisk-server-start)), so provision ends there.
-To reach a hub through its admin gateway, register there with
-[`weblisk operator register`](#weblisk-operator-register), which needs only
-that address: the hub already knows the operator, so it answers the
-registration as a repeat, and the CLI records the registration at the
-gateway's address. `connect` never registers, and at that address answers
-`not_registered` until `register` has.
+that gateway's, never the orchestrator's (`orchestrator_url`). It then
+registers at the admin gateway, at its origin in
+`orchestrator.admin_addresses`, verifying its certificate against the pin of
+the certificate the tenant's configuration names (`admin_gateway.tls_cert`, or
+its default), read from this host's disk as
+[`weblisk tenant accept`](#weblisk-tenant-accept) reads it and never from the
+connection, as [`weblisk operator register`](#weblisk-operator-register)
+does: the hub already knows the operator, so it answers the registration as a
+repeat, and the CLI records the registration, with the pin, at the gateway's
+address alone. <!-- wl:id cli-provision-registers-at-gateway --> A
+configuration with no `admin_gateway` section fails rule 20 of
+[`schemas/config`](../schemas/config.md#validation-rules): provision reports
+that the hub has no door to connect at, and records nothing.
 
 Generation is deliberately not folded in. It takes tens of minutes, streams
 progress and is resumable; wrapping it in a call that also handles a credential
@@ -1631,9 +1691,10 @@ identity.
 
 ### A credential for each hub
 
-The identity signs to register, to attest and to change its own key
-([`weblisk operator rotate`](#weblisk-operator-rotate)), and nothing else at a
-hub. Tokens come
+The identity signs to register, to attest, to change its own key
+([`weblisk operator rotate`](#weblisk-operator-rotate)) and to re-confirm its
+person for a destructive act ([Authentication Flow](#authentication-flow)), and
+nothing else at a hub. Tokens come
 from a credential ([`architecture/admin`](admin.md#obtaining-a-token)), and the
 CLI holds one for each identity at each hub:
 
@@ -1662,8 +1723,9 @@ CLI holds one for each identity at each hub:
 - **Each hub it is registered at is remembered.** Beside the identity, the
   CLI keeps one **registration** for each hub the identity registered or
   connected at: that hub's `hub_id`, the operator name the hub recorded, the
-  `identity_id` it answered with, the address it was last reached at, and
-  whether that address has proven the `hub_id` (the hub proof below).
+  `identity_id` it answered with, the address it was last reached at, the
+  pin its certificate is verified against where it has one, and whether
+  that address has proven the `hub_id` (the hub proof below).
   Only a registration answer writes one, approved, pending or a repeat
   ([`architecture/admin`](admin.md#the-registration-response)). `register`
   sends one, and nothing else does: `connect`, `attest` and `attest --batch`
@@ -1677,8 +1739,12 @@ CLI holds one for each identity at each hub:
   when the person confirms at a terminal that the hub has moved there, and,
   once the hub proof below has test vectors, only where that address proves
   the recorded `hub_id`, never with `--json` or `--batch` or with no
-  terminal. It is the only
-  `hub_id` the identity ever signs to ask for an attestation token, so a
+  terminal. A move keeps no pin: a pin trusts one key at one address
+  ([`architecture/admin`](admin.md#certificate)), so the moved registration
+  is verified at its new address against a pin the person gives with
+  `--tls-pin`, learned where that section says one is, or against the system's
+  roots, and never against the pin of the address it left. The recorded
+  `hub_id` is the only `hub_id` the identity ever signs to ask for an attestation token, so a
   signature it makes is refused at every hub but the one whose answer
   recorded it. Which hub gave that answer is proven by the hub proof below
   alone, and until it has test vectors it is not proven where the CLI
@@ -1738,8 +1804,8 @@ CLI holds one for each identity at each hub:
   without a prompt while the person's session on the machine is unlocked. So
   once the credential answers a challenge
   ([Authentication Flow](#authentication-flow)), minting a token there asks
-  nobody, and the identity's holder is asked only to register, to attest and
-  to change its key. What protects it is the machine session: while it is
+  nobody, and the identity's holder is asked only to register, to attest, to
+  change its key and to re-confirm its person for a destructive act. What protects it is the machine session: while it is
   unlocked, any program running as the person can have the CLI mint with it,
   as it can read a stored token. The identity's holder keeps it, as the next
   two items say, only where no keychain exists: on a platform the CLI carries
@@ -1791,8 +1857,9 @@ either way, because keeping it is what spares the identity.
 
 ### One approval vouches for every hub
 
-The identity signs only to attest, and the CLI asks it to as seldom as that
-allows: **once on this device for every hub the identity is registered at**,
+Of what the identity signs at a hub (it signs to register, to attest, to
+change its own key and to step up), only attestation is repeated for every
+hub, and the CLI asks it to attest as seldom as that allows: **once on this device for every hub the identity is registered at**,
 never once for each hub.
 
 - **A separate attestation for each hub.** Each hub is sent an
@@ -2004,6 +2071,16 @@ Registering operator 'alice' with https://hub.example.com...
   names no status, so `register` then asks for an attestation token, as
   `connect` does, and reports what that answer says
 - `--role <role>` to request a specific role (admin may override)
+- `--tls-pin <pin>` names the pin the gateway's certificate is verified
+  against, where the system's roots do not verify it
+  ([`architecture/admin`](admin.md#certificate)); `create` reports it. The
+  registration records it, and every later request to that address is
+  verified against it. The `--json` result carries the `address` and, where
+  the registration records one, the `tls_pin`; without `--tls-pin`, against a
+  gateway whose certificate the system's roots verify, it records none and the
+  result carries none. A console that makes its own requests keeps a pin only
+  where it was given one, as [`architecture/admin`](admin.md#certificate)
+  says (`console-keeps-pin`, `client-pins-gateway-key`)
 
 ### `weblisk operator connect`
 
@@ -2044,7 +2121,12 @@ keeps working.
 says, and attests a credential first where this identity holds none the hub
 accepts ([A credential for each hub](#a-credential-for-each-hub)).
 
-Six outcomes, and they are told apart:
+Seven outcomes, and they are told apart. The `--json` result carries the
+`address` and, where the registration records one, the `tls_pin` the
+gateway's certificate was verified against; where it records none, no
+`tls_pin`. A console that makes its own requests to the gateway keeps a pin
+only where it was given one, as
+[`architecture/admin`](admin.md#certificate) says (`console-keeps-pin`):
 
 | State | Meaning |
 |---|---|
@@ -2054,6 +2136,7 @@ Six outcomes, and they are told apart:
 | `refused` | the hub answered and said no in a way no approval changes, such as the operator name being registered to a different key |
 | `identity_unavailable` | this machine could not sign: the key file did not open, or the secret source holding the identity did not answer. Nothing is wrong with the hub. Where a source did not answer, `--json` output carries its name as `source` and its code as `code` ([`protocol/secret-source`](../protocol/secret-source.md#reporting-a-source-that-did-not-answer)) |
 | `unreachable` | nothing answered, or the hub does not serve `POST /v1/admin/operators/token` — reported distinctly, because telling somebody to await an approval that is never coming is worse than saying the hub is too old |
+| `pin_mismatch` | something answered at the address with a certificate whose key is not the pin the registration records: what an interception looks like, so nothing is sent over that connection, and the message names the recorded pin and where a new one comes from, never the presented certificate's ([`architecture/admin`](admin.md#certificate)) |
 
 Flags:
 
@@ -2119,6 +2202,20 @@ credential mints.
   token file:** the token goes to stdout, or into the `--json` result, and
   every later command that needs one asks the identity's holder again.
   `--store` changes nothing there.
+
+**A token carrying `step_up_at` is minted by the command that needs it, and
+only through a re-confirmation.** No mint above sets it, silent or not, and
+`--refresh` never does: a token the CLI renews carries no `step_up_at`,
+whatever its age. A destructive command obtains one when the hub answers it
+`401` `STEP_UP_REQUIRED`: the CLI asks its person to re-confirm the act the
+answer names, at the terminal or through a holder that itself asks the
+person, such as a vault approval, mints a token whose request carries
+`step_up` of form `identity`, and retries once; a command run with
+`--step-up` re-confirms before its first request
+([Authentication Flow](#authentication-flow)). That token is never stored,
+by either rule above: it is held for the command that asked, and
+`weblisk operator token` never reports it.
+<!-- wl:id cli-step-up-token-held -->
 
 A stored token is a bearer credential: whoever holds the file may use it
 until it expires. It carries every capability the operator's role carries,
@@ -2207,8 +2304,8 @@ the steps are [`architecture/admin`](admin.md#obtaining-a-token)'s:
   `not_after` or `code`
 
 Its outcomes are `attested`, and `pending_approval`, `not_registered`,
-`refused`, `identity_unavailable` and `unreachable` as `connect` reports
-them. With
+`refused`, `identity_unavailable`, `unreachable` and `pin_mismatch` as
+`connect` reports them. With
 `--json`, a refusal carries the hub's error code as `code`. `--orch`, `--name`,
 `--identity` and `--keys-dir` mean what they mean for `connect`.
 
@@ -2343,7 +2440,7 @@ as for `operator init`.
 
 ### `weblisk status`
 
-System overview — the CLI equivalent of the admin dashboard landing page.
+System overview, as the admin gateway composes it.
 
 ```bash
 $ weblisk status
@@ -2355,7 +2452,7 @@ Domains:    unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABL
 Workflows:  unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
 Approvals:  unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
 Federation: unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
-Strategies: unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
+Objectives: unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABLE)
 ```
 
 - Calls `GET /v1/admin/overview` at the hub's admin gateway, which composes
@@ -2445,6 +2542,9 @@ $ weblisk agents deregister email-send
 ```
 
 - Requires `--confirm` or interactive confirmation
+- A destructive act: it needs its person's step-up
+  ([Authentication Flow](#authentication-flow);
+  [`architecture/admin`](admin.md#contracts), `destructive-action-step-up`)
 - Logs the deregistration in the audit trail
 
 ---
@@ -2528,152 +2628,83 @@ Phases:
 Output:
   Files scanned: 3
   Findings: 12 (3 critical, 5 high, 4 medium)
-  Recommendations: 5 (pending approval)
 ```
 
 ---
 
 ## Approval Commands
 
-### `weblisk approvals list`
+The decision inbox: every decision a person may make, from each owner that
+holds one open, composed by the admin gateway
+([`architecture/admin`](admin.md#decision-inbox)). Each decision is made at
+its owner, never at the gateway.
 
-List pending recommendations.
+### `weblisk approvals list`
 
 ```bash
 $ weblisk approvals list
-ID        PRIORITY   AGENT           TARGET            SUMMARY
-rec-001   critical   seo-analyzer    index.html        Update title tag
-rec-002   critical   seo-analyzer    index.html        Add meta description
-rec-003   high       a11y-checker    index.html        Add alt text to logo
-rec-004   high       meta-checker    about.html        Add og:site_name
-rec-005   medium     content-analyzer pricing.html     Split long paragraph
+OWNER     ID                                 SUMMARY
+content   9b2f61c0d4e8a7b3c5f1e6d2a8b4c7e0   Modify procedures/access-review.md
+content   1e7d3a9c5b2f8e4a6d0c3b7f9a1e5d2c   Create policies/remote-work.md
 
-5 pending recommendations
+2 open
+Unavailable: none
 ```
 
-- `--priority <critical|high|medium|low>` to filter
-- `--agent <name>` to filter by recommending agent
+- Calls `GET /v1/admin/approvals` at the admin gateway. Until a `PassRoute`
+  can name the inbox group, the gateway answers it `ADMIN_GROUP_UNAVAILABLE`,
+  and the command says the inbox is unavailable and exits 1; the listing above
+  is what it shows once owners can be asked
+- SUMMARY is rendered by the CLI from the owner's own record: for content, the
+  proposal's `change`, its action and path. The gateway writes none
+- `--owner <name>` to filter by owner
+- An owner the gateway names under `unavailable` is shown with its code, never
+  as having nothing open, and an owner's `withheld` count is shown when it is
+  not zero; the command exits 1 when any owner is unavailable
 
 ### `weblisk approvals describe <id>`
 
-```bash
-$ weblisk approvals describe rec-001
-Recommendation: rec-001
-Agent:    seo-analyzer
-Priority: critical
-Target:   index.html
-Element:  title
+Reads the decision at its owner, through the gateway: for content, the
+proposal with the bytes it proposes (`GET /v1/content/proposals/{id}`).
 
-Current:  <title>Home</title>
-Proposed: <title>Weblisk — Modern Web Framework</title>
-Reason:   Title too short — include primary keywords for search visibility
-
-Impact estimate: 0.8
-Strategy: strat-001 (Improve organic traffic)
-```
-
-### `weblisk approvals accept <id...>`
+### `weblisk approvals accept <id>` / `weblisk approvals reject <id> --reason <reason>`
 
 ```bash
-$ weblisk approvals accept rec-001 rec-002
-✓ Accepted rec-001: Update title tag (index.html)
-✓ Accepted rec-002: Add meta description (index.html)
+$ weblisk approvals accept 9b2f61c0d4e8a7b3c5f1e6d2a8b4c7e0
+✓ Applied at content: procedures/access-review.md
 ```
 
-- Accepts one or more recommendation IDs
-- `--all` to accept all pending (requires `--confirm`)
-- `--priority critical` to accept all critical (requires `--confirm`)
-
-### `weblisk approvals reject <id> --reason <reason>`
-
-```bash
-$ weblisk approvals reject rec-005 --reason "Paragraph is fine as-is"
-✓ Rejected rec-005: Split long paragraph (pricing.html)
-```
-
+- Sends the person's decision, through the gateway, to the route the item's
+  `decide` names, with the body that owner specifies: for content,
+  `POST /v1/content/proposals/{id}/decision` with `decision` `apply`, and the
+  change statement the person's sign-records credential signs, or `reject`
+  with the reason ([`architecture/content`](content.md#who-may-move-an-entry))
+- One decision at a time. Nothing is accepted in bulk, by filter or by priority
+- Where the tenant declares that a decision needs more than one person, the
+  owner records this person's and holds the item open until its rule is met
 - Reason is required for rejections
 
 ---
 
-## Strategy Commands
+## Objective Commands
 
-### `weblisk strategies list`
+A programme's objective is what a strategy was: what a tenant aims at,
+held by the programme service with the programme that declares it
+([`architecture/admin`](admin.md#programme-objectives)). It changes when the
+adopted programme does, so these commands read and write nothing else.
 
-```bash
-$ weblisk strategies list
-ID         NAME                        PRIORITY  STATUS   PROGRESS
-strat-001  Improve organic traffic     1         active   67%
-strat-002  Reduce page load time       2         active   82%
-strat-003  Fix compliance gaps         3         completed 100%
-```
+### `weblisk objectives list`
 
-### `weblisk strategies create`
+Lists the objectives of the programmes adopted in scope, with their progress.
 
-Interactive strategy creation.
+### `weblisk objectives describe <id>`
 
-```bash
-$ weblisk strategies create
-Name: Improve content quality
-Objective: Increase average content score from 68 to 85
-Target metric: content_score
-Current value: 68
-Goal value: 85
-Deadline (YYYY-MM-DD): 2026-09-30
-Priority (1-5): 2
+One objective, with its targets and what has been measured against them.
 
-✓ Created strategy strat-004: Improve content quality
-```
-
-- `--json` to accept strategy as JSON on stdin (for scripting)
-
-### `weblisk strategies describe <id>`
-
-```bash
-$ weblisk strategies describe strat-001
-Strategy: strat-001
-Name:     Improve organic traffic
-Status:   active
-Priority: 1
-
-Targets:
-  METRIC            CURRENT  GOAL     PROGRESS  DEADLINE
-  organic_sessions  14200    16800    67%       2026-09-30
-
-Linked Observations: 120
-Linked Recommendations: 38 (12 applied, 5 pending, 21 rejected)
-```
-
-### `weblisk strategies update <id>`
-
-Update strategy targets or priority.
-
-```bash
-$ weblisk strategies update strat-001 --priority 2
-✓ Strategy strat-001 updated: priority 1 → 2
-
-$ weblisk strategies update strat-001 --deadline 2026-12-31
-✓ Strategy strat-001 updated: deadline extended to 2026-12-31
-```
-
-| Flag | Description |
-|------|-------------|
-| `--priority <n>` | New priority (1–5) |
-| `--deadline <date>` | New deadline (YYYY-MM-DD) |
-| `--json` | Accept full strategy update as JSON on stdin |
-
-### `weblisk strategies delete <id>`
-
-Archive a strategy (admin only).
-
-```bash
-$ weblisk strategies delete strat-003
-⚠ This will archive strategy 'strat-003' (Fix compliance gaps).
-  Type strategy ID to confirm: strat-003
-✓ Strategy strat-003 archived.
-```
-
-- Archived strategies remain queryable but stop generating workflows
-- Linked observations and recommendations are preserved
+- Both address the programme service through the admin gateway. No blueprint
+  specifies its objectives or a route for them yet, so the gateway answers
+  `ADMIN_GROUP_UNAVAILABLE`, and each command reports objectives unavailable
+  and exits 1
 
 ---
 
@@ -2714,6 +2745,9 @@ $ weblisk federations revoke partner-corp
   Type peer name to confirm: partner-corp
 ✓ Trust revoked for partner-corp.
 ```
+
+- A destructive act: it needs its person's step-up
+  ([Authentication Flow](#authentication-flow))
 
 ### `weblisk federations describe <name>`
 
@@ -2774,6 +2808,28 @@ Type operator name to confirm: bob
   to regain access (pending approval from remaining admin)
 - Cannot revoke yourself (prevents lockout)
 - Cannot revoke the last admin (system requires at least one)
+- A destructive act: it needs its person's step-up
+  ([Authentication Flow](#authentication-flow))
+
+### `weblisk operators approve <name>`
+
+Admit an operator whose registration is pending (admin only).
+
+```bash
+$ weblisk operators approve bob
+✓ Operator 'bob' approved. They attest a credential of their own with: weblisk operator connect
+```
+
+- Calls `POST /v1/admin/operators/{name}/approve` at the admin gateway
+  ([`architecture/admin`](admin.md#admitting-the-operators-after-the-first),
+  `operator-approval`). Approving an operator already approved succeeds and
+  changes nothing
+- Prints no token and writes none: the approval returns none, and the
+  approved person mints their own <!-- wl:id cli-operators-approve-no-token -->
+- A destructive act, because it grants authority: it needs its person's
+  step-up ([Authentication Flow](#authentication-flow))
+- Refusing a registration is `weblisk operators revoke <name>`; there is no
+  separate reject command
 
 ### `weblisk operators list`
 
@@ -2813,6 +2869,8 @@ $ weblisk operators role bob operator
 - Requires admin role
 - Valid roles: `admin`, `operator`, `auditor`, `viewer`
 - Cannot demote yourself (prevents accidental lockout)
+- A destructive act: it needs its person's step-up
+  ([Authentication Flow](#authentication-flow))
 
 ---
 
@@ -2826,7 +2884,7 @@ Stream or query the audit log.
 $ weblisk audit
 TIME        ACTOR           ACTION      TARGET          DETAIL
 10:30:01    orchestrator    task        seo-analyzer    Forwarded seo-audit task
-10:30:00    alice           approve     rec-001         Accepted: Update title tag
+10:30:00    alice           decide      9b2f61c0d4e8    Applied procedures/access-review.md
 10:25:12    orchestrator    task        content-analyzer Forwarded content-audit task
 10:15:00    orchestrator    register    perf-auditor    Agent registered
 ```
@@ -2837,48 +2895,6 @@ TIME        ACTOR           ACTION      TARGET          DETAIL
 - `--since <duration>` to filter by time (e.g., `--since 1h`)
 - `--limit <n>` to control results
 - `--export <json|csv>` to export
-
----
-
-## Observation Commands
-
-### `weblisk observations list`
-
-Browse observation history from the lifecycle loop.
-
-```bash
-$ weblisk observations list
-TIME        AGENT           STRATEGY    TARGET          FINDING
-10:30:01    seo-analyzer    strat-001   /about.html     Missing meta description
-10:25:12    content-analyzer strat-004  /blog/post-1    Readability score 42 (below target 60)
-09:15:00    perf-auditor    strat-002   /products       LCP 4.2s (above 2.5s threshold)
-```
-
-- `--strategy <id>` to filter by strategy
-- `--agent <name>` to filter by source agent
-- `--since <duration>` to filter by time
-- `--limit <n>` to control results
-- `--json` for machine-readable output
-
-### `weblisk observations trends`
-
-View trend data for strategy metrics over time.
-
-```bash
-$ weblisk observations trends --strategy strat-001
-Strategy: strat-001 (Improve organic traffic)
-
-METRIC            7d AGO    CURRENT   TREND     GOAL
-organic_sessions  13800     14200     +2.9%     16800
-bounce_rate       0.45      0.42      -6.7%     0.35
-avg_session_dur   1m 20s    1m 35s    +18.8%    2m 00s
-```
-
-| Flag | Description |
-|------|-------------|
-| `--strategy <id>` | Strategy to show trends for (required) |
-| `--range <7d\|30d\|90d>` | Time range (default: `30d`) |
-| `--json` | Machine-readable output |
 
 ---
 
@@ -3323,10 +3339,57 @@ Every command that calls the hub's admin gateway:
    The identity-signed request names the recorded hub_id whichever path
    answers it, and is never sent to a hub with no registration recorded
 4. Set Authorization: Bearer <token> on request
-5. If 401 response → attempt token refresh → retry once
-6. If the hub refused the credential → print that the identity must attest a
+5. If 401 STEP_UP_REQUIRED → re-confirm the person, below → retry once.
+   Never a refresh: a renewed token carries no step_up_at
+6. If any other 401 response → attempt token refresh → retry once
+7. If the hub refused the credential → print that the identity must attest a
    new one: "Run: weblisk operator connect". Otherwise print the hub's code
 ```
+
+**A destructive act is re-confirmed by its person, and never by a renewal.**
+A hub answers a destructive act on a token without a recent enough
+`step_up_at` with `401` `STEP_UP_REQUIRED`, the challenge and the act in
+`detail.control`, as [`architecture/admin`](admin.md#contracts)'s
+`destructive-action-step-up` states, which this section does not restate.
+The CLI then:
+
+1. Asks the person to re-confirm that act, naming it: at a terminal, by the
+   identity's passphrase typed there, or through an identity holder that itself
+   asks the person, such as a vault's approval. A holder that releases the
+   identity without asking anybody, such as one that remembered its passphrase,
+   is not a re-confirmation, and the CLI never uses one for this
+2. Mints a token through that re-confirmation: a challenge answered by the
+   credential, its token request carrying `step_up` of form `identity`, the
+   identity's signature over `weblisk/step-up/v1`, the `hub_id`, that nonce and
+   the control (`operator-token-issuance`)
+3. Holds that token for this command alone. It is never written to a token
+   file, `--store` or not, and never handed to another program
+4. Retries the act once. A second `STEP_UP_REQUIRED` is reported, not retried
+
+Where nothing can ask the person, no terminal and no holder that asks, the
+command fails with exit 2 and the challenge's `error_description`, and mints
+nothing. A token the CLI renews silently never carries `step_up_at`, whatever
+its age. <!-- wl:id cli-step-up-reconfirms -->
+
+**A script re-confirms only when its command says so.** A destructive command
+accepts `--step-up`: the identity's passphrase then arrives on stdin, as every
+passphrase does, and the CLI makes the re-confirmation before it sends the act,
+so the first request already carries a fresh `step_up_at`. The control it signs
+is built from the command's own method and route template, the one the act's
+provider would name in `detail.control`, never from an argument, so a script
+cannot sign a control for any act but the one its command makes. The CLI
+cannot tell a passphrase a person handed over for this run from one a script
+read from storage, a CI secret included, and the hub cannot either: under form
+`identity` what is proved is possession of the opened identity key, which
+stands in for the person. A stored passphrase is therefore a standing step-up
+for whoever holds it, as `architecture/threat-model` concedes for a thief of
+the key and its passphrase, and storing one is the operator's own choice to
+accept that. The flag records that the command was told to re-confirm, and
+the audit records the act and the control; without the flag a script that
+meets `STEP_UP_REQUIRED` fails as above. A holder
+that releases the identity without asking anybody never re-confirms, with
+`--step-up` or without. A test harness re-confirms this way, with a throwaway
+identity held in a file and its passphrase written to stdin. <!-- wl:id cli-step-up-scripted -->
 
 ---
 
@@ -3338,7 +3401,7 @@ Every command that calls the hub's admin gateway:
 | 1 | General error (invalid arguments, missing config) |
 | 2 | Authentication error (no keys, expired token, rejected) |
 | 3 | Connection error (the hub unreachable at the address the command uses) |
-| 4 | Not found (agent, workflow, strategy not found) |
+| 4 | Not found (agent, workflow, objective not found) |
 | 5 | Permission denied (role insufficient) |
 
 ---
@@ -3354,7 +3417,8 @@ security:
       get wrong. It holds no secret of its own. Beside each identity it keeps
       one credential for each hub that identity attested, never in the clear,
       and mints short-lived tokens with it. The identity, whose private half
-      may never be extractable, signs only to register and to attest.
+      may never be extractable, signs only to register, to attest, to change
+      its own key and to re-confirm its person for a destructive act.
   boundaries:
     - boundary: Operator → CLI. The operator's identity authorises every
         privileged operation; the CLI holds no standing authority
@@ -3467,8 +3531,6 @@ security:
 - `--json` output is one JSON object per line (for piping to `jq`)
 - `--watch` mode uses `GET` polling at 5-second intervals (not
   WebSocket — keeps the CLI simple)
-- Commands that accept multiple IDs (approvals) can also read from
-  stdin for piping: `weblisk approvals list --json | jq -r '.[] | select(.priority == "critical") | .id' | weblisk approvals accept --stdin`
 
 ## Verification Checklist
 - [ ] Provenance is written into the tenant's own state — time, each blueprint source with its revision, and the model the provider reported — not only printed
@@ -3496,12 +3558,14 @@ security:
 - [ ] `weblisk secret rotate` triggers the rotation handler or prompts for new value
 
 ### Server & Code Generation
-- [ ] `weblisk tenant create` ends with a hub running and its first operator registered, and, while no hub this CLI stands up has an admin gateway, says it has no address to connect to and records none, never the orchestrator's own address
-- [ ] `weblisk server provision` registers the first operator with the bootstrap secret and keeps no token, records no registration, and writes no `orchestrator_url`; no operator command afterwards sends a request, a token among it, to the orchestrator's own address
+- [ ] `weblisk tenant create` ends with the orchestrator and the admin gateway running and its first operator registered at the gateway, and its result's `address` is the gateway's origin with its `tls_pin`, which the registration it records keeps whether the CLI made the certificate or the operator supplied it, never the orchestrator's own address <!-- wl:check cli-create-gateway covers cli-create-stands-up-gateway -->
+- [ ] Before it starts the orchestrator, `weblisk tenant create` has written `admin_gateway`, `orchestrator.admin_addresses` naming the gateway's origin and `orchestrator.admin_gateway_identity` naming the fingerprint of `.weblisk/keys/admin-gateway.key`, and with `--port 0` the gateway's ports are free ones and are the ports those name <!-- wl:check cli-create-declares-gateway covers cli-create-stands-up-gateway -->
+- [ ] `weblisk server provision` registers the first operator with the bootstrap secret at the orchestrator's own address and keeps no token, then registers at the admin gateway's origin and records the registration, with the pin, at that address alone; no operator command afterwards sends a request, a token among it, to the orchestrator's own address <!-- wl:check cli-provision-gateway covers cli-provision-registers-at-gateway -->
 - [ ] `weblisk tenant create` writes a `.gitignore` excluding `.weblisk/keys/`, `.weblisk/secrets/`, `.weblisk/token`, `.env` and `.env.*`, so the directory it just put a private key in is not one `git init` from committing it
 - [ ] `weblisk tenant create` emits the steps `provider · directory · generate · skills · provision · accept · done`, and renaming one breaks both front ends at once
-- [ ] `weblisk tenant create` generates the orchestrator only; every other component is added afterwards, the admin gateway excepted while no command builds it, and the command does not claim otherwise
+- [ ] `weblisk tenant create` generates the orchestrator and the admin gateway only; every other component is added afterwards, and the command does not claim otherwise
 - [ ] `weblisk tenant accept` reports a `404` as an absent route and a `401` as a pass, and a failed non-essential check does not fail the tenant
+- [ ] `weblisk tenant accept` probes `GET /v1/admin/overview` at the admin gateway's origin with no token and passes on `401`; against a gateway whose certificate does not match the pin it fails, sending nothing over that connection <!-- wl:check cli-accept-gateway covers cli-accept-through-gateway -->
 - [ ] `weblisk tenant create` asks no model provider anything until the orchestrator's blueprint resolves, the resolved corpus parses and the platform's toolchain is present
 - [ ] `weblisk tenant create --port 0` starts the orchestrator on a free port chosen when it is started, and the result reports that port
 - [ ] `weblisk tenant create` declares the port it started the orchestrator on nowhere in the tenant's configuration
@@ -3513,7 +3577,7 @@ security:
 - [ ] `weblisk component <name> init` ends on the best tree it reached and never a worse one — on an error too — names the requirements it left unrepaired, and a re-run starts from that tree
 - [ ] `weblisk server init` reads YAML specs and dispatches to the configured LLM for code generation
 - [ ] `weblisk server start` reads .weblisk/config.yaml and builds+starts all declared components
-- [ ] `weblisk server start` starts the orchestrator alone when `.weblisk/config.yaml` is absent, and refuses a declaration it cannot carry out before starting anything
+- [ ] `weblisk server start` starts the orchestrator alone when `.weblisk/config.yaml` is absent, reporting it as a hub with no admin gateway, refuses a present file with no `admin_gateway` section before starting anything, naming `weblisk component admin init`, and refuses a declaration it cannot carry out before starting anything
 - [ ] `weblisk server stop` with no `--component` stops every recorded component, the orchestrator last
 - [ ] `weblisk component <name> start|stop|status|logs` runs any component the tenant has generated, and a detached start reports started only once the component's `GET /livez` answers live, then waits on its `GET /readyz` and reports a component that never becomes ready as not ready
 - [ ] Every start of a tenant component — `weblisk server start` attached or detached, `weblisk component <name> start`, the orchestrator `weblisk tenant create` starts, `weblisk agent start`, `weblisk domain start`, `weblisk gateway start`, and the first run and each restart `weblisk dev` makes of a hub — gives it an environment built from nothing: the names in the allow-list of [A component starts with a clean environment](#a-component-starts-with-a-clean-environment) that are set in the CLI's own, `WL_PORT`, `WL_ORCH_URL` where an orchestrator is named or running and the component is not it, `npm_config_userconfig` and `npm_config_globalconfig` where its run command is npm's, and its declared `env`, and no other name of the CLI's environment
@@ -3569,7 +3633,7 @@ security:
 - [ ] `weblisk operator init --json` prints `name`, `keys_dir`, `public_key`, `holder` and `created`, carries no private key and no passphrase, and writes nothing else to stdout; `holder` is the holder reference `holder.json` records, `holds` included, and `null` where there is no `holder.json`
 - [ ] `--keys-dir` outranks `--identity` when both are given
 - [ ] `weblisk operator connect` asks for no passphrase when a secret source holds the identity's passphrase
-- [ ] `weblisk operator connect` reports `connected`, `pending_approval`, `not_registered`, `refused`, `identity_unavailable` or `unreachable`, and with `--json` an `identity_unavailable` result carries `source` and `code`
+- [ ] `weblisk operator connect` reports `connected`, `pending_approval`, `not_registered`, `refused`, `identity_unavailable`, `unreachable` or `pin_mismatch`, and with `--json` an `identity_unavailable` result carries `source` and `code`, and every result carries the `address`, and the `tls_pin` where its registration records one
 - [ ] `weblisk operator connect`, `weblisk operator attest` and `weblisk operator attest --batch` never send a registration: at an address no registration names, or a hub that answers `OPERATOR_UNKNOWN`, each reports `not_registered` naming `weblisk operator register` and the address, and against a test hub with no operators none of them sends a bootstrap secret or claims the hub
 - [ ] `weblisk operator connect` with no identity held reports `identity_unavailable`, names `weblisk operator init` and creates no key; `connect --no-register` is accepted and behaves exactly as `connect`
 - [ ] `weblisk operator init` does not overwrite existing keys without --force flag
@@ -3619,15 +3683,19 @@ security:
 - [ ] `weblisk operators list` shows all registered operators with name, role, status, and registration date
 - [ ] `weblisk operators describe` shows full detail for a single operator
 - [ ] `weblisk operators role` changes operator role (admin only, cannot demote self)
+- [ ] `weblisk operators approve <name>` sends `POST /v1/admin/operators/{name}/approve` to the hub's admin gateway, reports success for an operator already approved, and prints and writes no token <!-- wl:check cli-operators-approve covers cli-operators-approve-no-token -->
 - [ ] All commands output human-readable tables by default and structured JSON with --json flag
 - [ ] Destructive commands (agents deregister, federations revoke) require --confirm or interactive name-confirmation
 - [ ] `weblisk approvals reject` requires a --reason argument for every rejection
-- [ ] `weblisk approvals list`, `weblisk strategies list`, `weblisk strategies update`, `weblisk strategies delete`, `weblisk observations list`, `weblisk observations trends`, `weblisk federations peers`, `weblisk federations describe`, `weblisk federations contracts`, `weblisk domains list` and `weblisk workflows list` are sent to the hub's admin gateway, and report their group unavailable and exit 1 when it answers `ADMIN_GROUP_UNAVAILABLE`, as it does while no provider's blueprint specifies the route; the stored token is sent nowhere but the admin gateway
-- [ ] `weblisk status` calls `GET /v1/admin/overview` at the hub's admin gateway and displays agents, domains, workflows, approvals, federation and strategies, showing as unavailable, never as zero, each figure the gateway reports unavailable, and shows no health score
+- [ ] `weblisk approvals list` calls `GET /v1/admin/approvals`, reports the inbox unavailable and exits 1 when the gateway answers `ADMIN_GROUP_UNAVAILABLE`, shows each owner the gateway names under `unavailable` with its code and exits 1 when any is, and shows each owner's non-zero `withheld` count; `weblisk approvals accept` and `reject` send one decision to the route the item's `decide` names, never in bulk, and no `weblisk observations` or `weblisk strategies` command exists
+- [ ] `weblisk objectives list`, `weblisk federations peers`, `weblisk federations describe`, `weblisk federations contracts`, `weblisk domains list` and `weblisk workflows list` are sent to the hub's admin gateway, and report their group unavailable and exit 1 when it answers `ADMIN_GROUP_UNAVAILABLE`, as it does while no provider's blueprint specifies the route; the stored token is sent nowhere but the admin gateway
+- [ ] `weblisk status` calls `GET /v1/admin/overview` at the hub's admin gateway and displays agents, domains, workflows, approvals, federation and objectives, showing as unavailable, never as zero, each figure the gateway reports unavailable, and shows no health score
 - [ ] Exit codes are 0=success, 1=general error, 2=auth error, 3=connection error, 4=not found, 5=permission denied
 - [ ] Config resolution order: command-line flags > environment variable > .weblisk/config.json (project) > ~/.weblisk/config.json (user)
 - [ ] Commands fail fast with a clear message and non-zero exit code when the orchestrator is unreachable
-- [ ] Authentication flow retries once on 401 by refreshing the token; prints re-register message if refresh also fails
+- [ ] Authentication flow retries once on 401 by refreshing the token, except on `STEP_UP_REQUIRED`, which it never answers with a refresh; prints re-register message if refresh also fails
+- [ ] On `401` `STEP_UP_REQUIRED`, a command asks its person to re-confirm the act `detail.control` names, at the terminal or through a holder that asks, mints a token whose request carries `step_up` of form `identity`, retries once, and stores that token nowhere; a renewed token is never sent as a re-confirmation; with nothing that can ask, it fails with exit 2 and the challenge's `error_description` <!-- wl:check cli-step-up-flow covers cli-step-up-reconfirms cli-step-up-token-held -->
+- [ ] A destructive command run with `--step-up` reads the identity's passphrase from stdin and sends its first request on a token carrying `step_up_at`; without `--step-up` and with no terminal, it fails on `STEP_UP_REQUIRED`; and a holder that releases the identity without asking anybody is never used to re-confirm <!-- wl:check cli-step-up-script covers cli-step-up-scripted -->
 
 ### Testing
 - [ ] `weblisk test conformance` runs protocol conformance tests against a running system
@@ -3651,13 +3719,8 @@ security:
 - [ ] `weblisk policy validate` checks gateway policy file for syntax and semantic errors
 - [ ] `weblisk policy test` runs policy assertions from policies_test.yaml
 
-### Strategies
-- [ ] Once the Lifecycle Agent's blueprint specifies the route, `weblisk strategies update` modifies priority, deadline, or targets of an existing strategy
-- [ ] Once the Lifecycle Agent's blueprint specifies the route, `weblisk strategies delete` archives a strategy (admin only, requires confirmation)
-
-### Observations
-- [ ] Once the Lifecycle Agent's blueprint specifies the route, `weblisk observations list` shows observation history with strategy/agent filters
-- [ ] Once the Lifecycle Agent's blueprint specifies the route, `weblisk observations trends` displays metric trend data for a strategy
+### Objectives
+- [ ] Once the programme service's blueprint specifies the route, `weblisk objectives describe` shows one objective with its targets and what has been measured against them
 
 ### Federation
 - [ ] Once the federation layer's blueprint specifies the route, `weblisk federations describe` shows full peer detail including data contract and metrics

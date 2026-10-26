@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: cron
-version: 2.0.0
+version: 2.0.1
 port: 9750
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/orchestrator, architecture/change-management]
 extends: [patterns/scheduling, patterns/messaging, patterns/logging, patterns/retry, patterns/versioning, patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -72,7 +72,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -150,7 +150,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/change-management
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       events:
         - topic: system.change.assessment

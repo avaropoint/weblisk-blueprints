@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 2.2.0
+version: 2.3.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -118,7 +118,7 @@ of hash functions.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.15.0 <4.0.0"
+    version: ">=1.15.0 <5.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -542,6 +542,7 @@ bytes itself, in one of those two forms, may ask a secret source to sign them
 |---|---|---|
 | `weblisk/auth/v1` | An identity, proving that it holds its key to a service that is not a hub | [Proving an identity to a service that is not a hub](#proving-an-identity-to-a-service-that-is-not-a-hub) |
 | `weblisk/credential-auth/v1` | A credential, to obtain an operator token | [`architecture/admin`](../architecture/admin.md#minting-a-token-with-the-credential) |
+| `weblisk/step-up/v1` | An operator's identity, over a hub's `hub_id`, the nonce of the token request it rides on and the act that asked, re-confirming the person for a destructive act. A passkey's assertion is made over the same bytes as its WebAuthn challenge | [`architecture/admin`](../architecture/admin.md#re-confirming-for-a-destructive-act) |
 | `weblisk/log-key/v1` | A log owner's long-lived key, introducing the key that signs the log's checkpoints | [`architecture/storage`](../architecture/storage.md#sealing-a-chained-log) |
 | `weblisk/log-checkpoint/v1` | A log key, over the log's tip | [`architecture/storage`](../architecture/storage.md#sealing-a-chained-log) |
 | `weblisk/log-succession/v1` | A log owner's outgoing and incoming long-lived keys, each over the change from one to the other | [`architecture/storage`](../architecture/storage.md#a-change-of-long-lived-key) |
@@ -565,7 +566,7 @@ a data file no blueprint requires, so no build carries it in its prompt, and
 every build receives it as test data
 ([`architecture/generation`](../architecture/generation.md#published-test-vectors)).
 It holds vectors for `weblisk/auth/v1`, `weblisk/credential-auth/v1`,
-`weblisk/log-key/v1`, `weblisk/log-checkpoint/v1`,
+`weblisk/step-up/v1`, `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1`,
 `weblisk/log-succession/v1`, `weblisk/content-change/v1` and
 `weblisk/directory/v1`. None is published
 yet for `weblisk/holder-probe/v1` or `weblisk/hub-proof/v1`, so no
@@ -689,9 +690,14 @@ Fields:
 - `identity_key`: on a pass alone, the fingerprint of its person's identity
   public key when the pass was minted
 - `step_up_at`: when the subject last completed a step-up, in Unix seconds
-  (optional). An operator token carries it only where a blueprint specifies
-  how its issuer learns of a step-up, and none does yet. A pass carries its
-  person's token's, unchanged
+  (optional). An operator token carries it only where the orchestrator minted
+  it through an interactive re-confirmation it verified itself, the
+  operator's identity signing `weblisk/step-up/v1` or a user-verified passkey
+  ([`architecture/admin`](../architecture/admin.md#re-confirming-for-a-destructive-act),
+  `operator-token-issuance`), and it is then the time of issue. A token
+  minted by a credential alone, however recent, carries none, so a silent
+  renewal is never a step-up. A pass carries its person's token's, unchanged
+  <!-- wl:id step-up-at-only-on-reconfirmation -->
 - `role`: the operator's role when an operator token was issued (optional). A
   verifier that holds the operator's record authorises against the role that
   record holds now, never against this claim alone
@@ -1354,6 +1360,7 @@ Implementation MUST:
 - [ ] Never accept a private key, other key material or a passphrase from an environment variable, except an installation's master key on a hosted deployment that protects no private key (rule 9)
 - [ ] Sign and verify with pure ML-DSA-65 and an empty context string, never HashML-DSA
 - [ ] Every fixed-form statement an implementation signs begins with a prefix the Fixed-Form Statements registry lists, followed by one `0x00` byte, and a verifier refuses a prefix the registry does not list
+- [ ] An operator token minted on a credential's answer alone carries no `step_up_at`, and one minted on a request whose `weblisk/step-up/v1` re-confirmation verified carries its time of issue; a pass carries its person's token's `step_up_at` unchanged <!-- wl:check step-up-at-set-once covers step-up-at-only-on-reconfirmation -->
 - [ ] A verb, route or function that signs for another program builds the bytes itself and never signs the caller's, and a secret source is asked to sign only bytes its caller built itself
 - [ ] A proof of an identity to a service that is not a hub is a signature over `weblisk/auth/v1`, the service's audience and a nonce it issued, spent by its first use and expiring within 300 seconds; the service rebuilds those bytes and never verifies the nonce alone, and no hub accepts one
 - [ ] Parse weblisk-key-v1 format correctly (magic, algorithm=ml-dsa-65, kdf, params, ciphertext)

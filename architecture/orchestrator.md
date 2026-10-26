@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 3.1.0
+version: 3.3.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -13,10 +13,13 @@ The orchestrator is the trust anchor and registry service. It manages
 agent registration, identity verification, namespace ownership, service
 directory distribution, and channel brokering.
 
-The orchestrator does NOT execute agent logic, route tasks, manage
-strategies, store observations, or handle approvals. Those concerns
-belong to infrastructure agents (Workflow, Task, Lifecycle) that
-register like any other agent.
+The orchestrator does NOT execute agent logic, route tasks, hold a
+programme's objectives, or hold a decision queue: it records a person's
+decision it is handed (an operator's approval or role), and never makes one. Work is
+execution's, objectives are the programme service's, and each decision is
+its owner's, composed into one inbox by the admin gateway
+([`architecture/admin`](admin.md#decision-inbox)). Each registers like any
+other component.
 
 ---
 
@@ -73,7 +76,9 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: protocol/types
-      version: ">=3.0.0 <4.0.0"
+      # 4.0.0 is where token:exchange is admitted for the declared admin
+      # gateway alone (Registration Flow, step 1)
+      version: ">=4.0.0 <5.0.0"
       bindings:
         types:
           - name: RegisterRequest
@@ -131,7 +136,8 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/admin
-      version: ">=3.0.0 <4.0.0"
+      # 4.0.0 is where a destructive act needs a step-up, never a second person
+      version: ">=4.0.0 <5.0.0"
       bindings:
         behaviors:
           - name: operator-registration
@@ -143,6 +149,7 @@ declaration:
           - name: operator-credential-attestation
           - name: operator-token-issuance
           - name: token-status-on-use
+          - name: destructive-action-step-up
           - name: operator-credential-revocation
           - name: operator-key-change
           - name: auth-route-rate-limit
@@ -407,7 +414,10 @@ declaration:
 
 ## What a tenant consists of, and where that is declared
 
-The orchestrator is a tenant's **first** component. It is not the tenant, and
+The orchestrator is a tenant's **first** component, and its admin gateway
+([`architecture/admin`](admin.md#the-admin-gateway-as-a-component)) the
+second: every tenant has both, because without the gateway no person's
+request reaches it. It is not the tenant, and
 this section exists because the two were read as the same thing for long enough
 that a fully specified sibling — [`architecture/content`](content.md) — had
 never been generated into one.
@@ -452,9 +462,14 @@ of the second is `schemas/config.md`'s, not this document's.
 Composition is a sequence of acts, each recorded, with nothing to restart:
 
 ```
-weblisk tenant create "Acme Corp"      # the orchestrator, started and claimed
+weblisk tenant create "Acme Corp"      # the orchestrator and the admin gateway, started and claimed
 weblisk component content init         # the content service, into the same module
 ```
+
+One act is the exception: an admin gateway that `weblisk component admin init`
+adds to a tenant made before it is admitted once the orchestrator restarts,
+because the orchestrator reads `orchestrator.admin_gateway_identity` when it
+starts ([`architecture/admin`](admin.md#registration-lease-and-identity)).
 
 `architecture/cli.md` specifies the verbs. `architecture/generation.md`
 specifies how a second component is generated into a tenant that already holds
@@ -558,7 +573,11 @@ itself, and it cannot hold both answers at once.
 > address. Until it carries one, every entry is `self-asserted` and every
 > foreign address is out of bounds by the rule below. The field is that schema's
 > to add; this document states only what the orchestrator does with it once it
-> exists.
+> exists. One registration is declared already, by its key rather than its
+> address: the admin gateway's, whose fingerprint is
+> `orchestrator.admin_gateway_identity`, and for which alone this
+> orchestrator admits `token:exchange` ([Registration Flow](#registration-flow-post-v1register),
+> step 1).
 
 > **Gap — nothing can currently reach `verified`.** `GET /livez` and
 > `GET /readyz` are unauthenticated, so a probe that answers proves something is
@@ -738,7 +757,6 @@ component's data behind the trust anchor's identity.
 See [Protocol Specification](../protocol/spec.md) for the authoritative
 endpoint contracts.
 See [Agent Architecture](agent.md) for the 7-endpoint agent protocol.
-See [Lifecycle](lifecycle.md) for the continuous optimization loop.
 
 ## Endpoints
 
@@ -809,12 +827,12 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 | DELETE | /v1/admin/operators/{name}/credentials/{cid} | CredentialRevoke | the operator, able to use `admin:read`, or `admin:*` | Revoke one credential |
 | GET | /v1/admin/operators | OperatorList | `admin:*` | List operators |
 | GET | /v1/admin/operators/{name} | OperatorGet | `admin:read` | Operator detail |
-| DELETE | /v1/admin/operators/{name} | OperatorDelete | `admin:*` | Remove an operator |
-| POST | /v1/admin/operators/{name}/approve | OperatorApprove | `admin:*` | Admit a registered operator |
-| PUT | /v1/admin/operators/{name}/role | OperatorRole | `admin:*` | Change an operator's role |
+| DELETE | /v1/admin/operators/{name} | OperatorDelete | `admin:*` | Remove an operator, after step-up (`destructive-action-step-up`) |
+| POST | /v1/admin/operators/{name}/approve | OperatorApprove | `admin:*` | Admit a registered operator, after step-up |
+| PUT | /v1/admin/operators/{name}/role | OperatorRole | `admin:*` | Change an operator's role, after step-up |
 | GET | /v1/admin/agents | AdminAgentList | `admin:read` | Agents with what the registry holds of each: name, type, version, `lease_state`, `registered_at` and `last_seen`, and no metrics, which another component holds ([`architecture/admin`](admin.md#get-v1adminagents)) |
 | GET | /v1/admin/agents/{name} | AdminAgentGet | `admin:read` | Agent detail — its [AgentEntry](#agententry) without the token: `manifest`, `agent_id`, `lease`, `last_renewal`, `registered_at` and `last_seen` ([`architecture/admin`](admin.md#get-v1adminagentsname)), and no metrics or recent tasks, which this orchestrator neither holds nor handles. The entry's `token` is never answered |
-| POST | /v1/admin/agents/{name}/deregister | AdminAgentDeregister | `admin:*` | Force-deregister an agent |
+| POST | /v1/admin/agents/{name}/deregister | AdminAgentDeregister | `admin:*` | Force-deregister an agent, after step-up (`destructive-action-step-up`) |
 | GET | /v1/admin/overview | AdminOverview | `admin:read` | Summary of the state this orchestrator holds |
 | GET | /v1/admin/audit | AdminAuditList | `admin:audit` | This orchestrator's audit log, with the query parameters and the answer of `GET /v1/audit` ([`protocol/spec`](../protocol/spec.md#get-v1audit)). The route a person reads it at; `GET /v1/audit` is a registered component's, and refuses a person's token ([Auth Middleware](#auth-middleware), step 6) |
 | GET | /v1/admin/audit/export | AdminAuditExport | `admin:audit` | The entries `AdminAuditList` would answer for the same filters, unpaged. `format=json`, the default where `format` is absent, answers an array of `AuditEntry`. `format=csv` answers `text/csv` as RFC 4180 writes it: a header row naming `AuditEntry`'s fields in the order [`protocol/types`](../protocol/types.md) declares them, then one row for each entry, each field its value as text and an absent field empty. A field whose text begins with `=`, `+`, `-`, `@`, a tab or a carriage return has a single quote (`'`) put before it, before it is quoted as RFC 4180 requires, so a spreadsheet that opens the file evaluates no field as a formula: `AuditEntry`'s `target` and `detail` can carry text a registrant chose. Any other `format` is refused with 400 `INVALID_REQUEST` |
@@ -827,6 +845,12 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 | DELETE | /v1/admin/model/agreements/{id} | AdminModelAgreementWithdraw | `model:attest` | Withdraw an agreement (platform-provided) |
 | GET | /v1/admin/model/ceiling | AdminModelCeiling | `admin:read` | What a model backend may be sent now (platform-provided) |
 | POST | /v1/admin/model/audit | AdminModelAudit | the one its `action` names | Append a model route's entry to this orchestrator's audit log, for the model gateway inside its own process alone ([Recording what the model routes do](#recording-what-the-model-routes-do)). Generated, and not platform-provided |
+
+The four routes marked "after step-up" MUST be served as
+[`architecture/admin`](admin.md#contracts)'s `destructive-action-step-up` says,
+and `CredentialToken` MUST set `step_up_at` only as its
+`operator-token-issuance` says; this document restates neither.
+<!-- wl:id orchestrator-step-up -->
 
 The model routes are marked `provided: platform` in the declaration. They are
 NOT generated: the CLI installs them after generation, and they intercept their
@@ -1292,7 +1316,8 @@ contracts:
       rules:
         - The route POST /v1/token/exchange MUST take a TokenExchangeRequest and answer every judgement of its subject_token with 200 and a TokenExchangeResponse (protocol/types)
         - It MUST read the caller's token from the Authorization header alone (Auth Middleware step 2), so nothing in the body, the token it exchanges included, authenticates the request. A request with no Authorization header MUST be refused with 401, as on any other route
-        - It MUST admit only a registration token, one with no type and no cid, whose sub is a component registered here now, whose identity_id is that registration's (protocol/identity), and whose registration declares token:exchange (protocol/types). Every other token Auth Middleware lets through MUST be refused with FORBIDDEN, disclosing nothing about subject_token - a registration token whose registration does not declare token:exchange, and one whose component has deregistered or whose identity_id is no longer its registration's, as after POST /v1/rotate-key (protocol/spec). An attestation token and a pass are refused before this, at Auth Middleware step 5, a pass with PASS_AUDIENCE_MISMATCH, and an operator token and a channel token at step 6, with FORBIDDEN
+        # <!-- wl:id exchange-declared-gateway-only -->
+        - It MUST admit only a registration token, one with no type and no cid, whose sub is a component registered here now, whose identity_id is that registration's (protocol/identity), and whose registration declares token:exchange (protocol/types) and whose identity_id is orchestrator.admin_gateway_identity (schemas/config). Every other token Auth Middleware lets through MUST be refused with FORBIDDEN, disclosing nothing about subject_token - a registration token whose registration does not declare token:exchange, and one whose component has deregistered or whose identity_id is no longer its registration's, as after POST /v1/rotate-key (protocol/spec). An attestation token and a pass are refused before this, at Auth Middleware step 5, a pass with PASS_AUDIENCE_MISMATCH, and an operator token and a channel token at step 6, with FORBIDDEN
         - A body with no subject_token or no audience, or whose scope names no capability or a name protocol/types does not list, MUST be refused with 400 INVALID_REQUEST. An audience that is not the identity id of a component registered here now, other than the caller, MUST be refused with 404 NOT_FOUND. Neither mints anything
         - It MUST judge subject_token as Auth Middleware judges a token on an operator route - its signature and expiry, that it is an operator token carrying cid, and token-status-on-use (architecture/admin) - and answer issued false with the code it would refuse that token with on its own routes. A pass, a registration token, a channel token and an attestation token are each refused with CREDENTIAL_REQUIRED, so a pass is never exchanged again. A token it cannot judge MUST NOT be exchanged
         - The pass's cap MUST be the intersection of scope and what the person may use now - what the operator's role carries now, never beyond the token's cap, read as Auth Middleware step 8 reads a role and a cap - keeping each name scope gives only where the person may use it, and admin:* only where they may use every capability of the admin family by name. Where the intersection is empty it MUST mint nothing and answer issued false with FORBIDDEN
@@ -1335,9 +1360,13 @@ for the authoritative registration contract.
 1.  Parse and validate per spec.md contract. A manifest whose capabilities
     name one protocol/types does not list → 400 INVALID_REQUEST, one whose
     capabilities name one protocol/types marks person only → 403
-    CAPABILITY_PERSON_ONLY, and one whose url contradicts the address the
-    tenant declared for that component → 409 ADDRESS_CONFLICT (What the
-    directory attests), each before anything is recorded. Its
+    CAPABILITY_PERSON_ONLY, one whose capabilities name token:exchange,
+    which protocol/types marks admin gateway only, and whose public key's
+    fingerprint is not orchestrator.admin_gateway_identity, or where that
+    key is absent → 403 CAPABILITY_GATEWAY_ONLY, and one whose url
+    contradicts the address the tenant declared for that component → 409
+    ADDRESS_CONFLICT (What the directory attests), each before anything is
+    recorded. Its
     pass_routes are not read for the second: a pass route names what the
     component checks on a person's pass, never what it holds, and none of
     it reaches the token of step 5. They are read for two things, each →
@@ -1561,8 +1590,11 @@ one count ([`architecture/admin`](admin.md#contracts),
    security event that names it by its claims and never by the token
    (protocol/identity, The pass, rule 7). A registration token whose cap names
    token:exchange, or whose sub's registration declares it, as the admin
-   gateway's does, is admitted at GET /v1/services and TokenExchange alone,
-   and refused with FORBIDDEN at every other such route
+   gateway's does, is admitted at GET /v1/services, POST /v1/lease and
+   TokenExchange alone, and refused with FORBIDDEN at every other such route,
+   POST /v1/rotate-key among them: the gateway's key is changed only by
+   the tenant's declaration (architecture/admin, Registration, lease and
+   identity)
 7. For an operator token, check the operator and the credential it names are
    live in this orchestrator's own records (architecture/admin,
    token-status-on-use)
@@ -1802,6 +1834,7 @@ and [protocol/types.md](../protocol/types.md) for type definitions.
 | Lease duration, how long a lease lasts from each renewal | — | `orchestrator.lease_duration` ([`schemas/config`](../schemas/config.md#orchestrator)) | `30s` |
 | Admin addresses, the origins the admin gateway is reached at | — | `orchestrator.admin_addresses` ([`schemas/config`](../schemas/config.md#orchestrator)) | none |
 | The addresses the admin gateway's requests arrive from | — | `orchestrator.admin_gateway_from` ([`schemas/config`](../schemas/config.md#orchestrator)) | none |
+| The admin gateway's identity, the one registration admitted `token:exchange` | — | `orchestrator.admin_gateway_identity` ([`schemas/config`](../schemas/config.md#orchestrator)) | none, so no registration is |
 
 ---
 
@@ -2069,9 +2102,12 @@ security:
         the gateway forwarded, and can use there what it could have used
         through the gateway and nothing more. What such a request escapes is
         what the gateway checks before it forwards anything, its operator IP
-        allowlist and the confirmation it asks before a destructive action
-        among them (architecture/admin, Admin Gateway Request Lifecycle),
-        never the judgement of the token. architecture/threat-model records
+        allowlist and its per-operator rate limits (architecture/admin, Admin
+        Gateway Request Lifecycle), and nothing more, never the judgement of
+        the token, and never the step-up a destructive act needs, which the
+        orchestrator judges from the token's step_up_at itself, as the
+        component that serves the act (architecture/admin,
+        destructive-action-step-up). architecture/threat-model records
         it as residual. Serving the administrative routes on a listener only
         the admin gateway reaches is what would enforce the boundary
     - boundary: Orchestrator → Agent. Events reach the URL a verified manifest
@@ -2181,7 +2217,8 @@ agents hold, which is theirs.
 - [ ] system.agent.deregistered event published after deregistration
 - [ ] Every operation creates an `AuditEntry`, persisted to JSONL and echoed to stdout as an `audit` log line
 - [ ] The orchestrator keeps no domain status of its own: a domain's readiness is its lease
-- [ ] Orchestrator does NOT handle tasks, strategies, context, observations, or approvals
+- [ ] Orchestrator does NOT handle tasks, programme objectives or context, and holds no decision queue (it records, never makes, a person's decision); it serves neither the decision inbox nor any route for objectives
+- [ ] `DELETE /v1/admin/operators/{name}`, `POST /v1/admin/operators/{name}/approve`, `PUT /v1/admin/operators/{name}/role` and `POST /v1/admin/agents/{name}/deregister` are refused `STEP_UP_REQUIRED` on a token without a `step_up_at` recent enough for `destructive-action-step-up`, and a token request whose `step_up` verifies mints a token carrying `step_up_at` <!-- wl:check orchestrator-serves-step-up covers orchestrator-step-up -->
 - [ ] Administrative endpoints are gated on the capability each declares — an `admin:` capability, `llm:chat` or `model:attest` — carried in the caller's token, not on a separate role model
 - [ ] `POST /v1/admin/complete` refuses with `FORBIDDEN` a token that cannot use `llm:chat`, one carrying `admin:read` or `admin:*` without it included, and sends nothing to a backend
 - [ ] `GET /v1/admin/model` answers the hub's `ModelConfig`, and `{}` at a hub that holds none
@@ -2212,6 +2249,7 @@ agents hold, which is theirs.
 - [ ] `POST /v1/token/exchange` reads the caller's token from its `Authorization` header only: with no header it answers 401 whatever the body holds, and a body with no `subject_token` or no `audience` is refused with 400 `INVALID_REQUEST`
 - [ ] `POST /v1/token/exchange` answers `issued: false` with `OPERATOR_REVOKED` for a token minted before its operator was removed, with `CREDENTIAL_REVOKED` after its credential was revoked, and with `TOKEN_EXPIRED` past its `exp`, each as a 200, and mints no pass
 - [ ] `POST /v1/token/exchange` called with an operator token, a channel token, or the registration token of a component whose registration does not declare `token:exchange`, in its `Authorization` header, is refused with `FORBIDDEN`, with a pass with `PASS_AUDIENCE_MISMATCH` and a security event, and with an attestation token with `CREDENTIAL_REQUIRED`, and discloses nothing about `subject_token`
+- [ ] `POST /v1/register` refuses a manifest naming `token:exchange` with 403 `CAPABILITY_GATEWAY_ONLY`, recording nothing, where its key's fingerprint is not `orchestrator.admin_gateway_identity` or none is configured, and admits it under the declared key; `POST /v1/token/exchange` refuses with `FORBIDDEN` a registration token whose `identity_id` is not that fingerprint <!-- wl:check exchange-only-declared-gateway covers exchange-declared-gateway-only -->
 - [ ] `POST /v1/token/exchange` called with the registration token of a component that has since deregistered, or whose identity id `POST /v1/rotate-key` has since changed, is refused with `FORBIDDEN`
 - [ ] `POST /v1/token/exchange` asked to exchange a pass, a registration token or a channel token answers `issued: false` with `CREDENTIAL_REQUIRED`, so a pass is never exchanged again
 - [ ] `POST /v1/token/exchange` with an `audience` that is not the identity id of a component registered here now, or that is the caller's own, is refused with 404 `NOT_FOUND`, and mints nothing
@@ -2222,6 +2260,6 @@ agents hold, which is theirs.
 - [ ] A pass presented at any route of the orchestrator is refused with `PASS_AUDIENCE_MISMATCH` and logged as a security event
 - [ ] An operator token is refused with `FORBIDDEN`, before any handler, at every route outside `/v1/admin/*` that requires a token, and logged as a security event that names it by its claims and records no part of its bytes: a `viewer`'s token gets no entry from `GET /v1/audit`, and `DELETE /v1/register` on an operator token whose `sub` is a registered agent's name leaves that agent registered
 - [ ] A channel token is refused with `FORBIDDEN` at every route outside `/v1/admin/*` that requires a token, and with `CREDENTIAL_REQUIRED` under it
-- [ ] The admin gateway's registration token, whose `cap` names `token:exchange`, is answered at `GET /v1/services` and `POST /v1/token/exchange`, and refused with `FORBIDDEN` at `GET /v1/audit`, `POST /v1/channel`, `GET /v1/model/ceiling`, `DELETE /v1/register` and `POST /v1/rotate-key`
+- [ ] The admin gateway's registration token, whose `cap` names `token:exchange`, is answered at `GET /v1/services`, `POST /v1/lease` and `POST /v1/token/exchange`, and refused with `FORBIDDEN` at `GET /v1/audit`, `POST /v1/channel`, `GET /v1/model/ceiling`, `DELETE /v1/register` and `POST /v1/rotate-key`
 - [ ] The orchestrator presents no token it received to any party: `GET /v1/admin/overview` asks no other component for a figure
 - [ ] A token whose signature does not verify is refused with 401 `INVALID_SIGNATURE`, and one past `exp` with 401 `TOKEN_EXPIRED`, on every route Auth Middleware covers

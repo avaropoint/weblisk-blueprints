@@ -30,7 +30,7 @@ through a single interface.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.13.0 <4.0.0"
+    version: ">=1.13.0 <5.0.0"
     bindings:
       types:
         - name: AgentManifest

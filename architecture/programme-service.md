@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: programme-service
-version: 1.0.0
+version: 1.0.1
 requires: [protocol/types, protocol/identity, patterns/workflow, architecture/content, architecture/orchestrator, architecture/admin]
 platform: any
 tier: free
@@ -55,7 +55,7 @@ here.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -135,7 +135,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/admin
-    version: ">=3.0.0 <4.0.0"
+    version: ">=4.0.0 <5.0.0"
     bindings:
       behaviors:
         # The one door a person's request arrives through
@@ -496,10 +496,10 @@ token satisfies both statements yet.
 phase for a person's task or for approvers named by position
 ([`schemas/programme.md`](../schemas/programme.md#how-a-workflow-maps-onto-patternsworkflow)).
 No capability in [`protocol/types`](../protocol/types.md#capability) names
-deciding one, and no route at execution serves one. The admin gateway's
-inbox route is [`architecture/admin`](admin.md)'s to specify. Today its
-Approval Queue group is the Lifecycle Agent's recommendations, which is a
-different thing.
+deciding one, and no route at execution serves one, so the admin gateway's
+inbox ([`architecture/admin`](admin.md#decision-inbox)) would list content's
+open proposals and no step of execution's, and it lists neither until a
+`PassRoute` can name the inbox group a route answers.
 
 **Notification has no route, capability or blueprint.** The notify-by-position
 call above has no declared action name or capability yet. Nothing is

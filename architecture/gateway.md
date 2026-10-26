@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: gateway
-version: 2.0.0
+version: 2.0.1
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/admin, architecture/observability, patterns/auth-session, patterns/auth-token, patterns/user-management, patterns/rate-limiting, patterns/api-ai]
 platform: any
 tier: free
@@ -54,7 +54,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <4.0.0"
+    version: ">=1.0.0 <5.0.0"
     bindings:
       types:
         - name: RegisterRequest
@@ -82,7 +82,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/admin
-    version: ">=2.0.0 <4.0.0"
+    version: ">=2.0.0 <5.0.0"
     bindings:
       patterns:
         - behavior: admin-separation

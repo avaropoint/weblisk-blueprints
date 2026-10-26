@@ -96,6 +96,13 @@ rewrites that place.
 | `WL_AI_MODEL`, as a variable a tenant component reads | the tenant's model gateway, the only way a component reaches a model: [the tenant's model](architecture/orchestrator.md#the-tenants-model) | [`languages/go`](languages/go.md#environment-variables) 2.0.0, [`languages/rust`](languages/rust.md#environment-variables) 2.0.0 and [`platforms/node`](platforms/node.md#environment-variables) 3.0.0, Environment Variables and Configuration |
 | `WL_AI_KEY`, as a variable a tenant component reads | the tenant's model gateway ([the tenant's model](architecture/orchestrator.md#the-tenants-model)), the only way a component reaches a model; no component holds a vendor's key | [`platforms/cloudflare`](platforms/cloudflare.md#environment-variables) 2.0.0, Environment Variables, LLM Integration and Deployment |
 | `WL_AI_*`, as variables a tenant component reads | the tenant's model gateway, the only way a component reaches a model: [the tenant's model](architecture/orchestrator.md#the-tenants-model) | [`languages/go`](languages/go.md#configuration) 2.0.0 and [`languages/rust`](languages/rust.md#configuration) 2.0.0, Configuration |
+| `X-Confirm`, the per-request HMAC confirmation of an operator's destructive act | The person's step-up: `step_up_at` and `STEP_UP_REQUIRED` | [`architecture/admin`](architecture/admin.md#contracts) 4.0.0, `destructive-action-step-up` |
+| `4-eyes`, `four-eyes`, two-operator approval and a second approver, as the platform's rule for a destructive act | The person's own step-up (`destructive-action-step-up`). A second person only where a tenant declares one: content's `self_decision_ceiling`, or a decision routed to `patterns/approval`'s multi-party | [`architecture/admin`](architecture/admin.md#contracts) 4.0.0, `destructive-action-step-up` |
+| The `admin dashboard`: the admin gateway's single-page application, its pages and its session cookie | None. A person uses the CLI or a console that holds their credential | [`architecture/admin`](architecture/admin.md#overview) 4.0.0, Overview |
+| `/v1/admin/strategies` and its other four routes, `weblisk strategies`, and the overview's `strategies` member | Programme objectives: `weblisk objectives` and the overview's `objectives` | [`architecture/admin`](architecture/admin.md#programme-objectives) 4.0.0, Programme Objectives; [`architecture/cli`](architecture/cli.md#objective-commands) 4.0.0, Objective Commands |
+| `/v1/admin/observations`, `/v1/admin/observations/trends` and `weblisk observations` | None. The runtime signal is telemetry's | [`architecture/admin`](architecture/admin.md#audit) 4.0.0, Audit; [`architecture/cli`](architecture/cli.md) 4.0.0 |
+| `/v1/admin/approvals/batch` and `/v1/admin/approvals/{id}`, the Approval Queue of recommendations, and `weblisk approvals accept --all` and `--priority` | The decision inbox, `GET /v1/admin/approvals`, each decision made at the route its item's `decide` names | [`architecture/admin`](architecture/admin.md#decision-inbox) 4.0.0, Decision Inbox; [`architecture/cli`](architecture/cli.md#approval-commands) 4.0.0, Approval Commands |
+| `fabric.traversal.max_depth`, the fabric's configured traversal depth | requirement `reach-max-depth`, `requirement://weblisk/architecture/fabric:reach-max-depth`, which no configuration sets | [`architecture/fabric`](architecture/fabric.md#requirements) 3.0.0, Requirements and Configuration |
 
 ## Entries
 
@@ -316,7 +323,6 @@ itself is always allowed.
   - {spelling: degraded, match: sense}
   allow:
   - {path: agents/health-monitor.md, why: it retires whole, until: agents/health-monitor@3.0.0}
-  - {path: architecture/admin.md, why: 'the admin dashboard, until g3-door-admin strikes it whole (decision 16)', until: architecture/admin@4.0.0}
   - {path: protocol/types.md, why: the note at LeaseState that says the words are gone}
   - {path: patterns/observability.md, why: the note at Component State Machine that says the words are gone}
   - {path: architecture/observability.md, why: 'the requires: comment that says the words are gone'}
@@ -337,7 +343,6 @@ itself is always allowed.
   - {spelling: unhealthy, match: sense}
   allow:
   - {path: agents/health-monitor.md, why: it retires whole, until: agents/health-monitor@3.0.0}
-  - {path: architecture/admin.md, why: 'the admin dashboard, until g3-door-admin strikes it whole (decision 16)', until: architecture/admin@4.0.0}
   other_senses:
   - {path: patterns/api-ai.md, sense: 'an external model provider''s status at GET /ai/health, which is not a component of the tenant'}
   - {path: architecture/storage.md, sense: 'a past incident quoted as it was observed, in the Namespace Registry store'}
@@ -401,4 +406,49 @@ itself is always allowed.
   - {spelling: WL_AI_*, match: sense}
   allow:
   - {path: architecture/cli.md, why: "the CLI's own environment: weblisk providers, and A component starts with a clean environment, which keeps it off every component's"}
+- retired:
+  - {spelling: X-Confirm, match: sense}
+  other_senses:
+  - {path: architecture/client.md, sense: "the per-request confirmation of an end user's critical session, which is an application's, not an operator's"}
+- retired:
+  - {spelling: 4-eyes, match: sense}
+  - {spelling: four-eyes, match: sense}
+  other_senses:
+  - {path: patterns/migration.md, sense: "a tenant's own declared rule, such as the example at Approval Routing"}
+- retired:
+  - {spelling: admin dashboard, match: sense}
+  allow:
+  - {path: agents/health-monitor.md, why: it retires whole, until: agents/health-monitor@3.0.0}
+- retired:
+  - {spelling: /v1/admin/strategies, match: exact}
+  - {spelling: weblisk strategies, match: exact}
+  - {spelling: strategies, match: sense}
+  allow:
+  - {path: architecture/cli.md, why: the Verification Checklist row that says no such command exists}
+  - {path: architecture/lifecycle.md, why: it retires whole, until: architecture/lifecycle@2.0.0}
+  - {path: agents/lifecycle.md, why: it retires whole, until: agents/lifecycle@3.0.0}
+  other_senses:
+  - {pattern: 'admin:strategy', sense: 'the capability admin:strategy, which is kept'}
+  - {path: protocol/types.md, sense: 'the Strategy type, which is kept'}
+  - {sense: the word's other senses}
+- retired:
+  - {spelling: /v1/admin/observations, match: exact}
+  - {spelling: /v1/admin/observations/trends, match: exact}
+  - {spelling: weblisk observations, match: exact}
+  allow:
+  - {path: architecture/cli.md, why: the Verification Checklist row that says no such command exists}
+  - {path: architecture/lifecycle.md, why: it retires whole, until: architecture/lifecycle@2.0.0}
+  - {path: agents/lifecycle.md, why: it retires whole, until: agents/lifecycle@3.0.0}
+  other_senses:
+  - {sense: the word's other senses}
+- retired:
+  - {spelling: /v1/admin/approvals/batch, match: exact}
+  - {spelling: '/v1/admin/approvals/{id}', match: exact}
+  - {spelling: weblisk approvals accept --all, match: exact}
+  - {spelling: --priority, match: sense}
+  allow:
+  - {path: architecture/lifecycle.md, why: it retires whole, until: architecture/lifecycle@2.0.0}
+  - {path: agents/lifecycle.md, why: it retires whole, until: agents/lifecycle@3.0.0}
+- retired:
+  - {spelling: fabric.traversal.max_depth, match: exact}
 ```

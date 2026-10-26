@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: tenancy
-version: 1.0.5
+version: 1.1.0
 requires: [protocol/types, protocol/identity, architecture/orchestrator, architecture/storage, patterns/principal-identity, patterns/versioning]
 platform: any
 tier: free
@@ -35,7 +35,7 @@ surface, which is a correct deployment rather than an unfinished one.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <4.0.0"
+    version: ">=1.0.0 <5.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -241,7 +241,9 @@ deployment until unpinned.
 **Provisioning.** A request arrives at the control plane, which checks admission, records
 the tenant and the identity public key its owner presented, creates the tenant's
 storage and components bound only to that tenant's resources, applies the schema, and
-records the routing entry. Every step is compensating: a failure at step *n* undoes
+records the routing entry. The components are at least the tenant's orchestrator and its
+admin gateway ([`architecture/admin`](admin.md#the-admin-gateway-as-a-component)), the
+minimum set every tenant has: without the gateway no person's request reaches it. Every step is compensating: a failure at step *n* undoes
 *n-1…1*. The owner generates that key and keeps its private half
 ([`patterns/principal-identity`](../patterns/principal-identity.md)); the control plane
 never generates one.

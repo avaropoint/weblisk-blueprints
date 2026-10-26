@@ -39,7 +39,7 @@ complete.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       types:
         - name: EventEnvelope
