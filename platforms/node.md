@@ -225,7 +225,7 @@ shuts the component down in an orderly way rather than killing a wrapper.
 
 Primitive Mapping says where an algorithm or format comes from. This says which
 **capabilities** the runtime already provides, so a generator does not build one
-beside it. The verdict vocabulary is [`schemas/platform.md`](../schemas/platform.md#service-mapping-service-mapping).
+beside it. The verdict vocabulary is [`schemas/mapping.md`](../schemas/mapping.md#verdicts).
 
 Node gives a component a long-lived process, a filesystem and an event loop. It is a
 runtime rather than a service platform, so most capabilities here are `IMPLEMENT` —

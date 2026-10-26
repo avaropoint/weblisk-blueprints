@@ -1023,7 +1023,10 @@ SIGTERM because those are its subject rather than an assumption about how
 something else is implemented. Such a blueprint MUST state, in its overview, that
 the capability is unavailable where the facility is absent — a Worker cannot spawn
 a process, and a blueprint about spawning processes has to say so rather than let
-a generator discover it.
+a generator discover it. The blueprint declares this in its header as
+`subject_facility`, naming the concept and carrying that statement
+([`schemas/mapping`](mapping.md#subject-facility)); a tool's own list of exempt
+files is the form the declaration replaces.
 
 This exception is narrow. It covers a blueprint whose whole purpose is a facility;
 it does not cover a blueprint that merely assumes one while specifying something
@@ -1044,9 +1047,13 @@ drift from the first.
 
 Every platform blueprint MUST carry a `## Primitive Mapping` section covering
 every primitive the specification blueprints require, with one row per primitive.
-A primitive the platform cannot provide MUST be marked **UNFILLED** rather than
-omitted or approximated. An unfilled slot is a stated gap; an omitted one is
-indistinguishable from a satisfied one.
+Who answers each primitive is [`schemas/mapping`](mapping.md#classes)' `classes`
+block, not this section: an identity primitive is the language's, and a
+platform's row for one narrows the language's rule rather than answering the
+primitive itself; a storage primitive is the platform's own.
+What a primitive the platform cannot provide is marked, and why, is
+[`schemas/mapping`](mapping.md#verdicts)' rule `unfilled-is-stated`, stated
+there once for every axis and not restated here.
 
 ### Why this is a rule and not a preference
 

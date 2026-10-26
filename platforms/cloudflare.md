@@ -172,7 +172,7 @@ table.
 
 Primitive Mapping says where an algorithm or format comes from. This says which
 **capabilities** the platform already provides, so a generator does not build one
-beside it. The verdict vocabulary is [`schemas/platform.md`](../schemas/platform.md#service-mapping-service-mapping).
+beside it. The verdict vocabulary is [`schemas/mapping.md`](../schemas/mapping.md#verdicts).
 
 Cloudflare is unusual here: it supplies as managed services much of what a
 self-hosted runtime must implement. Most rows are `PLATFORM`, and that is the

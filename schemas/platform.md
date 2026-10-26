@@ -56,7 +56,7 @@ describes itself — `name: node` implies `platform: node`.
 | 8 | Runtime Requirements | `## Runtime Requirements` | yaml:runtime | **Yes** | Language version, dependencies, build tools |
 | 9 | Build and Run | `## Build and Run` | table | **Yes** | Build commands, run commands, environment setup |
 | 10 | Platform-Specific Conventions | `## Platform-Specific Conventions` | table | **Yes** | Language idioms, concurrency model, IO patterns |
-| 11 | Type Mapping | `## Type Mapping` | table | **Yes** | How schema types map to language types |
+| 11 | Type Mapping | `## Type Mapping` | table | **Yes** | Transitional: kept required so today's validation still reads it; the spelling is a language mapping's (see [Type Mapping](#type-mapping-type-mapping)) |
 | 12 | Security | `## Security` | narrative | **Yes** | Platform-specific security practices |
 | 13 | Testing | `## Testing` | narrative | **Yes** | Test framework, test structure, CI guidance |
 | 14 | Implementation Notes | `## Implementation Notes` | narrative | **Yes** | Practical guidance |
@@ -85,27 +85,11 @@ invites a generator to implement one. The specification blueprints cannot say �
 they are platform-neutral by rule — so a platform blueprint is the only document
 that can.
 
-One row per capability a specification blueprint requires:
-
-```markdown
-| Capability | Required by | Provided on <platform> by | Verdict |
-|---|---|---|---|
-| Scheduled execution | `patterns/scheduling`, `agents/cron` | Cron Triggers | `PLATFORM` |
-| Task dispatch | `patterns/task-dispatch` | Queues | `ADAPTER` |
-| Expression evaluation | `patterns/expression` | — | `IMPLEMENT` |
-| Process execution | `patterns/command` | — | `UNAVAILABLE` |
-```
-
-| Verdict | Meaning |
-|---|---|
-| `PLATFORM` | The platform provides the capability. A generator MUST NOT implement it |
-| `ADAPTER` | The platform provides the mechanism; the component supplies the blueprint's contract over it |
-| `IMPLEMENT` | The platform provides nothing. Build it as the blueprint specifies |
-| `UNAVAILABLE` | The capability cannot exist here. The blueprint depending on it states so, per `common.md` Platform Neutrality |
-
-A capability the platform provides and the blueprint omits is indistinguishable from
-one it does not — the same reasoning that makes an **UNFILLED** primitive a stated gap
-rather than a silent one.
+Which capabilities there are, and which blueprints require each, is
+[`schemas/concepts`](concepts.md#concepts)' list under `service/` and `storage/`;
+the verdict each row gives is [`schemas/mapping`](mapping.md#verdicts)' one
+vocabulary, and each row is a rule of that class. Neither is restated here; the
+table a platform file carries today is the form those rules replace.
 
 ### Project Structure (`## Project Structure`)
 
@@ -139,15 +123,21 @@ Run: `<run-command>`
 ### Primitive Mapping (`## Primitive Mapping`)
 
 One row per primitive the specification blueprints require, naming what provides it
-here. `schemas/common.md` states the rule this section exists to satisfy and what an
-**UNFILLED** slot means; it is not restated.
+here. [`schemas/common.md`](common.md#platform-blueprints--platforms) requires the
+section; what an **UNFILLED** slot means is
+[`schemas/mapping`](mapping.md#verdicts)' rule `unfilled-is-stated`, and it is
+not restated.
 
-```markdown
-| Primitive required by | Provided on <platform> by | Status |
-|---|---|---|
-| `protocol/identity` — signature algorithm | <what provides it> | runtime |
-| `architecture/storage` — default backend | <what provides it> | runtime |
-```
+Which primitives there are is [`schemas/concepts`](concepts.md#concepts)' list
+under `identity-primitive/` and `storage/`, and each row is a rule of that class
+in [`schemas/mapping`](mapping.md#classes), whose `classes` block names each
+class's owner. `identity-primitive` is the language's, so a platform's row for
+one is a rule that `refines` the language's rule for the same concept, as
+[`schemas/mapping`](mapping.md#requirements)' `one-owning-axis` requires of
+every axis that narrows another's answer. `storage` is the platform's own, so a
+platform's storage row, `storage/default-backend` among them, is the answer
+itself and carries no `refines`; it is a language's storage rule that refines
+the platform's.
 
 A platform blueprint spells the name its runtime uses. It does not restate what the
 primitive is, which standard defines it, or what parameters it takes — those belong to
@@ -240,15 +230,9 @@ blueprint did not state. See [Declared Names](common.md#declared-names).
 
 #### An UNFILLED slot is a stated gap
 
-A platform blueprint maps a neutral requirement to a concrete module or
-mechanism. Where it has none, the slot is marked **UNFILLED**.
-
-Generation for that platform MUST NOT proceed as though an unfilled slot were
-satisfied. The module or mechanism has to be named — and verified to exist —
-when the implementation is commissioned.
-
-Stated here because three platform blueprints each stated it, in the same words,
-in their own Dependencies preamble. A platform blueprint MUST NOT restate it.
+What a slot a platform cannot fill is, and what a build does with it, is
+[`schemas/mapping`](mapping.md#verdicts)' rule `unfilled-is-stated`, stated
+there once for every axis. A platform blueprint MUST NOT restate it.
 
 #### The rules every platform's HTTP surface obeys
 
@@ -297,20 +281,15 @@ make the artifact good, not to make a checker's job easy.
 
 ### Type Mapping (`## Type Mapping`)
 
-How schema scalar types map to language types:
-
-```markdown
-| Schema Type | <Language> Type | Notes |
-|-------------|----------------|-------|
-| `string` | `string` | |
-| `int` | `int32` | |
-| `int64` | `int64` | Used for timestamps |
-| `float` | `float64` | |
-| `bool` | `bool` | |
-| `object` | `map[string]any` | Or typed struct |
-| `list` | `[]T` | Typed slice |
-| `uuid` | `string` | Validated format |
-```
+How a schema type is spelled is a language's, not a platform's: the types are
+[`schemas/blocks`](blocks.md#types)' vocabulary, each one a `type/` concept in
+[`schemas/concepts`](concepts.md#concepts), and each is answered by a rule of a
+language mapping ([`schemas/mapping`](mapping.md#classes)), checked against
+[`vectors/types.json`](../vectors/types.json). A platform that narrows one, as a
+runtime whose number type cannot hold every integer must, does so with a rule
+that `refines` the language's. The section stays required in the table above
+only while existing platform blueprints and their validation still carry it;
+it holds narrowings, never a second spelling.
 
 ### Security (`## Security`)
 

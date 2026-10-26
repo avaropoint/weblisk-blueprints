@@ -480,10 +480,11 @@ process: data = canonicalize(value) → Sign(data)
 [RFC 8785 JSON Canonicalization Scheme (JCS)](https://www.rfc-editor.org/rfc/rfc8785).
 This guarantees identical byte output across all languages and platforms:
 
-1. Object keys sorted lexicographically by Unicode code point
+1. Object keys sorted by their UTF-16 code units, which is not code-point
+   order for a character outside the Basic Multilingual Plane
 2. No insignificant whitespace
-3. Numbers serialized per ES2015 `JSON.stringify` rules (no trailing zeros,
-   no positive sign on exponent)
+3. Numbers serialized as ES2015 serializes a double (no trailing zeros; an
+   exponent keeps its sign, as in `1e+30`)
 4. Strings use minimal \uXXXX escaping (only required characters)
 
 Native `JSON.stringify` is NOT sufficient — key ordering varies across
