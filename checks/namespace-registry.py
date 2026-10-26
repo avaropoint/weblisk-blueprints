@@ -15,7 +15,8 @@ defines to protocol/identity's registry and to the published vectors.
         registry's latest state, not its own released_at), release-unchained
         (no release held to the one before it)
     checks/namespace-registry.py --pattern FILE      read the pattern's
-        statements and routes from FILE instead of patterns/namespace.md
+        statements, routes and requires from FILE instead of
+        patterns/namespace.md
 """
 import copy, hashlib, json, os, re, sys
 import yaml
@@ -204,6 +205,13 @@ def defined_here():
         pattern = open(PATTERN, encoding="utf-8").read() if PATTERN else read("patterns/namespace.md")
     except FileNotFoundError:
         return ["patterns/namespace.md: missing, so no statement is defined"]
+    # D11: a pattern requires nothing above its layer. An architecture
+    # blueprint it cites is related:, in its header and in no requires block.
+    head = re.search(r"^requires: \[(.*?)\]$", pattern, re.M)
+    up = [r.strip() for r in (head.group(1).split(",") if head else []) if r.strip().startswith(("architecture/", "agents/"))]
+    up += re.findall(r"^  - blueprint: ((?:architecture|agents)/[a-z0-9-]+)$", pattern, re.M)
+    for r in sorted(set(up)):
+        faults.append(f"patterns/namespace.md: requires {r}, a blueprint above the pattern layer (D11); make it related:")
     defined = set(re.findall(r'^"(weblisk/[a-z0-9-]+/v\d+)" 0x00', pattern, re.M))
     if defined != {CLAIM, GRANT, TRANSFER, RELEASE}:
         faults.append(f"patterns/namespace.md defines {sorted(defined)}, not the four statements")

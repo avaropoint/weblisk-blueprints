@@ -414,6 +414,18 @@ else
 	fails=$((fails + 1))
 fi
 
+# A pattern requires nothing above its layer (D11): a copy of the pattern
+# that requires architecture/storage again must report exactly that edge.
+sed 's|^requires: \[protocol/types, |requires: [protocol/types, architecture/storage, |' patterns/namespace.md >"$tmp/namespace.md"
+expect 1 "namespace-registry control: a pattern that requires an architecture blueprint fails" python3 checks/namespace-registry.py --pattern "$tmp/namespace.md"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^patterns/namespace.md: requires architecture/storage, a blueprint above the pattern layer" "$tmp/out"; then
+	echo "ok   namespace-registry control: exactly one finding, the architecture/storage edge"
+else
+	echo "FAIL namespace-registry control: want exactly one finding, the architecture/storage edge"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 # Three more of the rules broken, each reported only in the sequence that
 # exercises it: a registry that lets a retired name be claimed again is caught
 # at the first re-claim, one whose rotation drops the grants at the first act a

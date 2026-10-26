@@ -2,7 +2,8 @@
 type: pattern
 name: namespace
 version: 1.0.0
-requires: [protocol/types, protocol/identity, architecture/storage, patterns/principal-identity]
+requires: [protocol/types, protocol/identity, patterns/principal-identity]
+related: [architecture/storage, architecture/hub, architecture/tenancy]
 platform: any
 tier: free
 adoption: opt-in
@@ -69,21 +70,6 @@ requires:
       breaking: version-bump
       removed: halt-immediately
 
-  - blueprint: architecture/storage
-    version: ">=1.6.0 <2.0.0"
-    bindings:
-      types:
-        - name: LogKey
-          fields_used: [key_id, public_key, not_after, key_protection, signature]
-        - name: LogCheckpoint
-          fields_used: [seq, tip, issued_at, key, signature]
-      behaviors:
-        - name: sealed-log
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
   - blueprint: patterns/principal-identity
     version: ">=1.9.0 <2.0.0"
     bindings:
@@ -98,6 +84,14 @@ requires:
       breaking: version-bump
       removed: halt-immediately
 ```
+
+A pattern requires nothing above its layer, so
+[`architecture/storage`](../architecture/storage.md), whose sealed log a
+registry keeps, is `related:` and not required: this pattern cites the sealed
+log's rules and binds none of its types. The hub that runs a registry
+([`architecture/hub`](../architecture/hub.md)) and the tenancy that claims its
+first name ([`architecture/tenancy`](../architecture/tenancy.md)) require this
+pattern, never the other way round.
 
 ---
 
