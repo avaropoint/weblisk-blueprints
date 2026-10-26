@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: change-management
-version: 2.0.0
+version: 3.0.0
 requires: [protocol/spec, protocol/types, architecture/orchestrator, architecture/agent, patterns/messaging, patterns/versioning]
 platform: any
 tier: free
@@ -59,7 +59,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       types:
         - name: Strategy
@@ -418,7 +418,20 @@ transitive_resolution:
     4: If yes, propagate assessment to B's dependents (A)
     5: Continue until no further propagation is needed
 
-  depth_limit: 10
+  # The walk's depth bound has one home and is not stated here
+  # (architecture/fabric, requirement reach-max-depth). Reaching it is
+  # reported as incomplete, never as no further dependents.
+  # Gap: architecture/fabric is not in this file's requires, and a binding
+  # cannot yet name a requirement, so a build of this file does not carry
+  # the value. Today's pipeline builds the prompt from bindings and passes
+  # this ref to the model as text: it neither resolves the ref nor refuses
+  # the file, and a build reads the bound only as well as the model does.
+  # What closes it is part selection (corpus-v2 lane v2-cli-select), which
+  # sends cited requirements by id and digest and refuses a build that
+  # names one it cannot resolve; until then a generated file's depth bound
+  # is unverified, never assumed, and never read as a number or no bound.
+  # max_dependency_depth below cites the same requirement under the same gap.
+  depth_limit: requirement://weblisk/architecture/fabric:reach-max-depth
   cycle_detection: required
   cycle_resolution: >
     If a cycle is detected, flag for operator intervention.
@@ -1489,7 +1502,7 @@ constraints:
     max_concurrent_deployments: 3
     reconciliation_deadline: 300  # seconds
     deployment_timeout: 600  # seconds
-    max_dependency_depth: 10
+    max_dependency_depth: requirement://weblisk/architecture/fabric:reach-max-depth
 
   invariants:
     - Every ChangeRecord has at least one ChangeAssessment

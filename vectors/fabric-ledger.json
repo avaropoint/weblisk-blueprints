@@ -1,0 +1,212 @@
+{
+ "format": "A fabric ledger of four entries, as architecture/fabric.md's LedgerEntry. Each entry is stored as its RFC 8785 canonical bytes and one line feed; line_sha256[i] is the SHA-256 of entry i's line without its line feed, written sha256:<hex> as patterns/content-identity's digest-spelling requires and as each entry's previous_digest carries it; this is not the spelling a storage checkpoint uses, whose tip is still bare hex (a gap that rule names), and the fabric defines no checkpoint of its own. Verify with an RFC 8785 canonicaliser and SHA-256 alone: canonicalise entry i, take its SHA-256, compare it with line_sha256[i]; seq is i+1; entry 1's previous_digest is the sha256 prefix and 64 zeros, and entry i+1's is line_sha256[i]. A fault is reported at the entry whose bytes do not hold. Every tenant name is in the example namespace, and every published name (a requirement, a mapping rule, source weblisk) is a ref in this corpus's weblisk namespace, illustrative rather than resolvable: requirement://weblisk/architecture/orchestrator:register-claims-namespace is schemas/names.md's own example and orchestrator.md declares no such requirement, and languages/go.md does not yet give its mapping rows part ids, so mapping://weblisk/languages/go:timestamp names a rule that has no id today; a cited_version with `projection` is a projection digest (patterns/content-identity, projection-digest): `part` stands for the projection the requirement's or mapping rule's family declares, and `configuration` for the provider's reported settings; an actor is an identity id, the key fingerprint protocol/identity defines, here the SHA-256 of a label; every digest a NodeRef cites is the SHA-256 of a label, standing in for content this vector does not carry.",
+ "entries": [
+  {
+   "seq": 1,
+   "scope": {
+    "level": "internal",
+    "context": "example"
+   },
+   "act": "assert",
+   "claim": {
+    "identity": {
+     "from": {
+      "source": "example",
+      "artifact_id": "services/orchestrator/register.go",
+      "address": "services/orchestrator/register.go",
+      "kind": "code",
+      "cited_version": {
+       "algorithm": "sha256",
+       "digest": "280944b1a6fb468b27d19be2012e30da8f6c9cb659579e8cd9bed5c25cda9545"
+      },
+      "cited_size": 4211,
+      "anchor": {
+       "kind": "symbol",
+       "value": "(Registry).Register"
+      }
+     },
+     "to": {
+      "source": "weblisk",
+      "artifact_id": "requirement://weblisk/architecture/orchestrator:register-claims-namespace",
+      "kind": "requirement",
+      "cited_version": {
+       "algorithm": "sha256",
+       "digest": "199c7e4a0eee8f10de897ae503f34ed5c99a75ad30d6abc27f7ba0dbe94be5d4",
+       "projection": "part"
+      }
+     },
+     "relation": "implements",
+     "scope": {
+      "level": "internal",
+      "context": "example"
+     }
+    },
+    "confidence": 1,
+    "basis": "declared by the run statement's subject annotations"
+   },
+   "status": "inferred",
+   "actor": "015859355627236ab6e98507de7786b0451238af7e7085b6a3f2f753a1109511",
+   "recorded_at": 1767225600,
+   "partition": "run://example/0193f0a8-7c2e-7d41-9b1a-2f4c6e8a0b13",
+   "run": {
+    "id": "run://example/0193f0a8-7c2e-7d41-9b1a-2f4c6e8a0b13",
+    "statement_digest": "sha256:c09d7f2277fbb05af966ff3869ac34b16f1fadaea379de7188bff8357b44683d",
+    "signed": false
+   },
+   "on_behalf_of": "d3f2e3d63f21b02ff510447d262db365e250c29b7393a2527117973ab2130a9f",
+   "previous_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  {
+   "seq": 2,
+   "scope": {
+    "level": "internal",
+    "context": "example"
+   },
+   "act": "assert",
+   "claim": {
+    "identity": {
+     "from": {
+      "source": "example",
+      "artifact_id": "services/orchestrator/register.go",
+      "address": "services/orchestrator/register.go",
+      "kind": "code",
+      "cited_version": {
+       "algorithm": "sha256",
+       "digest": "280944b1a6fb468b27d19be2012e30da8f6c9cb659579e8cd9bed5c25cda9545"
+      },
+      "cited_size": 4211
+     },
+     "to": {
+      "source": "weblisk",
+      "artifact_id": "mapping://weblisk/languages/go:timestamp",
+      "kind": "mapping",
+      "cited_version": {
+       "algorithm": "sha256",
+       "digest": "df67c13112986514270b7597c86897ddd403a0a4adf28bb6e5d02c5bd54e7c1f",
+       "projection": "part"
+      }
+     },
+     "relation": "generated_from",
+     "scope": {
+      "level": "internal",
+      "context": "example"
+     }
+    },
+    "confidence": 1,
+    "basis": "declared by the run statement's resolved dependencies"
+   },
+   "status": "inferred",
+   "actor": "015859355627236ab6e98507de7786b0451238af7e7085b6a3f2f753a1109511",
+   "recorded_at": 1767225600,
+   "partition": "run://example/0193f0a8-7c2e-7d41-9b1a-2f4c6e8a0b13",
+   "run": {
+    "id": "run://example/0193f0a8-7c2e-7d41-9b1a-2f4c6e8a0b13",
+    "statement_digest": "sha256:c09d7f2277fbb05af966ff3869ac34b16f1fadaea379de7188bff8357b44683d",
+    "signed": false
+   },
+   "on_behalf_of": "d3f2e3d63f21b02ff510447d262db365e250c29b7393a2527117973ab2130a9f",
+   "previous_digest": "sha256:789dd01e5c3361ad5a5d5e4e1b2e33316ba4920ae2c57c53405cda440b864367"
+  },
+  {
+   "seq": 3,
+   "scope": {
+    "level": "internal",
+    "context": "example"
+   },
+   "act": "assert",
+   "claim": {
+    "identity": {
+     "from": {
+      "source": "example",
+      "artifact_id": "policies/access-control.md",
+      "kind": "policy",
+      "anchor": {
+       "kind": "section",
+       "value": "requirements"
+      },
+      "cited_version": {
+       "algorithm": "sha256",
+       "digest": "77c2bb5ba4cdecf9c5bb9f4da90a9178c73e1be6aee9294a2c182f27497e76d7"
+      },
+      "cited_size": 9120
+     },
+     "to": {
+      "source": "example",
+      "artifact_id": "provider://example/example-idp",
+      "kind": "provider",
+      "cited_version": {
+       "algorithm": "sha256",
+       "digest": "34079dc440f8122f6690a7c5efe6afc30729896987cbcb47e5a72b72c5522e3d",
+       "projection": "configuration"
+      }
+     },
+     "relation": "enforced_by",
+     "scope": {
+      "level": "internal",
+      "context": "example"
+     }
+    },
+    "confidence": 1,
+    "basis": "the provider reports multi-factor sign-in required for every member"
+   },
+   "status": "inferred",
+   "actor": "3cc1c0dac442d9a58d6e6ba7fce2dbde9cfcb2af157e22792f2223e2c15d3249",
+   "recorded_at": 1767229200,
+   "partition": "provider/example-idp",
+   "previous_digest": "sha256:d8db39f44440a8859e67bc759771a360f7c8a600b7d800608952eb006d9d85d7"
+  },
+  {
+   "seq": 4,
+   "scope": {
+    "level": "internal",
+    "context": "example"
+   },
+   "act": "revise",
+   "claim": {
+    "identity": {
+     "from": {
+      "source": "example",
+      "artifact_id": "policies/access-control.md",
+      "kind": "policy",
+      "anchor": {
+       "kind": "section",
+       "value": "requirements"
+      },
+      "cited_version": {
+       "algorithm": "sha256",
+       "digest": "77c2bb5ba4cdecf9c5bb9f4da90a9178c73e1be6aee9294a2c182f27497e76d7"
+      },
+      "cited_size": 9120
+     },
+     "to": {
+      "source": "example",
+      "artifact_id": "provider://example/example-idp",
+      "kind": "provider",
+      "cited_version": {
+       "algorithm": "sha256",
+       "digest": "34079dc440f8122f6690a7c5efe6afc30729896987cbcb47e5a72b72c5522e3d",
+       "projection": "configuration"
+      }
+     },
+     "relation": "enforced_by",
+     "scope": {
+      "level": "internal",
+      "context": "example"
+     }
+    },
+    "confidence": 1,
+    "basis": "confirmed by a person reading the policy section against the provider's settings"
+   },
+   "status": "confirmed",
+   "actor": "d3f2e3d63f21b02ff510447d262db365e250c29b7393a2527117973ab2130a9f",
+   "recorded_at": 1767232800,
+   "previous_digest": "sha256:c60e233b1f2e4e9c48518d0681ca325c8776d34fc05e880a9f6116a428b77991"
+  }
+ ],
+ "line_sha256": [
+  "sha256:789dd01e5c3361ad5a5d5e4e1b2e33316ba4920ae2c57c53405cda440b864367",
+  "sha256:d8db39f44440a8859e67bc759771a360f7c8a600b7d800608952eb006d9d85d7",
+  "sha256:c60e233b1f2e4e9c48518d0681ca325c8776d34fc05e880a9f6116a428b77991",
+  "sha256:6565197c7230740296660078b6b26c20f66391828429b2f8df4f912139eb26c1"
+ ]
+}

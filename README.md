@@ -156,7 +156,7 @@ Hub (self-sovereign deployment)
 
 - **Hub** — A complete Weblisk deployment: orchestrator, domains, agents, data, and policies under one owner's control
 - **Orchestrator** — Trust anchor: manages registration, namespace ownership, service directory distribution, channel brokering. Does NOT execute tasks or hold programme objectives
-- **Admin** — Separate admin gateway (different domain, different network, different auth model), operator ML-DSA-65 identity, mandatory MFA, IP allowlisting, a step-up the person makes themselves for every destructive action, and a second person only where a tenant declares one
+- **Admin** — The admin gateway, a component every tenant is built with (different domain, different network, different auth model), operator ML-DSA-65 identity, mandatory MFA, IP allowlisting, a step-up the person makes themselves for every destructive action, and a second person only where a tenant declares one
 - **CLI** — Terminal commands for system interrogation and management
 - **Observability** — Structured JSON logs, distributed trace propagation, structured metrics
 - **Gateway** — Application edge security agent: end-user authentication, ABAC authorization, rate limiting, route protection, request mediation, response sanitization. Separate from admin gateway

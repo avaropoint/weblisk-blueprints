@@ -27,7 +27,7 @@ specifications that all implementations must satisfy.
 | Blueprint | Purpose |
 |-----------|---------|
 | [cli.md](cli.md) | CLI specification — scaffolding, code generation, operations |
-| [admin.md](admin.md) | Platform admin — operator identity, roles, separate admin gateway |
+| [admin.md](admin.md) | Platform admin — operator identity, roles, and the admin gateway, a component of every tenant (kind `admin`) |
 | [observability.md](observability.md) | Structured logging, distributed tracing, metrics |
 | [lifecycle.md](lifecycle.md) | Continuous optimization loop (event-driven) |
 | [testing.md](testing.md) | Conformance test suite specification |

@@ -102,6 +102,7 @@ rewrites that place.
 | `/v1/admin/strategies` and its other four routes, `weblisk strategies`, and the overview's `strategies` member | Programme objectives: `weblisk objectives` and the overview's `objectives` | [`architecture/admin`](architecture/admin.md#programme-objectives) 4.0.0, Programme Objectives; [`architecture/cli`](architecture/cli.md#objective-commands) 4.0.0, Objective Commands |
 | `/v1/admin/observations`, `/v1/admin/observations/trends` and `weblisk observations` | None. The runtime signal is telemetry's | [`architecture/admin`](architecture/admin.md#audit) 4.0.0, Audit; [`architecture/cli`](architecture/cli.md) 4.0.0 |
 | `/v1/admin/approvals/batch` and `/v1/admin/approvals/{id}`, the Approval Queue of recommendations, and `weblisk approvals accept --all` and `--priority` | The decision inbox, `GET /v1/admin/approvals`, each decision made at the route its item's `decide` names | [`architecture/admin`](architecture/admin.md#decision-inbox) 4.0.0, Decision Inbox; [`architecture/cli`](architecture/cli.md#approval-commands) 4.0.0, Approval Commands |
+| `fabric.traversal.max_depth`, the fabric's configured traversal depth | requirement `reach-max-depth`, `requirement://weblisk/architecture/fabric:reach-max-depth`, which no configuration sets | [`architecture/fabric`](architecture/fabric.md#requirements) 3.0.0, Requirements and Configuration |
 
 ## Entries
 
@@ -448,4 +449,6 @@ itself is always allowed.
   allow:
   - {path: architecture/lifecycle.md, why: it retires whole, until: architecture/lifecycle@2.0.0}
   - {path: agents/lifecycle.md, why: it retires whole, until: agents/lifecycle@3.0.0}
+- retired:
+  - {spelling: fabric.traversal.max_depth, match: exact}
 ```

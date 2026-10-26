@@ -1,0 +1,102 @@
+{
+  "file": "vectors/grammar/slot-order.md",
+  "family": "vectors/grammar/test-blueprint@1",
+  "length": 534,
+  "version_hash": "sha256:b674cc7afda5819c42fcb4ee5154382cca9f3f77bd7531b26f0a317f9724ce54",
+  "parts": [
+    {
+      "span": [0, 64],
+      "part": "header",
+      "slot": null,
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:090a20476b335f38ff2f2efd7e75d7e8d3b3fa4bf57ab2a91b372661e8b9c2c3",
+      "entries": [
+        {
+          "id": "family",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:0a4926df20a363d3527906c15468ed0c3c23ae782ce282a1b7b55ec720717562"
+        },
+        {
+          "id": "version",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:39fe4a40977d0585fd5704359e3685b0ada5cf5ee061e5d97385601d120cd0ec"
+        }
+      ]
+    },
+    {
+      "span": [64, 198],
+      "part": "text",
+      "slot": "title",
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:1e0dbd7f75fa62e87eb69f402100967ba55a27c5ce085502c97a7daddb41b0e2"
+    },
+    {
+      "span": [198, 215],
+      "part": "text",
+      "slot": "verifies",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:817b1fa3eae2537bd10a8a271ca4c40b799f05f71d6b855f9e40446f21ab62fa"
+    },
+    {
+      "span": [215, 372],
+      "part": "block",
+      "slot": "verifies",
+      "block": "verifies",
+      "family": "check",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:0fcd6be957e425d07e89bae01bb8ee02fa3bdc4ac67f88ad171302228a0c3ba9",
+      "entries": [
+        {
+          "id": "order-is-reported",
+          "digest": "sha256:73d0a683480e62143f49a9b37b22b8e77512eac0f830d046b412a0b613e8a30d"
+        }
+      ]
+    },
+    {
+      "span": [372, 373],
+      "part": "text",
+      "slot": "verifies",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [373, 390],
+      "part": "text",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:9847786846315cd9627e8e8f8a391f46a055780253236daa667d267bb82b4365"
+    },
+    {
+      "span": [390, 534],
+      "part": "block",
+      "slot": "requirements",
+      "block": "requirements",
+      "family": "requirement",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:73009946e6680c7845aae1319a7658c37adb748368f0c59fe2322c40e3e63882",
+      "entries": [
+        {
+          "id": "slots-keep-their-order",
+          "digest": "sha256:3738d756971027c03bc5c3bb06a982418c66946d1951fad595f5c9fe728f0968"
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "code": "slot-order",
+      "policy": "report",
+      "span": [198, 215],
+      "subject": "verifies"
+    }
+  ]
+}

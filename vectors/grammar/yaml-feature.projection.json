@@ -1,0 +1,97 @@
+{
+  "file": "vectors/grammar/yaml-feature.md",
+  "family": "vectors/grammar/test-blueprint@1",
+  "length": 537,
+  "version_hash": "sha256:f38ca18594db050862122aa9652fe1cbfc09af7279372525d675d71f04d8de7a",
+  "parts": [
+    {
+      "span": [0, 64],
+      "part": "header",
+      "slot": null,
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:090a20476b335f38ff2f2efd7e75d7e8d3b3fa4bf57ab2a91b372661e8b9c2c3",
+      "entries": [
+        {
+          "id": "family",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:0a4926df20a363d3527906c15468ed0c3c23ae782ce282a1b7b55ec720717562"
+        },
+        {
+          "id": "version",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:39fe4a40977d0585fd5704359e3685b0ada5cf5ee061e5d97385601d120cd0ec"
+        }
+      ]
+    },
+    {
+      "span": [64, 168],
+      "part": "text",
+      "slot": "title",
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:ad4307f438daaf6f70fee4ee6235372305f607c6925fc76bf52bb502f4318347"
+    },
+    {
+      "span": [168, 185],
+      "part": "text",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:9847786846315cd9627e8e8f8a391f46a055780253236daa667d267bb82b4365"
+    },
+    {
+      "span": [185, 369],
+      "part": "block",
+      "slot": "requirements",
+      "block": "requirements",
+      "family": "requirement",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:34a08feaa21e68458a3cc97cc7e154cd77ad85952cbd92528c593290a2da4bff",
+      "entries": []
+    },
+    {
+      "span": [369, 370],
+      "part": "text",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [370, 387],
+      "part": "text",
+      "slot": "verifies",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:817b1fa3eae2537bd10a8a271ca4c40b799f05f71d6b855f9e40446f21ab62fa"
+    },
+    {
+      "span": [387, 537],
+      "part": "block",
+      "slot": "verifies",
+      "block": "verifies",
+      "family": "check",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:ffa20041714c0c3e4183f5a4598277e3bb49e8f94d15efd50db348c577628215",
+      "entries": [
+        {
+          "id": "anchor-refused",
+          "digest": "sha256:0b7ac491d8dc071e7fa95483e941627a2a1e98f0b52d30480ea2d8f2ef5ba467"
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "code": "yaml-feature",
+      "policy": "refuse",
+      "span": [185, 369],
+      "subject": "anchor"
+    }
+  ]
+}
