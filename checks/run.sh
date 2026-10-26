@@ -307,14 +307,23 @@ done
 # byte changed in one vector's message must fail exactly that vector, and one
 # byte changed in every vector's message must fail every one. statements.py
 # also holds every registered prefix to having vectors or being named as
-# having none yet. A leg whose implementation is not installed says NOT RUN,
-# never ok; REQUIRE_ALL_VERIFIERS=1 makes that a failure.
+# having none yet. OpenSSL is not optional: a leg that cannot run fails, as
+# every check here does. circl and noble are the exception, and only for want
+# of the tool: with no go on PATH, or no pinned noble installed, the leg says
+# NOT RUN, never ok, and REQUIRE_ALL_VERIFIERS=1 makes that a failure. A go
+# that is there and cannot build the generator, from a compile error or a
+# module cache without circl, is a failure, never NOT RUN.
 nvec=$(python3 -c 'import json; print(len(json.load(open("vectors/fixed-form-statements.json"))["vectors"]))')
 notrun=0
-if ! command -v go >/dev/null 2>&1; then
-	echo "no go on PATH" >"$tmp/circl-why"
-elif (cd checks/ml-dsa && GOPROXY=off GOFLAGS=-mod=readonly go build -o "$tmp/ml-dsa" .) >"$tmp/circl-why" 2>&1; then
-	:
+built=0
+if command -v go >/dev/null 2>&1; then
+	if (cd checks/ml-dsa && GOPROXY=off GOFLAGS=-mod=readonly go build -o "$tmp/ml-dsa" .) >"$tmp/circl-build" 2>&1; then
+		built=1
+	else
+		echo "FAIL statements (circl): go is on PATH and the generator does not build"
+		sed 's/^/     /' "$tmp/circl-build"
+		fails=$((fails + 1))
+	fi
 fi
 for leg in openssl circl noble; do
 	case $leg in
@@ -322,13 +331,15 @@ for leg in openssl circl noble; do
 	circl) set -- "$tmp/ml-dsa" --root . check ;;
 	noble) set -- node checks/ml-dsa/noble.mjs ;;
 	esac
-	if [ "$leg" = circl ] && [ ! -x "$tmp/ml-dsa" ]; then
-		why=$(head -1 "$tmp/circl-why")
-	elif [ "$leg" = noble ] && ! command -v node >/dev/null 2>&1; then
-		why="no node on PATH"
-	else
-		"$@" >"$tmp/out" 2>&1
-		if [ $? -eq 2 ]; then why=$(head -1 "$tmp/out"); else why=; fi
+	why=
+	if [ "$leg" = circl ]; then
+		if ! command -v go >/dev/null 2>&1; then why="no go on PATH"; elif [ "$built" = 0 ]; then continue; fi
+	elif [ "$leg" = noble ]; then
+		if ! command -v node >/dev/null 2>&1; then
+			why="no node on PATH"
+		elif ! "$@" >"$tmp/out" 2>&1 && grep -q '^noble: not run: ' "$tmp/out"; then
+			why=$(head -1 "$tmp/out")
+		fi
 	fi
 	if [ -n "$why" ]; then
 		echo "NOT RUN statements ($leg): $why"

@@ -12,12 +12,14 @@ checks/run.sh
 runs them all and exits 0 only when every check passes and every control
 fails. They need Python 3 and PyYAML, and `statements.py` and
 `namespace-registry.py` need OpenSSL 3.5 or later. A check that cannot run
-fails; it never passes for want of something to read. The one exception is
-the statement vectors' circl and noble legs ([`ml-dsa/`](ml-dsa/)), which need
-Go and the pinned `@noble/post-quantum` (`npm ci --ignore-scripts` in
-`checks/ml-dsa`, or `NOBLE_DIR` naming a directory that holds it): a leg that
-cannot run prints `NOT RUN`, never `ok`, and `REQUIRE_ALL_VERIFIERS=1` makes it
-a failure.
+fails; it never passes for want of something to read, and OpenSSL's leg of the
+statement vectors is no exception. The one exception is the statement vectors'
+circl and noble legs ([`ml-dsa/`](ml-dsa/)), and only for want of the tool:
+with no `go` on PATH, or without the pinned `@noble/post-quantum`
+(`npm ci --ignore-scripts` in `checks/ml-dsa`, or `NOBLE_DIR` naming a
+directory that holds it), the leg prints `NOT RUN`, never `ok`, and
+`REQUIRE_ALL_VERIFIERS=1` makes it a failure. A `go` that is on PATH and cannot
+build the generator — a compile error, or a module cache without circl — fails.
 
 | Check | What it holds the corpus to | Control |
 |---|---|---|
