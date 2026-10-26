@@ -130,10 +130,14 @@ not restated.
 
 Which primitives there are is [`schemas/concepts`](concepts.md#concepts)' list
 under `identity-primitive/` and `storage/`, and each row is a rule of that class
-in [`schemas/mapping`](mapping.md#classes). Both classes are a language's, so a
-platform's row is a rule that `refines` the language's rule for the same
-concept, as [`schemas/mapping`](mapping.md#requirements)' `one-owning-axis`
-requires of every axis that narrows another's answer.
+in [`schemas/mapping`](mapping.md#classes), whose `classes` block names each
+class's owner. `identity-primitive` is the language's, so a platform's row for
+one is a rule that `refines` the language's rule for the same concept, as
+[`schemas/mapping`](mapping.md#requirements)' `one-owning-axis` requires of
+every axis that narrows another's answer. `storage` is the platform's own, so a
+platform's storage row, `storage/default-backend` among them, is the answer
+itself and carries no `refines`; it is a language's storage rule that refines
+the platform's.
 
 A platform blueprint spells the name its runtime uses. It does not restate what the
 primitive is, which standard defines it, or what parameters it takes — those belong to

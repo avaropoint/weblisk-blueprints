@@ -1000,6 +1000,10 @@ drift from the first.
 
 Every platform blueprint MUST carry a `## Primitive Mapping` section covering
 every primitive the specification blueprints require, with one row per primitive.
+Who answers each primitive is [`schemas/mapping`](mapping.md#classes)' `classes`
+block, not this section: an identity primitive is the language's, and a
+platform's row for one narrows the language's rule rather than answering the
+primitive itself; a storage primitive is the platform's own.
 What a primitive the platform cannot provide is marked, and why, is
 [`schemas/mapping`](mapping.md#verdicts)' rule `unfilled-is-stated`, stated
 there once for every axis and not restated here.

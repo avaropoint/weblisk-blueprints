@@ -361,6 +361,12 @@ mapctl wrongform 't = t.replace("    evaluate: {argv: [fakec, check, --routes], 
 mapctl noreason 't = t.replace("    reason: No reviewed implementation has been named for this fixture.\n", "", 1)'
 mapctl nokey 't = t.replace("vectors/types.json#canonical-json", "vectors/types.json#canonical-jsn", 1)'
 mapctl platformkey 't = t.replace("provides: fake\n", "provides: fake\naccepts_languages: [fake]\n", 1)'
+# identity-primitive is the language's own class, so a language rule on one
+# that names a rule it refines claims to narrow an answer its own axis gives.
+mapctl selfrefine 't = t.replace("    concept: identity-primitive/canonical-json\n", "    concept: identity-primitive/canonical-json\n    refines: //test/platforms/fake:primitive-canonical-json\n", 1)'
+# A class whose only rule is UNAVAILABLE is filled: UNAVAILABLE is a stated
+# answer, so the report is unchanged and the expected report still agrees.
+mapctl unavailable 't = t.replace("    evaluate: {argv: [fakec, check, --routes], parse: sarif}\n", "    verdict: UNAVAILABLE\n    reason: The fake runtime serves no routes.\n", 1)'
 mapexp=vectors/mapping/fake-language.coverage.json
 # mapone <name> <description> <pattern the one finding must match>
 mapone() {
@@ -380,6 +386,14 @@ mapone wrongform "a check rule that produces fails" "rule check-endpoint-routed:
 mapone noreason "an UNFILLED rule with no reason fails" "rule primitive-backup-signature: UNFILLED with no reason"
 mapone nokey "a verify naming no entry fails" "rule primitive-canonical-json: verify vectors/types.json#canonical-jsn names no entry"
 mapone platformkey "a language with accepts_languages fails" "accepts_languages is a platform's"
+mapone selfrefine "a language identity-primitive rule with refines fails" "rule primitive-canonical-json: refines //test/platforms/fake:primitive-canonical-json, but its axis owns identity-primitive/canonical-json"
+expect 0 "mapping-coverage control: a class whose only rule is UNAVAILABLE reports" python3 checks/mapping-coverage.py --file "$tmp/map/unavailable.md" --report
+if python3 -c 'import json,sys; c={x["class"]:x for x in json.load(open(sys.argv[1]))["classes"]}["check"]; sys.exit(0 if c["status"]=="filled" and c["rules"]==["check-endpoint-routed"] else 1)' "$tmp/out"; then
+	echo "ok   mapping-coverage control: a class whose only rule is UNAVAILABLE is filled"
+else
+	echo "FAIL mapping-coverage control: a class whose only rule is UNAVAILABLE is not filled"
+	fails=$((fails + 1))
+fi
 # A fixture and expected report edited together to a fourth UNFILLED class
 # agree with each other; the count assertion must still refuse them.
 python3 checks/mapping-coverage.py --file "$tmp/map/emptied.md" --report >"$tmp/map/emptied.coverage.json" 2>/dev/null

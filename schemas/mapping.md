@@ -85,7 +85,10 @@ requirements:
       file's rules in it, and a status: `filled` when at least one of those
       rules has a verdict other than UNFILLED, and `UNFILLED` otherwise, so a
       class the file says nothing about is listed as UNFILLED and never left
-      out. The report is the `coverage` definition below.
+      out. A class whose only rules are UNAVAILABLE is `filled`:
+      UNAVAILABLE is a stated answer, that the concept cannot exist on the
+      target, not a missing one. The report is the `coverage` definition
+      below.
   - id: one-verdict-vocabulary
     level: must
     text: >-
