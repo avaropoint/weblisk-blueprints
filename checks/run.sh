@@ -330,7 +330,20 @@ expect 1 "types-vectors control: a see naming no file fails" python3 checks/type
 # exactly that: one more class emptied, one more class filled, a refinement
 # dropped, a rule in the wrong form, an UNFILLED rule with no reason, a
 # verify naming no entry, and a language claiming a platform's header key.
-expect 0 "mapping-coverage: the fixture's report names exactly service, ui-unit and interface UNFILLED" python3 checks/mapping-coverage.py
+expect 0 "mapping-coverage: the fixture's report agrees with its expected report" python3 checks/mapping-coverage.py
+# The expected report is a file the fixture's author also edits, so agreeing
+# with it proves nothing about the count. The three UNFILLED classes are the
+# plan's, asserted here on the produced report whatever the expected file says.
+mapthree() { # mapthree <what> ; reads $tmp/out, a passing run's summary line
+	grep -qx 'mapping-coverage: .* classes filled; UNFILLED: service, ui-unit, interface' "$tmp/out"
+}
+if mapthree; then
+	echo "ok   mapping-coverage: the fixture names exactly service, ui-unit and interface UNFILLED"
+else
+	echo "FAIL mapping-coverage: the fixture does not name exactly service, ui-unit and interface UNFILLED"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
 mkdir "$tmp/map"
 fx=vectors/mapping/fake-language.md
 mapctl() { # mapctl <name> <python edit of t> ; writes $tmp/map/<name>.md
@@ -367,6 +380,16 @@ mapone wrongform "a check rule that produces fails" "rule check-endpoint-routed:
 mapone noreason "an UNFILLED rule with no reason fails" "rule primitive-backup-signature: UNFILLED with no reason"
 mapone nokey "a verify naming no entry fails" "rule primitive-canonical-json: verify vectors/types.json#canonical-jsn names no entry"
 mapone platformkey "a language with accepts_languages fails" "accepts_languages is a platform's"
+# A fixture and expected report edited together to a fourth UNFILLED class
+# agree with each other; the count assertion must still refuse them.
+python3 checks/mapping-coverage.py --file "$tmp/map/emptied.md" --report >"$tmp/map/emptied.coverage.json" 2>/dev/null
+expect 0 "mapping-coverage control: a fourth UNFILLED class agrees with an expected report edited to match" python3 checks/mapping-coverage.py --file "$tmp/map/emptied.md" --expect "$tmp/map/emptied.coverage.json"
+if mapthree; then
+	echo "FAIL mapping-coverage control: four UNFILLED classes passed the count assertion"
+	fails=$((fails + 1))
+else
+	echo "ok   mapping-coverage control: four UNFILLED classes fail the count assertion"
+fi
 
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]

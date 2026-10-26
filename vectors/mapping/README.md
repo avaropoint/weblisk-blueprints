@@ -11,3 +11,13 @@ Their namespace is `test`, so no rule here is cited by anything a build makes.
 
 [`checks/mapping-coverage.py`](../../checks/mapping-coverage.py) produces the
 report and compares it; `v2-cli-mapping` is bound by the same pair.
+
+The fixture's `refines` target, `//test/platforms/fake:storage-default-backend`,
+deliberately resolves to nothing. Coverage is a property of one file, so the
+check asks only that a rule on a concept another axis owns carries `refines`;
+whether the rule it names exists is a property of a target's composed
+mappings, which no single-file fixture can show.
+
+The fixture is here and not at `languages/fake.md`, where the plan first named
+it: under `languages/` it would be published content, read by builds and held
+to the neutral vocabulary, which a fake language is not.
