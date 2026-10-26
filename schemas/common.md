@@ -976,7 +976,10 @@ SIGTERM because those are its subject rather than an assumption about how
 something else is implemented. Such a blueprint MUST state, in its overview, that
 the capability is unavailable where the facility is absent — a Worker cannot spawn
 a process, and a blueprint about spawning processes has to say so rather than let
-a generator discover it.
+a generator discover it. The blueprint declares this in its header as
+`subject_facility`, naming the concept and carrying that statement
+([`schemas/mapping`](mapping.md#subject-facility)); a tool's own list of exempt
+files is the form the declaration replaces.
 
 This exception is narrow. It covers a blueprint whose whole purpose is a facility;
 it does not cover a blueprint that merely assumes one while specifying something

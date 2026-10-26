@@ -298,5 +298,75 @@ for id in $lost; do
 done
 [ -n "$lost" ] || { echo "FAIL requirement-ids control: the removed check covered nothing only it covers"; fails=$((fails + 1)); }
 
+# The type vectors: every canonical-json case canonicalises, by RFC 8785, to
+# what the vector records; a copy whose key-order case is sorted by code point
+# instead of UTF-16 code unit, and a copy whose timestamp entry sees a file
+# that does not exist, must each be reported, once.
+expect 0 "types-vectors: every entry is well formed and every case agrees" python3 checks/types-vectors.py
+python3 - "$tmp" <<'PY'
+import json, sys
+v = json.load(open("vectors/types.json", encoding="utf-8"))
+case = next(c for c in v["entries"]["canonical-json"]["cases"] if c["id"] == "rfc8785-3-2-3")
+case["canonical"] = "{" + ",".join(json.dumps(k, ensure_ascii=False) + ":" + json.dumps(x, ensure_ascii=False)
+                                   for k, x in sorted(json.loads(case["input"]).items())) + "}"
+json.dump(v, open(sys.argv[1] + "/codepoint.json", "w", encoding="utf-8"), ensure_ascii=False)
+v = json.load(open("vectors/types.json", encoding="utf-8"))
+v["entries"]["timestamp"]["see"] = "vectors/timestamp-missing.json"
+json.dump(v, open(sys.argv[1] + "/unseen.json", "w", encoding="utf-8"), ensure_ascii=False)
+PY
+expect 1 "types-vectors control: keys sorted by code point fail" python3 checks/types-vectors.py --file "$tmp/codepoint.json"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^canonical-json: rfc8785-3-2-3: ' "$tmp/out"; then
+	echo "ok   types-vectors control: exactly one fault, the key-order case"
+else
+	echo "FAIL types-vectors control: want exactly one fault, the key-order case"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+expect 1 "types-vectors control: a see naming no file fails" python3 checks/types-vectors.py --file "$tmp/unseen.json"
+[ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^timestamp: sees vectors/timestamp-missing.json' "$tmp/out" || { echo "FAIL types-vectors control: the missing file was not the one fault"; fails=$((fails + 1)); }
+
+# The mapping fixture's coverage report names all twelve classes and exactly
+# three UNFILLED. Each copy below breaks one thing and must be reported for
+# exactly that: one more class emptied, one more class filled, a refinement
+# dropped, a rule in the wrong form, an UNFILLED rule with no reason, a
+# verify naming no entry, and a language claiming a platform's header key.
+expect 0 "mapping-coverage: the fixture's report names exactly service, ui-unit and interface UNFILLED" python3 checks/mapping-coverage.py
+mkdir "$tmp/map"
+fx=vectors/mapping/fake-language.md
+mapctl() { # mapctl <name> <python edit of t> ; writes $tmp/map/<name>.md
+	python3 - "$fx" "$tmp/map/$1.md" "$2" <<'PY'
+import sys
+t = open(sys.argv[1], encoding="utf-8").read()
+exec(sys.argv[3])
+open(sys.argv[2], "w", encoding="utf-8").write(t)
+PY
+}
+mapctl emptied 'i = t.index("  - id: component-module"); j = t.index("  - id: storage-default-backend"); t = t[:i] + t[j:]'
+mapctl filled 't = t.replace("```yaml\nrules:\n  - id: lifecycle-build", "```yaml\nrules:\n  - id: page\n    concept: ui-unit/page\n    refines: //test/frameworks/fake:page\n    produce: {via: model, template: \"{name}.page\"}\n  - id: lifecycle-build", 1)'
+mapctl unrefined 't = t.replace("    refines: //test/platforms/fake:storage-default-backend\n", "", 1)'
+mapctl wrongform 't = t.replace("    evaluate: {argv: [fakec, check, --routes], parse: sarif}", "    produce: {via: model, text: routed}", 1)'
+mapctl noreason 't = t.replace("    reason: No reviewed implementation has been named for this fixture.\n", "", 1)'
+mapctl nokey 't = t.replace("vectors/types.json#canonical-json", "vectors/types.json#canonical-jsn", 1)'
+mapctl platformkey 't = t.replace("provides: fake\n", "provides: fake\naccepts_languages: [fake]\n", 1)'
+mapexp=vectors/mapping/fake-language.coverage.json
+# mapone <name> <description> <pattern the one finding must match>
+mapone() {
+	expect 1 "mapping-coverage control: $2" python3 checks/mapping-coverage.py --file "$tmp/map/$1.md" --expect "$mapexp"
+	if [ "$(grep -cv '^file: ' "$tmp/out")" -eq 1 ] && grep -v '^file: ' "$tmp/out" | grep -q -- "$3"; then
+		echo "ok   mapping-coverage control: exactly one finding, $1"
+	else
+		echo "FAIL mapping-coverage control: want exactly one finding matching $3"
+		sed 's/^/     /' "$tmp/out"
+		fails=$((fails + 1))
+	fi
+}
+mapone emptied "a fourth class emptied fails" "^component: status 'UNFILLED' (expected 'filled')"
+mapone filled "a ninth class filled fails" "^ui-unit: status 'filled' (expected 'UNFILLED')"
+mapone unrefined "a storage rule without refines fails" "rule storage-default-backend: storage/default-backend is owned by the platform axis"
+mapone wrongform "a check rule that produces fails" "rule check-endpoint-routed: a check rule carries evaluate"
+mapone noreason "an UNFILLED rule with no reason fails" "rule primitive-backup-signature: UNFILLED with no reason"
+mapone nokey "a verify naming no entry fails" "rule primitive-canonical-json: verify vectors/types.json#canonical-jsn names no entry"
+mapone platformkey "a language with accepts_languages fails" "accepts_languages is a platform's"
+
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]

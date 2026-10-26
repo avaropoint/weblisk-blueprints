@@ -176,7 +176,8 @@ anything by being declared, so neither has a capability.
 what it runs.** An agent is named in its tenant, and its blueprint relates to it
 by `deployed_as`. A skill or a workflow is a file, versioned, which an agent
 `executes`. **`programme` is a published map, not the tenant's operation of it.**
-**`mapping` is one rule of a language, platform or framework mapping**, named
+**`mapping` is one rule of a mapping** ([`schemas/mapping`](mapping.md): a
+language, platform, framework or interface binding), named
 like a requirement by its file and part id, so an output can cite the rule it
 was made with.
 

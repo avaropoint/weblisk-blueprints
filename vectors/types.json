@@ -1,0 +1,116 @@
+{
+  "format": "Values a mapping's rules must give for the type vocabulary of schemas/blocks and the canonical JSON protocol/identity requires. Each entry under `entries` is named by its key, and a mapping rule cites one as vectors/types.json#<key> (schemas/mapping, verify-by-vector). An entry holds `cases`; or `see`, the one vector file that holds it, which this file never restates; or `pending`, the lane that states its value, with no cases until then, so a value nobody has stated is not stated here first. A canonical-json case gives its input as JSON text, or as the IEEE 754 bits of one number in big-endian hex (`ieee754`), and the RFC 8785 serialisation it must canonicalise to. checks/types-vectors.py is one implementation bound by it.",
+  "entries": {
+    "canonical-json": {
+      "convention": "protocol/identity.md#sign-json",
+      "authority": "RFC 8785",
+      "cases": [
+        {
+          "id": "rfc8785-3-2-2",
+          "source": "RFC 8785, section 3.2.2",
+          "input": "{\"numbers\": [333333333.33333329, 1E30, 4.50, 2e-3, 0.000000000000000000000000001], \"string\": \"\\u20ac$\\u000F\\u000aA'\\u0042\\u0022\\u005c\\\\\\\"\\/\", \"literals\": [null, true, false]}",
+          "canonical": "{\"literals\":[null,true,false],\"numbers\":[333333333.3333333,1e+30,4.5,0.002,1e-27],\"string\":\"€$\\u000f\\nA'B\\\"\\\\\\\\\\\"/\"}"
+        },
+        {
+          "id": "rfc8785-3-2-3",
+          "source": "RFC 8785, section 3.2.3: keys sorted by UTF-16 code units, so the emoji (U+1F600, written D83D DE00) comes before U+FB33, which code-point order would put first",
+          "input": "{\"\\u20ac\": \"Euro Sign\", \"\\r\": \"Carriage Return\", \"\\ufb33\": \"Hebrew Letter Dalet With Dagesh\", \"1\": \"One\", \"\\ud83d\\ude00\": \"Emoji: Grinning Face\", \"\\u0080\": \"Control\", \"\\u00f6\": \"Latin Small Letter O With Diaeresis\"}",
+          "canonical": "{\"\\r\":\"Carriage Return\",\"1\":\"One\",\"\":\"Control\",\"ö\":\"Latin Small Letter O With Diaeresis\",\"€\":\"Euro Sign\",\"😀\":\"Emoji: Grinning Face\",\"דּ\":\"Hebrew Letter Dalet With Dagesh\"}"
+        },
+        {
+          "id": "rfc8785-b-0000000000000000",
+          "source": "RFC 8785, Appendix B",
+          "ieee754": "0000000000000000",
+          "canonical": "0"
+        },
+        {
+          "id": "rfc8785-b-8000000000000000",
+          "source": "RFC 8785, Appendix B",
+          "ieee754": "8000000000000000",
+          "canonical": "0"
+        },
+        {
+          "id": "rfc8785-b-0000000000000001",
+          "source": "RFC 8785, Appendix B",
+          "ieee754": "0000000000000001",
+          "canonical": "5e-324"
+        },
+        {
+          "id": "rfc8785-b-8000000000000001",
+          "source": "RFC 8785, Appendix B",
+          "ieee754": "8000000000000001",
+          "canonical": "-5e-324"
+        },
+        {
+          "id": "rfc8785-b-7fefffffffffffff",
+          "source": "RFC 8785, Appendix B",
+          "ieee754": "7fefffffffffffff",
+          "canonical": "1.7976931348623157e+308"
+        },
+        {
+          "id": "rfc8785-b-4340000000000000",
+          "source": "RFC 8785, Appendix B",
+          "ieee754": "4340000000000000",
+          "canonical": "9007199254740992"
+        },
+        {
+          "id": "rfc8785-b-c340000000000000",
+          "source": "RFC 8785, Appendix B",
+          "ieee754": "c340000000000000",
+          "canonical": "-9007199254740992"
+        },
+        {
+          "id": "rfc8785-b-4430000000000000",
+          "source": "RFC 8785, Appendix B",
+          "ieee754": "4430000000000000",
+          "canonical": "295147905179352830000"
+        },
+        {
+          "id": "rfc8785-b-44b52d02c7e14af5",
+          "source": "RFC 8785, Appendix B",
+          "ieee754": "44b52d02c7e14af5",
+          "canonical": "9.999999999999997e+22"
+        },
+        {
+          "id": "rfc8785-b-44b52d02c7e14af6",
+          "source": "RFC 8785, Appendix B",
+          "ieee754": "44b52d02c7e14af6",
+          "canonical": "1e+23"
+        },
+        {
+          "id": "rfc8785-b-3eb0c6f7a0b5ed8d",
+          "source": "RFC 8785, Appendix B",
+          "ieee754": "3eb0c6f7a0b5ed8d",
+          "canonical": "0.000001"
+        },
+        {
+          "id": "rfc8785-b-3eb0c6f7a0b5ed8c",
+          "source": "RFC 8785, Appendix B",
+          "ieee754": "3eb0c6f7a0b5ed8c",
+          "canonical": "9.999999999999997e-7"
+        },
+        {
+          "id": "rfc8785-b-41b3de4355555553",
+          "source": "RFC 8785, Appendix B",
+          "ieee754": "41b3de4355555553",
+          "canonical": "333333333.3333332"
+        }
+      ]
+    },
+    "timestamp": {
+      "see": "vectors/timestamp-wire.json"
+    },
+    "integer": {
+      "pending": "v2-conventions",
+      "why": "D10 decides an integer is signed 64-bit, and protocol/types states no integer range yet. RFC 8785 serialises a number as an IEEE 754 double, so an integer beyond 2^53 - 1 does not survive canonicalisation exactly, and the lane that states the range states its wire form with it."
+    },
+    "duration": {
+      "pending": "v2-conventions",
+      "why": "D10 decides durations are written as strings; today's fields carry integer seconds, and the convention changes every binding at once."
+    },
+    "bytes": {
+      "pending": "v2-conventions",
+      "why": "protocol/types states base64url for signatures and public keys only, and no decision states it for every bytes field."
+    }
+  }
+}

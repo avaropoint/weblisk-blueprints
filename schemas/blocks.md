@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.0.0
+version: 1.1.0
 noun: block
 ---
 # Schema: Blocks
@@ -198,6 +198,10 @@ blocks:
     entries: {by: code}
     forms: [yaml, table]
     columns: {Code: code, HTTP: http, Category: category, Description: description}
+  rules:
+    schema: {type: array, minItems: 1, items: {$ref: "schemas/mapping#/$defs/rule"}}
+    entries: {by: id}
+    family: mapping
 ```
 
 ## Definitions
