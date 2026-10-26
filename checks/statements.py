@@ -14,6 +14,8 @@ Weblisk tool.
     checks/statements.py              check vectors/fixed-form-statements.json
     checks/statements.py --flip ID    the same, with one byte of vector ID's
                                       message changed: exactly ID must fail
+    checks/statements.py --flip all   every vector's message changed: every
+                                      one must fail
 
 Without OpenSSL 3.5 the check cannot run, and says so with exit status 2.
 Set OPENSSL to choose the binary.
@@ -92,7 +94,7 @@ def main():
         faults.append(f"{p}: named as having no vectors yet, and has them")
     for p in sorted(holds ^ have):
         faults.append(f"{p}: {'listed as holding vectors, and has none' if p in holds else 'has vectors, and the list of prefixes with vectors omits it'}")
-    if flip and flip not in {v["id"] for v in doc["vectors"]}:
+    if flip and flip != "all" and flip not in {v["id"] for v in doc["vectors"]}:
         sys.exit(f"statements: no vector {flip!r}")
 
     ver = Verifier()
@@ -111,7 +113,7 @@ def main():
             msg, sig = message(v["prefix"], v["fields"]), b64(v["signature"])
             if any("\0" in f["value"] for f in v["fields"]) or msg.hex() != v["message"]:
                 faults.append(f"{v['id']}: the message is not the prefix and fields joined by 0x00")
-            if v["id"] == flip:
+            if flip in (v["id"], "all"):
                 msg = msg[:-1] + bytes([msg[-1] ^ 1])
             if len(sig) != 3309 or v["signed_by"] not in keys or not ver.verify(keys[v["signed_by"]], msg, sig):
                 faults.append(f"{v['id']}: OpenSSL does not verify the signature")

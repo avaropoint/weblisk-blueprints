@@ -1,7 +1,9 @@
 #!/bin/sh
 # Runs the corpus's checks, each with the control that proves it reaches what
 # it claims to. Exits 0 only when every check passes and every control fails.
-# Needs python3 with PyYAML, and OpenSSL 3.5 or later (OPENSSL names it).
+# Needs python3 with PyYAML, and OpenSSL 3.5 or later (OPENSSL names it); the
+# circl and noble legs of the statement vectors also need Go and node with the
+# pinned noble (checks/ml-dsa).
 cd "$(dirname "$0")/.." || exit 2
 # retired.py imports ids.py; leave no bytecode in the corpus.
 export PYTHONDONTWRITEBYTECODE=1
@@ -298,18 +300,75 @@ for id in $lost; do
 done
 [ -n "$lost" ] || { echo "FAIL requirement-ids control: the removed check covered nothing only it covers"; fails=$((fails + 1)); }
 
-# Every fixed-form statement vector verifies with OpenSSL, an ML-DSA
-# implementation outside every Weblisk tool, and every registered prefix has
-# vectors or is named as having none yet; one byte changed in one vector's
-# message must fail that vector and nothing else.
-expect 0 "statements: every vector verifies with OpenSSL" python3 checks/statements.py
-expect 1 "statements control: one byte changed in namespace-claim-1 fails" python3 checks/statements.py --flip namespace-claim-1
-if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^namespace-claim-1: OpenSSL does not verify' "$tmp/out"; then
-	echo "ok   statements control: exactly one finding, namespace-claim-1"
-else
-	echo "FAIL statements control: want exactly one finding, namespace-claim-1"
-	sed 's/^/     /' "$tmp/out"
-	fails=$((fails + 1))
+# Every fixed-form statement vector verifies with three ML-DSA
+# implementations outside every Weblisk tool: OpenSSL (statements.py), circl
+# (ml-dsa/main.go, which also makes both vector files again and must write
+# them byte for byte) and @noble/post-quantum (ml-dsa/noble.mjs). In each, one
+# byte changed in one vector's message must fail exactly that vector, and one
+# byte changed in every vector's message must fail every one. statements.py
+# also holds every registered prefix to having vectors or being named as
+# having none yet. A leg whose implementation is not installed says NOT RUN,
+# never ok; REQUIRE_ALL_VERIFIERS=1 makes that a failure.
+nvec=$(python3 -c 'import json; print(len(json.load(open("vectors/fixed-form-statements.json"))["vectors"]))')
+notrun=0
+if ! command -v go >/dev/null 2>&1; then
+	echo "no go on PATH" >"$tmp/circl-why"
+elif (cd checks/ml-dsa && GOPROXY=off GOFLAGS=-mod=readonly go build -o "$tmp/ml-dsa" .) >"$tmp/circl-why" 2>&1; then
+	:
+fi
+for leg in openssl circl noble; do
+	case $leg in
+	openssl) set -- python3 checks/statements.py ;;
+	circl) set -- "$tmp/ml-dsa" --root . check ;;
+	noble) set -- node checks/ml-dsa/noble.mjs ;;
+	esac
+	if [ "$leg" = circl ] && [ ! -x "$tmp/ml-dsa" ]; then
+		why=$(head -1 "$tmp/circl-why")
+	elif [ "$leg" = noble ] && ! command -v node >/dev/null 2>&1; then
+		why="no node on PATH"
+	else
+		"$@" >"$tmp/out" 2>&1
+		if [ $? -eq 2 ]; then why=$(head -1 "$tmp/out"); else why=; fi
+	fi
+	if [ -n "$why" ]; then
+		echo "NOT RUN statements ($leg): $why"
+		notrun=$((notrun + 1))
+		[ "${REQUIRE_ALL_VERIFIERS:-0}" = 1 ] && fails=$((fails + 1))
+		continue
+	fi
+	expect 0 "statements ($leg): every vector verifies" "$@"
+	expect 1 "statements control ($leg): one byte changed in namespace-claim-1 fails" "$@" --flip namespace-claim-1
+	if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^namespace-claim-1: .* does not verify' "$tmp/out"; then
+		echo "ok   statements control ($leg): exactly one finding, namespace-claim-1"
+	else
+		echo "FAIL statements control ($leg): want exactly one finding, namespace-claim-1"
+		sed 's/^/     /' "$tmp/out"
+		fails=$((fails + 1))
+	fi
+	expect 1 "statements control ($leg): one byte changed in every vector fails" "$@" --flip all
+	got=$(grep ': .* does not verify' "$tmp/out" | cut -d: -f1 | sort -u | wc -l | tr -d ' ')
+	if [ "$got" -eq "$nvec" ] && [ "$(wc -l <"$tmp/out")" -eq "$nvec" ]; then
+		echo "ok   statements control ($leg): all $nvec vectors reported"
+	else
+		echo "FAIL statements control ($leg): $got of $nvec vectors reported"
+		fails=$((fails + 1))
+	fi
+done
+
+# circl's leg also makes the files again: a copy of the vectors as a generator
+# without the namespace statements would write them must be reported as not
+# what a rerun writes.
+if [ -x "$tmp/ml-dsa" ]; then
+	mkdir -p "$tmp/old/vectors" && cp vectors/namespace-registry.json "$tmp/old/vectors/"
+	python3 - "$tmp/old/vectors/fixed-form-statements.json" <<'PY'
+import json, sys
+d = json.load(open("vectors/fixed-form-statements.json", encoding="utf-8"))
+d["vectors"] = [v for v in d["vectors"] if not v["prefix"].startswith(("weblisk/namespace-", "weblisk/catalog-release/"))]
+d["keys"] = [k for k in d["keys"] if not k["name"].startswith(("holder-", "service"))]
+open(sys.argv[1], "w", encoding="utf-8").write(json.dumps(d, indent=2, ensure_ascii=False) + "\n")
+PY
+	expect 1 "statements control (circl): vectors without the namespace statements are not what gen writes" "$tmp/ml-dsa" --root "$tmp/old" check
+	grep -qx 'vectors/fixed-form-statements.json: a rerun of gen writes other bytes' "$tmp/out" || { echo "FAIL statements control (circl): the shortened file was not what was reported"; fails=$((fails + 1)); }
 fi
 
 # The namespace registry's rules over its vectors; a registry that accepts
@@ -330,5 +389,24 @@ for v in accept-confusables:NAMESPACE_CONFUSABLE accept-one-sided:NAMESPACE_TRAN
 	fi
 done
 
+# Two more of the registry's rules broken, each reported only in the sequence
+# that exercises it: a registry that lets a retired name be claimed again is
+# caught at the first re-claim, and one whose rotation drops the grants at the
+# first act a kept grant allows.
+for v in "reclaim-retired:retired-never-returns:step 4: got accepted, want NAMESPACE_RETIRED" \
+	"rotation-drops-grants:rotation-keeps-the-binding:step 6: got NAMESPACE_NOT_PUBLISHER, want accepted"; do
+	variant=${v%%:*} rest=${v#*:}
+	seq=${rest%%:*} line="$seq ${rest#*:}"
+	expect 1 "namespace-registry control: a registry that does $variant fails" python3 checks/namespace-registry.py --variant "$variant"
+	if grep -qxF "$line" "$tmp/out" && [ "$(grep -vc "^$seq " "$tmp/out")" -eq 0 ]; then
+		echo "ok   namespace-registry control: $variant is reported in $seq alone, at its first bite"
+	else
+		echo "FAIL namespace-registry control: want '$line', and nothing outside $seq"
+		sed 's/^/     /' "$tmp/out"
+		fails=$((fails + 1))
+	fi
+done
+
+[ "$notrun" -gt 0 ] && echo "checks: $notrun verifier leg(s) NOT RUN (see above)"
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]

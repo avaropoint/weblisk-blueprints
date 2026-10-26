@@ -435,7 +435,7 @@ registry, and every verifier of a release, is bound by both.
 
 ## Verification Checklist
 
-- [ ] Every vector for the four prefixes verifies, and none verifies with one byte of its message changed ([`checks/statements.py`](../checks/statements.py))
+- [ ] Every vector for the four prefixes verifies with OpenSSL, circl and noble, and in each of the three every vector fails with one byte of its message changed ([`checks/statements.py`](../checks/statements.py), [`checks/ml-dsa`](../checks/ml-dsa/main.go))
 - [ ] Every step of every registry vector gets its stated verdict, and every sequence leaves its stated state ([`checks/namespace-registry.py`](../checks/namespace-registry.py))
 - [ ] A second claim of a held name, a reserved or confusable name, a one-sided transfer and a claim of a retired name are each refused with their code
 - [ ] A rotation keeps the claim and its grants; a transfer ends the grants
