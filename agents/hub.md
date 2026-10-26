@@ -4,7 +4,7 @@ kind: infrastructure
 name: hub
 version: 3.0.0
 port: 9770
-requires: [protocol/spec, protocol/identity, protocol/types, protocol/federation, architecture/hub, architecture/agent, architecture/orchestrator]
+requires: [protocol/spec, protocol/identity, protocol/types, protocol/federation, patterns/namespace, architecture/hub, architecture/agent, architecture/orchestrator]
 extends: [patterns/messaging, patterns/caching, patterns/observability, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/privacy, patterns/security, patterns/interop]
 depends_on: []
 platform: any
@@ -176,6 +176,20 @@ requires:
           fields_used: [manifest, capabilities, data_contracts]
         - name: BehavioralFingerprint
           fields_used: [hash, change_level, timestamp]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/namespace
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      endpoints:
+        # Index listing step 3 reads a namespace's state at the public registry
+        - path: /v1/namespaces/{namespace}
+          methods: [GET]
+          response_fields: [state, holder, grants]
+      behaviors:
+        - name: namespace-registry
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -1952,8 +1966,9 @@ Index a published listing after signature verification.
 2. Validate listing schema — required fields present, version is valid semver,
    listing_id is listing://<namespace>/<name>
    If not → reject SCHEMA_INVALID
-3. Read <namespace>'s state from the public namespace registry: the signing
-   key holds it, or was granted publish under it, there
+3. Read <namespace>'s state from the public namespace registry
+   (GET /v1/namespaces/{namespace}, patterns/namespace): the signing key holds
+   it, or was granted publish under it, there
    (architecture/hub, The public namespace registry)
    If not → reject NAMESPACE_NOT_PUBLISHER, log
 4. Check for duplicates:

@@ -237,9 +237,15 @@ every resource the tenant needs exists and its hub answers, or it returns nothin
 leaves no resource behind.
 
 **The namespace is minted at creation.** The host records it as it records the
-tenant's name (`Tenant.namespace`), and a name the claim rules
-([`patterns/namespace`](../patterns/namespace.md#deciding-a-statement)) refuse is
-refused when provisioning is asked, before any resource exists. The namespace
+tenant's name (`Tenant.namespace`). When provisioning is asked, before any
+resource exists and before the tenant's registry does, it refuses a name by the
+claim rules that need no registry's log
+([`patterns/namespace`](../patterns/namespace.md#deciding-a-statement), step 6):
+one outside the namespace grammar (`NAMESPACE_INVALID`), a reserved name, place
+code or issuer code (`NAMESPACE_RESERVED`), and a name confusable with a
+reserved one (`NAMESPACE_CONFUSABLE`). Whether a name is held, frozen or retired
+is a registry's state, and the tenant's registry has none yet: that is decided
+when the owner's claim is made there, below. The namespace
 appears in the tenant's own files and no one else's
 ([`schemas/names`](../schemas/names.md#namespaces)).
 
@@ -593,7 +599,7 @@ security:
 - [ ] A tenant identifier supplied in a request body or a tool argument MUST NOT select tenant state
 - [ ] A provisioned component's bindings MUST reference only its own tenant's resources
 - [ ] Provisioning failure at any step MUST leave no resource attributable to the tenant
-- [ ] Provisioning MUST refuse a namespace the claim rules refuse before any resource exists, and, where the tenant's hub runs a namespace registry, MUST NOT return until the owner's claim is the first name that registry accepted
+- [ ] Provisioning MUST refuse, before any resource exists, a namespace outside the grammar, reserved, a place or issuer code, or confusable with a reserved name, and, where the tenant's hub runs a namespace registry, MUST NOT return until the owner's claim is the first name that registry accepted
 - [ ] A suspended tenant MUST serve no request and MUST retain every record
 - [ ] `ExportTenant` MUST produce every record, configuration and agent definition the tenant owns
 - [ ] `DeleteTenant` MUST destroy every resource named in the provisioning record
