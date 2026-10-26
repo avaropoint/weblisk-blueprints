@@ -1,22 +1,36 @@
 #!/usr/bin/env python3
 """patterns/namespace's registry rules, run over vectors/namespace-registry.json.
 
-One implementation of "Deciding a statement", outside every Weblisk tool. It
-decides every step of every sequence, signatures verified by OpenSSL
-(checks/statements.py), and reports each verdict and each final state that
-differs from the vector's. It also holds the four statements the pattern
-defines to protocol/identity's registry and to the published vectors.
+One implementation of "Deciding a statement" and of verifying a catalog
+release, outside every Weblisk tool. It decides every step of every sequence,
+signatures verified by OpenSSL (checks/statements.py), and reports each
+verdict and each final state that differs from the vector's. It also holds the
+four statements the pattern defines to protocol/identity's registry and to the
+published vectors, the pattern to D11's layering, and the place and issuer
+codes the vectors use to the corpus's own: a place code is one some standard's
+applies_in names, and an issuer code begins some standard's id. The vectors
+hold only a sample of each; a registry refuses every such code.
+
+A verifier here decides a release from the same log the registry keeps, so
+it re-decides nothing the registry did not: a release verifies when its form,
+index and signature hold and the log holds its exact bytes signed by the same
+key.
 
     checks/namespace-registry.py                     check the vectors
     checks/namespace-registry.py --variant NAME      the same rules with one
         broken, which must be reported at exactly the steps that rule decides:
         accept-confusables, accept-one-sided, reclaim-retired,
-        rotation-drops-grants, release-at-tip (a release judged against the
-        registry's latest state, not its own released_at), release-unchained
-        (no release held to the one before it)
+        rotation-drops-grants, rotation-any-identity (a rotation to another
+        identity's key), release-signer-time (a release judged at the time its
+        signer wrote, not the registry's clock), release-unchained (no release
+        held to the one before it), release-unanchored (a verifier that accepts
+        a release its registry's log does not hold), release-ignores-revocation
+        (a release by a grantee whose identity the hub revoked)
     checks/namespace-registry.py --pattern FILE      read the pattern's
         statements, routes and requires from FILE instead of
         patterns/namespace.md
+    checks/namespace-registry.py --vectors FILE      read the registry
+        vectors from FILE instead of vectors/namespace-registry.json
 """
 import copy, hashlib, json, os, re, sys
 import yaml
@@ -32,12 +46,13 @@ CLAIM, GRANT, TRANSFER, RELEASE = (f"weblisk/{p}/v1" for p in ("namespace-claim"
 LAYOUT = {CLAIM: ["registry", "namespace", "holder", "issued_at"],
           GRANT: ["registry", "namespace", "grantee", "role", "issued_at"],
           TRANSFER: ["registry", "namespace", "from", "to", "kind", "issued_at"],
-          RELEASE: ["namespace", "release", "index", "previous", "released_at"]}
+          RELEASE: ["registry", "namespace", "release", "index", "previous", "issued_at"]}
 HEX64, DEC = re.compile(r"[0-9a-f]{64}"), re.compile(r"0|[1-9][0-9]*")
 INDEX_LINE = re.compile(r"(\S+) (sha256:[0-9a-f]{64}|retired)")
 DIGEST, NAME = re.compile(r"sha256:[0-9a-f]{64}"), re.compile(r"[a-z][a-z0-9-]{1,38}")
 variant = sys.argv[sys.argv.index("--variant") + 1] if "--variant" in sys.argv else None
 PATTERN = sys.argv[sys.argv.index("--pattern") + 1] if "--pattern" in sys.argv else None
+VECTORS = sys.argv[sys.argv.index("--vectors") + 1] if "--vectors" in sys.argv else None
 
 
 def read(rel): return open(os.path.join(CORPUS, rel), encoding="utf-8").read()
@@ -51,11 +66,10 @@ WINDOW = int(re.search(r"^  replay_protection:\n    window: (\d+) seconds$", rea
 
 
 def well_formed(prefix, f):
-    if prefix == RELEASE:
-        return (DEC.fullmatch(f["release"]) and f["release"] != "0" and DIGEST.fullmatch(f["index"])
-                and (f["previous"] == "" if f["release"] == "1" else DIGEST.fullmatch(f["previous"]))
-                and DEC.fullmatch(f["released_at"]))
     ok = HEX64.fullmatch(f["registry"]) and DEC.fullmatch(f["issued_at"])
+    if prefix == RELEASE:
+        return (ok and DEC.fullmatch(f["release"]) and f["release"] != "0" and DIGEST.fullmatch(f["index"])
+                and (f["previous"] == "" if f["release"] == "1" else DIGEST.fullmatch(f["previous"])))
     if prefix == CLAIM: return ok and HEX64.fullmatch(f["holder"])
     if prefix == GRANT: return ok and HEX64.fullmatch(f["grantee"]) and f["role"] in ("publish", "none")
     return (ok and HEX64.fullmatch(f["from"]) and f["kind"] in ("transfer", "rotation", "retirement")
@@ -65,12 +79,16 @@ def well_formed(prefix, f):
 class Registry:
     def __init__(self, vec, keys, ver):
         self.id, self.keys, self.ver = vec["registry"], keys, ver
-        self.enrolled = {keys[n]["fp"]: kind for n, kind in vec["enrolled"].items()}
+        # Each enrolled key's kind and identity: a rotation keeps the identity.
+        self.enrolled = {keys[n]["fp"]: e for n, e in vec["enrolled"].items()}
+        self.revoked = set()
         self.never = {c.lower() for codes in vec["never_claimable"].values() for c in codes}
         self.log, self.ns = set(), {}
-        # Every change to a namespace's state, as (recorded_at, state after),
-        # so a release is judged at its own released_at; and the releases a
-        # verifier holds, by namespace and number.
+        # Each recorded release's bytes with each key that signed them there.
+        self.recorded = set()
+        # Every change to a namespace's state, as (at, state after), read only
+        # by the release-signer-time variant; and the releases the log records,
+        # by namespace, in order.
         self.history, self.releases = {}, {}
 
     def record(self, name, at):
@@ -79,6 +97,11 @@ class Registry:
     def state_at(self, name, t):
         past = [st for at, st in self.history.get(name, []) if at <= t]
         return past[-1] if past else None
+
+    def revoke(self, name):
+        """The hub revokes an identity's enrolment; the registry records nothing."""
+        self.revoked.add(self.keys[name]["fp"])
+        return "accepted"
 
     def ruling(self, r, at):
         s = self.ns.get(r["namespace"])
@@ -90,34 +113,50 @@ class Registry:
             to = self.keys[r["to"]]["fp"]
             v = self.who(to)
             if v: return v
+            # A reassignment changes the holder and ends the grants; a frozen
+            # namespace stays frozen.
             s.update(holder=to, grants={})
         self.record(r["namespace"], at)
         return "accepted"
 
-    def decide(self, st, at, release=False, index=None):
+    def form(self, st, index):
+        """Step 1, and step 3's signatures: (fields, message, signers), or a refusal."""
         prefix, fields = st["prefix"], st["fields"]
-        if prefix not in ((RELEASE,) if release else (CLAIM, GRANT, TRANSFER)) or [x["name"] for x in fields] != LAYOUT[prefix]:
+        if prefix not in LAYOUT or [x["name"] for x in fields] != LAYOUT[prefix]:
             return "NAMESPACE_MALFORMED"
         f = {x["name"]: x["value"] for x in fields}
         if not well_formed(prefix, f): return "NAMESPACE_MALFORMED"
-        if not release and f["registry"] != self.id: return "NAMESPACE_WRONG_REGISTRY"
-        msg, signers = statements.message(prefix, fields), set()
-        for s in st["signatures"]:
-            k = self.keys.get(s["by"])
-            if not k or not self.ver.verify(k["pk"], msg, statements.b64(s["signature"])): return "NAMESPACE_SIGNATURE_INVALID"
-            signers.add(k["fp"])
-        if release:
-            # After the signature: steps 1 and 3 come first for a release too.
+        lines = None
+        if prefix == RELEASE:
             lines = index_lines(index, f["index"])
             if lines is None: return "NAMESPACE_MALFORMED"
-            if int(f["released_at"]) - at > WINDOW: return "NAMESPACE_STATEMENT_STALE"
-        else:
-            if abs(at - int(f["issued_at"])) > WINDOW: return "NAMESPACE_STATEMENT_STALE"
-            if msg in self.log: return "NAMESPACE_STATEMENT_REPLAYED"
+        return f, lines, statements.message(prefix, fields)
+
+    def signed(self, st, msg):
+        signers = set()
+        for s in st["signatures"]:
+            k = self.keys.get(s["by"])
+            if not k or not self.ver.verify(k["pk"], msg, statements.b64(s["signature"])): return None
+            signers.add(k["fp"])
+        return signers
+
+    def decide(self, st, at, index=None):
+        got = self.form(st, index)
+        if isinstance(got, str): return got
+        (f, lines, msg), prefix = got, st["prefix"]
+        if f["registry"] != self.id: return "NAMESPACE_WRONG_REGISTRY"
+        signers = self.signed(st, msg)
+        if signers is None: return "NAMESPACE_SIGNATURE_INVALID"
+        if abs(at - int(f["issued_at"])) > WINDOW: return "NAMESPACE_STATEMENT_STALE"
+        if msg in self.log: return "NAMESPACE_STATEMENT_REPLAYED"
         name = f["namespace"]
         if not NAME.fullmatch(name): return "NAMESPACE_INVALID"
-        if release:
-            return self.release(name, f, lines, signers, at)
+        if prefix == RELEASE:
+            v = self.release(name, f, lines, signers, at)
+            if v == "accepted":
+                self.log.add(msg)
+                self.recorded.update((msg, x) for x in signers)
+            return v
         s = self.ns.get(name)
         if prefix == CLAIM:
             if s and s["status"] == "retired" and variant != "reclaim-retired": return "NAMESPACE_RETIRED"
@@ -148,6 +187,9 @@ class Registry:
                 if f["to"] not in signers and variant != "accept-one-sided": return "NAMESPACE_TRANSFER_ONE_SIDED"
                 v = self.who(f["to"])
                 if v: return v
+                if (f["kind"] == "rotation" and variant != "rotation-any-identity"
+                        and self.enrolled[f["to"]]["identity"] != self.enrolled.get(f["from"], {}).get("identity")):
+                    return "NAMESPACE_ROTATION_OTHER_IDENTITY"
                 keep = f["kind"] == "rotation" and variant != "rotation-drops-grants"
                 s.update(holder=f["to"], grants=s["grants"] if keep else {})
         self.log.add(msg)
@@ -155,33 +197,64 @@ class Registry:
         return "accepted"
 
     def release(self, name, f, lines, signers, at):
-        """A catalog release: the namespace's state at its released_at, then
-        the releases this verifier already holds for the namespace."""
-        when = at if variant == "release-at-tip" else int(f["released_at"])
-        s = self.state_at(name, when)
+        """Step 8: a catalog release, at the registry's own clock, continuing
+        the latest release the log records for the namespace."""
+        s = self.state_at(name, int(f["issued_at"])) if variant == "release-signer-time" else self.ns.get(name)
         if not s: return "NAMESPACE_UNKNOWN"
         if s["status"] == "retired": return "NAMESPACE_RETIRED"
         if s["status"] == "frozen": return "NAMESPACE_FROZEN"
-        if s["holder"] not in signers and not any(s["grants"].get(x) == "publish" for x in signers):
-            return "NAMESPACE_NOT_PUBLISHER"
-        held, n = self.releases.setdefault(name, {}), int(f["release"])
+        publishers = {x for x in signers if x == s["holder"] or s["grants"].get(x) == "publish"}
+        if not publishers: return "NAMESPACE_NOT_PUBLISHER"
+        if variant != "release-ignores-revocation" and not any(x in self.enrolled and x not in self.revoked for x in publishers):
+            return "NAMESPACE_IDENTITY_UNKNOWN"
+        held, n = self.releases.setdefault(name, []), int(f["release"])
         if variant != "release-unchained":
-            if n in held:
-                return "accepted" if held[n]["index"] == f["index"] else "NAMESPACE_RELEASE_BROKEN"
-            if n > 1:
-                prev = held.get(n - 1)
-                if not prev or f["previous"] != prev["index"] or int(f["released_at"]) < prev["released_at"]:
-                    return "NAMESPACE_RELEASE_BROKEN"
+            if n != len(held) + 1: return "NAMESPACE_RELEASE_BROKEN"
+            if held:
+                prev = held[-1]
+                if f["previous"] != prev["index"]: return "NAMESPACE_RELEASE_BROKEN"
                 for ref, d in prev["lines"].items():
                     if ref not in lines or (d == "retired" and lines[ref] != "retired"):
                         return "NAMESPACE_RELEASE_BROKEN"
-        held[n] = {"index": f["index"], "released_at": int(f["released_at"]), "lines": lines}
+        held.append({"index": f["index"], "lines": lines})
+        return "accepted"
+
+    def verify(self, st, index):
+        """A verifier's decision on a release offered to it: its form, index
+        and signature, then the registry's log holding its exact bytes."""
+        got = self.form(st, index)
+        if isinstance(got, str): return got
+        if st["prefix"] != RELEASE: return "NAMESPACE_MALFORMED"
+        f, lines, msg = got
+        signers = self.signed(st, msg)
+        if signers is None: return "NAMESPACE_SIGNATURE_INVALID"
+        if not NAME.fullmatch(f["namespace"]): return "NAMESPACE_INVALID"
+        if not any((msg, x) in self.recorded for x in signers) and variant != "release-unanchored":
+            return "NAMESPACE_RELEASE_UNRECORDED"
         return "accepted"
 
     def who(self, fp, person=True):
-        if fp not in self.enrolled: return "NAMESPACE_IDENTITY_UNKNOWN"
-        if person and self.enrolled[fp] != "user": return "NAMESPACE_SERVICE_IDENTITY"
+        if fp not in self.enrolled or fp in self.revoked: return "NAMESPACE_IDENTITY_UNKNOWN"
+        if person and self.enrolled[fp]["kind"] != "user": return "NAMESPACE_SERVICE_IDENTITY"
         return None
+
+
+def corpus_codes(vec):
+    """The vectors' place and issuer codes, each held to where the corpus
+    states it: a place code some standard's applies_in names, an issuer code
+    that begins some standard's id."""
+    import glob
+    places, issuers = set(), set()
+    for path in glob.glob(os.path.join(CORPUS, "standards", "*.json")):
+        d = json.load(open(path, encoding="utf-8"))
+        places.update(c.lower() for c in d.get("applies_in", []))
+        issuers.add(d["id"].split("_")[0].lower())
+    faults = []
+    for c in vec["never_claimable"].get("place_codes", []):
+        if c.lower() not in places: faults.append(f"never_claimable: place code {c!r} is in no standard's applies_in")
+    for c in vec["never_claimable"].get("issuer_codes", []):
+        if c.lower() not in issuers: faults.append(f"never_claimable: issuer code {c!r} begins no standard's id")
+    return faults
 
 
 def index_lines(text, digest):
@@ -235,13 +308,14 @@ def defined_here():
 def main():
     faults = defined_here()
     try:
-        vec = json.loads(read("vectors/namespace-registry.json"))
+        vec = json.loads(open(VECTORS, encoding="utf-8").read() if VECTORS else read("vectors/namespace-registry.json"))
     except FileNotFoundError:
         print("\n".join(faults + ["vectors/namespace-registry.json: missing"]))
         sys.exit(1)
     keys = {k["name"]: {"pk": statements.b64(k["public_key"]), "fp": k["fingerprint"]}
             for k in json.loads(read("vectors/fixed-form-statements.json"))["keys"]}
     byfp = {k["fp"]: n for n, k in keys.items()}
+    faults += corpus_codes(vec)
     ver, steps = statements.Verifier(), 0
     try:
         for seq in vec["sequences"]:
@@ -249,8 +323,9 @@ def main():
             for i, step in enumerate(seq["steps"], 1):
                 steps += 1
                 if "ruling" in step: got = reg.ruling(step["ruling"], step["at"])
-                elif "release" in step: got = reg.decide(step["release"], step["at"], release=True, index=step.get("index"))
-                else: got = reg.decide(step["statement"], step["at"])
+                elif "revoke" in step: got = reg.revoke(step["revoke"])
+                elif "verify" in step: got = reg.verify(step["verify"], step.get("index"))
+                else: got = reg.decide(step["statement"], step["at"], step.get("index"))
                 if got != step["expect"]:
                     faults.append(f"{seq['id']} step {i}: got {got}, want {step['expect']}")
             for name, want in seq["state"].items():

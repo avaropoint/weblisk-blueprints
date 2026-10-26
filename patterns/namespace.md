@@ -31,15 +31,15 @@ registry's part is to refuse what its rules refuse, append what they accept, and
 seal the result.
 
 Four kinds of fixed-form statement ([`protocol/identity`](../protocol/identity.md#fixed-form-statements))
-are defined here. Three are acts on a registry, and one is a release a holder
-publishes:
+are defined here, each an act at one registry, which decides it and, if it is
+accepted, records it in its log:
 
 | Statement | Signed by | Does |
 |---|---|---|
 | `weblisk/namespace-claim/v1` | the claimant | takes an unheld name, first come |
 | `weblisk/namespace-grant/v1` | the holder | lets another identity publish under the namespace, or withdraws that |
 | `weblisk/namespace-transfer/v1` | the outgoing and the incoming holder; for a retirement, the outgoing holder alone | hands the namespace on, follows a key rotation, or retires it for good |
-| `weblisk/catalog-release/v1` | the holder, or an identity it granted `publish` | publishes the index of the namespace's parts at one release |
+| `weblisk/catalog-release/v1` | the holder, or an identity it granted `publish` | publishes the index of the namespace's parts at one release, which counts once the registry's log records it |
 
 ---
 
@@ -107,9 +107,11 @@ pattern, never the other way round.
    word, as a sealed log's authority never does.
 4. **A person holds a name.** A service may publish under one by grant; it never
    holds one, so every namespace answers to a person.
-5. **A release is checkable anywhere.** A catalog release names no registry and
-   needs no hub to verify: its signature, its index and a registry's public log
-   are enough.
+5. **A release is checkable anywhere, and dated by the log.** A catalog release
+   needs no hub to verify: its signature, its index and the public log of the
+   registry it names are enough. Its time is when that log recorded it, never a
+   time its signer wrote, so a key whose authority has ended cannot date a
+   release back into the time it had it.
 
 ---
 
@@ -122,16 +124,16 @@ contracts:
       description: Decide claims, grants and transfers, and keep what was decided in a sealed log
       required: true
       rules:
-        - Decides each statement by the steps of Deciding a statement, in order, giving the first refusal that applies
-        - Meets claim-first-come, holder-is-a-person, reserved-and-confusable-refused, transfer-needs-both, retired-never-returns, rotation-keeps-the-binding, statements-bound-to-one-registry and log-is-the-record (Requirements)
+        - Decides each statement, a catalog release included, by the steps of Deciding a statement, in order, giving the first refusal that applies
+        - Meets claim-first-come, holder-is-a-person, reserved-and-confusable-refused, transfer-needs-both, retired-never-returns, rotation-keeps-the-binding, statements-bound-to-one-registry, log-is-the-record, release-by-holder-or-publisher and release-continues (Requirements)
         - Gives every step of vectors/namespace-registry.json its stated verdict
     - name: release-verification
-      description: Verify a catalog release against a registry's state
+      description: Verify a catalog release against the log of the registry it names
       required: true
       rules:
-        - Meets release-by-holder-or-publisher and release-continues (Requirements)
-        - Decides each release by Deciding a statement's steps for a catalog release, in order, giving the first refusal that applies
-        - Gives every release step of vectors/namespace-registry.json its stated verdict
+        - Meets release-is-recorded (Requirements)
+        - Decides each release by the steps of Verifying a release, in order, giving the first refusal that applies
+        - Gives every verify step of vectors/namespace-registry.json its stated verdict
   guarantees:
     - Who holds a namespace is read from a sealed log, never from a hub's say-so
     - A retired namespace and a retired part id are never issued again
@@ -172,12 +174,14 @@ requirements:
   - id: rotation-keeps-the-binding
     level: must
     text: A rotation moves the namespace to the holder's incoming key and keeps
-      its claim and its grants. A transfer to another identity ends every grant
+      its claim and its grants. Its incoming key is the same identity's, as the
+      hub records an identity across a key rotation; a rotation to another
+      identity's key is refused. A transfer to another identity ends every grant
       the outgoing holder made.
   - id: statements-bound-to-one-registry
     level: must
-    text: Every claim, grant and transfer names the log id of the one registry
-      it is made at, and every other registry refuses it.
+    text: Every claim, grant, transfer and catalog release names the log id of
+      the one registry it is made at, and every other registry refuses it.
   - id: log-is-the-record
     level: must
     text: What a registry accepted is exactly what its sealed log holds. It
@@ -185,18 +189,26 @@ requirements:
       and appends nothing for a refused one.
   - id: release-by-holder-or-publisher
     level: must
-    text: A catalog release verifies only when, at its own released_at as the
-      registry's log records it, the namespace was held and not frozen and its
-      signer was the holder or an identity the holder had granted publish. A
-      release made before a rotation, a transfer, a withdrawn grant or a
-      retirement still verifies after it.
+    text: A registry accepts a catalog release only when, at its own clock as
+      it decides, the namespace is held and not frozen and the release is
+      signed by the holder or by an identity the holder has granted publish,
+      whose identity the hub has enrolled and not revoked. A time the signer
+      wrote never stands in for the registry's clock.
   - id: release-continues
     level: must
-    text: A release continues the release before it, as the releases a verifier
-      holds record it. Release 1 names no previous; release N names release
-      N-1's index as previous, is dated no earlier than it, and its index keeps
-      every ref release N-1's index held, a retired ref still retired. A second
-      index for a release number the verifier holds is refused.
+    text: A release continues the latest release the registry's log records for
+      the namespace. Release 1 is the first and names no previous; release N
+      follows release N-1, names its index as previous, and its index keeps
+      every ref release N-1's index held, a retired ref still retired. A number
+      the log already records is never recorded again.
+  - id: release-is-recorded
+    level: must
+    text: A catalog release verifies only when the sealed log of the registry
+      it names holds its exact bytes, signed there by the same key, as an
+      accepted entry. A
+      release the log does not hold is refused, however it was offered and
+      whatever it is dated, and one it holds still verifies after its signer's
+      authority ends.
 ```
 
 ---
@@ -259,28 +271,33 @@ move the namespace.
 ### Catalog release
 
 ```
-"weblisk/catalog-release/v1" 0x00 <namespace> 0x00 <release> 0x00 <index> 0x00 <previous> 0x00 <released_at>
+"weblisk/catalog-release/v1" 0x00 <registry> 0x00 <namespace> 0x00 <release> 0x00 <index> 0x00 <previous> 0x00 <issued_at>
 
 <release>   the release's number in decimal: 1 for the first, one more for each next
 <index>     the digest of the release's index, written sha256:<hex>
 <previous>  the previous release's <index>, written the same way; empty for release 1
 ```
 
-A release names no registry, since it is published to be read anywhere. Its
-verifier reads the namespace's state from a registry it trusts, as that
-registry's log recorded it at the release's `released_at`, and refuses a
-release whose signer was neither the holder nor a `publish` grantee then
-(`release-by-holder-or-publisher`). Judging at the release's own time, rather
-than at the registry's tip, is what keeps a release checkable after its signer's
-authority ends: a holder's rotation, a transfer or a withdrawn grant ends what
-a key may release from then on, never what it released before.
+A release is made at a registry, as a claim is: the signer sends it, with the
+index's text, and the registry decides it at its own clock
+(`release-by-holder-or-publisher`), holds it to the latest release its log
+records (`release-continues`), and appends it. A release on the network names
+the public registry. Only then does it count: a verifier anywhere refuses a
+release that registry's log does not hold (`release-is-recorded`).
 
-The signer writes `released_at`, so an identity whose authority has ended could
-date a release back into the time it held it. The chain bounds that
-(`release-continues`): a release must be the next number after the latest a
-verifier holds, name that release's index, and be dated no earlier than it, so a
-back-dated release cannot follow one made after its signer's authority ended,
-and cannot replace a release a verifier already holds.
+That is what makes a change of authority final. `issued_at` is the signer's
+word and is only held to the replay window, as every statement's is; when the
+release happened is when the log recorded it. So once a rotation, a transfer, a
+withdrawn grant or a revocation is in the log, the key it took authority from
+cannot release again, dated back or not: the registry refuses it, and no
+verifier accepts a release the log does not hold. A release the log recorded
+before the change still verifies after it, because the entry it rests on does
+not move.
+
+What a verifier must hold to be safe is the registry's log, verified as a
+sealed log, up to a checkpoint that includes the release. A verifier that
+accepts a release on its signature alone, or on releases fetched beside it, is
+not verifying one.
 
 **The index** is UTF-8 text, one line per file and per part the namespace's
 catalog holds, each line the item's full ref ([`schemas/names`](../schemas/names.md#the-grammar)),
@@ -290,7 +307,7 @@ digest ([`patterns/content-identity`](content-identity.md)), written
 no ref appears twice, each line ends with one line feed, and nothing else is in
 the file. A ref in one release's index is in every later one: a ref that
 disappears, and a `retired` ref that comes back with a digest, make the later
-release invalid (`release-continues`). That is how a validator holds a part id
+release refused (`release-continues`). That is how a validator holds a part id
 to "retired is never reused" against the previous signed release.
 
 ---
@@ -307,7 +324,8 @@ that the log is a namespace registry. Each later owner entry is one of:
 
 - an **accepted statement**: the prefix, the fields in order, each signature
   with the fingerprint of the key that made it, and the public key of every
-  signer the log has not recorded before;
+  signer the log has not recorded before; for a catalog release, also the
+  index's text, so the log alone shows what each release continues;
 - a **ruling**: the hub owner's recorded decision to `freeze`, `unfreeze` or
   `reassign` a namespace, with the reason in words and, for `reassign`, the
   incoming holder's fingerprint.
@@ -316,7 +334,9 @@ that the log is a namespace registry. Each later owner entry is one of:
 a name taken in bad faith, a dispute. A frozen namespace accepts no grant,
 transfer or release until it is unfrozen. A reassignment makes the incoming
 identity, which must be an enrolled user, the holder, and ends every grant, as
-a transfer does. A ruling never un-retires a namespace. Every ruling is in the
+a transfer does; it changes nothing else, so a frozen namespace stays frozen
+under its new holder until a ruling unfreezes it. A ruling never un-retires a
+namespace. Every ruling is in the
 log with its reason, so it is as visible as any claim.
 
 A namespace's **state** is read from the log alone, in order: `held` by a
@@ -328,10 +348,11 @@ a claim for is `unheld`.
 A registry decides each statement by these steps, in order, and the first that
 fails gives the refusal. The registry's clock is `now`.
 
-1. The prefix is one of the three a registry accepts — or, for a catalog
-   release a verifier decides, `weblisk/catalog-release/v1` — the field count
-   is the prefix's, and every field is in its stated form, `to` empty exactly when
-   `kind` is `retirement` — else `NAMESPACE_MALFORMED`.
+1. The prefix is one of the four, the field count is the prefix's, and every
+   field is in its stated form, `to` empty exactly when `kind` is
+   `retirement`; for a release, the index text it carries has the digest
+   `<index>` names and is in the index's form (The index) — else
+   `NAMESPACE_MALFORMED`.
 2. `<registry>` is this registry's log id — else `NAMESPACE_WRONG_REGISTRY`.
 3. Every signature the request carries verifies, by
    [Verify Signature](../protocol/identity.md#verify-signature), under a public
@@ -359,7 +380,22 @@ fails gives the refusal. The registry's clock is `now`.
    or a rotation is signed by `<to>` as well (`NAMESPACE_TRANSFER_ONE_SIDED`).
    `<grantee>` or `<to>` is enrolled and not revoked
    (`NAMESPACE_IDENTITY_UNKNOWN`), and `<to>` is a user
-   (`NAMESPACE_SERVICE_IDENTITY`).
+   (`NAMESPACE_SERVICE_IDENTITY`). For a rotation, `<to>` is a key of the same
+   identity as `<from>`, as the hub records one identity across a key rotation
+   ([`protocol/identity`](../protocol/identity.md#key-rotation),
+   [`patterns/principal-identity`](principal-identity.md), identity-rotation) —
+   else `NAMESPACE_ROTATION_OTHER_IDENTITY`: a hand-over to another identity is
+   a transfer, and ends the grants.
+8. For a **catalog release**: the namespace has been claimed
+   (`NAMESPACE_UNKNOWN`), is not retired (`NAMESPACE_RETIRED`) and not frozen
+   (`NAMESPACE_FROZEN`), all now. It is signed by the holder or by a `publish`
+   grantee (`NAMESPACE_NOT_PUBLISHER`), whose identity is enrolled and not
+   revoked (`NAMESPACE_IDENTITY_UNKNOWN`). It continues the latest release the
+   log records for the namespace (`release-continues`): its number is one more
+   than that release's, or 1 when there is none; `<previous>` is that release's
+   `<index>`, or empty for release 1; and its index keeps every ref of that
+   release's index, a retired ref still `retired` — else
+   `NAMESPACE_RELEASE_BROKEN`.
 
 An accepted statement is appended before the registry answers
 (`log-is-the-record`). A refusal appends nothing.
@@ -372,30 +408,26 @@ a refused one is not recorded: the namespace has been claimed
 Freezing a frozen namespace, or unfreezing a held one, is recorded and changes
 nothing.
 
-A **catalog release** is decided by a verifier rather than appended, by these
-steps, in order:
+### Verifying a release
 
-1. Steps 1 and 3 above, for its own form and signature. The index the release
-   names, as the verifier fetched it, has that digest and is in the index's
-   form (The index) — else `NAMESPACE_MALFORMED`.
-2. `released_at` is no later than the replay window past `now` — else
-   `NAMESPACE_STATEMENT_STALE`. A release from further ahead cannot be judged
-   yet, since the state at its time is not yet recorded. A release is not
-   refused for being old.
-3. Step 5 above, for `<namespace>`.
-4. Against the namespace's state at `released_at` — the registry's log entries
-   whose `recorded_at` ([`architecture/storage`](../architecture/storage.md#what-a-sealed-log-holds))
-   is at or before it: the namespace had been claimed (`NAMESPACE_UNKNOWN`),
-   was not retired (`NAMESPACE_RETIRED`) and not frozen (`NAMESPACE_FROZEN`),
-   and the signer was its holder or a `publish` grantee
-   (`NAMESPACE_NOT_PUBLISHER`).
-5. Against the releases the verifier already holds for the namespace
-   (`release-continues`): if it holds this release number, the index is the
-   same; otherwise release 1 names no previous, and for release N the verifier
-   holds release N-1 (fetched from where it found release N), and N names its index as
-   `previous`, is dated no earlier, and keeps every ref of its index, a retired
-   ref still `retired` — else `NAMESPACE_RELEASE_BROKEN`. A release that passes
-   is one the verifier now holds.
+Anyone may verify a catalog release offered to it, by these steps, in order,
+against the sealed log of the registry the release names — the public
+registry's, for a release on the network — verified up to a checkpoint as
+[Sealing a Chained Log](../architecture/storage.md#sealing-a-chained-log) says:
+
+1. Steps 1 and 3 of Deciding a statement, for its form, the index as the
+   verifier fetched it, and its signature.
+2. Step 5, for `<namespace>`.
+3. The log holds an accepted entry with exactly these bytes, signed there by
+   the key this release's signature names — else
+   `NAMESPACE_RELEASE_UNRECORDED`.
+
+`issued_at` is not judged here: a release is not refused for being old, and
+one the log holds verifies after its signer's authority ends
+(`release-is-recorded`). A verifier MAY also re-decide step 8 from the entries
+before it, to hold the registry to its own rules; revocation is the hub's
+record and not the log's, so that one part of step 8 it takes from the log's
+acceptance.
 
 ### Private and public
 
@@ -419,6 +451,8 @@ name. How it is proven is not specified yet.
 | GET | /v1/namespaces/{namespace} | ShowNamespace | The namespace's state, holder, grants and badge, and the seq of each entry they come from |
 | POST | /v1/namespaces/{namespace}/grants | GrantNamespace | A grant, signed by the holder |
 | POST | /v1/namespaces/{namespace}/transfers | TransferNamespace | A transfer, rotation or retirement, with its signatures |
+| POST | /v1/namespaces/{namespace}/releases | PublishRelease | A catalog release, its signature and its index's text |
+| GET | /v1/namespaces/{namespace}/releases/{release} | ShowRelease | A recorded release, its index's text, and the seq of its entry |
 | GET | /v1/namespace-log | RegistryLog | The log's stored lines from a given seq, and its latest checkpoint |
 
 No fixed path segment sits where `{namespace}` does, since any word the
@@ -438,7 +472,7 @@ proves itself.
 | `NAMESPACE_MALFORMED` | 400 | Unknown prefix, wrong field count, or a field not in its form; for a release, an index that is not its digest's or not in its form |
 | `NAMESPACE_WRONG_REGISTRY` | 400 | `<registry>` names another registry's log |
 | `NAMESPACE_SIGNATURE_INVALID` | 401 | A signature does not verify under the key it names |
-| `NAMESPACE_STATEMENT_STALE` | 400 | `issued_at` is outside the replay window of the registry's clock; a release's `released_at` is further ahead of the verifier's clock than that window |
+| `NAMESPACE_STATEMENT_STALE` | 400 | `issued_at` is outside the replay window of the registry's clock |
 | `NAMESPACE_STATEMENT_REPLAYED` | 409 | The log already holds these bytes |
 | `NAMESPACE_INVALID` | 400 | The name is not in the namespace grammar |
 | `NAMESPACE_RESERVED` | 403 | A reserved name, place code or issuer code |
@@ -449,10 +483,12 @@ proves itself.
 | `NAMESPACE_FROZEN` | 423 | A ruling froze the namespace |
 | `NAMESPACE_NOT_HOLDER` | 403 | Not signed by the holder the act needs |
 | `NAMESPACE_TRANSFER_ONE_SIDED` | 403 | A transfer or rotation without the incoming holder's signature |
-| `NAMESPACE_IDENTITY_UNKNOWN` | 403 | The holder, grantee or incoming holder, a reassignment's included, is not enrolled at this hub, or is revoked |
+| `NAMESPACE_IDENTITY_UNKNOWN` | 403 | The holder, grantee or incoming holder, a reassignment's included, or a release's signer, is not enrolled at this hub, or is revoked |
 | `NAMESPACE_SERVICE_IDENTITY` | 403 | A service identity as claimant or incoming holder, a reassignment's included |
-| `NAMESPACE_NOT_PUBLISHER` | 403 | A release signed by neither the holder nor a `publish` grantee at its `released_at` |
-| `NAMESPACE_RELEASE_BROKEN` | 409 | A release that does not continue the one before it: a number out of turn, another `previous`, an earlier date, a ref dropped or a retired ref given a digest, or a second index for one number |
+| `NAMESPACE_ROTATION_OTHER_IDENTITY` | 403 | A rotation whose incoming key is another identity's |
+| `NAMESPACE_NOT_PUBLISHER` | 403 | A release signed by neither the holder nor a `publish` grantee, as the registry decides it |
+| `NAMESPACE_RELEASE_BROKEN` | 409 | A release that does not continue the latest the log records: a number out of turn, a number already recorded, another `previous`, or a ref dropped or a retired ref given a digest |
+| `NAMESPACE_RELEASE_UNRECORDED` | 404 | A verifier was offered a release the log of the registry it names does not hold |
 
 ---
 
@@ -462,8 +498,8 @@ The four statements have vectors in
 [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json),
 with every other fixed-form statement. The registry's decisions have their own,
 [`vectors/namespace-registry.json`](../vectors/namespace-registry.json):
-sequences of statements and rulings, each step with the verdict this pattern
-gives it and each sequence with the state it leaves. Every implementation of a
+sequences of statements, rulings and verifications, each step with the
+verdict this pattern gives it and each sequence with the state it leaves. Every implementation of a
 registry, and every verifier of a release, is bound by both.
 
 ---
@@ -487,8 +523,9 @@ registry, and every verifier of a release, is bound by both.
 - [ ] Every vector for the four prefixes verifies with OpenSSL, circl and noble, and in each of the three every vector fails with one byte of its message changed ([`checks/statements.py`](../checks/statements.py), [`checks/ml-dsa`](../checks/ml-dsa/main.go))
 - [ ] Every step of every registry vector gets its stated verdict, and every sequence leaves its stated state ([`checks/namespace-registry.py`](../checks/namespace-registry.py))
 - [ ] A second claim of a held name, a reserved or confusable name, a one-sided transfer and a claim of a retired name are each refused with their code
-- [ ] A rotation keeps the claim and its grants; a transfer ends the grants
+- [ ] A rotation keeps the claim and its grants; a transfer ends the grants; a rotation to another identity's key is refused with `NAMESPACE_ROTATION_OTHER_IDENTITY`
+- [ ] A reassignment of a frozen namespace changes its holder and leaves it frozen
 - [ ] A statement made at one registry is refused at every other
 - [ ] Nothing is appended for a refused statement, and an accepted one is in the log before the answer
-- [ ] A release is judged at its own `released_at`: one made before a rotation, a transfer or a withdrawn grant still verifies after it, and the old key cannot release after it
-- [ ] A release whose index drops a ref, revives a retired one, skips a number, names another `previous`, is dated before the release it follows, or gives a held number a second index is refused with `NAMESPACE_RELEASE_BROKEN`
+- [ ] A release is decided at the registry's clock and counts once its log records it: after a rotation, a transfer, a withdrawn grant or a revocation the old key's release is refused, dated back or not, and a verifier refuses it as `NAMESPACE_RELEASE_UNRECORDED`; a release the log recorded before the change still verifies after it
+- [ ] A release whose index drops a ref, revives a retired one, skips a number, reuses a recorded number, or names another `previous` is refused with `NAMESPACE_RELEASE_BROKEN`

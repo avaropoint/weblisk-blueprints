@@ -383,11 +383,13 @@ PY
 fi
 
 # The namespace registry's rules over its vectors; a registry that accepts
-# confusable names, one that accepts a one-sided transfer, and a verifier that
-# holds no release to the one before it, must each be reported at exactly the
-# steps the vectors refuse for that reason.
+# confusable names, one that accepts a one-sided transfer, one that accepts a
+# rotation to another identity's key, one that holds no release to the one
+# before it, and a verifier that accepts a release its registry's log does not
+# hold, must each be reported at exactly the steps the vectors refuse for that
+# reason.
 expect 0 "namespace-registry: every step gets its stated verdict" python3 checks/namespace-registry.py
-for v in accept-confusables:NAMESPACE_CONFUSABLE accept-one-sided:NAMESPACE_TRANSFER_ONE_SIDED release-unchained:NAMESPACE_RELEASE_BROKEN; do
+for v in accept-confusables:NAMESPACE_CONFUSABLE accept-one-sided:NAMESPACE_TRANSFER_ONE_SIDED rotation-any-identity:NAMESPACE_ROTATION_OTHER_IDENTITY release-unchained:NAMESPACE_RELEASE_BROKEN release-unanchored:NAMESPACE_RELEASE_UNRECORDED; do
 	variant=${v%%:*} code=${v#*:}
 	# expect() sets $want, so the count has a name of its own.
 	steps=$(python3 -c 'import json, sys; print(sum(s["expect"] == sys.argv[1] for q in json.load(open("vectors/namespace-registry.json"))["sequences"] for s in q["steps"]))' "$code")
@@ -426,15 +428,17 @@ else
 	fails=$((fails + 1))
 fi
 
-# Three more of the rules broken, each reported only in the sequence that
-# exercises it: a registry that lets a retired name be claimed again is caught
-# at the first re-claim, one whose rotation drops the grants at the first act a
-# kept grant allows, and a verifier that judges a release against the
-# registry's latest state, not its released_at, at the release the old key
-# made before its rotation.
+# Four more of the rules broken, each reported only in the sequence that
+# exercises it, at its first bite: a registry that lets a retired name be
+# claimed again, at the first re-claim; one whose rotation drops the grants, at
+# the first act a kept grant allows; one that judges a release at the time its
+# signer wrote rather than at its own clock, at the release the holder's
+# rotated-out key dates back into its own time; and one that lets a revoked
+# grantee release, at that release.
 for v in "reclaim-retired:retired-never-returns:step 4: got accepted, want NAMESPACE_RETIRED" \
-	"rotation-drops-grants:rotation-keeps-the-binding+release-at-its-own-time:step 6: got NAMESPACE_NOT_PUBLISHER, want accepted" \
-	"release-at-tip:release-at-its-own-time:step 4: got NAMESPACE_NOT_PUBLISHER, want accepted"; do
+	"rotation-drops-grants:rotation-keeps-the-binding:step 6: got NAMESPACE_NOT_PUBLISHER, want accepted" \
+	"release-signer-time:release-is-recorded:step 5: got accepted, want NAMESPACE_NOT_PUBLISHER" \
+	"release-ignores-revocation:release-authority:step 12: got accepted, want NAMESPACE_IDENTITY_UNKNOWN"; do
 	# variant:sequence[+other sequences it may also reach]:first bite
 	variant=${v%%:*} rest=${v#*:}
 	seqs=${rest%%:*} seq=${seqs%%+*} line="$seq ${rest#*:}"
@@ -447,6 +451,24 @@ for v in "reclaim-retired:retired-never-returns:step 4: got accepted, want NAMES
 		fails=$((fails + 1))
 	fi
 done
+
+# The place and issuer codes the vectors use are the corpus's own: a copy of
+# the vectors adding a place code no standard's applies_in names must report
+# exactly that code.
+python3 - "$tmp/registry.json" <<'PY'
+import json, sys
+d = json.load(open("vectors/namespace-registry.json", encoding="utf-8"))
+d["never_claimable"]["place_codes"].append("zz")
+open(sys.argv[1], "w", encoding="utf-8").write(json.dumps(d, indent=2, ensure_ascii=False) + "\n")
+PY
+expect 1 "namespace-registry control: a place code no standard names fails" python3 checks/namespace-registry.py --vectors "$tmp/registry.json"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^never_claimable: place code 'zz' is in no standard's applies_in$" "$tmp/out"; then
+	echo "ok   namespace-registry control: exactly one finding, the place code"
+else
+	echo "FAIL namespace-registry control: want exactly one finding, the place code"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
 
 [ "$notrun" -gt 0 ] && echo "checks: $notrun verifier leg(s) NOT RUN (see above)"
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"

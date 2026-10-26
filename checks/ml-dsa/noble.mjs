@@ -95,7 +95,7 @@ for (const v of fixed.vectors) {
 let signatures = 0, forged = 0;
 for (const q of registry.sequences) {
   q.steps.forEach((s, i) => {
-    const st = s.statement || s.release;
+    const st = s.statement || s.verify;
     if (!st) return;
     const msg = message(st.prefix, st.fields);
     for (const g of st.signatures) {

@@ -203,7 +203,7 @@ func makeFixed(verifiedWith []string) ([]byte, map[string]*key, []vector) {
 		return []field{{"registry", registry}, {"namespace", ns}, {"from", from.Fingerprint}, {"to", to}, {"kind", kind}, {"issued_at", at}}
 	}
 	release := func(n, index, previous, at string) []field {
-		return []field{{"namespace", ns}, {"release", n}, {"index", index}, {"previous", previous}, {"released_at", at}}
+		return []field{{"registry", registry}, {"namespace", ns}, {"release", n}, {"index", index}, {"previous", previous}, {"issued_at", at}}
 	}
 
 	type spec struct {
@@ -255,7 +255,7 @@ func makeFixed(verifiedWith []string) ([]byte, map[string]*key, []vector) {
 			transfer(holder1, holder1Next.Fingerprint, "rotation", "1767225840"), holder1Next},
 		{"namespace-retirement", transferP, "the holder retires the namespace: to is empty and only the outgoing holder signs",
 			transfer(holder1, "", "retirement", "1767225900"), holder1},
-		{"catalog-release-1", releaseP, "the holder publishes release 1: previous is empty",
+		{"catalog-release-1", releaseP, "the holder publishes release 1 at one registry: previous is empty",
 			release("1", index1, "", "1767225960"), holder1},
 		{"catalog-release-2", releaseP, "a publish grantee publishes release 2, naming release 1's index as previous",
 			release("2", index2, index1, "1767226020"), service},
@@ -304,7 +304,7 @@ type signed struct {
 
 type step struct {
 	Statement *signed `json:"statement"`
-	Release   *signed `json:"release"`
+	Verify    *signed `json:"verify"`
 	Expect    string  `json:"expect"`
 }
 
@@ -334,7 +334,7 @@ func registrySigs(raw []byte) ([]regSig, error) {
 		for i, s := range q.Steps {
 			st := s.Statement
 			if st == nil {
-				st = s.Release
+				st = s.Verify
 			}
 			if st == nil {
 				continue
