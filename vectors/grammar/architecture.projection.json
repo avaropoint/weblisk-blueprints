@@ -1,0 +1,181 @@
+{
+  "file": "vectors/grammar/architecture.md",
+  "family": "schemas/family@1",
+  "length": 21626,
+  "version_hash": "sha256:46fc51949f8fdb249db8bb3d69216a8473be2cb0a95d501dbb668fbae1ddccc9",
+  "parts": [
+    {
+      "span": [0, 277],
+      "part": "header",
+      "slot": null,
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:a5da3ababfb845676d1425c6020fdc155999f1865bba590d27639c0e971b526c",
+      "entries": [
+        {
+          "id": "family",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:31fb1eeb859ff9679f796bebfe115f6c568b86f4dbbd4ff8f480efa3adcf124e"
+        },
+        {
+          "id": "version",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:0175d86befbe75525f132794baff42abbf4e2a659aa20f2baec341740a9573e7"
+        },
+        {
+          "id": "kind",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:661272019a005b9a11714a9c70d9d4d153717404e51e35d772c4f827b56727d0"
+        },
+        {
+          "id": "noun",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:661272019a005b9a11714a9c70d9d4d153717404e51e35d772c4f827b56727d0"
+        },
+        {
+          "id": "match",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:4792761c2e79a71678e76bb73841593dac1a2ff7dae1627728ddbfcfb3c6e2f7"
+        },
+        {
+          "id": "capabilities",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:718472a721161ee76221b22ab52883ebda115244aa40efb75776f98e3b4f36d9"
+        },
+        {
+          "id": "template",
+          "use": "navigates",
+          "send": "on-request",
+          "digest": "sha256:6cf74df500691aaf8c5677e286ae7618568a8162e235e712188d5fab35884819"
+        },
+        {
+          "id": "adopt",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:c5febae99ca1fa055f0e26ef6268c164aaa7c58816d24e479a00498899d13613"
+        },
+        {
+          "id": "generates",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:4a1933b06cf695fcff4acaba1fdbaa7f10ce109d3c7f57bbf62f6bb572658de8"
+        }
+      ]
+    },
+    {
+      "span": [277, 1148],
+      "part": "text",
+      "slot": "title",
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:bfe146892d513147af92a529c345cf85366831430a60ec6448101e694325d848"
+    },
+    {
+      "span": [1148, 1159],
+      "part": "text",
+      "slot": "header",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:c7be56ccdadeb892cd79dc3cfec7a19fbba8b0205b8707557510ec369c86b479"
+    },
+    {
+      "span": [1159, 2425],
+      "part": "block",
+      "slot": "header",
+      "block": "header",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:2ab3b638cf972f9d87f4a314a77cce91464abff0d9ff665719356f4152348171",
+      "entries": []
+    },
+    {
+      "span": [2425, 2426],
+      "part": "text",
+      "slot": "header",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [2426, 2439],
+      "part": "text",
+      "slot": "sections",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:6ed5d2c09db626d22406f8c86c54ae5e44c9e22f8a21b00f0f3a8df1f1a1289d"
+    },
+    {
+      "span": [2439, 5100],
+      "part": "block",
+      "slot": "sections",
+      "block": "sections",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:b78a5efda9e92614489e90024c594dfa31f008747b0e42b47f6112abf0e204c1",
+      "entries": []
+    },
+    {
+      "span": [5100, 5101],
+      "part": "text",
+      "slot": "sections",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [5101, 7037],
+      "part": "text",
+      "slot": null,
+      "use": "explains",
+      "send": "on-request",
+      "digest": "sha256:ccf0c1b27a217435f27eae0d63297a69479255b2dd4ba1f17426cb5855737fa6"
+    },
+    {
+      "span": [7037, 7303],
+      "part": "text",
+      "slot": null,
+      "use": "explains",
+      "send": "on-request",
+      "digest": "sha256:544d02afa67b63fb17a6fb5aa70891e7cc29cea918d55fc56f23537db9c49755"
+    },
+    {
+      "span": [7303, 8118],
+      "part": "text",
+      "slot": null,
+      "use": "explains",
+      "send": "on-request",
+      "digest": "sha256:eb4bb0bb6cf10c6213c2d36e16fd07ca055dcea3acec4abe6bcb312edd4ec738"
+    },
+    {
+      "span": [8118, 10525],
+      "part": "text",
+      "slot": null,
+      "use": "explains",
+      "send": "on-request",
+      "digest": "sha256:dc000ff04c44898c1594b63edd09c5c3fda019ab4fb75112f61a9c746a673cb6"
+    },
+    {
+      "span": [10525, 20260],
+      "part": "text",
+      "slot": null,
+      "use": "explains",
+      "send": "on-request",
+      "digest": "sha256:3b895e3eb74164c77edbc5f5a6bf441c4c15c57f29073cea91d3ad4e3d9ec5d9"
+    },
+    {
+      "span": [20260, 21626],
+      "part": "text",
+      "slot": null,
+      "use": "explains",
+      "send": "on-request",
+      "digest": "sha256:e00b495cc791d358c746179d1a8833937ede9d8a969d3f7fa7b931f405d9acbb"
+    }
+  ],
+  "findings": []
+}
