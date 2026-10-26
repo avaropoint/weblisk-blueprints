@@ -278,8 +278,8 @@ How a schema type is spelled is a language's, not a platform's: the types are
 [`schemas/concepts`](concepts.md#concepts), and each is answered by a rule of a
 language mapping ([`schemas/mapping`](mapping.md#classes)), checked against
 [`vectors/types.json`](../vectors/types.json). A platform that narrows one, as a
-runtime that cannot hold a 64-bit integer in its number type must, does so with a
-rule that `refines` the language's.
+runtime whose number type cannot hold every integer must, does so with a rule
+that `refines` the language's.
 
 ### Security (`## Security`)
 
